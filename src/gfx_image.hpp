@@ -1,7 +1,7 @@
 #pragma once
 
 #include "pixel_formats.hpp"
-#include <string>
+#include "resource.hpp"
 
 #define GFX_INVALID_TEXTURE_HANDLE (~0u)
 typedef uint32_t GfxTextureHandle;
@@ -9,13 +9,15 @@ typedef uint32_t GfxTextureHandle;
 namespace Progression
 {
 
+class Serializer;
 
 enum class GfxImageSemantic
 {
     DIFFUSE,
-    NORMAL
-};
+    NORMAL,
 
+    NUM_IMAGE_SEMANTICS
+};
 
 enum class GfxImageType : uint8_t
 {
@@ -30,32 +32,42 @@ enum class GfxImageType : uint8_t
     NUM_IMAGE_TYPES
 };
 
-
-struct GfxImage
+struct GfxImage : public Resource
 {
-    std::string name;
+    void Free();
+    unsigned char* GetPixels( int face, int mip, int depthLevel = 0 ) const;
+    void Move( Resource* dst ) override;
+
     int width     = 0;
     int height    = 0;
     int depth     = 0;
     int mipLevels = 0;
     int numFaces  = 0;
+    size_t totalSizeInBytes = 0;
     unsigned char* pixels = nullptr;
     PixelFormat pixelFormat;
     GfxImageType imageType;
     GfxTextureHandle textureHandle = GFX_INVALID_TEXTURE_HANDLE;
 };
 
-
 struct GfxImageCreateInfo
 {
     std::string name;
     std::string filename;
-    GfxImageSemantic semantic;
-    GfxImageType imageType;
+    GfxImageSemantic semantic  = GfxImageSemantic::DIFFUSE;
+    GfxImageType imageType     = GfxImageType::TYPE_2D;
     PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID
 };
 
-bool Load_GfxImage( GfxImage* image, const GfxImageCreateInfo& createInfo );
+bool GfxImage_Load( GfxImage* image, const GfxImageCreateInfo& createInfo );
+
+bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer );
+
+bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serializer );
+
+int CalculateNumMips( int width, int height );
+
+size_t CalculateTotalFaceSizeWithMips( int mip0Width, int mip0Height, PixelFormat format );
 
 
 } // namespace Progression

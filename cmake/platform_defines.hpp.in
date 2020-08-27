@@ -8,7 +8,7 @@
 #include "core_defines.hpp"
 
 #define PG_ROOT_DIR "${PROGRESSION_DIR}/"
-#define PG_RESOURCE_DIR "${PROGRESSION_DIR}/resources/"
+#define PG_ASSET_DIR "${PROGRESSION_DIR}/assets/"
 #define PG_BIN_DIR "${CMAKE_BINARY_DIR}/bin/"
 
 #define LINUX_PROGRAM   ${LINUX_PROGRAM}

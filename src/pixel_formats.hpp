@@ -137,7 +137,7 @@ bool PixelFormatIsCompressed( PixelFormat format );
 // Normally r = 0, g = 1, b = 2, a = 3, besides for a few formats like B8_G8_R8_UNORM
 void GetRGBAOrder( PixelFormat format, int channelRemap[4] );
 
-const char* PixelFormatName( PixelFormat format );
+std::string PixelFormatName( PixelFormat format );
 
 PixelFormat PixelFormatFromString( const std::string& format );
 

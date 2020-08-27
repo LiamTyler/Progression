@@ -5,7 +5,8 @@ logs/
 *.vs*
 *.cap
 src/platform_defines.hpp
-test_images/
+assets/cache/
+tests/
 *.spv
 .vscode/
 

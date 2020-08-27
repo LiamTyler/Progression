@@ -410,11 +410,11 @@ void GetRGBAOrder( PixelFormat format, int channelRemap[4] )
 }
 
 
-const char* PixelFormatName( PixelFormat format )
+std::string PixelFormatName( PixelFormat format )
 {
     const char* names[] =
     {
-        "SOURCE_FORMAT",         // INVALID
+        "INVALID",         // INVALID
         "R8_UNORM",              // R8_UNORM
         "R8_SNORM",              // R8_SNORM
         "R8_UINT",               // R8_UINT

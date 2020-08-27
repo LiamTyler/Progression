@@ -41,4 +41,8 @@ public:
     ImageFlags flags       = 0;
 };
 
+
 } // namespace Progression
+
+
+bool SaveExr( const std::string& filename, int width, int height, glm::vec4* pixels );

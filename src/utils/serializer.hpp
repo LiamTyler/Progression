@@ -1,0 +1,49 @@
+#pragma once
+
+#include "memory_map/MemoryMapped.h"
+#include <fstream>
+#include <string>
+
+namespace Progression
+{
+
+
+class Serializer
+{
+public:
+    Serializer() = default;
+    ~Serializer();
+
+    bool OpenForRead( const std::string& filename );
+    bool OpenForWrite( const std::string& filename );
+    void Close();
+    bool IsOpen() const;
+
+    void Write( const void* buffer, size_t bytes );
+    void Read( void* buffer, size_t bytes );
+    void Write( const std::string& s );
+    void Read( std::string& s );
+
+    template< typename T >
+    void Write( const T& x )
+    {
+        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        Write( &x, sizeof( T ) );
+    }
+
+    template< typename T >
+    void Read( T& x )
+    {
+        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        Read( &x, sizeof( T ) );
+    }
+
+private:
+    std::string filename;
+    std::ofstream writeFile;
+    MemoryMapped memMappedFile;
+    unsigned char* currentReadPos = nullptr;
+};
+
+
+} // namespace Progression

@@ -1,0 +1,7 @@
+{
+    "Image": {
+        "name": "macaw",
+        "filename": "macaw.png",
+        "dstFormat": "R8_G8_B8_A8_UNORM"
+    }
+}

@@ -6,28 +6,17 @@
 namespace Progression
 {
 
-struct ResourceCreateInfo
-{
-    std::string name;
-};
 
-class Resource
+struct Resource
 {
-public:
-    Resource() : name( "" )
-    {
-    }
-    Resource( const std::string& n ) : name( n )
-    {
-    }
     virtual ~Resource() = default;
-
-    virtual bool Load( ResourceCreateInfo* createInfo = nullptr ) = 0;
-    virtual void Move( std::shared_ptr< Resource > dst )          = 0;
-    virtual bool Serialize( std::ofstream& outFile ) const        = 0;
-    virtual bool Deserialize( char*& buffer )                     = 0;
+    
+    // For reloading resources at runtime at already existed. Move the data of the
+    // new resource into the old address, keeping pointers to the old one valid
+    virtual void Move( Resource* dst ) = 0;
 
     std::string name;
 };
+
 
 } // namespace Progression

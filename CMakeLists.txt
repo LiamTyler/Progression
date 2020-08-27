@@ -17,7 +17,7 @@ elseif(APPLE)
     set(APPLE_PROGRAM   "IN_USE")
 endif()
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Ship")
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib)
@@ -36,44 +36,15 @@ if(UNIX AND NOT APPLE)
     set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wno-unused-function")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -O2")
-    set(CMAKE_CXX_FLAGS_SHIP "${CMAKE_CXX_FLAGS_SHIP} -O3") # look up Ofast
 elseif(MSVC)
     #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} /WX")
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
-    set(CMAKE_CXX_FLAGS_SHIP "${CMAKE_CXX_FLAGS_SHIP} /O2")
 endif()
 
-if(MSVC)
-    SET(CMAKE_CXX_FLAGS_SHIP
-        "${CMAKE_CXX_FLAGS_SHIP} /O2"
-        CACHE STRING "Flags used by the C++ compiler during coverage builds."
-        FORCE
-    )
-    SET(CMAKE_C_FLAGS_SHIP
-        ""
-        CACHE STRING "Flags used by the C compiler during coverage builds."
-        FORCE
-    )
-    SET(CMAKE_EXE_LINKER_FLAGS_SHIP
-        ""
-        CACHE STRING "Flags used for linking binaries during coverage builds."
-        FORCE
-    )
-    SET(CMAKE_SHARED_LINKER_FLAGS_SHIP
-        ""
-        CACHE STRING "Flags used by the shared libraries linker during coverage builds."
-        FORCE
-    )
-    MARK_AS_ADVANCED(
-        CMAKE_CXX_FLAGS_SHIP
-        CMAKE_C_FLAGS_SHIP
-        CMAKE_EXE_LINKER_FLAGS_SHIP
-        CMAKE_SHARED_LINKER_FLAGS_SHIP
-    )
-endif()
+add_subdirectory(ext/lz4)
 
-set(LIBS)
+set(LIBS lz4)
 find_package(OpenMP)
 if(NOT OpenMP_CXX_FOUND)
     message("OpenMP not found! Rendering will be single threaded")
@@ -92,21 +63,37 @@ configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DI
 set(
 	SRC
 	src/assert.hpp
-	src/image.cpp
-    src/image.hpp
+    src/core_defines.hpp
     src/gfx_image.cpp
     src/gfx_image.hpp
+	src/image.cpp
+    src/image.hpp
     src/pixel_formats.cpp
     src/pixel_formats.hpp
-    src/resource.hpp
-    src/core_defines.hpp
     src/platform_defines.hpp
+    src/remote_console_server.cpp
+    src/remote_console_server.hpp
+    src/resource.hpp
+    src/resource_manager.cpp
+    src/resource_manager.hpp
+    src/resource_versions.hpp
     
-    src/utils/logger.hpp
-    src/utils/logger.cpp
-    src/utils/filesystem.hpp
-    src/utils/filesystem.cpp
+    src/converters/gfx_image_converter.cpp
+    src/converters/gfx_image_converter.hpp
+    
     src/utils/cpu_profile.hpp
+    src/utils/file_dependency.cpp
+    src/utils/file_dependency.hpp
+    src/utils/filesystem.cpp
+    src/utils/filesystem.hpp
+    src/utils/json_parsing.cpp
+    src/utils/json_parsing.hpp
+    src/utils/logger.cpp
+    src/utils/logger.hpp
+    src/utils/lz4_compressor.cpp
+    src/utils/lz4_compressor.hpp
+    src/utils/serializer.cpp
+    src/utils/serializer.hpp
     
     src/main.cpp
 )
@@ -119,6 +106,8 @@ set(
     ext/stb/stb_image_resize.h
     ext/tinyexr/tinyexr.h
     ext/tinyexr/tinyexr.cc
+    ext/memory_map/MemoryMapped.h
+    ext/memory_map/MemoryMapped.cpp
 )
 
 set(
@@ -145,6 +134,7 @@ if(MSVC)
 endif()
 
 add_executable(Converter ${ALL_FILES})
+set_target_properties(Converter PROPERTIES DEBUG_POSTFIX _d)
 
 if(MSVC)
     target_compile_options(Converter PRIVATE "/MP")

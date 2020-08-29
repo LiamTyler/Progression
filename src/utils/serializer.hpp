@@ -4,9 +4,6 @@
 #include <fstream>
 #include <string>
 
-namespace Progression
-{
-
 
 class Serializer
 {
@@ -18,6 +15,9 @@ public:
     bool OpenForWrite( const std::string& filename );
     void Close();
     bool IsOpen() const;
+
+    // if opened for reading, return how many bytes are left to read. Else 0
+    size_t BytesLeft() const;
 
     void Write( const void* buffer, size_t bytes );
     void Read( void* buffer, size_t bytes );
@@ -44,6 +44,3 @@ private:
     MemoryMapped memMappedFile;
     unsigned char* currentReadPos = nullptr;
 };
-
-
-} // namespace Progression

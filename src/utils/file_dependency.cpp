@@ -1,7 +1,8 @@
 #include "file_dependency.hpp"
 #include <sys/stat.h>
 
-static time_t GetFileTime( const std::string& file )
+
+time_t GetFileTimestamp( const std::string& file )
 {
     struct stat s;
     if ( stat( file.c_str(), &s ) == 0 )
@@ -12,22 +13,24 @@ static time_t GetFileTime( const std::string& file )
     return 0;
 }
 
-namespace Progression
-{
-
 
 bool IsFileOutOfDate( const std::string& file, const std::string& dependency )
 {
-    return GetFileTime( file ) < GetFileTime( dependency );
+    time_t fTime = GetFileTimestamp( file );
+    if ( fTime == 0 )
+    {
+        return true;
+    }
+    return fTime < GetFileTimestamp( dependency );
 }
 
 
 bool IsFileOutOfDate( const std::string& file, const std::vector< std::string >& dependencies )
 {
-    time_t fileTime = GetFileTime( file );
+    time_t fileTime = GetFileTimestamp( file );
     for ( const std::string& dependency : dependencies )
     {
-        if ( fileTime < GetFileTime( dependency ) )
+        if ( fileTime < GetFileTimestamp( dependency ) )
         {
             return true;
         }
@@ -35,6 +38,3 @@ bool IsFileOutOfDate( const std::string& file, const std::vector< std::string >&
 
     return false;
 }
-
-
-} // namespace Progression

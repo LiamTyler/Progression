@@ -125,7 +125,7 @@ unsigned char* GfxImage::GetPixels( int face, int mip, int depthLevel ) const
 }
 
 
-void GfxImage::Move( Resource* dst )
+void GfxImage::Move( Asset* dst )
 {
     PG_ASSERT( dst );
     PG_ASSERT( dynamic_cast< GfxImage* >( dst ) );
@@ -330,6 +330,7 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
 
 bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
+    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 64, "Don't forget to update this function if added/removed members from GfxImage!" );
     PG_ASSERT( gfxImage );
 
     gfxImage->name        = createInfo.name;

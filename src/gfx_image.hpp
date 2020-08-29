@@ -1,15 +1,15 @@
 #pragma once
 
 #include "pixel_formats.hpp"
-#include "resource.hpp"
+#include "base_asset.hpp"
 
 #define GFX_INVALID_TEXTURE_HANDLE (~0u)
 typedef uint32_t GfxTextureHandle;
 
+class Serializer;
+
 namespace Progression
 {
-
-class Serializer;
 
 enum class GfxImageSemantic
 {
@@ -32,11 +32,11 @@ enum class GfxImageType : uint8_t
     NUM_IMAGE_TYPES
 };
 
-struct GfxImage : public Resource
+struct GfxImage : public Asset
 {
     void Free();
     unsigned char* GetPixels( int face, int mip, int depthLevel = 0 ) const;
-    void Move( Resource* dst ) override;
+    void Move( Asset* dst ) override;
 
     int width     = 0;
     int height    = 0;

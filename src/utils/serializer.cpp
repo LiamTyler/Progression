@@ -2,9 +2,6 @@
 #include "utils/logger.hpp"
 #include "assert.hpp"
 
-namespace Progression
-{
-
 
 Serializer::~Serializer()
 {
@@ -62,6 +59,18 @@ bool Serializer::IsOpen() const
 }
 
 
+size_t Serializer::BytesLeft() const
+{
+    if ( memMappedFile.isValid() )
+    {
+        size_t bytesRead = currentReadPos - memMappedFile.getData();
+        return memMappedFile.size() - bytesRead;
+    }
+
+    return 0;
+}
+
+
 void Serializer::Write( const void* buffer, size_t bytes )
 {
     PG_ASSERT( buffer && writeFile.good() );
@@ -99,6 +108,3 @@ void Serializer::Read( std::string& s )
         Read( &s[0], strSize );
     }
 }
-
-
-} // namespace Progression

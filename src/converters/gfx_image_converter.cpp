@@ -1,15 +1,16 @@
 #include "image.hpp"
 #include "assert.hpp"
 #include "gfx_image.hpp"
-#include "resource_versions.hpp"
+#include "asset_versions.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/file_dependency.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
-#include "utils/lz4_compressor.hpp"
 
 using namespace Progression;
+
+extern void AddFastfileDependency( const std::string& file );
 
 std::vector< GfxImageCreateInfo > g_parsedImages;
 std::vector< GfxImageCreateInfo > g_outOfDateImages;
@@ -47,7 +48,7 @@ static std::unordered_map< std::string, GfxImageType > imageTypeMap =
 };
 
 
-void GfxImage_Parse( rapidjson::Value& value )
+void GfxImage_Parse( const rapidjson::Value& value )
 {
     // static FunctionMapper< void, std::vector< std::string >& > cubemapParser(
     // {
@@ -59,11 +60,11 @@ void GfxImage_Parse( rapidjson::Value& value )
     //     { "front",  []( rapidjson::Value& v, std::vector< std::string >& files ) { files[5] = v.GetString(); } },
     // });
 
-    static FunctionMapper< void, GfxImageCreateInfo& > mapping(
+    static FunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "name",      []( rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
-        { "filename",  []( rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR "images/" + std::string( v.GetString() ); } },
-        { "imageType", []( rapidjson::Value& v, GfxImageCreateInfo& i )
+        { "name",      []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
+        { "filename",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR "images/" + std::string( v.GetString() ); } },
+        { "imageType", []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 std::string imageName = v.GetString();
                 auto it = imageTypeMap.find( imageName );
@@ -77,7 +78,7 @@ void GfxImage_Parse( rapidjson::Value& value )
                 }
             }
         },
-        { "semantic",  []( rapidjson::Value& v, GfxImageCreateInfo& i )
+        { "semantic",  []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 std::string semanticName = v.GetString();
                 auto it = imageSemanticMap.find( semanticName );
@@ -92,7 +93,7 @@ void GfxImage_Parse( rapidjson::Value& value )
                 }
             }
         },
-        { "dstFormat", []( rapidjson::Value& v, GfxImageCreateInfo& i )
+        { "dstFormat", []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 i.dstPixelFormat = PixelFormatFromString( v.GetString() );
                 if ( i.dstPixelFormat == PixelFormat::INVALID )
@@ -120,24 +121,10 @@ void GfxImage_Parse( rapidjson::Value& value )
     g_parsedImages.push_back( info );
 }
 
-std::string HashMemory( unsigned char *str, int len )
-{
-    unsigned long hash = 5381;
-    int c;
-
-    for ( int i = 0; i < len; ++i )
-    {
-        c = (int)str[i];
-        hash = ((hash << 5) + hash) + c; /* hash * 33 + c */
-    }
-
-    return std::to_string( hash );
-}
-
 
 static std::string GfxImage_GetFastFileName( const GfxImageCreateInfo& info )
 {
-    static_assert( sizeof( GfxImageCreateInfo ) == 80, "Dont forget to add new hash value" );
+    static_assert( sizeof( GfxImageCreateInfo ) == 16 + 2 * sizeof( std::string ), "Dont forget to add new hash value" );
 
     std::string baseName = GetFilenameStem( info.name );
     baseName += "_v" + std::to_string( PG_GFX_IMAGE_VERSION );
@@ -154,6 +141,7 @@ static std::string GfxImage_GetFastFileName( const GfxImageCreateInfo& info )
 static bool GfxImage_IsOutOfDate( const GfxImageCreateInfo& info )
 {
     std::string ffName = GfxImage_GetFastFileName( info );
+    AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, info.filename );
 }
 
@@ -187,7 +175,7 @@ static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
 int GfxImage_CheckDependencies()
 {
     int outOfDate = 0;
-    for ( int i = 0; i < (int)g_parsedImages.size(); ++i )
+    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
     {
         if ( GfxImage_IsOutOfDate( g_parsedImages[i] ) )
         {
@@ -217,4 +205,25 @@ int GfxImage_Convert()
     }
 
     return couldNotConvert;
+}
+
+
+bool GfxImage_BuildFastFile( Serializer* serializer )
+{
+    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
+    {
+        std::string ffiName = GfxImage_GetFastFileName( g_parsedImages[i] );
+        MemoryMapped inFile;
+        if ( !inFile.open( ffiName ) )
+        {
+            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
+            return false;
+        }
+        
+        serializer->Write( AssetType::ASSET_TYPE_GFX_IMAGE );
+        serializer->Write( inFile.getData(), inFile.size() );
+        inFile.close();
+    }
+
+    return true;
 }

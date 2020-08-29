@@ -11,19 +11,19 @@
 bool ParseJSONFile( const std::string& filename, rapidjson::Document& document );
 
 template < typename T >
-T ParseNumber( rapidjson::Value& v )
+T ParseNumber( const rapidjson::Value& v )
 {
     PG_ASSERT( v.IsNumber() );
     return v.Get< T >();
 }
 
-glm::vec3 ParseVec3( rapidjson::Value& v );
-glm::vec4 ParseVec4( rapidjson::Value& v );
+glm::vec3 ParseVec3( const rapidjson::Value& v );
+glm::vec4 ParseVec4( const rapidjson::Value& v );
 
-template < typename RetType, typename ...Args >
+template < typename ...Args >
 class FunctionMapper
 {
-    using function_type = std::function< RetType( rapidjson::Value&, Args... ) >;
+    using function_type = std::function< void( const rapidjson::Value&, Args... ) >;
     using map_type = std::unordered_map< std::string, function_type >;
 public:
     FunctionMapper( const map_type& m ) : mapping( m ) {}
@@ -34,11 +34,11 @@ public:
         return mapping[name];
     }
 
-    void Evaluate( const std::string& name, rapidjson::Value& v, Args&&... args )
+    void Evaluate( const std::string& name, const rapidjson::Value& v, Args&&... args )
     {
         if ( mapping.find( name ) == mapping.end() )
         {
-            LOG_WARN( "'", name, "' not found in mapping" );
+            LOG_WARN( "'%s' not found in mapping\n", name.c_str() );
         }
         else
         {
@@ -46,14 +46,14 @@ public:
         }
     }
 
-    void ForEachMember( rapidjson::Value& v, Args&&... args )
+    void ForEachMember( const rapidjson::Value& v, Args&&... args )
     {
         for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
         {
             std::string name = it->name.GetString();
             if ( mapping.find( name ) == mapping.end() )
             {
-                LOG_WARN( "'", name, "' not found in mapping" );
+                LOG_WARN( "'%s' not found in mapping\n", name.c_str() );
             }
             else
             {

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "base_asset.hpp"
+#include "assetTypes/base_asset.hpp"
 
 namespace Progression
 {

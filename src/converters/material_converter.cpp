@@ -1,6 +1,6 @@
 #include "image.hpp"
 #include "assert.hpp"
-#include "material.hpp"
+#include "assetTypes/material.hpp"
 #include "asset_versions.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/file_dependency.hpp"

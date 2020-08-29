@@ -63,17 +63,21 @@ configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DI
 set(
 	SRC
 	src/assert.hpp
+    src/assetTypes/base_asset.hpp
+    src/assetTypes/gfx_image.cpp
+    src/assetTypes/gfx_image.hpp
+    src/assetTypes/material.cpp
+    src/assetTypes/material.hpp
+    src/assetTypes/script.cpp
+    src/assetTypes/script.hpp
     src/asset_manager.cpp
     src/asset_manager.hpp
     src/asset_versions.hpp
-    src/base_asset.hpp
+    
     src/core_defines.hpp
-    src/gfx_image.cpp
-    src/gfx_image.hpp
+    
 	src/image.cpp
     src/image.hpp
-    src/material.cpp
-    src/material.hpp
     src/pixel_formats.cpp
     src/pixel_formats.hpp
     src/platform_defines.hpp
@@ -84,6 +88,8 @@ set(
     src/converters/gfx_image_converter.hpp
     src/converters/material_converter.cpp
     src/converters/material_converter.hpp
+    src/converters/script_converter.cpp
+    src/converters/script_converter.hpp
     
     src/utils/cpu_profile.hpp
     src/utils/file_dependency.cpp

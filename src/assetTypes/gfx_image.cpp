@@ -1,4 +1,4 @@
-#include "gfx_image.hpp"
+#include "assetTypes/gfx_image.hpp"
 #include "assert.hpp"
 #include "image.hpp"
 #include "utils/cpu_profile.hpp"

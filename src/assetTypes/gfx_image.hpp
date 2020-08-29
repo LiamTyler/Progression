@@ -1,7 +1,7 @@
 #pragma once
 
+#include "assetTypes/base_asset.hpp"
 #include "pixel_formats.hpp"
-#include "base_asset.hpp"
 
 #define GFX_INVALID_TEXTURE_HANDLE (~0u)
 typedef uint32_t GfxTextureHandle;

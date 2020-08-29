@@ -2,16 +2,13 @@
 #include "asset_versions.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
+#include "converters/script_converter.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/file_dependency.hpp"
 #include "utils/logger.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/serializer.hpp"
 #include <chrono>
-
-#include "asset_manager.hpp"
-#include "gfx_image.hpp"
-#include "material.hpp"
 
 bool g_parsingError;
 int g_outOfDateAssets;
@@ -47,26 +44,6 @@ int main( int argc, char** argv )
         }
     }
 
-    if ( !Progression::AssetManager::LoadFastFile( "assetList" ) )
-    {
-        LOG_ERR( "Could not laod fastfile!\n" );
-    }
-    else
-    {
-        Progression::GfxImage* img = Progression::AssetManager::Get< Progression::GfxImage >( "macaw" );
-        PG_ASSERT( img );
-        LOG( "name = %s\n", img->name.c_str() );
-        LOG( "width = %d\n", img->width );
-        LOG( "height = %d\n", img->height );
-        LOG( "depth = %d\n", img->depth );
-
-        Progression::Material* mat = Progression::AssetManager::Get< Progression::Material >( "blue" );
-        PG_ASSERT( mat );
-        LOG( "name = %s\n", mat->name.c_str() );
-        LOG( "Kd = (%d, %d, %d)\n", mat->Kd.x, mat->Kd.y, mat->Kd.z );
-        LOG( "mapKd = %#08x\n", mat->map_Kd );
-    }
-
     Logger_Shutdown();
     return 0;
 }
@@ -86,6 +63,7 @@ bool RunConverter( const std::string& assetFile )
     CreateDirectory( PG_ASSET_DIR "cache/fastfiles/" );
     CreateDirectory( PG_ASSET_DIR "cache/images/" );
     CreateDirectory( PG_ASSET_DIR "cache/materials/" );
+    CreateDirectory( PG_ASSET_DIR "cache/scripts/" );
 
     auto converterStartTime = std::chrono::system_clock::now();
     LOG( "Loading asset list file '%s'...\n", assetFile.c_str() );
@@ -99,6 +77,7 @@ bool RunConverter( const std::string& assetFile )
     {
         { "Image",   GfxImage_Parse },
         { "MatFile", Material_Parse },
+        { "Script",  Script_Parse },
     });
 
     g_parsingError = false;
@@ -121,8 +100,10 @@ bool RunConverter( const std::string& assetFile )
     LOG( "GfxImages out of date: %d\n", numGfxImageOutOfDate );
     int numMatFilesOutOfDate = Material_CheckDependencies();
     LOG( "MatFiles out of date: %d\n", numMatFilesOutOfDate );
+    int numScriptFilesOutOfDate = Script_CheckDependencies();
+    LOG( "Scripts out of date: %d\n", numScriptFilesOutOfDate );
 
-    g_outOfDateAssets = numGfxImageOutOfDate + numMatFilesOutOfDate;
+    g_outOfDateAssets = numGfxImageOutOfDate + numMatFilesOutOfDate + numScriptFilesOutOfDate;
     if ( g_outOfDateAssets == 0 )
     {
         LOG( "All assets up to date\n" );
@@ -133,6 +114,7 @@ bool RunConverter( const std::string& assetFile )
         int totalErrors = 0;
         totalErrors += GfxImage_Convert();
         totalErrors += Material_Convert();
+        totalErrors += Script_Convert();
 
         if ( totalErrors )
         {
@@ -168,10 +150,11 @@ bool BuildFastfile( const std::string& assetFile )
     {
         return false;
     }
-    static_assert( NUM_ASSET_TYPES == 2, "Dont forget to update this, otherwise new asset wont be written to fastfile" );
+    static_assert( NUM_ASSET_TYPES == 3, "Dont forget to update this, otherwise new asset wont be written to fastfile" );
     bool success = true;
     success = success && GfxImage_BuildFastFile( &outFile );
     success = success && Material_BuildFastFile( &outFile );
+    success = success && Script_BuildFastFile( &outFile );
 
     float duration = std::chrono::duration_cast< std::chrono::microseconds >( std::chrono::system_clock::now() - startTime ).count() / 1e6f;
     LOG( "Build Fastfile finished in %.2f seconds\n", duration );

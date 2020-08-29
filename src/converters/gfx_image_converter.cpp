@@ -1,6 +1,6 @@
 #include "image.hpp"
 #include "assert.hpp"
-#include "gfx_image.hpp"
+#include "assetTypes/gfx_image.hpp"
 #include "asset_versions.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/file_dependency.hpp"
@@ -126,7 +126,7 @@ static std::string GfxImage_GetFastFileName( const GfxImageCreateInfo& info )
 {
     static_assert( sizeof( GfxImageCreateInfo ) == 16 + 2 * sizeof( std::string ), "Dont forget to add new hash value" );
 
-    std::string baseName = GetFilenameStem( info.name );
+    std::string baseName = info.name;
     baseName += "_v" + std::to_string( PG_GFX_IMAGE_VERSION );
     baseName += "_" + std::to_string( static_cast< int >( info.semantic ) );
     baseName += "_" + std::to_string( static_cast< int >( info.imageType ) );

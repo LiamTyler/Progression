@@ -1,8 +1,9 @@
 #include "asset_manager.hpp"
 #include "assert.hpp"
 #include "asset_versions.hpp"
-#include "gfx_image.hpp"
-#include "material.hpp"
+#include "assetTypes/gfx_image.hpp"
+#include "assetTypes/material.hpp"
+#include "assetTypes/script.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include <unordered_map>
@@ -24,7 +25,8 @@ void Init()
 {
     GetAssetTypeID< GfxImage >::ID(); // AssetType::ASSET_TYPE_GFX_IMAGE
     GetAssetTypeID< Material >::ID(); // AssetType::ASSET_TYPE_MATERIAL
-    static_assert( NUM_ASSET_TYPES == 2, "Dont forget to add GetAssetTypeID for new assets" );
+    GetAssetTypeID< Script >::ID(); // AssetType::ASSET_TYPE_SCRIPT
+    static_assert( NUM_ASSET_TYPES == 3, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
 #define APPEND( x ) Fastfile_##x##_Load
@@ -67,6 +69,7 @@ bool LoadFastFile( const std::string& fname )
         {
         ASSET_LOAD( GfxImage, ASSET_TYPE_GFX_IMAGE );
         ASSET_LOAD( Material, ASSET_TYPE_MATERIAL );
+        ASSET_LOAD( Material, ASSET_TYPE_SCRIPT );
         default:
             LOG_ERR( "Unknown asset type '%d'\n", (int)assetType );
             return false;

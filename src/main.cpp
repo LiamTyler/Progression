@@ -2,6 +2,7 @@
 #include "asset_versions.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
+#include "converters/model_converter.hpp"
 #include "converters/script_converter.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/file_dependency.hpp"
@@ -9,6 +10,10 @@
 #include "utils/json_parsing.hpp"
 #include "utils/serializer.hpp"
 #include <chrono>
+
+// #include "assetTypes/model.hpp"
+// #include "asset_manager.hpp"
+// using namespace Progression;
 
 bool g_parsingError;
 int g_outOfDateAssets;
@@ -32,17 +37,36 @@ int main( int argc, char** argv )
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
     
-    if ( RunConverter( argv[1] ) )
+    if ( !RunConverter( argv[1] ) )
     {
-        if ( !BuildFastfile( argv[1] ) )
-        {
-            LOG_ERR( "Build fastfile failed\n" );
-        }
-        else
-        {
-            LOG( "Fastfile build SUCCESS\n" );
-        }
+        Logger_Shutdown();
+        return 0;
     }
+    if ( !BuildFastfile( argv[1] ) )
+    {
+        Logger_Shutdown();
+        return 0;
+    }
+
+    // AssetManager::Init();
+    // 
+    // ModelCreateInfo info;
+    // info.name = "sponza";
+    // info.filename = PG_ASSET_DIR "sponza/sponza.pgModel";
+    // Model src;
+    // if ( !Model_Load( &src, info ) )
+    // {
+    //     LOG_ERR( "Could not load sponza\n" );
+    //     //return 0;
+    // }
+    // 
+    // AssetManager::LoadFastFile( "assetList" );
+    // Model* model = AssetManager::Get< Model >( "sponza" );
+    // PG_ASSERT( model );
+    // PG_ASSERT( model->name == src.name );
+    // PG_ASSERT( model->vertexPositions == src.vertexPositions );
+    // PG_ASSERT( memcmp( model->otherVertexData.data(), src.otherVertexData.data(), src.otherVertexData.size() * sizeof( OtherVertexData ) ) == 0 );
+    // PG_ASSERT( model->indices == src.indices );
 
     Logger_Shutdown();
     return 0;
@@ -63,6 +87,7 @@ bool RunConverter( const std::string& assetFile )
     CreateDirectory( PG_ASSET_DIR "cache/fastfiles/" );
     CreateDirectory( PG_ASSET_DIR "cache/images/" );
     CreateDirectory( PG_ASSET_DIR "cache/materials/" );
+    CreateDirectory( PG_ASSET_DIR "cache/models/" );
     CreateDirectory( PG_ASSET_DIR "cache/scripts/" );
 
     auto converterStartTime = std::chrono::system_clock::now();
@@ -78,6 +103,7 @@ bool RunConverter( const std::string& assetFile )
         { "Image",   GfxImage_Parse },
         { "MatFile", Material_Parse },
         { "Script",  Script_Parse },
+        { "Model",   Model_Parse },
     });
 
     g_parsingError = false;
@@ -95,15 +121,21 @@ bool RunConverter( const std::string& assetFile )
         return false;
     }
 
+    g_outOfDateAssets = 0;
     LOG( "Checking asset dependencies...\n" );
     int numGfxImageOutOfDate = GfxImage_CheckDependencies();
+    g_outOfDateAssets += numGfxImageOutOfDate;
     LOG( "GfxImages out of date: %d\n", numGfxImageOutOfDate );
     int numMatFilesOutOfDate = Material_CheckDependencies();
+    g_outOfDateAssets += numMatFilesOutOfDate;
     LOG( "MatFiles out of date: %d\n", numMatFilesOutOfDate );
     int numScriptFilesOutOfDate = Script_CheckDependencies();
+    g_outOfDateAssets += numScriptFilesOutOfDate;
     LOG( "Scripts out of date: %d\n", numScriptFilesOutOfDate );
+    int numModelFilesOutOfDate = Model_CheckDependencies();
+    g_outOfDateAssets += numModelFilesOutOfDate;
+    LOG( "Models out of date: %d\n", numModelFilesOutOfDate );
 
-    g_outOfDateAssets = numGfxImageOutOfDate + numMatFilesOutOfDate + numScriptFilesOutOfDate;
     if ( g_outOfDateAssets == 0 )
     {
         LOG( "All assets up to date\n" );
@@ -115,15 +147,16 @@ bool RunConverter( const std::string& assetFile )
         totalErrors += GfxImage_Convert();
         totalErrors += Material_Convert();
         totalErrors += Script_Convert();
+        totalErrors += Model_Convert();
 
         if ( totalErrors )
         {
-            LOG_ERR( "%d errors while converting, convert failed\n", totalErrors );
+            LOG_ERR( "%d errors while converting, convert FAILED\n", totalErrors );
             return false;
         }
         else
         {
-            LOG( "SUCCESS\n" );
+            LOG( "Convert SUCCESS\n" );
         }
     }
 
@@ -150,11 +183,22 @@ bool BuildFastfile( const std::string& assetFile )
     {
         return false;
     }
-    static_assert( NUM_ASSET_TYPES == 3, "Dont forget to update this, otherwise new asset wont be written to fastfile" );
+    static_assert( NUM_ASSET_TYPES == 4, "Dont forget to update this, otherwise new asset wont be written to fastfile" );
     bool success = true;
     success = success && GfxImage_BuildFastFile( &outFile );
     success = success && Material_BuildFastFile( &outFile );
     success = success && Script_BuildFastFile( &outFile );
+    success = success && Model_BuildFastFile( &outFile );
+
+    if ( success )
+    {
+        LOG( "Build fastfile SUCCESS\n" );
+    }
+    else
+    {
+        LOG_ERR( "Build fastfile FAILED\n" );
+        DeleteFile( ffName );
+    }
 
     float duration = std::chrono::duration_cast< std::chrono::microseconds >( std::chrono::system_clock::now() - startTime ).count() / 1e6f;
     LOG( "Build Fastfile finished in %.2f seconds\n", duration );

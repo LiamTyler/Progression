@@ -1,4 +1,3 @@
-#include "image.hpp"
 #include "assert.hpp"
 #include "assetTypes/script.hpp"
 #include "asset_versions.hpp"
@@ -61,21 +60,21 @@ static bool Script_IsOutOfDate( const ScriptCreateInfo& info )
 static bool Script_ConvertSingle( const ScriptCreateInfo& info )
 {
     LOG( "Converting Script file '%s'...\n", info.filename.c_str() );
-    std::string fastfileName = Script_GetFastFileName( info );
-
-    Serializer serializer;
-    if ( !serializer.OpenForWrite( fastfileName ) )
+    Script asset;
+    if ( !Script_Load( &asset, info ) )
     {
         return false;
     }
-    Script asset;
-    if ( !Script_Load( &asset, info ) )
+    std::string fastfileName = Script_GetFastFileName( info );
+    Serializer serializer;
+    if ( !serializer.OpenForWrite( fastfileName ) )
     {
         return false;
     }
     if ( !Fastfile_Script_Save( &asset, &serializer ) )
     {
         LOG_ERR( "Error while writing script '%s' to fastfile\n", info.name.c_str() );
+        serializer.Close();
         DeleteFile( fastfileName );
         return false;
     }

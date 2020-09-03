@@ -1,4 +1,3 @@
-#include "image.hpp"
 #include "assert.hpp"
 #include "assetTypes/material.hpp"
 #include "asset_versions.hpp"
@@ -88,13 +87,13 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
 static bool Material_ConvertSingle( const std::string& filename )
 {
     LOG( "Converting material file '%s'...\n", filename.c_str() );
-    std::string fastfileName = Material_GetFastFileName( filename );
     std::vector< MaterialCreateInfo > createInfos;
     if ( !ParseMaterialFile( filename, createInfos ) )
     {
         return false;
     }
     
+    std::string fastfileName = Material_GetFastFileName( filename );
     Serializer serializer;
     if ( !serializer.OpenForWrite( fastfileName ) )
     {
@@ -105,6 +104,7 @@ static bool Material_ConvertSingle( const std::string& filename )
         if ( !Fastfile_Material_Save( &info, &serializer ) )
         {
             LOG_ERR( "Error while writing material '%s' to fastfile\n", info.name.c_str() );
+            serializer.Close();
             DeleteFile( fastfileName );
             return false;
         }

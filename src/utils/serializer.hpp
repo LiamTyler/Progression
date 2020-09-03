@@ -3,6 +3,7 @@
 #include "memory_map/MemoryMapped.h"
 #include <fstream>
 #include <string>
+#include <vector>
 
 
 class Serializer
@@ -32,11 +33,34 @@ public:
     }
 
     template< typename T >
-    void Read( T& x )
+    void Write( const std::vector< T >& x )
     {
         static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
-        Read( &x, sizeof( T ) );
+        size_t size = x.size();
+        Write( size );
+        Write( x.data(), x.size() * sizeof( T ) );
     }
+
+    template< typename T >
+    void Read( T& x )
+    {
+        static_assert( !std::is_const< T >::value, "T must be non-const" );
+        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        Read( (void*)&x, sizeof( T ) );
+    }
+
+    template< typename T >
+    void Read( std::vector< T >& x )
+    {
+        static_assert( !std::is_const< T >::value, "T must be non-const" );
+        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        size_t size;
+        Read( size );
+        x.resize( size );
+        Read( (void*)x.data(), size * sizeof( T ) );
+    }
+
+    
 
 private:
     std::string filename;

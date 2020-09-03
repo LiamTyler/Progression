@@ -1,0 +1,28 @@
+{ "Materials":
+[
+	{ "name": "Material__25", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/lion" },
+	{ "name": "Material__298", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/background" },
+	{ "name": "Material__47", "Kd": [ 0.470400, 0.470400, 0.470400 ] },
+	{ "name": "Material__57", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/vase_plant" },
+	{ "name": "arch", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_arch_diff" },
+	{ "name": "bricks", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/spnza_bricks_a_diff" },
+	{ "name": "ceiling", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_ceiling_a_diff" },
+	{ "name": "chain", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/chain_texture" },
+	{ "name": "column_a", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_column_a_diff" },
+	{ "name": "column_b", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_column_b_diff" },
+	{ "name": "column_c", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_column_c_diff" },
+	{ "name": "details", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_details_diff" },
+	{ "name": "fabric_a", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_fabric_diff" },
+	{ "name": "fabric_c", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_curtain_diff" },
+	{ "name": "fabric_d", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_fabric_blue_diff" },
+	{ "name": "fabric_e", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_fabric_green_diff" },
+	{ "name": "fabric_f", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_curtain_green_diff" },
+	{ "name": "fabric_g", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_curtain_blue_diff" },
+	{ "name": "flagpole", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_flagpole_diff" },
+	{ "name": "floor", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_floor_a_diff" },
+	{ "name": "leaf", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_thorn_diff" },
+	{ "name": "roof", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/sponza_roof_diff" },
+	{ "name": "vase", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/vase_dif" },
+	{ "name": "vase_hanging", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/vase_hanging" },
+	{ "name": "vase_round", "Kd": [ 0.470400, 0.470400, 0.470400 ], "map_Kd_name": "sponza/textures/vase_round" }
+]}

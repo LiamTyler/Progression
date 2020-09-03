@@ -43,8 +43,8 @@ bool Fastfile_Script_Load( Script* script, Serializer* serializer )
 {
     static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
     PG_ASSERT( script && serializer );
-    serializer->Write( script->name );
-    serializer->Write( script->scriptText );
+    serializer->Read( script->name );
+    serializer->Read( script->scriptText );
 
     return true;
 }

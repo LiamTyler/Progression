@@ -9,6 +9,7 @@ assets/cache/
 tests/
 *.spv
 .vscode/
+Sponza-master/
 
 # Prerequisites
 *.d

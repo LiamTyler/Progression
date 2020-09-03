@@ -70,7 +70,8 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 auto it = imageTypeMap.find( imageName );
                 if ( it == imageTypeMap.end() )
                 {
-                    LOG_WARN( "No GfxImageType found matching '%s'\n", imageName.c_str() );
+                    LOG_ERR( "No GfxImageType found matching '%s'\n", imageName.c_str() );
+                    i.imageType = GfxImageType::NUM_IMAGE_TYPES;
                 }
                 else
                 {
@@ -84,8 +85,8 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 auto it = imageSemanticMap.find( semanticName );
                 if ( it == imageSemanticMap.end() )
                 {
-                    LOG_WARN( "No image semantic found matching '%s', assuming TYPE_2D\n", semanticName.c_str() );
-                    i.imageType = GfxImageType::TYPE_2D;
+                    LOG_ERR( "No image semantic found matching '%s'\n", semanticName.c_str() );
+                    i.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
                 }
                 else
                 {
@@ -105,11 +106,23 @@ void GfxImage_Parse( const rapidjson::Value& value )
     });
 
     GfxImageCreateInfo info;
+    info.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
+    info.imageType = GfxImageType::TYPE_2D;
     mapping.ForEachMember( value, info );
 
     if ( !FileExists( info.filename ) )
     {
         LOG_ERR( "Filename '%s' not found for GfxImage '%s', skipping image\n", info.filename.c_str(), info.name.c_str() );
+        g_parsingError = true;
+    }
+    if ( info.semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS )
+    {
+        LOG_ERR( "Must specify a valid image semantic for image '%s'\n", info.name.c_str() );
+        g_parsingError = true;
+    }
+    if ( info.imageType == GfxImageType::NUM_IMAGE_TYPES )
+    {
+        LOG_ERR( "Must specify a valid imageType for image '%s'\n", info.name.c_str() );
         g_parsingError = true;
     }
     if ( info.dstPixelFormat == PixelFormat::INVALID )
@@ -149,20 +162,21 @@ static bool GfxImage_IsOutOfDate( const GfxImageCreateInfo& info )
 static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
 {
     LOG( "Converting image '%s'...\n", info.name.c_str() );
+    GfxImage image;
+    if ( !GfxImage_Load( &image, info ) )
+    {
+        return false;
+    }
     std::string fastfileName = GfxImage_GetFastFileName( info );
     Serializer serializer;
     if ( !serializer.OpenForWrite( fastfileName ) )
     {
         return false;
     }
-    GfxImage image;
-    if ( !GfxImage_Load( &image, info ) )
-    {
-        return false;
-    }
     if ( !Fastfile_GfxImage_Save( &image, &serializer ) )
     {
         LOG_ERR( "Error while writing image '%s' to fastfile\n", image.name.c_str() );
+        serializer.Close();
         DeleteFile( fastfileName );
         return false;
     }

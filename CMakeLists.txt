@@ -22,14 +22,11 @@ set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${CMAKE_BINARY_DIR}/lib)
+set(CAMKE_COMPILE_PDB_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${CMAKE_BINARY_DIR}/lib)
-
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/bin)
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/lib)
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/lib)
 
 if(UNIX AND NOT APPLE)
     #set(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Werror -Wextra -Wno-implicit-fallthrough -Wshadow -Wno-unused-variable -Wno-unused-function")
@@ -41,6 +38,24 @@ elseif(MSVC)
     set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /Od")
     set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /O2")
 endif()
+
+
+set(ASSIMP_BUILD_TESTS        OFF CACHE BOOL " " FORCE)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL " " FORCE)
+# disable a bunch of importers that we wont use. Just add
+# them to the list if you want it enabled again
+set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL " " FORCE)
+set(ASSIMP_BUILD_OBJ_IMPORTER     ON CACHE BOOL "Enable format OBJ"     FORCE)
+set(ASSIMP_BUILD_FBX_IMPORTER     ON CACHE BOOL "Enable format FBX"     FORCE)
+set(ASSIMP_BUILD_3DS_IMPORTER     ON CACHE BOOL "Enable format 3DS"     FORCE)
+set(ASSIMP_BUILD_PLY_IMPORTER     ON CACHE BOOL "Enable format PLY"     FORCE)
+set(ASSIMP_BUILD_COLLADA_IMPORTER ON CACHE BOOL "Enable format COLLADA" FORCE)
+set(ASSIMP_BUILD_STL_IMPORTER     ON CACHE BOOL "Enable format STL"     FORCE)
+set(ASSIMP_BUILD_GLTF_IMPORTER    ON CACHE BOOL "Enable format GLTF"    FORCE)
+set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL " " FORCE)
+# assimp doesnt compile if all exporters are disabled -.-
+set(ASSIMP_BUILD_OBJ_EXPORTER    ON CACHE BOOL "Enable format OBJ"    FORCE)
+add_subdirectory(ext/assimp)
 
 add_subdirectory(ext/lz4)
 
@@ -58,6 +73,8 @@ if(NOT PROGRESSION_DIR)
     set(PROGRESSION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
 
+add_subdirectory(tools)
+
 configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DIR}/src/platform_defines.hpp)
 
 set(
@@ -68,6 +85,8 @@ set(
     src/assetTypes/gfx_image.hpp
     src/assetTypes/material.cpp
     src/assetTypes/material.hpp
+    src/assetTypes/model.cpp
+    src/assetTypes/model.hpp
     src/assetTypes/script.cpp
     src/assetTypes/script.hpp
     src/asset_manager.cpp
@@ -88,6 +107,8 @@ set(
     src/converters/gfx_image_converter.hpp
     src/converters/material_converter.cpp
     src/converters/material_converter.hpp
+    src/converters/model_converter.cpp
+    src/converters/model_converter.hpp
     src/converters/script_converter.cpp
     src/converters/script_converter.hpp
     

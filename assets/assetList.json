@@ -1,6 +1,7 @@
 { "AssetList":
 [
-    { "Image": { "name": "macaw", "filename": "macaw.png", "dstFormat": "R8_G8_B8_A8_UNORM" } },
+    { "Image": { "name": "macaw", "filename": "macaw.png", "semantic": "DIFFUSE", "dstFormat": "R8_G8_B8_A8_UNORM" } },
     { "MatFile": { "filename": "cockatoo.pgMtl" } },
-    { "Script": { "name": "aScript", "filename": "test.lua" } }
+    { "Script": { "name": "aScript", "filename": "test.lua" } },
+    { "Model": { "name": "sponza", "filename": "../sponza/sponza.pgModel" } }
 ]}

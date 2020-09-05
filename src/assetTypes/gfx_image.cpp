@@ -125,20 +125,6 @@ unsigned char* GfxImage::GetPixels( int face, int mip, int depthLevel ) const
 }
 
 
-void GfxImage::Move( Asset* dst )
-{
-    PG_ASSERT( dst );
-    PG_ASSERT( dynamic_cast< GfxImage* >( dst ) );
-    GfxImage* dstImage = static_cast< GfxImage* >( dst );
-    dstImage->Free();
-    dstImage->name = std::move( name );
-
-    // copy the rest of the struct over
-    memcpy( &dstImage->width, &width, sizeof( GfxImage ) - offsetof( GfxImage, width ) );
-    pixels = nullptr;
-}
-
-
 static void NormalizeImage( glm::vec4* pixels, int width, int height )
 {
     for ( int row = 0; row < height; ++row )

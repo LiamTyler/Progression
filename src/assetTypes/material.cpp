@@ -9,17 +9,6 @@ namespace Progression
 {
 
 
-void Material::Move( Asset* asset )
-{
-    static_assert( sizeof( Material ) == sizeof( std::string ) + 32, "Don't forget to update this function if added/removed members from Material!" );
-    PG_ASSERT( asset && dynamic_cast< Material* >( asset ) );
-    Material* mat = static_cast< Material* >( asset );
-    name = std::move( mat->name );
-    Kd   = std::move ( mat->Kd );
-    map_Kd = mat->map_Kd;
-}
-
-
 bool Material_Load( Material* material, const MaterialCreateInfo& createInfo )
 {
     static_assert( sizeof( Material ) == sizeof( std::string ) + 32, "Don't forget to update this function if added/removed members from Material!" );

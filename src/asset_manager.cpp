@@ -5,6 +5,7 @@
 #include "assetTypes/material.hpp"
 #include "assetTypes/model.hpp"
 #include "assetTypes/script.hpp"
+#include "assetTypes/shader.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include <unordered_map>
@@ -18,7 +19,6 @@ namespace AssetManager
 uint32_t GetAssetTypeIDHelper::IDCounter = 0;
 
 
-
 static std::unordered_map< std::string, Asset* > s_resourceMaps[AssetType::NUM_ASSET_TYPES];
 
 
@@ -28,11 +28,13 @@ void Init()
     GetAssetTypeID< Material >::ID(); // AssetType::ASSET_TYPE_MATERIAL
     GetAssetTypeID< Script >::ID();   // AssetType::ASSET_TYPE_SCRIPT
     GetAssetTypeID< Model >::ID();    // AssetType::ASSET_TYPE_MODEL
+    GetAssetTypeID< Shader >::ID();   // AssetType::ASSET_TYPE_SHADER
     PG_ASSERT( GetAssetTypeID< GfxImage >::ID() == 0, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID< Material >::ID() == 1, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Script >::ID() == 2, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Model >::ID() == 3, "This needs to line up with AssetType ordering" );
-    static_assert( NUM_ASSET_TYPES == 4, "Dont forget to add GetAssetTypeID for new assets" );
+    PG_ASSERT( GetAssetTypeID< Script >::ID()   == 2, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID< Model >::ID()    == 3, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID< Shader >::ID()   == 4, "This needs to line up with AssetType ordering" );
+    static_assert( NUM_ASSET_TYPES == 5, "Dont forget to add GetAssetTypeID for new assets" );
 
     Material* defaultMat = new Material;
     defaultMat->name = "default";
@@ -72,7 +74,8 @@ bool LoadFastFile( const std::string& fname )
             }
             else
             {
-                s_resourceMaps[assetType][asset->name]->Move( asset );
+                asset->Free();
+                delete asset;
             }
             break;
         }
@@ -91,7 +94,8 @@ bool LoadFastFile( const std::string& fname )
             }
             else
             {
-                s_resourceMaps[assetType][asset->name]->Move( asset );
+                asset->Free();
+                delete asset;
             }
             break;
         }
@@ -110,7 +114,8 @@ bool LoadFastFile( const std::string& fname )
             }
             else
             {
-                s_resourceMaps[assetType][asset->name]->Move( asset );
+                asset->Free();
+                delete asset;
             }
             break;
         }
@@ -129,7 +134,28 @@ bool LoadFastFile( const std::string& fname )
             }
             else
             {
-                s_resourceMaps[assetType][asset->name]->Move( asset );
+                asset->Free();
+                delete asset;
+            }
+            break;
+        }
+        case ASSET_TYPE_SHADER:
+        {
+            Shader* asset = new Shader;
+            if ( !Fastfile_Shader_Load( asset, &serializer ) )
+            {
+                LOG_ERR( "Could not load Shader\n" );
+                return false;
+            }
+            auto it = s_resourceMaps[assetType].find( asset->name );
+            if ( it == s_resourceMaps[assetType].end() )
+            {
+                s_resourceMaps[assetType][asset->name] = asset;
+            }
+            else
+            {
+                asset->Free();
+                delete asset;
             }
             break;
         }
@@ -149,6 +175,7 @@ void Shutdown()
     {
         for ( const auto& it : s_resourceMaps[i] )
         {
+            it.second->Free();
             delete it.second;
         }
         s_resourceMaps[i].clear();

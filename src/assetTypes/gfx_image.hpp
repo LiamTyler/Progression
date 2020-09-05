@@ -34,9 +34,8 @@ enum class GfxImageType : uint8_t
 
 struct GfxImage : public Asset
 {
-    void Free();
+    void Free() override;
     unsigned char* GetPixels( int face, int mip, int depthLevel = 0 ) const;
-    void Move( Asset* dst ) override;
 
     int width     = 0;
     int height    = 0;

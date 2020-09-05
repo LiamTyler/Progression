@@ -19,8 +19,6 @@ struct GfxImage;
 
 struct Material : public Asset
 {
-    void Move( Asset* dst ) override;
-
     glm::vec3 Kd;
     GfxImage* map_Kd = nullptr;
 };

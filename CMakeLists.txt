@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 3.0)
+cmake_minimum_required (VERSION 3.7.2) # For FindVulkan module
 
 project(Converter LANGUAGES CXX C)
 
@@ -16,6 +16,8 @@ elseif(WIN32)
 elseif(APPLE)
     set(APPLE_PROGRAM   "IN_USE")
 endif()
+
+find_package(Vulkan REQUIRED)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 
@@ -59,13 +61,9 @@ add_subdirectory(ext/assimp)
 
 add_subdirectory(ext/lz4)
 
-set(LIBS lz4)
-find_package(OpenMP)
-if(NOT OpenMP_CXX_FOUND)
-    message("OpenMP not found! Rendering will be single threaded")
-else()
-    set(LIBS ${LIBS} OpenMP::OpenMP_CXX)
-endif()
+set(SHADERC_SKIP_INSTALL OFF CACHE BOOL " " FORCE)
+set(SHADERC_SKIP_TESTS   ON  CACHE BOOL " " FORCE)
+#add_subdirectory(ext/shaderc)
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 
@@ -89,6 +87,8 @@ set(
     src/assetTypes/model.hpp
     src/assetTypes/script.cpp
     src/assetTypes/script.hpp
+    src/assetTypes/shader.cpp
+    src/assetTypes/shader.hpp
     src/asset_manager.cpp
     src/asset_manager.hpp
     src/asset_versions.hpp
@@ -111,6 +111,8 @@ set(
     src/converters/model_converter.hpp
     src/converters/script_converter.cpp
     src/converters/script_converter.hpp
+    src/converters/shader_converter.cpp
+    src/converters/shader_converter.hpp
     
     src/utils/cpu_profile.hpp
     src/utils/file_dependency.cpp
@@ -147,9 +149,28 @@ set(
 	${EXTERNALS}
 )
 
+set(LIBS lz4)
+find_package(OpenMP)
+if(NOT OpenMP_CXX_FOUND)
+    message("OpenMP not found! Rendering will be single threaded")
+else()
+    list(APPEND LIBS OpenMP::OpenMP_CXX)
+endif()
+
+set(SHADERC_DIR ${Vulkan_INCLUDE_DIR}/..)
+#set(SHADERC_LIB ${SHADERC_DIR}/Lib/shaderc_combined.lib ${SHADERC_DIR}/Lib/shaderc_util.lib ${SHADERC_DIR}/Lib/glslang.lib)
+set(SHADERC_LIB ${SHADERC_DIR}/Lib/shaderc_combined.lib)
+message(${SHADERC_DIR})
+message(${SHADERC_LIB})
+list(APPEND LIBS ${SHADERC_LIB})
+
 include_directories(
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/ext/
+    ${CMAKE_SOURCE_DIR}/ext/shaderc/
+    ${Vulkan_INCLUDE_DIR}
+    #${CMAKE_SOURCE_DIR}/ext/shaderc/
+    #${CMAKE_SOURCE_DIR}/ext/shaderc/libshaderc/include/
 )
 
 SET(listVar "")
@@ -161,13 +182,15 @@ set(ALL_FILES ${listVar})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
 
 if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
+    add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_ITERATOR_DEBUG_LEVEL=0)
 endif()
 
 add_executable(Converter ${ALL_FILES})
 set_target_properties(Converter PROPERTIES DEBUG_POSTFIX _d)
+add_dependencies(Converter lz4)
 
 if(MSVC)
+    target_compile_options(Converter PRIVATE "/MD")
     target_compile_options(Converter PRIVATE "/MP")
 endif()
 

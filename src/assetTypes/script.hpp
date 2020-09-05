@@ -18,8 +18,6 @@ struct Script : public Asset
 public:
     Script() = default;
 
-    void Move( Asset* src ) override;
-
     std::string scriptText;
 };
 

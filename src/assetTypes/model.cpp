@@ -11,20 +11,6 @@ namespace Progression
 {
 
 
-void Model::Move( Asset* src )
-{
-    static_assert( sizeof( Model ) == 8 + sizeof( std::string ) + 5 * sizeof( std::vector< glm::vec3 > ), "Don't forget to update this function if added/removed members from Model!" );
-    PG_ASSERT( src && dynamic_cast< Model* >( src ) );
-    Model* srcModel = static_cast< Model* >( src );
-    name            = std::move( srcModel->name );
-    vertexPositions = std::move( srcModel->vertexPositions );
-    otherVertexData = std::move( srcModel->otherVertexData );
-    indices         = std::move( srcModel->indices );
-    meshes          = std::move( srcModel->meshes);
-    originalMaterials = std::move( srcModel->originalMaterials );
-}
-
-
 void Model::RecalculateNormals()
 {
     PG_ASSERT( vertexPositions.size() == otherVertexData.size() );

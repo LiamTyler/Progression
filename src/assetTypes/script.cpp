@@ -7,15 +7,6 @@
 namespace Progression
 {
 
-void Script::Move( Asset* src )
-{
-    static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
-    PG_ASSERT( src && dynamic_cast< Script* >( src ) );
-    Script* s = static_cast< Script* >( src );
-    name = std::move( s->name );
-    scriptText = std::move( s->scriptText );
-}
-
 
 bool Script_Load( Script* script, const ScriptCreateInfo& createInfo )
 {

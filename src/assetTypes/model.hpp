@@ -36,8 +36,6 @@ struct ModelCreateInfo
 
 struct Model : public Asset
 {
-    void Move( Asset* src ) override;
-
     void RecalculateNormals();
 
     std::vector< glm::vec3 > vertexPositions;

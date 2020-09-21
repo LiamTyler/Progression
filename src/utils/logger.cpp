@@ -1,5 +1,5 @@
 #include "utils/logger.hpp"
-#include "assert.hpp"
+#include "core/assert.hpp"
 #include <mutex>
 #include <stdarg.h>
 #include <stdio.h>
@@ -136,6 +136,21 @@ void Logger_RemoveLogLocation( const std::string& name )
                 s_loggerLocations[i] = std::move( s_loggerLocations[s_numLogs] );
             }
 
+            break;
+        }
+    }
+    s_loggerLock.unlock();
+}
+
+
+void Logger_ChangeLocationColored( const std::string& name, bool colored )
+{
+    s_loggerLock.lock();
+    for ( int i = 0; i < s_numLogs; ++i )
+    {
+        if ( name == s_loggerLocations[i].GetName() )
+        {
+            s_loggerLocations[i].SetOutputColored( colored );
             break;
         }
     }

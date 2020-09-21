@@ -20,7 +20,7 @@ static bool s_initialized;
 
 static void ListenForCommands();
 
-namespace Progression
+namespace PG
 {
 
 
@@ -116,7 +116,7 @@ void Shutdown()
 }
 
 
-} // namespace Progression
+} // namespace PG
 
 
 static void ListenForCommands() 

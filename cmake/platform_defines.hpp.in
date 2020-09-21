@@ -1,7 +1,7 @@
 #pragma once
 
 /*
- * This is a generated file from cmake/platform_defines.hpp.in. This will be overwritten whenever
+ * This is an AUTO GENERATED file from cmake/platform_defines.hpp.in. This will be overwritten whenever
  * cmake is run again, careful when editing.
  */
 
@@ -34,3 +34,8 @@
 #define SHIP_BUILD NOT_IN_USE
 #endif
 
+#ifdef CMAKE_DEFINE_COMPILING_CONVERTER
+#define COMPILING_CONVERTER IN_USE
+#else
+#define COMPILING_CONVERTER NOT_IN_USE
+#endif

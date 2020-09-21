@@ -1,10 +1,10 @@
 #pragma once
 
-namespace Progression
+namespace PG
 {
 
 bool Init();
 
 void Shutdown();
 
-} // namespace Progression
+} // namespace PG

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "platform_defines.hpp"
+#include "core/platform_defines.hpp"
 #include <cstdio>
 #include <string>
 
@@ -34,5 +34,7 @@ void Logger_AddLogLocation( const std::string& name, FILE* file, bool useColors 
 void Logger_AddLogLocation( const std::string& name, const std::string& filename );
     
 void Logger_RemoveLogLocation( const std::string& name );
+
+void Logger_ChangeLocationColored( const std::string& name, bool colored );
 
 void Logger_Log( LogSeverity sev, const char* fmt, ... );

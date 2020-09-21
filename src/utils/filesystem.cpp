@@ -88,6 +88,7 @@ void DeleteFile( const std::string& filename )
     }
     catch ( std::filesystem::filesystem_error& e )
     {
+        PG_MAYBE_UNUSED( e );
         LOG_ERR( "Failed to delete file. Error: '%s' and code '%d'\n", e.what(), e.code().value() );
     }
 }

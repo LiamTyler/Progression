@@ -1,5 +1,5 @@
 #include "utils/lz4_compressor.hpp"
-#include "assert.hpp"
+#include "core/assert.hpp"
 #include "utils/logger.hpp"
 #include "lz4/lz4.h"
 #include "memory_map/MemoryMapped.h"

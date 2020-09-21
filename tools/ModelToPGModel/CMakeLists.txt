@@ -1,5 +1,7 @@
 project(modelToPGModel)
 
+include(set_postfix)
+
 include_directories(
     ${PROGRESSION_DIR}
     ${PROGRESSION_DIR}/ext/
@@ -9,9 +11,9 @@ include_directories(
 
 set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
-    ${PROGRESSION_DIR}/src/assert.hpp
-    ${PROGRESSION_DIR}/src/pixel_formats.cpp
-    ${PROGRESSION_DIR}/src/pixel_formats.hpp
+    ${PROGRESSION_DIR}/src/core/assert.hpp
+    ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
+    ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
     ${PROGRESSION_DIR}/src/utils/filesystem.cpp
     ${PROGRESSION_DIR}/src/utils/filesystem.hpp
     ${PROGRESSION_DIR}/src/utils/logger.cpp
@@ -28,7 +30,7 @@ set(LIBS
 )
 
 add_executable(${PROJECT_NAME} ${SRC})
-set_target_properties(${PROJECT_NAME} PROPERTIES DEBUG_POSTFIX _d)
+SET_TARGET_POSTFIX(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} ${LIBS})
 if(MSVC)
     add_definitions(-D_CRT_SECURE_NO_WARNINGS)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "rapidjson/document.h"
-#include "assert.hpp"
+#include "core/assert.hpp"
 #include "utils/logger.hpp"
 #include "glm/glm.hpp"
 #include <functional>

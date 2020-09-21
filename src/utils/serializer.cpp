@@ -1,6 +1,6 @@
 #include "utils/serializer.hpp"
 #include "utils/logger.hpp"
-#include "assert.hpp"
+#include "core/assert.hpp"
 
 
 Serializer::~Serializer()

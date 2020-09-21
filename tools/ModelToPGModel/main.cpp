@@ -1,5 +1,5 @@
-#include "assert.hpp"
-#include "assetTypes/gfx_image.hpp"
+#include "core/assert.hpp"
+#include "asset/types/gfx_image.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
@@ -12,7 +12,7 @@
 #include <iostream>
 #include <vector>
 
-using namespace Progression;
+using namespace PG;
 
 static void DisplayHelp()
 {

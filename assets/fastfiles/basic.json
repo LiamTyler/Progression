@@ -1,0 +1,5 @@
+{ "AssetList":
+[
+    { "Shader": { "name": "basicVert", "shaderStage" : "vertex", "filename": "basic.vert" } },
+    { "Shader": { "name": "basicFrag", "shaderStage" : "fragment", "filename": "basic.frag" } }
+]}

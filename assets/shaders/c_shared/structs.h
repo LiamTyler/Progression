@@ -1,6 +1,6 @@
 #include "c_shared/defines.h"
 
-struct SceneConstantBufferData
+struct SceneGlobals
 {
     MAT4 V;
     MAT4 P;
@@ -9,35 +9,8 @@ struct SceneConstantBufferData
     VEC4 cameraPos;
 };
 
-struct ObjectConstantBufferData
+struct PerObjectData
 {
     MAT4 M;
     MAT4 N;
-};
-
-struct AnimatedObjectConstantBufferData
-{
-    MAT4 M;
-    MAT4 N;
-    UINT boneTransformIdx;
-};
-
-struct AnimatedShadowPerObjectData
-{
-    MAT4 MVP;
-    UINT boneTransformIdx;
-};
-
-struct MaterialConstantBufferData
-{
-    VEC4 Kd;
-    VEC4 Ks;
-    UINT diffuseTexIndex;
-    UINT normalMapIndex;
-};
-
-struct SSAOShaderData
-{
-    MAT4 V;
-    MAT4 P;
 };

@@ -9,7 +9,7 @@ namespace Gfx
 
 uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )
 {
-    auto& memProperties = r_globals.physicalDevice.GetMemoryProperties();
+    auto memProperties = r_globals.physicalDevice.GetMemoryProperties();
     for ( uint32_t i = 0; i < memProperties.memoryTypeCount; ++i )
     {
         if ( ( typeFilter & ( 1 << i ) ) && ( memProperties.memoryTypes[i].propertyFlags & properties ) == properties )
@@ -43,9 +43,9 @@ void TransitionImageLayout( VkImage image, VkFormat format, VkImageLayout oldLay
     barrier.subresourceRange.layerCount     = layers;
     barrier.srcAccessMask                   = 0;
     barrier.dstAccessMask                   = 0;
-    PG_UNUSED( format );
 
-    VkPipelineStageFlags srcStage, dstStage;
+    VkPipelineStageFlags srcStage = 0;
+    VkPipelineStageFlags dstStage = 0;
     if ( oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL )
     {
         barrier.srcAccessMask = 0;

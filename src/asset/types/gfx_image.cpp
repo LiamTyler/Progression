@@ -165,8 +165,7 @@ static void GenerateMipmaps( const Image& image, glm::vec4* outputPixels, GfxIma
             float* currentSrcImage = reinterpret_cast< float* >( outputPixels + lastOffset );
             int flags = 0;
             int alphaChannel = 3;
-            //stbir_resize_float_generic( currentSrcImage, lastW, lastH, lastW * sizeof( glm::vec4 ), currentDstImg, w, h, w * sizeof( glm::vec4 ), 4, alphaChannel, flags, STBIR_EDGE_CLAMP, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
-            stbir_resize_float_generic( (float*)image.pixels, image.width, image.height, image.width * sizeof( glm::vec4 ), currentDstImg, w, h, w * sizeof( glm::vec4 ), 4, alphaChannel, flags, STBIR_EDGE_CLAMP, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
+            stbir_resize_float_generic( currentSrcImage, lastW, lastH, lastW * sizeof( glm::vec4 ), currentDstImg, w, h, w * sizeof( glm::vec4 ), 4, alphaChannel, flags, STBIR_EDGE_CLAMP, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
         }
 
         // renormalize normal maps
@@ -339,6 +338,16 @@ bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 
     return success;
 }
+    int width     = 0;
+    int height    = 0;
+    int depth     = 0;
+    int mipLevels = 0;
+    int numFaces  = 0;
+    size_t totalSizeInBytes = 0;
+    unsigned char* pixels = nullptr;
+    PixelFormat pixelFormat;
+    GfxImageType imageType;
+    GfxTextureHandle textureHandle = GFX_INVALID_TEXTURE_HANDLE;
 
 
 bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer )
@@ -347,7 +356,14 @@ bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer )
     
     PG_ASSERT( image && serializer );
     serializer->Read( image->name );
-    serializer->Read( reinterpret_cast< char* >( image ) + offsetof( GfxImage, width ), sizeof( GfxImage ) - offsetof( GfxImage, width ) );
+    serializer->Read( image->width );
+    serializer->Read( image->height );
+    serializer->Read( image->depth );
+    serializer->Read( image->mipLevels );
+    serializer->Read( image->numFaces );
+    serializer->Read( image->totalSizeInBytes );
+    serializer->Read( image->pixelFormat );
+    serializer->Read( image->imageType );
     image->pixels = static_cast< unsigned char* >( malloc( image->totalSizeInBytes ) );
     serializer->Read( image->pixels, image->totalSizeInBytes );
     image->textureHandle = GFX_INVALID_TEXTURE_HANDLE;
@@ -363,8 +379,14 @@ bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serialize
     PG_ASSERT( image && serializer );
     PG_ASSERT( image->pixels );
     serializer->Write( image->name );
-    const unsigned char* restOfImage = reinterpret_cast< const unsigned char* >( image );
-    serializer->Write( restOfImage + offsetof( GfxImage, width ), sizeof( GfxImage ) - offsetof( GfxImage, width ) );
+    serializer->Write( image->width );
+    serializer->Write( image->height );
+    serializer->Write( image->depth );
+    serializer->Write( image->mipLevels );
+    serializer->Write( image->numFaces );
+    serializer->Write( image->totalSizeInBytes );
+    serializer->Write( image->pixelFormat );
+    serializer->Write( image->imageType );
     serializer->Write( image->pixels, image->totalSizeInBytes );
 
     return true;

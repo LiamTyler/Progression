@@ -6,8 +6,9 @@
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/vulkan.hpp"
 #include "utils/logger.hpp"
-#include <set>
 #include <algorithm>
+#include <cstring>
+#include <set>
 
 
 std::vector< const char* > VK_VALIDATION_LAYERS =
@@ -313,7 +314,7 @@ namespace Gfx
         //PG_ASSERT( tex.m_sampler, "Sampler '" + desc.sampler + "' not a valid sampler" );
 
         VkResult res = vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image );
-        PG_ASSERT( res == VK_SUCCESS);
+        PG_ASSERT( res == VK_SUCCESS );
 
         VkMemoryRequirements memRequirements;
         vkGetImageMemoryRequirements( m_handle, tex.m_image, &memRequirements );

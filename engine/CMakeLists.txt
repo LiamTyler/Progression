@@ -1,6 +1,7 @@
 project(Engine LANGUAGES CXX C)
 
 include(set_postfix)
+include(set_compile_options_default)
 
 set(
 	SRC
@@ -111,7 +112,12 @@ set(
 
 set(ALL_FILES ${SRC} ${EXTERNALS})
 
-set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
+if(UNIX AND NOT APPLE)
+    set(SHADERC_LIB shaderc_combined)
+elseif(MSVC)
+    set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
+endif()
+
 set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} glfw ${Vulkan_LIBRARIES})
 
 include_directories(
@@ -125,12 +131,7 @@ source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
 
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 SET_TARGET_POSTFIX(${PROJECT_NAME})
+SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} ${LIBS})
-
-if(MSVC)
-    target_compile_options(${PROJECT_NAME} PRIVATE "/MD")
-    target_compile_options(${PROJECT_NAME} PRIVATE "/MP")
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS -D_ITERATOR_DEBUG_LEVEL=0)
-endif()
 
 set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT ${PROJECT_NAME})

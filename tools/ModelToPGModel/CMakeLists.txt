@@ -1,6 +1,7 @@
 project(modelToPGModel)
 
 include(set_postfix)
+include(set_compile_options_default)
 
 include_directories(
     ${PROGRESSION_DIR}
@@ -31,7 +32,5 @@ set(LIBS
 
 add_executable(${PROJECT_NAME} ${SRC})
 SET_TARGET_POSTFIX(${PROJECT_NAME})
+SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} ${LIBS})
-if(MSVC)
-    add_definitions(-D_CRT_SECURE_NO_WARNINGS)
-endif()

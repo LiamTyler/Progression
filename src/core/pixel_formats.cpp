@@ -1,6 +1,6 @@
 #include "pixel_formats.hpp"
 #include "core/assert.hpp"
-
+#include <cmath>
 #include <unordered_map>
 
 
@@ -613,7 +613,7 @@ float LinearToGammaSRGB( float x )
     }
     else
     {
-        return 1.055f * powf( x, 1.0f / 2.4f ) - 0.055f;
+        return 1.055f * std::pow( x, 1.0f / 2.4f ) - 0.055f;
     }
 }
 
@@ -626,7 +626,7 @@ float GammaSRGBToLinear( float x )
     }
     else
     {
-        return powf( (x + 0.055f) / 1.055f, 2.4f );
+        return std::pow( (x + 0.055f) / 1.055f, 2.4f );
     }
 }
 

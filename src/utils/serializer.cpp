@@ -1,7 +1,7 @@
 #include "utils/serializer.hpp"
 #include "utils/logger.hpp"
 #include "core/assert.hpp"
-
+#include <cstring>
 
 Serializer::~Serializer()
 {

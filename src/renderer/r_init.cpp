@@ -3,6 +3,7 @@
 #include "renderer/r_globals.hpp"
 #include "core/window.hpp"
 #include "utils/logger.hpp"
+#include <cstring>
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
 
@@ -385,8 +386,6 @@ bool R_Init( uint32_t width, uint32_t height )
 
 void R_Shutdown()
 {
-    VkDevice dev = r_globals.device.GetHandle();
-
     r_globals.presentCompleteSemaphore.Free();
     r_globals.renderCompleteSemaphore.Free();
     r_globals.computeFence.Free();

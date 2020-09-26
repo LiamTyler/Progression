@@ -128,7 +128,7 @@ static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
     
     int index = static_cast< int >( stage );
     PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index '" + std::to_string( index ) + "' not in range" );
-    return convert[static_cast< int >( stage )];
+    return convert[index];
 }
 
 
@@ -176,6 +176,7 @@ static std::vector< uint32_t > CompilePreprocessedShaderToSPIRV( const std::stri
 }
 
 
+#if !USING( COMPILING_CONVERTER )
 static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBytes )
 {
     VkShaderModule module;
@@ -192,7 +193,7 @@ static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBy
 
     return module;
 }
-
+#endif // #if !USING( COMPILING_CONVERTER )
 
 namespace PG
 {

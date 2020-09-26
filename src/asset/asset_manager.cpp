@@ -171,7 +171,7 @@ bool LoadFastFile( const std::string& fname )
 
 void Shutdown()
 {
-    for ( int i = 0; i < AssetType::NUM_ASSET_TYPES; ++i )
+    for ( uint32_t i = 0; i < AssetType::NUM_ASSET_TYPES; ++i )
     {
         for ( const auto& it : s_resourceMaps[i] )
         {

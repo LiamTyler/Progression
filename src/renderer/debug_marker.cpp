@@ -1,6 +1,7 @@
 #include "renderer/debug_marker.hpp"
-#include <vector>
 #include "utils/logger.hpp"
+#include <cstring>
+#include <vector>
 
 namespace PG
 {
@@ -101,7 +102,7 @@ namespace DebugMarker
 		{
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			memcpy( markerInfo.color, &color[0], sizeof( float ) * 4 );
+            memcpy( markerInfo.color, &color[0], sizeof( float ) * 4 );
 			markerInfo.pMarkerName = pMarkerName;
 			vkCmdDebugMarkerBegin(cmdbuffer, &markerInfo);
 		}
@@ -115,7 +116,7 @@ namespace DebugMarker
 		{
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-			memcpy( markerInfo.color, &color[0], sizeof(float) * 4 );
+            memcpy( markerInfo.color, &color[0], sizeof(float) * 4 );
 			markerInfo.pMarkerName = name;
 			vkCmdDebugMarkerInsert( cmdbuffer, &markerInfo );
 		}

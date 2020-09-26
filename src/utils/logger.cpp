@@ -1,5 +1,6 @@
 #include "utils/logger.hpp"
 #include "core/assert.hpp"
+#include <cstring>
 #include <mutex>
 #include <stdarg.h>
 #include <stdio.h>
@@ -174,7 +175,7 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
         colorCode = TerminalColorCode::RED;
     }
 
-    char colorEncoding[10];
+    char colorEncoding[12];
     sprintf( colorEncoding, "\033[%d;%dm", static_cast< int >( emphasisCode ), static_cast< int >( colorCode ) );
     char fullFormat[256];
     memcpy( fullFormat, severityText.c_str(), severityText.length() );

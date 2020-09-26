@@ -7,12 +7,12 @@
 
 #include "core_defines.hpp"
 
-#define PG_ROOT_DIR "C:/Users/Liam Tyler/Documents/ConverterRedo/"
-#define PG_ASSET_DIR "C:/Users/Liam Tyler/Documents/ConverterRedo/assets/"
-#define PG_BIN_DIR "C:/Users/Liam Tyler/Documents/ConverterRedo/build/bin/"
+#define PG_ROOT_DIR "/home/liam/Documents/ProgressionNew/"
+#define PG_ASSET_DIR "/home/liam/Documents/ProgressionNew/assets/"
+#define PG_BIN_DIR "/home/liam/Documents/ProgressionNew/build_debug/bin/"
 
-#define LINUX_PROGRAM   NOT_IN_USE
-#define WINDOWS_PROGRAM IN_USE
+#define LINUX_PROGRAM   IN_USE
+#define WINDOWS_PROGRAM NOT_IN_USE
 #define APPLE_PROGRAM   NOT_IN_USE
 
 

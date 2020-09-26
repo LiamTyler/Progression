@@ -1,7 +1,7 @@
 #include "renderer/graphics_api/gpu_profiling.hpp"
 #include "core/assert.hpp"
 #include "core/time.hpp"
-#include "renderer/vulkan.hpp"
+#include "renderer/r_globals.hpp"
 #include "utils/logger.hpp"
 #include <algorithm>
 #include <fstream>
@@ -40,12 +40,12 @@ namespace Profile
         createInfo.pNext        = nullptr;
         createInfo.queryType    = VK_QUERY_TYPE_TIMESTAMP;
         createInfo.queryCount   = MAX_NUM_QUERIES;
-        VkResult res = vkCreateQueryPool( g_renderState.device.GetHandle(), &createInfo, nullptr, &s_queryPool );
+        VkResult res = vkCreateQueryPool( r_globals.device.GetHandle(), &createInfo, nullptr, &s_queryPool );
         PG_ASSERT( res == VK_SUCCESS );
         //PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_queryPool, "GPU Profiling Timestamps" );
 
         s_cpuQueries.resize( MAX_NUM_QUERIES );
-        s_timestampToMillisInv = 1.0 / g_renderState.physicalDeviceInfo.deviceProperties.limits.timestampPeriod / 1e6;
+        s_timestampToMillisInv = 1.0 / r_globals.physicalDevice.GetProperties().limits.timestampPeriod / 1e6;
         s_nextFreeIndex = 0;
 
         s_outputFile.open( tmpFileName );
@@ -61,7 +61,7 @@ namespace Profile
     {
         if ( s_queryPool != VK_NULL_HANDLE )
         {
-            vkDestroyQueryPool( g_renderState.device.GetHandle(), s_queryPool, nullptr );
+            vkDestroyQueryPool( r_globals.device.GetHandle(), s_queryPool, nullptr );
         }
 
         s_outputFile.close();
@@ -160,8 +160,7 @@ namespace Profile
         if ( currentTime >= s_lastSampledTime + MILLISECONDS_BETWEEN_SAMPLES )
         {
             s_lastSampledTime = currentTime;
-            vkGetQueryPoolResults( g_renderState.device.GetHandle(), s_queryPool, 0, s_nextFreeIndex, s_cpuQueries.size() * sizeof( uint64_t ),
-                s_cpuQueries.data(), sizeof( uint64_t ), VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT );
+            vkGetQueryPoolResults( r_globals.device.GetHandle(), s_queryPool, 0, s_nextFreeIndex, s_cpuQueries.size() * sizeof( uint64_t ), s_cpuQueries.data(), sizeof( uint64_t ), VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT );
         
             for ( const auto& [ name, index ] : s_nameToIndexMap )
             {

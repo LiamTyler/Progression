@@ -57,7 +57,7 @@ int main( int argc, char* argv[] )
             window->EndFrame();
         }
 
-        //Gfx::g_renderState.device.WaitForIdle();
+        //Gfx::r_globals.device.WaitForIdle();
         //delete scene;
     }
 

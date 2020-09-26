@@ -3,7 +3,6 @@
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
-#include "renderer/vulkan.hpp"
 
 namespace PG
 {
@@ -48,14 +47,14 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::BeginRenderPass( const RenderPass& renderPass, const Framebuffer& framebuffer, const VkExtent2D& extent ) const
+    void CommandBuffer::BeginRenderPass( const RenderPass& renderPass, const Framebuffer& framebuffer ) const
     {
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
         renderPassInfo.renderPass        = renderPass.GetHandle();
         renderPassInfo.framebuffer       = framebuffer.GetHandle();
         renderPassInfo.renderArea.offset = { 0, 0 };
-        renderPassInfo.renderArea.extent = extent;
+        renderPassInfo.renderArea.extent = { framebuffer.GetWidth(), framebuffer.GetHeight() };
 
         VkClearValue clearValues[9] = {};
         size_t i = 0;

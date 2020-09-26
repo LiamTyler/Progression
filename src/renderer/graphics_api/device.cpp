@@ -4,15 +4,21 @@
 #include "core/pixel_formats.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
-//#include "graphics/render_system.hpp"
-//#include "graphics/texture_manager.hpp"
 #include "renderer/vulkan.hpp"
 #include "utils/logger.hpp"
 #include <set>
 #include <algorithm>
 
-extern std::vector< const char* > VK_VALIDATION_LAYERS;
-extern std::vector< const char* > VK_DEVICE_EXTENSIONS;
+
+std::vector< const char* > VK_VALIDATION_LAYERS =
+{
+    "VK_LAYER_KHRONOS_validation"
+};
+
+std::vector< const char* > VK_DEVICE_EXTENSIONS =
+{
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME
+};
 
 namespace PG
 {
@@ -23,9 +29,8 @@ namespace Gfx
     Device Device::CreateDefault()
     {
         Device device;
-        const auto& indices                     = g_renderState.physicalDeviceInfo.indices;
-        PG_ASSERT( indices.IsComplete() );
-        std::set< uint32_t> uniqueQueueFamilies = { indices.graphicsFamily, indices.presentFamily, indices.computeFamily };
+        const PhysicalDevice& pDev = r_globals.physicalDevice;
+        std::set< uint32_t > uniqueQueueFamilies = { pDev.GetGraphicsQueueFamily(), pDev.GetPresentationQueueFamily(), pDev.GetComputeQueueFamily() };
 
         float queuePriority = 1.0f;
         std::vector< VkDeviceQueueCreateInfo > queueCreateInfos;
@@ -39,14 +44,15 @@ namespace Gfx
             queueCreateInfos.push_back( queueCreateInfo );
         }
 
+        VkPhysicalDeviceFeatures features = pDev.GetFeatures();
         VkDeviceCreateInfo createInfo      = {};
         createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         createInfo.queueCreateInfoCount    = static_cast< uint32_t >( queueCreateInfos.size() );
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
-        createInfo.pEnabledFeatures        = &g_renderState.physicalDeviceInfo.deviceFeatures;
+        createInfo.pEnabledFeatures        = &features;
 
         auto extensions = VK_DEVICE_EXTENSIONS;
-        if ( g_renderState.physicalDeviceInfo.ExtensionSupported( VK_EXT_DEBUG_MARKER_EXTENSION_NAME ) )
+        if ( pDev.ExtensionSupported( VK_EXT_DEBUG_MARKER_EXTENSION_NAME ) )
 		{
 			extensions.push_back( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
 		}
@@ -61,14 +67,14 @@ namespace Gfx
         createInfo.enabledLayerCount   = 0;
 #endif // #else // #if !USING( SHIP_BUILD )
 
-        if ( vkCreateDevice( g_renderState.physicalDeviceInfo.device, &createInfo, nullptr, &device.m_handle ) != VK_SUCCESS )
+        if ( vkCreateDevice( pDev.GetHandle(), &createInfo, nullptr, &device.m_handle ) != VK_SUCCESS )
         {
             return {};
         }
 
-        vkGetDeviceQueue( device.m_handle, indices.graphicsFamily, 0, &device.m_graphicsQueue );
-        vkGetDeviceQueue( device.m_handle, indices.presentFamily,  0, &device.m_presentQueue );
-        vkGetDeviceQueue( device.m_handle, indices.computeFamily,  0, &device.m_computeQueue );
+        vkGetDeviceQueue( device.m_handle, pDev.GetGraphicsQueueFamily(),     0, &device.m_graphicsQueue );
+        vkGetDeviceQueue( device.m_handle, pDev.GetPresentationQueueFamily(), 0, &device.m_presentQueue );
+        vkGetDeviceQueue( device.m_handle, pDev.GetComputeQueueFamily(),      0, &device.m_computeQueue );
 
         return device;
     }
@@ -107,10 +113,10 @@ namespace Gfx
         VkCommandPoolCreateInfo poolInfo = {};
         poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags            = PGToVulkanCommandPoolCreateFlags( flags );
-        poolInfo.queueFamilyIndex = g_renderState.physicalDeviceInfo.indices.graphicsFamily;
+        poolInfo.queueFamilyIndex = r_globals.physicalDevice.GetGraphicsQueueFamily();
         if ( family == CommandPoolQueueFamily::COMPUTE )
         {
-            poolInfo.queueFamilyIndex = g_renderState.physicalDeviceInfo.indices.computeFamily;
+            poolInfo.queueFamilyIndex = r_globals.physicalDevice.GetComputeQueueFamily();
         }
 
         CommandPool cmdPool;
@@ -674,21 +680,15 @@ namespace Gfx
         framebufferInfo.height          = attachments[0]->GetHeight();
         framebufferInfo.layers          = 1;
 
-        Framebuffer ret;
-        ret.m_device = m_handle;
-        if ( vkCreateFramebuffer( m_handle, &framebufferInfo, nullptr, &ret.m_handle ) != VK_SUCCESS )
-        {
-            ret.m_handle = VK_NULL_HANDLE;
-        }
-        PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( ret, name ) );
-
-        return ret;
+        return NewFramebuffer( framebufferInfo, name );
     }
 
 
     Framebuffer Device::NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name ) const
     {
         Framebuffer ret;
+        ret.m_width  = info.width;
+        ret.m_height = info.height;
         ret.m_device = m_handle;
         if ( vkCreateFramebuffer( m_handle, &info, nullptr, &ret.m_handle ) != VK_SUCCESS )
         {
@@ -702,7 +702,7 @@ namespace Gfx
 
     void Device::Copy( Buffer dst, Buffer src ) const
     {
-        CommandBuffer cmdBuf = g_renderState.transientCommandPool.NewCommandBuffer( "One time copy buffer -> buffer" );
+        CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
 
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
         cmdBuf.Copy( dst, src );
@@ -717,7 +717,7 @@ namespace Gfx
 
     void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips ) const
     {
-        CommandBuffer cmdBuf = g_renderState.transientCommandPool.NewCommandBuffer( "One time CopyBufferToImage" );
+        CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
 
         std::vector< VkBufferImageCopy > bufferCopyRegions;
@@ -776,8 +776,8 @@ namespace Gfx
         );
 
         cmdBuf.EndRecording();
-        g_renderState.device.Submit( cmdBuf );
-        g_renderState.device.WaitForIdle();
+        r_globals.device.Submit( cmdBuf );
+        r_globals.device.WaitForIdle();
         cmdBuf.Free();
     }
 
@@ -818,7 +818,7 @@ namespace Gfx
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[]      = { g_renderState.presentCompleteSemaphore.GetHandle() };
+        VkSemaphore waitSemaphores[]      = { r_globals.presentCompleteSemaphore.GetHandle() };
         VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
         submitInfo.waitSemaphoreCount     = 1;
         submitInfo.pWaitSemaphores        = waitSemaphores;
@@ -826,7 +826,7 @@ namespace Gfx
         submitInfo.commandBufferCount     = numBuffers;
         submitInfo.pCommandBuffers        = vkCmdBufs;
 
-        VkSemaphore signalSemaphores[]    = { g_renderState.renderCompleteSemaphore.GetHandle() };
+        VkSemaphore signalSemaphores[]    = { r_globals.renderCompleteSemaphore.GetHandle() };
         submitInfo.signalSemaphoreCount   = 1;
         submitInfo.pSignalSemaphores      = signalSemaphores;
 
@@ -843,31 +843,31 @@ namespace Gfx
         submitInfo.commandBufferCount     = 1;
         submitInfo.pCommandBuffers        = &buff;
 
-        VkSemaphore signalSemaphores[]    = { g_renderState.renderCompleteSemaphore.GetHandle() };
+        VkSemaphore signalSemaphores[]    = { r_globals.renderCompleteSemaphore.GetHandle() };
         submitInfo.signalSemaphoreCount   = 1;
         submitInfo.pSignalSemaphores      = signalSemaphores;
 
-        VkResult ret = vkQueueSubmit( m_computeQueue, 1, &submitInfo, g_renderState.computeFence.GetHandle() );
+        VkResult ret = vkQueueSubmit( m_computeQueue, 1, &submitInfo, r_globals.computeFence.GetHandle() );
         PG_ASSERT( ret == VK_SUCCESS );
     }
 
 
     void Device::SubmitFrame( uint32_t imageIndex ) const
     {
-        VkSemaphore signalSemaphores[] = { g_renderState.renderCompleteSemaphore.GetHandle() };
+        VkSemaphore signalSemaphores[] = { r_globals.renderCompleteSemaphore.GetHandle() };
         VkPresentInfoKHR presentInfo   = {};
         presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
         presentInfo.pWaitSemaphores    = signalSemaphores;
 
-        VkSwapchainKHR swapChains[] = { g_renderState.swapChain.swapChain };
+        VkSwapchainKHR swapChains[] = { r_globals.swapchain.GetHandle() };
         presentInfo.swapchainCount  = 1;
         presentInfo.pSwapchains     = swapChains;
         presentInfo.pImageIndices   = &imageIndex;
 
         vkQueuePresentKHR( m_presentQueue, &presentInfo );
         
-        vkDeviceWaitIdle( g_renderState.device.GetHandle() );
+        vkDeviceWaitIdle( r_globals.device.GetHandle() );
     }
 
 

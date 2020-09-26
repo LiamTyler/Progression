@@ -1,8 +1,8 @@
 #include "renderer/render_system.hpp"
 #include "renderer/graphics_api.hpp"
-#include "renderer/vulkan.hpp"
 #include "renderer/render_system.hpp"
 #include "renderer/r_globals.hpp"
+#include "renderer/r_init.hpp"
 #include "asset/asset_manager.hpp"
 #include "asset/types/shader.hpp"
 #include "core/assert.hpp"
@@ -27,9 +27,10 @@ namespace RenderSystem
 bool Init()
 {
     s_window = GetMainWindow();
-    if ( !VulkanInit() )
+    r_globals = {};
+
+    if ( !R_Init( s_window->Width(), s_window->Height() ) )
     {
-        LOG_ERR( "Could not init Vulkan\n" );
         return false;
     }
 
@@ -46,7 +47,7 @@ bool Init()
     PG_ASSERT( vertShader && fragShader );
 
     PipelineDescriptor pipelineDesc;
-    pipelineDesc.renderPass             = &g_renderState.renderPass;
+    pipelineDesc.renderPass             = &r_globals.renderPass;
     pipelineDesc.descriptorSetLayouts   = {};
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 0, nullptr, 0, nullptr );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::CLOCKWISE;
@@ -55,7 +56,7 @@ bool Init()
     pipelineDesc.shaders[0]             = vertShader;
     pipelineDesc.shaders[1]             = fragShader;
 
-    pipeline = r_globals.device->NewPipeline( pipelineDesc, "rigid Model" );
+    pipeline = r_globals.device.NewPipeline( pipelineDesc, "rigid Model" );
     if ( !pipeline )
     {
         LOG_ERR( "Could not create pipeline" );
@@ -68,25 +69,27 @@ bool Init()
 
 void Shutdown()
 {
-    g_renderState.device.WaitForIdle();
-    Profile::Shutdown();
+    r_globals.device.WaitForIdle();
+    
     pipeline.Free();
-    VulkanShutdown();
+
+    Profile::Shutdown();
+    R_Shutdown();
 }
 
 
 void Render( Scene* scene )
 {
     //PG_ASSERT( scene != nullptr );
-    auto swapChainImageIndex = g_renderState.swapChain.AcquireNextImage( g_renderState.presentCompleteSemaphore );
+    auto swapChainImageIndex = r_globals.swapchain.AcquireNextImage( r_globals.presentCompleteSemaphore );
 
-    auto& cmdBuf = g_renderState.graphicsCommandBuffer;
+    auto& cmdBuf = r_globals.graphicsCommandBuffer;
     cmdBuf.BeginRecording();
     PG_PROFILE_GPU_RESET( cmdBuf );
 
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
-    cmdBuf.BeginRenderPass( g_renderState.renderPass, g_renderState.swapChainFramebuffers[swapChainImageIndex], g_renderState.swapChain.extent );
+    cmdBuf.BeginRenderPass( r_globals.renderPass, r_globals.swapchainFramebuffers[swapChainImageIndex] );
 
     cmdBuf.BindRenderPipeline( pipeline );
     PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw full-screen quad", glm::vec4( 0 ) );
@@ -98,8 +101,8 @@ void Render( Scene* scene )
     PG_PROFILE_GPU_END( cmdBuf, "Frame" );
 
     cmdBuf.EndRecording();
-    g_renderState.device.SubmitRenderCommands( 1, &cmdBuf );
-    g_renderState.device.SubmitFrame( swapChainImageIndex );
+    r_globals.device.SubmitRenderCommands( 1, &cmdBuf );
+    r_globals.device.SubmitFrame( swapChainImageIndex );
 
     PG_PROFILE_GPU_GET_RESULTS();
 } 

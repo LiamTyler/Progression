@@ -61,47 +61,18 @@ namespace Gfx
     }
 
 
-    char* Buffer::MappedPtr() const
-    {
-        return static_cast< char* >( m_mappedPtr );
-    }
-
-
-    size_t Buffer::GetLength() const
-    {
-        return m_length;
-    }
-
-
-    BufferType Buffer::GetType() const
-    {
-        return m_type;
-    }
-
-
-    MemoryType Buffer::GetMemoryType() const
-    {
-        return m_memoryType;
-    }
-
-
-    VkBuffer Buffer::GetHandle() const
-    {
-        return m_handle;
-    }
-
-
-    VkDeviceMemory Buffer::GetMemoryHandle() const
-    {
-        return m_memory;
-    }
-
-
     Buffer::operator bool() const
     {
         return m_handle != VK_NULL_HANDLE;
     }
 
+
+    char* Buffer::MappedPtr() const { return static_cast< char* >( m_mappedPtr ); }
+    size_t Buffer::GetLength() const { return m_length; }
+    BufferType Buffer::GetType() const { return m_type; }
+    MemoryType Buffer::GetMemoryType() const { return m_memoryType; }
+    VkBuffer Buffer::GetHandle() const { return m_handle; }
+    VkDeviceMemory Buffer::GetMemoryHandle() const { return m_memory; }
 
 } // namespace Gfx
 } // namespace PG

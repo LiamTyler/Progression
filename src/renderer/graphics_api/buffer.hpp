@@ -118,13 +118,13 @@ namespace Gfx
         void UnMap();
         void BindMemory( size_t offset = 0 ) const;
         bool Flush( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
+        operator bool() const;
         char* MappedPtr() const;
         size_t GetLength() const;
         MemoryType GetMemoryType() const;
         BufferType GetType() const;
         VkBuffer GetHandle() const;
         VkDeviceMemory GetMemoryHandle() const;
-        operator bool() const;
 
     protected:
         BufferType m_type;

@@ -51,12 +51,16 @@ set(
     ${PROGRESSION_DIR}/src/renderer/graphics_api/framebuffer.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/gpu_profiling.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/gpu_profiling.hpp
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/physical_device.cpp
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/physical_device.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/pipeline.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/pipeline.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/render_pass.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/render_pass.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/sampler.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/sampler.hpp
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/swapchain.cpp
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/swapchain.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/synchronization.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/synchronization.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/texture.cpp
@@ -66,10 +70,12 @@ set(
     
     ${PROGRESSION_DIR}/src/renderer/debug_marker.cpp
     ${PROGRESSION_DIR}/src/renderer/debug_marker.hpp
-    ${PROGRESSION_DIR}/src/renderer/r_globals.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api.hpp
     ${PROGRESSION_DIR}/src/renderer/render_system.cpp
     ${PROGRESSION_DIR}/src/renderer/render_system.hpp
+    ${PROGRESSION_DIR}/src/renderer/r_globals.hpp
+    ${PROGRESSION_DIR}/src/renderer/r_init.cpp
+    ${PROGRESSION_DIR}/src/renderer/r_init.hpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.cpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.hpp
     
@@ -103,11 +109,7 @@ set(
     ${PROGRESSION_DIR}/ext/memory_map/MemoryMapped.cpp
 )
 
-set(
-	ALL_FILES
-	${SRC}
-	${EXTERNALS}
-)
+set(ALL_FILES ${SRC} ${EXTERNALS})
 
 set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
 set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} glfw ${Vulkan_LIBRARIES})

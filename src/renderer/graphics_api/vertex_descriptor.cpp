@@ -46,9 +46,7 @@ namespace Gfx
         desc.m_createInfo = {};
         desc.m_createInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
         desc.m_createInfo.vertexBindingDescriptionCount   = numBinding;
-        desc.m_createInfo.pVertexBindingDescriptions      = numBinding ? desc.m_vkBindingDescs.data() : nullptr;
         desc.m_createInfo.vertexAttributeDescriptionCount = numAttrib;
-        desc.m_createInfo.pVertexAttributeDescriptions    = numAttrib ? desc.m_vkAttribDescs.data() : nullptr;
 
         return desc;
     }
@@ -56,6 +54,8 @@ namespace Gfx
 
     const VkPipelineVertexInputStateCreateInfo& VertexInputDescriptor::GetHandle()
     {
+        m_createInfo.pVertexBindingDescriptions      = m_vkBindingDescs.data();
+        m_createInfo.pVertexAttributeDescriptions    = m_vkAttribDescs.data();
         return m_createInfo;
     }
 

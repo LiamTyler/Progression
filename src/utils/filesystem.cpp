@@ -88,7 +88,7 @@ void DeleteFile( const std::string& filename )
     }
     catch ( std::filesystem::filesystem_error& e )
     {
-        PG_MAYBE_UNUSED( e );
+        PG_NO_WARN_UNUSED( e );
         LOG_ERR( "Failed to delete file. Error: '%s' and code '%d'\n", e.what(), e.code().value() );
     }
 }
@@ -144,9 +144,9 @@ std::string GetRelativeFilename( const std::string& filename )
 std::string GetParentPath( const std::string& filename )
 {
     std::string path = fs::path( filename ).parent_path().string();
-    if ( path .length() )
+    if ( path.length() )
     {
-        path  += '/';
+        path += '/';
     }
-    return path ;
+    return path;
 }

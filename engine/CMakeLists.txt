@@ -52,6 +52,7 @@ set(
     ${PROGRESSION_DIR}/src/renderer/graphics_api/framebuffer.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/gpu_profiling.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/gpu_profiling.hpp
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/limits.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/physical_device.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/physical_device.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/pipeline.cpp
@@ -80,6 +81,7 @@ set(
     ${PROGRESSION_DIR}/src/renderer/vulkan.cpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.hpp
     
+    ${PROGRESSION_DIR}/src/utils/bitops.hpp
     ${PROGRESSION_DIR}/src/utils/cpu_profile.hpp
     ${PROGRESSION_DIR}/src/utils/file_dependency.cpp
     ${PROGRESSION_DIR}/src/utils/file_dependency.hpp
@@ -114,11 +116,13 @@ set(ALL_FILES ${SRC} ${EXTERNALS})
 
 if(UNIX AND NOT APPLE)
     set(SHADERC_LIB shaderc_combined)
+    set(SPIRVCROSS_LIB spirv-cross-core)
 elseif(MSVC)
     set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
+    set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
 endif()
 
-set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} glfw ${Vulkan_LIBRARIES})
+set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} glfw ${Vulkan_LIBRARIES})
 
 include_directories(
     ${PROGRESSION_DIR}/src/

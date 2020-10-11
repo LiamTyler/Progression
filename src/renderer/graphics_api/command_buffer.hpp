@@ -3,7 +3,7 @@
 #include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/framebuffer.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
-#include <vulkan/vulkan.h>
+#include "renderer/vulkan.hpp"
 
 namespace PG
 {
@@ -28,11 +28,11 @@ namespace Gfx
         VkCommandBuffer GetHandle() const;
 
         void Free();
-        bool BeginRecording( CommandBufferUsage flags = 0 ) const;
-        bool EndRecording() const;
+        void BeginRecording( CommandBufferUsage flags = 0 ) const;
+        void EndRecording() const;
         void BeginRenderPass( const RenderPass& renderPass, const Framebuffer& framebuffer ) const;
         void EndRenderPass() const;
-        void BindRenderPipeline( const Pipeline& pipeline ) const;
+        void BindPipeline( const Pipeline& pipeline ) const;
         void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, const Pipeline& pipeline, uint32_t firstSet = 0 ) const;
         void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, uint32_t firstBinding = 0 ) const;
         void BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding = 0 ) const;
@@ -48,6 +48,7 @@ namespace Gfx
 
         void Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount = 1, uint32_t firstInstance = 0 ) const;
         void DrawIndexed( uint32_t firstIndex, uint32_t indexCount, int vertexOffset = 0, uint32_t firstInstance = 0, uint32_t instanceCount = 1 ) const;
+        void Dispatch( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const;
 
     private:
         VkDevice m_device        = VK_NULL_HANDLE;
@@ -61,13 +62,13 @@ namespace Gfx
         COMMAND_POOL_RESET_COMMAND_BUFFER = 1 << 1,
     } CommandPoolCreateFlagBits;
 
+    typedef uint32_t CommandPoolCreateFlags;
+
     enum class CommandPoolQueueFamily
     {
         GRAPHICS,
         COMPUTE
     };
-
-    typedef uint32_t CommandPoolCreateFlags;
 
     class CommandPool
     {

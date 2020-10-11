@@ -39,7 +39,7 @@ int main( int argc, char* argv[] )
 	Buffer gpu_b = device.NewBuffer( BUFFER_SIZE * sizeof( float ), cpu_b, BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_b" );
 	Buffer gpu_c = device.NewBuffer( BUFFER_SIZE * sizeof( float ), BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_c" );
 	
-	ShaderCreateInfo shaderInfo = { "vector add", PG_ASSET_DIR "shaders/vector_add.comp", ShaderStage::COMPUTE };
+	ShaderCreateInfo shaderInfo = { "vector add", PG_ROOT_DIR "old_examples/vector_add.comp", ShaderStage::COMPUTE };
 	Shader compShader;
 	if ( !Shader_Load( &compShader, shaderInfo ) )
     {
@@ -101,46 +101,3 @@ int main( int argc, char* argv[] )
 
     return 0;
 }
-
-/*
-int main( int argc, char* argv[] )
-{
-
-    if ( !EngineInitialize() )
-    {
-        std::cout << "Failed to initialize the engine" << std::endl;
-        return 0;
-    }
-
-    {
-        Window* window = GetMainWindow();
-        window->SetRelativeMouse( true );
-
-        Input::PollEvents();
-        Time::Reset();
-
-        while ( !g_engineShutdown )
-        {
-            window->StartFrame();
-            Input::PollEvents();
-
-            if ( Input::GetKeyDown( Key::ESC ) )
-            {
-                g_engineShutdown = true;
-            }
-
-            //RenderSystem::Render( scene );
-            RenderSystem::Render( nullptr );
-
-            window->EndFrame();
-        }
-
-        //Gfx::r_globals.device.WaitForIdle();
-        //delete scene;
-    }
-
-    EngineShutdown();
-
-    return 0;
-}
-*/

@@ -2,8 +2,9 @@
 
 #include "asset/types/base_asset.hpp"
 #include "core/platform_defines.hpp"
+#include "renderer/graphics_api/descriptor.hpp"
+#include "renderer/vulkan.hpp"
 #include <vector>
-#include <vulkan/vulkan.h>
 
 class Serializer;
 
@@ -27,6 +28,15 @@ struct ShaderCreateInfo
     std::string name;
     std::string filename;
     ShaderStage shaderStage;
+    std::vector< std::pair< std::string, std::string > > defines;
+};
+
+struct ShaderResourceLayout
+{
+	uint32_t inputMask        = 0;
+	uint32_t outputMask       = 0;
+    uint32_t pushConstantSize = 0;
+	Gfx::DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS];
 };
 
 struct Shader : public Asset
@@ -34,7 +44,9 @@ struct Shader : public Asset
     void Free();
 
     ShaderStage shaderStage;
+    std::string entryPoint;
     VkShaderModule handle = VK_NULL_HANDLE;
+    ShaderResourceLayout resourceLayout;
 
 #if USING( COMPILING_CONVERTER )
     std::vector< uint32_t > spirv;
@@ -47,8 +59,6 @@ bool Fastfile_Shader_Load( Shader* shader, Serializer* serializer );
 
 bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer );
 
-// preprocesses the shader to get a list of all the files that were #include'd
-// returns false if preprocessing step failed.
 bool Shader_GetIncludes( const std::string& filename, ShaderStage shaderStage, std::vector< std::string >& includedFiles );
 
 } // namespace PG

@@ -2,8 +2,9 @@
 
 #include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
+#include "renderer/graphics_api/limits.hpp"
 #include "renderer/graphics_api/vertex_descriptor.hpp"
-#include <vulkan/vulkan.h>
+#include "renderer/vulkan.hpp"
 
 namespace PG
 {
@@ -27,9 +28,8 @@ namespace Gfx
         NUM_COMPARE_FUNCTION
     };
 
-    class PipelineDepthInfo
+    struct PipelineDepthInfo
     {
-    public:
         bool depthTestEnabled       = true;
         bool depthWriteEnabled      = true;
         CompareFunction compareFunc = CompareFunction::LESS; 
@@ -63,9 +63,8 @@ namespace Gfx
         NUM_BLEND_EQUATIONS
     };
 
-    class PipelineColorAttachmentInfo
+    struct PipelineColorAttachmentInfo
     {
-    public:
         BlendFactor srcColorBlendFactor  = BlendFactor::SRC_ALPHA;
         BlendFactor dstColorBlendFactor  = BlendFactor::ONE_MINUS_SRC_ALPHA;
         BlendFactor srcAlphaBlendFactor  = BlendFactor::SRC_ALPHA;
@@ -102,9 +101,8 @@ namespace Gfx
         NUM_POLYGON_MODES
     };
 
-    class RasterizerInfo
+    struct RasterizerInfo
     {
-    public:
         WindingOrder winding    = WindingOrder::COUNTER_CLOCKWISE;
         CullFace cullFace       = CullFace::BACK;
         PolygonMode polygonMode = PolygonMode::FILL;
@@ -153,20 +151,26 @@ namespace Gfx
         NUM_PRIMITIVE_TYPE
     };
 
-    class PipelineDescriptor
+    struct PipelineDescriptor
     {
-    public:
-        std::array< Shader*, 3 > shaders = { nullptr };
+        std::array< Shader*, 3 > shaders = {};
         VertexInputDescriptor vertexDescriptor;
-        Viewport viewport;
-        Scissor scissor;
         RenderPass* renderPass;
-        std::vector< DescriptorSetLayout > descriptorSetLayouts;
         RasterizerInfo rasterizerInfo;
         PrimitiveType primitiveType = PrimitiveType::TRIANGLES;
         PipelineDepthInfo depthInfo;
-        std::vector< VkDynamicState > dynamicStates;
         std::array< PipelineColorAttachmentInfo, 8 > colorAttachmentInfos;
+    };
+
+    struct PipelineResourceLayout
+    {
+        // uint32_t attributeMask = 0;
+	    // uint32_t renderTargetMask = 0;
+	    DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS] = {};
+	    uint32_t bindingStages[PG_MAX_NUM_DESCRIPTOR_SETS][PG_MAX_NUM_BINDINGS_PER_SET] = {};
+	    uint32_t setStages[PG_MAX_NUM_DESCRIPTOR_SETS] = {};
+	    VkPushConstantRange pushConstantRange = {};
+	    uint32_t descriptorSetMask = 0;
     };
 
     class Pipeline
@@ -178,13 +182,19 @@ namespace Gfx
         void Free();
         VkPipeline GetHandle() const;
         VkPipelineLayout GetLayoutHandle() const;
+        VkPipelineBindPoint GetPipelineBindPoint() const;
+        const PipelineResourceLayout* GetResourceLayout() const;
+        const DescriptorSetLayout* GetDescriptorSetLayout( int set ) const;
+
         operator bool() const;
 
     private:
         PipelineDescriptor m_desc;
+        PipelineResourceLayout m_resourceLayout;
         VkPipeline m_pipeline             = VK_NULL_HANDLE;
         VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
         VkDevice m_device                 = VK_NULL_HANDLE;
+        bool m_isCompute = false;
     };
 
 } // namespace Gfx

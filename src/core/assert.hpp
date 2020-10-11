@@ -24,6 +24,7 @@ if ( !( x ) )                                                                   
 #define _PG_GET_ASSERT_MACRO( _1, _2, NAME, ... ) NAME
 
 #if !USING( SHIP_BUILD )
+#include <string>
 
 #if !USING( WINDOWS_PROGRAM )
 #define PG_ASSERT( ... ) _PG_GET_ASSERT_MACRO( __VA_ARGS__, _PG_ASSERT_WITH_MSG, _PG_ASSERT_NO_MSG )( __VA_ARGS__ )

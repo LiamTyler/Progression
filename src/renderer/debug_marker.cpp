@@ -25,9 +25,9 @@ namespace DebugMarker
 	{
 		// Check if the debug marker extension is present (which is the case if run from a graphics debugger)
 		uint32_t extensionCount;
-		vkEnumerateDeviceExtensionProperties( physicalDevice, nullptr, &extensionCount, nullptr );
+		VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( physicalDevice, nullptr, &extensionCount, nullptr ) );
 		std::vector< VkExtensionProperties > extensions( extensionCount );
-		vkEnumerateDeviceExtensionProperties( physicalDevice, nullptr, &extensionCount, extensions.data() );
+		VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( physicalDevice, nullptr, &extensionCount, extensions.data() ) );
 		for ( auto extension : extensions )
         {
 			if ( strcmp( extension.extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME) == 0 )
@@ -46,6 +46,10 @@ namespace DebugMarker
 			vkCmdDebugMarkerEnd         = (PFN_vkCmdDebugMarkerEndEXT)        vkGetDeviceProcAddr( device, "vkCmdDebugMarkerEndEXT" );
 			vkCmdDebugMarkerInsert      = (PFN_vkCmdDebugMarkerInsertEXT)     vkGetDeviceProcAddr( device, "vkCmdDebugMarkerInsertEXT" );
 			s_active = ( vkDebugMarkerSetObjectTag != VK_NULL_HANDLE && vkDebugMarkerSetObjectName != VK_NULL_HANDLE &&vkCmdDebugMarkerBegin != VK_NULL_HANDLE && vkCmdDebugMarkerEnd != VK_NULL_HANDLE && vkCmdDebugMarkerInsert != VK_NULL_HANDLE );
+			if ( !s_active )
+			{
+				LOG_ERR( "Could not initialize vkDebugMarker extension!\n" );
+			}
 		}
 
         // Colored output is messed up in Renderdoc terminal
@@ -73,7 +77,7 @@ namespace DebugMarker
 			nameInfo.objectType  = objectType;
 			nameInfo.object      = object;
 			nameInfo.pObjectName = name;
-			vkDebugMarkerSetObjectName( device, &nameInfo );
+			VK_CHECK_RESULT( vkDebugMarkerSetObjectName( device, &nameInfo ) );
 		}
 	}
 
@@ -90,7 +94,7 @@ namespace DebugMarker
 			tagInfo.tagName     = name;
 			tagInfo.tagSize     = tagSize;
 			tagInfo.pTag        = tag;
-			vkDebugMarkerSetObjectTag( device, &tagInfo );
+			VK_CHECK_RESULT( vkDebugMarkerSetObjectTag( device, &tagInfo ) );
 		}
 	}
 
@@ -104,7 +108,7 @@ namespace DebugMarker
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
             memcpy( markerInfo.color, &color[0], sizeof( float ) * 4 );
 			markerInfo.pMarkerName = pMarkerName;
-			vkCmdDebugMarkerBegin(cmdbuffer, &markerInfo);
+			vkCmdDebugMarkerBegin( cmdbuffer, &markerInfo );
 		}
 	}
 
@@ -116,7 +120,7 @@ namespace DebugMarker
 		{
 			VkDebugMarkerMarkerInfoEXT markerInfo = {};
 			markerInfo.sType = VK_STRUCTURE_TYPE_DEBUG_MARKER_MARKER_INFO_EXT;
-            memcpy( markerInfo.color, &color[0], sizeof(float) * 4 );
+            memcpy( markerInfo.color, &color[0], sizeof( float ) * 4 );
 			markerInfo.pMarkerName = name;
 			vkCmdDebugMarkerInsert( cmdbuffer, &markerInfo );
 		}

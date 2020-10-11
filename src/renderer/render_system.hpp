@@ -16,7 +16,7 @@ namespace Gfx
 namespace RenderSystem
 {
 
-    bool Init();
+    bool Init( bool headless = false );
 
     void Shutdown();
 

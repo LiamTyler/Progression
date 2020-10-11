@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "renderer/vulkan.hpp"
 #include <string>
 #include <vector>
 
@@ -13,7 +13,7 @@ class PhysicalDevice
 {
 public:
 
-    bool Select( std::string preferredGpu = "" );
+    bool Select( bool headless, std::string preferredGpu = "" );
     bool ExtensionSupported( const std::string& extensionName ) const;
 
     std::string GetName() const;

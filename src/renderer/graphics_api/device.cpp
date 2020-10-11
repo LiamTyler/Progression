@@ -5,21 +5,12 @@
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/vulkan.hpp"
+#include "utils/bitops.hpp"
 #include "utils/logger.hpp"
 #include <algorithm>
 #include <cstring>
 #include <set>
 
-
-std::vector< const char* > VK_VALIDATION_LAYERS =
-{
-    "VK_LAYER_KHRONOS_validation"
-};
-
-std::vector< const char* > VK_DEVICE_EXTENSIONS =
-{
-    VK_KHR_SWAPCHAIN_EXTENSION_NAME
-};
 
 namespace PG
 {
@@ -27,11 +18,15 @@ namespace Gfx
 {
 
 
-    Device Device::CreateDefault()
+    Device Device::Create( bool headless )
     {
         Device device;
         const PhysicalDevice& pDev = r_globals.physicalDevice;
-        std::set< uint32_t > uniqueQueueFamilies = { pDev.GetGraphicsQueueFamily(), pDev.GetPresentationQueueFamily(), pDev.GetComputeQueueFamily() };
+        std::set< uint32_t > uniqueQueueFamilies = { pDev.GetGraphicsQueueFamily(), pDev.GetComputeQueueFamily() };
+        if ( !headless )
+        {
+            uniqueQueueFamilies.insert( pDev.GetPresentationQueueFamily() );
+        }
 
         float queuePriority = 1.0f;
         std::vector< VkDeviceQueueCreateInfo > queueCreateInfos;
@@ -52,7 +47,11 @@ namespace Gfx
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
         createInfo.pEnabledFeatures        = &features;
 
-        auto extensions = VK_DEVICE_EXTENSIONS;
+        std::vector< const char* > extensions;
+        if ( !headless )
+        {
+            extensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
+        }
         if ( pDev.ExtensionSupported( VK_EXT_DEBUG_MARKER_EXTENSION_NAME ) )
 		{
 			extensions.push_back( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
@@ -62,8 +61,12 @@ namespace Gfx
 
         // Specify device specific validation layers (ignored after v1.1.123?)
 #if !USING( SHIP_BUILD )
-        createInfo.enabledLayerCount   = static_cast< uint32_t >( VK_VALIDATION_LAYERS.size() );
-        createInfo.ppEnabledLayerNames = VK_VALIDATION_LAYERS.data();
+        std::vector< const char* > validationLayers =
+        {
+            "VK_LAYER_KHRONOS_validation"
+        };
+        createInfo.enabledLayerCount   = static_cast< uint32_t >( validationLayers.size() );
+        createInfo.ppEnabledLayerNames = validationLayers.data();
 #else // #if !USING( SHIP_BUILD )
         createInfo.enabledLayerCount   = 0;
 #endif // #else // #if !USING( SHIP_BUILD )
@@ -73,9 +76,12 @@ namespace Gfx
             return {};
         }
 
-        vkGetDeviceQueue( device.m_handle, pDev.GetGraphicsQueueFamily(),     0, &device.m_graphicsQueue );
-        vkGetDeviceQueue( device.m_handle, pDev.GetPresentationQueueFamily(), 0, &device.m_presentQueue );
-        vkGetDeviceQueue( device.m_handle, pDev.GetComputeQueueFamily(),      0, &device.m_computeQueue );
+        vkGetDeviceQueue( device.m_handle, pDev.GetGraphicsQueueFamily(),0, &device.m_graphicsQueue );
+        vkGetDeviceQueue( device.m_handle, pDev.GetComputeQueueFamily(), 0, &device.m_computeQueue );
+        if ( !headless )
+        {
+            vkGetDeviceQueue( device.m_handle, pDev.GetPresentationQueueFamily(), 0, &device.m_presentQueue );
+        }
 
         return device;
     }
@@ -99,13 +105,14 @@ namespace Gfx
         VkCommandBuffer vkCmdBuf      = cmdBuf.GetHandle();
         submitInfo.pCommandBuffers    = &vkCmdBuf;
 
-        vkQueueSubmit( m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE );
+        VK_CHECK_RESULT( vkQueueSubmit( m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
     }
 
 
     void Device::WaitForIdle() const
     {
-        vkQueueWaitIdle( m_graphicsQueue );
+        VK_CHECK_RESULT( vkQueueWaitIdle( m_graphicsQueue ) );
+        VK_CHECK_RESULT( vkQueueWaitIdle( m_computeQueue ) );
     }
 
 
@@ -143,46 +150,112 @@ namespace Gfx
         poolInfo.pPoolSizes    = poolSizes;
         poolInfo.maxSets       = maxSets;
 
-        VkResult ret = vkCreateDescriptorPool( m_handle, &poolInfo, nullptr, &pool.m_handle );
-        PG_ASSERT( ret == VK_SUCCESS );
+        VK_CHECK_RESULT( vkCreateDescriptorPool( m_handle, &poolInfo, nullptr, &pool.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) );
 
         return pool;
     }
 
 
-    std::vector< DescriptorSetLayout > Device::NewDescriptorSetLayouts( const std::vector< DescriptorSetLayoutData >& layoutData ) const
+    bool Device::RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uint32_t* stagesForBindings ) const
     {
-        uint32_t maxSetNumber = 0;
-        for ( const auto& layout : layoutData )
-        {
-            maxSetNumber = std::max( maxSetNumber, layout.setNumber );
-        }
+        layout.m_device = m_handle;
+        VkDescriptorSetLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+	    std::vector< VkDescriptorSetLayoutBinding > bindings;
 
-        std::vector< DescriptorSetLayout > layouts( maxSetNumber + 1 );
-        for ( const auto& layout : layoutData )
-        {
-            VkResult ret = vkCreateDescriptorSetLayout( m_handle, &layout.createInfo, nullptr, &layouts[layout.setNumber].m_handle );
-            PG_ASSERT( ret == VK_SUCCESS );
-        }
-
-        VkDescriptorSetLayoutCreateInfo emptyInfo = {};
-        emptyInfo.sType        = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
-        emptyInfo.bindingCount = 0;
-        emptyInfo.pBindings    = nullptr;
-
-        for ( uint32_t i = 0; i < maxSetNumber + 1; ++i )
-        {
-            layouts[i].m_device = m_handle;
-            if ( layouts[i].m_handle == VK_NULL_HANDLE )
+	    for ( unsigned i = 0; i < PG_MAX_NUM_BINDINGS_PER_SET; ++i )
+	    {
+		    auto stages = stagesForBindings[i];
+		    if ( stages == 0 )
             {
-                VkResult ret = vkCreateDescriptorSetLayout( m_handle, &emptyInfo, nullptr, &layouts[i].m_handle );
-                PG_ASSERT( ret == VK_SUCCESS );
+			    continue;
             }
+
+		    unsigned arraySize = layout.arraySizes[i];
+		    unsigned types = 0;
+		    if ( layout.sampledImageMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, arraySize, stages } );
+			    ++types;
+		    }
+
+            if ( layout.separateImageMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, arraySize, stages, nullptr } );
+			    ++types;
+		    }
+
+            if ( layout.storageImageMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, arraySize, stages, nullptr } );
+			    ++types;
+		    }
+
+            if ( layout.uniformBufferMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, arraySize, stages, nullptr } );
+			    ++types;
+		    }
+
+		    if ( layout.storageBufferMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, arraySize, stages, nullptr } );
+			    ++types;
+		    }
+
+		    if ( layout.uniformTexelBufferMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, arraySize, stages, nullptr } );
+			    ++types;
+		    }
+
+            if ( layout.storageTexelBufferMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, arraySize, stages, nullptr } );
+			    ++types;
+            }
+
+		    if ( layout.inputAttachmentMask & (1u << i) )
+		    {
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, arraySize, stages, nullptr } );
+			    ++types;
+		    }
+
+		    if ( layout.samplerMask & (1u << i) )
+		    {
+                LOG_WARN( "No immutable sampler support yet\n" );
+			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_SAMPLER, arraySize, stages } );
+			    ++types;
+		    }
+
+		    PG_NO_WARN_UNUSED( types );
+		    PG_ASSERT( types <= 1, "Descriptor set aliasing!" );
+	    }
+
+	    if ( !bindings.empty() )
+	    {
+		    createInfo.bindingCount = static_cast< uint32_t >( bindings.size() );
+		    createInfo.pBindings    = bindings.data();
+        }
+        else
+        {
+            LOG_WARN( "Creating descriptor set with no bindings\n" );
         }
 
-        return layouts; 
+        if ( vkCreateDescriptorSetLayout( m_handle, &createInfo, nullptr, &layout.m_handle ) != VK_SUCCESS )
+        {
+            LOG_ERR( "Failed to create descriptor set layout\n" );
+            layout.m_handle = VK_NULL_HANDLE;
+            return false;
+        }
+
+        return true;
     }
+
+
+    // bool RegisterDescriptorSetLayouts( DescriptorSetLayout* layouts, int numLayouts ) const
+    // {
+    // }
 
 
     void Device::UpdateDescriptorSets( uint32_t count, const VkWriteDescriptorSet* writes ) const
@@ -198,8 +271,7 @@ namespace Gfx
         fenceInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
         fenceInfo.flags = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
         fence.m_device  = m_handle;
-        VkResult ret    = vkCreateFence( m_handle, &fenceInfo, nullptr, &fence.m_handle );
-        PG_ASSERT( ret == VK_SUCCESS );
+        VK_CHECK_RESULT( vkCreateFence( m_handle, &fenceInfo, nullptr, &fence.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name ) );
 
         return fence;
@@ -212,8 +284,7 @@ namespace Gfx
         VkSemaphoreCreateInfo info = {};
         info.sType    = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
         sem.m_device  = m_handle;
-        VkResult ret  = vkCreateSemaphore( m_handle, &info, nullptr, &sem.m_handle );
-        PG_ASSERT( ret == VK_SUCCESS );
+        VK_CHECK_RESULT( vkCreateSemaphore( m_handle, &info, nullptr, &sem.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( sem, name ) );
 
         return sem;
@@ -233,8 +304,7 @@ namespace Gfx
         info.usage       = PGToVulkanBufferType( type );
         info.size        = length;
         info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        VkResult ret     = vkCreateBuffer( m_handle, &info, nullptr, &buffer.m_handle );
-        PG_ASSERT( ret == VK_SUCCESS );
+        VK_CHECK_RESULT( vkCreateBuffer( m_handle, &info, nullptr, &buffer.m_handle ) );
 
         VkMemoryRequirements memRequirements;
         vkGetBufferMemoryRequirements( m_handle, buffer.m_handle, &memRequirements );
@@ -244,10 +314,9 @@ namespace Gfx
         allocInfo.allocationSize       = memRequirements.size;
         VkMemoryPropertyFlags flags    = PGToVulkanMemoryType( memoryType );
         allocInfo.memoryTypeIndex      = FindMemoryType( memRequirements.memoryTypeBits, flags );
-        ret = vkAllocateMemory( m_handle, &allocInfo, nullptr, &buffer.m_memory );
-        PG_ASSERT( ret == VK_SUCCESS );
+        VK_CHECK_RESULT( vkAllocateMemory( m_handle, &allocInfo, nullptr, &buffer.m_memory ) );
 
-        vkBindBufferMemory( m_handle, buffer.m_handle, buffer.m_memory, 0 );
+        VK_CHECK_RESULT( vkBindBufferMemory( m_handle, buffer.m_handle, buffer.m_memory, 0 ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name ) );
 
         return buffer;
@@ -269,11 +338,15 @@ namespace Gfx
             Copy( dstBuffer, stagingBuffer );
             stagingBuffer.Free();
         }
-        else if ( ( memoryType & MEMORY_TYPE_HOST_VISIBLE ) && ( memoryType & MEMORY_TYPE_HOST_COHERENT ) )
+        else if ( memoryType & MEMORY_TYPE_HOST_VISIBLE )
         {
             dstBuffer = NewBuffer( length, type, memoryType, name );
             dstBuffer.Map();
             memcpy( dstBuffer.MappedPtr(), data, length );
+            if ( ( memoryType & MEMORY_TYPE_HOST_COHERENT ) == 0 )
+            {
+                dstBuffer.FlushCpuWrites();
+            }
             dstBuffer.UnMap();
         }
         else
@@ -313,8 +386,7 @@ namespace Gfx
         tex.m_sampler = nullptr; // RenderSystem::GetSampler( desc.sampler );
         //PG_ASSERT( tex.m_sampler, "Sampler '" + desc.sampler + "' not a valid sampler" );
 
-        VkResult res = vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image );
-        PG_ASSERT( res == VK_SUCCESS );
+        VK_CHECK_RESULT( vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image ) );
 
         VkMemoryRequirements memRequirements;
         vkGetImageMemoryRequirements( m_handle, tex.m_image, &memRequirements );
@@ -323,9 +395,8 @@ namespace Gfx
         allocInfo.sType           = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
         allocInfo.allocationSize  = memRequirements.size;
         allocInfo.memoryTypeIndex = FindMemoryType( memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
-        res                       = vkAllocateMemory( m_handle, &allocInfo, nullptr, &tex.m_memory );
-        PG_ASSERT( res == VK_SUCCESS);
-        vkBindImageMemory( m_handle, tex.m_image, tex.m_memory, 0 );
+        VK_CHECK_RESULT( vkAllocateMemory( m_handle, &allocInfo, nullptr, &tex.m_memory ) );
+        VK_CHECK_RESULT( vkBindImageMemory( m_handle, tex.m_image, tex.m_memory, 0 ) );
 
         VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
         if ( isDepth )
@@ -397,15 +468,110 @@ namespace Gfx
         info.minLod                  = 0.0f;
         info.maxLod                  = 100.0f;
 
-        VkResult res = vkCreateSampler( m_handle, &info, nullptr, &sampler.m_handle );
-        PG_ASSERT( res == VK_SUCCESS );
+        VK_CHECK_RESULT( vkCreateSampler( m_handle, &info, nullptr, &sampler.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( desc.name, PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, desc.name ) );
 
         return sampler;
     }
 
 
-    Pipeline Device::NewPipeline( const PipelineDescriptor& desc, const std::string& name ) const
+    static PipelineResourceLayout CombineShaderResourceLayouts( Shader* shaders, int numShaders )
+    {
+        PipelineResourceLayout combinedLayout;
+	    // if (program.get_shader(ShaderStage::Vertex))
+		//     layout.attribute_mask = program.get_shader(ShaderStage::Vertex)->get_layout().input_mask;
+	    // if (program.get_shader(ShaderStage::Fragment))
+		//     layout.render_target_mask = program.get_shader(ShaderStage::Fragment)->get_layout().output_mask;
+
+	    for ( int shaderIndex = 0; shaderIndex < numShaders; ++shaderIndex )
+	    {
+		    uint32_t stageMask = 1u << static_cast< uint32_t >( shaders[shaderIndex].shaderStage );
+		    const ShaderResourceLayout& shaderLayout = shaders[shaderIndex].resourceLayout;
+		    for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; set++ )
+		    {
+			    combinedLayout.sets[set].sampledImageMask       |= shaderLayout.sets[set].sampledImageMask;
+			    combinedLayout.sets[set].separateImageMask      |= shaderLayout.sets[set].separateImageMask;
+			    combinedLayout.sets[set].storageImageMask       |= shaderLayout.sets[set].storageImageMask;
+			    combinedLayout.sets[set].uniformBufferMask      |= shaderLayout.sets[set].uniformBufferMask;
+			    combinedLayout.sets[set].storageBufferMask      |= shaderLayout.sets[set].storageBufferMask;
+			    combinedLayout.sets[set].uniformTexelBufferMask |= shaderLayout.sets[set].uniformTexelBufferMask;
+			    combinedLayout.sets[set].storageTexelBufferMask |= shaderLayout.sets[set].storageTexelBufferMask;
+			    combinedLayout.sets[set].samplerMask            |= shaderLayout.sets[set].samplerMask;
+			    combinedLayout.sets[set].inputAttachmentMask    |= shaderLayout.sets[set].inputAttachmentMask;
+
+			    uint32_t activeShaderBinds =
+					    shaderLayout.sets[set].sampledImageMask |
+					    shaderLayout.sets[set].separateImageMask |
+					    shaderLayout.sets[set].storageImageMask|
+					    shaderLayout.sets[set].uniformBufferMask |
+					    shaderLayout.sets[set].storageBufferMask |
+					    shaderLayout.sets[set].uniformTexelBufferMask |
+					    shaderLayout.sets[set].storageTexelBufferMask |
+					    shaderLayout.sets[set].samplerMask |
+					    shaderLayout.sets[set].inputAttachmentMask;
+
+                if ( activeShaderBinds )
+                {
+                    combinedLayout.setStages[set] |= stageMask;
+			        ForEachBit( activeShaderBinds, [&]( uint32_t bit )
+                    {
+				        combinedLayout.bindingStages[set][bit] |= stageMask;
+
+				        uint32_t& combinedSize = combinedLayout.sets[set].arraySizes[bit];
+				        uint32_t shaderSize    = shaderLayout.sets[set].arraySizes[bit];
+				        if ( combinedSize && combinedSize != shaderSize )
+                        {
+					        LOG_ERR( "Mismatch between array sizes in different shaders.\n" );
+                        }
+				        else
+                        {
+					        combinedSize = shaderSize;
+                        }
+			        });
+                }
+		    }
+
+		    // Merge push constant ranges into one range. No obvious gain for actually doing multiple ranges.
+		    if ( shaderLayout.pushConstantSize != 0 )
+		    {
+			    combinedLayout.pushConstantRange.stageFlags |= stageMask;
+			    combinedLayout.pushConstantRange.size = std::max( combinedLayout.pushConstantRange.size, shaderLayout.pushConstantSize );
+		    }
+	    }
+
+        combinedLayout.descriptorSetMask = 0;
+	    for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; ++set )
+	    {
+		    if ( combinedLayout.setStages[set] != 0 )
+		    {
+			    combinedLayout.descriptorSetMask |= 1u << set;
+
+			    for ( unsigned binding = 0; binding < PG_MAX_NUM_BINDINGS_PER_SET; ++binding )
+			    {
+				    auto& arraySize = combinedLayout.sets[set].arraySizes[binding];
+                    if ( arraySize == 0 )
+				    {
+					    arraySize = 1;
+				    }
+				    else
+				    {
+					    for ( unsigned i = 1; i < arraySize; ++i )
+					    {
+						    if ( combinedLayout.bindingStages[set][binding + i] != 0 )
+						    {
+							    LOG_ERR( "Detected binding aliasing for (%u, %u). Binding array with %u elements starting at (%u, %u) overlaps.\n", set, binding + i, arraySize, set, binding );
+						    }
+					    }
+				    }
+			    }
+		    }
+	    }
+
+        return combinedLayout;
+    }
+
+
+    Pipeline Device::NewGraphicsPipeline( const PipelineDescriptor& desc, const std::string& name ) const
     {
         Pipeline p;
         p.m_desc   = desc;
@@ -416,33 +582,29 @@ namespace Gfx
         for ( size_t i = 0; i < 3 && desc.shaders[i]; ++i )
         {
             ++numShaderStages;
-            // TODO: Reflection
             shaderStages[i] = {};
             shaderStages[i].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
             shaderStages[i].stage  = PGToVulkanShaderStage( desc.shaders[i]->shaderStage );
             shaderStages[i].module = desc.shaders[i]->handle;
-            shaderStages[i].pName  = "main";
+            shaderStages[i].pName  = desc.shaders[i]->entryPoint.c_str();
         }
-        std::vector< VkDynamicState > dynamicStates = desc.dynamicStates;
 
-        VkViewport viewport;
-        viewport.x        = desc.viewport.x;
-        viewport.y        = desc.viewport.y;
-        viewport.width    = desc.viewport.width;
-        viewport.height   = desc.viewport.height;
-        viewport.minDepth = desc.viewport.minDepth;
-        viewport.maxDepth = desc.viewport.maxDepth;
 
-        VkRect2D scissor;
-        scissor.offset = { desc.scissor.x, desc.scissor.y };
-        scissor.extent = { (uint32_t) desc.scissor.width, (uint32_t) desc.scissor.height };
+        uint32_t dynamicStateCount = 2;
+        VkDynamicState vkDnamicStates[3] = { VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT };
+        if ( desc.rasterizerInfo.depthBiasEnable )
+        {
+            vkDnamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BIAS;
+        }
+        VkPipelineDynamicStateCreateInfo dynamicState = {};
+        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+        dynamicState.dynamicStateCount = dynamicStateCount;
+        dynamicState.pDynamicStates    = vkDnamicStates;
 
         VkPipelineViewportStateCreateInfo viewportState = {};
         viewportState.sType         = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-        viewportState.viewportCount = 1;
-        viewportState.pViewports    = &viewport;
+        viewportState.viewportCount = 1; // don't need to give actual viewport or scissor upfront, since they're dynamic
         viewportState.scissorCount  = 1;
-        viewportState.pScissors     = &scissor;
 
         // specify topology and if primitive restart is on
         VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
@@ -460,15 +622,6 @@ namespace Gfx
         rasterizer.cullMode                = PGToVulkanCullFace( desc.rasterizerInfo.cullFace );
         rasterizer.frontFace               = PGToVulkanWindingOrder( desc.rasterizerInfo.winding );
         rasterizer.depthBiasEnable         = desc.rasterizerInfo.depthBiasEnable;
-        if ( rasterizer.depthBiasEnable )
-        {
-            dynamicStates.push_back( VK_DYNAMIC_STATE_DEPTH_BIAS );
-        }
-
-        VkPipelineDynamicStateCreateInfo dynamicState = {};
-        dynamicState.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-        dynamicState.dynamicStateCount = static_cast< uint32_t >( dynamicStates.size() );
-        dynamicState.pDynamicStates    = dynamicStates.data();
 
         VkPipelineMultisampleStateCreateInfo multisampling = {};
         multisampling.sType                 = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
@@ -503,16 +656,16 @@ namespace Gfx
         colorBlending.attachmentCount   = numColorAttachments;
         colorBlending.pAttachments      = colorBlendAttachment;
 
-        VkDescriptorSetLayout layouts[8];
-        PG_ASSERT( desc.descriptorSetLayouts.size() <= 8 );
-        for ( size_t i = 0; i < desc.descriptorSetLayouts.size(); ++i )
-        {
-            layouts[i] = desc.descriptorSetLayouts[i].GetHandle();
-        }
-        VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-        pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutInfo.setLayoutCount = static_cast< uint32_t >( desc.descriptorSetLayouts.size() );
-        pipelineLayoutInfo.pSetLayouts    = layouts;
+        // VkDescriptorSetLayout layouts[8];
+        // PG_ASSERT( desc.descriptorSetLayouts.size() <= 8 );
+        // for ( size_t i = 0; i < desc.descriptorSetLayouts.size(); ++i )
+        // {
+        //     layouts[i] = desc.descriptorSetLayouts[i].GetHandle();
+        // }
+        // VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
+        // pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        // pipelineLayoutInfo.setLayoutCount = static_cast< uint32_t >( desc.descriptorSetLayouts.size() );
+        // pipelineLayoutInfo.pSetLayouts    = layouts;
 
         // std::vector< VkPushConstantRange > pushConstants;
         // for ( int i = 0; i < static_cast< int >( shaderStages.size() ); ++i )
@@ -535,12 +688,14 @@ namespace Gfx
         // }
         // pipelineLayoutInfo.pushConstantRangeCount = static_cast< uint32_t >( pushConstants.size() );
         // pipelineLayoutInfo.pPushConstantRanges    = pushConstants.data();
-        pipelineLayoutInfo.pushConstantRangeCount = 0;
 
-        if ( vkCreatePipelineLayout( m_handle, &pipelineLayoutInfo, nullptr, &p.m_pipelineLayout ) != VK_SUCCESS )
-        {
-            return p;
-        }
+        // pipelineLayoutInfo.pushConstantRangeCount = 0;
+
+        // if ( vkCreatePipelineLayout( m_handle, &pipelineLayoutInfo, nullptr, &p.m_pipelineLayout ) != VK_SUCCESS )
+        // {
+        //     LOG_ERR( "Failed to create graphics pipeline '%s' layout!\n", name.c_str() );
+        //     return p;
+        // }
 
         VkPipelineDepthStencilStateCreateInfo depthStencil = {};
         depthStencil.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -570,12 +725,50 @@ namespace Gfx
 
         if ( vkCreateGraphicsPipelines( m_handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &p.m_pipeline ) != VK_SUCCESS )
         {
+            LOG_ERR( "Failed to create graphics pipeline '%s'\n", name.c_str() );
             vkDestroyPipelineLayout( m_handle, p.m_pipelineLayout, nullptr );
             p.m_pipeline = VK_NULL_HANDLE;
         }
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_PIPELINE_NAME( p, name ) );
 
         return p;
+    }
+
+
+    Pipeline Device::NewComputePipeline( Shader* shader, const std::string& name ) const
+    {
+        PG_ASSERT( shader && shader->shaderStage == ShaderStage::COMPUTE );
+        
+        Pipeline pipeline;
+        pipeline.m_device = m_handle;
+        pipeline.m_desc.shaders[0] = shader;
+        pipeline.m_resourceLayout = CombineShaderResourceLayouts( shader, 1 );
+        pipeline.m_isCompute = true;
+        auto& layouts = pipeline.m_resourceLayout;
+        VkDescriptorSetLayout activeLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
+        uint32_t numActiveSets = 0;
+        ForEachBit( pipeline.m_resourceLayout.descriptorSetMask, [&]( uint32_t set )
+        {
+            RegisterDescriptorSetLayout( layouts.sets[set], layouts.bindingStages[set] );
+            activeLayouts[numActiveSets++] = layouts.sets[set].GetHandle();
+        });
+
+        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+        pipelineLayoutCreateInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutCreateInfo.setLayoutCount = numActiveSets;
+        pipelineLayoutCreateInfo.pSetLayouts    = activeLayouts; 
+        VK_CHECK_RESULT( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &pipeline.m_pipelineLayout ) );
+        
+        VkComputePipelineCreateInfo createInfo = {};
+        createInfo.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+        createInfo.layout = pipeline.m_pipelineLayout;
+        createInfo.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        createInfo.stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
+        createInfo.stage.module = shader->handle;
+        createInfo.stage.pName  = shader->entryPoint.c_str();
+
+		VK_CHECK_RESULT( vkCreateComputePipelines( m_handle, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline.m_pipeline ) );
+        return pipeline;
     }
 
 
@@ -652,10 +845,7 @@ namespace Gfx
         renderPassInfo.dependencyCount = 1;
         renderPassInfo.pDependencies   = &dependency;
 
-        if ( vkCreateRenderPass( m_handle, &renderPassInfo, nullptr, &pass.m_handle ) != VK_SUCCESS )
-        {
-            pass.m_handle = VK_NULL_HANDLE;
-        }
+        VK_CHECK_RESULT( vkCreateRenderPass( m_handle, &renderPassInfo, nullptr, &pass.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_RENDER_PASS_NAME( pass, name ) );
 
         return pass;
@@ -691,10 +881,8 @@ namespace Gfx
         ret.m_width  = info.width;
         ret.m_height = info.height;
         ret.m_device = m_handle;
-        if ( vkCreateFramebuffer( m_handle, &info, nullptr, &ret.m_handle ) != VK_SUCCESS )
-        {
-            ret.m_handle = VK_NULL_HANDLE;
-        }
+
+        VK_CHECK_RESULT( vkCreateFramebuffer( m_handle, &info, nullptr, &ret.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( ret, name ) );
 
         return ret;
@@ -783,30 +971,6 @@ namespace Gfx
     }
 
 
-    VkDevice Device::GetHandle() const
-    {
-        return m_handle;
-    }
-
-
-    VkQueue Device::GraphicsQueue() const
-    {
-        return m_graphicsQueue;
-    }
-
-
-    VkQueue Device::PresentQueue() const
-    {
-        return m_presentQueue;
-    }
-
-
-    Device::operator bool() const
-    {
-        return m_handle != VK_NULL_HANDLE;
-    }
-
-
     void Device::SubmitRenderCommands( int numBuffers, CommandBuffer* cmdBufs ) const
     {
         PG_ASSERT( 0 <= numBuffers && numBuffers <= 5 );
@@ -831,12 +995,11 @@ namespace Gfx
         submitInfo.signalSemaphoreCount   = 1;
         submitInfo.pSignalSemaphores      = signalSemaphores;
 
-        VkResult ret = vkQueueSubmit( m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE );
-        PG_ASSERT( ret == VK_SUCCESS );
+        VK_CHECK_RESULT( vkQueueSubmit( m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
     }
 
 
-    void Device::SubmitComputeCommand( const CommandBuffer& cmdBuf ) const
+    void Device::SubmitComputeCommand( const CommandBuffer& cmdBuf, Fence* signalOnCompleteFence ) const
     {
         VkCommandBuffer buff = cmdBuf.GetHandle();
         VkSubmitInfo submitInfo = {};
@@ -844,12 +1007,13 @@ namespace Gfx
         submitInfo.commandBufferCount     = 1;
         submitInfo.pCommandBuffers        = &buff;
 
-        VkSemaphore signalSemaphores[]    = { r_globals.renderCompleteSemaphore.GetHandle() };
-        submitInfo.signalSemaphoreCount   = 1;
-        submitInfo.pSignalSemaphores      = signalSemaphores;
+        VkFence fence = VK_NULL_HANDLE;
+        if ( signalOnCompleteFence )
+        {
+            fence = signalOnCompleteFence->GetHandle();
+        }
 
-        VkResult ret = vkQueueSubmit( m_computeQueue, 1, &submitInfo, r_globals.computeFence.GetHandle() );
-        PG_ASSERT( ret == VK_SUCCESS );
+        VK_CHECK_RESULT( vkQueueSubmit( m_computeQueue, 1, &submitInfo, fence ) );
     }
 
 
@@ -866,10 +1030,16 @@ namespace Gfx
         presentInfo.pSwapchains     = swapChains;
         presentInfo.pImageIndices   = &imageIndex;
 
-        vkQueuePresentKHR( m_presentQueue, &presentInfo );
-        
-        vkDeviceWaitIdle( r_globals.device.GetHandle() );
+        VK_CHECK_RESULT( vkQueuePresentKHR( m_presentQueue, &presentInfo ) );
+        r_globals.device.WaitForIdle();
     }
+
+    
+    VkDevice Device::GetHandle()    const { return m_handle; }
+    VkQueue Device::GraphicsQueue() const { return m_graphicsQueue; }
+    VkQueue Device::ComputeQueue()  const { return m_computeQueue; }
+    VkQueue Device::PresentQueue()  const { return m_presentQueue; }
+    Device::operator bool()         const { return m_handle != VK_NULL_HANDLE; }
 
 
 } // namespace Gfx

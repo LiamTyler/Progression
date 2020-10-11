@@ -7,7 +7,7 @@ namespace PG
 namespace Gfx
 {
 
-bool R_Init( uint32_t width, uint32_t height );
+bool R_Init( bool headless, uint32_t width = 0, uint32_t height = 0 );
 
 void R_Shutdown();
 

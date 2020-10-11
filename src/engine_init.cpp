@@ -12,33 +12,34 @@ namespace PG
 {
 
 bool g_engineShutdown = false;
-bool g_converterMode  = false;
+bool g_headless       = false;
 
-bool EngineInitialize()
+bool EngineInitialize( const EngineInitInfo& info )
 {
-    
+    g_headless = info.headless;
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
     Random::SetSeed( time( NULL ) );
 
-    // window
+    if ( !g_headless )
     {
         WindowCreateInfo winCreate;
-        winCreate.title   = "Scene Viewer";
+        winCreate.title   = info.windowTitle;
         winCreate.width   = 1280;
         winCreate.height  = 720;
         winCreate.visible = true;
         winCreate.vsync   = false;
         InitWindowSystem( winCreate );
+        Input::Init();
     }
-    Time::Reset();
-    Input::Init();
+    
     AssetManager::Init();
-    if ( !RenderSystem::Init() )
+    if ( !RenderSystem::Init( g_headless ) )
     {
         LOG_ERR( "Could not initialize render system" );
         return false;
     }
+    Time::Reset();
 
     return true;
 }
@@ -48,8 +49,11 @@ void EngineShutdown()
 {
     AssetManager::Shutdown();
     RenderSystem::Shutdown();
-    Input::Shutdown();
-    ShutdownWindowSystem();
+    if ( !g_headless )
+    {
+        Input::Shutdown();
+        ShutdownWindowSystem();
+    }
     Logger_Shutdown();
 }
 

@@ -12,7 +12,7 @@
 #define MAX_NUM_QUERIES 100
 #define MILLISECONDS_BETWEEN_SAMPLES 100
 
-static std::vector< uint64_t > s_cpuQueries;
+static uint64_t s_cpuQueries[MAX_NUM_QUERIES];
 static VkQueryPool s_queryPool = VK_NULL_HANDLE;
 static std::unordered_map< std::string, int > s_nameToIndexMap;
 static uint32_t s_nextFreeIndex;
@@ -20,6 +20,7 @@ static double s_timestampToMillisInv;
 std::string tmpFileName = "pg_profiling_log.txt";
 static std::ofstream s_outputFile;
 static float s_lastSampledTime;
+static uint32_t s_totalSamples;
 
 namespace PG
 {
@@ -40,13 +41,12 @@ namespace Profile
         createInfo.pNext        = nullptr;
         createInfo.queryType    = VK_QUERY_TYPE_TIMESTAMP;
         createInfo.queryCount   = MAX_NUM_QUERIES;
-        VkResult res = vkCreateQueryPool( r_globals.device.GetHandle(), &createInfo, nullptr, &s_queryPool );
-        PG_ASSERT( res == VK_SUCCESS );
+        VK_CHECK_RESULT( vkCreateQueryPool( r_globals.device.GetHandle(), &createInfo, nullptr, &s_queryPool ) );
         //PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_queryPool, "GPU Profiling Timestamps" );
 
-        s_cpuQueries.resize( MAX_NUM_QUERIES );
         s_timestampToMillisInv = 1.0 / r_globals.physicalDevice.GetProperties().limits.timestampPeriod / 1e6;
         s_nextFreeIndex = 0;
+        s_totalSamples = 0;
 
         s_outputFile.open( tmpFileName );
         if ( !s_outputFile.is_open() )
@@ -65,6 +65,11 @@ namespace Profile
         }
 
         s_outputFile.close();
+
+        if ( s_totalSamples == 0 )
+        {
+            return;
+        }
 
         // read the log file back in and calculate average durations between timestamps with same prefix
         LOG( "Processing gpu profiling timestamps...\n" );
@@ -160,13 +165,14 @@ namespace Profile
         if ( currentTime >= s_lastSampledTime + MILLISECONDS_BETWEEN_SAMPLES )
         {
             s_lastSampledTime = currentTime;
-            vkGetQueryPoolResults( r_globals.device.GetHandle(), s_queryPool, 0, s_nextFreeIndex, s_cpuQueries.size() * sizeof( uint64_t ), s_cpuQueries.data(), sizeof( uint64_t ), VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT );
+            VK_CHECK_RESULT( vkGetQueryPoolResults( r_globals.device.GetHandle(), s_queryPool, 0, s_nextFreeIndex, s_nextFreeIndex * sizeof( uint64_t ), s_cpuQueries, sizeof( uint64_t ), VK_QUERY_RESULT_WAIT_BIT | VK_QUERY_RESULT_64_BIT ) );
         
             for ( const auto& [ name, index ] : s_nameToIndexMap )
             {
                 s_outputFile << name << " " << s_cpuQueries[s_nameToIndexMap[name]] << "\n";
             }
             s_outputFile << "\n";
+            s_totalSamples += s_nextFreeIndex;
         }
     }
     

@@ -1,6 +1,6 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "renderer/vulkan.hpp"
 
 namespace PG
 {
@@ -114,10 +114,12 @@ namespace Gfx
     friend class Device;
     public:
         void Free();
-        void Map();
-        void UnMap();
+        void Map() const;
+        void UnMap() const;
         void BindMemory( size_t offset = 0 ) const;
-        bool Flush( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
+        void FlushCpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
+        void FlushGpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
+        void ReadToCpu( void* dst, size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
         operator bool() const;
         char* MappedPtr() const;
         size_t GetLength() const;
@@ -129,11 +131,11 @@ namespace Gfx
     protected:
         BufferType m_type;
         MemoryType m_memoryType;
-        void* m_mappedPtr       = nullptr;
-        size_t m_length         = 0; // in bytes
-        VkBuffer m_handle       = VK_NULL_HANDLE;
-        VkDeviceMemory m_memory = VK_NULL_HANDLE;
-        VkDevice m_device       = VK_NULL_HANDLE;
+        mutable void* m_mappedPtr = nullptr;
+        size_t m_length           = 0; // in bytes
+        VkBuffer m_handle         = VK_NULL_HANDLE;
+        VkDeviceMemory m_memory;
+        VkDevice m_device;
     };
 
 } // namespace Gfx

@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
 #include "renderer/graphics_api/synchronization.hpp"
+#include "renderer/vulkan.hpp"
+#include <array>
 #include <string>
 
 #define GFX_MAX_SWAPCHAIN_IMAGES 5
@@ -36,8 +37,8 @@ private:
     uint32_t m_height;
     uint32_t m_currentImage;
     uint32_t m_numImages;
-    VkImage m_images[GFX_MAX_SWAPCHAIN_IMAGES];
-    VkImageView m_imageViews[GFX_MAX_SWAPCHAIN_IMAGES];
+    std::array< VkImage, GFX_MAX_SWAPCHAIN_IMAGES > m_images;
+    std::array< VkImageView, GFX_MAX_SWAPCHAIN_IMAGES > m_imageViews;
 };
 
 } // namespace Gfx

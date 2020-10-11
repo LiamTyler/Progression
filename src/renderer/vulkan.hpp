@@ -1,6 +1,22 @@
 #pragma once
 
 #include <vulkan/vulkan.h>
+#include "core/assert.hpp"
+#include "core/platform_defines.hpp"
+
+#if USING( SHIP_BUILD )
+#define VK_CHECK_RESULT( f ) f
+#else // #if USING( SHIP_BUILD )
+#define VK_CHECK_RESULT( f ) 																\
+{																						    \
+    VkResult res = (f);																	    \
+    if ( res != VK_SUCCESS )																\
+    {																					    \
+        printf( "Fatal : VkResult is %d in %s at line %d\n", res,  __FILE__, __LINE__ );    \
+        PG_ASSERT( res == VK_SUCCESS );													    \
+    }																					    \
+}
+#endif // #else // #if USING( SHIP_BUILD )
 
 namespace PG
 {

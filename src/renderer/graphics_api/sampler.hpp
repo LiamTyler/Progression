@@ -1,7 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
+#include "renderer/vulkan.hpp"
 #include <string>
+
 
 namespace PG
 {

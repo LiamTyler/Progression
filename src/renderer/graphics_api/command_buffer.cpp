@@ -10,16 +10,8 @@ namespace Gfx
 {
     
 
-    CommandBuffer::operator bool() const
-    {
-        return m_handle != VK_NULL_HANDLE;
-    }
-    
-
-    VkCommandBuffer CommandBuffer::GetHandle() const
-    {
-        return m_handle;
-    }
+    CommandBuffer::operator bool() const { return m_handle != VK_NULL_HANDLE; }
+    VkCommandBuffer CommandBuffer::GetHandle() const { return m_handle; }
 
 
     void CommandBuffer::Free()
@@ -30,20 +22,20 @@ namespace Gfx
     }
 
 
-    bool CommandBuffer::BeginRecording( CommandBufferUsage flags ) const
+    void CommandBuffer::BeginRecording( CommandBufferUsage flags ) const
     {
         PG_ASSERT( m_handle != VK_NULL_HANDLE );
         VkCommandBufferBeginInfo beginInfo = {};
         beginInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
         beginInfo.flags            = PGToVulkanCommandBufferUsage( flags );
         beginInfo.pInheritanceInfo = nullptr;
-        return vkBeginCommandBuffer( m_handle, &beginInfo ) == VK_SUCCESS;
+        VK_CHECK_RESULT( vkBeginCommandBuffer( m_handle, &beginInfo ) );
     }
 
 
-    bool CommandBuffer::EndRecording() const
+    void CommandBuffer::EndRecording() const
     {
-        return vkEndCommandBuffer( m_handle ) == VK_SUCCESS;
+        VK_CHECK_RESULT( vkEndCommandBuffer( m_handle ) );
     }
 
 
@@ -83,16 +75,15 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::BindRenderPipeline( const Pipeline& pipeline ) const
+    void CommandBuffer::BindPipeline( const Pipeline& pipeline ) const
     {
-        vkCmdBindPipeline( m_handle, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline.GetHandle() );
+        vkCmdBindPipeline( m_handle, pipeline.GetPipelineBindPoint(), pipeline.GetHandle() );
     }
 
 
     void CommandBuffer::BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, const Pipeline& pipeline, uint32_t firstSet ) const
     {
-        vkCmdBindDescriptorSets( m_handle, VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                 pipeline.GetLayoutHandle(), firstSet, numSets, (VkDescriptorSet*) sets, 0, nullptr );
+        vkCmdBindDescriptorSets( m_handle, pipeline.GetPipelineBindPoint(), pipeline.GetLayoutHandle(), firstSet, numSets, (VkDescriptorSet*) sets, 0, nullptr );
     }
 
 
@@ -183,6 +174,12 @@ namespace Gfx
     }
 
 
+    void CommandBuffer::Dispatch( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const
+    {
+        vkCmdDispatch( m_handle, groupsX, groupsY, groupsZ );
+    }
+
+
     void CommandPool::Free()
     {
         if ( m_handle != VK_NULL_HANDLE )
@@ -190,12 +187,6 @@ namespace Gfx
             vkDestroyCommandPool( m_device, m_handle, nullptr );
             m_handle = VK_NULL_HANDLE;
         }
-    }
-
-
-    CommandPool::operator bool() const
-    {
-        return m_handle != VK_NULL_HANDLE;
     }
 
 
@@ -211,22 +202,21 @@ namespace Gfx
         CommandBuffer buf;
         buf.m_device = m_device;
         buf.m_pool   = m_handle;
-        if ( vkAllocateCommandBuffers( m_device, &allocInfo, &buf.m_handle ) != VK_SUCCESS )
+        VkCommandBuffer handle;
+        if ( vkAllocateCommandBuffers( m_device, &allocInfo, &handle ) != VK_SUCCESS )
         {
-            buf.m_handle = VK_NULL_HANDLE;
+            PG_ASSERT( false, "Could not allocate command buffers\n" );
             return buf;
         }
+        buf.m_handle = handle;
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( buf, name ) );
 
         return buf;
     }
 
 
-    VkCommandPool CommandPool::GetHandle() const
-    {
-        return m_handle;
-    }
-
+    VkCommandPool CommandPool::GetHandle() const { return m_handle; }
+    CommandPool::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 
 } // namespace Gfx
 } // namespace PG

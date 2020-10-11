@@ -1,9 +1,9 @@
 #pragma once
 
 //#include "renderer/shader_c_shared/defines.h"
+#include "renderer/vulkan.hpp"
 #include "core/pixel_formats.hpp"
 #include <string>
-#include <vulkan/vulkan.h>
 
 namespace PG
 {

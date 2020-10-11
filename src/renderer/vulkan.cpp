@@ -107,8 +107,7 @@ VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags 
     viewCreateInfo.subresourceRange.layerCount     = layers;
 
     VkImageView view;
-    VkResult res = vkCreateImageView( r_globals.device.GetHandle(), &viewCreateInfo, nullptr, &view );
-    PG_ASSERT( res == VK_SUCCESS );
+    VK_CHECK_RESULT( vkCreateImageView( r_globals.device.GetHandle(), &viewCreateInfo, nullptr, &view ) );
 
     return view;
 }

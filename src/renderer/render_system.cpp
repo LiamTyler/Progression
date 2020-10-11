@@ -27,22 +27,23 @@ namespace PG
 namespace RenderSystem
 {
 
-bool Init()
+bool Init( bool headless )
 {
     s_window = GetMainWindow();
-    r_globals = {};
 
-    if ( !R_Init( s_window->Width(), s_window->Height() ) )
+    if ( headless )
     {
-        return false;
+        return R_Init( true );
+    }
+    else
+    {
+        if ( !R_Init( false, s_window->Width(), s_window->Height() ) )
+        {
+            return false;
+        }
     }
 
-    if ( !Profile::Init() )
-    {
-        LOG_ERR( "Could not initialize gpu profiler" );
-        return false;
-    }
-
+    /*
     AssetManager::LoadFastFile( "basic" );
 
     auto vertShader = AssetManager::Get< Shader >( "basicVert" );
@@ -88,6 +89,7 @@ bool Init()
     };
     vertexBuffer = r_globals.device.NewBuffer( sizeof( verts ), verts, BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "vertex" );
     indexBuffer  = r_globals.device.NewBuffer( sizeof( indices ), indices, BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "index" );
+    */
 
     return true;
 }
@@ -97,11 +99,10 @@ void Shutdown()
 {
     r_globals.device.WaitForIdle();
     
-    pipeline.Free();
-    vertexBuffer.Free();
-    indexBuffer.Free();
+    // pipeline.Free();
+    // vertexBuffer.Free();
+    // indexBuffer.Free();
 
-    Profile::Shutdown();
     R_Shutdown();
 }
 
@@ -119,7 +120,7 @@ void Render( Scene* scene )
 
     cmdBuf.BeginRenderPass( r_globals.renderPass, r_globals.swapchainFramebuffers[swapChainImageIndex] );
 
-    cmdBuf.BindRenderPipeline( pipeline );
+    cmdBuf.BindPipeline( pipeline );
     PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw full-screen quad", glm::vec4( 0 ) );
     cmdBuf.BindVertexBuffer( vertexBuffer, 0, 0 );
     cmdBuf.BindIndexBuffer(  indexBuffer, IndexType::UNSIGNED_INT );

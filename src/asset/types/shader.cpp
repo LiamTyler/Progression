@@ -1,122 +1,155 @@
 #include "asset/types/shader.hpp"
 #include "core/assert.hpp"
+#include "core/feature_defines.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include "shaderc/shaderc.hpp"
+#include "spirv_cross/spirv_cross.hpp"
 #include <fstream>
 #include <sstream>
-#include <regex>
 
-static std::string s_searchDirs[] =
+namespace PG
 {
-    PG_ASSET_DIR "shaders/"
-};
 
 
-static char* ReadShaderFile( const std::string& filename, size_t& fileLen )
-{
-    std::ifstream in( filename, std::ios::binary );
-    if ( !in )
-    {
-        return nullptr;
-    }
-
-    in.seekg( 0, std::ios::end );
-    fileLen = in.tellg();
-    char* buffer = static_cast< char* >( malloc( fileLen + 1 ) );
-    in.seekg( 0 );
-    in.read( buffer, fileLen );
-    buffer[fileLen] = '\0';
-
-    return buffer;
-}
-
-
-std::string CleanShaderPreproc( const std::string& preproc )
-{
-    std::stringstream ss;
-    ss << preproc;
-    std::string result;
-    std::string line;
-    int numBlankLines = 0;
-    while ( std::getline( ss, line ) )
-    {
-        if ( line.length() == 0 )
-        {
-            ++numBlankLines;
-        }
-        else
-        {
-            numBlankLines = 0;
-        }
-
-        if ( numBlankLines < 2 )
-        {
-            line = std::regex_replace( line, std::regex( " \\. " ), "." );
-            result += line + '\n';
-        }
-    }
-
-    return result;
-}
-
-
-class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
+class ShaderPreprocessor
 {
 public:
-    virtual ~ShaderIncluder() = default;
+    ShaderPreprocessor() = default;
 
-    virtual shaderc_include_result* GetInclude( const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth )
+    bool Preprocess( const std::string& pathToShader )
     {
-        shaderc_include_result* result = new shaderc_include_result;
-        result->source_name        = nullptr;
-        result->source_name_length = 0;
-        result->content_length     = 0;
-        result->content            = 0;
-
-        for ( const auto& dir : s_searchDirs )
+        includeSearchDirs =
         {
-            std::string filename = dir + requested_source;
+            PG_ASSET_DIR "shaders/",
+            GetParentPath( pathToShader ),
+        };
+        
+        return PreprocessInternal( pathToShader );
+    }
+
+    bool ParseForIncludesOnly( const std::string& pathToShader )
+    {
+        includeSearchDirs =
+        {
+            PG_ASSET_DIR "shaders/",
+            GetParentPath( pathToShader ),
+        };
+
+        return PreprocessForIncludesOnlyInternal( pathToShader );
+    }
+
+    std::vector< std::string > includeSearchDirs;
+    std::string outputShader;
+    std::vector< std::string > includedFiles;
+
+private:
+
+    bool GetIncludePath( const std::string& shaderIncludeLine, std::string& absolutePath ) const
+    {
+        size_t includeStartPos = 10;
+        size_t includeEndPos = shaderIncludeLine.find( '"', includeStartPos );
+        if ( includeEndPos == std::string::npos )
+        {
+            LOG_ERR( "Invalid include on line '%s'\n", shaderIncludeLine.c_str() );
+            return false;
+        }
+        std::string relativeInclude = shaderIncludeLine.substr( includeStartPos, includeEndPos - includeStartPos );
+
+        std::string absoluteIncludePath;
+        for ( const auto& dir : includeSearchDirs )
+        {
+            std::string filename = dir + relativeInclude;
             if ( FileExists( filename ) )
             {
-                size_t fileLen;
-                char* fileContents = ReadShaderFile( filename, fileLen );
-                if ( fileContents )
+                absolutePath = filename;
+                return true;
+            }
+        }
+        LOG_ERR( "Could not find include '%s'\n", shaderIncludeLine.c_str() );
+
+        return false;
+    }
+
+    bool PreprocessInternal( const std::string& path )
+    {
+        std::ifstream inFile( path );
+        if ( !inFile )
+        {
+            LOG_ERR( "Could not open shader file '%s'\n", path.c_str() );
+            return false;
+        }
+
+        uint32_t lineNumber = 0;
+        std::string line;
+        while ( std::getline( inFile, line ) )
+        {
+            if ( line.find( "#include \"" ) == 0 )
+            {
+                std::string absoluteIncludePath;
+                if ( !GetIncludePath( line, absoluteIncludePath ) )
                 {
-                    char* name = static_cast< char* >( malloc( filename.length() + 1 ) );
-                    strcpy( name, filename.c_str() );
-                    result->source_name        = name;
-                    result->source_name_length = filename.length();
-                    result->content            = fileContents;
-                    result->content_length     = fileLen;
-                    includedFiles->push_back( filename );
+                    return false;
+                }
+                includedFiles.push_back( absoluteIncludePath );
+
+                outputShader += "#line 1 \"" + absoluteIncludePath + "\"\n";
+                if ( !PreprocessInternal( absoluteIncludePath ) )
+                {
+                    return false;
+                }
+                outputShader += "#line " + std::to_string( lineNumber + 2 ) + " \"" + path + "\"\n";
+            }
+            else
+            {
+                outputShader += line + '\n';
+            }
+
+            ++lineNumber;
+        }
+
+        return true;
+    }
+
+    bool PreprocessForIncludesOnlyInternal( const std::string& path )
+    {
+        std::ifstream inFile( path );
+        if ( !inFile )
+        {
+            LOG_ERR( "Could not open shader file '%s'\n", path.c_str() );
+            return false;
+        }
+
+        std::string line;
+        while ( std::getline( inFile, line ) )
+        {
+            if ( line.find( "#include \"" ) == 0 )
+            {
+                std::string absoluteIncludePath;
+                if ( !GetIncludePath( line, absoluteIncludePath ) )
+                {
+                    return false;
+                }
+                includedFiles.push_back( absoluteIncludePath );
+
+                if ( !PreprocessForIncludesOnlyInternal( absoluteIncludePath ) )
+                {
+                    return false;
                 }
             }
         }
 
-        return result;
+        return true;
     }
-
-    virtual void ReleaseInclude( shaderc_include_result* data )
-    {
-        if ( data->source_name_length > 0 )
-        {
-            free( (void*)data->source_name );
-            free( (void*)data->content );
-        }
-        delete data;
-    }
-
-
-    std::vector< std::string >* includedFiles;
 };
+
 
 static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
 {
-    shaderc_shader_kind convert[] =
+    static shaderc_shader_kind convert[] =
     {
         shaderc_vertex_shader,          // VERTEX
         shaderc_tess_control_shader,    // TESSELLATION_CONTROL
@@ -132,47 +165,238 @@ static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
 }
 
 
-static std::string PreprocessShader( const std::string& source_name, shaderc_shader_kind kind, char* shaderFileContent, std::vector< std::string >& includedFiles )
+static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
 {
-    shaderc::Compiler compiler;
-    shaderc::CompileOptions options;
-    auto includer = std::make_unique< ShaderIncluder >();
-    includer->includedFiles = &includedFiles;
-    options.SetIncluder( std::move( includer ) );
-
-    options.AddMacroDefinition( "PG_SHADER_CODE", "1" );
-    // shaderc_glsl_infer_from_source
-    shaderc::PreprocessedSourceCompilationResult result = compiler.PreprocessGlsl( shaderFileContent, kind, source_name.c_str(), options );
-
-    if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
+    switch( stage )
     {
-        LOG_ERR( "Preprocess GLSL failed:\n%s\n", result.GetErrorMessage().c_str() );
-        return "";
+    case spv::ExecutionModel::ExecutionModelVertex:
+        return ShaderStage::VERTEX;
+    case spv::ExecutionModel::ExecutionModelTessellationControl:
+        return ShaderStage::TESSELLATION_CONTROL;
+    case spv::ExecutionModel::ExecutionModelTessellationEvaluation:
+        return ShaderStage::TESSELLATION_EVALUATION;
+    case spv::ExecutionModel::ExecutionModelGeometry:
+        return ShaderStage::GEOMETRY;
+    case spv::ExecutionModel::ExecutionModelFragment:
+        return ShaderStage::FRAGMENT;
+    case spv::ExecutionModel::ExecutionModelGLCompute:
+        return ShaderStage::COMPUTE;
+    default:
+        return ShaderStage::NUM_SHADER_STAGES;
     }
-
-    return { result.cbegin(), result.cend() };
 }
 
 
-static std::vector< uint32_t > CompilePreprocessedShaderToSPIRV( const std::string& source_name, shaderc_shader_kind kind, const std::string& source )
+struct ShaderReflectData
+{
+    ShaderResourceLayout layout;
+    std::string entryPoint;
+    ShaderStage stage;
+};
+
+
+static void UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLayout& layout, unsigned set, unsigned binding )
+{
+	uint32_t& size = layout.sets[set].arraySizes[binding];
+	if ( !type.array.empty() )
+	{
+		if ( type.array.size() != 1 )
+        {
+			LOG_ERR( "Array dimension must be 1.\n" );
+        }
+		else if (!type.array_size_literal.front())
+        {
+			LOG_ERR( "Array dimension must be a literal.\n" );
+        }
+		else
+		{
+			if ( type.array.front() == 0 )
+			{
+				// Unsized runtime array.
+                LOG_ERR( "Currently not supporting bindless / descriptor indexing features\n" );
+			}
+			else if ( size && size != type.array.front() )
+            {
+				LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.\n", set, binding );
+            }
+			else if ( type.array.front() + binding > PG_MAX_NUM_BINDINGS_PER_SET )
+            {
+				LOG_ERR( "Bindings in the array from set %u, binding %u, will go out of bounds. Max = %d\n", set, binding, PG_MAX_NUM_BINDINGS_PER_SET );
+            }
+            else
+            {
+				size = type.array.front();
+            }
+		}
+	}
+	else
+	{
+		if ( size && size != 1 )
+        {
+			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.\n", set, binding );
+        }
+		size = 1;
+	}
+}
+
+
+static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
+{
+    using namespace spirv_cross;
+    Compiler compiler( spirv, sizeInBytes / sizeof( uint32_t ) );
+
+    const auto& entryPoints = compiler.get_entry_points_and_stages();
+    if ( entryPoints.size() == 0 )
+    {
+        LOG_ERR( "No entry points found in shader!\n" );
+        return false;
+    }
+    else if ( entryPoints.size() > 1 )
+    {
+        LOG_WARN( "Multiple entry points found in shader, but no selection method implemented yet. Using first entry '%s'\n", entryPoints[0].name.c_str() );
+    }
+    reflectData.entryPoint = entryPoints[0].name;
+    reflectData.stage = SpirvCrossShaderStageToPG( entryPoints[0].execution_model );
+
+	auto resources = compiler.get_shader_resources();
+	for ( const auto& image : resources.sampled_images )
+	{
+		uint32_t set         = compiler.get_decoration( image.id, spv::DecorationDescriptorSet );
+		uint32_t binding     = compiler.get_decoration( image.id, spv::DecorationBinding );
+		const SPIRType& type = compiler.get_type( image.type_id );
+		if ( type.image.dim == spv::DimBuffer )
+        {
+			reflectData.layout.sets[set].uniformBufferMask |= 1u << binding;
+        }
+		else
+        {
+			reflectData.layout.sets[set].sampledImageMask |= 1u << binding;
+        }
+		UpdateArraySize( type, reflectData.layout, set, binding );
+	}
+    
+	for ( const Resource& image : resources.separate_images )
+	{
+		uint32_t set     = compiler.get_decoration( image.id, spv::DecorationDescriptorSet );
+		uint32_t binding = compiler.get_decoration( image.id, spv::DecorationBinding );    
+		const SPIRType& type = compiler.get_type( image.type_id );
+		if ( type.image.dim == spv::DimBuffer )
+        {
+			reflectData.layout.sets[set].uniformBufferMask |= 1u << binding;
+        }
+        else
+        {
+			reflectData.layout.sets[set].separateImageMask |= 1u << binding;
+        }
+		UpdateArraySize( type, reflectData.layout, set, binding );
+	}
+
+    for ( const Resource& image : resources.storage_images )
+	{
+		uint32_t set     = compiler.get_decoration( image.id, spv::DecorationDescriptorSet );
+		uint32_t binding = compiler.get_decoration( image.id, spv::DecorationBinding );
+        const SPIRType& type = compiler.get_type( image.type_id );
+		if ( type.image.dim == spv::DimBuffer )
+        {
+			reflectData.layout.sets[set].storageBufferMask |= 1u << binding;
+        }
+        else
+        {
+			reflectData.layout.sets[set].storageImageMask |= 1u << binding;
+        }
+		UpdateArraySize( type, reflectData.layout, set, binding );
+	}
+
+    for ( const Resource& buffer : resources.uniform_buffers )
+	{
+		uint32_t set     = compiler.get_decoration( buffer.id, spv::DecorationDescriptorSet );
+		uint32_t binding = compiler.get_decoration( buffer.id, spv::DecorationBinding );
+		reflectData.layout.sets[set].uniformBufferMask |= 1u << binding;
+		UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
+	}
+    
+	for ( const Resource& buffer : resources.storage_buffers )
+	{
+		uint32_t set     = compiler.get_decoration( buffer.id, spv::DecorationDescriptorSet );
+		uint32_t binding = compiler.get_decoration( buffer.id, spv::DecorationBinding );
+		reflectData.layout.sets[set].storageBufferMask |= 1u << binding;
+		UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
+	}
+    
+	for ( const Resource& sampler : resources.separate_samplers )
+	{
+		uint32_t set     = compiler.get_decoration( sampler.id, spv::DecorationDescriptorSet );
+		uint32_t binding = compiler.get_decoration( sampler.id, spv::DecorationBinding );
+		reflectData.layout.sets[set].samplerMask |= 1u << binding;
+        UpdateArraySize( compiler.get_type( sampler.type_id ), reflectData.layout, set, binding );
+	}
+
+    for ( const Resource& attachmentImg : resources.subpass_inputs )
+	{
+		uint32_t set     = compiler.get_decoration( attachmentImg.id, spv::DecorationDescriptorSet );
+		uint32_t binding = compiler.get_decoration( attachmentImg.id, spv::DecorationBinding );
+		reflectData.layout.sets[set].inputAttachmentMask |= 1u << binding;
+		UpdateArraySize( compiler.get_type( attachmentImg.type_id ), reflectData.layout, set, binding );
+	}
+   
+	for ( const Resource& attrib : resources.stage_inputs )
+	{
+		uint32_t location = compiler.get_decoration( attrib.id, spv::DecorationLocation );
+		reflectData.layout.inputMask |= 1u << location;
+	}
+    
+	for ( const Resource& attrib : resources.stage_outputs)
+	{
+		uint32_t location = compiler.get_decoration( attrib.id, spv::DecorationLocation );
+		reflectData.layout.outputMask |= 1u << location;
+	}
+ 
+	if ( !resources.push_constant_buffers.empty() )
+	{
+        const SPIRType& type = compiler.get_type( resources.push_constant_buffers.front().base_type_id );
+		reflectData.layout.pushConstantSize = static_cast< uint32_t >( compiler.get_declared_struct_size( type ) );
+	}
+
+	const auto& specializationConstants = compiler.get_specialization_constants();
+	for ( const auto &specConst : specializationConstants)
+	{
+        LOG_ERR( "Specialization constants not supported currently. Ignoring spec constant %u\n", specConst.constant_id );
+	}
+
+    return true;
+}
+
+
+static bool CompilePreprocessedShaderToSPIRV( const std::string& shaderFilename, shaderc_shader_kind kind, const std::string& shaderSource, const std::vector< std::pair< std::string, std::string > >& defines, std::vector< uint32_t >& outputSpirv )
 {
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;
-
+    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2 );
+    options.SetSourceLanguage( shaderc_source_language_glsl );
+#if USING( PG_OPTIMIZE_SHADERS )
+    options.SetOptimizationLevel( shaderc_optimization_level_performance );
+#else
     options.SetOptimizationLevel( shaderc_optimization_level_zero );
+#endif // #if USING( PG_OPTIMIZE_SHADERS )
+    
+    options.AddMacroDefinition( "PG_SHADER_CODE", "1" );
+    for ( const auto& [symbol, value]: defines )
+    {
+        options.AddMacroDefinition( symbol, value );
+    }
 
-    shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv( source, kind, source_name.c_str(), options );
+    shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv( shaderSource, kind, shaderFilename.c_str(), options );
 
     if ( module.GetCompilationStatus() != shaderc_compilation_status_success )
     {
-        std::string cleaned = CleanShaderPreproc( source );
-        LOG_ERR( "Compiling shader '%s' failed: '%s'\n", source_name.c_str(), module.GetErrorMessage().c_str() );
+        LOG_ERR( "Compiling shader '%s' failed: '%s'\n", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
         LOG( "Preprocessed shader for reference:\n---------------------------------------------\n" );
-        LOG( "%s\n---------------------------------------------\n", cleaned.c_str() );
-        return std::vector< uint32_t >();
+        LOG( "%s\n---------------------------------------------\n", shaderSource.c_str() );
+        return false;
     }
 
-    return { module.cbegin(), module.cend() };
+    outputSpirv = { module.cbegin(), module.cend() };
+    return true;
 }
 
 
@@ -195,9 +419,6 @@ static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBy
 }
 #endif // #if !USING( COMPILING_CONVERTER )
 
-namespace PG
-{
-
 
 void Shader::Free()
 {
@@ -213,30 +434,30 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
     shader->name = createInfo.name;
     shader->shaderStage = createInfo.shaderStage;
 
-    size_t fileLen;
-    char* fileContent = ReadShaderFile( createInfo.filename, fileLen );
-    if ( !fileContent )
+    ShaderPreprocessor preprocessor;
+    if ( !preprocessor.Preprocess( createInfo.filename ) )
     {
-        LOG_ERR( "Could not open shader file '%s' for shader '%s'\n", createInfo.filename.c_str(), createInfo.name.c_str() );
+        LOG_ERR( "Preprocessing for shader: name '%s', filename '%s' failed\n", createInfo.name.c_str(), createInfo.filename.c_str() );
         return false;
     }
 
-    shaderc_shader_kind shaderStage = PGToShadercShaderStage( createInfo.shaderStage );
-    std::vector< std::string > includedFiles;
-    std::string preproc = PreprocessShader( createInfo.name, shaderStage, fileContent, includedFiles );
-    free( fileContent );
-    if ( preproc.empty() )
-    {
-        return false;
-    }
-    
+    shaderc_shader_kind shadercShaderStage = PGToShadercShaderStage( createInfo.shaderStage );
     std::vector< uint32_t > spirv;
-    spirv = CompilePreprocessedShaderToSPIRV( createInfo.name, shaderStage, preproc );
-    
-    if ( spirv.empty() )
+    if ( !CompilePreprocessedShaderToSPIRV( createInfo.filename, shadercShaderStage, preprocessor.outputShader, createInfo.defines, spirv ) )
     {
         return false;
     }
+
+    size_t spirvSizeInBytes = 4 * spirv.size();
+    ShaderReflectData reflectData;
+    if ( !ReflectShaderSpirv( spirv.data(), spirvSizeInBytes, reflectData ) )
+    {
+        LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed\n", createInfo.name.c_str(), createInfo.filename.c_str() );
+        return false;
+    }
+    PG_ASSERT( shader->shaderStage == reflectData.stage );
+    shader->entryPoint = reflectData.entryPoint; // Todo: pointless, since shaderc assumes entry point is "main" for GLSL
+    memcpy( &shader->resourceLayout, &reflectData.layout, sizeof( ShaderResourceLayout ) );
 
 #if USING( COMPILING_CONVERTER )
     shader->spirv = std::move( spirv );
@@ -293,19 +514,13 @@ bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer )
 
 bool Shader_GetIncludes( const std::string& filename, ShaderStage shaderStage, std::vector< std::string >& includedFiles )
 {
-    size_t fileLen;
-    char* fileContent = ReadShaderFile( filename, fileLen );
-    if ( !fileContent )
+    ShaderPreprocessor preprocessor;
+    if ( !preprocessor.ParseForIncludesOnly( filename ) )
     {
-        LOG_ERR( "Could not open shader file '%s'\n", filename );
+        LOG_ERR( "Preprocessing the includes for shader '%s' failed\n", filename.c_str() );
         return false;
     }
-
-    std::string preproc = PreprocessShader( "shader", PGToShadercShaderStage( shaderStage ), fileContent, includedFiles );
-    if ( preproc.empty() )
-    {
-        return false;
-    }
+    includedFiles = std::move( preprocessor.includedFiles );
 
     return true;
 }

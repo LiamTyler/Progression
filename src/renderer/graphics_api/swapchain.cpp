@@ -17,24 +17,24 @@ static SwapChainSupportDetails QuerySwapChainSupport( VkPhysicalDevice device, V
 {
     SwapChainSupportDetails details;
 
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR( device, surface, &details.capabilities );
+    VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( device, surface, &details.capabilities ) );
 
     uint32_t formatCount;
-    vkGetPhysicalDeviceSurfaceFormatsKHR( device, surface, &formatCount, nullptr );
+    VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceFormatsKHR( device, surface, &formatCount, nullptr ) );
 
     if ( formatCount != 0 )
     {
         details.formats.resize( formatCount );
-        vkGetPhysicalDeviceSurfaceFormatsKHR( device, surface, &formatCount, details.formats.data() );
+        VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceFormatsKHR( device, surface, &formatCount, details.formats.data() ) );
     }
 
     uint32_t presentModeCount;
-    vkGetPhysicalDeviceSurfacePresentModesKHR( device, surface, &presentModeCount, nullptr );
+    VK_CHECK_RESULT( vkGetPhysicalDeviceSurfacePresentModesKHR( device, surface, &presentModeCount, nullptr ) );
 
     if ( presentModeCount != 0 )
     {
         details.presentModes.resize( presentModeCount );
-        vkGetPhysicalDeviceSurfacePresentModesKHR( device, surface, &presentModeCount, details.presentModes.data() );
+        VK_CHECK_RESULT( vkGetPhysicalDeviceSurfacePresentModesKHR( device, surface, &presentModeCount, details.presentModes.data() ) );
     }
 
     return details;
@@ -173,9 +173,9 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
     PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( m_handle, "global" );
 
     // m_numImages is a minimum, the driver is allowed to make more
-    vkGetSwapchainImagesKHR( m_device, m_handle, &m_numImages, nullptr );
+    VK_CHECK_RESULT( vkGetSwapchainImagesKHR( m_device, m_handle, &m_numImages, nullptr ) );
     PG_ASSERT( m_numImages <= GFX_MAX_SWAPCHAIN_IMAGES, "Make m_numImages array larger!" );
-    vkGetSwapchainImagesKHR( m_device, m_handle, &m_numImages, m_images );
+    VK_CHECK_RESULT( vkGetSwapchainImagesKHR( m_device, m_handle, &m_numImages, m_images.data() ) );
 
     for ( uint32_t i = 0; i < m_numImages; ++i )
     {
@@ -190,7 +190,7 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
 
 uint32_t SwapChain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
 {
-    vkAcquireNextImageKHR( m_device, m_handle, UINT64_MAX, presentCompleteSemaphore.GetHandle(), VK_NULL_HANDLE, &m_currentImage );
+    VK_CHECK_RESULT( vkAcquireNextImageKHR( m_device, m_handle, UINT64_MAX, presentCompleteSemaphore.GetHandle(), VK_NULL_HANDLE, &m_currentImage ) );
     return m_currentImage;
 }
 

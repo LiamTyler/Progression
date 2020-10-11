@@ -1,9 +1,9 @@
 #pragma once
 
 #include "renderer/graphics_api/texture.hpp"
+#include "renderer/vulkan.hpp"
 #include "glm/vec4.hpp"
 #include <array>
-#include <vulkan/vulkan.h>
 
 namespace PG
 {

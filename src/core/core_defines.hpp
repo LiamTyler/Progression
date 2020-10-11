@@ -11,4 +11,4 @@
 
 #define ARRAY_COUNT( array ) ( static_cast< int >( sizeof( array ) / sizeof( array[0] ) ) )
 #define PG_UNUSED( x ) (void) ( x );
-#define PG_MAYBE_UNUSED( x ) (void) ( x );
+#define PG_NO_WARN_UNUSED( x ) (void) ( x );

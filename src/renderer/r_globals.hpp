@@ -28,12 +28,14 @@ struct R_Globals
     SwapChain swapchain;
     Framebuffer swapchainFramebuffers[GFX_MAX_SWAPCHAIN_IMAGES];
     CommandPool commandPools[GFX_CMD_POOL_TOTAL];
+    DescriptorPool descriptorPool;
     Texture depthTex;
     CommandBuffer graphicsCommandBuffer;
     CommandBuffer computeCommandBuffer;
     Semaphore presentCompleteSemaphore;
     Semaphore renderCompleteSemaphore;
     Fence computeFence;
+    bool headless;
 };
 
 extern R_Globals r_globals;

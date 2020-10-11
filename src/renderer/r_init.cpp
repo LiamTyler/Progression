@@ -18,9 +18,9 @@ namespace Gfx
 static std::vector< std::string > FindMissingValidationLayers( const std::vector< const char* >& layers )
 {
     uint32_t layerCount;
-    vkEnumerateInstanceLayerProperties( &layerCount, nullptr );
+    VK_CHECK_RESULT( vkEnumerateInstanceLayerProperties( &layerCount, nullptr ) );
     std::vector< VkLayerProperties > availableLayers( layerCount );
-    vkEnumerateInstanceLayerProperties( &layerCount, availableLayers.data() );
+    VK_CHECK_RESULT( vkEnumerateInstanceLayerProperties( &layerCount, availableLayers.data() ) );
 
     // LOG( "Available validation layers:\n" );
     // for ( const auto& layerProperties : availableLayers )
@@ -124,10 +124,10 @@ static bool CreateInstance()
     appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pNext              = nullptr; // pointer to extension information
     appInfo.pApplicationName   = "PG";
-    appInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
+    appInfo.applicationVersion = VK_MAKE_VERSION( 1, 2, 0 );
     appInfo.pEngineName        = "PG";
     appInfo.engineVersion      = VK_MAKE_VERSION( 1, 0, 0 );
-    appInfo.apiVersion         = VK_API_VERSION_1_1;
+    appInfo.apiVersion         = VK_API_VERSION_1_2;
 
     // non-optional struct that specifies which global extension and validation layers to use
     VkInstanceCreateInfo createInfo = {};
@@ -148,10 +148,14 @@ static bool CreateInstance()
     createInfo.enabledExtensionCount   = static_cast< uint32_t >( extensionNames.size() );
     createInfo.ppEnabledExtensionNames = extensionNames.data();
 
+    std::vector< const char* > validationLayers =
+    {
+        "VK_LAYER_KHRONOS_validation"
+    };
     // Specify global validation layers
 #if !USING( SHIP_BUILD )
-    createInfo.enabledLayerCount   = static_cast< uint32_t >( VK_VALIDATION_LAYERS.size() );
-    createInfo.ppEnabledLayerNames = VK_VALIDATION_LAYERS.data();
+    createInfo.enabledLayerCount   = static_cast< uint32_t >( validationLayers.size() );
+    createInfo.ppEnabledLayerNames = validationLayers.data();
 #else // #if !USING( SHIP_BUILD )
     createInfo.enabledLayerCount   = 0;
 #endif // #else // #if !USING( SHIP_BUILD )
@@ -163,7 +167,7 @@ static bool CreateInstance()
     }
     else if ( ret == VK_ERROR_LAYER_NOT_PRESENT )
     {
-        auto missingLayers = FindMissingValidationLayers( VK_VALIDATION_LAYERS );
+        auto missingLayers = FindMissingValidationLayers( validationLayers );
         LOG_ERR( "Could not find the following validation layers:\n" );
         for ( const auto& layer : missingLayers )
         {
@@ -198,6 +202,37 @@ static bool SetupDebugCallback()
     createInfo.pUserData = nullptr;
 
     return CreateDebugUtilsMessengerEXT( &createInfo, nullptr );
+}
+
+
+static bool CreateSynchronizationObjects()
+{
+    r_globals.presentCompleteSemaphore = r_globals.device.NewSemaphore( "present complete" );
+    r_globals.renderCompleteSemaphore  = r_globals.device.NewSemaphore( "render complete" );
+    r_globals.computeFence             = r_globals.device.NewFence( true, "compute" );
+
+    return true;
+}
+
+
+static bool CreateDescriptorPool()
+{
+    VkDescriptorPoolSize poolSizes[11] = {};
+    poolSizes[0] = { VK_DESCRIPTOR_TYPE_SAMPLER, 50 };
+    poolSizes[1] = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 };
+    poolSizes[2] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 };
+    poolSizes[3] = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 50 };
+    poolSizes[4] = { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 50 };
+    poolSizes[5] = { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 50 };
+    poolSizes[6] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 };
+    poolSizes[7] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 50 };
+    poolSizes[8] = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 50 };
+    poolSizes[9] = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 50 };
+    poolSizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 50 };
+
+    r_globals.descriptorPool = r_globals.device.NewDescriptorPool( 11, poolSizes, 1000 );
+
+    return r_globals.descriptorPool;
 }
 
 
@@ -279,7 +314,7 @@ static bool CreateCommandPoolAndBuffers()
         }
     }
 
-    r_globals.computeCommandBuffer = r_globals.commandPools[GFX_CMD_POOL_COMPUTE].NewCommandBuffer( "compute" );
+    r_globals.computeCommandBuffer = r_globals.commandPools[GFX_CMD_POOL_COMPUTE].NewCommandBuffer( "global compute" );
     r_globals.graphicsCommandBuffer = r_globals.commandPools[GFX_CMD_POOL_GRAPHICS].NewCommandBuffer( "global graphics" );
     if ( !r_globals.computeCommandBuffer || !r_globals.graphicsCommandBuffer )
     {
@@ -290,18 +325,10 @@ static bool CreateCommandPoolAndBuffers()
 }
 
 
-static bool CreateSynchronizationObjects()
+bool R_Init( bool headless, uint32_t width, uint32_t height )
 {
-    r_globals.presentCompleteSemaphore = r_globals.device.NewSemaphore( "present complete" );
-    r_globals.renderCompleteSemaphore  = r_globals.device.NewSemaphore( "render complete" );
-    r_globals.computeFence             = r_globals.device.NewFence( true, "compute" );
-
-    return true;
-}
-
-
-bool R_Init( uint32_t width, uint32_t height )
-{
+    r_globals = {};
+    r_globals.headless = headless;
     if ( !CreateInstance() )
     {
         LOG_ERR( "Could not create vulkan instance\n" );
@@ -316,20 +343,27 @@ bool R_Init( uint32_t width, uint32_t height )
     }
 #endif // #if !USING( SHIP_BUILD )
 
-    if ( !CreateSurface() )
+    if ( !headless )
     {
-        LOG_ERR( "Could not create glfw vulkan surface\n" );
-        return false;
+        if ( !CreateSurface() )
+        {
+            LOG_ERR( "Could not create glfw vulkan surface\n" );
+            return false;
+        }
     }
 
-    if ( !r_globals.physicalDevice.Select() )
+    if ( !r_globals.physicalDevice.Select( headless ) )
     {
         LOG_ERR( "Could not find any suitable GPU device to use\n" );
         return false;
     }
-    LOG( "Using device: '%s'\n", r_globals.physicalDevice.GetName().c_str() );
+    {
+        LOG( "Using device: '%s'\n", r_globals.physicalDevice.GetName().c_str() );
+        auto p = r_globals.physicalDevice.GetProperties();
+        LOG( "Using Vulkan Version: %d.%d.%d\n", VK_VERSION_MAJOR( p.apiVersion ), VK_VERSION_MINOR( p.apiVersion ), VK_VERSION_PATCH( p.apiVersion ) );
+    }
 
-    r_globals.device = Device::CreateDefault();
+    r_globals.device = Device::Create( headless );
     if ( !r_globals.device )
     {
         LOG_ERR( "Could not create logical device\n" );
@@ -337,12 +371,34 @@ bool R_Init( uint32_t width, uint32_t height )
     }
 
     DebugMarker::Init( r_globals.device.GetHandle(), r_globals.physicalDevice.GetHandle() );
-
     PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( r_globals.physicalDeviceInfo.device, r_globals.physicalDeviceInfo.name );
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( r_globals.instance, "global" );
     PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( r_globals.device, "default" );
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.GraphicsQueue(), "graphics" );
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.PresentQueue(), "presentation" );
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.GraphicsQueue(), "global graphics" );
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.ComputeQueue(), "global compute" );
+    if ( !headless )
+    {
+        PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.PresentQueue(), "presentation" );
+    }
+
+    if ( !CreateCommandPoolAndBuffers() )
+    {
+        LOG_ERR( "Could not create commandPool and commandBuffers\n" );
+        return false;
+    }
+
+    CreateDescriptorPool();
+
+    if ( !Profile::Init() )
+    {
+        LOG_ERR( "Could not initialize gpu profiler" );
+        return false;
+    }
+
+    if ( headless )
+    {
+        return true;
+    }
 
     if ( !r_globals.swapchain.Create( r_globals.device.GetHandle(), width, height ) )
     {
@@ -368,12 +424,6 @@ bool R_Init( uint32_t width, uint32_t height )
         return false;
     }
 
-    if ( !CreateCommandPoolAndBuffers() )
-    {
-        LOG_ERR( "Could not create commandPool / buffers\n" );
-        return false;
-    }
-
     if ( !CreateSynchronizationObjects() )
     {
         LOG_ERR( "Could not create synchronization objects\n" );
@@ -386,29 +436,30 @@ bool R_Init( uint32_t width, uint32_t height )
 
 void R_Shutdown()
 {
-    r_globals.presentCompleteSemaphore.Free();
-    r_globals.renderCompleteSemaphore.Free();
-    r_globals.computeFence.Free();
+    if ( !r_globals.headless )
+    {
+        r_globals.presentCompleteSemaphore.Free();
+        r_globals.renderCompleteSemaphore.Free();
+        r_globals.computeFence.Free();
+        r_globals.depthTex.Free();
+        for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
+        {
+            r_globals.swapchainFramebuffers[i].Free();
+        }
+        r_globals.renderPass.Free();
+        r_globals.swapchain.Free();
+        vkDestroySurfaceKHR( r_globals.instance, r_globals.surface, nullptr );
+    }
 
-    r_globals.depthTex.Free();
-
+    Profile::Shutdown();
     for ( int i = 0; i < GFX_CMD_POOL_TOTAL; ++i )
     {
         r_globals.commandPools[i].Free();
     }
-
-    for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
-    {
-        r_globals.swapchainFramebuffers[i].Free();
-    }
-
-    r_globals.renderPass.Free();
-
-    r_globals.swapchain.Free();
+    r_globals.descriptorPool.Free();
     r_globals.device.Free();
 
     DestroyDebugUtilsMessengerEXT();
-    vkDestroySurfaceKHR( r_globals.instance, r_globals.surface, nullptr );
     vkDestroyInstance( r_globals.instance, nullptr );
 }
 

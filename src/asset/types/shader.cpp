@@ -371,7 +371,7 @@ static bool CompilePreprocessedShaderToSPIRV( const std::string& shaderFilename,
 {
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;
-    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2 );
+    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_0 );
     options.SetSourceLanguage( shaderc_source_language_glsl );
 #if USING( PG_OPTIMIZE_SHADERS )
     options.SetOptimizationLevel( shaderc_optimization_level_performance );
@@ -380,13 +380,12 @@ static bool CompilePreprocessedShaderToSPIRV( const std::string& shaderFilename,
 #endif // #if USING( PG_OPTIMIZE_SHADERS )
     
     options.AddMacroDefinition( "PG_SHADER_CODE", "1" );
-    for ( const auto& [symbol, value]: defines )
+    for ( const auto& [symbol, value] : defines )
     {
         options.AddMacroDefinition( symbol, value );
     }
 
     shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv( shaderSource, kind, shaderFilename.c_str(), options );
-
     if ( module.GetCompilationStatus() != shaderc_compilation_status_success )
     {
         LOG_ERR( "Compiling shader '%s' failed: '%s'\n", shaderFilename.c_str(), module.GetErrorMessage().c_str() );

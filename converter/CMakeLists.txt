@@ -73,14 +73,15 @@ set(
 	${EXTERNALS}
 )
 
-
 if(UNIX AND NOT APPLE)
     set(SHADERC_LIB shaderc_combined)
+    set(SPIRVCROSS_LIB spirv-cross-core)
 elseif(MSVC)
     set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
+    set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
 endif()
 
-set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${Vulkan_LIBRARIES})
+set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES})
 
 include_directories(
     ${PROGRESSION_DIR}/src/

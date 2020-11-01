@@ -112,7 +112,13 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::PipelineBarrier( VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, const VkImageMemoryBarrier& barrier ) const
+    void CommandBuffer::PipelineBufferBarrier( VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, const VkBufferMemoryBarrier& barrier ) const
+    {
+        vkCmdPipelineBarrier( m_handle, srcStage, dstStage, 0, 0, nullptr, 1, &barrier, 0, nullptr );
+    }
+
+
+    void CommandBuffer::PipelineImageBarrier( VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, const VkImageMemoryBarrier& barrier ) const
     {
         vkCmdPipelineBarrier( m_handle, srcStage, dstStage, 0, 0, nullptr, 0, nullptr, 1, &barrier );
     }
@@ -154,10 +160,12 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::Copy( const Buffer& dst, const Buffer& src ) const
+    void CommandBuffer::CopyBuffer( const Buffer& dst, const Buffer& src, size_t size = VK_WHOLE_SIZE, size_t srcOffset = 0, size_t dstOffset = 0 ) const
     {
-        VkBufferCopy copyRegion = {};
-        copyRegion.size = src.GetLength();
+        VkBufferCopy copyRegion;
+        copyRegion.dstOffset = dstOffset;
+        copyRegion.srcOffset = srcOffset;
+        copyRegion.size = size;
         vkCmdCopyBuffer( m_handle, src.GetHandle(), dst.GetHandle(), 1, &copyRegion );
     }
     

@@ -1,6 +1,7 @@
 #include "renderer/graphics_api/buffer.hpp"
 #include "core/assert.hpp"
 #include "core/core_defines.hpp"
+#include "renderer/r_globals.hpp"
 #include <string.h>
 
 namespace PG
@@ -80,75 +81,51 @@ namespace Gfx
     }
 
 
+    // TODO: barriers here or externally to ensure gpu buffer commands have been completed? 
     void Buffer::ReadToCpu( void* dst, size_t size, size_t offset ) const
     {
-        bool isMappedAlready = m_mappedPtr != nullptr;
-        Map();
-        if ( m_memoryType & MEMORY_TYPE_HOST_VISIBLE )
-        {
-            // cached memory is always coherent
-            bool hostVisible = (m_memoryType & MEMORY_TYPE_HOST_COHERENT) || (m_memoryType & MEMORY_TYPE_HOST_CACHED);
-            if ( !hostVisible )
-            {
-                FlushGpuWrites( size, offset );
-            }
-        }
-        else
+        if ( m_memoryType & MEMORY_TYPE_DEVICE_LOCAL )
         {
             PG_ASSERT( false, "implement me" );
             // Read back to host visible buffer first, then copy to host
-            /*
-			VkBufferCopy copyRegion = {};
-			copyRegion.size = bufferSize;
-			vkCmdCopyBuffer(commandBuffer, deviceBuffer, hostBuffer, 1, &copyRegion);
-
-			// Barrier to ensure that buffer copy is finished before host reading from it
-			bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-			bufferBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-			bufferBarrier.buffer = hostBuffer;
-			bufferBarrier.size = VK_WHOLE_SIZE;
-			bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-			bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-
-			vkCmdPipelineBarrier(
-				commandBuffer,
-				VK_PIPELINE_STAGE_TRANSFER_BIT,
-				VK_PIPELINE_STAGE_HOST_BIT,
-				VK_FLAGS_NONE,
-				0, nullptr,
-				1, &bufferBarrier,
-				0, nullptr);
-
-			VK_CHECK_RESULT(vkEndCommandBuffer(commandBuffer));
-
-			// Submit compute work
-			vkResetFences(device, 1, &fence);
-			const VkPipelineStageFlags waitStageMask = VK_PIPELINE_STAGE_TRANSFER_BIT;
-			VkSubmitInfo computeSubmitInfo = vks::initializers::submitInfo();
-			computeSubmitInfo.pWaitDstStageMask = &waitStageMask;
-			computeSubmitInfo.commandBufferCount = 1;
-			computeSubmitInfo.pCommandBuffers = &commandBuffer;
-			VK_CHECK_RESULT(vkQueueSubmit(queue, 1, &computeSubmitInfo, fence));
-			VK_CHECK_RESULT(vkWaitForFences(device, 1, &fence, VK_TRUE, UINT64_MAX));
-
-			// Make device writes visible to the host
-			void *mapped;
-			vkMapMemory(device, hostMemory, 0, VK_WHOLE_SIZE, 0, &mapped);
-			VkMappedMemoryRange mappedRange = vks::initializers::mappedMemoryRange();
-			mappedRange.memory = hostMemory;
-			mappedRange.offset = 0;
-			mappedRange.size = VK_WHOLE_SIZE;
-			vkInvalidateMappedMemoryRanges(device, 1, &mappedRange);
-
-			// Copy to output
-			memcpy(computeOutput.data(), mapped, bufferSize);
-			vkUnmapMemory(device, hostMemory);
-            */
+            // Device& device = r_globals.device;
+            // 
+            // Buffer hostVisibleBuffer = device.NewBuffer( size, BUFFER_TYPE_TRANSFER_DST, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
+            // 
+            // CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
+            // cmdBuf.CopyBuffer( hostVisibleBuffer, *this, size, 0, offset );
+            // 
+			// // Barrier to ensure that buffer copy is finished before host reading from it
+            // VkBufferMemoryBarrier bufferBarrier = {};
+			// bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
+			// bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+			// bufferBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
+			// bufferBarrier.buffer = hostVisibleBuffer.GetHandle();
+			// bufferBarrier.size = VK_WHOLE_SIZE;
+			// bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			// bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+            // 
+            // cmdBuf.PipelineBufferBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, bufferBarrier );
+            // cmdBuf.EndRecording();
+            // device.Submit();
+            // 
+            // hostVisibleBuffer.Map();
+            // memcpy( dst, hostVisibleBuffer.MappedPtr(), size == VK_WHOLE_SIZE ? m_length : size );
+            // hostVisibleBuffer.Free();
         }
-        memcpy( dst, m_mappedPtr, size == VK_WHOLE_SIZE ? m_length : size );
-        if ( !isMappedAlready )
+        else
         {
-            UnMap();
+            bool isMappedAlready = m_mappedPtr != nullptr;
+            Map();
+            if ( (m_memoryType & MEMORY_TYPE_HOST_COHERENT) == 0 )
+            {
+                FlushGpuWrites( size, offset );
+            }
+            memcpy( dst, m_mappedPtr, size == VK_WHOLE_SIZE ? m_length : size );
+            if ( !isMappedAlready )
+            {
+                UnMap();
+            }
         }
     }
 

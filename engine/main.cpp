@@ -37,7 +37,7 @@ int main( int argc, char* argv[] )
     Device& device = r_globals.device;
 	Buffer gpu_a = device.NewBuffer( BUFFER_SIZE * sizeof( float ), cpu_a, BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_a" );
 	Buffer gpu_b = device.NewBuffer( BUFFER_SIZE * sizeof( float ), cpu_b, BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_b" );
-	Buffer gpu_c = device.NewBuffer( BUFFER_SIZE * sizeof( float ), BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_c" );
+	Buffer gpu_c = device.NewBuffer( BUFFER_SIZE * sizeof( float ), BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_COHERENT, "ssbo_c" );
 	
 	ShaderCreateInfo shaderInfo = { "vector add", PG_ASSET_DIR "shaders/vector_add.comp", ShaderStage::COMPUTE };
 	Shader compShader;
@@ -68,9 +68,10 @@ int main( int argc, char* argv[] )
     cmdBuf.BindDescriptorSets( 1, &descriptorSet, computePipeline );
     cmdBuf.Dispatch( 64, 1, 1 );
     cmdBuf.EndRecording();
-    device.SubmitComputeCommand( cmdBuf );
-    device.WaitForIdle();
-
+    Fence waitFence;
+    device.SubmitComputeCommand( cmdBuf, &waitFence );
+    
+    waitFence.WaitFor();
     float cpu_c[BUFFER_SIZE] = { 0 };
     gpu_c.ReadToCpu( cpu_c );
     int correct = 0;

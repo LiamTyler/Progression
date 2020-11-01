@@ -34,7 +34,7 @@ namespace Gfx
         Texture NewTexture( const ImageDescriptor& desc, bool managed = true, const std::string& name = "" ) const;
         Texture NewTextureFromBuffer( ImageDescriptor& desc, void* data, bool managed = true, const std::string& name = "" ) const;
         Sampler NewSampler( const SamplerDescriptor& desc ) const;
-        Fence NewFence( bool signaled, const std::string& name = "" ) const;
+        Fence NewFence( bool signaled = false, const std::string& name = "" ) const;
         Semaphore NewSemaphore( const std::string& name = "" ) const;
         Pipeline NewGraphicsPipeline( const PipelineDescriptor& desc, const std::string& name = "" ) const;
         Pipeline NewComputePipeline( Shader* shader, const std::string& name = "" ) const;

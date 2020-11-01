@@ -253,11 +253,6 @@ namespace Gfx
     }
 
 
-    // bool RegisterDescriptorSetLayouts( DescriptorSetLayout* layouts, int numLayouts ) const
-    // {
-    // }
-
-
     void Device::UpdateDescriptorSets( uint32_t count, const VkWriteDescriptorSet* writes ) const
     {
         vkUpdateDescriptorSets( m_handle, count, writes, 0, nullptr );
@@ -894,7 +889,7 @@ namespace Gfx
         CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
 
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-        cmdBuf.Copy( dst, src );
+        cmdBuf.CopyBuffer( dst, src );
         cmdBuf.EndRecording();
 
         Submit( cmdBuf );
@@ -1010,6 +1005,14 @@ namespace Gfx
         VkFence fence = VK_NULL_HANDLE;
         if ( signalOnCompleteFence )
         {
+            if ( signalOnCompleteFence->GetHandle() == VK_NULL_HANDLE )
+            {
+                *signalOnCompleteFence = NewFence();
+            }
+            else
+            {
+                signalOnCompleteFence->Reset();
+            }
             fence = signalOnCompleteFence->GetHandle();
         }
 

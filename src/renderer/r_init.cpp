@@ -123,9 +123,9 @@ static bool CreateInstance()
     VkApplicationInfo appInfo  = {};
     appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
     appInfo.pNext              = nullptr; // pointer to extension information
-    appInfo.pApplicationName   = "PG";
-    appInfo.applicationVersion = VK_MAKE_VERSION( 1, 2, 0 );
-    appInfo.pEngineName        = "PG";
+    appInfo.pApplicationName   = nullptr;
+    appInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
+    appInfo.pEngineName        = "Progression";
     appInfo.engineVersion      = VK_MAKE_VERSION( 1, 0, 0 );
     appInfo.apiVersion         = VK_API_VERSION_1_2;
 

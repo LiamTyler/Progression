@@ -73,7 +73,6 @@ set(
 	${EXTERNALS}
 )
 
-
 if(UNIX AND NOT APPLE)
     set(SHADERC_LIB shaderc_combined)
     set(SPIRVCROSS_LIB spirv-cross-core)

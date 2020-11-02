@@ -76,8 +76,33 @@ namespace Gfx
     public:
         RenderPassDescriptor() = default;
 
-        std::array< ColorAttachmentDescriptor, 8 > colorAttachmentDescriptors;
-        DepthAttachmentDescriptor depthAttachmentDescriptor;
+        void AddColorAttachment( 
+            PixelFormat format = PixelFormat::INVALID,
+            LoadAction loadAction = LoadAction::CLEAR,
+            StoreAction storeAction = StoreAction::STORE,
+            const glm::vec4& clearColor = glm::vec4( 0 ),
+            ImageLayout initialLayout = ImageLayout::UNDEFINED,
+            ImageLayout finalLayout = ImageLayout::UNDEFINED
+        );
+        void AddDepthAttachment(
+            PixelFormat format = PixelFormat::INVALID,
+            LoadAction loadAction = LoadAction::CLEAR,
+            StoreAction storeAction = StoreAction::STORE,
+            float clearValue = 1.0f,
+            ImageLayout initialLayout = ImageLayout::UNDEFINED,
+            ImageLayout finalLayout = ImageLayout::UNDEFINED
+        );
+
+        const ColorAttachmentDescriptor* GetColorAttachment( uint32_t i ) const;
+        const DepthAttachmentDescriptor* GetDepthAttachment() const;
+        uint8_t GetNumColorAttachments() const;
+        uint8_t GetNumDepthAttachments() const;
+
+    private:
+        std::array< ColorAttachmentDescriptor, 8 > m_colorAttachmentDescriptors;
+        DepthAttachmentDescriptor m_depthAttachmentDescriptor;
+        uint8_t m_numColorAttachments = 0;
+        uint8_t m_numDepthAttachments = 0;
     };
 
     class RenderPass

@@ -43,7 +43,6 @@ bool Init( bool headless )
         }
     }
 
-    /*
     AssetManager::LoadFastFile( "basic" );
 
     auto vertShader = AssetManager::Get< Shader >( "basicVert" );
@@ -62,15 +61,12 @@ bool Init( bool headless )
 
     PipelineDescriptor pipelineDesc;
     pipelineDesc.renderPass             = &r_globals.renderPass;
-    pipelineDesc.descriptorSetLayouts   = {};
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 1, attribDescs );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
-    pipelineDesc.viewport               = FullScreenViewport();
-    pipelineDesc.scissor                = FullScreenScissor();
     pipelineDesc.shaders[0]             = vertShader;
     pipelineDesc.shaders[1]             = fragShader;
 
-    pipeline = r_globals.device.NewPipeline( pipelineDesc, "rigid Model" );
+    pipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "rigid Model" );
     if ( !pipeline )
     {
         LOG_ERR( "Could not create pipeline" );
@@ -89,7 +85,6 @@ bool Init( bool headless )
     };
     vertexBuffer = r_globals.device.NewBuffer( sizeof( verts ), verts, BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "vertex" );
     indexBuffer  = r_globals.device.NewBuffer( sizeof( indices ), indices, BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "index" );
-    */
 
     return true;
 }
@@ -99,9 +94,9 @@ void Shutdown()
 {
     r_globals.device.WaitForIdle();
     
-    // pipeline.Free();
-    // vertexBuffer.Free();
-    // indexBuffer.Free();
+    pipeline.Free();
+    vertexBuffer.Free();
+    indexBuffer.Free();
 
     R_Shutdown();
 }
@@ -121,6 +116,8 @@ void Render( Scene* scene )
     cmdBuf.BeginRenderPass( r_globals.renderPass, r_globals.swapchainFramebuffers[swapChainImageIndex] );
 
     cmdBuf.BindPipeline( pipeline );
+    cmdBuf.SetViewport( FullScreenViewport() );
+    cmdBuf.SetScissor( FullScreenScissor() );
     PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw full-screen quad", glm::vec4( 0 ) );
     cmdBuf.BindVertexBuffer( vertexBuffer, 0, 0 );
     cmdBuf.BindIndexBuffer(  indexBuffer, IndexType::UNSIGNED_INT );

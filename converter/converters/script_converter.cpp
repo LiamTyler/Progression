@@ -19,7 +19,7 @@ extern bool g_parsingError;
 void Script_Parse( const rapidjson::Value& value )
 {
 
-    static FunctionMapper< ScriptCreateInfo& > mapping(
+    static JSONFunctionMapper< ScriptCreateInfo& > mapping(
     {
         { "name",      []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.name     = v.GetString(); } },
         { "filename",  []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.filename = PG_ASSET_DIR "scripts/" + std::string( v.GetString() ); } },

@@ -49,20 +49,19 @@ namespace Gfx
         renderPassInfo.renderArea.extent = { framebuffer.GetWidth(), framebuffer.GetHeight() };
 
         VkClearValue clearValues[9] = {};
-        size_t i = 0;
-        const auto& colorA = renderPass.desc.colorAttachmentDescriptors;
-        for ( ; i < colorA.size() && colorA[i].format != PixelFormat::INVALID; ++i )
+        uint8_t attachmentIndex = 0;
+        for ( ; attachmentIndex < renderPass.desc.GetNumColorAttachments(); ++attachmentIndex )
         {
-            const auto& col = renderPass.desc.colorAttachmentDescriptors[i].clearColor;
-            clearValues[i].color = { col.r, col.g, col.b, col.a };
+            const glm::vec4& col = renderPass.desc.GetColorAttachment( attachmentIndex )->clearColor;
+            clearValues[attachmentIndex].color = { col.r, col.g, col.b, col.a };
         }
-        if ( renderPass.desc.depthAttachmentDescriptor.format != PixelFormat::INVALID )
+        if ( renderPass.desc.GetNumDepthAttachments() > 0 )
         {
-            clearValues[i].depthStencil = { renderPass.desc.depthAttachmentDescriptor.clearValue, 0 };
-            ++i;
+            clearValues[attachmentIndex].depthStencil = { renderPass.desc.GetDepthAttachment()->clearValue, 0 };
+            ++attachmentIndex;
         }
 
-        renderPassInfo.clearValueCount = static_cast< uint32_t >( i );
+        renderPassInfo.clearValueCount = attachmentIndex;
         renderPassInfo.pClearValues    = clearValues;
 
         vkCmdBeginRenderPass( m_handle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE );
@@ -160,12 +159,16 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::CopyBuffer( const Buffer& dst, const Buffer& src, size_t size = VK_WHOLE_SIZE, size_t srcOffset = 0, size_t dstOffset = 0 ) const
+    void CommandBuffer::CopyBuffer( const Buffer& dst, const Buffer& src, size_t size, size_t srcOffset, size_t dstOffset ) const
     {
         VkBufferCopy copyRegion;
         copyRegion.dstOffset = dstOffset;
         copyRegion.srcOffset = srcOffset;
         copyRegion.size = size;
+        if ( size == VK_WHOLE_SIZE )
+        {
+            copyRegion.size = src.GetLength();
+        }
         vkCmdCopyBuffer( m_handle, src.GetHandle(), dst.GetHandle(), 1, &copyRegion );
     }
     

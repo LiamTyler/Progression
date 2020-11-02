@@ -1,5 +1,8 @@
-{ "AssetList":
+{ "Scene":
 [
-    { "Shader": { "name": "rigid_mesh_vert", "shaderStage" : "vertex", "filename": "rigid_mesh.vert" } }
-    { "Shader": { "name": "unlit_frag", "shaderStage" : "fragment", "filename": "unlit.frag" } }
+    { "_Fastfile": { "filename": "basic.ff" } },
+    { "Camera": { "position": [ 0, 2, 10 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
+    { "BackgroundColor": { "color": [ 0.2, 0.2, 0.2, 1 ] } },
+    { "AmbientColor": { "color": [ 0.8, 0.8, 0.8 ] } },
+    { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0.5, -1.5, -1 ] } }
 ]}

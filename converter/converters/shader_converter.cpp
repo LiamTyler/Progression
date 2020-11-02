@@ -29,7 +29,7 @@ static std::unordered_map< std::string, ShaderStage > shaderStageMap =
 
 void Shader_Parse( const rapidjson::Value& value )
 {
-    static FunctionMapper< ShaderCreateInfo& > mapping(
+    static JSONFunctionMapper< ShaderCreateInfo& > mapping(
     {
         { "name",        []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.name        = v.GetString(); } },
         { "filename",    []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.filename = PG_ASSET_DIR "shaders/" + std::string( v.GetString() ); } },

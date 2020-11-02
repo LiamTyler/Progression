@@ -19,7 +19,7 @@ extern bool g_parsingError;
 void Material_Parse( const rapidjson::Value& value )
 {
 
-    static FunctionMapper< std::string& > mapping(
+    static JSONFunctionMapper< std::string& > mapping(
     {
         { "filename",  []( const rapidjson::Value& v, std::string& filename ) { filename = PG_ASSET_DIR "materials/" + std::string( v.GetString() ); } },
     });
@@ -64,7 +64,7 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
         return false;
     }
     
-    static FunctionMapper< MaterialCreateInfo& > mapping(
+    static JSONFunctionMapper< MaterialCreateInfo& > mapping(
     {
         { "name",        []( const Value& v, MaterialCreateInfo& i ) { i.name        = v.GetString(); } },
         { "Kd",          []( const Value& v, MaterialCreateInfo& i ) { i.Kd          = ParseVec3( v ); } },

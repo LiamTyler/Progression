@@ -479,6 +479,8 @@ bool Fastfile_Shader_Load( Shader* shader, Serializer* serializer )
     PG_ASSERT( shader && serializer );
     serializer->Read( shader->name );
     serializer->Read( shader->shaderStage );
+    serializer->Read( shader->entryPoint );
+    serializer->Read( &shader->resourceLayout, sizeof( ShaderResourceLayout ) );
     std::vector< uint32_t > spirv;
     serializer->Read( spirv );
 
@@ -504,6 +506,8 @@ bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer )
     PG_ASSERT( shader && serializer );
     serializer->Write( shader->name );
     serializer->Write( shader->shaderStage );
+    serializer->Write( shader->entryPoint );
+    serializer->Write( &shader->resourceLayout, sizeof( ShaderResourceLayout ) );
 
     serializer->Write( shader->spirv );
 #endif // #else // #if !USING( COMPILING_CONVERTER )

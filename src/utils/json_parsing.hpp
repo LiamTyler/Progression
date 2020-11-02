@@ -21,12 +21,12 @@ glm::vec3 ParseVec3( const rapidjson::Value& v );
 glm::vec4 ParseVec4( const rapidjson::Value& v );
 
 template < typename ...Args >
-class FunctionMapper
+class JSONFunctionMapper
 {
     using function_type = std::function< void( const rapidjson::Value&, Args... ) >;
     using map_type = std::unordered_map< std::string, function_type >;
 public:
-    FunctionMapper( const map_type& m ) : mapping( m ) {}
+    JSONFunctionMapper( const map_type& m ) : mapping( m ) {}
 
     function_type& operator[]( const std::string& name )
     {
@@ -46,7 +46,7 @@ public:
         }
     }
 
-    void ForEachMember( const rapidjson::Value& v, Args&&... args )
+    void ForEachMember( const rapidjson::Value& v, Args&... args )
     {
         for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
         {
@@ -64,3 +64,12 @@ public:
 
     map_type mapping;
 };  
+
+template< typename Func >
+void ForEachJSONMember( const rapidjson::Value& v, const Func& func )
+{
+    for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
+    {
+        func( it->name.GetString(), it->value );
+    }
+}

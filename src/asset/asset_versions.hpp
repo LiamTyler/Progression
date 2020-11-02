@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr int PG_FASTFILE_VERSION = 1; // initial version
+constexpr int PG_FASTFILE_VERSION = 2; // shader reflection data
 
 constexpr int PG_GFX_IMAGE_VERSION = 1; // initial version
 
@@ -10,7 +10,7 @@ constexpr int PG_MODEL_VERSION = 1; // initial version
 
 constexpr int PG_SCRIPT_VERSION = 1; // initial version
 
-constexpr int PG_SHADER_VERSION = 1; // initial version
+constexpr int PG_SHADER_VERSION = 2; // reflection data
 
 
 // If order is changed, all fastfiles need to be rebuilt

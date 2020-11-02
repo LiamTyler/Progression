@@ -27,16 +27,26 @@ set(
     ${PROGRESSION_DIR}/src/asset/image.hpp
     
     ${PROGRESSION_DIR}/src/core/assert.hpp
+    ${PROGRESSION_DIR}/src/core/bounding_box.cpp
+    ${PROGRESSION_DIR}/src/core/bounding_box.hpp
+    ${PROGRESSION_DIR}/src/core/camera.cpp
+    ${PROGRESSION_DIR}/src/core/camera.hpp
     ${PROGRESSION_DIR}/src/core/core_defines.hpp
     ${PROGRESSION_DIR}/src/core/feature_defines.hpp
+    ${PROGRESSION_DIR}/src/core/frustum.cpp
+    ${PROGRESSION_DIR}/src/core/frustum.hpp
     ${PROGRESSION_DIR}/src/core/input.cpp
     ${PROGRESSION_DIR}/src/core/input.hpp
     ${PROGRESSION_DIR}/src/core/input_types.hpp
+    ${PROGRESSION_DIR}/src/core/lights.hpp
+    ${PROGRESSION_DIR}/src/core/math.hpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
     ${PROGRESSION_DIR}/src/core/platform_defines.hpp
     ${PROGRESSION_DIR}/src/core/time.cpp
     ${PROGRESSION_DIR}/src/core/time.hpp
+    ${PROGRESSION_DIR}/src/core/scene.cpp
+    ${PROGRESSION_DIR}/src/core/scene.hpp
     ${PROGRESSION_DIR}/src/core/window.cpp
     ${PROGRESSION_DIR}/src/core/window.hpp
     

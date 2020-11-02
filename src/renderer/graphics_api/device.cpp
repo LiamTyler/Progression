@@ -470,7 +470,7 @@ namespace Gfx
     }
 
 
-    static PipelineResourceLayout CombineShaderResourceLayouts( Shader* shaders, int numShaders )
+    static PipelineResourceLayout CombineShaderResourceLayouts( Shader* const* shaders, int numShaders )
     {
         PipelineResourceLayout combinedLayout;
 	    // if (program.get_shader(ShaderStage::Vertex))
@@ -480,8 +480,8 @@ namespace Gfx
 
 	    for ( int shaderIndex = 0; shaderIndex < numShaders; ++shaderIndex )
 	    {
-		    uint32_t stageMask = 1u << static_cast< uint32_t >( shaders[shaderIndex].shaderStage );
-		    const ShaderResourceLayout& shaderLayout = shaders[shaderIndex].resourceLayout;
+		    uint32_t stageMask = 1u << static_cast< uint32_t >( shaders[shaderIndex]->shaderStage );
+		    const ShaderResourceLayout& shaderLayout = shaders[shaderIndex]->resourceLayout;
 		    for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; set++ )
 		    {
 			    combinedLayout.sets[set].sampledImageMask       |= shaderLayout.sets[set].sampledImageMask;
@@ -584,6 +584,29 @@ namespace Gfx
             shaderStages[i].pName  = desc.shaders[i]->entryPoint.c_str();
         }
 
+        p.m_resourceLayout = CombineShaderResourceLayouts( &desc.shaders[0], numShaderStages );
+        p.m_isCompute = false;
+        auto& layout = p.m_resourceLayout;
+        VkDescriptorSetLayout activeLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
+        uint32_t numActiveSets = 0;
+        ForEachBit( p.m_resourceLayout.descriptorSetMask, [&]( uint32_t set )
+        {
+            RegisterDescriptorSetLayout( layout.sets[set], layout.bindingStages[set] );
+            activeLayouts[numActiveSets++] = layout.sets[set].GetHandle();
+        });
+
+        VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+        pipelineLayoutCreateInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+        pipelineLayoutCreateInfo.setLayoutCount = numActiveSets;
+        pipelineLayoutCreateInfo.pSetLayouts    = activeLayouts;
+        pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
+        if ( layout.pushConstantRange.size > 0 )
+        {
+            pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+            pipelineLayoutCreateInfo.pPushConstantRanges    = &layout.pushConstantRange;
+        }
+        VK_CHECK_RESULT( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &p.m_pipelineLayout ) );
+
 
         uint32_t dynamicStateCount = 2;
         VkDynamicState vkDnamicStates[3] = { VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT };
@@ -623,17 +646,12 @@ namespace Gfx
         multisampling.sampleShadingEnable   = VK_FALSE;
         multisampling.rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT;
 
-        uint32_t numColorAttachments = 0;
+        uint8_t numColorAttachments = 0;
         VkPipelineColorBlendAttachmentState colorBlendAttachment[8] = {};
-        for ( uint32_t i = 0; i < 8; ++i )
+        for ( uint8_t i = 0; i < desc.renderPass->desc.GetNumColorAttachments(); ++i )
         {
-            if ( desc.renderPass->desc.colorAttachmentDescriptors[i].format == PixelFormat::INVALID )
-            {
-                break;
-            }
-
             ++numColorAttachments;
-            colorBlendAttachment[i].colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+            colorBlendAttachment[i].colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             colorBlendAttachment[i].blendEnable         = desc.colorAttachmentInfos[i].blendingEnabled;
             colorBlendAttachment[i].srcColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcColorBlendFactor );
             colorBlendAttachment[i].dstColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].dstColorBlendFactor );
@@ -650,47 +668,6 @@ namespace Gfx
         colorBlending.logicOp           = VK_LOGIC_OP_COPY;
         colorBlending.attachmentCount   = numColorAttachments;
         colorBlending.pAttachments      = colorBlendAttachment;
-
-        // VkDescriptorSetLayout layouts[8];
-        // PG_ASSERT( desc.descriptorSetLayouts.size() <= 8 );
-        // for ( size_t i = 0; i < desc.descriptorSetLayouts.size(); ++i )
-        // {
-        //     layouts[i] = desc.descriptorSetLayouts[i].GetHandle();
-        // }
-        // VkPipelineLayoutCreateInfo pipelineLayoutInfo = {};
-        // pipelineLayoutInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        // pipelineLayoutInfo.setLayoutCount = static_cast< uint32_t >( desc.descriptorSetLayouts.size() );
-        // pipelineLayoutInfo.pSetLayouts    = layouts;
-
-        // std::vector< VkPushConstantRange > pushConstants;
-        // for ( int i = 0; i < static_cast< int >( shaderStages.size() ); ++i )
-        // {
-        //     for ( const auto& range : desc.shaders[i]->reflectInfo.pushConstants )
-        //     {
-        //         pushConstants.push_back( range );
-        //     }
-        // }
-        // std::sort( pushConstants.begin(), pushConstants.end(), []( const auto& lhs, const auto& rhs ) { return lhs.offset < rhs.offset; } );
-        // for ( size_t i = 1; i < pushConstants.size(); ++i )
-        // {
-        //     if ( pushConstants[i].offset == pushConstants[i-1].offset + pushConstants[i-1].size )
-        //     {
-        //         pushConstants[i-1].size += pushConstants[i].size;
-        //         pushConstants[i-1].stageFlags |= pushConstants[i].stageFlags;
-        //         pushConstants.erase( pushConstants.begin() + i );
-        //         --i;
-        //     }
-        // }
-        // pipelineLayoutInfo.pushConstantRangeCount = static_cast< uint32_t >( pushConstants.size() );
-        // pipelineLayoutInfo.pPushConstantRanges    = pushConstants.data();
-
-        // pipelineLayoutInfo.pushConstantRangeCount = 0;
-
-        // if ( vkCreatePipelineLayout( m_handle, &pipelineLayoutInfo, nullptr, &p.m_pipelineLayout ) != VK_SUCCESS )
-        // {
-        //     LOG_ERR( "Failed to create graphics pipeline '%s' layout!\n", name.c_str() );
-        //     return p;
-        // }
 
         VkPipelineDepthStencilStateCreateInfo depthStencil = {};
         depthStencil.sType                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
@@ -714,7 +691,6 @@ namespace Gfx
         pipelineInfo.pDynamicState       = &dynamicState;
         pipelineInfo.layout              = p.m_pipelineLayout;
         pipelineInfo.renderPass          = desc.renderPass->GetHandle();
-        pipelineInfo.renderPass          = desc.renderPass->GetHandle();
         pipelineInfo.subpass             = 0;
         pipelineInfo.basePipelineHandle  = VK_NULL_HANDLE;
 
@@ -737,7 +713,7 @@ namespace Gfx
         Pipeline pipeline;
         pipeline.m_device = m_handle;
         pipeline.m_desc.shaders[0] = shader;
-        pipeline.m_resourceLayout = CombineShaderResourceLayouts( shader, 1 );
+        pipeline.m_resourceLayout = CombineShaderResourceLayouts( &shader, 1 );
         pipeline.m_isCompute = true;
         auto& layouts = pipeline.m_resourceLayout;
         VkDescriptorSetLayout activeLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
@@ -773,54 +749,53 @@ namespace Gfx
         pass.desc     = desc;
         pass.m_device = m_handle;
 
-        std::vector< VkAttachmentDescription > attachments;
-        std::vector< VkAttachmentReference > attachmentRefs;
-
-        for ( size_t i = 0; i < desc.colorAttachmentDescriptors.size(); ++i )
+        VkAttachmentDescription attachments[9];
+        VkAttachmentReference attachmentRefs[9];
+        uint8_t numAttachments = 0;
+        for ( uint8_t i = 0; i < desc.GetNumColorAttachments(); ++i )
         {
-            const auto& attach = desc.colorAttachmentDescriptors[i];
-            if ( attach.format == PixelFormat::INVALID )
-            {
-                break;
-            }
-
-            attachments.push_back( {} );
-            attachments[i].format         = PGToVulkanPixelFormat( attach.format );
+            const ColorAttachmentDescriptor* attach = desc.GetColorAttachment( i );
+            attachments[i].flags          = 0;
+            attachments[i].format         = PGToVulkanPixelFormat( attach->format );
             attachments[i].samples        = VK_SAMPLE_COUNT_1_BIT;
-            attachments[i].loadOp         = PGToVulkanLoadAction( attach.loadAction );
-            attachments[i].storeOp        = PGToVulkanStoreAction( attach.storeAction );
+            attachments[i].loadOp         = PGToVulkanLoadAction( attach->loadAction );
+            attachments[i].storeOp        = PGToVulkanStoreAction( attach->storeAction );
             attachments[i].stencilLoadOp  = PGToVulkanLoadAction( LoadAction::DONT_CARE );
             attachments[i].stencilStoreOp = PGToVulkanStoreAction( StoreAction::DONT_CARE );
-            attachments[i].initialLayout  = PGToVulkanImageLayout( attach.initialLayout );
-            attachments[i].finalLayout    = PGToVulkanImageLayout( attach.finalLayout );
+            attachments[i].initialLayout  = PGToVulkanImageLayout( attach->initialLayout );
+            attachments[i].finalLayout    = PGToVulkanImageLayout( attach->finalLayout );
 
-            attachmentRefs.push_back( {} );
-            attachmentRefs[i].attachment = static_cast< uint32_t>( i );
+            attachmentRefs[i].attachment = i;
             attachmentRefs[i].layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+            ++numAttachments;
         }
-
-        VkAttachmentDescription depthAttachment = {};
-        depthAttachment.format         = PGToVulkanPixelFormat( desc.depthAttachmentDescriptor.format );
-        depthAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp         = PGToVulkanLoadAction( desc.depthAttachmentDescriptor.loadAction );
-        depthAttachment.storeOp        = PGToVulkanStoreAction( desc.depthAttachmentDescriptor.storeAction );
-        depthAttachment.stencilLoadOp  = PGToVulkanLoadAction( LoadAction::DONT_CARE );
-        depthAttachment.stencilStoreOp = PGToVulkanStoreAction( StoreAction::DONT_CARE );
-        depthAttachment.initialLayout  = PGToVulkanImageLayout( desc.depthAttachmentDescriptor.initialLayout );
-        depthAttachment.finalLayout    = PGToVulkanImageLayout( desc.depthAttachmentDescriptor.finalLayout );
-
-        VkAttachmentReference depthAttachmentRef = {};
-        depthAttachmentRef.attachment = static_cast< uint32_t >( attachments.size() );
-        depthAttachmentRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 
         VkSubpassDescription subpass = {};
         subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        subpass.colorAttachmentCount = static_cast< uint32_t >( attachmentRefs.size() );
-        subpass.pColorAttachments    = attachmentRefs.data();
-        if ( desc.depthAttachmentDescriptor.format != PixelFormat::INVALID )
+        subpass.colorAttachmentCount = numAttachments;
+        subpass.pColorAttachments    = attachmentRefs;
+
+        if ( desc.GetNumDepthAttachments() != 0 )
         {
+            const DepthAttachmentDescriptor* attach = desc.GetDepthAttachment();
+            VkAttachmentDescription depthAttachment;
+            depthAttachment.flags          = 0;
+            depthAttachment.format         = PGToVulkanPixelFormat( attach->format );
+            depthAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
+            depthAttachment.loadOp         = PGToVulkanLoadAction( attach->loadAction );
+            depthAttachment.storeOp        = PGToVulkanStoreAction( attach->storeAction );
+            depthAttachment.stencilLoadOp  = PGToVulkanLoadAction( LoadAction::DONT_CARE );
+            depthAttachment.stencilStoreOp = PGToVulkanStoreAction( StoreAction::DONT_CARE );
+            depthAttachment.initialLayout  = PGToVulkanImageLayout( attach->initialLayout );
+            depthAttachment.finalLayout    = PGToVulkanImageLayout( attach->finalLayout );
+
+            VkAttachmentReference depthAttachmentRef = {};
+            depthAttachmentRef.attachment = numAttachments;
+            depthAttachmentRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
             subpass.pDepthStencilAttachment = &depthAttachmentRef;
-            attachments.push_back( depthAttachment );
+            attachments[numAttachments] = depthAttachment;
+            ++numAttachments;
         }
 
         VkSubpassDependency dependency = {};
@@ -833,8 +808,8 @@ namespace Gfx
 
         VkRenderPassCreateInfo renderPassInfo = {};
         renderPassInfo.sType           = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-        renderPassInfo.attachmentCount = static_cast< uint32_t >( attachments.size() );
-        renderPassInfo.pAttachments    = attachments.data();
+        renderPassInfo.attachmentCount = numAttachments;
+        renderPassInfo.pAttachments    = attachments;
         renderPassInfo.subpassCount    = 1;
         renderPassInfo.pSubpasses      = &subpass;
         renderPassInfo.dependencyCount = 1;
@@ -893,7 +868,7 @@ namespace Gfx
         cmdBuf.EndRecording();
 
         Submit( cmdBuf );
-        WaitForIdle();
+        WaitForIdle(); // TODO: use barrier
 
         cmdBuf.Free();
     }

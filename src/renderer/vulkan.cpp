@@ -65,7 +65,7 @@ void TransitionImageLayout( VkImage image, VkFormat format, VkImageLayout oldLay
         PG_ASSERT( false, "The transition barriers are unknown for the given old and new layouts" );
     }
 
-    cmdBuf.PipelineBarrier( srcStage, dstStage, barrier );
+    cmdBuf.PipelineImageBarrier( srcStage, dstStage, barrier );
 
     cmdBuf.EndRecording();
     r_globals.device.Submit( cmdBuf );

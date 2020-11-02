@@ -60,7 +60,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
     //     { "front",  []( rapidjson::Value& v, std::vector< std::string >& files ) { files[5] = v.GetString(); } },
     // });
 
-    static FunctionMapper< GfxImageCreateInfo& > mapping(
+    static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
         { "name",      []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
         { "filename",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR "images/" + std::string( v.GetString() ); } },

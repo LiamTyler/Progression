@@ -17,7 +17,7 @@ extern bool g_parsingError;
 
 void Model_Parse( const rapidjson::Value& value )
 {
-    static FunctionMapper< ModelCreateInfo& > mapping(
+    static JSONFunctionMapper< ModelCreateInfo& > mapping(
     {
         { "name",      []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.name = v.GetString(); } },
         { "filename",  []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR "models/" + std::string( v.GetString() ); } },

@@ -98,7 +98,7 @@ bool RunConverter( const std::string& assetFile )
         return false;
     }
     
-    static FunctionMapper mapping(
+    static JSONFunctionMapper mapping(
     {
         { "Image",   GfxImage_Parse },
         { "MatFile", Material_Parse },

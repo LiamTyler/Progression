@@ -1,5 +1,8 @@
 { "AssetList":
 [
-    { "Shader": { "name": "basicVert", "shaderStage" : "vertex", "filename": "basic.vert" } },
-    { "Shader": { "name": "basicFrag", "shaderStage" : "fragment", "filename": "basic.frag" } }
+    { "Shader": { "name": "depthVert", "shaderStage" : "vertex", "filename": "depth.vert" } },
+    { "Shader": { "name": "litVert", "shaderStage" : "vertex", "filename": "lit.vert" } }
+    { "Shader": { "name": "litFrag", "shaderStage" : "fragment", "filename": "lit.frag" } }
+    { "Shader": { "name": "postProcessVert", "shaderStage" : "vertex", "filename": "post_process.vert" } }
+    { "Shader": { "name": "postProcessFrag", "shaderStage" : "fragment", "filename": "post_process.frag" } }
 ]}

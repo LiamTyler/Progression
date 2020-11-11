@@ -5,6 +5,7 @@
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/vulkan.hpp"
+#include "renderer/render_system.hpp"
 #include "utils/bitops.hpp"
 #include "utils/logger.hpp"
 #include <algorithm>
@@ -378,8 +379,11 @@ namespace Gfx
         Texture tex;
         tex.m_device  = m_handle;
         tex.m_desc    = desc;
-        tex.m_sampler = nullptr; // RenderSystem::GetSampler( desc.sampler );
-        //PG_ASSERT( tex.m_sampler, "Sampler '" + desc.sampler + "' not a valid sampler" );
+        tex.m_sampler = nullptr;
+        if ( !desc.sampler.empty() )
+        {
+            tex.m_sampler = GetSampler( desc.sampler );
+        }
 
         VK_CHECK_RESULT( vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image ) );
 
@@ -831,7 +835,7 @@ namespace Gfx
             PG_ASSERT( attachments[i] );
             frameBufferAttachments[i] = attachments[i]->GetView();
         }
-
+    
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass      = renderPass.GetHandle();
@@ -840,7 +844,7 @@ namespace Gfx
         framebufferInfo.width           = attachments[0]->GetWidth();
         framebufferInfo.height          = attachments[0]->GetHeight();
         framebufferInfo.layers          = 1;
-
+    
         return NewFramebuffer( framebufferInfo, name );
     }
 
@@ -851,10 +855,10 @@ namespace Gfx
         ret.m_width  = info.width;
         ret.m_height = info.height;
         ret.m_device = m_handle;
-
+    
         VK_CHECK_RESULT( vkCreateFramebuffer( m_handle, &info, nullptr, &ret.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( ret, name ) );
-
+    
         return ret;
     }
 

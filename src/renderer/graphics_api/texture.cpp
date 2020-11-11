@@ -46,20 +46,14 @@ namespace Gfx
     VkDeviceMemory Texture::GetMemoryHandle() const { return m_memory; }
     uint16_t Texture::GetShaderSlot() const { return m_textureSlot; }
     Sampler* Texture::GetSampler() const { return m_sampler; }
-
+    Texture::operator bool() const { return m_image != VK_NULL_HANDLE; }
 
     void Texture::SetSampler( Sampler* sampler )
     {
         PG_ASSERT( sampler );
         m_sampler = sampler;
-        PG_ASSERT( false );
+        PG_ASSERT( m_image == VK_NULL_HANDLE, "Changing sampler after image creation not supported yet" );
         //TextureManager::UpdateSampler( this );
-    }
-
-
-    Texture::operator bool() const
-    {
-        return m_image != VK_NULL_HANDLE;
     }
 
 

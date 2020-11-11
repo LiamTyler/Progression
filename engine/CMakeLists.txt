@@ -88,6 +88,8 @@ set(
     ${PROGRESSION_DIR}/src/renderer/r_globals.hpp
     ${PROGRESSION_DIR}/src/renderer/r_init.cpp
     ${PROGRESSION_DIR}/src/renderer/r_init.hpp
+    ${PROGRESSION_DIR}/src/renderer/r_renderpasses.cpp
+    ${PROGRESSION_DIR}/src/renderer/r_renderpasses.hpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.cpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.hpp
     

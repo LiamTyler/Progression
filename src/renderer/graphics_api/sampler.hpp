@@ -39,9 +39,8 @@ namespace Gfx
         OPAQUE_WHITE_INT        = 5,
     };
 
-    class SamplerDescriptor
+    struct SamplerDescriptor
     {
-    public:
         std::string name        = "default";
         FilterMode minFilter    = FilterMode::LINEAR;
         FilterMode magFilter    = FilterMode::LINEAR;
@@ -75,6 +74,12 @@ namespace Gfx
         VkSampler m_handle = VK_NULL_HANDLE;
         VkDevice m_device  = VK_NULL_HANDLE;
     };
+
+
+    void InitSamplers();
+    void FreeSamplers();
+    Gfx::Sampler* AddSampler( Gfx::SamplerDescriptor& desc );
+    Gfx::Sampler* GetSampler( const std::string& name );
 
 } // namespace Gfx
 } // namespace PG

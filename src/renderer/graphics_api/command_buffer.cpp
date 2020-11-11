@@ -39,25 +39,25 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::BeginRenderPass( const RenderPass& renderPass, const Framebuffer& framebuffer ) const
+    void CommandBuffer::BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const
     {
         VkRenderPassBeginInfo renderPassInfo = {};
         renderPassInfo.sType             = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-        renderPassInfo.renderPass        = renderPass.GetHandle();
+        renderPassInfo.renderPass        = renderPass->GetHandle();
         renderPassInfo.framebuffer       = framebuffer.GetHandle();
         renderPassInfo.renderArea.offset = { 0, 0 };
         renderPassInfo.renderArea.extent = { framebuffer.GetWidth(), framebuffer.GetHeight() };
 
         VkClearValue clearValues[9] = {};
         uint8_t attachmentIndex = 0;
-        for ( ; attachmentIndex < renderPass.desc.GetNumColorAttachments(); ++attachmentIndex )
+        for ( ; attachmentIndex < renderPass->desc.GetNumColorAttachments(); ++attachmentIndex )
         {
-            const glm::vec4& col = renderPass.desc.GetColorAttachment( attachmentIndex )->clearColor;
+            const glm::vec4& col = renderPass->desc.GetColorAttachment( attachmentIndex )->clearColor;
             clearValues[attachmentIndex].color = { col.r, col.g, col.b, col.a };
         }
-        if ( renderPass.desc.GetNumDepthAttachments() > 0 )
+        if ( renderPass->desc.GetNumDepthAttachments() > 0 )
         {
-            clearValues[attachmentIndex].depthStencil = { renderPass.desc.GetDepthAttachment()->clearValue, 0 };
+            clearValues[attachmentIndex].depthStencil = { renderPass->desc.GetDepthAttachment()->clearValue, 0 };
             ++attachmentIndex;
         }
 

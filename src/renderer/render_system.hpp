@@ -7,12 +7,6 @@ namespace PG
 
 class Scene;
 
-namespace Gfx
-{
-    class SamplerDescriptor;
-    class Sampler;
-} // namespace Gfx
-
 namespace RenderSystem
 {
 

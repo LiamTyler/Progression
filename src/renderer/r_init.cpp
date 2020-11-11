@@ -1,6 +1,7 @@
 #include "renderer/r_init.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
+#include "renderer/r_renderpasses.hpp"
 #include "core/window.hpp"
 #include "utils/logger.hpp"
 #include <cstring>
@@ -264,36 +265,14 @@ static bool CreateDepthTexture()
     info.usage   = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
     r_globals.depthTex = r_globals.device.NewTexture( info, false, "main depth texture" );
 
-    return r_globals.depthTex;
-}
+    info.format  = PixelFormat::R16_G16_B16_A16_FLOAT;
+    info.width   = r_globals.swapchain.GetWidth();
+    info.height  = r_globals.swapchain.GetHeight();
+    info.sampler = "nearest_clamped_nearest";
+    info.usage   = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
+    r_globals.colorTex = r_globals.device.NewTexture( info, false, "main color hdr tex" );
 
-
-static bool CreateSwapChainFrameBuffers()
-{
-    VkImageView attachments[2];
-
-    VkFramebufferCreateInfo framebufferInfo = {};
-    framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass      = r_globals.renderPass.GetHandle();
-    framebufferInfo.attachmentCount = 2;
-    framebufferInfo.pAttachments    = attachments;
-    framebufferInfo.width           = r_globals.swapchain.GetWidth();
-    framebufferInfo.height          = r_globals.swapchain.GetHeight();
-    framebufferInfo.layers          = 1;
-
-    for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
-    {
-        attachments[0] = r_globals.swapchain.GetImageView( i );
-        attachments[1] = r_globals.depthTex.GetView();
-
-        r_globals.swapchainFramebuffers[i] = r_globals.device.NewFramebuffer( framebufferInfo, "swapchain " + std::to_string( i ) );
-        if ( !r_globals.swapchainFramebuffers[i] )
-        {
-            return false;
-        }
-    }
-
-    return true;
+    return r_globals.depthTex && r_globals.colorTex;
 }
 
 
@@ -377,6 +356,8 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.PresentQueue(), "presentation" );
     }
 
+    InitSamplers();
+
     if ( !CreateCommandPoolAndBuffers() )
     {
         LOG_ERR( "Could not create commandPool and commandBuffers\n" );
@@ -414,9 +395,9 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         return false;
     }
 
-    if ( !CreateSwapChainFrameBuffers() )
+    if ( !InitRenderPasses() )
     {
-        LOG_ERR( "Could not create swap chain framebuffers\n" );
+        LOG_ERR( "Could not init renderpass data\n" );
         return false;
     }
 
@@ -438,12 +419,15 @@ void R_Shutdown()
         r_globals.renderCompleteSemaphore.Free();
         r_globals.computeFence.Free();
         r_globals.depthTex.Free();
+        r_globals.colorTex.Free();
         for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
         {
             r_globals.swapchainFramebuffers[i].Free();
         }
         r_globals.renderPass.Free();
+        FreeRenderPasses();
         r_globals.swapchain.Free();
+        FreeSamplers();
         vkDestroySurfaceKHR( r_globals.instance, r_globals.surface, nullptr );
     }
 

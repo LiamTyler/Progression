@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics_api/device.hpp"
+#include "graphics_api/framebuffer.hpp"
 #include "graphics_api/swapchain.hpp"
 #include "graphics_api/physical_device.hpp"
 
@@ -30,6 +31,7 @@ struct R_Globals
     CommandPool commandPools[GFX_CMD_POOL_TOTAL];
     DescriptorPool descriptorPool;
     Texture depthTex;
+    Texture colorTex;
     CommandBuffer graphicsCommandBuffer;
     CommandBuffer computeCommandBuffer;
     Semaphore presentCompleteSemaphore;

@@ -30,7 +30,7 @@ namespace Gfx
         void Free();
         void BeginRecording( CommandBufferUsage flags = 0 ) const;
         void EndRecording() const;
-        void BeginRenderPass( const RenderPass& renderPass, const Framebuffer& framebuffer ) const;
+        void BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const;
         void EndRenderPass() const;
         void BindPipeline( const Pipeline& pipeline ) const;
         void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, const Pipeline& pipeline, uint32_t firstSet = 0 ) const;

@@ -6,7 +6,7 @@ constexpr int PG_GFX_IMAGE_VERSION = 1; // initial version
 
 constexpr int PG_MATERIAL_VERSION = 1; // initial version
 
-constexpr int PG_MODEL_VERSION = 1; // initial version
+constexpr int PG_MODEL_VERSION = 2; // changed input model file
 
 constexpr int PG_SCRIPT_VERSION = 1; // initial version
 

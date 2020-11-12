@@ -13,7 +13,7 @@ namespace PG
 
 void Model::RecalculateNormals()
 {
-    PG_ASSERT( vertexPositions.size() == otherVertexData.size() );
+    PG_ASSERT( vertexPositions.size() == vertexNormals.size() );
     std::vector< glm::vec3 > newNormals;
     newNormals.resize( vertexPositions.size(), glm::vec3( 0 ) );
     for ( size_t i = 0; i < indices.size(); i += 3 )
@@ -31,14 +31,14 @@ void Model::RecalculateNormals()
 
     for ( size_t i = 0; i < vertexPositions.size(); ++i )
     {
-        otherVertexData[i].normal = glm::normalize( newNormals[i] );
+        vertexNormals[i] = glm::normalize( newNormals[i] );
     }
 }
 
 
-bool Model_Load_NoResolveMaterials( Model* model, const ModelCreateInfo& createInfo, std::vector< std::string >& matNames )
+bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::vector< std::string >& matNames )
 {
-    static_assert( sizeof( Model ) == 8 + sizeof( std::string ) + 5 * sizeof( std::vector< glm::vec3 > ), "Don't forget to update this function if added/removed members from Model!" );
+    static_assert( sizeof( Model ) == (8 + sizeof( std::string ) + 7 * sizeof( std::vector< uint32_t > )), "Don't forget to update this function if added/removed members from Model!" );
     model->name = createInfo.name;
     Serializer modelFile;
     if ( !modelFile.OpenForRead( createInfo.filename ) )
@@ -46,13 +46,10 @@ bool Model_Load_NoResolveMaterials( Model* model, const ModelCreateInfo& createI
         return false;
     }
 
-    std::vector< glm::vec3 > normals;
-    std::vector< glm::vec2 > uvs;
-    std::vector< glm::vec3 > tangents;
     modelFile.Read( model->vertexPositions );
-    modelFile.Read( normals );
-    modelFile.Read( uvs );
-    modelFile.Read( tangents );
+    modelFile.Read( model->vertexNormals );
+    modelFile.Read( model->vertexTexCoords );
+    modelFile.Read( model->vertexTangents );
     modelFile.Read( model->indices );
     size_t numMeshes;
     modelFile.Read( numMeshes );
@@ -70,14 +67,6 @@ bool Model_Load_NoResolveMaterials( Model* model, const ModelCreateInfo& createI
         modelFile.Read( mesh.startVertex );
         modelFile.Read( mesh.numVertices );
     }
-    
-    model->otherVertexData.resize( model->vertexPositions.size() );
-    for ( size_t i = 0; i < model->vertexPositions.size(); ++i )
-    {
-        model->otherVertexData[i].normal  = normals[i];
-        model->otherVertexData[i].uv      = uvs[i];
-        model->otherVertexData[i].tangent = tangents[i];
-    }
 
     model->RecalculateNormals();
 
@@ -88,7 +77,7 @@ bool Model_Load_NoResolveMaterials( Model* model, const ModelCreateInfo& createI
 bool Model_Load( Model* model, const ModelCreateInfo& createInfo )
 {
     std::vector< std::string > materialNames;
-    if ( !Model_Load_NoResolveMaterials( model, createInfo, materialNames ) )
+    if ( !Model_Load_PGModel( model, createInfo, materialNames ) )
     {
         return false;
     }
@@ -112,11 +101,13 @@ bool Model_Load( Model* model, const ModelCreateInfo& createInfo )
 
 bool Fastfile_Model_Load( Model* model, Serializer* serializer )
 {
-    static_assert( sizeof( Model ) == 8 + sizeof( std::string ) + 5 * sizeof( std::vector< glm::vec3 > ), "Don't forget to update this function if added/removed members from Model!" );
+    static_assert( sizeof( Model ) == (8 + sizeof( std::string ) + 7 * sizeof( std::vector< uint32_t > )), "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( model && serializer );
     serializer->Read( model->name );
     serializer->Read( model->vertexPositions );
-    serializer->Read( model->otherVertexData );
+    serializer->Read( model->vertexNormals );
+    serializer->Read( model->vertexTexCoords );
+    serializer->Read( model->vertexTangents );
     serializer->Read( model->indices );
     size_t numMeshes;
     serializer->Read( numMeshes );
@@ -146,13 +137,15 @@ bool Fastfile_Model_Load( Model* model, Serializer* serializer )
 
 bool Fastfile_Model_Save( const Model * const model, Serializer* serializer, const std::vector< std::string >& materialNames )
 {
-    static_assert( sizeof( Model ) == 8 + sizeof( std::string ) + 5 * sizeof( std::vector< glm::vec3 > ), "Don't forget to update this function if added/removed members from Model!" );
+    static_assert( sizeof( Model ) == (8 + sizeof( std::string ) + 7 * sizeof( std::vector< uint32_t > )), "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( model && serializer );
     PG_ASSERT( model->meshes.size() == materialNames.size() );
 
     serializer->Write( model->name );
     serializer->Write( model->vertexPositions );
-    serializer->Write( model->otherVertexData );
+    serializer->Write( model->vertexNormals );
+    serializer->Write( model->vertexTexCoords );
+    serializer->Write( model->vertexTangents );
     serializer->Write( model->indices );
     serializer->Write( model->meshes.size() );
     for ( size_t i = 0; i < model->meshes.size(); ++i )

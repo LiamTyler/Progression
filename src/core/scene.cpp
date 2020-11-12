@@ -23,7 +23,7 @@ static void ParseFastfile( const rapidjson::Value& v, Scene* scene )
         {
             PG_ASSERT( value.IsString() );
             std::string fname = value.GetString();
-            AssetManager::LoadFastFile( PG_ASSET_DIR "cache/fastfiles/" + fname );
+            AssetManager::LoadFastFile( fname );
         }
     });
 }

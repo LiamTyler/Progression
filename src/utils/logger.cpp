@@ -177,7 +177,7 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
 
     char colorEncoding[12];
     sprintf( colorEncoding, "\033[%d;%dm", static_cast< int >( emphasisCode ), static_cast< int >( colorCode ) );
-    char fullFormat[256];
+    char fullFormat[512];
     memcpy( fullFormat, severityText.c_str(), severityText.length() );
     strcpy( fullFormat + severityText.length(), fmt );
 

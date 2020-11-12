@@ -130,6 +130,11 @@ bool Init( bool headless )
 void Shutdown()
 {
     r_globals.device.WaitForIdle();
+
+    depthOnlyPipeline.Free();
+    litPipeline.Free();
+    //skyboxPipeline.Free();
+    postProcessPipeline.Free();
     
     vertexBuffer.Free();
     indexBuffer.Free();

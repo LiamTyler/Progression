@@ -63,7 +63,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
         { "name",      []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
-        { "filename",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR "images/" + std::string( v.GetString() ); } },
+        { "filename",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "imageType", []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 std::string imageName = v.GetString();
@@ -127,8 +127,17 @@ void GfxImage_Parse( const rapidjson::Value& value )
     }
     if ( info.dstPixelFormat == PixelFormat::INVALID )
     {
-        LOG_ERR( "Must specify a valid pixel dstFormat for image '%s'\n", info.name.c_str() );
-        g_parsingError = true;
+        switch ( info.semantic )
+        {
+        case GfxImageSemantic::DIFFUSE:
+            info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_SRGB;
+            break;
+        case GfxImageSemantic::NORMAL:
+            info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_UNORM;
+            break;
+        default:
+            break;
+        }
     }
 
     g_parsedImages.push_back( info );

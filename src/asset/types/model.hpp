@@ -21,13 +21,6 @@ struct Mesh
     uint32_t numVertices = 0;
 };
 
-struct OtherVertexData
-{
-    glm::vec3 normal;
-    glm::vec2 uv;
-    glm::vec3 tangent;
-};
-
 struct ModelCreateInfo
 {
     std::string name;
@@ -39,7 +32,9 @@ struct Model : public Asset
     void RecalculateNormals();
 
     std::vector< glm::vec3 > vertexPositions;
-    std::vector< OtherVertexData > otherVertexData;
+    std::vector< glm::vec3 > vertexNormals;
+    std::vector< glm::vec2 > vertexTexCoords;
+    std::vector< glm::vec3 > vertexTangents;
     std::vector< uint32_t > indices;
 
     std::vector< Mesh > meshes;
@@ -49,7 +44,7 @@ struct Model : public Asset
 
 // Need this during the converter, since the normal Model_Load actually tries to lookup the materials in the AssetManager,
 // but the AssetManager is empty during the Converter. Just need the model data + material names
-bool Model_Load_NoResolveMaterials( Model* model, const ModelCreateInfo& createInfo, std::vector< std::string >& matNames );
+bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::vector< std::string >& matNames );
 
 bool Model_Load( Model* model, const ModelCreateInfo& createInfo );
 

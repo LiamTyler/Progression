@@ -19,7 +19,7 @@ static void DisplayHelp()
     auto msg =
         "Usage: modelToPGModel MODEL_FILE NAME [texture search directory]\n"
         "\tOutputs the all files to ./NAME/\n"
-        "\tTexture search dir defaults to current dir '.'\n";
+        "\tTexture search dir defaults to the dir containing MODEL_FILE\n";
 
     std::cout << msg << std::endl;
 }
@@ -47,9 +47,10 @@ struct Mesh
     uint32_t numVertices = 0;
 };
 
-std::string g_name = "";
-std::string g_outputDir = "./";
-std::string g_textureSearchDir = ".";
+std::string g_name;
+std::string g_outputDir;
+std::string g_parentToOutputDir;
+std::string g_textureSearchDir;
 
 int main( int argc, char* argv[] )
 {
@@ -59,17 +60,26 @@ int main( int argc, char* argv[] )
         Exit();
     }
 
+    Logger_Init();
+    Logger_AddLogLocation( "stdout", stdout );
+
     std::string filename = argv[1];
-    g_name = argv[2];
-    g_outputDir = g_name + "/";
+    g_name               = argv[2];
+    g_outputDir          = GetAbsolutePath( GetParentPath( filename ) + g_name + "/" );
+    g_parentToOutputDir  = GetParentPath( g_outputDir );
     if ( argc > 3 )
     {
         g_textureSearchDir = argv[3];
     }
-
-
-    Logger_Init();
-    Logger_AddLogLocation( "stdout", stdout );
+    else
+    {
+        g_textureSearchDir = GetParentPath( GetAbsolutePath( filename ) );
+    }
+    LOG( "Filename = '%s'\n", GetAbsolutePath( filename ).c_str() );
+    LOG( "Texture search directory = '%s'\n", g_textureSearchDir.c_str() );
+    LOG( "Output directory = '%s'\n", g_outputDir.c_str() );
+    LOG( "Output directory = '%s'\n", g_parentToOutputDir.c_str() );
+    LOG( "Loading model...\n" );
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile( filename.c_str(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace | aiProcess_RemoveRedundantMaterials );
@@ -89,11 +99,16 @@ int main( int argc, char* argv[] )
     meshes.resize( scene->mNumMeshes );
     uint32_t numVertices = 0;
     uint32_t numIndices = 0;
+    uint32_t numVerticesWithUVs = 0;
     for ( size_t i = 0 ; i < meshes.size(); i++ )
     {
         meshes[i].name          = scene->mMeshes[i]->mName.C_Str();
         meshes[i].materialIndex = scene->mMeshes[i]->mMaterialIndex;
-        PG_ASSERT( meshes[i].materialIndex >= -1 );
+        if ( meshes[i].materialIndex < 0 )
+        {
+            LOG_ERR( "Mehs '%s' has invalid material index %d\n", meshes[i].materialIndex );
+            Exit();
+        }
         meshes[i].numIndices    = scene->mMeshes[i]->mNumFaces * 3;
         meshes[i].numVertices   = scene->mMeshes[i]->mNumVertices;
         meshes[i].startVertex   = numVertices;
@@ -101,13 +116,31 @@ int main( int argc, char* argv[] )
         
         numVertices += scene->mMeshes[i]->mNumVertices;
         numIndices  += meshes[i].numIndices;
+
+        const aiMesh* paiMesh = scene->mMeshes[i];
+        if ( paiMesh->HasTextureCoords( 0 ) )
+        {
+            numVerticesWithUVs += numVertices;
+            if ( !paiMesh->HasTangentsAndBitangents() )
+            {
+                LOG_ERR( "Mesh '%s' has UVs but no tangents. Should never happen due to aiProcess_GenNormals and aiProcess_CalcTangentSpace!\n", meshes[i].name.c_str() );
+                Exit();
+            }
+        }
     }
+
+    if ( numVerticesWithUVs > 1000 && numVerticesWithUVs < 0.5f * numVertices )
+    {
+        float wastedMem = (numVertices - numVerticesWithUVs) * (5 * sizeof( float )) / 1024.0f / 1024.0f;
+        LOG_WARN( "Model has only has some meshes with uvs, but not all. Zeros are added for vertices without them as a result, wasting %.3f MB\n", wastedMem );
+    }
+
     vertices.reserve( numVertices );
     normals.reserve( numVertices );
     uvs.reserve( numVertices );
     tangents.reserve( numVertices );
     indices.reserve( numIndices );
-
+    bool anyMeshHasUVs = numVerticesWithUVs > 0;
     for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
     {
         const aiMesh* paiMesh = scene->mMeshes[meshIdx];
@@ -120,17 +153,11 @@ int main( int argc, char* argv[] )
             vertices.emplace_back( pPos->x, pPos->y, pPos->z );
             normals.emplace_back( pNormal->x, pNormal->y, pNormal->z );
 
-            if ( paiMesh->HasTextureCoords( 0 ) )
+            if ( anyMeshHasUVs )
             {
                 const aiVector3D* pTexCoord = &paiMesh->mTextureCoords[0][vIdx];
                 uvs.emplace_back( pTexCoord->x, pTexCoord->y );
-            }
-            else
-            {
-                uvs.emplace_back( 0, 0 );
-            }
-            if ( paiMesh->HasTangentsAndBitangents() )
-            {
+
                 const aiVector3D* pTangent = &paiMesh->mTangents[vIdx];
                 glm::vec3 t( pTangent->x, pTangent->y, pTangent->z );
                 const glm::vec3& n = normals[vIdx];
@@ -139,6 +166,7 @@ int main( int argc, char* argv[] )
             }
             else
             {
+                uvs.emplace_back( 0, 0 );
                 tangents.emplace_back( 0, 0, 0 );
             }
         }
@@ -152,6 +180,13 @@ int main( int argc, char* argv[] )
             indices.push_back( face.mIndices[2] );
         }
     }
+
+    LOG( "Vertices: %d\n", vertices.size() );
+    LOG( "Normals: %d\n", normals.size() );
+    LOG( "uvs: %d\n", uvs.size() );
+    LOG( "tangents: %d\n", tangents.size() );
+    LOG( "indices: %d\n", indices.size() );
+    LOG( "meshes: %d\n", meshes.size() );
     
     CreateDirectory( g_outputDir );
     CreateDirectory( g_outputDir + "textures/" );
@@ -177,17 +212,12 @@ int main( int argc, char* argv[] )
     modelFile.Write( tangents );
     modelFile.Write( indices );
     modelFile.Write( meshes.size() );
-    LOG( "Vertices: %d\n", vertices.size() );
-    LOG( "Normals: %d\n", normals.size() );
-    LOG( "uvs: %d\n", uvs.size() );
-    LOG( "tangents: %d\n", tangents.size() );
-    LOG( "indices: %d\n", indices.size() );
-    LOG( "meshes: %d\n", meshes.size() );
+    
     for ( size_t i = 0; i < meshes.size(); ++i )
     {
         const Mesh& mesh = meshes[i];
         modelFile.Write( mesh.name );
-        modelFile.Write( materialNames[mesh.materialIndex + 1] );
+        modelFile.Write( materialNames[mesh.materialIndex] );
         modelFile.Write( mesh.startIndex );
         modelFile.Write( mesh.numIndices );
         modelFile.Write( mesh.startVertex );
@@ -218,12 +248,11 @@ int main( int argc, char* argv[] )
         assetListJson += "\n\t{ \"Image\": { ";
         assetListJson += "\"name\": \"" + info.name + "\", ";
         assetListJson += "\"filename\": \"" + info.filename + "\", ";
-        assetListJson += "\"dstFormat\": \"" + PixelFormatName( info.dstPixelFormat ) + "\", ";
         assetListJson += "\"semantic\": \"" + imgSemantics[static_cast< int >( info.semantic )] + "\", ";
         assetListJson += "\"imageType\": \"" + imgTypes[static_cast< int >( info.imageType )] + "\" } },";
     }
-    assetListJson += "\n\t{ \"MatFile\": { \"filename\": \"" + g_outputDir + g_name + ".pgMtl" + "\" } },";
-    assetListJson += "\n\t{ \"Model\": { \"name\": \"" + g_name + "\", \"filename\": \"" + outputModelFilename + "\" } }";
+    assetListJson += "\n\t{ \"MatFile\": { \"filename\": \"" + GetRelativePathToDir( g_outputDir + g_name + ".pgMtl", g_parentToOutputDir ) + "\" } },";
+    assetListJson += "\n\t{ \"Model\": { \"name\": \"" + g_name + "\", \"filename\": \"" + GetRelativePathToDir( outputModelFilename, g_parentToOutputDir ) + "\" } }";
     assetListJson += "\n]}";
     std::string outputJson = g_outputDir + "assetList.json";
     std::ofstream out( outputJson );
@@ -241,7 +270,6 @@ int main( int argc, char* argv[] )
 
 bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vector< std::string >& materialNames, std::vector< GfxImageCreateInfo >& imageInfos )
 {
-    LOG( "Texture search directory = '%s'\n", GetAbsolutePath( g_textureSearchDir ).c_str() );
     std::string mtlJson = "{ \"Materials\":\n[";
     for ( uint32_t mtlIdx = 0; mtlIdx < scene->mNumMaterials; ++mtlIdx )
     {
@@ -250,41 +278,42 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
         std::string imagePath;
         std::string map_kd_name;
 
-        const aiMaterial* assimpMat = scene->mMaterials[mtlIdx];
-
         aiString assimpMatName;
-        if ( assimpMat->Get( AI_MATKEY_NAME, assimpMatName ) != AI_SUCCESS )
-        {
-            LOG_ERR( "Could not get material %d name\n", mtlIdx );
-            return false;
-        }
+        aiColor3D color;
+
+        const aiMaterial* assimpMat = scene->mMaterials[mtlIdx];
+        assimpMat->Get( AI_MATKEY_NAME, assimpMatName );
         name = assimpMatName.C_Str();
         materialNames.push_back( name );
 
-        aiColor3D color;
         color = aiColor3D( 0.f, 0.f, 0.f );
-        if ( assimpMat->Get( AI_MATKEY_COLOR_DIFFUSE, color ) != AI_SUCCESS )
-        {
-            LOG_ERR( "Could not get diffuse color of material '%s'\n", name.c_str() );
-            return false;
-        }
+        assimpMat->Get( AI_MATKEY_COLOR_DIFFUSE, color );
         Kd = { color.r, color.g, color.b };
+
+        // check if this is the default Assimp material
+        if ( name == "DefaultMaterial" && glm::length( Kd - glm::vec3( .6f ) ) < 0.01f )
+        {
+            continue;
+        }
 
         if ( assimpMat->GetTextureCount( aiTextureType_DIFFUSE ) > 0 )
         {
-            PG_ASSERT( assimpMat->GetTextureCount( aiTextureType_DIFFUSE ) == 1, "Material '" + name + "' has more than 1 diffuse texture" );
+            if ( assimpMat->GetTextureCount( aiTextureType_DIFFUSE ) > 1 )
+            {
+                LOG_ERR( "Material '%s' has more than 1 diffuse texture\n", name.c_str() );
+                return false;
+            }
             if ( !GetAssimpTexturePath( assimpMat, aiTextureType_DIFFUSE, imagePath ) )
             {
                 LOG_ERR( "Could not find diffuse texture\n" );
                 return false;
             }
-            map_kd_name = GetFilenameMinusExtension( imagePath );
+            map_kd_name = GetRelativePathToDir( GetFilenameMinusExtension( imagePath ), g_parentToOutputDir );
             GfxImageCreateInfo info;
-            info.name = map_kd_name;
-            info.filename = imagePath;
-            info.semantic = GfxImageSemantic::DIFFUSE;
-            info.imageType = GfxImageType::TYPE_2D;
-            info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_SRGB;
+            info.name       = map_kd_name;
+            info.filename   = GetRelativePathToDir( imagePath, g_parentToOutputDir );
+            info.semantic   = GfxImageSemantic::DIFFUSE;
+            info.imageType  = GfxImageType::TYPE_2D;
             imageInfos.push_back( info );
         }
 

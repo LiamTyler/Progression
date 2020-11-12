@@ -23,7 +23,6 @@ struct R_Globals
 {
     VkInstance instance;
     VkSurfaceKHR surface;
-    RenderPass renderPass;
     Device device;
     PhysicalDevice physicalDevice;
     SwapChain swapchain;

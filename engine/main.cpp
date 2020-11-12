@@ -8,8 +8,6 @@
 #include "renderer/graphics_api.hpp"
 #include "renderer/render_system.hpp"
 #include "utils/logger.hpp"
-#include <iostream>
-#include <thread>
 
 using namespace PG;
 using namespace Gfx;
@@ -48,8 +46,7 @@ int main( int argc, char* argv[] )
                 g_engineShutdown = true;
             }
 
-            //RenderSystem::Render( scene );
-            RenderSystem::Render( nullptr );
+            RenderSystem::Render( scene );
 
             window->EndFrame();
         }

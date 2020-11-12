@@ -7,7 +7,7 @@
 namespace fs = std::filesystem;
 
 
-void BackToForwardSlashes( std::string& str )
+std::string BackToForwardSlashes( std::string str )
 {
     for ( size_t i = 0; i < str.length(); ++i )
     {
@@ -16,6 +16,8 @@ void BackToForwardSlashes( std::string& str )
             str[i] = '/';
         }
     }
+
+    return str;
 }
 
 
@@ -106,9 +108,15 @@ bool FileExists( const std::string& filename )
 }
 
 
+std::string GetCWD()
+{
+    return BackToForwardSlashes( fs::current_path().string() );
+}
+
+
 std::string GetAbsolutePath( const std::string& path )
 {
-    return fs::absolute( path ).string();
+    return BackToForwardSlashes( fs::absolute( path ).string() );
 }
 
 
@@ -119,6 +127,7 @@ std::string GetFileExtension( const std::string& filename )
     {
         ext[i] = std::tolower( ext[i] );
     }
+
     return ext;
 }
 
@@ -141,12 +150,26 @@ std::string GetRelativeFilename( const std::string& filename )
 }
 
 
-std::string GetParentPath( const std::string& filename )
+std::string GetParentPath( std::string path )
 {
-    std::string path = fs::path( filename ).parent_path().string();
-    if ( path.length() )
+    if ( path.empty() )
     {
-        path += '/';
+        return "";
     }
-    return path;
+    
+    path[path.length() - 1] = ' ';
+    std::string parent = fs::path( path ).parent_path().string();
+    if ( parent.length() )
+    {
+        parent += '/';
+    }
+    parent = BackToForwardSlashes( parent );
+
+    return parent;
+}
+
+
+std::string GetRelativePathToDir( const std::string& file, const std::string& parentPath )
+{
+    return BackToForwardSlashes( fs::relative( file, parentPath ).string() );
 }

@@ -21,7 +21,7 @@ void Material_Parse( const rapidjson::Value& value )
 
     static JSONFunctionMapper< std::string& > mapping(
     {
-        { "filename",  []( const rapidjson::Value& v, std::string& filename ) { filename = PG_ASSET_DIR "materials/" + std::string( v.GetString() ); } },
+        { "filename",  []( const rapidjson::Value& v, std::string& filename ) { filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
     std::string pgMtlFilename;

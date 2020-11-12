@@ -779,6 +779,7 @@ namespace Gfx
         subpass.colorAttachmentCount = numAttachments;
         subpass.pColorAttachments    = attachmentRefs;
 
+        VkAttachmentReference depthAttachmentRef = {};
         if ( desc.GetNumDepthAttachments() != 0 )
         {
             const DepthAttachmentDescriptor* attach = desc.GetDepthAttachment();
@@ -793,7 +794,6 @@ namespace Gfx
             depthAttachment.initialLayout  = PGToVulkanImageLayout( attach->initialLayout );
             depthAttachment.finalLayout    = PGToVulkanImageLayout( attach->finalLayout );
 
-            VkAttachmentReference depthAttachmentRef = {};
             depthAttachmentRef.attachment = numAttachments;
             depthAttachmentRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
 

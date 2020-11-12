@@ -243,17 +243,6 @@ static bool CreateSurface()
 }
 
 
-static bool CreateRenderPass()
-{
-    RenderPassDescriptor renderPassDesc;
-    renderPassDesc.AddColorAttachment( VulkanToPGPixelFormat( r_globals.swapchain.GetFormat() ), LoadAction::CLEAR, StoreAction::STORE, glm::vec4( 0 ), ImageLayout::UNDEFINED, ImageLayout::PRESENT_SRC_KHR );
-    renderPassDesc.AddDepthAttachment( PixelFormat::DEPTH_32_FLOAT, LoadAction::CLEAR, StoreAction::DONT_CARE, 1.0f, ImageLayout::UNDEFINED, ImageLayout::PRESENT_SRC_KHR );
-    r_globals.renderPass = r_globals.device.NewRenderPass( renderPassDesc, "final output" );
-    
-    return r_globals.renderPass;
-}
-
-
 static bool CreateDepthTexture()
 {
     ImageDescriptor info;
@@ -383,12 +372,6 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         return false;
     }
 
-    if ( !CreateRenderPass() )
-    {
-        LOG_ERR( "Could not create final render pass\n" );
-        return false;
-    }
-
     if ( !CreateDepthTexture() )
     {
         LOG_ERR( "Could not create depth texture\n" );
@@ -424,7 +407,6 @@ void R_Shutdown()
         {
             r_globals.swapchainFramebuffers[i].Free();
         }
-        r_globals.renderPass.Free();
         FreeRenderPasses();
         r_globals.swapchain.Free();
         FreeSamplers();

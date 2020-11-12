@@ -20,7 +20,7 @@ void Model_Parse( const rapidjson::Value& value )
     static JSONFunctionMapper< ModelCreateInfo& > mapping(
     {
         { "name",      []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.name = v.GetString(); } },
-        { "filename",  []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR "models/" + std::string( v.GetString() ); } },
+        { "filename",  []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
     ModelCreateInfo info;
@@ -62,7 +62,7 @@ static bool Model_ConvertSingle( const ModelCreateInfo& info )
     LOG( "Converting model '%s'...\n", info.name.c_str() );
     Model model;
     std::vector< std::string > materialNames;
-    if ( !Model_Load_NoResolveMaterials( &model, info, materialNames ) )
+    if ( !Model_Load_PGModel( &model, info, materialNames ) )
     {
         return false;
     }

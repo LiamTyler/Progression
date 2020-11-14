@@ -4,6 +4,7 @@
 #include "core/time.hpp"
 #include "core/window.hpp"
 #include "asset/asset_manager.hpp"
+#include "asset/types/model.hpp"
 #include "asset/types/shader.hpp"
 #include "renderer/graphics_api.hpp"
 #include "renderer/render_system.hpp"

@@ -5,11 +5,12 @@
 #include "renderer/r_init.hpp"
 #include "renderer/r_renderpasses.hpp"
 #include "asset/asset_manager.hpp"
-#include "asset/types/shader.hpp"
+#include "glm/glm.hpp"
+#include "shaders/c_shared/structs.h"
 #include "core/assert.hpp"
+#include "core/scene.hpp"
 #include "core/window.hpp"
 #include "utils/logger.hpp"
-#include "glm/glm.hpp"
 #include <unordered_map>
 
 using namespace PG;
@@ -24,10 +25,9 @@ Pipeline litPipeline;
 Pipeline skyboxPipeline;
 Pipeline postProcessPipeline;
 
-DescriptorSet descriptorSet;
-
-Buffer vertexBuffer;
-Buffer indexBuffer;
+DescriptorSet postProcessDescriptorSet;
+DescriptorSet sceneGlobalDescriptorSet;
+Buffer sceneGlobals;
 
 
 namespace PG
@@ -56,12 +56,15 @@ bool Init( bool headless )
     VertexBindingDescriptor bindingDescs[] =
     {
         VertexBindingDescriptor( 0, sizeof( glm::vec3 ) ),
+        VertexBindingDescriptor( 1, sizeof( glm::vec3 ) ),
+        VertexBindingDescriptor( 2, sizeof( glm::vec2 ) ),
     };
 
-    VertexAttributeDescriptor attribDescs[2] =
+    VertexAttributeDescriptor attribDescs[] =
     {
         VertexAttributeDescriptor( 0, 0, BufferDataType::FLOAT3, 0 ),
-        VertexAttributeDescriptor( 1, 0, BufferDataType::FLOAT3, 3 * sizeof( glm::vec3 ) ),
+        VertexAttributeDescriptor( 1, 1, BufferDataType::FLOAT3, 0 ),
+        VertexAttributeDescriptor( 2, 2, BufferDataType::FLOAT2, 0 ),
     };
 
     PipelineDescriptor pipelineDesc;
@@ -74,7 +77,7 @@ bool Init( bool headless )
     pipelineDesc.renderPass             = GetRenderPass( GFX_RENDER_PASS_LIT );
     pipelineDesc.depthInfo.compareFunc  = CompareFunction::EQUAL;
     pipelineDesc.depthInfo.depthWriteEnabled = false;
-    pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 2, attribDescs );
+    pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 3, bindingDescs, 3, attribDescs );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
     pipelineDesc.shaders[0]             = AssetManager::Get< Shader >( "litVert" );
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "litFrag" );
@@ -96,32 +99,31 @@ bool Init( bool headless )
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "postProcessFrag" );
     postProcessPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "PostProcess" );
 
-    glm::vec3 verts[] =
-    {
-        glm::vec3( -0.5, 0.5, 0 ),
-        glm::vec3( 0.5,  0.5, 0 ),
-        glm::vec3( 0.0, -0.5, 0 ),
-        glm::vec3( 1, 0, 0 ),
-        glm::vec3( 0, 1, 0 ),
-        glm::vec3( 0, 0, 1 ),
-    };
-    uint32_t indices[] =
-    {
-        0, 1, 2
-    };
-    vertexBuffer = r_globals.device.NewBuffer( sizeof( verts ), verts, BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "vertex" );
-    indexBuffer  = r_globals.device.NewBuffer( sizeof( indices ), indices, BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "index" );
-
-    descriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
+    postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
     std::vector< VkDescriptorImageInfo > imgDescriptors =
     {
         DescriptorImageInfo( r_globals.colorTex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
     };
     std::vector< VkWriteDescriptorSet > writeDescriptorSets =
     {
-        WriteDescriptorSet( descriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
+        WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
     };
     r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+
+    sceneGlobals = r_globals.device.NewBuffer( sizeof( SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
+    sceneGlobals.Map();
+    
+    sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( depthOnlyPipeline.GetResourceLayout()->sets[0] );
+    std::vector< VkDescriptorBufferInfo > bufferDescriptors =
+    {
+        DescriptorBufferInfo( sceneGlobals ),
+    };
+    writeDescriptorSets =
+    {
+        WriteDescriptorSet( sceneGlobalDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ),
+    };
+    r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+
 
     return true;
 }
@@ -136,8 +138,8 @@ void Shutdown()
     //skyboxPipeline.Free();
     postProcessPipeline.Free();
     
-    vertexBuffer.Free();
-    indexBuffer.Free();
+    sceneGlobals.UnMap();
+    sceneGlobals.Free();
 
     R_Shutdown();
 }
@@ -154,15 +156,37 @@ void Render( Scene* scene )
 
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
+    Model* model = AssetManager::Get< Model >( "chalet" );
+
+    {
+        SceneGlobals globalData;
+        globalData.V      = scene->camera.GetV();
+        globalData.P      = scene->camera.GetP();
+        globalData.VP     = scene->camera.GetVP();
+        globalData.invVP  = glm::inverse( scene->camera.GetVP() );
+        globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
+
+        memcpy( sceneGlobals.MappedPtr(), &globalData, sizeof( SceneGlobals ) );
+        sceneGlobals.FlushCpuWrites();
+    }
+
     // DEPTH
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_DEPTH_PREPASS ), *GetFramebuffer( GFX_RENDER_PASS_DEPTH_PREPASS ) );
     cmdBuf.BindPipeline( depthOnlyPipeline );
+    cmdBuf.BindDescriptorSets( 1, &sceneGlobalDescriptorSet, depthOnlyPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    //PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw full-screen quad", glm::vec4( 0 ) );
-    cmdBuf.BindVertexBuffer( vertexBuffer, 0, 0 );
-    cmdBuf.BindIndexBuffer( indexBuffer, IndexType::UNSIGNED_INT );
-    cmdBuf.Draw( 0, 3 );
+    // cmdBuf.BindVertexBuffer( vertexBuffer, 0, 0 );
+    // cmdBuf.BindIndexBuffer( indexBuffer, IndexType::UNSIGNED_INT );
+    // cmdBuf.Draw( 0, 3 );
+    // cmdBuf.EndRenderPass();
+    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
+    cmdBuf.BindIndexBuffer( model->indexBuffer );
+    for ( uint32_t meshIdx = 0; meshIdx < model->meshes.size(); ++meshIdx )
+    {
+        const Mesh& mesh = model->meshes[meshIdx];
+        cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
+    }
     cmdBuf.EndRenderPass();
 
     // LIT
@@ -170,17 +194,23 @@ void Render( Scene* scene )
     cmdBuf.BindPipeline( litPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    cmdBuf.BindVertexBuffer( vertexBuffer, 0, 0 );
-    cmdBuf.BindIndexBuffer( indexBuffer, IndexType::UNSIGNED_INT );
-    cmdBuf.Draw( 0, 3 );
+    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
+    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
+    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuTexCoordOffset, 2 );
+    cmdBuf.BindIndexBuffer( model->indexBuffer );
+    for ( uint32_t meshIdx = 0; meshIdx < model->meshes.size(); ++meshIdx )
+    {
+        const Mesh& mesh = model->meshes[meshIdx];
+        cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
+    }
     cmdBuf.EndRenderPass();
-
+    
     // POST
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_POST_PROCESS ), r_globals.swapchainFramebuffers[swapChainImageIndex] );
     cmdBuf.BindPipeline( postProcessPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    cmdBuf.BindDescriptorSets( 1, &descriptorSet, postProcessPipeline );
+    cmdBuf.BindDescriptorSets( 1, &postProcessDescriptorSet, postProcessPipeline );
     cmdBuf.Draw( 0, 6 );
     cmdBuf.EndRenderPass();
 

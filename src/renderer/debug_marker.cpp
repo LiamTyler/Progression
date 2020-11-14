@@ -30,7 +30,7 @@ namespace DebugMarker
 		VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( physicalDevice, nullptr, &extensionCount, extensions.data() ) );
 		for ( auto extension : extensions )
         {
-			if ( strcmp( extension.extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME) == 0 )
+			if ( strcmp( extension.extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME ) == 0 )
             {
 				s_extensionPresent = true;
 				break;

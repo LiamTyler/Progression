@@ -38,3 +38,10 @@ if ( !( x ) )                                                                   
 #define PG_ASSERT( ... ) do {} while ( 0 )
 
 #endif // #else // #if !USING( SHIP_BUILD )
+
+// Some things, like std::vector/string can have slightly different sizes in debug vs release mode
+#if !USING( DEBUG_BUILD )
+#define PG_STATIC_NDEBUG_ASSERT( test, msg ) static_assert( test, msg )
+#else // #if !USING( DEBUG_BUILD )
+#define PG_STATIC_NDEBUG_ASSERT( test, msg ) do {} while ( 0 )
+#endif // #else // #if !USING( DEBUG_BUILD )

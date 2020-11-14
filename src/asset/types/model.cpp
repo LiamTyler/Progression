@@ -1,7 +1,8 @@
 #include "asset/types/model.hpp"
-#include "core/assert.hpp"
 #include "asset/types/material.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/assert.hpp"
+#include "renderer/r_globals.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include "glm/geometric.hpp"
@@ -36,9 +37,89 @@ void Model::RecalculateNormals()
 }
 
 
+void Model::UploadToGPU()
+{
+#if !USING( COMPILING_CONVERTER )
+    if ( vertexBuffer )
+    {
+        vertexBuffer.Free();
+    }
+    if ( indexBuffer)
+    {
+        indexBuffer.Free();
+    }
+
+    size_t totalSize = 0;
+    totalSize += vertexPositions.size() * sizeof( glm::vec3 );
+    totalSize += vertexNormals.size() * sizeof( glm::vec3 );
+    totalSize += vertexTexCoords.size() * sizeof( glm::vec2 );
+    totalSize += vertexTangents.size() * sizeof( glm::vec3 );
+    if ( totalSize == 0 && indices.size() == 0 )
+    {
+        return;
+    }
+
+    gpuPositionOffset = 0;
+    size_t offset = 0;
+    unsigned char* tmpMem = static_cast< unsigned char* >( malloc( totalSize ) );
+    memcpy( tmpMem + offset, vertexPositions.data(), vertexPositions.size() * sizeof( glm::vec3 ) );
+    offset += static_cast< uint32_t >( vertexPositions.size() ) * sizeof( glm::vec3 );
+
+    gpuNormalOffset = offset;
+    memcpy( tmpMem + offset, vertexNormals.data(), vertexNormals.size() * sizeof( glm::vec3 ) );
+    offset += static_cast< uint32_t >( vertexNormals.size() ) * sizeof( glm::vec3 );
+
+    gpuTexCoordOffset = offset;
+    memcpy( tmpMem + offset, vertexTexCoords.data(), vertexTexCoords.size() * sizeof( glm::vec2 ) );
+    offset += static_cast< uint32_t >( vertexTexCoords.size() ) * sizeof( glm::vec2 );
+    
+    gpuTangentOffset = offset;
+    memcpy( tmpMem + offset, vertexTangents.data(), vertexTangents.size() * sizeof( glm::vec3 ) );
+    offset += static_cast< uint32_t >( vertexTangents.size() ) * sizeof( glm::vec3 );
+
+    vertexBuffer = Gfx::r_globals.device.NewBuffer( totalSize, tmpMem, Gfx::BUFFER_TYPE_VERTEX, Gfx::MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
+    indexBuffer = Gfx::r_globals.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), Gfx::BUFFER_TYPE_INDEX, Gfx::MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
+    free( tmpMem );
+
+    FreeCPU();
+#endif // #if !USING( COMPILING_CONVERTER )
+}
+
+
+void Model::Free()
+{
+    FreeGPU();
+    FreeCPU();
+}
+
+
+void Model::FreeCPU()
+{
+    vertexPositions.clear(); vertexPositions.shrink_to_fit();
+    vertexNormals.clear(); vertexNormals.shrink_to_fit();
+    vertexTexCoords.clear(); vertexTexCoords.shrink_to_fit();
+    vertexTangents.clear(); vertexTangents.shrink_to_fit();
+}
+
+
+void Model::FreeGPU()
+{
+#if !USING( COMPILING_CONVERTER )
+    if ( vertexBuffer )
+    {
+        vertexBuffer.Free();
+    }
+    if ( indexBuffer)
+    {
+        indexBuffer.Free();
+    }
+#endif // #if !USING( COMPILING_CONVERTER )
+}
+
+
 bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::vector< std::string >& matNames )
 {
-    static_assert( sizeof( Model ) == (8 + sizeof( std::string ) + 7 * sizeof( std::vector< uint32_t > )), "Don't forget to update this function if added/removed members from Model!" );
+    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
     model->name = createInfo.name;
     Serializer modelFile;
     if ( !modelFile.OpenForRead( createInfo.filename ) )
@@ -94,6 +175,8 @@ bool Model_Load( Model* model, const ModelCreateInfo& createInfo )
         }
     }
 
+    model->UploadToGPU();
+
     return true;
 }
 
@@ -101,7 +184,7 @@ bool Model_Load( Model* model, const ModelCreateInfo& createInfo )
 
 bool Fastfile_Model_Load( Model* model, Serializer* serializer )
 {
-    static_assert( sizeof( Model ) == (8 + sizeof( std::string ) + 7 * sizeof( std::vector< uint32_t > )), "Don't forget to update this function if added/removed members from Model!" );
+    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( model && serializer );
     serializer->Read( model->name );
     serializer->Read( model->vertexPositions );
@@ -131,13 +214,15 @@ bool Fastfile_Model_Load( Model* model, Serializer* serializer )
         serializer->Read( mesh.numVertices );
     }
 
+    model->UploadToGPU();
+
     return true;
 }
 
 
 bool Fastfile_Model_Save( const Model * const model, Serializer* serializer, const std::vector< std::string >& materialNames )
 {
-    static_assert( sizeof( Model ) == (8 + sizeof( std::string ) + 7 * sizeof( std::vector< uint32_t > )), "Don't forget to update this function if added/removed members from Model!" );
+    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( model && serializer );
     PG_ASSERT( model->meshes.size() == materialNames.size() );
 

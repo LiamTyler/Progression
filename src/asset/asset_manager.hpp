@@ -1,6 +1,11 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
+#include "asset/types/gfx_image.hpp"
+#include "asset/types/material.hpp"
+#include "asset/types/model.hpp"
+#include "asset/types/script.hpp"
+#include "asset/types/shader.hpp"
 
 namespace PG
 {

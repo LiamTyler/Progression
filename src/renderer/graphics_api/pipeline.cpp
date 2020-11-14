@@ -8,11 +8,16 @@ namespace PG
 namespace Gfx
 {
 
-    Viewport FullScreenViewport()
+    Viewport FullScreenViewport( bool vulkanFlipViewport )
     {
         Viewport v;
         v.width  = static_cast< float >( r_globals.swapchain.GetWidth() );
         v.height = static_cast< float >( r_globals.swapchain.GetHeight() );
+        if ( vulkanFlipViewport )
+        {
+	        v.y = v.height;
+            v.height *= -1;
+        }
         return v;
     }
 

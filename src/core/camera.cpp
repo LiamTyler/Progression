@@ -46,7 +46,6 @@ void Camera::UpdateViewMatrix()
 void Camera::UpdateProjectionMatrix()
 {
     m_projectionMatrix = glm::perspective( vFov, aspectRatio, nearPlane, farPlane );
-    // m_projectionMatrix[1][1] *= -1;
 }
 
 glm::mat4 Camera::GetV() const          { return m_viewMatrix; }

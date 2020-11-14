@@ -122,7 +122,7 @@ namespace Gfx
         float maxDepth = 1.0f;
     };
 
-    Viewport FullScreenViewport();
+    Viewport FullScreenViewport( bool vulkanFlipViewport = true );
 
     struct Scissor
     {

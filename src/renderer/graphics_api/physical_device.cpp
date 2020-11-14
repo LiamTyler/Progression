@@ -193,6 +193,7 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
     VK_CHECK_RESULT( vkEnumeratePhysicalDevices( r_globals.instance, &deviceCount, vkDevices.data() ) );
 
     std::vector< PhysicalDevice > devices( deviceCount );
+    bool runningInRenderDoc = false;
     for ( uint32_t i = 0; i < deviceCount; ++i )
     {
         devices[i].m_handle  = vkDevices[i];
@@ -208,11 +209,21 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
         for ( size_t ext = 0; ext < availableExtensions.size(); ++ext )
         {
             devices[i].m_availableExtensions[ext] = availableExtensions[ext].extensionName;
+            if ( strcmp( availableExtensions[ext].extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME ) == 0 )
+            {
+				runningInRenderDoc = true;
+                // renderdoc terminal doesnt support colored output
+                Logger_ChangeLocationColored( "stdout", false );
+			}
         }
 
         FindQueueFamilies( headless, vkDevices[i], r_globals.surface, devices[i].m_graphicsFamily, devices[i].m_presentFamily, devices[i].m_computeFamily );
         devices[i].m_name  = devices[i].m_deviceProperties.deviceName;
         devices[i].score   = RatePhysicalDevice( devices[i], headless );
+    }
+
+    for ( uint32_t i = 0; i < deviceCount; ++i )
+    {
         auto p = devices[i].m_deviceProperties;
         LOG( "Device %d: '%s', api = %d.%d.%d\n", i, p.deviceName, VK_VERSION_MAJOR( p.apiVersion ), VK_VERSION_MINOR( p.apiVersion ), VK_VERSION_PATCH( p.apiVersion ) );
     }

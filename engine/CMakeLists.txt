@@ -92,6 +92,9 @@ set(
     ${PROGRESSION_DIR}/src/renderer/r_renderpasses.hpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.cpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.hpp
+	
+	${PROGRESSION_DIR}/assets/shaders/c_shared/structs.h
+	${PROGRESSION_DIR}/assets/shaders/c_shared/defines.h
     
     ${PROGRESSION_DIR}/src/utils/bitops.hpp
     ${PROGRESSION_DIR}/src/utils/cpu_profile.hpp
@@ -139,8 +142,10 @@ set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} glfw ${Vulkan_L
 include_directories(
     ${PROGRESSION_DIR}/src/
     ${PROGRESSION_DIR}/ext/
-    ${Vulkan_INCLUDE_DIR}
     ${PROGRESSION_DIR}/ext/glfw/include
+    ${PROGRESSION_DIR}/assets/
+    ${PROGRESSION_DIR}/assets/shaders/
+	${Vulkan_INCLUDE_DIR}
 )
 
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})

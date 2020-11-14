@@ -14,7 +14,14 @@
 #define MAT4 mat4
 #define UINT uint
 
-#else // #ifdef PG_CPP_CODE
+#else // #ifdef PG_SHADER_CODE
+
+// TODO: the preprocessor doesn't actually check for #if's before processing the includes yet
+//#include "glm/vec2.hpp"
+//#include "glm/vec3.hpp"
+//#include "glm/vec4.hpp"
+//#include "glm/mat3x3.hpp"
+//#include "glm/mat4x4.hpp"
 
 #define VEC2 glm::vec2
 #define VEC3 glm::vec3
@@ -29,4 +36,4 @@
 #define MAT4 glm::mat4
 #define UINT uint32_t
 
-#endif // #else // #ifdef PG_CPP_CODE
+#endif // #else // #ifdef PG_SHADER_CODE

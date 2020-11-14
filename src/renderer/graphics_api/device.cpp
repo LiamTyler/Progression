@@ -289,6 +289,7 @@ namespace Gfx
 
     Buffer Device::NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name ) const
     {
+        type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
         Buffer buffer;
         buffer.m_device       = m_handle;
         buffer.m_type         = type;
@@ -322,6 +323,7 @@ namespace Gfx
     Buffer Device::NewBuffer( size_t length, void* data, BufferType type, MemoryType memoryType, const std::string& name ) const
     {
         Buffer dstBuffer;
+        type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
 
         if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
         {
@@ -330,7 +332,7 @@ namespace Gfx
             memcpy( stagingBuffer.MappedPtr(), data, length );
             stagingBuffer.UnMap();
 
-            dstBuffer = NewBuffer( length, type | BUFFER_TYPE_TRANSFER_DST, memoryType, name );
+            dstBuffer = NewBuffer( length, type, memoryType, name );
             Copy( dstBuffer, stagingBuffer );
             stagingBuffer.Free();
         }

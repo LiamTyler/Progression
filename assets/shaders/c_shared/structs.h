@@ -14,3 +14,5 @@ struct PerObjectData
     MAT4 M;
     MAT4 N;
 };
+
+#define PG_SCENE_GLOBALS_BUFFER_SET 0

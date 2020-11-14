@@ -10,6 +10,7 @@
 #include "utils/logger.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/serializer.hpp"
+#include <algorithm>
 #include <chrono>
 
 //#include "assetTypes/model.hpp"

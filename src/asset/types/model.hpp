@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
+#include "renderer/graphics_api/buffer.hpp"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include <vector>
@@ -30,6 +31,10 @@ struct ModelCreateInfo
 struct Model : public Asset
 {
     void RecalculateNormals();
+    void UploadToGPU();
+    void Free() override;
+    void FreeCPU();
+    void FreeGPU();
 
     std::vector< glm::vec3 > vertexPositions;
     std::vector< glm::vec3 > vertexNormals;
@@ -39,6 +44,13 @@ struct Model : public Asset
 
     std::vector< Mesh > meshes;
     std::vector< Material* > originalMaterials;
+
+    Gfx::Buffer vertexBuffer;
+    Gfx::Buffer indexBuffer;
+    size_t gpuPositionOffset;
+    size_t gpuNormalOffset;
+    size_t gpuTexCoordOffset;
+    size_t gpuTangentOffset;
 };
 
 

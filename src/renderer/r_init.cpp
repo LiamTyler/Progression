@@ -333,7 +333,7 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         LOG_ERR( "Could not create logical device\n" );
         return false;
     }
-
+    
     DebugMarker::Init( r_globals.device.GetHandle(), r_globals.physicalDevice.GetHandle() );
     PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( r_globals.physicalDeviceInfo.device, r_globals.physicalDeviceInfo.name );
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( r_globals.instance, "global" );

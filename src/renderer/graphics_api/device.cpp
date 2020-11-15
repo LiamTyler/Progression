@@ -356,7 +356,7 @@ namespace Gfx
     }
 
 
-    Texture Device::NewTexture( const ImageDescriptor& desc, bool managed, const std::string& name ) const
+    Texture Device::NewTexture( const TextureDescriptor& desc, bool managed, const std::string& name ) const
     {
         bool isDepth = PixelFormatHasDepthFormat( desc.format );
         VkImageCreateInfo imageInfo = {};
@@ -417,13 +417,11 @@ namespace Gfx
     }
 
 
-    Texture Device::NewTextureFromBuffer( ImageDescriptor& desc, void* data, bool managed, const std::string& name ) const
+    Texture Device::NewTextureFromBuffer( TextureDescriptor& desc, void* data, bool managed, const std::string& name ) const
     {
-        return {};
-        /*
         desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
         Texture tex          = NewTexture( desc, managed, name );
-        size_t imSize        = CalculateTotalTextureSize( desc );
+        size_t imSize        = CalculateTotalImageBytes( desc.format, desc.width, desc.height, desc.depth, desc.arrayLayers, desc.mipLevels );
         Buffer stagingBuffer = NewBuffer( imSize, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
         stagingBuffer.Map();
         memcpy( stagingBuffer.MappedPtr(), data, imSize );
@@ -432,16 +430,13 @@ namespace Gfx
         VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
         PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
         
-        TransitionImageLayout( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED,
-                               VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+        TransitionImageLayout( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
         CopyBufferToImage( stagingBuffer, tex );
-        TransitionImageLayout( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                                VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+        TransitionImageLayout( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
 
         stagingBuffer.Free();
 
         return tex;
-        */
     }
 
 

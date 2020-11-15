@@ -1,7 +1,7 @@
 { "Scene":
 [
     { "Fastfile": { "filename": "chalet" } },
-    { "Camera": { "position": [ 0, 2, 10 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
+    { "Camera": { "position": [ 0, 0, 5 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
     { "BackgroundColor": { "color": [ 0.2, 0.2, 0.2, 1 ] } },
     { "AmbientColor": { "color": [ 0.8, 0.8, 0.8 ] } },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0.5, -1.5, -1 ] } }

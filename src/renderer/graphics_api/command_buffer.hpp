@@ -33,7 +33,8 @@ namespace Gfx
         void BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const;
         void EndRenderPass() const;
         void BindPipeline( const Pipeline& pipeline ) const;
-        void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, const Pipeline& pipeline, uint32_t firstSet = 0 ) const;
+        void BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber, const Pipeline& pipeline ) const;
+        void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet, const Pipeline& pipeline ) const;
         void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, uint32_t firstBinding = 0 ) const;
         void BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding = 0 ) const;
         void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;

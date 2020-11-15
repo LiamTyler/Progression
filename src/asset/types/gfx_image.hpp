@@ -2,9 +2,10 @@
 
 #include "asset/types/base_asset.hpp"
 #include "core/pixel_formats.hpp"
+#include "renderer/graphics_api/texture.hpp"
 
-#define GFX_INVALID_TEXTURE_HANDLE (~0u)
-typedef uint32_t GfxTextureHandle;
+// define GFX_INVALID_TEXTURE_HANDLE (~0u)
+// ypedef uint32_t GfxTextureHandle;
 
 class Serializer;
 
@@ -19,34 +20,23 @@ enum class GfxImageSemantic
     NUM_IMAGE_SEMANTICS
 };
 
-enum class GfxImageType : uint8_t
-{
-    TYPE_1D            = 0,
-    TYPE_1D_ARRAY      = 1,
-    TYPE_2D            = 2,
-    TYPE_2D_ARRAY      = 3,
-    TYPE_CUBEMAP       = 4,
-    TYPE_CUBEMAP_ARRAY = 5,
-    TYPE_3D            = 6,
-
-    NUM_IMAGE_TYPES
-};
-
 struct GfxImage : public Asset
 {
     void Free() override;
-    unsigned char* GetPixels( int face, int mip, int depthLevel = 0 ) const;
+    unsigned char* GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel = 0 ) const;
+    void UploadToGpu();
 
-    int width     = 0;
-    int height    = 0;
-    int depth     = 0;
-    int mipLevels = 0;
-    int numFaces  = 0;
+    uint32_t width     = 0;
+    uint32_t height    = 0;
+    uint32_t depth     = 0;
+    uint32_t mipLevels = 0;
+    uint32_t numFaces  = 0;
     size_t totalSizeInBytes = 0;
     unsigned char* pixels = nullptr;
     PixelFormat pixelFormat;
-    GfxImageType imageType;
-    GfxTextureHandle textureHandle = GFX_INVALID_TEXTURE_HANDLE;
+    Gfx::ImageType imageType;
+
+    Gfx::Texture gpuTexture;
 };
 
 struct GfxImageCreateInfo
@@ -54,8 +44,9 @@ struct GfxImageCreateInfo
     std::string name;
     std::string filename;
     GfxImageSemantic semantic  = GfxImageSemantic::DIFFUSE;
-    GfxImageType imageType     = GfxImageType::TYPE_2D;
+    Gfx::ImageType imageType   = Gfx::ImageType::TYPE_2D;
     PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID
+    bool flipVertically        = true;
 };
 
 bool GfxImage_Load( GfxImage* image, const GfxImageCreateInfo& createInfo );
@@ -63,10 +54,6 @@ bool GfxImage_Load( GfxImage* image, const GfxImageCreateInfo& createInfo );
 bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer );
 
 bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serializer );
-
-int CalculateNumMips( int width, int height );
-
-size_t CalculateTotalFaceSizeWithMips( int mip0Width, int mip0Height, PixelFormat format );
 
 
 } // namespace PG

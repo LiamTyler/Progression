@@ -1,5 +1,4 @@
 #include "core/assert.hpp"
-#include "asset/types/gfx_image.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
@@ -11,8 +10,6 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
-
-using namespace PG;
 
 static void DisplayHelp()
 {
@@ -31,12 +28,6 @@ static void Exit()
     exit( 0 );
 }
 
-
-static bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vector< std::string >& materialNames, std::vector< GfxImageCreateInfo >& imageInfos );
-
-static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, std::string& pathToTex );
-
-
 struct Mesh
 {
     std::string name;
@@ -46,6 +37,19 @@ struct Mesh
     uint32_t startVertex = 0;
     uint32_t numVertices = 0;
 };
+
+struct ImageInfo
+{
+    std::string name;
+    std::string filename;
+    std::string semantic;
+    std::string type;
+};
+
+
+static bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vector< std::string >& materialNames, std::vector< ImageInfo >& imageInfos );
+
+static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, std::string& pathToTex );
 
 std::string g_name;
 std::string g_outputDir;
@@ -192,7 +196,7 @@ int main( int argc, char* argv[] )
     CreateDirectory( g_outputDir + "textures/" );
     
     std::vector< std::string > materialNames = { "default" };
-    std::vector< GfxImageCreateInfo > imageInfos;
+    std::vector< ImageInfo > imageInfos;
     if ( !SaveMaterials( filename, scene, materialNames, imageInfos ) )
     {
         LOG_ERR( "Could not save the model's materials\n" );
@@ -248,8 +252,8 @@ int main( int argc, char* argv[] )
         assetListJson += "\n\t{ \"Image\": { ";
         assetListJson += "\"name\": \"" + info.name + "\", ";
         assetListJson += "\"filename\": \"" + info.filename + "\", ";
-        assetListJson += "\"semantic\": \"" + imgSemantics[static_cast< int >( info.semantic )] + "\", ";
-        assetListJson += "\"imageType\": \"" + imgTypes[static_cast< int >( info.imageType )] + "\" } },";
+        assetListJson += "\"semantic\": \"" + info.semantic + "\", ";
+        assetListJson += "\"imageType\": \"" + info.type + "\" } },";
     }
     assetListJson += "\n\t{ \"MatFile\": { \"filename\": \"" + GetRelativePathToDir( g_outputDir + g_name + ".pgMtl", g_parentToOutputDir ) + "\" } },";
     assetListJson += "\n\t{ \"Model\": { \"name\": \"" + g_name + "\", \"filename\": \"" + GetRelativePathToDir( outputModelFilename, g_parentToOutputDir ) + "\" } }";
@@ -268,7 +272,7 @@ int main( int argc, char* argv[] )
 }
 
 
-bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vector< std::string >& materialNames, std::vector< GfxImageCreateInfo >& imageInfos )
+bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vector< std::string >& materialNames, std::vector< ImageInfo >& imageInfos )
 {
     std::string mtlJson = "{ \"Materials\":\n[";
     for ( uint32_t mtlIdx = 0; mtlIdx < scene->mNumMaterials; ++mtlIdx )
@@ -309,11 +313,11 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
                 return false;
             }
             map_kd_name = GetRelativePathToDir( GetFilenameMinusExtension( imagePath ), g_parentToOutputDir );
-            GfxImageCreateInfo info;
-            info.name       = map_kd_name;
-            info.filename   = GetRelativePathToDir( imagePath, g_parentToOutputDir );
-            info.semantic   = GfxImageSemantic::DIFFUSE;
-            info.imageType  = GfxImageType::TYPE_2D;
+            ImageInfo info;
+            info.name     = map_kd_name;
+            info.filename = GetRelativePathToDir( imagePath, g_parentToOutputDir );
+            info.semantic = "DIFFUSE";
+            info.type     = "TYPE_2D";
             imageInfos.push_back( info );
         }
 

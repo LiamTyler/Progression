@@ -29,6 +29,8 @@ DescriptorSet postProcessDescriptorSet;
 DescriptorSet sceneGlobalDescriptorSet;
 Buffer sceneGlobals;
 
+Texture chaletTex;
+DescriptorSet litDescriptorSet;
 
 namespace PG
 {
@@ -99,6 +101,12 @@ bool Init( bool headless )
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "postProcessFrag" );
     postProcessPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "PostProcess" );
 
+
+    // BUFFERS + IMAGES
+    sceneGlobals = r_globals.device.NewBuffer( sizeof( SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
+    sceneGlobals.Map();
+
+    // DESCRIPTOR SETS
     postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
     std::vector< VkDescriptorImageInfo > imgDescriptors =
     {
@@ -109,9 +117,6 @@ bool Init( bool headless )
         WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
     };
     r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
-
-    sceneGlobals = r_globals.device.NewBuffer( sizeof( SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
-    sceneGlobals.Map();
     
     sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( depthOnlyPipeline.GetResourceLayout()->sets[0] );
     std::vector< VkDescriptorBufferInfo > bufferDescriptors =
@@ -124,6 +129,7 @@ bool Init( bool headless )
     };
     r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
+    litDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[1] );
 
     return true;
 }
@@ -147,7 +153,18 @@ void Shutdown()
 
 void Render( Scene* scene )
 {
-    //PG_ASSERT( scene != nullptr );
+    PG_ASSERT( scene != nullptr );
+    auto chaletTex = AssetManager::Get< GfxImage >( "chalet" );
+    std::vector< VkDescriptorImageInfo > imgDescriptors =
+    {
+        DescriptorImageInfo( chaletTex->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
+    };
+    std::vector< VkWriteDescriptorSet > writeDescriptorSets =
+    {
+        WriteDescriptorSet( litDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
+    };
+    r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+
     auto swapChainImageIndex = r_globals.swapchain.AcquireNextImage( r_globals.presentCompleteSemaphore );
 
     auto& cmdBuf = r_globals.graphicsCommandBuffer;
@@ -173,7 +190,7 @@ void Render( Scene* scene )
     // DEPTH
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_DEPTH_PREPASS ), *GetFramebuffer( GFX_RENDER_PASS_DEPTH_PREPASS ) );
     cmdBuf.BindPipeline( depthOnlyPipeline );
-    cmdBuf.BindDescriptorSets( 1, &sceneGlobalDescriptorSet, depthOnlyPipeline );
+    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0, depthOnlyPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
     // cmdBuf.BindVertexBuffer( vertexBuffer, 0, 0 );
@@ -194,6 +211,8 @@ void Render( Scene* scene )
     cmdBuf.BindPipeline( litPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
+    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0, litPipeline );
+    cmdBuf.BindDescriptorSet( litDescriptorSet, 1, litPipeline );
     cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
     cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
     cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuTexCoordOffset, 2 );
@@ -210,7 +229,7 @@ void Render( Scene* scene )
     cmdBuf.BindPipeline( postProcessPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    cmdBuf.BindDescriptorSets( 1, &postProcessDescriptorSet, postProcessPipeline );
+    cmdBuf.BindDescriptorSet( postProcessDescriptorSet, 0, postProcessPipeline );
     cmdBuf.Draw( 0, 6 );
     cmdBuf.EndRenderPass();
 

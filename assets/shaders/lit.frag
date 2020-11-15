@@ -7,7 +7,12 @@ layout( location = 2 ) in vec2 texCoords;
 
 layout( location = 0 ) out vec4 outColor;
 
+
+layout( set = 1, binding = 0 ) uniform sampler2D albedoTex;
+
 void main()
 {
-    outColor = vec4( 0, 1, 0, 1 );
+    vec3 albedo = texture( albedoTex, vec2( texCoords.x, texCoords.y) ).rgb;
+    //vec3 albedo = vec3( 1 - texCoords, 0 );
+    outColor = vec4( albedo, 1 );
 }

@@ -1,6 +1,7 @@
 #include "asset/types/gfx_image.hpp"
-#include "core/assert.hpp"
 #include "asset/image.hpp"
+#include "core/assert.hpp"
+#include "renderer/r_globals.hpp"
 #include "utils/cpu_profile.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
@@ -99,10 +100,11 @@ void GfxImage::Free()
         free( pixels );
         pixels = nullptr;
     }
+    gpuTexture.Free();
 }
 
 
-unsigned char* GfxImage::GetPixels( int face, int mip, int depthLevel ) const
+unsigned char* GfxImage::GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel ) const
 {
     PG_ASSERT( face == 0, "Multiple faces not supported yet" );
     PG_ASSERT( depthLevel == 0, "Texture arrays not supported yet" );
@@ -114,7 +116,7 @@ unsigned char* GfxImage::GetPixels( int face, int mip, int depthLevel ) const
     int h = height;
     int bytesPerPixel = NumBytesPerPixel( pixelFormat );
     size_t offset = 0;
-    for ( int mipLevel = 0; mipLevel < mip; ++mipLevel )
+    for ( uint32_t mipLevel = 0; mipLevel < mip; ++mipLevel )
     {
         offset += w * h * bytesPerPixel;
         w = std::max( 1, w >> 1 );
@@ -122,6 +124,39 @@ unsigned char* GfxImage::GetPixels( int face, int mip, int depthLevel ) const
     }
 
     return pixels + offset;
+}
+
+
+void GfxImage::UploadToGpu()
+{
+#if USING( COMPILING_CONVERTER )
+    PG_ASSERT( false, "Render system not available in converter" );
+#else // #if USING( COMPILING_CONVERTER )
+    using namespace Gfx;
+    PG_ASSERT( pixels );
+    
+    if ( gpuTexture )
+    {
+        gpuTexture.Free();
+    }
+
+    TextureDescriptor desc;
+    desc.format      = pixelFormat;
+    desc.type        = imageType;
+    desc.width       = width;
+    desc.height      = height;
+    desc.depth       = depth;
+    desc.arrayLayers = numFaces;
+    desc.mipLevels   = mipLevels;
+    desc.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    //desc.sampler     = ;
+
+    gpuTexture = r_globals.device.NewTextureFromBuffer( desc, pixels, true, name );
+    PG_ASSERT( gpuTexture );
+    free( pixels );
+    pixels = nullptr;
+
+#endif // #else // #if USING( COMPILING_CONVERTER )
 }
 
 
@@ -287,6 +322,10 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
 {
     ImageCreateInfo srcImgCreateInfo;
     srcImgCreateInfo.filename = createInfo.filename;
+    if ( createInfo.flipVertically )
+    {
+        srcImgCreateInfo.flags |= IMAGE_FLIP_VERTICALLY;
+    }
     Image srcImg;
     if ( !srcImg.Load( &srcImgCreateInfo ) )
     {
@@ -315,7 +354,6 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
 
 bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
-    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 64, "Don't forget to update this function if added/removed members from GfxImage!" );
     PG_ASSERT( gfxImage );
 
     gfxImage->name        = createInfo.name;
@@ -326,7 +364,7 @@ bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
     gfxImage->numFaces    = 1;
 
     bool success;
-    if ( createInfo.imageType == GfxImageType::TYPE_2D )
+    if ( createInfo.imageType == Gfx::ImageType::TYPE_2D )
     {
         success = Load_GfxImage_2D( gfxImage, createInfo );
     } 
@@ -338,21 +376,11 @@ bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 
     return success;
 }
-    int width     = 0;
-    int height    = 0;
-    int depth     = 0;
-    int mipLevels = 0;
-    int numFaces  = 0;
-    size_t totalSizeInBytes = 0;
-    unsigned char* pixels = nullptr;
-    PixelFormat pixelFormat;
-    GfxImageType imageType;
-    GfxTextureHandle textureHandle = GFX_INVALID_TEXTURE_HANDLE;
 
 
 bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer )
 {
-    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 64, "Don't forget to update this function if added/removed members from GfxImage!" );
+    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
     
     PG_ASSERT( image && serializer );
     serializer->Read( image->name );
@@ -366,7 +394,9 @@ bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer )
     serializer->Read( image->imageType );
     image->pixels = static_cast< unsigned char* >( malloc( image->totalSizeInBytes ) );
     serializer->Read( image->pixels, image->totalSizeInBytes );
-    image->textureHandle = GFX_INVALID_TEXTURE_HANDLE;
+    //image->textureHandle = GFX_INVALID_TEXTURE_HANDLE;
+
+    image->UploadToGpu();
 
     return true;
 }
@@ -374,7 +404,7 @@ bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer )
 
 bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serializer )
 {
-    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 64, "Don't forget to update this function if added/removed members from GfxImage!" );
+    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
     
     PG_ASSERT( image && serializer );
     PG_ASSERT( image->pixels );
@@ -390,32 +420,6 @@ bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serialize
     serializer->Write( image->pixels, image->totalSizeInBytes );
 
     return true;
-}
-
-
-int CalculateNumMips( int width, int height )
-{
-    int largestDim = std::max( width, height );
-    return 1 + static_cast< int >( std::log2f( static_cast< float >( largestDim ) ) );
-}
-
-
-size_t CalculateTotalFaceSizeWithMips( int mip0Width, int mip0Height,PixelFormat format )
-{
-    PG_ASSERT( mip0Width > 0 && mip0Height > 0 );
-    int w = mip0Width;
-    int h = mip0Height;
-    int numMips = CalculateNumMips( w, h );
-    int bytesPerPixel = NumBytesPerPixel( format );
-    size_t currentSize = 0;
-    for ( int mipLevel = 0; mipLevel < numMips; ++mipLevel )
-    {
-        currentSize += w * h * bytesPerPixel;
-        w = std::max( 1, w >> 1 );
-        h = std::max( 1, h >> 1 );
-    }
-
-    return currentSize;
 }
 
 

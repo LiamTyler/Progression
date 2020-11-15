@@ -36,15 +36,15 @@ static std::string ImageSemanticToString( GfxImageSemantic semantic )
 }
 
 
-static std::unordered_map< std::string, GfxImageType > imageTypeMap =
+static std::unordered_map< std::string, Gfx::ImageType > imageTypeMap =
 {
-    { "TYPE_1D",            GfxImageType::TYPE_1D },
-    { "TYPE_1D_ARRAY",      GfxImageType::TYPE_1D_ARRAY },
-    { "TYPE_2D",            GfxImageType::TYPE_2D },
-    { "TYPE_2D_ARRAY",      GfxImageType::TYPE_2D_ARRAY },
-    { "TYPE_CUBEMAP",       GfxImageType::TYPE_CUBEMAP },
-    { "TYPE_CUBEMAP_ARRAY", GfxImageType::TYPE_CUBEMAP_ARRAY },
-    { "TYPE_3D",            GfxImageType::TYPE_3D },
+    { "TYPE_1D",            Gfx::ImageType::TYPE_1D },
+    { "TYPE_1D_ARRAY",      Gfx::ImageType::TYPE_1D_ARRAY },
+    { "TYPE_2D",            Gfx::ImageType::TYPE_2D },
+    { "TYPE_2D_ARRAY",      Gfx::ImageType::TYPE_2D_ARRAY },
+    { "TYPE_CUBEMAP",       Gfx::ImageType::TYPE_CUBEMAP },
+    { "TYPE_CUBEMAP_ARRAY", Gfx::ImageType::TYPE_CUBEMAP_ARRAY },
+    { "TYPE_3D",            Gfx::ImageType::TYPE_3D },
 };
 
 
@@ -62,16 +62,17 @@ void GfxImage_Parse( const rapidjson::Value& value )
 
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "name",      []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
-        { "filename",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "imageType", []( const rapidjson::Value& v, GfxImageCreateInfo& i )
+        { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
+        { "filename",       []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
+        { "imageType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 std::string imageName = v.GetString();
                 auto it = imageTypeMap.find( imageName );
                 if ( it == imageTypeMap.end() )
                 {
                     LOG_ERR( "No GfxImageType found matching '%s'\n", imageName.c_str() );
-                    i.imageType = GfxImageType::NUM_IMAGE_TYPES;
+                    i.imageType = Gfx::ImageType::NUM_IMAGE_TYPES;
                 }
                 else
                 {
@@ -107,7 +108,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
 
     GfxImageCreateInfo info;
     info.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
-    info.imageType = GfxImageType::TYPE_2D;
+    info.imageType = Gfx::ImageType::TYPE_2D;
     mapping.ForEachMember( value, info );
 
     if ( !FileExists( info.filename ) )
@@ -120,7 +121,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
         LOG_ERR( "Must specify a valid image semantic for image '%s'\n", info.name.c_str() );
         g_parsingError = true;
     }
-    if ( info.imageType == GfxImageType::NUM_IMAGE_TYPES )
+    if ( info.imageType == Gfx::ImageType::NUM_IMAGE_TYPES )
     {
         LOG_ERR( "Must specify a valid imageType for image '%s'\n", info.name.c_str() );
         g_parsingError = true;
@@ -153,6 +154,7 @@ static std::string GfxImage_GetFastFileName( const GfxImageCreateInfo& info )
     baseName += "_" + std::to_string( static_cast< int >( info.semantic ) );
     baseName += "_" + std::to_string( static_cast< int >( info.imageType ) );
     baseName += "_" + std::to_string( static_cast< int >( info.dstPixelFormat ) );
+    baseName += "_" + std::to_string( static_cast< int >( info.flipVertically ) );
     baseName += "_" + std::to_string( std::hash< std::string >{}( info.filename ) );
 
     std::string fullName = PG_ASSET_DIR "cache/images/" + baseName + ".ffi";

@@ -28,7 +28,7 @@ namespace Gfx
         NUM_IMAGE_TYPES
     };
 
-    class ImageDescriptor
+    class TextureDescriptor
     {
     public:
         ImageType type          = ImageType::TYPE_2D;
@@ -39,7 +39,7 @@ namespace Gfx
         uint32_t height         = 0;
         uint32_t depth          = 1;
         VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        std::string sampler = "linear_repeat_linear";
+        std::string sampler     = "linear_repeat_linear";
     };
 
 
@@ -51,7 +51,6 @@ namespace Gfx
 
         void Free();
 
-        unsigned char* GetPixelData() const;
         ImageType GetType() const;
         PixelFormat GetPixelFormat() const;
         uint32_t GetMipLevels() const;
@@ -70,7 +69,7 @@ namespace Gfx
         operator bool() const;
 
     private:
-        ImageDescriptor m_desc;
+        TextureDescriptor m_desc;
         VkImage m_image         = VK_NULL_HANDLE;
         VkImageView m_imageView = VK_NULL_HANDLE;
         VkDeviceMemory m_memory = VK_NULL_HANDLE;
@@ -80,4 +79,13 @@ namespace Gfx
     };
 
 } // namespace Gfx
+
+
+uint32_t CalculateNumMips( uint32_t width, uint32_t height );
+
+// if numMuips is unspecified (0), assume all mips are in use
+size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips = 0 );
+
+size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+
 } // namespace PG

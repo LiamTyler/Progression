@@ -31,8 +31,8 @@ namespace Gfx
         void UpdateDescriptorSets( uint32_t count, const VkWriteDescriptorSet* writes ) const;
         Buffer NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
         Buffer NewBuffer( size_t length, void* data, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
-        Texture NewTexture( const ImageDescriptor& desc, bool managed = true, const std::string& name = "" ) const;
-        Texture NewTextureFromBuffer( ImageDescriptor& desc, void* data, bool managed = true, const std::string& name = "" ) const;
+        Texture NewTexture( const TextureDescriptor& desc, bool managed = true, const std::string& name = "" ) const;
+        Texture NewTextureFromBuffer( TextureDescriptor& desc, void* data, bool managed = true, const std::string& name = "" ) const;
         Sampler NewSampler( const SamplerDescriptor& desc ) const;
         Fence NewFence( bool signaled = false, const std::string& name = "" ) const;
         Semaphore NewSemaphore( const std::string& name = "" ) const;

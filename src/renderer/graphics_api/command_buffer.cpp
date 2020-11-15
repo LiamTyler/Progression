@@ -80,7 +80,13 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, const Pipeline& pipeline, uint32_t firstSet ) const
+    void CommandBuffer::BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber, const Pipeline& pipeline ) const
+    {
+        vkCmdBindDescriptorSets( m_handle, pipeline.GetPipelineBindPoint(), pipeline.GetLayoutHandle(), setNumber, 1, (VkDescriptorSet*) &set, 0, nullptr );
+    }
+
+
+    void CommandBuffer::BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet, const Pipeline& pipeline ) const
     {
         vkCmdBindDescriptorSets( m_handle, pipeline.GetPipelineBindPoint(), pipeline.GetLayoutHandle(), firstSet, numSets, (VkDescriptorSet*) sets, 0, nullptr );
     }

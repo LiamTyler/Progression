@@ -25,6 +25,8 @@ namespace Gfx
         VkDescriptorSet m_handle = VK_NULL_HANDLE;
     };
 
+    static_assert( sizeof( DescriptorSet ) == sizeof( VkDescriptorSet ), "Some functions, like BindDescriptorSet rely on this" );
+
     VkWriteDescriptorSet WriteDescriptorSet( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorBufferInfo* bufferInfo, uint32_t descriptorCount = 1, uint32_t arrayElement = 0 );
     VkWriteDescriptorSet WriteDescriptorSet( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorImageInfo* imageInfo, uint32_t descriptorCount = 1, uint32_t arrayElement = 0 );
     VkDescriptorImageInfo DescriptorImageInfo( const Gfx::Texture& tex, VkImageLayout imageLayout );

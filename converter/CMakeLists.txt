@@ -28,6 +28,9 @@ set(
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
     ${PROGRESSION_DIR}/src/core/platform_defines.hpp
     
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/texture.cpp
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/texture.hpp
+    
     ${PROGRESSION_DIR}/src/utils/cpu_profile.hpp
     ${PROGRESSION_DIR}/src/utils/file_dependency.cpp
     ${PROGRESSION_DIR}/src/utils/file_dependency.hpp

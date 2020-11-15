@@ -245,7 +245,7 @@ static bool CreateSurface()
 
 static bool CreateDepthTexture()
 {
-    ImageDescriptor info;
+    TextureDescriptor info;
     info.type    = ImageType::TYPE_2D;
     info.format  = PixelFormat::DEPTH_32_FLOAT;
     info.width   = r_globals.swapchain.GetWidth();

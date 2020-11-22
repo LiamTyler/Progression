@@ -111,7 +111,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
     info.imageType = Gfx::ImageType::TYPE_2D;
     mapping.ForEachMember( value, info );
 
-    if ( !FileExists( info.filename ) )
+    if ( !PathExists( info.filename ) )
     {
         LOG_ERR( "Filename '%s' not found for GfxImage '%s', skipping image\n", info.filename.c_str(), info.name.c_str() );
         g_parsingError = true;

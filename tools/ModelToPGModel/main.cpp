@@ -189,11 +189,10 @@ int main( int argc, char* argv[] )
     LOG( "Normals: %d\n", normals.size() );
     LOG( "uvs: %d\n", uvs.size() );
     LOG( "tangents: %d\n", tangents.size() );
-    LOG( "indices: %d\n", indices.size() );
+    LOG( "triangles: %d\n", indices.size() / 3 );
     LOG( "meshes: %d\n", meshes.size() );
     
     CreateDirectory( g_outputDir );
-    CreateDirectory( g_outputDir + "textures/" );
     
     std::vector< std::string > materialNames = { "default" };
     std::vector< ImageInfo > imageInfos;
@@ -203,7 +202,7 @@ int main( int argc, char* argv[] )
         Exit();
     }
 
-    std::string outputModelFilename = g_outputDir + GetFilenameStem( filename ) + ".pgModel";
+    std::string outputModelFilename = g_outputDir + g_name + ".pgModel";
     Serializer modelFile;
     if ( !modelFile.OpenForWrite( outputModelFilename ) )
     {
@@ -258,7 +257,7 @@ int main( int argc, char* argv[] )
     assetListJson += "\n\t{ \"MatFile\": { \"filename\": \"" + GetRelativePathToDir( g_outputDir + g_name + ".pgMtl", g_parentToOutputDir ) + "\" } },";
     assetListJson += "\n\t{ \"Model\": { \"name\": \"" + g_name + "\", \"filename\": \"" + GetRelativePathToDir( outputModelFilename, g_parentToOutputDir ) + "\" } }";
     assetListJson += "\n]}";
-    std::string outputJson = g_outputDir + "assetList.json";
+    std::string outputJson = g_outputDir + g_name + ".json";
     std::ofstream out( outputJson );
     if ( !out )
     {
@@ -382,7 +381,7 @@ bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, s
             LOG_ERR( "Could not find image file '%s'\n", name.c_str() );
             return false;
         }
-        pathToTex = g_outputDir + "textures/" + GetRelativeFilename( fullPath );
+        pathToTex = g_outputDir + GetRelativeFilename( fullPath );
         if ( !CopyFile( fullPath, pathToTex, true ) )
         {
             LOG_ERR( "Failed to copy image '%s' to '%s'\n", fullPath.c_str(), pathToTex.c_str() );

@@ -44,7 +44,7 @@ bool CopyFile( const std::string& from, const std::string& to, bool overwriteExi
     //    std::cout << "ERROR '" << e.what() << "'" << std::endl;
     //    std::cout << "Equivalent? '" << fs::equivalent( from, to ) << std::endl;
     //}
-    if ( !overwriteExisting && FileExists( to ) )
+    if ( !overwriteExisting && PathExists( to ) )
     {
         return true;
     }
@@ -102,9 +102,15 @@ void DeleteRecursive( const std::string& path )
 }
 
 
-bool FileExists( const std::string& filename )
+bool PathExists( const std::string& path )
 {
-    return fs::is_regular_file( filename );
+    return fs::exists( path );
+}
+
+
+bool DirExists( const std::string& dir )
+{
+    return fs::is_directory( dir );
 }
 
 

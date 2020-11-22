@@ -16,10 +16,15 @@ layout( location = 0 ) out vec3 worldSpacePos;
 layout( location = 1 ) out vec3 worldSpaceNormal;
 layout( location = 2 ) out vec2 texCoords;
 
+layout( push_constant ) uniform PushConsts
+{
+    PerObjectData perObjectData;
+};
+
 void main()
 {
-	worldSpacePos 	 = inPosition;
-	worldSpaceNormal = inNormal;
+	worldSpacePos 	 = (perObjectData.M * vec4( inPosition, 1 )).xyz;
+	worldSpaceNormal = (perObjectData.N * vec4( inNormal, 0 )).xyz;
     texCoords        = inTexCoord;
-	gl_Position 	 = globals.VP * vec4( worldSpacePos, 1.0 );
+	gl_Position = globals.VP * vec4( worldSpacePos, 1.0 );
 }

@@ -54,7 +54,7 @@ void Shader_Parse( const rapidjson::Value& value )
     info.shaderStage = ShaderStage::NUM_SHADER_STAGES;
     mapping.ForEachMember( value, info );
 
-    if ( !FileExists( info.filename ) )
+    if ( !PathExists( info.filename ) )
     {
         LOG_ERR( "Shader file '%s' not found\n", info.filename.c_str() );
         g_parsingError = true;

@@ -1,16 +1,16 @@
 #pragma once
 
-constexpr int PG_FASTFILE_VERSION = 2; // shader reflection data
+constexpr int PG_FASTFILE_VERSION = 3; // Material saving fixed
 
 constexpr int PG_GFX_IMAGE_VERSION = 2; // adding flipVerticallyOption
 
-constexpr int PG_MATERIAL_VERSION = 1; // initial version
+constexpr int PG_MATERIAL_VERSION = 2; // including material counts
 
 constexpr int PG_MODEL_VERSION = 2; // changed input model file
 
 constexpr int PG_SCRIPT_VERSION = 1; // initial version
 
-constexpr int PG_SHADER_VERSION = 2; // reflection data
+constexpr int PG_SHADER_VERSION = 3; // adding debug info for non-optimized shaders
 
 
 // If order is changed, all fastfiles need to be rebuilt

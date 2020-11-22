@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/camera.hpp"
-//#include "core/ecs.hpp"
+#include "ecs/ecs.hpp"
 #include "core/lights.hpp"
 #include <string>
 #include <vector>
@@ -32,7 +32,7 @@ namespace PG
         uint32_t numDirectionalLights = 0;
         uint32_t numPointLights = 0;
         uint32_t numSpotLights  = 0;
-        // entt::registry registry;
+        entt::registry registry;
     };
 
 } // namespace PG

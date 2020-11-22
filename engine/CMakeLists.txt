@@ -50,6 +50,16 @@ set(
     ${PROGRESSION_DIR}/src/core/window.cpp
     ${PROGRESSION_DIR}/src/core/window.hpp
     
+    
+    ${PROGRESSION_DIR}/src/ecs/component_factory.cpp
+    ${PROGRESSION_DIR}/src/ecs/component_factory.hpp
+    ${PROGRESSION_DIR}/src/ecs/ecs.cpp
+    ${PROGRESSION_DIR}/src/ecs/ecs.hpp
+    ${PROGRESSION_DIR}/src/ecs/components/entity_metadata.hpp
+    ${PROGRESSION_DIR}/src/ecs/components/model_renderer.hpp
+    ${PROGRESSION_DIR}/src/ecs/components/transform.cpp
+    ${PROGRESSION_DIR}/src/ecs/components/transform.hpp
+    
     ${PROGRESSION_DIR}/src/renderer/graphics_api/buffer.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/buffer.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/command_buffer.cpp

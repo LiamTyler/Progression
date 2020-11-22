@@ -81,21 +81,27 @@ bool LoadFastFile( const std::string& fname )
         }
         case ASSET_TYPE_MATERIAL:
         {
-            Material* asset = new Material;
-            if ( !Fastfile_Material_Load( asset, &serializer ) )
+            // ASSET_TYPE_MATERIAL in a fastfile actually implies all materials from a pgMat file, which is 1+ materials
+            uint16_t numMaterials;
+            serializer.Read( numMaterials );
+            for ( uint16_t mat = 0; mat < numMaterials; ++mat )
             {
-                LOG_ERR( "Could not load Material\n" );
-                return false;
-            }
-            auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
-            {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
-                asset->Free();
-                delete asset;
+                Material* asset = new Material;
+                if ( !Fastfile_Material_Load( asset, &serializer ) )
+                {
+                    LOG_ERR( "Could not load Material\n" );
+                    return false;
+                }
+                auto it = s_resourceMaps[assetType].find( asset->name );
+                if ( it == s_resourceMaps[assetType].end() )
+                {
+                    s_resourceMaps[assetType][asset->name] = asset;
+                }
+                else
+                {
+                    asset->Free();
+                    delete asset;
+                }
             }
             break;
         }

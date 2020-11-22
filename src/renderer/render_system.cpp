@@ -10,6 +10,8 @@
 #include "core/assert.hpp"
 #include "core/scene.hpp"
 #include "core/window.hpp"
+#include "ecs/components/model_renderer.hpp"
+#include "ecs/components/transform.hpp"
 #include "utils/logger.hpp"
 #include <unordered_map>
 
@@ -77,7 +79,7 @@ bool Init( bool headless )
     depthOnlyPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "DepthPrepass" );
     
     pipelineDesc.renderPass             = GetRenderPass( GFX_RENDER_PASS_LIT );
-    pipelineDesc.depthInfo.compareFunc  = CompareFunction::EQUAL;
+    pipelineDesc.depthInfo.compareFunc  = CompareFunction::LEQUAL;
     pipelineDesc.depthInfo.depthWriteEnabled = false;
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 3, bindingDescs, 3, attribDescs );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
@@ -173,8 +175,6 @@ void Render( Scene* scene )
 
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
-    Model* model = AssetManager::Get< Model >( "chalet" );
-
     {
         SceneGlobals globalData;
         globalData.V      = scene->camera.GetV();
@@ -193,17 +193,23 @@ void Render( Scene* scene )
     cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0, depthOnlyPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    // cmdBuf.BindVertexBuffer( vertexBuffer, 0, 0 );
-    // cmdBuf.BindIndexBuffer( indexBuffer, IndexType::UNSIGNED_INT );
-    // cmdBuf.Draw( 0, 3 );
-    // cmdBuf.EndRenderPass();
-    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
-    cmdBuf.BindIndexBuffer( model->indexBuffer );
-    for ( uint32_t meshIdx = 0; meshIdx < model->meshes.size(); ++meshIdx )
+    glm::mat4 VP = scene->camera.GetVP();
+    scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& renderer, Transform& transform )
     {
-        const Mesh& mesh = model->meshes[meshIdx];
-        cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
-    }
+        const auto& model = renderer.model;
+        auto M = transform.GetModelMatrix();
+        cmdBuf.PushConstants( depthOnlyPipeline, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof( glm::mat4 ), &M[0][0] );
+        
+        cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
+        cmdBuf.BindIndexBuffer(  model->indexBuffer );
+        
+        for ( size_t i = 0; i < model->meshes.size(); ++i )
+        {
+            const auto& mesh = model->meshes[i];
+            PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
+            cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
+        }
+    });
     cmdBuf.EndRenderPass();
 
     // LIT
@@ -213,15 +219,27 @@ void Render( Scene* scene )
     cmdBuf.SetScissor( FullScreenScissor() );
     cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0, litPipeline );
     cmdBuf.BindDescriptorSet( litDescriptorSet, 1, litPipeline );
-    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
-    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
-    cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuTexCoordOffset, 2 );
-    cmdBuf.BindIndexBuffer( model->indexBuffer );
-    for ( uint32_t meshIdx = 0; meshIdx < model->meshes.size(); ++meshIdx )
-    {
-        const Mesh& mesh = model->meshes[meshIdx];
-        cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
-    }
+    scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
+        {
+            const auto& model = modelRenderer.model;
+            
+            auto M = transform.GetModelMatrix();
+            auto N = glm::transpose( glm::inverse( M ) );
+            PerObjectData perObjData{ M, N };
+            cmdBuf.PushConstants( litPipeline, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof( PerObjectData ), &perObjData );
+
+            cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
+            cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
+            cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuTexCoordOffset, 2 );
+            cmdBuf.BindIndexBuffer( model->indexBuffer );
+
+            for ( size_t i = 0; i < model->meshes.size(); ++i )
+            {
+                const auto& mesh = modelRenderer.model->meshes[i];
+                PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
+                cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
+            }
+        });
     cmdBuf.EndRenderPass();
     
     // POST

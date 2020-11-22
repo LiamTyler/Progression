@@ -1,4 +1,5 @@
 #include "utils/serializer.hpp"
+#include "utils/filesystem.hpp"
 #include "utils/logger.hpp"
 #include "core/assert.hpp"
 #include <cstring>
@@ -28,6 +29,11 @@ bool Serializer::OpenForWrite( const std::string& fname )
 {
     PG_ASSERT( !IsOpen(), "Dont forget to close last file used" );
     filename = fname;
+    std::string parentPath = GetParentPath( fname );
+    if ( !parentPath.empty() && !PathExists( parentPath ) )
+    {
+        CreateDirectory( parentPath );
+    }
     writeFile.open( fname, std::ios::binary );
     if ( !writeFile || !writeFile.is_open() )
     {

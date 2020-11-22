@@ -9,6 +9,23 @@ namespace PG
 namespace Gfx
 {
 
+
+struct PhysicalDeviceProperties
+{
+    std::string name;
+    double timestampFrequency; // # timestamps per second
+    uint16_t apiVersionMajor;
+    uint16_t apiVersionMinor;
+    uint16_t apiVersionPatch;
+    bool isDiscrete;
+};
+
+struct PhysicalDeviceFeatures
+{
+    bool anisotropy = false;
+    bool bindless = false;
+};
+
 class PhysicalDevice
 {
 public:
@@ -18,18 +35,17 @@ public:
 
     std::string GetName() const;
     VkPhysicalDevice GetHandle() const;
-    VkPhysicalDeviceProperties GetProperties() const;
-    VkPhysicalDeviceFeatures GetFeatures() const;
+    PhysicalDeviceProperties GetProperties() const;
+    PhysicalDeviceFeatures GetFeatures() const;
     VkPhysicalDeviceMemoryProperties GetMemoryProperties() const;
     uint32_t GetGraphicsQueueFamily() const;
     uint32_t GetPresentationQueueFamily() const;
     uint32_t GetComputeQueueFamily() const;
 
 private:
-    std::string m_name;
     VkPhysicalDevice m_handle;
-    VkPhysicalDeviceProperties m_deviceProperties;
-    VkPhysicalDeviceFeatures m_deviceFeatures;
+    PhysicalDeviceProperties m_Properties;
+    PhysicalDeviceFeatures m_Features;
     VkPhysicalDeviceMemoryProperties m_memProperties;
     uint32_t m_graphicsFamily;
     uint32_t m_presentFamily;

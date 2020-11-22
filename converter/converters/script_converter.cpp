@@ -28,7 +28,7 @@ void Script_Parse( const rapidjson::Value& value )
     ScriptCreateInfo info;
     mapping.ForEachMember( value, info );
 
-    if ( !FileExists( info.filename ) )
+    if ( !PathExists( info.filename ) )
     {
         LOG_ERR( "Script file '%s' not found\n", info.filename.c_str() );
         g_parsingError = true;

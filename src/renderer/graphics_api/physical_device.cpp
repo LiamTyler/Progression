@@ -132,7 +132,7 @@ namespace Gfx
 {
 
 
-/** Return a rating of how good this device is. 0 is incompatible, and the higher the better. */
+// Return a rating of how good this device is. 0 is incompatible, and the higher the better
 static int RatePhysicalDevice( const PhysicalDevice& dev, bool headless )
 {
     if ( dev.GetGraphicsQueueFamily() == INVALID_QUEUE_FAMILY || dev.GetComputeQueueFamily() == INVALID_QUEUE_FAMILY )
@@ -164,18 +164,60 @@ static int RatePhysicalDevice( const PhysicalDevice& dev, bool headless )
         return 0;
     }
 
-    if ( !dev.GetFeatures().samplerAnisotropy )
+    const auto& features = dev.GetFeatures();
+    if ( !features.anisotropy || !features.bindless )
     {
         return 0;
     }
 
     int score = 10;
-    if ( dev.GetProperties().deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU )
+    if ( dev.GetProperties().isDiscrete )
     {
         score += 1000;
     }
     
     return score;
+}
+
+
+static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDevice )
+{
+    VkPhysicalDeviceProperties vkProperties;
+    vkGetPhysicalDeviceProperties( physicalDevice, &vkProperties );
+    PhysicalDeviceProperties p = {};
+    p.name            = vkProperties.deviceName;
+    p.apiVersionMajor = VK_VERSION_MAJOR( vkProperties.apiVersion );
+    p.apiVersionMinor = VK_VERSION_MINOR( vkProperties.apiVersion );
+    p.apiVersionPatch = VK_VERSION_PATCH( vkProperties.apiVersion );
+    p.isDiscrete      = vkProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+    // Vulkan's timestampPeriod is expressed in nanoseconds per clock tick
+    p.timestampFrequency = 1e9 / vkProperties.limits.timestampPeriod;
+
+    return p;
+}
+
+
+static PhysicalDeviceFeatures GetDeviceFeatures( VkPhysicalDevice physicalDevice )
+{
+    VkPhysicalDeviceFeatures vkFeatures;
+    vkGetPhysicalDeviceFeatures( physicalDevice, &vkFeatures );
+    VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
+    indexingFeatures.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+    indexingFeatures.pNext = nullptr;
+
+    VkPhysicalDeviceFeatures2 deviceFeatures{};
+    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
+    deviceFeatures.pNext = &indexingFeatures;
+    vkGetPhysicalDeviceFeatures2( physicalDevice, &deviceFeatures );
+    
+    PhysicalDeviceFeatures f = {};
+    f.anisotropy = vkFeatures.samplerAnisotropy == VK_TRUE;
+    if ( indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray )
+    {
+	    f.bindless = true;
+    }
+
+    return f;
 }
 
 
@@ -197,9 +239,9 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
     for ( uint32_t i = 0; i < deviceCount; ++i )
     {
         devices[i].m_handle  = vkDevices[i];
-        vkGetPhysicalDeviceProperties( vkDevices[i], &devices[i].m_deviceProperties );
-        vkGetPhysicalDeviceFeatures( vkDevices[i], &devices[i].m_deviceFeatures );
-        devices[i].m_deviceFeatures.samplerAnisotropy = VK_TRUE;
+        VkPhysicalDeviceProperties properties;
+        devices[i].m_Properties = GetDeviceProperties( vkDevices[i] );
+        devices[i].m_Features   = GetDeviceFeatures( vkDevices[i] );
 
         uint32_t extensionCount;
         VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( devices[i].m_handle, nullptr, &extensionCount, nullptr ) );
@@ -218,14 +260,13 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
         }
 
         FindQueueFamilies( headless, vkDevices[i], r_globals.surface, devices[i].m_graphicsFamily, devices[i].m_presentFamily, devices[i].m_computeFamily );
-        devices[i].m_name  = devices[i].m_deviceProperties.deviceName;
         devices[i].score   = RatePhysicalDevice( devices[i], headless );
     }
 
     for ( uint32_t i = 0; i < deviceCount; ++i )
     {
-        auto p = devices[i].m_deviceProperties;
-        LOG( "Device %d: '%s', api = %d.%d.%d\n", i, p.deviceName, VK_VERSION_MAJOR( p.apiVersion ), VK_VERSION_MINOR( p.apiVersion ), VK_VERSION_PATCH( p.apiVersion ) );
+        auto p = devices[i].GetProperties();
+        LOG( "Device %d: '%s', api = %d.%d.%d\n", i, p.name, p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
     }
     
     bool gpuFound = false;
@@ -233,14 +274,14 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
     {
         for ( const auto& device : devices )
         {
-            if ( device.m_name == preferredGpu )
+            if ( device.GetName() == preferredGpu )
             {
                 *this = device;
                 break;
             }
         }
 
-        if ( r_globals.physicalDevice.m_name != preferredGpu )
+        if ( r_globals.physicalDevice.GetName() != preferredGpu )
         {
             LOG_WARN( "GPU '%s' not found. Checking other gpus\n" );
         }
@@ -278,10 +319,10 @@ bool PhysicalDevice::ExtensionSupported( const std::string& extensionName ) cons
 }
 
 
-std::string PhysicalDevice::GetName() const                                  { return m_name; }
+std::string PhysicalDevice::GetName() const                                  { return m_Properties.name; }
 VkPhysicalDevice PhysicalDevice::GetHandle() const                           { return m_handle; }
-VkPhysicalDeviceProperties PhysicalDevice::GetProperties() const             { return m_deviceProperties; }
-VkPhysicalDeviceFeatures PhysicalDevice::GetFeatures() const                 { return m_deviceFeatures; }
+PhysicalDeviceProperties PhysicalDevice::GetProperties() const               { return m_Properties; }
+PhysicalDeviceFeatures PhysicalDevice::GetFeatures() const                   { return m_Features; }
 VkPhysicalDeviceMemoryProperties PhysicalDevice::GetMemoryProperties() const { return m_memProperties; }
 uint32_t PhysicalDevice::GetGraphicsQueueFamily() const                      { return m_graphicsFamily; }
 uint32_t PhysicalDevice::GetPresentationQueueFamily() const                  { return m_presentFamily; }

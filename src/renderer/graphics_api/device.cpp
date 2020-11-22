@@ -41,13 +41,25 @@ namespace Gfx
             queueCreateInfos.push_back( queueCreateInfo );
         }
 
-        VkPhysicalDeviceFeatures features = pDev.GetFeatures();
+        const auto& features = pDev.GetFeatures();
+        VkPhysicalDeviceFeatures enabledFeatures;
+        enabledFeatures.samplerAnisotropy = features.anisotropy;
         VkDeviceCreateInfo createInfo      = {};
         createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
         createInfo.queueCreateInfoCount    = static_cast< uint32_t >( queueCreateInfos.size() );
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
-        createInfo.pEnabledFeatures        = &features;
+        createInfo.pEnabledFeatures        = &enabledFeatures;
 
+        if ( features.bindless )
+        {
+            VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
+            indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+            indexingFeatures.pNext = nullptr;
+            indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
+            indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+            createInfo.pNext = &indexingFeatures;
+        }
+        
         std::vector< const char* > extensions;
         if ( !headless )
         {

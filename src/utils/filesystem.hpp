@@ -17,7 +17,7 @@ void DeleteFile( const std::string& filename );
 // Same as rm -rf
 void DeleteRecursive( const std::string& path );
 
-bool FileExists( const std::string& filename );
+bool PathExists( const std::string& path );
 
 std::string GetCWD();
 

@@ -63,7 +63,7 @@ private:
         for ( const auto& dir : includeSearchDirs )
         {
             std::string filename = dir + relativeInclude;
-            if ( FileExists( filename ) )
+            if ( PathExists( filename ) )
             {
                 absolutePath = filename;
                 return true;
@@ -195,7 +195,8 @@ struct ShaderReflectData
 };
 
 
-static void UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLayout& layout, unsigned set, unsigned binding )
+// returns true on ERROR
+static bool UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLayout& layout, unsigned set, unsigned binding )
 {
 	uint32_t& size = layout.sets[set].arraySizes[binding];
 	if ( !type.array.empty() )
@@ -204,7 +205,7 @@ static void UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLa
         {
 			LOG_ERR( "Array dimension must be 1.\n" );
         }
-		else if (!type.array_size_literal.front())
+		else if ( !type.array_size_literal.front() )
         {
 			LOG_ERR( "Array dimension must be a literal.\n" );
         }
@@ -212,8 +213,20 @@ static void UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLa
 		{
 			if ( type.array.front() == 0 )
 			{
-				// Unsized runtime array.
-                LOG_ERR( "Currently not supporting bindless / descriptor indexing features\n" );
+                // bindless
+                if ( binding != 0 )
+                {
+					LOG_ERR( "Bindless textures can only be used with binding = 0 in a set.\n" );
+                }
+				if ( (type.basetype != spirv_cross::SPIRType::Image && type.basetype != spirv_cross::SPIRType::SampledImage) || type.image.dim == spv::DimBuffer )
+                {
+					LOG_ERR( "Can only use bindless for images.\n" );
+                }
+				else
+                {
+                    size = UINT32_MAX;
+                    return false;
+                }
 			}
 			else if ( size && size != type.array.front() )
             {
@@ -226,6 +239,7 @@ static void UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLa
             else
             {
 				size = type.array.front();
+                return false;
             }
 		}
 	}
@@ -233,10 +247,16 @@ static void UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLa
 	{
 		if ( size && size != 1 )
         {
-			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.\n", set, binding );
+			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent. Non-array type has size > 1?\n", set, binding );
         }
-		size = 1;
+        else
+        {
+		    size = 1;
+            return false;
+        }
 	}
+
+    return true;
 }
 
 
@@ -258,6 +278,7 @@ static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderRefle
     reflectData.entryPoint = entryPoints[0].name;
     reflectData.stage = SpirvCrossShaderStageToPG( entryPoints[0].execution_model );
 
+    uint32_t arrayErrors = 0;
 	auto resources = compiler.get_shader_resources();
 	for ( const auto& image : resources.sampled_images )
 	{
@@ -272,7 +293,7 @@ static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderRefle
         {
 			reflectData.layout.sets[set].sampledImageMask |= 1u << binding;
         }
-		UpdateArraySize( type, reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( type, reflectData.layout, set, binding );
 	}
     
 	for ( const Resource& image : resources.separate_images )
@@ -288,7 +309,7 @@ static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderRefle
         {
 			reflectData.layout.sets[set].separateImageMask |= 1u << binding;
         }
-		UpdateArraySize( type, reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( type, reflectData.layout, set, binding );
 	}
 
     for ( const Resource& image : resources.storage_images )
@@ -304,7 +325,7 @@ static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderRefle
         {
 			reflectData.layout.sets[set].storageImageMask |= 1u << binding;
         }
-		UpdateArraySize( type, reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( type, reflectData.layout, set, binding );
 	}
 
     for ( const Resource& buffer : resources.uniform_buffers )
@@ -312,7 +333,7 @@ static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderRefle
 		uint32_t set     = compiler.get_decoration( buffer.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( buffer.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].uniformBufferMask |= 1u << binding;
-		UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
 	}
     
 	for ( const Resource& buffer : resources.storage_buffers )
@@ -320,15 +341,15 @@ static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderRefle
 		uint32_t set     = compiler.get_decoration( buffer.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( buffer.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].storageBufferMask |= 1u << binding;
-		UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
-	}
+		arrayErrors += UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
+	}   
     
 	for ( const Resource& sampler : resources.separate_samplers )
 	{
 		uint32_t set     = compiler.get_decoration( sampler.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( sampler.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].samplerMask |= 1u << binding;
-        UpdateArraySize( compiler.get_type( sampler.type_id ), reflectData.layout, set, binding );
+        arrayErrors += UpdateArraySize( compiler.get_type( sampler.type_id ), reflectData.layout, set, binding );
 	}
 
     for ( const Resource& attachmentImg : resources.subpass_inputs )
@@ -336,8 +357,13 @@ static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderRefle
 		uint32_t set     = compiler.get_decoration( attachmentImg.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( attachmentImg.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].inputAttachmentMask |= 1u << binding;
-		UpdateArraySize( compiler.get_type( attachmentImg.type_id ), reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( compiler.get_type( attachmentImg.type_id ), reflectData.layout, set, binding );
 	}
+
+    if ( arrayErrors > 0 )
+    {
+        return false;
+    }
    
 	for ( const Resource& attrib : resources.stage_inputs )
 	{
@@ -377,6 +403,7 @@ static bool CompilePreprocessedShaderToSPIRV( const std::string& shaderFilename,
     options.SetOptimizationLevel( shaderc_optimization_level_performance );
 #else
     options.SetOptimizationLevel( shaderc_optimization_level_zero );
+    options.SetGenerateDebugInfo();
 #endif // #if USING( PG_OPTIMIZE_SHADERS )
     
     options.AddMacroDefinition( "PG_SHADER_CODE", "1" );
@@ -392,6 +419,10 @@ static bool CompilePreprocessedShaderToSPIRV( const std::string& shaderFilename,
         LOG( "Preprocessed shader for reference:\n---------------------------------------------\n" );
         LOG( "%s\n---------------------------------------------\n", shaderSource.c_str() );
         return false;
+    }
+    else if ( module.GetNumWarnings() > 0 )
+    {
+        LOG_WARN( "Compiled shader '%s' failed: '%s'\n", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
     }
 
     outputSpirv = { module.cbegin(), module.cend() };

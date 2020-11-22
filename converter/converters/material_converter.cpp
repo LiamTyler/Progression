@@ -27,7 +27,7 @@ void Material_Parse( const rapidjson::Value& value )
     std::string pgMtlFilename;
     mapping.ForEachMember( value, pgMtlFilename );
 
-    if ( !FileExists( pgMtlFilename ) )
+    if ( !PathExists( pgMtlFilename ) )
     {
         LOG_ERR( "Material file '%s' not found\n", pgMtlFilename.c_str() );
         g_parsingError = true;
@@ -99,6 +99,8 @@ static bool Material_ConvertSingle( const std::string& filename )
     {
         return false;
     }
+    uint16_t numMaterials = static_cast< uint16_t >( createInfos.size() );
+    serializer.Write( numMaterials );
     for ( const auto& info : createInfos )
     {
         if ( !Fastfile_Material_Save( &info, &serializer ) )

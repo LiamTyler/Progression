@@ -181,7 +181,7 @@ bool BuildFastfile( const std::string& assetFile )
     LOG( "\nRunning build fastfile...\n" );
     auto startTime = std::chrono::system_clock::now();
     std::string ffName = PG_ASSET_DIR "cache/fastfiles/" + GetFilenameStem( assetFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
-    if ( g_outOfDateAssets == 0 && FileExists( ffName ) && GetFileTimestamp( ffName ) > s_latestAssetTimestamp )
+    if ( g_outOfDateAssets == 0 && PathExists( ffName ) && GetFileTimestamp( ffName ) > s_latestAssetTimestamp )
     {
         LOG( "Fastfile '%s' is up to date, not rebuilding\n", ffName.c_str() );
         return true;

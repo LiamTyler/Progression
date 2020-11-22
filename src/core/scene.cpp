@@ -3,9 +3,7 @@
 #include "core/assert.hpp"
 //#include "core/lua.hpp"
 #include "core/time.hpp"
-//#include "components/factory.hpp"
-//#include "components/animation_component.hpp"
-//#include "components/script_component.hpp"
+#include "ecs/component_factory.hpp"
 //#include "resource/image.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/logger.hpp"
@@ -69,6 +67,16 @@ static void ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
 }
 
 
+static void ParseEntity( const rapidjson::Value& v, Scene* scene )
+{
+    auto e = scene->registry.create();
+    for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
+    {
+        ParseComponent( it->value, e, scene->registry, it->name.GetString() );
+    }
+}
+
+
 static void ParsePointLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< PointLight& > mapping(
@@ -110,16 +118,6 @@ static void ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 
     mapping.ForEachMember( value, scene->spotLights[scene->numSpotLights] );
     scene->numSpotLights++;
-}
-
-
-static void ParseEntity( const rapidjson::Value& v, Scene* scene )
-{
-    // auto e = scene->registry.create();
-    // for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
-    // {
-    //     ParseComponent( it->value, e, scene->registry, it->name.GetString() );
-    // }
 }
 
 

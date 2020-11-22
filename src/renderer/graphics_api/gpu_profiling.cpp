@@ -44,7 +44,7 @@ namespace Profile
         VK_CHECK_RESULT( vkCreateQueryPool( r_globals.device.GetHandle(), &createInfo, nullptr, &s_queryPool ) );
         //PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_queryPool, "GPU Profiling Timestamps" );
 
-        s_timestampToMillisInv = 1.0 / (r_globals.physicalDevice.GetProperties().timestampFrequency / 1e6);
+        s_timestampToMillisInv = 1.0 / (r_globals.physicalDevice.GetProperties().timestampFrequency / 1000.0);
         s_nextFreeIndex = 0;
         s_totalSamples = 0;
 

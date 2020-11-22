@@ -189,8 +189,8 @@ void Render( Scene* scene )
 
     // DEPTH
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_DEPTH_PREPASS ), *GetFramebuffer( GFX_RENDER_PASS_DEPTH_PREPASS ) );
-    cmdBuf.BindPipeline( depthOnlyPipeline );
-    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0, depthOnlyPipeline );
+    cmdBuf.BindPipeline( &depthOnlyPipeline );
+    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0);
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
     glm::mat4 VP = scene->camera.GetVP();
@@ -198,7 +198,7 @@ void Render( Scene* scene )
     {
         const auto& model = renderer.model;
         auto M = transform.GetModelMatrix();
-        cmdBuf.PushConstants( depthOnlyPipeline, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof( glm::mat4 ), &M[0][0] );
+        cmdBuf.PushConstants( 0, sizeof( glm::mat4 ), &M[0][0] );
         
         cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
         cmdBuf.BindIndexBuffer(  model->indexBuffer );
@@ -214,11 +214,11 @@ void Render( Scene* scene )
 
     // LIT
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_LIT ), *GetFramebuffer( GFX_RENDER_PASS_LIT ) );
-    cmdBuf.BindPipeline( litPipeline );
+    cmdBuf.BindPipeline( &litPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0, litPipeline );
-    cmdBuf.BindDescriptorSet( litDescriptorSet, 1, litPipeline );
+    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0 );
+    cmdBuf.BindDescriptorSet( litDescriptorSet, 1 );
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
         {
             const auto& model = modelRenderer.model;
@@ -226,7 +226,9 @@ void Render( Scene* scene )
             auto M = transform.GetModelMatrix();
             auto N = glm::transpose( glm::inverse( M ) );
             PerObjectData perObjData{ M, N };
-            cmdBuf.PushConstants( litPipeline, VK_SHADER_STAGE_VERTEX_BIT, 0, sizeof( PerObjectData ), &perObjData );
+            cmdBuf.PushConstants( 0, sizeof( PerObjectData ), &perObjData );
+            uint32_t texIndex = 0;
+            cmdBuf.PushConstants( 128, sizeof( uint32_t ), &texIndex );
 
             cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
             cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
@@ -244,10 +246,10 @@ void Render( Scene* scene )
     
     // POST
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_POST_PROCESS ), r_globals.swapchainFramebuffers[swapChainImageIndex] );
-    cmdBuf.BindPipeline( postProcessPipeline );
+    cmdBuf.BindPipeline( &postProcessPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    cmdBuf.BindDescriptorSet( postProcessDescriptorSet, 0, postProcessPipeline );
+    cmdBuf.BindDescriptorSet( postProcessDescriptorSet, 0 );
     cmdBuf.Draw( 0, 6 );
     cmdBuf.EndRenderPass();
 

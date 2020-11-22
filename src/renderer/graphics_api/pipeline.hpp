@@ -183,6 +183,7 @@ namespace Gfx
         VkPipeline GetHandle() const;
         VkPipelineLayout GetLayoutHandle() const;
         VkPipelineBindPoint GetPipelineBindPoint() const;
+        VkShaderStageFlags GetPushConstantShaderStages() const;
         const PipelineResourceLayout* GetResourceLayout() const;
         const DescriptorSetLayout* GetDescriptorSetLayout( int set ) const;
 

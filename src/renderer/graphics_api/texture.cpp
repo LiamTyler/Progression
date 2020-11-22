@@ -1,6 +1,7 @@
 #include "renderer/graphics_api/texture.hpp"
 #include "core/assert.hpp"
 //#include "renderer/texture_manager.hpp"
+#include <algorithm>
 #include <cmath>
 
 namespace PG

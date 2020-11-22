@@ -32,9 +32,9 @@ namespace Gfx
         void EndRecording() const;
         void BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const;
         void EndRenderPass() const;
-        void BindPipeline( const Pipeline& pipeline ) const;
-        void BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber, const Pipeline& pipeline ) const;
-        void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet, const Pipeline& pipeline ) const;
+        void BindPipeline( Pipeline* pipeline );
+        void BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber ) const;
+        void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet ) const;
         void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, uint32_t firstBinding = 0 ) const;
         void BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding = 0 ) const;
         void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;
@@ -44,7 +44,7 @@ namespace Gfx
         void SetScissor( const Scissor& scissor ) const;
         void SetDepthBias( float constant, float clamp, float slope ) const;
         
-        void PushConstants( const Pipeline& pipeline, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, void* data ) const;
+        void PushConstants( uint32_t offset, uint32_t size, void* data ) const;
 
         void CopyBuffer( const Buffer& dst, const Buffer& src, size_t size = VK_WHOLE_SIZE, size_t srcOffset = 0, size_t dstOffset = 0 ) const;
 
@@ -56,6 +56,7 @@ namespace Gfx
         VkDevice m_device        = VK_NULL_HANDLE;
         VkCommandPool m_pool     = VK_NULL_HANDLE;
         VkCommandBuffer m_handle = VK_NULL_HANDLE;
+        Pipeline* m_boundPipeline;
     };
 
     typedef enum CommandPoolCreateFlagBits

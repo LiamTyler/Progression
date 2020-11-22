@@ -239,7 +239,6 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
     for ( uint32_t i = 0; i < deviceCount; ++i )
     {
         devices[i].m_handle  = vkDevices[i];
-        VkPhysicalDeviceProperties properties;
         devices[i].m_Properties = GetDeviceProperties( vkDevices[i] );
         devices[i].m_Features   = GetDeviceFeatures( vkDevices[i] );
 
@@ -266,7 +265,7 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
     for ( uint32_t i = 0; i < deviceCount; ++i )
     {
         auto p = devices[i].GetProperties();
-        LOG( "Device %d: '%s', api = %d.%d.%d\n", i, p.name, p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
+        LOG( "Device %d: '%s', api = %d.%d.%d\n", i, p.name.c_str(), p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
     }
     
     bool gpuFound = false;

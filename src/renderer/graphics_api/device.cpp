@@ -42,7 +42,7 @@ namespace Gfx
         }
 
         const auto& features = pDev.GetFeatures();
-        VkPhysicalDeviceFeatures enabledFeatures;
+        VkPhysicalDeviceFeatures enabledFeatures = {};
         enabledFeatures.samplerAnisotropy = features.anisotropy;
         VkDeviceCreateInfo createInfo      = {};
         createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -176,6 +176,11 @@ namespace Gfx
         VkDescriptorSetLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
 	    std::vector< VkDescriptorSetLayoutBinding > bindings;
 
+        // bindless info
+        bool bindless = false;
+        VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT };
+        VkDescriptorBindingFlagsEXT bindFlag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
+
 	    for ( unsigned i = 0; i < PG_MAX_NUM_BINDINGS_PER_SET; ++i )
 	    {
 		    auto stages = stagesForBindings[i];
@@ -184,7 +189,13 @@ namespace Gfx
 			    continue;
             }
 
-		    unsigned arraySize = layout.arraySizes[i];
+		    uint32_t arraySize = layout.arraySizes[i];
+            if ( arraySize == UINT32_MAX )
+            {
+                bindless = true;
+                arraySize = 100000;
+            }
+
 		    unsigned types = 0;
 		    if ( layout.sampledImageMask & (1u << i) )
 		    {
@@ -247,8 +258,25 @@ namespace Gfx
 
 	    if ( !bindings.empty() )
 	    {
-		    createInfo.bindingCount = static_cast< uint32_t >( bindings.size() );
-		    createInfo.pBindings    = bindings.data();
+            if ( bindless )
+            {
+                PG_ASSERT( r_globals.physicalDevice.GetFeatures().bindless, "Current device doesn't support bindless descriptors!\n" );
+                if ( bindings.size() != 1 )
+                {
+                    LOG_ERR( "Using bindless, but binding count != 1\n" );
+                    return false;
+                }
+                else
+                {
+                    bindFlag                    = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
+                    extendedInfo.pNext          = nullptr;
+                    extendedInfo.bindingCount   = 1u;
+                    extendedInfo.pBindingFlags  = &bindFlag;
+                    createInfo.pNext            = &extendedInfo;
+                }
+            }
+            createInfo.bindingCount = static_cast< uint32_t >( bindings.size() );
+            createInfo.pBindings    = bindings.data();
         }
         else
         {
@@ -561,7 +589,7 @@ namespace Gfx
 				    {
 					    arraySize = 1;
 				    }
-				    else
+				    else if ( arraySize != UINT32_MAX )
 				    {
 					    for ( unsigned i = 1; i < arraySize; ++i )
 					    {

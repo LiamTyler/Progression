@@ -74,21 +74,22 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::BindPipeline( const Pipeline& pipeline ) const
+    void CommandBuffer::BindPipeline( Pipeline* pipeline )
     {
-        vkCmdBindPipeline( m_handle, pipeline.GetPipelineBindPoint(), pipeline.GetHandle() );
+        vkCmdBindPipeline( m_handle, pipeline->GetPipelineBindPoint(), pipeline->GetHandle() );
+        m_boundPipeline = pipeline;
     }
 
 
-    void CommandBuffer::BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber, const Pipeline& pipeline ) const
+    void CommandBuffer::BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber ) const
     {
-        vkCmdBindDescriptorSets( m_handle, pipeline.GetPipelineBindPoint(), pipeline.GetLayoutHandle(), setNumber, 1, (VkDescriptorSet*) &set, 0, nullptr );
+        vkCmdBindDescriptorSets( m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), setNumber, 1, (VkDescriptorSet*) &set, 0, nullptr );
     }
 
 
-    void CommandBuffer::BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet, const Pipeline& pipeline ) const
+    void CommandBuffer::BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet ) const
     {
-        vkCmdBindDescriptorSets( m_handle, pipeline.GetPipelineBindPoint(), pipeline.GetLayoutHandle(), firstSet, numSets, (VkDescriptorSet*) sets, 0, nullptr );
+        vkCmdBindDescriptorSets( m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), firstSet, numSets, (VkDescriptorSet*) sets, 0, nullptr );
     }
 
 
@@ -159,9 +160,9 @@ namespace Gfx
     }
 
 
-    void CommandBuffer::PushConstants( const Pipeline& pipeline, VkShaderStageFlags stageFlags, uint32_t offset, uint32_t size, void* data ) const
+    void CommandBuffer::PushConstants( uint32_t offset, uint32_t size, void* data ) const
     {
-        vkCmdPushConstants( m_handle, pipeline.GetLayoutHandle(), stageFlags, offset, size, data );
+        vkCmdPushConstants( m_handle, m_boundPipeline->GetLayoutHandle(), m_boundPipeline->GetPushConstantShaderStages(), offset, size, data );
     }
 
 

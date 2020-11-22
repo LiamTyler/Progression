@@ -49,6 +49,7 @@ namespace Gfx
     VkPipelineLayout Pipeline::GetLayoutHandle() const { return m_pipelineLayout; }
     const PipelineResourceLayout* Pipeline::GetResourceLayout() const { return &m_resourceLayout; }
     VkPipelineBindPoint Pipeline::GetPipelineBindPoint() const { return m_isCompute ? VK_PIPELINE_BIND_POINT_COMPUTE : VK_PIPELINE_BIND_POINT_GRAPHICS; };
+    VkShaderStageFlags Pipeline::GetPushConstantShaderStages() const { return m_resourceLayout.pushConstantRange.stageFlags; }
 
 
     const DescriptorSetLayout* Pipeline::GetDescriptorSetLayout( int set ) const

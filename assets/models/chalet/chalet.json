@@ -1,0 +1,6 @@
+{ "AssetList":
+[
+	{ "Image": { "name": "chalet", "filename": "chalet/chalet.jpg", "semantic": "DIFFUSE", "imageType": "TYPE_2D" } },
+	{ "MatFile": { "filename": "chalet/chalet.pgMtl" } },
+	{ "Model": { "name": "chalet", "filename": "chalet/chalet.pgModel" } }
+]}

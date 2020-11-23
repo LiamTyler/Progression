@@ -252,14 +252,15 @@ static bool CreateDepthTexture()
     info.height  = r_globals.swapchain.GetHeight();
     info.sampler = "nearest_clamped_nearest";
     info.usage   = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    r_globals.depthTex = r_globals.device.NewTexture( info, false, "main depth texture" );
+    info.addToBindlessArray = false;
+    r_globals.depthTex = r_globals.device.NewTexture( info, "main depth texture" );
 
     info.format  = PixelFormat::R16_G16_B16_A16_FLOAT;
     info.width   = r_globals.swapchain.GetWidth();
     info.height  = r_globals.swapchain.GetHeight();
     info.sampler = "nearest_clamped_nearest";
     info.usage   = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    r_globals.colorTex = r_globals.device.NewTexture( info, false, "main color hdr tex" );
+    r_globals.colorTex = r_globals.device.NewTexture( info, "main color hdr tex" );
 
     return r_globals.depthTex && r_globals.colorTex;
 }

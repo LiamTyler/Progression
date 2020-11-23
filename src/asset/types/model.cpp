@@ -181,7 +181,6 @@ bool Model_Load( Model* model, const ModelCreateInfo& createInfo )
 }
 
 
-
 bool Fastfile_Model_Load( Model* model, Serializer* serializer )
 {
     PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );

@@ -24,12 +24,11 @@ set(
     
     ${PROGRESSION_DIR}/src/core/assert.hpp
     ${PROGRESSION_DIR}/src/core/core_defines.hpp
+    ${PROGRESSION_DIR}/src/core/image_calculate_size.cpp
+    ${PROGRESSION_DIR}/src/core/image_calculate_size.hpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
-    ${PROGRESSION_DIR}/src/core/platform_defines.hpp
-    
-    ${PROGRESSION_DIR}/src/renderer/graphics_api/texture.cpp
-    ${PROGRESSION_DIR}/src/renderer/graphics_api/texture.hpp
+    ${PROGRESSION_DIR}/src/core/platform_defines.hpp 
     
     ${PROGRESSION_DIR}/src/utils/cpu_profile.hpp
     ${PROGRESSION_DIR}/src/utils/file_dependency.cpp
@@ -89,6 +88,8 @@ set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRAR
 include_directories(
     ${PROGRESSION_DIR}/src/
     ${PROGRESSION_DIR}/ext/
+	${PROGRESSION_DIR}/assets/
+    ${PROGRESSION_DIR}/assets/shaders/
     ${Vulkan_INCLUDE_DIR}
 )
 

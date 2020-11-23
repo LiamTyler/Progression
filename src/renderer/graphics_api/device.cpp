@@ -1,11 +1,13 @@
 #include "renderer/graphics_api/device.hpp"
 #include "core/assert.hpp"
+#include "core/image_calculate_size.hpp"
 #include "core/platform_defines.hpp"
 #include "core/pixel_formats.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
-#include "renderer/vulkan.hpp"
 #include "renderer/render_system.hpp"
+#include "renderer/r_texture_manager.hpp"
+#include "renderer/vulkan.hpp"
 #include "utils/bitops.hpp"
 #include "utils/logger.hpp"
 #include <algorithm>
@@ -193,7 +195,7 @@ namespace Gfx
             if ( arraySize == UINT32_MAX )
             {
                 bindless = true;
-                arraySize = 100000;
+                arraySize = PG_MAX_BINDLESS_TEXTURES;
             }
 
 		    unsigned types = 0;
@@ -396,7 +398,7 @@ namespace Gfx
     }
 
 
-    Texture Device::NewTexture( const TextureDescriptor& desc, bool managed, const std::string& name ) const
+    Texture Device::NewTexture( const TextureDescriptor& desc, const std::string& name ) const
     {
         bool isDepth = PixelFormatHasDepthFormat( desc.format );
         VkImageCreateInfo imageInfo = {};
@@ -447,9 +449,9 @@ namespace Gfx
         VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
         PG_ASSERT( FormatSupported( vkFormat, features ) );
         tex.m_imageView = CreateImageView( tex.m_image, vkFormat, isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, desc.mipLevels, desc.arrayLayers );
-        if ( managed )
+        if ( desc.addToBindlessArray )
         {
-            tex.m_textureSlot = ~0; //TextureManager::GetOpenSlot( &tex );
+            tex.m_bindlessArrayIndex = TextureManager::GetOpenSlot( &tex );
         }
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_IMAGE_NAME( tex, name ) );
 
@@ -457,10 +459,10 @@ namespace Gfx
     }
 
 
-    Texture Device::NewTextureFromBuffer( TextureDescriptor& desc, void* data, bool managed, const std::string& name ) const
+    Texture Device::NewTextureFromBuffer( TextureDescriptor& desc, void* data, const std::string& name ) const
     {
         desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-        Texture tex          = NewTexture( desc, managed, name );
+        Texture tex          = NewTexture( desc, name );
         size_t imSize        = CalculateTotalImageBytes( desc.format, desc.width, desc.height, desc.depth, desc.arrayLayers, desc.mipLevels );
         Buffer stagingBuffer = NewBuffer( imSize, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
         stagingBuffer.Map();

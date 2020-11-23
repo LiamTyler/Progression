@@ -15,4 +15,11 @@ struct PerObjectData
     MAT4 N;
 };
 
+struct MaterialData
+{
+    VEC4 albedoTint;
+    UINT albedoTextureIndex;
+};
+
 #define PG_SCENE_GLOBALS_BUFFER_SET 0
+#define PG_BINDLESS_TEXTURE_SET     1

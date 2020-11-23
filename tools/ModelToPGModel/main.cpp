@@ -82,11 +82,10 @@ int main( int argc, char* argv[] )
     LOG( "Filename = '%s'\n", GetAbsolutePath( filename ).c_str() );
     LOG( "Texture search directory = '%s'\n", g_textureSearchDir.c_str() );
     LOG( "Output directory = '%s'\n", g_outputDir.c_str() );
-    LOG( "Output directory = '%s'\n", g_parentToOutputDir.c_str() );
     LOG( "Loading model...\n" );
 
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile( filename.c_str(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace | aiProcess_RemoveRedundantMaterials );
+    const aiScene* scene = importer.ReadFile( filename.c_str(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace );
     if ( !scene )
     {
         LOG_ERR( "Error parsing model file '%s': '%s'\n", filename.c_str(), importer.GetErrorString() );
@@ -149,19 +148,19 @@ int main( int argc, char* argv[] )
     {
         const aiMesh* paiMesh = scene->mMeshes[meshIdx];
         const aiVector3D Zero3D( 0.0f, 0.0f, 0.0f );
-
+    
         for ( uint32_t vIdx = 0; vIdx < paiMesh->mNumVertices ; ++vIdx )
         {
             const aiVector3D* pPos    = &paiMesh->mVertices[vIdx];
             const aiVector3D* pNormal = &paiMesh->mNormals[vIdx];
             vertices.emplace_back( pPos->x, pPos->y, pPos->z );
             normals.emplace_back( pNormal->x, pNormal->y, pNormal->z );
-
+    
             if ( anyMeshHasUVs )
             {
                 const aiVector3D* pTexCoord = &paiMesh->mTextureCoords[0][vIdx];
                 uvs.emplace_back( pTexCoord->x, pTexCoord->y );
-
+    
                 const aiVector3D* pTangent = &paiMesh->mTangents[vIdx];
                 glm::vec3 t( pTangent->x, pTangent->y, pTangent->z );
                 const glm::vec3& n = normals[vIdx];
@@ -174,7 +173,7 @@ int main( int argc, char* argv[] )
                 tangents.emplace_back( 0, 0, 0 );
             }
         }
-
+    
         for ( size_t iIdx = 0; iIdx < paiMesh->mNumFaces; ++iIdx )
         {
             const aiFace& face = paiMesh->mFaces[iIdx];
@@ -184,7 +183,7 @@ int main( int argc, char* argv[] )
             indices.push_back( face.mIndices[2] );
         }
     }
-
+    
     LOG( "Vertices: %d\n", vertices.size() );
     LOG( "Normals: %d\n", normals.size() );
     LOG( "uvs: %d\n", uvs.size() );
@@ -194,7 +193,7 @@ int main( int argc, char* argv[] )
     
     CreateDirectory( g_outputDir );
     
-    std::vector< std::string > materialNames = { "default" };
+    std::vector< std::string > materialNames;
     std::vector< ImageInfo > imageInfos;
     if ( !SaveMaterials( filename, scene, materialNames, imageInfos ) )
     {
@@ -287,17 +286,20 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
         const aiMaterial* assimpMat = scene->mMaterials[mtlIdx];
         assimpMat->Get( AI_MATKEY_NAME, assimpMatName );
         name = assimpMatName.C_Str();
-        materialNames.push_back( name );
-
+        
         color = aiColor3D( 0.f, 0.f, 0.f );
         assimpMat->Get( AI_MATKEY_COLOR_DIFFUSE, color );
         Kd = { color.r, color.g, color.b };
 
-        // check if this is the default Assimp material
+        // If the model isn't loaded with the 'aiProcess_RemoveRedundantMaterials' flag, or there was no mtl file specified,
+        // assimp automatically adds a default material before loading the others.
+        // "default" is an always loaded material in the engine to use instead of the assimp one
         if ( name == "DefaultMaterial" && glm::length( Kd - glm::vec3( .6f ) ) < 0.01f )
         {
+            materialNames.push_back( "default" );
             continue;
         }
+        materialNames.push_back( name );
 
         if ( assimpMat->GetTextureCount( aiTextureType_DIFFUSE ) > 0 )
         {

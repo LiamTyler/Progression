@@ -1,4 +1,4 @@
 { "Materials":
 [
-	{ "name": "0", "Kd": [ 0.588000, 0.588000, 0.588000 ], "map_Kd_name": "chalet" }
+	{ "name": "chalet", "Kd": [ 0.800000, 0.800000, 0.800000 ], "map_Kd_name": "chalet" }
 ]}

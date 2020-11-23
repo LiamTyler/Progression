@@ -4,6 +4,7 @@
 #include "renderer/r_globals.hpp"
 #include "renderer/r_init.hpp"
 #include "renderer/r_renderpasses.hpp"
+#include "renderer/r_texture_manager.hpp"
 #include "asset/asset_manager.hpp"
 #include "glm/glm.hpp"
 #include "shaders/c_shared/structs.h"
@@ -32,7 +33,7 @@ DescriptorSet sceneGlobalDescriptorSet;
 Buffer sceneGlobals;
 
 Texture chaletTex;
-DescriptorSet litDescriptorSet;
+DescriptorSet bindlessTexturesDescriptorSet;
 
 namespace PG
 {
@@ -131,7 +132,7 @@ bool Init( bool headless )
     };
     r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
-    litDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[1] );
+    bindlessTexturesDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[1] );
 
     return true;
 }
@@ -153,19 +154,31 @@ void Shutdown()
 }
 
 
+MaterialData CPUMaterialToGPU( Material* material )
+{
+    MaterialData gpuMaterial;
+    gpuMaterial.albedoTint = glm::vec4( material->Kd, 1 );
+    gpuMaterial.albedoTextureIndex = material->map_Kd ? material->map_Kd->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+
+    return gpuMaterial;
+}
+
+
 void Render( Scene* scene )
 {
     PG_ASSERT( scene != nullptr );
-    auto chaletTex = AssetManager::Get< GfxImage >( "chalet" );
-    std::vector< VkDescriptorImageInfo > imgDescriptors =
-    {
-        DescriptorImageInfo( chaletTex->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
-    };
-    std::vector< VkWriteDescriptorSet > writeDescriptorSets =
-    {
-        WriteDescriptorSet( litDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
-    };
-    r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+    
+    // auto chaletTex = AssetManager::Get< GfxImage >( "chalet" );
+    // std::vector< VkDescriptorImageInfo > imgDescriptors =
+    // {
+    //     DescriptorImageInfo( chaletTex->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
+    // };
+    // std::vector< VkWriteDescriptorSet > writeDescriptorSets =
+    // {
+    //     WriteDescriptorSet( litDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
+    // };
+    // r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+    Gfx::TextureManager::UpdateDescriptors( bindlessTexturesDescriptorSet );
 
     auto swapChainImageIndex = r_globals.swapchain.AcquireNextImage( r_globals.presentCompleteSemaphore );
 
@@ -218,7 +231,7 @@ void Render( Scene* scene )
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
     cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0 );
-    cmdBuf.BindDescriptorSet( litDescriptorSet, 1 );
+    cmdBuf.BindDescriptorSet( bindlessTexturesDescriptorSet, 1 );
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
         {
             const auto& model = modelRenderer.model;
@@ -227,8 +240,6 @@ void Render( Scene* scene )
             auto N = glm::transpose( glm::inverse( M ) );
             PerObjectData perObjData{ M, N };
             cmdBuf.PushConstants( 0, sizeof( PerObjectData ), &perObjData );
-            uint32_t texIndex = 0;
-            cmdBuf.PushConstants( 128, sizeof( uint32_t ), &texIndex );
 
             cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
             cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
@@ -237,7 +248,10 @@ void Render( Scene* scene )
 
             for ( size_t i = 0; i < model->meshes.size(); ++i )
             {
-                const auto& mesh = modelRenderer.model->meshes[i];
+                const Mesh& mesh   = modelRenderer.model->meshes[i];
+                Material* material = modelRenderer.materials[i];
+                MaterialData gpuMaterial = CPUMaterialToGPU( material );
+                cmdBuf.PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
                 PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
                 cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
             }

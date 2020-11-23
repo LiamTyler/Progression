@@ -1,6 +1,7 @@
 #include "asset/types/gfx_image.hpp"
 #include "asset/image.hpp"
 #include "core/assert.hpp"
+#include "core/image_calculate_size.hpp"
 #include "renderer/r_globals.hpp"
 #include "utils/cpu_profile.hpp"
 #include "utils/logger.hpp"
@@ -100,7 +101,9 @@ void GfxImage::Free()
         free( pixels );
         pixels = nullptr;
     }
+#if !USING( COMPILING_CONVERTER )
     gpuTexture.Free();
+#endif // #if !USING( COMPILING_CONVERTER )
 }
 
 
@@ -149,9 +152,9 @@ void GfxImage::UploadToGpu()
     desc.arrayLayers = numFaces;
     desc.mipLevels   = mipLevels;
     desc.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    //desc.sampler     = ;
+    desc.addToBindlessArray = true;
 
-    gpuTexture = r_globals.device.NewTextureFromBuffer( desc, pixels, true, name );
+    gpuTexture = r_globals.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );
     free( pixels );
     pixels = nullptr;

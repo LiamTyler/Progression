@@ -35,6 +35,8 @@ set(
     ${PROGRESSION_DIR}/src/core/feature_defines.hpp
     ${PROGRESSION_DIR}/src/core/frustum.cpp
     ${PROGRESSION_DIR}/src/core/frustum.hpp
+	${PROGRESSION_DIR}/src/core/image_calculate_size.cpp
+    ${PROGRESSION_DIR}/src/core/image_calculate_size.hpp
     ${PROGRESSION_DIR}/src/core/input.cpp
     ${PROGRESSION_DIR}/src/core/input.hpp
     ${PROGRESSION_DIR}/src/core/input_types.hpp
@@ -100,6 +102,8 @@ set(
     ${PROGRESSION_DIR}/src/renderer/r_init.hpp
     ${PROGRESSION_DIR}/src/renderer/r_renderpasses.cpp
     ${PROGRESSION_DIR}/src/renderer/r_renderpasses.hpp
+	${PROGRESSION_DIR}/src/renderer/r_texture_manager.cpp
+    ${PROGRESSION_DIR}/src/renderer/r_texture_manager.hpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.cpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.hpp
 	

@@ -1,3 +1,5 @@
+#ifndef _SHADER_DEFINES_H_
+#define _SHADER_DEFINES_H_
 
 #ifdef PG_SHADER_CODE
 
@@ -37,3 +39,8 @@
 #define UINT uint32_t
 
 #endif // #else // #ifdef PG_SHADER_CODE
+
+#define PG_MAX_BINDLESS_TEXTURES 65534
+#define PG_INVALID_TEXTURE_INDEX 65535
+
+#endif // #ifndef _SHADER_DEFINES_H_

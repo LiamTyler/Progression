@@ -1,0 +1,37 @@
+version: 1.0.{build}
+
+branches:
+  only:
+    - master
+
+image: Visual Studio 2019
+
+platform:
+  - x64
+configuration:
+  - Debug
+  - Ship
+  
+environment:
+  VULKAN_SDK: c:\VulkanSDK\1.2.154.1
+
+install:
+  - curl -O --silent https://sdk.lunarg.com/sdk/download/latest/windows/vulkan_sdk.exe
+  - .\vulkan_sdk.exe /S
+
+build:
+  parallel: true
+  verbosity: minimal
+  
+build_script:
+  - mkdir build && cd build
+  - cmake -G "Visual Studio 16 2019" -Ax64 ..
+  - cmake --build . --config %CONFIGURATION%
+
+notifications:
+  - provider: Email
+    to:
+      - Tyler.Liam7@gmail.com
+    on_build_success: false
+    on_build_failure: true
+    on_build_status_changed: true

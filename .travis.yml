@@ -1,0 +1,40 @@
+language: cpp
+
+compiler:
+  - gcc
+
+branches:
+  only:
+    - master
+
+dist: bionic
+
+before_install:
+  - sudo add-apt-repository ppa:ubuntu-toolchain-r/test -y
+  - sudo apt-get update -q
+  - sudo apt-get install gcc-9 -y
+  - sudo apt-get install g++-9 -y
+  - sudo apt-get install xorg-dev libglu1-mesa-dev
+  - sudo apt update
+  - sudo apt install vulkan-sdk
+
+script:
+  - sudo ln -s /usr/bin/gcc-9 /usr/local/bin/gcc
+  - sudo ln -s /usr/bin/g++-9 /usr/local/bin/g++
+  - gcc -v && g++ -v && cmake --version
+  - mkdir build_debug
+  - cd build_debug
+  - cmake -DCMAKE_BUILD_TYPE=Debug ..
+  - make -j2
+  - cd ..
+  - mkdir build_ship
+  - cd build_ship
+  - cmake -DCMAKE_BUILD_TYPE=Ship ..
+  - make -j2
+
+notifications:
+  email:
+    recipients:
+      - Tyler.Liam7@gmail.com
+    on_success: change
+    on_failure: always

@@ -1,18 +1,18 @@
 { "Scene":
 [
-    { "Fastfile": { "filename": "chalet" } },
-    { "_Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
-    { "Camera": { "position": [ 0, 0, 5 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
+    { "Fastfile": { "filename": "sponza" } },
+    { "Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
+    { "_Camera": { "position": [ 0, 0, 5 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
     { "BackgroundColor": { "color": [ 0.2, 0.2, 0.2, 1 ] } },
     { "AmbientColor": { "color": [ 0.8, 0.8, 0.8 ] } },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0.5, -1.5, -1 ] } },
-    { "_Entity": {
+    { "Entity": {
         "NameComponent": "sponza",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 0.01, 0.01, 0.01 ] },
         "ModelRenderer": { "model": "sponza" }
         }
     },
-    { "Entity": {
+    { "_Entity": {
         "NameComponent": "chalet",
         "Transform": { "position": [ 0, -1, 0 ], "rotation": [ -90, 90, 0 ], "scale": [ 1, 1, 1 ] },
         "ModelRenderer": { "model": "chalet" }

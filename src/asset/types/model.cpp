@@ -6,6 +6,7 @@
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include "glm/geometric.hpp"
+#include <cstring>
 
 
 namespace PG

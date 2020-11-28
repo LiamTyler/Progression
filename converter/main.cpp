@@ -13,10 +13,6 @@
 #include <algorithm>
 #include <chrono>
 
-//#include "assetTypes/model.hpp"
-//#include "asset_manager.hpp"
-//#include "assetTypes/shader.hpp"
-//using namespace PG;
 
 bool g_parsingError;
 int g_outOfDateAssets;
@@ -39,7 +35,7 @@ int main( int argc, char** argv )
 
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
-    
+
     if ( !RunConverter( argv[1] ) )
     {
         Logger_Shutdown();

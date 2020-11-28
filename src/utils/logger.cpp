@@ -70,11 +70,6 @@ public:
             {
                 PG_ASSERT( out == stdout || out == stderr, "hConsole in the logging function relies on this" );
                 m_windowsConsole = true;
-                printf( "IS WINDOWS CONSOLE!\n" );
-            }
-            else
-            {
-                printf( "is NOT WINDOWS CONSOLE!\n" );
             }
         #endif // #if USING( WINDOWS_PROGRAM )
     }

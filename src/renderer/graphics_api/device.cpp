@@ -51,10 +51,10 @@ namespace Gfx
         createInfo.queueCreateInfoCount    = static_cast< uint32_t >( queueCreateInfos.size() );
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
         createInfo.pEnabledFeatures        = &enabledFeatures;
-
+        
+        VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = {};
         if ( features.bindless )
         {
-            VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
             indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
             indexingFeatures.pNext = nullptr;
             indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;

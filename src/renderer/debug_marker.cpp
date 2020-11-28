@@ -51,12 +51,6 @@ namespace DebugMarker
 				LOG_ERR( "Could not initialize vkDebugMarker extension!\n" );
 			}
 		}
-
-        // Colored output is messed up in Renderdoc terminal
-        if ( s_active )
-        {
-			Logger_ChangeLocationColored( "stdout", false );
-        }
 	}
 
     bool IsActive()

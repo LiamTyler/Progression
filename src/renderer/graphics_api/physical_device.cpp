@@ -250,12 +250,6 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
         for ( size_t ext = 0; ext < availableExtensions.size(); ++ext )
         {
             devices[i].m_availableExtensions[ext] = availableExtensions[ext].extensionName;
-            if ( strcmp( availableExtensions[ext].extensionName, VK_EXT_DEBUG_MARKER_EXTENSION_NAME ) == 0 )
-            {
-				runningInRenderDoc = true;
-                // renderdoc terminal doesnt support colored output
-                Logger_ChangeLocationColored( "stdout", false );
-			}
         }
 
         FindQueueFamilies( headless, vkDevices[i], r_globals.surface, devices[i].m_graphicsFamily, devices[i].m_presentFamily, devices[i].m_computeFamily );

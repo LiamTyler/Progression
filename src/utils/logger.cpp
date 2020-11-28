@@ -4,14 +4,25 @@
 #include <mutex>
 #include <stdarg.h>
 #include <stdio.h>
+#include "core/platform_defines.hpp"
 
+#if USING( WINDOWS_PROGRAM )
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <io.h>
+#endif // #if USING( WINDOWS_PROGRAM )
+
+// foreground colors only
 enum class TerminalColorCode
 {
+    BLACK   = 30,
     RED     = 31,
     GREEN   = 32,
     YELLOW  = 33,
     BLUE    = 34,
-    DEFAULT = 39
+    MAGENTA = 35,
+    CYAN    = 36,
+    WHITE   = 37,
 };
 
 enum class TerminalEmphasisCode
@@ -21,15 +32,55 @@ enum class TerminalEmphasisCode
     UNDERLINE = 4
 };
 
+// For special windows consoles like cmd.exe that use the SetConsoleTextAttribute function for coloring
+int TerminalCodesToWindowsCodes( TerminalColorCode color, TerminalEmphasisCode emphasis )
+{
+    static int colorToWindows[] =
+    {
+        0, // BLACK
+        4, // RED
+        2, // GREEN
+        6, // YELLOW
+        1, // BLUE
+        5, // MAGENTA
+        3, // CYAN
+        7, // WHITE
+    };
+
+    int windowsCode = colorToWindows[static_cast< int >( color ) - 30];
+    if ( emphasis == TerminalEmphasisCode::BOLD )
+    {
+        windowsCode += 8;
+    }
+
+    return windowsCode;
+}
+
 class LoggerOutputLocation
 {
 public:
     LoggerOutputLocation() = default;
 
-    LoggerOutputLocation( const std::string& name, std::FILE* out, bool useColors = true ) : m_name( name ), m_outputStream( out ), m_colored( useColors ) {}
+    LoggerOutputLocation( const std::string& name, std::FILE* out, bool useColors = true ) :
+        m_name( name ), m_outputStream( out ), m_colored( useColors )
+    {
+        m_windowsConsole = false;
+        #if USING( WINDOWS_PROGRAM )
+            if ( _isatty( _fileno( out ) ) )
+            {
+                PG_ASSERT( out == stdout || out == stderr, "hConsole in the logging function relies on this" );
+                m_windowsConsole = true;
+                printf( "IS WINDOWS CONSOLE!\n" );
+            }
+            else
+            {
+                printf( "is NOT WINDOWS CONSOLE!\n" );
+            }
+        #endif // #if USING( WINDOWS_PROGRAM )
+    }
 
     LoggerOutputLocation( const std::string& name, const std::string& filename ) :
-        m_name( name ), m_outputStream( fopen( filename.c_str(), "w" ) ), m_colored( false )
+        m_name( name ), m_outputStream( fopen( filename.c_str(), "w" ) ), m_colored( false ), m_windowsConsole( false )
     {
         if ( m_outputStream == nullptr )
         {
@@ -47,11 +98,13 @@ public:
 
     LoggerOutputLocation& operator=( LoggerOutputLocation&& log )
     {
+        static_assert( sizeof( LoggerOutputLocation ) == sizeof( std::string ) + 16, "Don't forget to update this if adding new params to LoggerOutputLocation" );
         Close();
-        m_name         = std::move( log.m_name );
-        m_outputStream = std::move( log.m_outputStream );
-        log.m_outputStream = NULL;
-        m_colored      = std::move( log.m_colored );
+        m_name              = std::move( log.m_name );
+        m_outputStream      = std::move( log.m_outputStream );
+        log.m_outputStream  = NULL;
+        m_colored           = std::move( log.m_colored );
+        m_windowsConsole    = std::move( log.m_windowsConsole );
 
         return *this;
     }
@@ -63,7 +116,7 @@ public:
 
     void Close()
     {
-        if ( m_outputStream != NULL && m_outputStream != stdout )
+        if ( m_outputStream != NULL && m_outputStream != stdout && m_outputStream != stderr )
         {
             fclose( m_outputStream );
             m_outputStream = NULL;
@@ -74,11 +127,13 @@ public:
     std::FILE* GetOutputFile() const { return m_outputStream; }
     bool IsOutputColored() const { return m_colored; }
     void SetOutputColored( bool color ) { m_colored = color; };
+    bool IsSpecialWindowsConsole() const { return m_windowsConsole; }
 
 private:
     std::string m_name;
     std::FILE* m_outputStream = nullptr;
     bool m_colored = true;
+    bool m_windowsConsole = false;
 };
 
 
@@ -161,8 +216,8 @@ void Logger_ChangeLocationColored( const std::string& name, bool colored )
 
 void Logger_Log( LogSeverity severity, const char* fmt, ... )
 {
-    std::string severityText = "";
-    TerminalColorCode colorCode = TerminalColorCode::GREEN;
+    std::string severityText          = "";
+    TerminalColorCode colorCode       = TerminalColorCode::GREEN;
     TerminalEmphasisCode emphasisCode = TerminalEmphasisCode::NONE;
     if ( severity == LogSeverity::WARN )
     {
@@ -188,14 +243,33 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
         va_start( args, fmt );
         if ( s_loggerLocations[i].IsOutputColored() )
         {
-            fprintf( s_loggerLocations[i].GetOutputFile(), colorEncoding );
-            vfprintf( s_loggerLocations[i].GetOutputFile(), fullFormat, args );
-            fprintf( s_loggerLocations[i].GetOutputFile(), "\033[0m" );
+            #if USING( WINDOWS_PROGRAM )
+                if ( s_loggerLocations[i].IsSpecialWindowsConsole() )
+                {
+                    int windowsCode = TerminalCodesToWindowsCodes( colorCode, emphasisCode );
+                    HANDLE hConsole = GetStdHandle( s_loggerLocations[i].GetOutputFile() == stdout ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE );
+                    SetConsoleTextAttribute( hConsole, windowsCode );
+                    vfprintf( s_loggerLocations[i].GetOutputFile(), fullFormat, args );
+                    SetConsoleTextAttribute( hConsole, 7 ); // non-emphasized white
+                }
+                else
+                {
+                    fprintf( s_loggerLocations[i].GetOutputFile(), colorEncoding );
+                    vfprintf( s_loggerLocations[i].GetOutputFile(), fullFormat, args );
+                    fprintf( s_loggerLocations[i].GetOutputFile(), "\033[0m" );
+                }
+            #else // #if USING( WINDOWS_PROGRAM )
+                fprintf( s_loggerLocations[i].GetOutputFile(), colorEncoding );
+                vfprintf( s_loggerLocations[i].GetOutputFile(), fullFormat, args );
+                fprintf( s_loggerLocations[i].GetOutputFile(), "\033[0m" );
+            #endif // #else // #if USING( WINDOWS_PROGRAM )
         }
         else
         {
             vfprintf( s_loggerLocations[i].GetOutputFile(), fullFormat, args );
         }
+        // newlines don't necessarily flush the output. Ex: git bash
+        fflush( s_loggerLocations[i].GetOutputFile() );
         va_end( args );
     }
     s_loggerLock.unlock();

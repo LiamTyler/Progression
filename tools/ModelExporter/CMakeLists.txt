@@ -1,4 +1,4 @@
-project(modelToPGModel)
+project(ModelExporter)
 
 include(set_postfix)
 include(set_compile_options_default)

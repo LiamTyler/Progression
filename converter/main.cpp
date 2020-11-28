@@ -51,23 +51,6 @@ int main( int argc, char** argv )
         return 0;
     }
 
-    //Shader shader;
-    //ShaderCreateInfo info;
-    //info.name = "gbufferFrag";
-    //info.shaderStage = ShaderStage::FRAGMENT;
-    //info.filename = PG_ASSET_DIR "shaders/gbuffer.frag";
-    //if ( !Shader_Load( &shader, info ) )
-    //{
-    //    return 0;
-    //}
-    //AssetManager::Init();
-    //AssetManager::LoadFastFile( "assetList" );
-    //Shader* asset = AssetManager::Get< Shader >( "gbufferFrag" );
-    //PG_ASSERT( asset->name == shader.name );
-    //PG_ASSERT( asset->shaderStage == shader.shaderStage );
-    //PG_ASSERT( asset->name == shader.name );
-    //PG_ASSERT( asset->spirv == shader.spirv );
-
     Logger_Shutdown();
     return 0;
 }

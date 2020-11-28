@@ -1,3 +1,3 @@
 project(Tools) 
 
-add_subdirectory(ModelToPGModel)
+add_subdirectory(ModelExporter)

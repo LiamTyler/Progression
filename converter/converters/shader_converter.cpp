@@ -1,4 +1,5 @@
 #include "core/assert.hpp"
+#include "asset/shader_preprocessor.hpp"
 #include "asset/types/shader.hpp"
 #include "asset/asset_versions.hpp"
 #include "utils/filesystem.hpp"
@@ -14,6 +15,7 @@ extern void AddFastfileDependency( const std::string& file );
 std::vector< ShaderCreateInfo > g_parsedShaders;
 std::vector< ShaderCreateInfo > g_outOfDateShaders;
 extern bool g_parsingError;
+extern int g_checkDependencyErrors;
 
 
 static std::unordered_map< std::string, ShaderStage > shaderStageMap =
@@ -84,15 +86,21 @@ static std::string Shader_GetFastFileName( const ShaderCreateInfo& info )
 static bool Shader_IsOutOfDate( const ShaderCreateInfo& info )
 {
     std::string ffName = Shader_GetFastFileName( info );
+    ShaderPreprocessOutput preproc = PreprocessShaderForIncludeListOnly( info.filename, info.defines );
+    if ( !preproc.success )
+    {
+        LOG_ERR( "Preprocessing shader asset '%s' for the included files failed\n", info.name.c_str() );
+        g_checkDependencyErrors += 1;
+        return false;
+    }
+
     AddFastfileDependency( ffName );
-    std::vector< std::string > includes;
-    Shader_GetIncludes( info.filename, info.shaderStage, includes );
-    for ( const auto& file : includes )
+    for ( const auto& file : preproc.includedFiles )
     {
         AddFastfileDependency( file );
     }
 
-    return IsFileOutOfDate( ffName, info.filename ) || IsFileOutOfDate( ffName, includes );
+    return IsFileOutOfDate( ffName, info.filename ) || IsFileOutOfDate( ffName, preproc.includedFiles );
 }
 
 

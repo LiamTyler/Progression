@@ -59,6 +59,4 @@ bool Fastfile_Shader_Load( Shader* shader, Serializer* serializer );
 
 bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer );
 
-bool Shader_GetIncludes( const std::string& filename, ShaderStage shaderStage, std::vector< std::string >& includedFiles );
-
 } // namespace PG

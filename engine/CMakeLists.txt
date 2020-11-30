@@ -25,6 +25,8 @@ set(
     ${PROGRESSION_DIR}/src/asset/asset_versions.hpp
     ${PROGRESSION_DIR}/src/asset/image.cpp
     ${PROGRESSION_DIR}/src/asset/image.hpp
+    ${PROGRESSION_DIR}/src/asset/shader_preprocessor.cpp
+    ${PROGRESSION_DIR}/src/asset/shader_preprocessor.hpp
     
     ${PROGRESSION_DIR}/src/core/assert.hpp
     ${PROGRESSION_DIR}/src/core/bounding_box.cpp

@@ -13,9 +13,13 @@
 #include <algorithm>
 #include <chrono>
 
+#include "asset/types/shader.hpp"
+#include "asset/shader_preprocessor.hpp"
+using namespace PG;
 
 bool g_parsingError;
 int g_outOfDateAssets;
+int g_checkDependencyErrors;
 
 static time_t s_latestAssetTimestamp;
 
@@ -35,6 +39,24 @@ int main( int argc, char** argv )
 
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
+
+    // DefineList defines =
+    // {
+    // };
+    // defines.emplace_back( "PG_SHADER_CODE", "1" );
+    // 
+    // std::string filename = PG_ASSET_DIR "shaders/model.vert";
+    // ShaderPreprocessOutput preproc = PreprocessShader( filename, defines );
+    // if ( !preproc.success )
+    // {
+    //     LOG_ERR( "Error in preproc\n" );
+    // }
+    // else
+    // {
+    //     LOG( "Preproc sucess\n" );
+    //     std::ofstream out( "preproc.glsl" );
+    //     out << preproc.outputShader;
+    // }
 
     if ( !RunConverter( argv[1] ) )
     {
@@ -60,8 +82,12 @@ void AddFastfileDependency( const std::string& file )
 
 bool RunConverter( const std::string& assetFile )
 {
-    LOG( "Running converter...\n" );
     s_latestAssetTimestamp = 0;
+    g_checkDependencyErrors = 0;
+    g_outOfDateAssets = 0;
+    g_parsingError = false;
+
+    LOG( "Running converter...\n" );
     CreateDirectory( PG_ASSET_DIR "cache/" );
     CreateDirectory( PG_ASSET_DIR "cache/fastfiles/" );
     CreateDirectory( PG_ASSET_DIR "cache/images/" );
@@ -87,8 +113,6 @@ bool RunConverter( const std::string& assetFile )
         { "Shader",  Shader_Parse },
     });
 
-    g_parsingError = false;
-
     PG_ASSERT( document.HasMember( "AssetList" ), "asset list file requires a single object 'AssetList' that has a list of all assets" );
     const auto& assetList = document["AssetList"];
     for ( rapidjson::Value::ConstValueIterator itr = assetList.Begin(); itr != assetList.End(); ++itr )
@@ -102,7 +126,6 @@ bool RunConverter( const std::string& assetFile )
         return false;
     }
 
-    g_outOfDateAssets = 0;
     LOG( "Checking asset dependencies...\n" );
     int numGfxImageOutOfDate = GfxImage_CheckDependencies();
     g_outOfDateAssets += numGfxImageOutOfDate;
@@ -123,6 +146,12 @@ bool RunConverter( const std::string& assetFile )
     int numShaderFilesOutOfDate = Shader_CheckDependencies();
     g_outOfDateAssets += numShaderFilesOutOfDate;
     LOG( "Shaders out of date: %d\n", numShaderFilesOutOfDate );
+
+    if ( g_checkDependencyErrors > 0 )
+    {
+        LOG_ERR( "%d assets with errors during dependency check phase. FAILED\n" );
+        return false;
+    }
 
     if ( g_outOfDateAssets == 0 )
     {

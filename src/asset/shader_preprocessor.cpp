@@ -9,6 +9,20 @@
 #include <unordered_map>
 
 
+class PreprocException: public std::exception
+{
+private:
+    std::string m_message;
+public:
+    PreprocException( const std::string& message ) : m_message( message ) {}
+
+    const char* what() const noexcept override
+    {
+        return m_message.c_str();
+    }
+};
+
+
 bool IsPreprocLine( const std::string& line, int& index )
 {
     int len = static_cast< int >( line.length() );
@@ -46,101 +60,55 @@ std::string GetNextToken( const std::string& str, int& index )
 }
 
 
-bool GetStringInteger( const std::string& str, int& result )
+int GetStringInteger( const std::string& str )
 {
     if ( str.length() == 1 && std::isalpha( str[0] ) )
     {
-        result = str[0];
-        return true;
+        return str[0];
     }
-    size_t i = 0;
-    if ( str[0] == '-' )
-    {
-        if ( str.length() > 1 )
-        {
-            if ( std::isdigit( str[1] ) )
-            {
-                i = 1;
-            }
-            else
-            {
-                return false;
-            }
-        }
-        else
-        {
-            return false;
-        }
-    }
-    for ( ; i < str.length(); ++i )
-    {
-        if ( !std::isdigit( str[i] ) )
-        {
-            return false;
-        }
-    }
-
-    result = std::stoi( str );
-    return true;
+    
+    return std::stoi( str );
 }
 
 
-bool EvaluateBinaryOp( int a, const std::string& op, int b, int& result )
+int EvaluateBinaryOp( int a, const std::string& op, int b )
 {
     size_t opLen = op.length();
     switch ( op[0] )
     {
         case '=':
-            result = a == b;
-            break;
+            return a == b;
         case '!':
-            result = a != b;
-            break;
+            return a != b;
         case '+':
-            result = a + b;
-            break;
+            return a + b;
         case '-':
-            result = a - b;
-            break;
+            return a - b;
         case '*':
-            result = a * b;
-            break;
+            return a * b;
         case '/':
-            result = a / b;
-            break;
+            return a / b;
         case '<':
             if ( opLen == 1 )
             {
-                result = a < b;
+                return a < b;
             }
             else if ( opLen == 2 && op[1] == '=' )
             {
-                result = a <= b;
+                return a <= b;
             }
-            else
-            {
-                return false;
-            }
-            break;
         case '>':
             if ( opLen == 1 )
             {
-                result = a > b;
+                return a > b;
             }
             else if ( opLen == 2 && op[1] == '=' )
             {
-                result = a >= b;
+                return a >= b;
             }
-            else
-            {
-                return false;
-            }
-            break;
         default:
-            return false;
+            throw std::runtime_error( "Unable to evaluate binary binary operation '" + op + "'" );
     }
-
-    return true;
 }
 
 
@@ -157,11 +125,31 @@ public:
     bool Preprocess( const std::string& pathToShader, const DefineList& defineList )
     {
         Init( pathToShader, defineList );
-        bool success = PreprocessInternal< includesOnly >( pathToShader );
+        bool success;
+        try
+        {
+            success = PreprocessInternal< includesOnly >( pathToShader );
+        }
+        catch ( std::exception& e )
+        {
+            std::string errorMessage;
+            errorMessage += "==================== SHADER PREPROC ERROR ====================\n";
+            errorMessage += std::string( "Message: '" ) + e.what() + "'\n";
+            errorMessage += "Root filename '" + m_rootFilename + "'\n";
+            errorMessage += "Current filename '" + m_currentFilename + "'\n";
+            errorMessage += "Current line " + std::to_string( m_currentLineNumber ) + ": '" + m_currentLine + "'\n";
+            errorMessage += "=======================================================================\n";
+            LOG_ERR( "%s", errorMessage.c_str() );
+            return false;
+        }
         if ( !m_ifStatementStack.empty() )
         {
             LOG_ERR( "Mismatched #if / #endifs, expecting %d more #endif's in shader '%s'\n", m_ifStatementStack.size(), pathToShader.c_str() );
             return false;
+        }
+        if ( !success )
+        {
+            LOG_ERR( "Preprocessing for shader '%s' failed\n", pathToShader.c_str() );
         }
 
         return success;
@@ -179,11 +167,19 @@ private:
         CURRENTLY_TRUE_PREVIOUSLY_FALSE,
     };
 
+    struct DefineValue
+    {
+        std::string value;
+        bool negated = false;
+    };
+
     std::string m_rootFilename;
     std::string m_currentFilename;
+    std::string m_currentLine;
     uint32_t m_currentLineNumber;
     std::vector< std::string > m_includeSearchDirs;
-    std::unordered_map< std::string, std::string > m_defines;
+    
+    std::unordered_map< std::string, DefineValue > m_defines;
     std::stack< IfStatus > m_ifStatementStack;
     int m_inactiveIfs;
 
@@ -206,14 +202,24 @@ private:
     }
 
 
-    void AddDefine( const std::string& define, const std::string& value )
+    // fullValue can include the negation operator '!'. Ex: #define FOO !
+    void AddDefine( const std::string& define, std::string fullValue )
     {
         auto it = m_defines.find( define );
         if ( it != m_defines.end() )
         {
-            LOG_WARN( "Already have #define '%s' '%s'. Updating value with '%s'\n", define.c_str(), it->second.c_str(), value.c_str() );
+            std::string currentVal = it->second.negated ? "!" : "";
+            currentVal += it->second.value;
+            LOG_WARN( "Already have #define '%s' '%s'. Updating value with '%s'\n", define.c_str(), currentVal.c_str(), fullValue.c_str() );
         }
-        m_defines[define] = value;
+        bool negated = false;
+        if ( fullValue.length() > 0 && fullValue[0] == '!' )
+        {
+            negated = true;
+            fullValue = fullValue.substr( 1 );
+        }
+
+        m_defines[define] = { fullValue, negated };
     }
 
 
@@ -233,7 +239,7 @@ private:
     }
 
 
-    bool GetDefine( const std::string& define, std::string& value )
+    bool GetDefine( const std::string& define, DefineValue& value )
     {
         auto it = m_defines.find( define );
         if ( it != m_defines.end() )
@@ -243,7 +249,8 @@ private:
         }
         else
         {
-            value = "0";
+            value.value = "0";
+            value.negated = false;
             return false;
         }
     }
@@ -283,58 +290,63 @@ private:
 
 
     // could have nested defines. #define A 1 -> #define B A -> #if B == 2
-    bool GetDefineNum( std::string define, int& result )
+    int GetDefineNum( std::string define )
     {
-        std::string value;
+        DefineValue value;
+        bool negated = false;
+        if ( define.length() > 0 && define[0] == '!' )
+        {
+            negated = true;
+            define = define.substr( 1 );
+        }
         while ( GetDefine( define, value ) )
         {
-            define = value;
+            if ( value.negated )
+            {
+                negated = !negated;
+            }
+            define = value.value;
         }
 
-        return GetStringInteger( define, result );
+        int intValue = GetStringInteger( define );
+        return negated ? !intValue : intValue;
     };
 
-    // returns true if expression was able to be parsed and evaluated, false if errors.
-    // result holds the actual result of the expression
     // Only works for simple expressions "A op B" or just "A"
-    bool EvaulateExpression( const std::string& str, int startIndex, bool& result )
+    bool EvaulateExpression( const std::string& str, int startIndex )
     {
-        constexpr int MAX_TOKENS = 6;
+        constexpr int MAX_TOKENS = 10;
         std::string tokens[MAX_TOKENS];
         tokens[0] = GetNextToken( str, startIndex );
         int numValidTokens = 0;
-        bool success = true;
-        int expressionIntResult = 0;
         while ( !tokens[numValidTokens].empty() && numValidTokens < MAX_TOKENS - 1 )
         {
             numValidTokens += 1;
             tokens[numValidTokens] = GetNextToken( str, startIndex );
-        }        
+        }  
 
+        int expressionIntResult = 0;
         if ( numValidTokens == 1 )
         {
-            success = GetDefineNum( tokens[0], expressionIntResult );
+            expressionIntResult = GetDefineNum( tokens[0] );
         }
         else if ( numValidTokens == 3 )
         {
-            int value1;
-            int value2;
-            success = GetDefineNum( tokens[0], value1 );
-            success = success && GetDefineNum( tokens[2], value2 );            
-            success = success && EvaluateBinaryOp( value1, tokens[1], value2, expressionIntResult );
+            int value1 = GetDefineNum( tokens[0] );
+            int value2 = GetDefineNum( tokens[2] );           
+            expressionIntResult = EvaluateBinaryOp( value1, tokens[1], value2 );
+        }
+        else
+        {
+            throw std::runtime_error( "Unable to evaluate binary binary operation" );
         }
 
-        result = expressionIntResult != 0;
-        if ( !success )
-        {
-            LOG_ERR( "Could not evaluate expression '%s' on line %d of file '%s'\n", str.c_str(), m_currentLineNumber, m_currentFilename.c_str() );
-        }
-        return success;
+        return expressionIntResult != 0;
     }
 
 
     template< bool includesOnly >
-    bool ProcessActivePreprocStatment( const std::string& line, uint32_t lineNumber, const std::string& command, const std::string& path, int endOfTokenIndex )
+    bool ProcessActivePreprocStatment( const std::string& command, const std::string& path, int endOfTokenIndex )
     {
         constexpr int CASE_DEFINE       = 1000000 * 'd' + 1000 * 'e' + 'f';
         constexpr int CASE_ELSE         = 1000000 * 'e' + 1000 * 'l' + 's';
@@ -350,6 +362,8 @@ private:
         constexpr int CASE_VERSION      = 1000000 * 'v' + 1000 * 'e' + 'r';
         constexpr int CASE_WARNING      = 1000000 * 'w' + 1000 * 'a' + 'r';
 
+        const std::string& line = m_currentLine;
+        uint32_t lineNumber     = m_currentLineNumber;
         int label = 1000000 * command[0] + 1000 * command[1];
         label += command.length() > 2 ? command[2] : 0;
 
@@ -370,7 +384,6 @@ private:
                     {
                         m_ifStatementStack.push( IfStatus::CURRENTLY_TRUE_PREVIOUSLY_FALSE );
                         m_inactiveIfs -= 1;
-                        outputShader += line + '\n';
                     }
                     break;
                 }
@@ -383,13 +396,7 @@ private:
 
                     if ( m_ifStatementStack.top() == IfStatus::CURRENTLY_FALSE_PREVIOUSLY_FALSE )
                     {
-                        bool expressionResult;
-                        if ( !EvaulateExpression( line, endOfTokenIndex, expressionResult ) )
-                        {
-                            return false;
-                        }
-                        
-                        if ( expressionResult )
+                        if ( EvaulateExpression( line, endOfTokenIndex ) )
                         {
                             m_inactiveIfs -= 1;
                             m_ifStatementStack.pop();
@@ -406,7 +413,6 @@ private:
                     if ( m_inactiveIfs == 0 )
                     {
                         m_ifStatementStack.pop();
-                        outputShader += line + '\n';
                     }
                     break;
                 }
@@ -429,7 +435,11 @@ private:
         {
             case CASE_DEFINE:
             {
-                outputShader += line + '\n';
+                if constexpr( !includesOnly )
+                {
+                    outputShader += line + '\n';
+                }
+                
                 std::string key = GetNextToken( line, endOfTokenIndex );
                 if ( key == "" )
                 {
@@ -443,7 +453,6 @@ private:
             }
             case CASE_ELSE:
             {
-                outputShader += line + '\n';
                 if ( m_ifStatementStack.empty() )
                 {
                     LOG_ERR( "#else statement without matching #if/#ifdef/#ifndef. Line '%s'\n", line.c_str() );
@@ -451,12 +460,12 @@ private:
                 }
 
                 m_inactiveIfs += 1;
+                m_ifStatementStack.pop();
                 m_ifStatementStack.push( IfStatus::CURRENTLY_FALSE_PREVIOUSLY_TRUE );
                 break;
             }
             case CASE_ELIF:
             {
-                outputShader += line + '\n';
                 if ( m_ifStatementStack.empty() )
                 {
                     LOG_ERR( "#elif statement without matching #if/#ifdef/#ifndef. Line '%s'\n", line.c_str() );
@@ -470,13 +479,11 @@ private:
             }
             case CASE_ENDIF:
             {
-                outputShader += line + '\n';
                 m_ifStatementStack.pop();
                 break;
             }
             case CASE_ERROR:
             {
-                outputShader += line + '\n';
                 LOG_ERR( "'%s'\n", line.c_str() );
                 return false;
             }
@@ -487,17 +494,9 @@ private:
             }
             case CASE_IF:
             {
-                outputShader += line + '\n';
-                bool expressionResult;
-                if ( !EvaulateExpression( line, endOfTokenIndex, expressionResult ) )
-                {
-                    return false;
-                }
-                        
-                if ( expressionResult )
+                if ( EvaulateExpression( line, endOfTokenIndex ) )
                 {
                     m_ifStatementStack.push( IfStatus::CURRENTLY_TRUE_PREVIOUSLY_FALSE );
-                    outputShader += line + '\n';
                 }
                 else
                 {
@@ -509,14 +508,13 @@ private:
             }
             case CASE_IFDEF:
             {
-                outputShader += line + '\n';
                 std::string key = GetNextToken( line, endOfTokenIndex );
-                if ( key == "" )
+                if ( key.empty() )
                 {
                     LOG_ERR( "Invalud #ifndef command '%s'\n", line.c_str() );
                     return false;
                 }
-                std::string defineValue;
+                DefineValue defineValue;
                 if ( GetDefine( key, defineValue ) )
                 {
                     m_ifStatementStack.push( IfStatus::CURRENTLY_TRUE_PREVIOUSLY_FALSE );
@@ -531,12 +529,12 @@ private:
             case CASE_IFNDEF:
             {
                 std::string key = GetNextToken( line, endOfTokenIndex );
-                if ( key == "" )
+                if ( key.empty() )
                 {
                     LOG_ERR( "Invalud #ifndef command '%s'\n", line.c_str() );
                     return false;
                 }
-                std::string defineValue;
+                DefineValue defineValue;
                 if ( !GetDefine( key, defineValue ) )
                 {
                     m_ifStatementStack.push( IfStatus::CURRENTLY_TRUE_PREVIOUSLY_FALSE );
@@ -557,20 +555,12 @@ private:
                 }
                 includedFiles.push_back( absoluteIncludePath );
 
-                if constexpr( !includesOnly )
-                {
-                    outputShader += "#line 1 \"" + absoluteIncludePath + "\"\n";
-                }
                 if ( !PreprocessInternal< includesOnly >( absoluteIncludePath ) )
                 {
                     return false;
                 }
                 m_currentFilename = path;
                 m_currentLineNumber = lineNumber;
-                if constexpr( !includesOnly )
-                {
-                    outputShader += "#line " + std::to_string( lineNumber + 2 ) + " \"" + path + "\"\n";
-                }
                 
                 return true;
             }
@@ -596,7 +586,6 @@ private:
             }
             case CASE_WARNING:
             {
-                outputShader += line + '\n';
                 LOG_WARN( "'%s'\n", line.c_str() );
                 break;
             }
@@ -619,24 +608,22 @@ private:
             return false;
         }
         m_currentFilename = path;
-        m_currentLineNumber = 0;
+        m_currentLineNumber = 1;
 
-        uint32_t lineNumber = 0;
-        std::string line;
         int preprocIndex;
-        while ( std::getline( inFile, line ) )
+        while ( std::getline( inFile, m_currentLine ) )
         {
-            if ( IsPreprocLine( line, preprocIndex ) )
+            if ( IsPreprocLine( m_currentLine, preprocIndex ) )
             {
                 int endOfTokenIndex = preprocIndex;
-                std::string command = GetNextToken( line, endOfTokenIndex );
-                if ( command == "" )
+                std::string command = GetNextToken( m_currentLine, endOfTokenIndex );
+                if ( command.empty() )
                 {
-                    LOG_ERR( "Invalid preproc command '%s'\n", path.c_str(), line.c_str() );
+                    LOG_ERR( "Invalid preproc command '%s'\n", path.c_str(), m_currentLine.c_str() );
                     return false;
                 }
 
-                if ( !ProcessActivePreprocStatment< includesOnly >( line, lineNumber, command, path, endOfTokenIndex ) )
+                if ( !ProcessActivePreprocStatment< includesOnly >( command, path, endOfTokenIndex ) )
                 {
                     return false;
                 }
@@ -647,13 +634,12 @@ private:
                 {
                     if ( Active() )
                     {
-                        outputShader += line + '\n';
+                        outputShader += m_currentLine + '\n';
                     }
                 }
             }
 
             ++m_currentLineNumber;
-            ++lineNumber;
         }
 
         return true;
@@ -668,7 +654,6 @@ ShaderPreprocessOutput PreprocessShader( const std::string& filename, const Defi
     ShaderPreprocessor preprocessor;
     if ( !preprocessor.Preprocess< false >( filename, defines ) )
     {
-        LOG_ERR( "Preprocessing for shader '%s' failed\n", filename.c_str() );
         output.success = false;
     }
     else
@@ -688,7 +673,6 @@ ShaderPreprocessOutput PreprocessShaderForIncludeListOnly( const std::string& fi
     ShaderPreprocessor preprocessor;
     if ( !preprocessor.Preprocess< true >( filename, defines ) )
     {
-        LOG_ERR( "Preprocessing the includes for shader '%s' failed\n", filename.c_str() );
         output.success = false;
     }
     else

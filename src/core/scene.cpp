@@ -58,7 +58,7 @@ static void ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
 
     if ( scene->numDirectionalLights > 0 )
     {
-        LOG_WARN( "Can't have more than one directional light in a scene, skipping\n" );
+        LOG_WARN( "Can't have more than one directional light in a scene, skipping" );
         return;
     }
 
@@ -89,7 +89,7 @@ static void ParsePointLight( const rapidjson::Value& value, Scene* scene )
 
     if ( scene->numPointLights >= PG_MAX_POINT_LIGHTS )
     {
-        LOG_WARN( "Can't have more than %d point lights in a scene, skipping\n", PG_MAX_POINT_LIGHTS );
+        LOG_WARN( "Can't have more than %d point lights in a scene, skipping", PG_MAX_POINT_LIGHTS );
         return;
     }
 
@@ -112,7 +112,7 @@ static void ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 
     if ( scene->numSpotLights >= PG_MAX_SPOT_LIGHTS )
     {
-        LOG_WARN( "Can't have more than %d spot lights in a scene, skipping\n", PG_MAX_SPOT_LIGHTS );
+        LOG_WARN( "Can't have more than %d spot lights in a scene, skipping", PG_MAX_SPOT_LIGHTS );
         return;
     }
 
@@ -160,7 +160,7 @@ Scene* Scene::Load( const std::string& filename )
     rapidjson::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
-        LOG_ERR( "Failed to parse scene\n" );
+        LOG_ERR( "Failed to parse scene" );
         delete scene;
         return nullptr;
     }

@@ -249,7 +249,7 @@ namespace Gfx
 
 		    if ( layout.samplerMask & (1u << i) )
 		    {
-                LOG_WARN( "No immutable sampler support yet\n" );
+                LOG_WARN( "No immutable sampler support yet" );
 			    bindings.push_back( { i, VK_DESCRIPTOR_TYPE_SAMPLER, arraySize, stages } );
 			    ++types;
 		    }
@@ -262,10 +262,10 @@ namespace Gfx
 	    {
             if ( bindless )
             {
-                PG_ASSERT( r_globals.physicalDevice.GetFeatures().bindless, "Current device doesn't support bindless descriptors!\n" );
+                PG_ASSERT( r_globals.physicalDevice.GetFeatures().bindless, "Current device doesn't support bindless descriptors!" );
                 if ( bindings.size() != 1 )
                 {
-                    LOG_ERR( "Using bindless, but binding count != 1\n" );
+                    LOG_ERR( "Using bindless, but binding count != 1" );
                     return false;
                 }
                 else
@@ -282,12 +282,12 @@ namespace Gfx
         }
         else
         {
-            LOG_WARN( "Creating descriptor set with no bindings\n" );
+            LOG_WARN( "Creating descriptor set with no bindings" );
         }
 
         if ( vkCreateDescriptorSetLayout( m_handle, &createInfo, nullptr, &layout.m_handle ) != VK_SUCCESS )
         {
-            LOG_ERR( "Failed to create descriptor set layout\n" );
+            LOG_ERR( "Failed to create descriptor set layout" );
             layout.m_handle = VK_NULL_HANDLE;
             return false;
         }
@@ -559,7 +559,7 @@ namespace Gfx
 				        uint32_t shaderSize    = shaderLayout.sets[set].arraySizes[bit];
 				        if ( combinedSize && combinedSize != shaderSize )
                         {
-					        LOG_ERR( "Mismatch between array sizes in different shaders.\n" );
+					        LOG_ERR( "Mismatch between array sizes in different shaders." );
                         }
 				        else
                         {
@@ -597,7 +597,7 @@ namespace Gfx
 					    {
 						    if ( combinedLayout.bindingStages[set][binding + i] != 0 )
 						    {
-							    LOG_ERR( "Detected binding aliasing for (%u, %u). Binding array with %u elements starting at (%u, %u) overlaps.\n", set, binding + i, arraySize, set, binding );
+							    LOG_ERR( "Detected binding aliasing for (%u, %u). Binding array with %u elements starting at (%u, %u) overlaps.", set, binding + i, arraySize, set, binding );
 						    }
 					    }
 				    }
@@ -739,7 +739,7 @@ namespace Gfx
 
         if ( vkCreateGraphicsPipelines( m_handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &p.m_pipeline ) != VK_SUCCESS )
         {
-            LOG_ERR( "Failed to create graphics pipeline '%s'\n", name.c_str() );
+            LOG_ERR( "Failed to create graphics pipeline '%s'", name.c_str() );
             vkDestroyPipelineLayout( m_handle, p.m_pipelineLayout, nullptr );
             p.m_pipeline = VK_NULL_HANDLE;
         }

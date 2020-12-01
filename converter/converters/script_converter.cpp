@@ -30,7 +30,7 @@ void Script_Parse( const rapidjson::Value& value )
 
     if ( !PathExists( info.filename ) )
     {
-        LOG_ERR( "Script file '%s' not found\n", info.filename.c_str() );
+        LOG_ERR( "Script file '%s' not found", info.filename.c_str() );
         g_parsingError = true;
     }
 
@@ -59,7 +59,7 @@ static bool Script_IsOutOfDate( const ScriptCreateInfo& info )
 
 static bool Script_ConvertSingle( const ScriptCreateInfo& info )
 {
-    LOG( "Converting Script file '%s'...\n", info.filename.c_str() );
+    LOG( "Converting Script file '%s'...", info.filename.c_str() );
     Script asset;
     if ( !Script_Load( &asset, info ) )
     {
@@ -73,7 +73,7 @@ static bool Script_ConvertSingle( const ScriptCreateInfo& info )
     }
     if ( !Fastfile_Script_Save( &asset, &serializer ) )
     {
-        LOG_ERR( "Error while writing script '%s' to fastfile\n", info.name.c_str() );
+        LOG_ERR( "Error while writing script '%s' to fastfile", info.name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -129,7 +129,7 @@ bool Script_BuildFastFile( Serializer* serializer )
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
             return false;
         }
         

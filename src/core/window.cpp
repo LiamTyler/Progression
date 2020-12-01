@@ -10,7 +10,7 @@ static unsigned int s_framesDrawnSinceLastFPSUpdate = 0;
 
 static void ErrorCallback( int err, const char* description )
 {
-    LOG_ERR( "GLFW ERROR %d: '%s'\n", err, description );
+    LOG_ERR( "GLFW ERROR %d: '%s'", err, description );
 }
 
 static PG::Window* s_mainWindow = nullptr;
@@ -23,7 +23,7 @@ void InitWindowSystem( const WindowCreateInfo& info )
 {
     if ( !glfwInit() )
     {
-        LOG_ERR( "Could not initialize GLFW\n" );
+        LOG_ERR( "Could not initialize GLFW" );
         exit( EXIT_FAILURE );
     }
 
@@ -68,7 +68,7 @@ void Window::Init( const WindowCreateInfo& createInfo )
     m_window = glfwCreateWindow( m_width, m_height, m_title.c_str(), nullptr, nullptr );
     if ( !m_window )
     {
-        LOG_ERR( "Window or context creation failed\n" );
+        LOG_ERR( "Window or context creation failed" );
         glfwTerminate();
         exit( EXIT_FAILURE );
     }

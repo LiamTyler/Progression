@@ -71,11 +71,11 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
 	{
 		if ( type.array.size() != 1 )
         {
-			LOG_ERR( "Array dimension must be 1.\n" );
+			LOG_ERR( "Array dimension must be 1." );
         }
 		else if ( !type.array_size_literal.front() )
         {
-			LOG_ERR( "Array dimension must be a literal.\n" );
+			LOG_ERR( "Array dimension must be a literal." );
         }
 		else
 		{
@@ -84,11 +84,11 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
                 // bindless
                 if ( binding != 0 )
                 {
-					LOG_ERR( "Bindless textures can only be used with binding = 0 in a set.\n" );
+					LOG_ERR( "Bindless textures can only be used with binding = 0 in a set." );
                 }
 				if ( (type.basetype != spirv_cross::SPIRType::Image && type.basetype != spirv_cross::SPIRType::SampledImage) || type.image.dim == spv::DimBuffer )
                 {
-					LOG_ERR( "Can only use bindless for images.\n" );
+					LOG_ERR( "Can only use bindless for images." );
                 }
 				else
                 {
@@ -98,11 +98,11 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
 			}
 			else if ( size && size != type.array.front() )
             {
-				LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.\n", set, binding );
+				LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.", set, binding );
             }
 			else if ( type.array.front() + binding > PG_MAX_NUM_BINDINGS_PER_SET )
             {
-				LOG_ERR( "Bindings in the array from set %u, binding %u, will go out of bounds. Max = %d\n", set, binding, PG_MAX_NUM_BINDINGS_PER_SET );
+				LOG_ERR( "Bindings in the array from set %u, binding %u, will go out of bounds. Max = %d", set, binding, PG_MAX_NUM_BINDINGS_PER_SET );
             }
             else
             {
@@ -115,7 +115,7 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
 	{
 		if ( size && size != 1 )
         {
-			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent. Non-array type has size > 1?\n", set, binding );
+			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent. Non-array type has size > 1?", set, binding );
         }
         else
         {
@@ -136,12 +136,12 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
     const auto& entryPoints = compiler.get_entry_points_and_stages();
     if ( entryPoints.size() == 0 )
     {
-        LOG_ERR( "No entry points found in shader!\n" );
+        LOG_ERR( "No entry points found in shader!" );
         return false;
     }
     else if ( entryPoints.size() > 1 )
     {
-        LOG_WARN( "Multiple entry points found in shader, but no selection method implemented yet. Using first entry '%s'\n", entryPoints[0].name.c_str() );
+        LOG_WARN( "Multiple entry points found in shader, but no selection method implemented yet. Using first entry '%s'", entryPoints[0].name.c_str() );
     }
     reflectData.entryPoint = entryPoints[0].name;
     reflectData.stage = SpirvCrossShaderStageToPG( entryPoints[0].execution_model );
@@ -254,7 +254,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 	const auto& specializationConstants = compiler.get_specialization_constants();
 	for ( const auto &specConst : specializationConstants)
 	{
-        LOG_ERR( "Specialization constants not supported currently. Ignoring spec constant %u\n", specConst.constant_id );
+        LOG_ERR( "Specialization constants not supported currently. Ignoring spec constant %u", specConst.constant_id );
 	}
 
     return true;
@@ -283,14 +283,14 @@ static bool CompilePreprocessedShaderToSPIRV( const std::string& shaderFilename,
     shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv( shaderSource, kind, shaderFilename.c_str(), options );
     if ( module.GetCompilationStatus() != shaderc_compilation_status_success )
     {
-        LOG_ERR( "Compiling shader '%s' failed: '%s'\n", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
-        LOG( "Preprocessed shader for reference:\n---------------------------------------------\n" );
-        LOG( "%s\n---------------------------------------------\n", shaderSource.c_str() );
+        LOG_ERR( "Compiling shader '%s' failed: '%s'", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
+        LOG( "Preprocessed shader for reference:\n---------------------------------------------" );
+        LOG( "%s\n---------------------------------------------", shaderSource.c_str() );
         return false;
     }
     else if ( module.GetNumWarnings() > 0 )
     {
-        LOG_WARN( "Compiled shader '%s' failed: '%s'\n", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
+        LOG_WARN( "Compiled shader '%s' failed: '%s'", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
     }
 
     outputSpirv = { module.cbegin(), module.cend() };
@@ -309,7 +309,7 @@ static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBy
     VkResult ret = vkCreateShaderModule( PG::Gfx::r_globals.device.GetHandle(), &vkShaderInfo, nullptr, &module );
     if ( ret != VK_SUCCESS )
     {
-        LOG_ERR( "Could not create shader module from spirv\n" );
+        LOG_ERR( "Could not create shader module from spirv" );
         return VK_NULL_HANDLE;
     }
 
@@ -338,7 +338,7 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
     ShaderPreprocessOutput preproc = PreprocessShader( createInfo.filename, defines );
     if ( !preproc.success )
     {
-        LOG_ERR( "Preprocessing shader asset '%s' failed\n", createInfo.name.c_str() );
+        LOG_ERR( "Preprocessing shader asset '%s' failed", createInfo.name.c_str() );
         return false;
     }
 
@@ -353,7 +353,7 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
     ShaderReflectData reflectData;
     if ( !ReflectShader_ReflectSpirv( spirv.data(), spirvSizeInBytes, reflectData ) )
     {
-        LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed\n", createInfo.name.c_str(), createInfo.filename.c_str() );
+        LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed", createInfo.name.c_str(), createInfo.filename.c_str() );
         return false;
     }
     PG_ASSERT( shader->shaderStage == reflectData.stage );

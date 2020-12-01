@@ -48,7 +48,7 @@ namespace DebugMarker
 			s_active = ( vkDebugMarkerSetObjectTag != VK_NULL_HANDLE && vkDebugMarkerSetObjectName != VK_NULL_HANDLE &&vkCmdDebugMarkerBegin != VK_NULL_HANDLE && vkCmdDebugMarkerEnd != VK_NULL_HANDLE && vkCmdDebugMarkerInsert != VK_NULL_HANDLE );
 			if ( !s_active )
 			{
-				LOG_ERR( "Could not initialize vkDebugMarker extension!\n" );
+				LOG_ERR( "Could not initialize vkDebugMarker extension!" );
 			}
 		}
 	}

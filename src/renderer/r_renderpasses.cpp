@@ -126,7 +126,7 @@ bool InitRenderPasses()
     {
         if ( !s_renderPassInitFunctions[i]() )
         {
-            LOG_ERR( "Failed to init render pass %d\n", i );
+            LOG_ERR( "Failed to init render pass %d", i );
             return false;
         }
     }

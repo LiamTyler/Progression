@@ -64,7 +64,7 @@ bool LoadFastFile( const std::string& fname )
             GfxImage* asset = new GfxImage;
             if ( !Fastfile_GfxImage_Load( asset, &serializer ) )
             {
-                LOG_ERR( "Could not load GfxImage\n" );
+                LOG_ERR( "Could not load GfxImage" );
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
@@ -89,7 +89,7 @@ bool LoadFastFile( const std::string& fname )
                 Material* asset = new Material;
                 if ( !Fastfile_Material_Load( asset, &serializer ) )
                 {
-                    LOG_ERR( "Could not load Material\n" );
+                    LOG_ERR( "Could not load Material" );
                     return false;
                 }
                 auto it = s_resourceMaps[assetType].find( asset->name );
@@ -110,7 +110,7 @@ bool LoadFastFile( const std::string& fname )
             Script* asset = new Script;
             if ( !Fastfile_Script_Load( asset, &serializer ) )
             {
-                LOG_ERR( "Could not load Script\n" );
+                LOG_ERR( "Could not load Script" );
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
@@ -130,7 +130,7 @@ bool LoadFastFile( const std::string& fname )
             Model* asset = new Model;
             if ( !Fastfile_Model_Load( asset, &serializer ) )
             {
-                LOG_ERR( "Could not load Model\n" );
+                LOG_ERR( "Could not load Model" );
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
@@ -150,7 +150,7 @@ bool LoadFastFile( const std::string& fname )
             Shader* asset = new Shader;
             if ( !Fastfile_Shader_Load( asset, &serializer ) )
             {
-                LOG_ERR( "Could not load Shader\n" );
+                LOG_ERR( "Could not load Shader" );
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
@@ -166,7 +166,7 @@ bool LoadFastFile( const std::string& fname )
             break;
         }
         default:
-            LOG_ERR( "Unknown asset type '%d'\n", (int)assetType );
+            LOG_ERR( "Unknown asset type '%d'", (int)assetType );
             return false;
         }
     }   

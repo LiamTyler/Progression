@@ -373,7 +373,7 @@ bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
     } 
     else
     {
-        LOG_ERR( "GfxImageType '%d' not supported yet\n", static_cast< int >( createInfo.imageType ) );
+        LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo.imageType ) );
         success = false;
     }
 

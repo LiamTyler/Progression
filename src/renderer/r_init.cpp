@@ -23,10 +23,10 @@ static std::vector< std::string > FindMissingValidationLayers( const std::vector
     std::vector< VkLayerProperties > availableLayers( layerCount );
     VK_CHECK_RESULT( vkEnumerateInstanceLayerProperties( &layerCount, availableLayers.data() ) );
 
-    // LOG( "Available validation layers:\n" );
+    // LOG( "Available validation layers:" );
     // for ( const auto& layerProperties : availableLayers )
     // {
-    //     LOG( "\t%s\n", layerProperties.layerName );
+    //     LOG( "\t%s", layerProperties.layerName );
     // }
 
     std::vector< std::string > missing;
@@ -77,15 +77,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 
     if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT )
     {
-        LOG_ERR( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_ERR( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
     }
     else if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT )
     {
-        LOG_WARN( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_WARN( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
     }
     else
     {
-        LOG( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
     }
 
     return VK_FALSE;
@@ -164,20 +164,20 @@ static bool CreateInstance()
     VkResult ret = vkCreateInstance( &createInfo, nullptr, &r_globals.instance );
     if ( ret == VK_ERROR_EXTENSION_NOT_PRESENT )
     {
-        LOG_ERR( "Could not find all of the instance extensions\n" );
+        LOG_ERR( "Could not find all of the instance extensions" );
     }
     else if ( ret == VK_ERROR_LAYER_NOT_PRESENT )
     {
         auto missingLayers = FindMissingValidationLayers( validationLayers );
-        LOG_ERR( "Could not find the following validation layers:\n" );
+        LOG_ERR( "Could not find the following validation layers:" );
         for ( const auto& layer : missingLayers )
         {
-            LOG_ERR( "\t%s\n", layer.c_str() );
+            LOG_ERR( "\t%s", layer.c_str() );
         }
     }
     else if ( ret != VK_SUCCESS )
     {
-        LOG_ERR( "Error while creating instance: %d\n", ret );
+        LOG_ERR( "Error while creating instance: %d", ret );
     }
 
     return ret == VK_SUCCESS;
@@ -296,14 +296,14 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
     r_globals.headless = headless;
     if ( !CreateInstance() )
     {
-        LOG_ERR( "Could not create vulkan instance\n" );
+        LOG_ERR( "Could not create vulkan instance" );
         return false;
     }
 
 #if !USING( SHIP_BUILD )
     if ( !SetupDebugCallback() )
     {
-        LOG_ERR( "Could not setup the debug callback\n" );
+        LOG_ERR( "Could not setup the debug callback" );
         return false;
     }
 #endif // #if !USING( SHIP_BUILD )
@@ -312,26 +312,26 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
     {
         if ( !CreateSurface() )
         {
-            LOG_ERR( "Could not create glfw vulkan surface\n" );
+            LOG_ERR( "Could not create glfw vulkan surface" );
             return false;
         }
     }
 
     if ( !r_globals.physicalDevice.Select( headless ) )
     {
-        LOG_ERR( "Could not find any suitable GPU device to use\n" );
+        LOG_ERR( "Could not find any suitable GPU device to use" );
         return false;
     }
     {
-        LOG( "Using device: '%s'\n", r_globals.physicalDevice.GetName().c_str() );
+        LOG( "Using device: '%s'", r_globals.physicalDevice.GetName().c_str() );
         auto p = r_globals.physicalDevice.GetProperties();
-        LOG( "Using Vulkan Version: %d.%d.%d\n", p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
+        LOG( "Using Vulkan Version: %d.%d.%d", p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
     }
 
     r_globals.device = Device::Create( headless );
     if ( !r_globals.device )
     {
-        LOG_ERR( "Could not create logical device\n" );
+        LOG_ERR( "Could not create logical device" );
         return false;
     }
     
@@ -350,7 +350,7 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
 
     if ( !CreateCommandPoolAndBuffers() )
     {
-        LOG_ERR( "Could not create commandPool and commandBuffers\n" );
+        LOG_ERR( "Could not create commandPool and commandBuffers" );
         return false;
     }
 
@@ -369,25 +369,25 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
 
     if ( !r_globals.swapchain.Create( r_globals.device.GetHandle(), width, height ) )
     {
-        LOG_ERR( "Could not create swap chain\n" );
+        LOG_ERR( "Could not create swap chain" );
         return false;
     }
 
     if ( !CreateDepthTexture() )
     {
-        LOG_ERR( "Could not create depth texture\n" );
+        LOG_ERR( "Could not create depth texture" );
         return false;
     }
 
     if ( !InitRenderPasses() )
     {
-        LOG_ERR( "Could not init renderpass data\n" );
+        LOG_ERR( "Could not init renderpass data" );
         return false;
     }
 
     if ( !CreateSynchronizationObjects() )
     {
-        LOG_ERR( "Could not create synchronization objects\n" );
+        LOG_ERR( "Could not create synchronization objects" );
         return false;
     }
 

@@ -228,8 +228,15 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
     char colorEncoding[12];
     sprintf( colorEncoding, "\033[%d;%dm", static_cast< int >( emphasisCode ), static_cast< int >( colorCode ) );
     char fullFormat[512];
-    memcpy( fullFormat, severityText.c_str(), severityText.length() );
-    strcpy( fullFormat + severityText.length(), fmt );
+    size_t formatLen = strlen( fmt );
+    char* currentSpot = fullFormat;
+    memcpy( currentSpot, severityText.c_str(), severityText.length() );
+    currentSpot += severityText.length();
+    memcpy( currentSpot, fmt, formatLen );
+    currentSpot += formatLen;
+    *currentSpot = '\n';
+    currentSpot += 1;
+    *currentSpot = '\0';
 
     s_loggerLock.lock();
     for ( int i = 0; i < s_numLogs; ++i )

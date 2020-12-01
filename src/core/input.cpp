@@ -21,7 +21,7 @@ static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, 
 {
     if ( key == GLFW_KEY_UNKNOWN )
     {
-        LOG_WARN( "Unknown key pressed\n" );
+        LOG_WARN( "Unknown key pressed" );
         return;
     }
 

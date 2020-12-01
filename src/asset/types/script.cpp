@@ -16,7 +16,7 @@ bool Script_Load( Script* script, const ScriptCreateInfo& createInfo )
     std::ifstream in( createInfo.filename, std::ios::binary );
     if ( !in )
     {
-        LOG_ERR( "Could not load script file '%s'\n", createInfo.filename.c_str() );
+        LOG_ERR( "Could not load script file '%s'", createInfo.filename.c_str() );
         return false;
     }
 

@@ -23,7 +23,7 @@ bool LZ4CompressFile( const std::string& inputFilename, const std::string& outpu
     MemoryMapped memMappedFile;
     if ( !memMappedFile.open( inputFilename, MemoryMapped::WholeFile, MemoryMapped::Normal ) )
     {
-        LOG_ERR( "Could not open file: '%s'\n", inputFilename.c_str() );
+        LOG_ERR( "Could not open file: '%s'", inputFilename.c_str() );
         return false;
     }
 
@@ -38,19 +38,19 @@ bool LZ4CompressFile( const std::string& inputFilename, const std::string& outpu
 
     if ( compressedDataSize <= 0 )
     {
-        LOG_ERR( "Error while trying to compress the file. LZ4 returned: %d\n", compressedDataSize );
+        LOG_ERR( "Error while trying to compress the file. LZ4 returned: %d", compressedDataSize );
         return false;
     }
 
     if ( compressedDataSize > 0 )
     {
-        LOG( "Compressed file size ratio: %.3f\n", (float) compressedDataSize / srcSize );
+        LOG( "Compressed file size ratio: %.3f", (float) compressedDataSize / srcSize );
     }
 
     std::ofstream out( outputFilename, std::ios::binary );
     if ( !out )
     {
-        LOG_ERR( "Failed to open file '%s' for writing compressed results\n", outputFilename.c_str() );
+        LOG_ERR( "Failed to open file '%s' for writing compressed results", outputFilename.c_str() );
         return false;
     }
 

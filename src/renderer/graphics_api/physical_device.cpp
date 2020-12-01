@@ -259,7 +259,7 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
     for ( uint32_t i = 0; i < deviceCount; ++i )
     {
         auto p = devices[i].GetProperties();
-        LOG( "Device %d: '%s', api = %d.%d.%d\n", i, p.name.c_str(), p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
+        LOG( "Device %d: '%s', api = %d.%d.%d", i, p.name.c_str(), p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
     }
     
     bool gpuFound = false;
@@ -276,11 +276,11 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
 
         if ( r_globals.physicalDevice.GetName() != preferredGpu )
         {
-            LOG_WARN( "GPU '%s' not found. Checking other gpus\n" );
+            LOG_WARN( "GPU '%s' not found. Checking other gpus" );
         }
         else if ( r_globals.physicalDevice.score <= 0 )
         {
-            LOG_WARN( "GPU '%s' is not a compatible device for this engine. Checking other gpus\n" );
+            LOG_WARN( "GPU '%s' is not a compatible device for this engine. Checking other gpus" );
         }
         else
         {

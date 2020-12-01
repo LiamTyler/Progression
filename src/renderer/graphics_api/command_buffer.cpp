@@ -223,7 +223,7 @@ namespace Gfx
         VkCommandBuffer handle;
         if ( vkAllocateCommandBuffers( m_device, &allocInfo, &handle ) != VK_SUCCESS )
         {
-            PG_ASSERT( false, "Could not allocate command buffers\n" );
+            PG_ASSERT( false, "Could not allocate command buffers" );
             return buf;
         }
         buf.m_handle = handle;

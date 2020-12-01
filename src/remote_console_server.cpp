@@ -40,7 +40,7 @@ bool Init()
     
 	if ( WSAStartup( MAKEWORD( 2,2 ), &wsa ) != 0 )
 	{
-        LOG_ERR( "Failed. Error Code : %d\n", WSAGetLastError() );
+        LOG_ERR( "Failed. Error Code : %d", WSAGetLastError() );
 		return false;
 	}
 	
@@ -53,7 +53,7 @@ bool Init()
     iResult = getaddrinfo( NULL, "27015", &hints, &result );
     if ( iResult != 0 )
     {
-        LOG_ERR( "getaddrinfo failed with error: %d\n", iResult );
+        LOG_ERR( "getaddrinfo failed with error: %d", iResult );
         WSACleanup();
         return false;
     }
@@ -61,7 +61,7 @@ bool Init()
     s_listenSocket = socket( result->ai_family, result->ai_socktype, result->ai_protocol );
     if ( s_listenSocket == INVALID_SOCKET )
     {
-        LOG_ERR( "socket failed with error: %ld\n", WSAGetLastError() );
+        LOG_ERR( "socket failed with error: %ld", WSAGetLastError() );
         freeaddrinfo( result );
         WSACleanup();
         return false;
@@ -70,7 +70,7 @@ bool Init()
     iResult = bind( s_listenSocket, result->ai_addr, (int)result->ai_addrlen );
     if ( iResult == SOCKET_ERROR )
     {
-        LOG_ERR( "bind failed with error: %d\n", WSAGetLastError() );
+        LOG_ERR( "bind failed with error: %d", WSAGetLastError() );
         freeaddrinfo( result );
         closesocket( s_listenSocket );
         WSACleanup();
@@ -82,7 +82,7 @@ bool Init()
     iResult = listen( s_listenSocket, 1 );
     if ( iResult == SOCKET_ERROR )
     {
-        LOG_ERR( "Listen failed with error: %d\n", WSAGetLastError() );
+        LOG_ERR( "Listen failed with error: %d", WSAGetLastError() );
         closesocket( s_listenSocket );
         WSACleanup();
         return false;
@@ -104,7 +104,7 @@ void Shutdown()
             int result = shutdown( s_clientSocket, SD_SEND );
             if ( result == SOCKET_ERROR )
             {
-                LOG_ERR( "Failed to shutdown client socket with error: %d\n", WSAGetLastError() );
+                LOG_ERR( "Failed to shutdown client socket with error: %d", WSAGetLastError() );
             }
             closesocket( s_clientSocket );
         }
@@ -123,17 +123,17 @@ static void ListenForCommands()
 {
     while ( !s_serverShouldStop )
     {
-        LOG( "Waiting for client...\n" );
+        LOG( "Waiting for client..." );
         s_clientSocket = accept( s_listenSocket, NULL, NULL );
         if ( s_clientSocket == INVALID_SOCKET )
         {
             if ( !s_serverShouldStop )
             {
-                LOG_ERR( "Accept failed with error: %d\n", WSAGetLastError() );
+                LOG_ERR( "Accept failed with error: %d", WSAGetLastError() );
             }
             continue;
         }
-        LOG( "Client connected, waiting for client message\n" );
+        LOG( "Client connected, waiting for client message" );
 
         // make recv unblock itself every so often to see if the program is trying to shutdown
         timeval timeout;
@@ -141,7 +141,7 @@ static void ListenForCommands()
         timeout.tv_usec = 0;
         if ( setsockopt( s_clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof( timeout ) ) == SOCKET_ERROR )
         {
-            LOG_ERR( "Could not set client socket to be non-blocking!\n" );
+            LOG_ERR( "Could not set client socket to be non-blocking!" );
         }
 
         const int recvBufferLen = 1024;
@@ -160,19 +160,19 @@ static void ListenForCommands()
             }
             if ( bytesReceived > 0 )
             {
-                LOG( "Server recieved '%s'\n", recvBuffer );
+                LOG( "Server recieved '%s'", recvBuffer );
 
                 std::string sendMsg = "message recieved";
                 int iSendResult = send( s_clientSocket, sendMsg.c_str(), (int)sendMsg.length() + 1, 0 );
                 if ( iSendResult == SOCKET_ERROR )
                 {
-                    LOG_ERR( "send failed with error: %d\n", WSAGetLastError() );
+                    LOG_ERR( "send failed with error: %d", WSAGetLastError() );
                     clientConnected = false;
                 }
             }
             else if ( bytesReceived == 0 )
             {
-                LOG( "Client closed connection\n" );
+                LOG( "Client closed connection" );
                 clientConnected = false;
             }
             else if ( bytesReceived == -1 )
@@ -180,7 +180,7 @@ static void ListenForCommands()
                 int err = WSAGetLastError();
                 if ( err != WSAEINTR )
                 {
-                    LOG_ERR( "recv failed with error: %d\n", WSAGetLastError() );
+                    LOG_ERR( "recv failed with error: %d", WSAGetLastError() );
                 }
                 clientConnected = false;
             }

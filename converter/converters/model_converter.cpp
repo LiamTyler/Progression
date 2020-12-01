@@ -28,7 +28,7 @@ void Model_Parse( const rapidjson::Value& value )
 
     if ( !PathExists( info.filename ) )
     {
-        LOG_ERR( "Filename '%s' not found for Model '%s', skipping model\n", info.filename.c_str(), info.name.c_str() );
+        LOG_ERR( "Filename '%s' not found for Model '%s', skipping model", info.filename.c_str(), info.name.c_str() );
         g_parsingError = true;
     }
 
@@ -59,7 +59,7 @@ static bool Model_IsOutOfDate( const ModelCreateInfo& info )
 
 static bool Model_ConvertSingle( const ModelCreateInfo& info )
 {
-    LOG( "Converting model '%s'...\n", info.name.c_str() );
+    LOG( "Converting model '%s'...", info.name.c_str() );
     Model model;
     std::vector< std::string > materialNames;
     if ( !Model_Load_PGModel( &model, info, materialNames ) )
@@ -74,7 +74,7 @@ static bool Model_ConvertSingle( const ModelCreateInfo& info )
     }
     if ( !Fastfile_Model_Save( &model, &serializer, materialNames ) )
     {
-        LOG_ERR( "Error while writing model '%s' to fastfile\n", model.name.c_str() );
+        LOG_ERR( "Error while writing model '%s' to fastfile", model.name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -129,7 +129,7 @@ bool Model_BuildFastFile( Serializer* serializer )
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
             return false;
         }
         

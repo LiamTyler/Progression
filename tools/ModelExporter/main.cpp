@@ -79,16 +79,16 @@ int main( int argc, char* argv[] )
     {
         g_textureSearchDir = GetParentPath( GetAbsolutePath( filename ) );
     }
-    LOG( "Filename = '%s'\n", GetAbsolutePath( filename ).c_str() );
-    LOG( "Texture search directory = '%s'\n", g_textureSearchDir.c_str() );
-    LOG( "Output directory = '%s'\n", g_outputDir.c_str() );
-    LOG( "Loading model...\n" );
+    LOG( "Filename = '%s'", GetAbsolutePath( filename ).c_str() );
+    LOG( "Texture search directory = '%s'", g_textureSearchDir.c_str() );
+    LOG( "Output directory = '%s'", g_outputDir.c_str() );
+    LOG( "Loading model..." );
 
     Assimp::Importer importer;
     const aiScene* scene = importer.ReadFile( filename.c_str(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace );
     if ( !scene )
     {
-        LOG_ERR( "Error parsing model file '%s': '%s'\n", filename.c_str(), importer.GetErrorString() );
+        LOG_ERR( "Error parsing model file '%s': '%s'", filename.c_str(), importer.GetErrorString() );
         Exit();
     }
 
@@ -109,7 +109,7 @@ int main( int argc, char* argv[] )
         meshes[i].materialIndex = scene->mMeshes[i]->mMaterialIndex;
         if ( meshes[i].materialIndex < 0 )
         {
-            LOG_ERR( "Mehs '%s' has invalid material index %d\n", meshes[i].materialIndex );
+            LOG_ERR( "Mehs '%s' has invalid material index %d", meshes[i].materialIndex );
             Exit();
         }
         meshes[i].numIndices    = scene->mMeshes[i]->mNumFaces * 3;
@@ -126,7 +126,7 @@ int main( int argc, char* argv[] )
             numVerticesWithUVs += numVertices;
             if ( !paiMesh->HasTangentsAndBitangents() )
             {
-                LOG_ERR( "Mesh '%s' has UVs but no tangents. Should never happen due to aiProcess_GenNormals and aiProcess_CalcTangentSpace!\n", meshes[i].name.c_str() );
+                LOG_ERR( "Mesh '%s' has UVs but no tangents. Should never happen due to aiProcess_GenNormals and aiProcess_CalcTangentSpace!", meshes[i].name.c_str() );
                 Exit();
             }
         }
@@ -135,7 +135,7 @@ int main( int argc, char* argv[] )
     if ( numVerticesWithUVs > 1000 && numVerticesWithUVs < 0.5f * numVertices )
     {
         float wastedMem = (numVertices - numVerticesWithUVs) * (5 * sizeof( float )) / 1024.0f / 1024.0f;
-        LOG_WARN( "Model has only has some meshes with uvs, but not all. Zeros are added for vertices without them as a result, wasting %.3f MB\n", wastedMem );
+        LOG_WARN( "Model has only has some meshes with uvs, but not all. Zeros are added for vertices without them as a result, wasting %.3f MB", wastedMem );
     }
 
     vertices.reserve( numVertices );
@@ -184,12 +184,12 @@ int main( int argc, char* argv[] )
         }
     }
     
-    LOG( "Vertices: %d\n", vertices.size() );
-    LOG( "Normals: %d\n", normals.size() );
-    LOG( "uvs: %d\n", uvs.size() );
-    LOG( "tangents: %d\n", tangents.size() );
-    LOG( "triangles: %d\n", indices.size() / 3 );
-    LOG( "meshes: %d\n", meshes.size() );
+    LOG( "Vertices: %d", vertices.size() );
+    LOG( "Normals: %d", normals.size() );
+    LOG( "uvs: %d", uvs.size() );
+    LOG( "tangents: %d", tangents.size() );
+    LOG( "triangles: %d", indices.size() / 3 );
+    LOG( "meshes: %d", meshes.size() );
     
     CreateDirectory( g_outputDir );
     
@@ -197,7 +197,7 @@ int main( int argc, char* argv[] )
     std::vector< ImageInfo > imageInfos;
     if ( !SaveMaterials( filename, scene, materialNames, imageInfos ) )
     {
-        LOG_ERR( "Could not save the model's materials\n" );
+        LOG_ERR( "Could not save the model's materials" );
         Exit();
     }
 
@@ -205,7 +205,7 @@ int main( int argc, char* argv[] )
     Serializer modelFile;
     if ( !modelFile.OpenForWrite( outputModelFilename ) )
     {
-        LOG_ERR( "Could not open output model filename '%s'\n", outputModelFilename.c_str() );
+        LOG_ERR( "Could not open output model filename '%s'", outputModelFilename.c_str() );
         Exit();
     }
     modelFile.Write( vertices );
@@ -260,7 +260,7 @@ int main( int argc, char* argv[] )
     std::ofstream out( outputJson );
     if ( !out )
     {
-        LOG_ERR( "Could not open output pgMtl file '%s'\n", outputJson.c_str() );
+        LOG_ERR( "Could not open output pgMtl file '%s'", outputJson.c_str() );
         return false;
     }
     out << assetListJson;
@@ -305,12 +305,12 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
         {
             if ( assimpMat->GetTextureCount( aiTextureType_DIFFUSE ) > 1 )
             {
-                LOG_ERR( "Material '%s' has more than 1 diffuse texture\n", name.c_str() );
+                LOG_ERR( "Material '%s' has more than 1 diffuse texture", name.c_str() );
                 return false;
             }
             if ( !GetAssimpTexturePath( assimpMat, aiTextureType_DIFFUSE, imagePath ) )
             {
-                LOG_ERR( "Could not find diffuse texture\n" );
+                LOG_ERR( "Could not find diffuse texture" );
                 return false;
             }
             map_kd_name = GetRelativePathToDir( GetFilenameMinusExtension( imagePath ), g_parentToOutputDir );
@@ -340,7 +340,7 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
     std::ofstream out( outputFilename );
     if ( !out )
     {
-        LOG_ERR( "Could not open output pgMtl file '%s'\n", outputFilename.c_str() );
+        LOG_ERR( "Could not open output pgMtl file '%s'", outputFilename.c_str() );
         return false;
     }
     out << mtlJson;
@@ -380,19 +380,19 @@ bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, s
 
         if ( fullPath == "" )
         {
-            LOG_ERR( "Could not find image file '%s'\n", name.c_str() );
+            LOG_ERR( "Could not find image file '%s'", name.c_str() );
             return false;
         }
         pathToTex = g_outputDir + GetRelativeFilename( fullPath );
         if ( !CopyFile( fullPath, pathToTex, true ) )
         {
-            LOG_ERR( "Failed to copy image '%s' to '%s'\n", fullPath.c_str(), pathToTex.c_str() );
+            LOG_ERR( "Failed to copy image '%s' to '%s'", fullPath.c_str(), pathToTex.c_str() );
             return false;
         }
     }
     else
     {
-        LOG_ERR( "Could not get texture of type: '%s'\n", TextureTypeToString( texType ) );
+        LOG_ERR( "Could not get texture of type: '%s'", TextureTypeToString( texType ) );
         return false;
     }
 

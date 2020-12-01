@@ -171,7 +171,7 @@ bool Model_Load( Model* model, const ModelCreateInfo& createInfo )
         model->originalMaterials[i] = AssetManager::Get< Material >( materialNames[i] );
         if ( !model->originalMaterials[i] )
         {
-            LOG_ERR( "No material '%s' found\n", materialNames[i].c_str() );
+            LOG_ERR( "No material '%s' found", materialNames[i].c_str() );
             return false;
         }
     }
@@ -205,7 +205,7 @@ bool Fastfile_Model_Load( Model* model, Serializer* serializer )
         model->originalMaterials[i] = AssetManager::Get< Material >( matName );
         if ( !model->originalMaterials[i] )
         {
-            LOG_ERR( "No material found with name '%s', using default material instead.\n", matName.c_str() );
+            LOG_ERR( "No material found with name '%s', using default material instead.", matName.c_str() );
             model->originalMaterials[i] = AssetManager::Get< Material >( "default" );
         }
         serializer->Read( mesh.startIndex );

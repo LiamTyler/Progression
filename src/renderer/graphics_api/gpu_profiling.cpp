@@ -72,11 +72,11 @@ namespace Profile
         }
 
         // read the log file back in and calculate average durations between timestamps with same prefix
-        LOG( "Processing gpu profiling timestamps...\n" );
+        LOG( "Processing gpu profiling timestamps..." );
         std::ifstream in( tmpFileName );
         if ( !in )
         {
-            LOG_ERR( "Failed to open timestamp data file\n" );
+            LOG_ERR( "Failed to open timestamp data file" );
             return;
         }
 
@@ -145,11 +145,11 @@ namespace Profile
         }
         std::sort( entries.begin(), entries.end(), []( const Entry& lhs, const Entry& rhs ){ return lhs.totalTime / lhs.count < rhs.totalTime  / rhs.count; } );
 
-        LOG( "GPU Profiling Results (ms):\n" );
+        LOG( "GPU Profiling Results (ms):" );
         for ( const auto& entry : entries )
         {
             double time = entry.totalTime * s_timestampToMillisInv / entry.count;
-            LOG( "%s: %1.3f\n", entry.name.c_str(), time );
+            LOG( "%s: %1.3f", entry.name.c_str(), time );
         }
     }
 

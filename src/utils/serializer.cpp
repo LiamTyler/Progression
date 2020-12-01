@@ -16,7 +16,7 @@ bool Serializer::OpenForRead( const std::string& fname )
     filename = fname;
     if ( !memMappedFile.open( fname, MemoryMapped::WholeFile, MemoryMapped::SequentialScan ) )
     {
-        LOG_ERR( "Could not memmap file: '%s'\n", fname.c_str() );
+        LOG_ERR( "Could not memmap file: '%s'", fname.c_str() );
         return false;
     }
     currentReadPos = memMappedFile.getData();
@@ -37,7 +37,7 @@ bool Serializer::OpenForWrite( const std::string& fname )
     writeFile.open( fname, std::ios::binary );
     if ( !writeFile || !writeFile.is_open() )
     {
-        LOG_ERR( "Could not open file '%s'\n", fname.c_str() );
+        LOG_ERR( "Could not open file '%s'", fname.c_str() );
         return false;
     }
 

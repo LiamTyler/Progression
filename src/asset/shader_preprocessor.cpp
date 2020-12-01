@@ -144,12 +144,12 @@ public:
         }
         if ( !m_ifStatementStack.empty() )
         {
-            LOG_ERR( "Mismatched #if / #endifs, expecting %d more #endif's in shader '%s'\n", m_ifStatementStack.size(), pathToShader.c_str() );
+            LOG_ERR( "Mismatched #if / #endifs, expecting %d more #endif's in shader '%s'", m_ifStatementStack.size(), pathToShader.c_str() );
             return false;
         }
         if ( !success )
         {
-            LOG_ERR( "Preprocessing for shader '%s' failed\n", pathToShader.c_str() );
+            LOG_ERR( "Preprocessing for shader '%s' failed", pathToShader.c_str() );
         }
 
         return success;
@@ -210,7 +210,7 @@ private:
         {
             std::string currentVal = it->second.negated ? "!" : "";
             currentVal += it->second.value;
-            LOG_WARN( "Already have #define '%s' '%s'. Updating value with '%s'\n", define.c_str(), currentVal.c_str(), fullValue.c_str() );
+            LOG_WARN( "Already have #define '%s' '%s'. Updating value with '%s'", define.c_str(), currentVal.c_str(), fullValue.c_str() );
         }
         bool negated = false;
         if ( fullValue.length() > 0 && fullValue[0] == '!' )
@@ -233,7 +233,7 @@ private:
         }
         else
         {
-            LOG_ERR( "No previous #define for '%s'\n", define.c_str() );
+            LOG_ERR( "No previous #define for '%s'", define.c_str() );
             return false;
         }
     }
@@ -262,7 +262,7 @@ private:
         size_t includeEndPos = shaderIncludeLine.find( '"', includeStartPos );
         if ( includeEndPos == std::string::npos )
         {
-            LOG_ERR( "Invalid include on line '%s'\n", shaderIncludeLine.c_str() );
+            LOG_ERR( "Invalid include on line '%s'", shaderIncludeLine.c_str() );
             return false;
         }
         std::string relativeInclude = shaderIncludeLine.substr( includeStartPos, includeEndPos - includeStartPos );
@@ -277,7 +277,7 @@ private:
                 return true;
             }
         }
-        LOG_ERR( "Could not find include '%s'\n", shaderIncludeLine.c_str() );
+        LOG_ERR( "Could not find include '%s'", shaderIncludeLine.c_str() );
 
         return false;
     }
@@ -443,7 +443,7 @@ private:
                 std::string key = GetNextToken( line, endOfTokenIndex );
                 if ( key == "" )
                 {
-                    LOG_ERR( "Invalud #define command '%s'\n", line.c_str() );
+                    LOG_ERR( "Invalud #define command '%s'", line.c_str() );
                     return false;
                 }
                 std::string value = GetNextToken( line, endOfTokenIndex );
@@ -455,7 +455,7 @@ private:
             {
                 if ( m_ifStatementStack.empty() )
                 {
-                    LOG_ERR( "#else statement without matching #if/#ifdef/#ifndef. Line '%s'\n", line.c_str() );
+                    LOG_ERR( "#else statement without matching #if/#ifdef/#ifndef. Line '%s'", line.c_str() );
                     return false;
                 }
 
@@ -468,7 +468,7 @@ private:
             {
                 if ( m_ifStatementStack.empty() )
                 {
-                    LOG_ERR( "#elif statement without matching #if/#ifdef/#ifndef. Line '%s'\n", line.c_str() );
+                    LOG_ERR( "#elif statement without matching #if/#ifdef/#ifndef. Line '%s'", line.c_str() );
                     return false;
                 }
 
@@ -484,7 +484,7 @@ private:
             }
             case CASE_ERROR:
             {
-                LOG_ERR( "'%s'\n", line.c_str() );
+                LOG_ERR( "'%s'", line.c_str() );
                 return false;
             }
             case CASE_EXTENSION:
@@ -511,7 +511,7 @@ private:
                 std::string key = GetNextToken( line, endOfTokenIndex );
                 if ( key.empty() )
                 {
-                    LOG_ERR( "Invalud #ifndef command '%s'\n", line.c_str() );
+                    LOG_ERR( "Invalud #ifndef command '%s'", line.c_str() );
                     return false;
                 }
                 DefineValue defineValue;
@@ -531,7 +531,7 @@ private:
                 std::string key = GetNextToken( line, endOfTokenIndex );
                 if ( key.empty() )
                 {
-                    LOG_ERR( "Invalud #ifndef command '%s'\n", line.c_str() );
+                    LOG_ERR( "Invalud #ifndef command '%s'", line.c_str() );
                     return false;
                 }
                 DefineValue defineValue;
@@ -570,7 +570,7 @@ private:
                 std::string key = GetNextToken( line, endOfTokenIndex );
                 if ( key == "" )
                 {
-                    LOG_ERR( "Invalid #undef command '%s'\n", line.c_str() );
+                    LOG_ERR( "Invalid #undef command '%s'", line.c_str() );
                     return false;
                 }
                 if ( !RemoveDefine( key ) )
@@ -586,12 +586,12 @@ private:
             }
             case CASE_WARNING:
             {
-                LOG_WARN( "'%s'\n", line.c_str() );
+                LOG_WARN( "'%s'", line.c_str() );
                 break;
             }
             default:
                 outputShader += line + '\n';
-                LOG_WARN( "Unknown preproc command '%s' on line '%s' in shader '%s'\n", command.c_str(), line.c_str(), path.c_str() );
+                LOG_WARN( "Unknown preproc command '%s' on line '%s' in shader '%s'", command.c_str(), line.c_str(), path.c_str() );
         }
 
         return true;
@@ -604,7 +604,7 @@ private:
         std::ifstream inFile( path );
         if ( !inFile )
         {
-            LOG_ERR( "Could not open shader file '%s'\n", path.c_str() );
+            LOG_ERR( "Could not open shader file '%s'", path.c_str() );
             return false;
         }
         m_currentFilename = path;
@@ -619,7 +619,7 @@ private:
                 std::string command = GetNextToken( m_currentLine, endOfTokenIndex );
                 if ( command.empty() )
                 {
-                    LOG_ERR( "Invalid preproc command '%s'\n", path.c_str(), m_currentLine.c_str() );
+                    LOG_ERR( "Invalid preproc command '%s'", path.c_str(), m_currentLine.c_str() );
                     return false;
                 }
 

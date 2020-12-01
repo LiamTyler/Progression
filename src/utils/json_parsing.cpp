@@ -10,7 +10,7 @@ bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
     FILE* fp = fopen( filename.c_str(), "rb" );
     if ( fp == NULL )
     {
-        LOG_ERR( "Could not open json file '%s'\n", filename.c_str() );
+        LOG_ERR( "Could not open json file '%s'", filename.c_str() );
         return false;
     }
     fseek( fp, 0L, SEEK_END );
@@ -22,7 +22,7 @@ bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
     rapidjson::ParseResult ok = document.ParseStream( is );
     if ( !ok )
     {
-        LOG_ERR( "JSON parse error '%s' (%d)\n", rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
+        LOG_ERR( "JSON parse error '%s' (%d)", rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
         return false;
     }
 

@@ -38,7 +38,7 @@ public:
     {
         if ( mapping.find( name ) == mapping.end() )
         {
-            LOG_WARN( "'%s' not found in mapping\n", name.c_str() );
+            LOG_WARN( "'%s' not found in mapping", name.c_str() );
         }
         else
         {
@@ -53,7 +53,7 @@ public:
             std::string name = it->name.GetString();
             if ( mapping.find( name ) == mapping.end() )
             {
-                LOG_WARN( "'%s' not found in mapping\n", name.c_str() );
+                LOG_WARN( "'%s' not found in mapping", name.c_str() );
             }
             else
             {

@@ -77,7 +77,7 @@ bool SaveExr( const std::string& filename, int width, int height, glm::vec4* pix
     bool success = SaveEXRImageToFile( &image, &header, filename.c_str(), &err ) == TINYEXR_SUCCESS;
     if ( err )
     {
-        LOG_ERR( "error while saving exr '%s'\n", err );
+        LOG_ERR( "error while saving exr '%s'", err );
     }
     for ( int i = 0; i < image.num_channels; ++i )
     {
@@ -168,18 +168,18 @@ bool Image::Load( ImageCreateInfo* createInfo )
         loadSuccessful = LoadEXR( reinterpret_cast<float**>( &pixels ), &width, &height, filename.c_str(), &err ) == TINYEXR_SUCCESS;
         if( err )
         {
-            LOG_ERR( "Tinyexr error '%s'\n", err );
+            LOG_ERR( "Tinyexr error '%s'", err );
         }
     }
     else
     {
-        LOG_ERR( "Image filetype '%s'", ext, "' is not supported\n" );
+        LOG_ERR( "Image filetype '%s'", ext, "' is not supported" );
         return false;
     }
 
     if ( !loadSuccessful )
     {
-        LOG_ERR( "Failed to load image '%s'\n", filename.c_str() );
+        LOG_ERR( "Failed to load image '%s'", filename.c_str() );
     }
     //PG_PROFILE_END( ImageLoad );
 
@@ -244,13 +244,13 @@ bool Image::Save( const std::string& filename ) const
     }
     else
     {
-        LOG_ERR( "Saving image as filetype '%s' is not supported\n", ext.c_str() );
+        LOG_ERR( "Saving image as filetype '%s' is not supported", ext.c_str() );
         return false;
     }
 
     if ( !saveSuccessful )
     {
-        LOG_ERR( "Could not save image '%' to file '%'\n", name.c_str(), filename.c_str() );
+        LOG_ERR( "Could not save image '%' to file '%'", name.c_str(), filename.c_str() );
     }
     PG_PROFILE_CPU_END( ImageSave );
 

@@ -73,7 +73,7 @@ static VkPresentModeKHR ChooseSwapPresentMode( const std::vector< VkPresentModeK
     }
     if ( mode != VK_PRESENT_MODE_MAILBOX_KHR )
     {
-        LOG_WARN( "Preferred swap chain format 'VK_PRESENT_MODE_MAILBOX_KHR' not available. Defaulting to VK_PRESENT_MODE_FIFO_KHR\n" );
+        LOG_WARN( "Preferred swap chain format 'VK_PRESENT_MODE_MAILBOX_KHR' not available. Defaulting to VK_PRESENT_MODE_FIFO_KHR" );
     }
 
     return mode;
@@ -97,7 +97,7 @@ static VkSurfaceFormatKHR ChooseSwapSurfaceFormat( const std::vector< VkSurfaceF
         }
     }
 
-    LOG_WARN( "Format not BGRA8 with SRGB colorspace. Instead format = %d, colorspace = %d\n", availableFormats[0].format, availableFormats[0].colorSpace );
+    LOG_WARN( "Format not BGRA8 with SRGB colorspace. Instead format = %d, colorspace = %d", availableFormats[0].format, availableFormats[0].colorSpace );
 
     return availableFormats[0];
 }
@@ -122,7 +122,7 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
     m_height = extent.height;
     if ( m_width != preferredWidth || m_height != preferredHeight )
     {
-        LOG_WARN( "Could not create swapchain with dimensions %d x %d. Instead got %d x %d\n", preferredWidth, preferredHeight, m_width, m_height );
+        LOG_WARN( "Could not create swapchain with dimensions %d x %d. Instead got %d x %d", preferredWidth, preferredHeight, m_width, m_height );
     }
 
     m_numImages = swapChainSupport.capabilities.minImageCount + 1;
@@ -147,7 +147,7 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
 
     if ( pDev.GetGraphicsQueueFamily() != pDev.GetPresentationQueueFamily() )
     {
-        LOG_WARN( "Graphics queue is not the same as the presentation queue! Possible performance drop\n" );
+        LOG_WARN( "Graphics queue is not the same as the presentation queue! Possible performance drop" );
         createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
         createInfo.queueFamilyIndexCount = 3;
         createInfo.pQueueFamilyIndices   = queueFamilyIndices;

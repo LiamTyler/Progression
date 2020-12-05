@@ -9,6 +9,7 @@
 #include "utils/serializer.hpp"
 #include "shaderc/shaderc.hpp"
 //#include "spirv_cross/spirv_cross.hpp"
+#include <cstring>
 #include <fstream>
 #include <sstream>
 

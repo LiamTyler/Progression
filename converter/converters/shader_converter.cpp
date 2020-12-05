@@ -33,7 +33,7 @@ void Shader_Parse( const rapidjson::Value& value )
                 auto it = shaderStageMap.find( stageName );
                 if ( it == shaderStageMap.end() )
                 {
-                    LOG_ERR( "No ShaderStage found matching '%s'\n", stageName.c_str() );
+                    LOG_ERR( "No ShaderStage found matching '%s'", stageName.c_str() );
                     s.shaderStage = ShaderStage::NUM_SHADER_STAGES;
                 }
                 else
@@ -60,11 +60,8 @@ void Shader_Parse( const rapidjson::Value& value )
         g_converterStatus.parsingError = true;
     }
 
-    if ( g_converterConfigOptions.noShaderOptimization )
-    {
-        info.optimize = false;
-    }
-    info.writePreproc = g_converterConfigOptions.saveShaderPreproc;
+    info.generateDebugInfo = g_converterConfigOptions.generateShaderDebugInfo;
+    info.savePreproc = g_converterConfigOptions.saveShaderPreproc;
 
     s_parsedShaders.push_back( info );
 }
@@ -75,7 +72,7 @@ static std::string Shader_GetFastFileName( const ShaderCreateInfo& info )
     std::string baseName = info.name;
     baseName += "_" + GetRelativeFilename( info.filename );
     baseName += "_v" + std::to_string( PG_SHADER_VERSION );
-    if ( info.optimize )
+    if ( info.generateDebugInfo )
     {
         baseName += "_d";
     }
@@ -91,17 +88,18 @@ static bool Shader_IsOutOfDate( ShaderCreateInfo& info )
     {
         return true;
     }
-    bool savePreproc = info.writePreproc;
-    info.writePreproc = false;
+    bool savePreproc = info.savePreproc;
+    info.savePreproc = false;
     std::string ffName = Shader_GetFastFileName( info );
     ShaderPreprocessOutput preproc = PreprocessShader( info );
-    info.writePreproc = savePreproc;
+    info.savePreproc = savePreproc;
     if ( !preproc.success )
     {
         LOG_ERR( "Preprocessing shader asset '%s' for the included files failed", info.name.c_str() );
         g_converterStatus.checkDependencyErrors += 1;
         return false;
     }
+    info.preprocOutput = std::move( preproc.outputShader );
 
     AddFastfileDependency( ffName );
     for ( const auto& file : preproc.includedFiles )
@@ -115,7 +113,7 @@ static bool Shader_IsOutOfDate( ShaderCreateInfo& info )
 
 static bool Shader_ConvertSingle( const ShaderCreateInfo& info )
 {
-    LOG( "Converting Shader file '%s'...\n", info.filename.c_str() );
+    LOG( "Converting Shader file '%s'...", info.filename.c_str() );
     Shader asset;
     if ( !Shader_Load( &asset, info ) )
     {
@@ -129,7 +127,7 @@ static bool Shader_ConvertSingle( const ShaderCreateInfo& info )
     }
     if ( !Fastfile_Shader_Save( &asset, &serializer ) )
     {
-        LOG_ERR( "Error while writing Shader '%s' to fastfile\n", info.name.c_str() );
+        LOG_ERR( "Error while writing Shader '%s' to fastfile", info.name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -185,7 +183,7 @@ bool Shader_BuildFastFile( Serializer* serializer )
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
             return false;
         }
         

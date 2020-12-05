@@ -20,7 +20,7 @@ int main( int argc, char* argv[] )
 	EngineInitInfo engineInitConfig;
 	if ( !EngineInitialize( engineInitConfig ) )
     {
-        LOG_ERR( "Failed to initialize the engine\n" );
+        LOG_ERR( "Failed to initialize the engine" );
         return 0;
     }
 

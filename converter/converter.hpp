@@ -12,7 +12,7 @@ struct ConverterConfigOptions
 {
     std::string assetListFile;
     bool force                  = false;
-    bool noShaderOptimization   = false;
+    bool generateShaderDebugInfo   = false;
     bool saveShaderPreproc      = false;
 };
 

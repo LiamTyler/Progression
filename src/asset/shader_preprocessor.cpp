@@ -50,6 +50,7 @@ std::string CleanUpPreproc( const std::string& preprocOutput )
         if ( numBlankLines < 2 )
         {
             line = std::regex_replace( line, std::regex( " \\. " ), "." );
+            line = std::regex_replace( line, std::regex( "\\. " ), "." );
             result += line + '\n';
         }
     }
@@ -152,7 +153,6 @@ public:
     std::vector< std::string >* includedFiles;
 };
 
-
 ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
 {
     ShaderPreprocessOutput output;
@@ -165,9 +165,14 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
     options.SetIncluder( std::move( includer ) );
     
     std::string shaderStageDefine = PGShaderStageToDefine( createInfo.shaderStage );
-    options.AddMacroDefinition( "PG_SHADER_CODE", "1" );
-    options.AddMacroDefinition( shaderStageDefine, "1" );
-    for ( const auto& [symbol, value] : createInfo.defines )
+    auto defines = createInfo.defines;
+    defines.emplace_back( "PG_SHADER_CODE", "1" );
+    defines.emplace_back( PGShaderStageToDefine( createInfo.shaderStage ), "1" );
+    if ( createInfo.generateDebugInfo )
+    {
+        defines.emplace_back( "IS_DEBUG_SHADER", "1" );
+    }
+    for ( const auto& [symbol, value] : defines )
     {
         options.AddMacroDefinition( symbol, value );
     }
@@ -179,20 +184,18 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
 
     if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
     {
-        LOG_ERR( "Preprocess GLSL failed:\n%s\n", result.GetErrorMessage().c_str() );
+        LOG_ERR( "Preprocess GLSL failed: %s", result.GetErrorMessage().c_str() );
         return output;
     }
 
     output.success = true;
     output.outputShader = { result.cbegin(), result.cend() };
-       
-    if ( createInfo.writePreproc )
+
+    if ( createInfo.savePreproc )
     {
-        //output.outputShader = CleanUpPreproc( output.outputShader );
+        output.outputShader = CleanUpPreproc( output.outputShader );
         size_t seed = 0;
-        hash_combine( seed, std::string( "PG_SHADER_CODE1" ) );
-        hash_combine( seed, shaderStageDefine + "1" );
-        for ( const auto& [define, value] : createInfo.defines )
+        for ( const auto& [define, value] : defines )
         {
             hash_combine( seed, define + value );
         }
@@ -200,16 +203,14 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
         std::ofstream out( preprocFilename );
         if ( !out )
         {
-            LOG_ERR( "Could not output preproc file '%s'\n",  preprocFilename.c_str() );
+            LOG_ERR( "Could not output preproc file '%s'",  preprocFilename.c_str() );
             output.success = false;
             return output;
         }
         out << output.outputShader << std::endl;
         
         // write list of #defines at the bottom for easier debugging
-        out << "// #define PG_SHADER_CODE 1\n";
-        out << "// #define " << shaderStageDefine << " 1\n";
-        for ( const auto& [define, value] : createInfo.defines )
+        for ( const auto& [define, value] : defines )
         {
             out << "// #define " << define << " " << value << "\n";
         }

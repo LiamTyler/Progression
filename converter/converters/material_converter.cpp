@@ -84,7 +84,7 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
 
 static bool Material_ConvertSingle( const std::string& filename )
 {
-    LOG( "Converting material file '%s'...\n", filename.c_str() );
+    LOG( "Converting material file '%s'...", filename.c_str() );
     std::vector< MaterialCreateInfo > createInfos;
     if ( !ParseMaterialFile( filename, createInfos ) )
     {
@@ -103,7 +103,7 @@ static bool Material_ConvertSingle( const std::string& filename )
     {
         if ( !Fastfile_Material_Save( &info, &serializer ) )
         {
-            LOG_ERR( "Error while writing material '%s' to fastfile\n", info.name.c_str() );
+            LOG_ERR( "Error while writing material '%s' to fastfile", info.name.c_str() );
             serializer.Close();
             DeleteFile( fastfileName );
             return false;
@@ -160,7 +160,7 @@ bool Material_BuildFastFile( Serializer* serializer )
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
             return false;
         }
         

@@ -64,7 +64,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 auto it = imageTypeMap.find( imageName );
                 if ( it == imageTypeMap.end() )
                 {
-                    LOG_ERR( "No GfxImageType found matching '%s'\n", imageName.c_str() );
+                    LOG_ERR( "No GfxImageType found matching '%s'", imageName.c_str() );
                     i.imageType = Gfx::ImageType::NUM_IMAGE_TYPES;
                 }
                 else
@@ -79,7 +79,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 auto it = imageSemanticMap.find( semanticName );
                 if ( it == imageSemanticMap.end() )
                 {
-                    LOG_ERR( "No image semantic found matching '%s'\n", semanticName.c_str() );
+                    LOG_ERR( "No image semantic found matching '%s'", semanticName.c_str() );
                     i.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
                 }
                 else
@@ -93,7 +93,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 i.dstPixelFormat = PixelFormatFromString( v.GetString() );
                 if ( i.dstPixelFormat == PixelFormat::INVALID )
                 {
-                    LOG_ERR( "Invalid dstFormat '%s'\n", v.GetString() );
+                    LOG_ERR( "Invalid dstFormat '%s'", v.GetString() );
                 }
             }
         },
@@ -170,7 +170,7 @@ static bool GfxImage_IsOutOfDate( const GfxImageCreateInfo& info )
 
 static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
 {
-    LOG( "Converting image '%s'...\n", info.name.c_str() );
+    LOG( "Converting image '%s'...", info.name.c_str() );
     GfxImage image;
     if ( !GfxImage_Load( &image, info ) )
     {
@@ -184,7 +184,7 @@ static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
     }
     if ( !Fastfile_GfxImage_Save( &image, &serializer ) )
     {
-        LOG_ERR( "Error while writing image '%s' to fastfile\n", image.name.c_str() );
+        LOG_ERR( "Error while writing image '%s' to fastfile", image.name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -239,7 +239,7 @@ bool GfxImage_BuildFastFile( Serializer* serializer )
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
             return false;
         }
         

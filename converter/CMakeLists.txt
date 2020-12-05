@@ -37,6 +37,7 @@ set(
     ${PROGRESSION_DIR}/src/utils/file_dependency.hpp
     ${PROGRESSION_DIR}/src/utils/filesystem.cpp
     ${PROGRESSION_DIR}/src/utils/filesystem.hpp
+    ${PROGRESSION_DIR}/src/utils/hash.hpp
     ${PROGRESSION_DIR}/src/utils/json_parsing.cpp
     ${PROGRESSION_DIR}/src/utils/json_parsing.hpp
     ${PROGRESSION_DIR}/src/utils/logger.cpp
@@ -46,6 +47,7 @@ set(
     ${PROGRESSION_DIR}/src/utils/serializer.cpp
     ${PROGRESSION_DIR}/src/utils/serializer.hpp
     
+    ${CMAKE_CURRENT_SOURCE_DIR}/converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/material_converter.cpp
@@ -69,6 +71,8 @@ set(
     ${PROGRESSION_DIR}/ext/tinyexr/tinyexr.cc
     ${PROGRESSION_DIR}/ext/memory_map/MemoryMapped.h
     ${PROGRESSION_DIR}/ext/memory_map/MemoryMapped.cpp
+    ${PROGRESSION_DIR}/ext/getopt/getopt.c
+    ${PROGRESSION_DIR}/ext/getopt/getopt.h
 )
 
 set(
@@ -81,13 +85,14 @@ if(UNIX AND NOT APPLE)
     set(SHADERC_LIB shaderc_combined)
     set(SPIRVCROSS_LIB spirv-cross-core)
 elseif(MSVC)
-    set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
-    set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
+    set(SHADERC_LIB "C:/Users/Liam Tyler/Documents/shaderc/build/libshaderc/Release/shaderc_combined.lib")
+    #set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
 endif()
 
 set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES})
 
 include_directories(
+    ${PROGRESSION_DIR}/converter/
     ${PROGRESSION_DIR}/src/
     ${PROGRESSION_DIR}/ext/
 	${PROGRESSION_DIR}/assets/

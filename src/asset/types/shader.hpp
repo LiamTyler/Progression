@@ -29,6 +29,8 @@ struct ShaderCreateInfo
     std::string filename;
     ShaderStage shaderStage;
     std::vector< std::pair< std::string, std::string > > defines;
+    bool optimize = true;
+    bool writePreproc = false;
 };
 
 struct ShaderResourceLayout

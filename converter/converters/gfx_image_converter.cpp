@@ -1,12 +1,6 @@
+#include "converter.hpp"
 #include "asset/image.hpp"
-#include "core/assert.hpp"
 #include "asset/types/gfx_image.hpp"
-#include "asset/asset_versions.hpp"
-#include "utils/filesystem.hpp"
-#include "utils/file_dependency.hpp"
-#include "utils/json_parsing.hpp"
-#include "utils/logger.hpp"
-#include "utils/serializer.hpp"
 
 using namespace PG;
 
@@ -14,7 +8,6 @@ extern void AddFastfileDependency( const std::string& file );
 
 std::vector< GfxImageCreateInfo > g_parsedImages;
 std::vector< GfxImageCreateInfo > g_outOfDateImages;
-extern bool g_parsingError;
 
 static std::unordered_map< std::string, GfxImageSemantic > imageSemanticMap =
 {
@@ -71,7 +64,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 auto it = imageTypeMap.find( imageName );
                 if ( it == imageTypeMap.end() )
                 {
-                    LOG_ERR( "No GfxImageType found matching '%s'", imageName.c_str() );
+                    LOG_ERR( "No GfxImageType found matching '%s'\n", imageName.c_str() );
                     i.imageType = Gfx::ImageType::NUM_IMAGE_TYPES;
                 }
                 else
@@ -86,7 +79,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 auto it = imageSemanticMap.find( semanticName );
                 if ( it == imageSemanticMap.end() )
                 {
-                    LOG_ERR( "No image semantic found matching '%s'", semanticName.c_str() );
+                    LOG_ERR( "No image semantic found matching '%s'\n", semanticName.c_str() );
                     i.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
                 }
                 else
@@ -100,7 +93,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
                 i.dstPixelFormat = PixelFormatFromString( v.GetString() );
                 if ( i.dstPixelFormat == PixelFormat::INVALID )
                 {
-                    LOG_ERR( "Invalid dstFormat '%s'", v.GetString() );
+                    LOG_ERR( "Invalid dstFormat '%s'\n", v.GetString() );
                 }
             }
         },
@@ -114,17 +107,17 @@ void GfxImage_Parse( const rapidjson::Value& value )
     if ( !PathExists( info.filename ) )
     {
         LOG_ERR( "Filename '%s' not found for GfxImage '%s', skipping image", info.filename.c_str(), info.name.c_str() );
-        g_parsingError = true;
+        g_converterStatus.parsingError = true;
     }
     if ( info.semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS )
     {
         LOG_ERR( "Must specify a valid image semantic for image '%s'", info.name.c_str() );
-        g_parsingError = true;
+        g_converterStatus.parsingError = true;
     }
     if ( info.imageType == Gfx::ImageType::NUM_IMAGE_TYPES )
     {
         LOG_ERR( "Must specify a valid imageType for image '%s'", info.name.c_str() );
-        g_parsingError = true;
+        g_converterStatus.parsingError = true;
     }
     if ( info.dstPixelFormat == PixelFormat::INVALID )
     {
@@ -164,6 +157,11 @@ static std::string GfxImage_GetFastFileName( const GfxImageCreateInfo& info )
 
 static bool GfxImage_IsOutOfDate( const GfxImageCreateInfo& info )
 {
+    if ( g_converterConfigOptions.force )
+    {
+        return true;
+    }
+
     std::string ffName = GfxImage_GetFastFileName( info );
     AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, info.filename );
@@ -172,7 +170,7 @@ static bool GfxImage_IsOutOfDate( const GfxImageCreateInfo& info )
 
 static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
 {
-    LOG( "Converting image '%s'...", info.name.c_str() );
+    LOG( "Converting image '%s'...\n", info.name.c_str() );
     GfxImage image;
     if ( !GfxImage_Load( &image, info ) )
     {
@@ -186,7 +184,7 @@ static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
     }
     if ( !Fastfile_GfxImage_Save( &image, &serializer ) )
     {
-        LOG_ERR( "Error while writing image '%s' to fastfile", image.name.c_str() );
+        LOG_ERR( "Error while writing image '%s' to fastfile\n", image.name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -241,7 +239,7 @@ bool GfxImage_BuildFastFile( Serializer* serializer )
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
             return false;
         }
         

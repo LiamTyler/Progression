@@ -8,51 +8,33 @@
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include "shaderc/shaderc.hpp"
-#include "spirv_cross/spirv_cross.hpp"
+//#include "spirv_cross/spirv_cross.hpp"
 #include <fstream>
 #include <sstream>
 
 namespace PG
 {
 
-static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
-{
-    static shaderc_shader_kind convert[] =
-    {
-        shaderc_vertex_shader,          // VERTEX
-        shaderc_tess_control_shader,    // TESSELLATION_CONTROL
-        shaderc_tess_evaluation_shader, // TESSELLATION_EVALUATION
-        shaderc_geometry_shader,        // GEOMETRY
-        shaderc_fragment_shader,        // FRAGMENT
-        shaderc_compute_shader,         // COMPUTE
-    };
-    
-    int index = static_cast< int >( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index '" + std::to_string( index ) + "' not in range" );
-    return convert[index];
-}
-
-
-static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
-{
-    switch( stage )
-    {
-    case spv::ExecutionModel::ExecutionModelVertex:
-        return ShaderStage::VERTEX;
-    case spv::ExecutionModel::ExecutionModelTessellationControl:
-        return ShaderStage::TESSELLATION_CONTROL;
-    case spv::ExecutionModel::ExecutionModelTessellationEvaluation:
-        return ShaderStage::TESSELLATION_EVALUATION;
-    case spv::ExecutionModel::ExecutionModelGeometry:
-        return ShaderStage::GEOMETRY;
-    case spv::ExecutionModel::ExecutionModelFragment:
-        return ShaderStage::FRAGMENT;
-    case spv::ExecutionModel::ExecutionModelGLCompute:
-        return ShaderStage::COMPUTE;
-    default:
-        return ShaderStage::NUM_SHADER_STAGES;
-    }
-}
+//static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
+//{
+//    switch( stage )
+//    {
+//    case spv::ExecutionModel::ExecutionModelVertex:
+//        return ShaderStage::VERTEX;
+//    case spv::ExecutionModel::ExecutionModelTessellationControl:
+//        return ShaderStage::TESSELLATION_CONTROL;
+//    case spv::ExecutionModel::ExecutionModelTessellationEvaluation:
+//        return ShaderStage::TESSELLATION_EVALUATION;
+//    case spv::ExecutionModel::ExecutionModelGeometry:
+//        return ShaderStage::GEOMETRY;
+//    case spv::ExecutionModel::ExecutionModelFragment:
+//        return ShaderStage::FRAGMENT;
+//    case spv::ExecutionModel::ExecutionModelGLCompute:
+//        return ShaderStage::COMPUTE;
+//    default:
+//        return ShaderStage::NUM_SHADER_STAGES;
+//    }
+//}
 
 
 struct ShaderReflectData
@@ -64,18 +46,20 @@ struct ShaderReflectData
 
 
 // returns true on ERROR
+/*
 static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLayout& layout, unsigned set, unsigned binding )
+>>>>>>> Stashed changes
 {
-	uint32_t& size = layout.sets[set].arraySizes[binding];
-	if ( !type.array.empty() )
+	//uint32_t& size = layout.sets[set].arraySizes[binding];
+	//if ( !type.array.empty() )
 	{
 		if ( type.array.size() != 1 )
         {
-			LOG_ERR( "Array dimension must be 1." );
+			LOG_ERR( "Array dimension must be 1.\n" );
         }
 		else if ( !type.array_size_literal.front() )
         {
-			LOG_ERR( "Array dimension must be a literal." );
+			LOG_ERR( "Array dimension must be a literal.\n" );
         }
 		else
 		{
@@ -84,11 +68,11 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
                 // bindless
                 if ( binding != 0 )
                 {
-					LOG_ERR( "Bindless textures can only be used with binding = 0 in a set." );
+					LOG_ERR( "Bindless textures can only be used with binding = 0 in a set.\n" );
                 }
 				if ( (type.basetype != spirv_cross::SPIRType::Image && type.basetype != spirv_cross::SPIRType::SampledImage) || type.image.dim == spv::DimBuffer )
                 {
-					LOG_ERR( "Can only use bindless for images." );
+					LOG_ERR( "Can only use bindless for images.\n" );
                 }
 				else
                 {
@@ -98,11 +82,11 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
 			}
 			else if ( size && size != type.array.front() )
             {
-				LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.", set, binding );
+				LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.\n", set, binding );
             }
 			else if ( type.array.front() + binding > PG_MAX_NUM_BINDINGS_PER_SET )
             {
-				LOG_ERR( "Bindings in the array from set %u, binding %u, will go out of bounds. Max = %d", set, binding, PG_MAX_NUM_BINDINGS_PER_SET );
+				LOG_ERR( "Bindings in the array from set %u, binding %u, will go out of bounds. Max = %d\n", set, binding, PG_MAX_NUM_BINDINGS_PER_SET );
             }
             else
             {
@@ -115,7 +99,7 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
 	{
 		if ( size && size != 1 )
         {
-			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent. Non-array type has size > 1?", set, binding );
+			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent. Non-array type has size > 1?\n", set, binding );
         }
         else
         {
@@ -126,22 +110,24 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
 
     return true;
 }
+*/
 
 
-static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
+static bool ReflectShaderSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
 {
+    /*
     using namespace spirv_cross;
     Compiler compiler( spirv, sizeInBytes / sizeof( uint32_t ) );
 
     const auto& entryPoints = compiler.get_entry_points_and_stages();
     if ( entryPoints.size() == 0 )
     {
-        LOG_ERR( "No entry points found in shader!" );
+        LOG_ERR( "No entry points found in shader!\n" );
         return false;
     }
     else if ( entryPoints.size() > 1 )
     {
-        LOG_WARN( "Multiple entry points found in shader, but no selection method implemented yet. Using first entry '%s'", entryPoints[0].name.c_str() );
+        LOG_WARN( "Multiple entry points found in shader, but no selection method implemented yet. Using first entry '%s'\n", entryPoints[0].name.c_str() );
     }
     reflectData.entryPoint = entryPoints[0].name;
     reflectData.stage = SpirvCrossShaderStageToPG( entryPoints[0].execution_model );
@@ -161,7 +147,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
         {
 			reflectData.layout.sets[set].sampledImageMask |= 1u << binding;
         }
-		arrayErrors += ReflectShader_UpdateArraySize( type, reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( type, reflectData.layout, set, binding );
 	}
     
 	for ( const Resource& image : resources.separate_images )
@@ -177,7 +163,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
         {
 			reflectData.layout.sets[set].separateImageMask |= 1u << binding;
         }
-		arrayErrors += ReflectShader_UpdateArraySize( type, reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( type, reflectData.layout, set, binding );
 	}
 
     for ( const Resource& image : resources.storage_images )
@@ -193,7 +179,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
         {
 			reflectData.layout.sets[set].storageImageMask |= 1u << binding;
         }
-		arrayErrors += ReflectShader_UpdateArraySize( type, reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( type, reflectData.layout, set, binding );
 	}
 
     for ( const Resource& buffer : resources.uniform_buffers )
@@ -201,7 +187,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 		uint32_t set     = compiler.get_decoration( buffer.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( buffer.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].uniformBufferMask |= 1u << binding;
-		arrayErrors += ReflectShader_UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
 	}
     
 	for ( const Resource& buffer : resources.storage_buffers )
@@ -209,7 +195,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 		uint32_t set     = compiler.get_decoration( buffer.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( buffer.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].storageBufferMask |= 1u << binding;
-		arrayErrors += ReflectShader_UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( compiler.get_type( buffer.type_id ), reflectData.layout, set, binding );
 	}   
     
 	for ( const Resource& sampler : resources.separate_samplers )
@@ -217,7 +203,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 		uint32_t set     = compiler.get_decoration( sampler.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( sampler.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].samplerMask |= 1u << binding;
-        arrayErrors += ReflectShader_UpdateArraySize( compiler.get_type( sampler.type_id ), reflectData.layout, set, binding );
+        arrayErrors += UpdateArraySize( compiler.get_type( sampler.type_id ), reflectData.layout, set, binding );
 	}
 
     for ( const Resource& attachmentImg : resources.subpass_inputs )
@@ -225,7 +211,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 		uint32_t set     = compiler.get_decoration( attachmentImg.id, spv::DecorationDescriptorSet );
 		uint32_t binding = compiler.get_decoration( attachmentImg.id, spv::DecorationBinding );
 		reflectData.layout.sets[set].inputAttachmentMask |= 1u << binding;
-		arrayErrors += ReflectShader_UpdateArraySize( compiler.get_type( attachmentImg.type_id ), reflectData.layout, set, binding );
+		arrayErrors += UpdateArraySize( compiler.get_type( attachmentImg.type_id ), reflectData.layout, set, binding );
 	}
 
     if ( arrayErrors > 0 )
@@ -254,43 +240,43 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 	const auto& specializationConstants = compiler.get_specialization_constants();
 	for ( const auto &specConst : specializationConstants)
 	{
-        LOG_ERR( "Specialization constants not supported currently. Ignoring spec constant %u", specConst.constant_id );
+        LOG_ERR( "Specialization constants not supported currently. Ignoring spec constant %u\n", specConst.constant_id );
 	}
+    */
 
     return true;
 }
 
 
-static bool CompilePreprocessedShaderToSPIRV( const std::string& shaderFilename, shaderc_shader_kind kind, const std::string& shaderSource, const std::vector< std::pair< std::string, std::string > >& defines, std::vector< uint32_t >& outputSpirv )
+static bool CompilePreprocessedShaderToSPIRV( const ShaderCreateInfo& createInfo, const std::string& shaderSource, std::vector< uint32_t >& outputSpirv )
 {
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;
-    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_0 );
+    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2 );
     options.SetSourceLanguage( shaderc_source_language_glsl );
-#if USING( PG_OPTIMIZE_SHADERS )
+    //if ( createInfo.optimize )
+    //{
+    //    options.SetOptimizationLevel( shaderc_optimization_level_performance );
+    //}
+    //else
+    //{
+    //    options.SetOptimizationLevel( shaderc_optimization_level_zero );
+    //    options.SetGenerateDebugInfo();
+    //}
     options.SetOptimizationLevel( shaderc_optimization_level_performance );
-#else
-    options.SetOptimizationLevel( shaderc_optimization_level_zero );
-    options.SetGenerateDebugInfo();
-#endif // #if USING( PG_OPTIMIZE_SHADERS )
-    
-    options.AddMacroDefinition( "PG_SHADER_CODE", "1" );
-    for ( const auto& [symbol, value] : defines )
-    {
-        options.AddMacroDefinition( symbol, value );
-    }
 
-    shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv( shaderSource, kind, shaderFilename.c_str(), options );
+    shaderc_shader_kind kind = static_cast< shaderc_shader_kind >( PGShaderStageToShaderc( createInfo.shaderStage ) );
+    shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv( shaderSource, kind, createInfo.filename.c_str(), options );
     if ( module.GetCompilationStatus() != shaderc_compilation_status_success )
     {
-        LOG_ERR( "Compiling shader '%s' failed: '%s'", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
+        LOG_ERR( "Compiling shader '%s' failed: '%s'", createInfo.filename.c_str(), module.GetErrorMessage().c_str() );
         LOG( "Preprocessed shader for reference:\n---------------------------------------------" );
         LOG( "%s\n---------------------------------------------", shaderSource.c_str() );
         return false;
     }
     else if ( module.GetNumWarnings() > 0 )
     {
-        LOG_WARN( "Compiled shader '%s' failed: '%s'", shaderFilename.c_str(), module.GetErrorMessage().c_str() );
+        LOG_WARN( "Compiled shader '%s' had warnings: '%s'", createInfo.filename.c_str(), module.GetErrorMessage().c_str() );
     }
 
     outputSpirv = { module.cbegin(), module.cend() };
@@ -309,7 +295,7 @@ static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBy
     VkResult ret = vkCreateShaderModule( PG::Gfx::r_globals.device.GetHandle(), &vkShaderInfo, nullptr, &module );
     if ( ret != VK_SUCCESS )
     {
-        LOG_ERR( "Could not create shader module from spirv" );
+        LOG_ERR( "Could not create shader module from spirv\n" );
         return VK_NULL_HANDLE;
     }
 
@@ -332,31 +318,26 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
     shader->name = createInfo.name;
     shader->shaderStage = createInfo.shaderStage;
 
-    DefineList defines = createInfo.defines;
-    defines.emplace_back( "PG_SHADER_CODE", "1" );
-
-    ShaderPreprocessOutput preproc = PreprocessShader( createInfo.filename, defines );
+    ShaderPreprocessOutput preproc = PreprocessShader( createInfo );
     if ( !preproc.success )
     {
-        LOG_ERR( "Preprocessing shader asset '%s' failed", createInfo.name.c_str() );
         return false;
     }
 
-    shaderc_shader_kind shadercShaderStage = PGToShadercShaderStage( createInfo.shaderStage );
     std::vector< uint32_t > spirv;
-    if ( !CompilePreprocessedShaderToSPIRV( createInfo.filename, shadercShaderStage, preproc.outputShader, createInfo.defines, spirv ) )
+    if ( !CompilePreprocessedShaderToSPIRV( createInfo, preproc.outputShader, spirv ) )
     {
         return false;
     }
 
     size_t spirvSizeInBytes = 4 * spirv.size();
     ShaderReflectData reflectData;
-    if ( !ReflectShader_ReflectSpirv( spirv.data(), spirvSizeInBytes, reflectData ) )
+    if ( !ReflectShaderSpirv( spirv.data(), spirvSizeInBytes, reflectData ) )
     {
-        LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed", createInfo.name.c_str(), createInfo.filename.c_str() );
+        LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed\n", createInfo.name.c_str(), createInfo.filename.c_str() );
         return false;
     }
-    PG_ASSERT( shader->shaderStage == reflectData.stage );
+    //PG_ASSERT( shader->shaderStage == reflectData.stage );
     shader->entryPoint = reflectData.entryPoint; // Todo: pointless, since shaderc assumes entry point is "main" for GLSL
     memcpy( &shader->resourceLayout, &reflectData.layout, sizeof( ShaderResourceLayout ) );
 

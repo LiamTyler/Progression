@@ -1,3 +1,4 @@
+#include "converter.hpp"
 #include "core/assert.hpp"
 #include "asset/asset_versions.hpp"
 #include "converters/gfx_image_converter.hpp"
@@ -10,35 +11,91 @@
 #include "utils/logger.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/serializer.hpp"
+#include "getopt/getopt.h"
 #include <algorithm>
 #include <chrono>
 
-#include "asset/types/shader.hpp"
-#include "asset/shader_preprocessor.hpp"
-using namespace PG;
+//#include "assetTypes/model.hpp"
+//#include "asset_manager.hpp"
+//#include "assetTypes/shader.hpp"
+//using namespace PG;
 
-bool g_parsingError;
-int g_outOfDateAssets;
-int g_checkDependencyErrors;
 
-static time_t s_latestAssetTimestamp;
+static void DisplayHelp()
+{
+    auto msg =
+      "Usage: converter [options] path_to_assetlist.json\n"
+      "Options\n"
+      "  --force                     Don't check asset file dependencies, just reconvert everything\n"
+      "  --help                      Print this message and exit\n"
+      "  --noShaderOptimization      Don't optimize shaders when converting to SPIRV\n"
+      "  --saveShaderPreproc         Save the shader preproc (to assets/cache/shader_preproc/)\n";
+
+    LOG( "%s", msg );   
+}
+
+ConverterConfigOptions g_converterConfigOptions;
+ConverterStatus g_converterStatus;
 
 void AddFastfileDependency( const std::string& file );
 
-bool RunConverter( const std::string& assetFile );
+bool ConvertAssets();
 
-bool BuildFastfile( const std::string& assetFile );
+bool AssembleConvertedAssetsIntoFastfile();
 
 int main( int argc, char** argv )
 {
-    if ( argc != 2 )
+    Logger_Init();
+    Logger_AddLogLocation( "stdout", stdout );
+
+    if ( argc == 1 )
     {
-        printf( "Usage: converter [path_to_assetlist.json]\n" );
+        DisplayHelp();
         return 0;
     }
 
-    Logger_Init();
-    Logger_AddLogLocation( "stdout", stdout );
+    static struct option long_options[] =
+    {
+        { "force",                no_argument,  0, 'f' },
+        { "help",                 no_argument,  0, 'h' },
+        { "noShaderOptimization", no_argument,  0, 'o' },
+        { "saveShaderPreproc",    no_argument,  0, 's' },
+        { 0, 0, 0, 0 }
+    };
+
+    g_converterConfigOptions = {};
+    int option_index = 0;
+    int c            = -1;
+    while ( ( c = getopt_long( argc, argv, "fmso", long_options, &option_index ) ) != -1 )
+    {
+        switch ( c )
+        {
+            case 'f':
+                g_converterConfigOptions.force = true;
+                break;
+            case 'h':
+                DisplayHelp();
+                return 0;
+            case 'o':
+                g_converterConfigOptions.noShaderOptimization = true;
+                break;
+            case 's':
+                g_converterConfigOptions.saveShaderPreproc = true;
+                break;
+            case '?':
+            default:
+                LOG_ERR( "Invalid option, try 'converter --help' for more information" );
+                return 0;
+        }
+    }
+
+    if ( optind >= argc )
+    {
+        DisplayHelp();
+        return 0;
+    }
+
+    g_converterConfigOptions.assetListFile = argv[optind];
 
     //LOG( "Hello world" );
     //LOG( "Hello world" );
@@ -62,20 +119,33 @@ int main( int argc, char** argv )
     //    out << preproc.outputShader;
     //}
 
-    if ( !RunConverter( argv[1] ) )
-    {
-        Logger_Shutdown();
-        return 0;
-    }
-    if ( !BuildFastfile( argv[1] ) )
-    {
-        Logger_Shutdown();
-        return 0;
-    }
+    g_converterStatus.convertAssetErrors = ConvertAssets();
+    g_converterStatus.buildFastfileErrors = AssembleConvertedAssetsIntoFastfile();
+
+    //Shader shader;
+    //ShaderCreateInfo info;
+    //info.name = "gbufferFrag";
+    //info.shaderStage = ShaderStage::FRAGMENT;
+    //info.filename = PG_ASSET_DIR "shaders/gbuffer.frag";
+    //if ( !Shader_Load( &shader, info ) )
+    //{
+    //    return 0;
+    //}
+    //AssetManager::Init();
+    //AssetManager::LoadFastFile( "assetList" );
+    //Shader* asset = AssetManager::Get< Shader >( "gbufferFrag" );
+    //PG_ASSERT( asset->name == shader.name );
+    //PG_ASSERT( asset->shaderStage == shader.shaderStage );
+    //PG_ASSERT( asset->name == shader.name );
+    //PG_ASSERT( asset->spirv == shader.spirv );
 
     Logger_Shutdown();
     return 0;
 }
+
+
+static time_t s_latestAssetTimestamp;
+static int s_outOfDateAssets;
 
 
 void AddFastfileDependency( const std::string& file )
@@ -84,12 +154,11 @@ void AddFastfileDependency( const std::string& file )
 }
 
 
-bool RunConverter( const std::string& assetFile )
+bool ConvertAssets()
 {
-    s_latestAssetTimestamp = 0;
-    g_checkDependencyErrors = 0;
-    g_outOfDateAssets = 0;
-    g_parsingError = false;
+    s_outOfDateAssets       = 0;
+    s_latestAssetTimestamp  = 0;
+    g_converterStatus       = {};
 
     LOG( "Running converter..." );
     CreateDirectory( PG_ASSET_DIR "cache/" );
@@ -99,11 +168,12 @@ bool RunConverter( const std::string& assetFile )
     CreateDirectory( PG_ASSET_DIR "cache/models/" );
     CreateDirectory( PG_ASSET_DIR "cache/scripts/" );
     CreateDirectory( PG_ASSET_DIR "cache/shaders/" );
+    CreateDirectory( PG_ASSET_DIR "cache/shader_preproc/" );
 
     auto converterStartTime = std::chrono::system_clock::now();
-    LOG( "Loading asset list file '%s'...", assetFile.c_str() );
+    LOG( "Loading asset list file '%s'...", g_converterConfigOptions.assetListFile.c_str() );
     rapidjson::Document document;
-    if ( !ParseJSONFile( assetFile, document ) )
+    if ( !ParseJSONFile( g_converterConfigOptions.assetListFile, document ) )
     {
         return false;
     }
@@ -117,6 +187,7 @@ bool RunConverter( const std::string& assetFile )
         { "Shader",  Shader_Parse },
     });
 
+
     PG_ASSERT( document.HasMember( "AssetList" ), "asset list file requires a single object 'AssetList' that has a list of all assets" );
     const auto& assetList = document["AssetList"];
     for ( rapidjson::Value::ConstValueIterator itr = assetList.Begin(); itr != assetList.End(); ++itr )
@@ -124,46 +195,46 @@ bool RunConverter( const std::string& assetFile )
         mapping.ForEachMember( *itr );
     }
     
-    if ( g_parsingError )
+    if ( g_converterStatus.parsingError )
     {
-        LOG_ERR( "Parsing errors, exiting" );
+        LOG_ERR( "Parsing errors, exiting\n" );
         return false;
     }
 
-    LOG( "Checking asset dependencies..." );
+    LOG( "Checking asset dependencies...\n" );
     int numGfxImageOutOfDate = GfxImage_CheckDependencies();
-    g_outOfDateAssets += numGfxImageOutOfDate;
+    s_outOfDateAssets += numGfxImageOutOfDate;
     LOG( "GfxImages out of date: %d", numGfxImageOutOfDate );
 
     int numMatFilesOutOfDate = Material_CheckDependencies();
-    g_outOfDateAssets += numMatFilesOutOfDate;
+    s_outOfDateAssets += numMatFilesOutOfDate;
     LOG( "MatFiles out of date: %d", numMatFilesOutOfDate );
 
     int numScriptFilesOutOfDate = Script_CheckDependencies();
-    g_outOfDateAssets += numScriptFilesOutOfDate;
+    s_outOfDateAssets += numScriptFilesOutOfDate;
     LOG( "Scripts out of date: %d", numScriptFilesOutOfDate );
 
     int numModelFilesOutOfDate = Model_CheckDependencies();
-    g_outOfDateAssets += numModelFilesOutOfDate;
+    s_outOfDateAssets += numModelFilesOutOfDate;
     LOG( "Models out of date: %d", numModelFilesOutOfDate );
 
     int numShaderFilesOutOfDate = Shader_CheckDependencies();
-    g_outOfDateAssets += numShaderFilesOutOfDate;
+    s_outOfDateAssets += numShaderFilesOutOfDate;
     LOG( "Shaders out of date: %d", numShaderFilesOutOfDate );
 
-    if ( g_checkDependencyErrors > 0 )
+    if ( g_converterStatus.checkDependencyErrors > 0 )
     {
         LOG_ERR( "%d assets with errors during dependency check phase. FAILED" );
         return false;
     }
 
-    if ( g_outOfDateAssets == 0 )
+    if ( s_outOfDateAssets == 0 )
     {
-        LOG( "All assets up to date" );
+        LOG( "All assets up to date\n" );
     }
     else
     {
-        LOG( "Converting %d assets...", g_outOfDateAssets );
+        LOG( "Converting %d assets...", s_outOfDateAssets );
         int totalErrors = 0;
         totalErrors += GfxImage_Convert();
         totalErrors += Material_Convert();
@@ -173,33 +244,39 @@ bool RunConverter( const std::string& assetFile )
 
         if ( totalErrors )
         {
-            LOG_ERR( "%d errors while converting, convert FAILED", totalErrors );
+            LOG_ERR( "%d errors while converting, convert FAILED\n", totalErrors );
             return false;
         }
         else
         {
-            LOG( "Convert SUCCESS" );
+            LOG( "Convert SUCCESS\n" );
         }
     }
 
     float duration = std::chrono::duration_cast< std::chrono::microseconds >( std::chrono::system_clock::now() - converterStartTime ).count() / 1e6f;
-    LOG( "Converter finished in %.2f seconds", duration );
+    LOG( "Converter finished in %.2f seconds\n", duration );
 
     return true;
 }
 
-bool BuildFastfile( const std::string& assetFile )
+
+bool AssembleConvertedAssetsIntoFastfile()
 {
+    if ( g_converterStatus.convertAssetErrors )
+    {
+        return false;
+    }
+
     LOG( "\nRunning build fastfile..." );
     auto startTime = std::chrono::system_clock::now();
-    std::string ffName = PG_ASSET_DIR "cache/fastfiles/" + GetFilenameStem( assetFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
-    if ( g_outOfDateAssets == 0 && PathExists( ffName ) && GetFileTimestamp( ffName ) > s_latestAssetTimestamp )
+    std::string ffName = PG_ASSET_DIR "cache/fastfiles/" + GetFilenameStem( g_converterConfigOptions.assetListFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
+    if ( s_outOfDateAssets == 0 && PathExists( ffName ) && GetFileTimestamp( ffName ) > s_latestAssetTimestamp )
     {
-        LOG( "Fastfile '%s' is up to date, not rebuilding", ffName.c_str() );
+        LOG( "Fastfile '%s' is up to date, not rebuilding\n", ffName.c_str() );
         return true;
     }
 
-    LOG( "Fastfile '%s' is out of date, building...", ffName.c_str() );
+    LOG( "Fastfile '%s' is out of date, building...\n", ffName.c_str() );
     Serializer outFile;
     if ( !outFile.OpenForWrite( ffName ) )
     {
@@ -215,17 +292,17 @@ bool BuildFastfile( const std::string& assetFile )
 
     if ( success )
     {
-        LOG( "Build fastfile SUCCESS" );
+        LOG( "Build fastfile SUCCESS\n" );
     }
     else
     {
-        LOG_ERR( "Build fastfile FAILED" );
+        LOG_ERR( "Build fastfile FAILED\n" );
         outFile.Close();
         DeleteFile( ffName );
     }
 
     float duration = std::chrono::duration_cast< std::chrono::microseconds >( std::chrono::system_clock::now() - startTime ).count() / 1e6f;
-    LOG( "Build Fastfile finished in %.2f seconds", duration );
+    LOG( "Build Fastfile finished in %.2f seconds\n", duration );
 
     return success;
 }

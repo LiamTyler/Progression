@@ -77,6 +77,7 @@ set(
     ${PROGRESSION_DIR}/src/renderer/graphics_api/gpu_profiling.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/gpu_profiling.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/limits.hpp
+    ${PROGRESSION_DIR}/src/renderer/graphics_api/pg_to_vulkan_types.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/physical_device.cpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/physical_device.hpp
     ${PROGRESSION_DIR}/src/renderer/graphics_api/pipeline.cpp

@@ -1,19 +1,12 @@
-#include "core/assert.hpp"
+#include "converter.hpp"
 #include "asset/types/model.hpp"
-#include "asset/asset_versions.hpp"
-#include "utils/filesystem.hpp"
-#include "utils/file_dependency.hpp"
-#include "utils/json_parsing.hpp"
-#include "utils/logger.hpp"
-#include "utils/serializer.hpp"
 
 using namespace PG;
 
 extern void AddFastfileDependency( const std::string& file );
 
-std::vector< ModelCreateInfo > g_parsedModels;
-std::vector< ModelCreateInfo > g_outOfDateModels;
-extern bool g_parsingError;
+static std::vector< ModelCreateInfo > s_parsedModels;
+static std::vector< ModelCreateInfo > s_outOfDateModels;
 
 void Model_Parse( const rapidjson::Value& value )
 {
@@ -29,10 +22,10 @@ void Model_Parse( const rapidjson::Value& value )
     if ( !PathExists( info.filename ) )
     {
         LOG_ERR( "Filename '%s' not found for Model '%s', skipping model", info.filename.c_str(), info.name.c_str() );
-        g_parsingError = true;
+        g_converterStatus.parsingError = true;
     }
 
-    g_parsedModels.push_back( info );
+    s_parsedModels.push_back( info );
 }
 
 
@@ -51,6 +44,11 @@ static std::string Model_GetFastFileName( const ModelCreateInfo& info )
 
 static bool Model_IsOutOfDate( const ModelCreateInfo& info )
 {
+    if ( g_converterConfigOptions.force )
+    {
+        return true;
+    }
+
     std::string ffName = Model_GetFastFileName( info );
     AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, info.filename );
@@ -59,7 +57,7 @@ static bool Model_IsOutOfDate( const ModelCreateInfo& info )
 
 static bool Model_ConvertSingle( const ModelCreateInfo& info )
 {
-    LOG( "Converting model '%s'...", info.name.c_str() );
+    LOG( "Converting model '%s'...\n", info.name.c_str() );
     Model model;
     std::vector< std::string > materialNames;
     if ( !Model_Load_PGModel( &model, info, materialNames ) )
@@ -74,7 +72,7 @@ static bool Model_ConvertSingle( const ModelCreateInfo& info )
     }
     if ( !Fastfile_Model_Save( &model, &serializer, materialNames ) )
     {
-        LOG_ERR( "Error while writing model '%s' to fastfile", model.name.c_str() );
+        LOG_ERR( "Error while writing model '%s' to fastfile\n", model.name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -88,11 +86,11 @@ static bool Model_ConvertSingle( const ModelCreateInfo& info )
 int Model_CheckDependencies()
 {
     int outOfDate = 0;
-    for ( size_t i = 0; i < g_parsedModels.size(); ++i )
+    for ( size_t i = 0; i < s_parsedModels.size(); ++i )
     {
-        if ( Model_IsOutOfDate( g_parsedModels[i] ) )
+        if ( Model_IsOutOfDate( s_parsedModels[i] ) )
         {
-            g_outOfDateModels.push_back( g_parsedModels[i] );
+            s_outOfDateModels.push_back( s_parsedModels[i] );
             ++outOfDate;
         }
     }
@@ -103,15 +101,15 @@ int Model_CheckDependencies()
 
 int Model_Convert()
 {
-    if ( g_outOfDateModels.size() == 0 )
+    if ( s_outOfDateModels.size() == 0 )
     {
         return 0;
     }
 
     int couldNotConvert = 0;
-    for ( int i = 0; i < (int)g_outOfDateModels.size(); ++i )
+    for ( int i = 0; i < (int)s_outOfDateModels.size(); ++i )
     {
-        if ( !Model_ConvertSingle( g_outOfDateModels[i] ) )
+        if ( !Model_ConvertSingle( s_outOfDateModels[i] ) )
         {
             ++couldNotConvert;
         }
@@ -123,13 +121,13 @@ int Model_Convert()
 
 bool Model_BuildFastFile( Serializer* serializer )
 {
-    for ( size_t i = 0; i < g_parsedModels.size(); ++i )
+    for ( size_t i = 0; i < s_parsedModels.size(); ++i )
     {
-        std::string ffiName = Model_GetFastFileName( g_parsedModels[i] );
+        std::string ffiName = Model_GetFastFileName( s_parsedModels[i] );
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
             return false;
         }
         

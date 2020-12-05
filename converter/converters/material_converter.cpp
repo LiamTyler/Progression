@@ -1,19 +1,12 @@
-#include "core/assert.hpp"
+#include "converter.hpp"
 #include "asset/types/material.hpp"
-#include "asset/asset_versions.hpp"
-#include "utils/filesystem.hpp"
-#include "utils/file_dependency.hpp"
-#include "utils/json_parsing.hpp"
-#include "utils/logger.hpp"
-#include "utils/serializer.hpp"
 
 using namespace PG;
 
 extern void AddFastfileDependency( const std::string& file );
 
-std::vector< std::string > g_parsedMaterialFilenames;
-std::vector< std::string > g_outOfDateMaterialFilenames;
-extern bool g_parsingError;
+static std::vector< std::string > s_parsedMaterialFilenames;
+static std::vector< std::string > s_outOfDateMaterialFilenames;
 
 
 void Material_Parse( const rapidjson::Value& value )
@@ -30,10 +23,10 @@ void Material_Parse( const rapidjson::Value& value )
     if ( !PathExists( pgMtlFilename ) )
     {
         LOG_ERR( "Material file '%s' not found", pgMtlFilename.c_str() );
-        g_parsingError = true;
+        g_converterStatus.parsingError = true;
     }
 
-    g_parsedMaterialFilenames.push_back( pgMtlFilename );
+    s_parsedMaterialFilenames.push_back( pgMtlFilename );
 }
 
 
@@ -49,6 +42,11 @@ static std::string Material_GetFastFileName( const std::string& filename )
 
 static bool Material_IsOutOfDate( const std::string& filename )
 {
+    if ( g_converterConfigOptions.force )
+    {
+        return true;
+    }
+
     std::string ffName = Material_GetFastFileName( filename );
     AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, filename );
@@ -86,7 +84,7 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
 
 static bool Material_ConvertSingle( const std::string& filename )
 {
-    LOG( "Converting material file '%s'...", filename.c_str() );
+    LOG( "Converting material file '%s'...\n", filename.c_str() );
     std::vector< MaterialCreateInfo > createInfos;
     if ( !ParseMaterialFile( filename, createInfos ) )
     {
@@ -105,7 +103,7 @@ static bool Material_ConvertSingle( const std::string& filename )
     {
         if ( !Fastfile_Material_Save( &info, &serializer ) )
         {
-            LOG_ERR( "Error while writing material '%s' to fastfile", info.name.c_str() );
+            LOG_ERR( "Error while writing material '%s' to fastfile\n", info.name.c_str() );
             serializer.Close();
             DeleteFile( fastfileName );
             return false;
@@ -120,15 +118,15 @@ static bool Material_ConvertSingle( const std::string& filename )
 
 int Material_Convert()
 {
-    if ( g_outOfDateMaterialFilenames.size() == 0 )
+    if ( s_outOfDateMaterialFilenames.size() == 0 )
     {
         return 0;
     }
 
     int couldNotConvert = 0;
-    for ( int i = 0; i < (int)g_outOfDateMaterialFilenames.size(); ++i )
+    for ( int i = 0; i < (int)s_outOfDateMaterialFilenames.size(); ++i )
     {
-        if ( !Material_ConvertSingle( g_outOfDateMaterialFilenames[i] ) )
+        if ( !Material_ConvertSingle( s_outOfDateMaterialFilenames[i] ) )
         {
             ++couldNotConvert;
         }
@@ -141,11 +139,11 @@ int Material_Convert()
 int Material_CheckDependencies()
 {
     int outOfDate = 0;
-    for ( size_t i = 0; i < g_parsedMaterialFilenames.size(); ++i )
+    for ( size_t i = 0; i < s_parsedMaterialFilenames.size(); ++i )
     {
-        if ( Material_IsOutOfDate( g_parsedMaterialFilenames[i] ) )
+        if ( Material_IsOutOfDate( s_parsedMaterialFilenames[i] ) )
         {
-            g_outOfDateMaterialFilenames.push_back( g_parsedMaterialFilenames[i] );
+            s_outOfDateMaterialFilenames.push_back( s_parsedMaterialFilenames[i] );
             ++outOfDate;
         }
     }
@@ -156,13 +154,13 @@ int Material_CheckDependencies()
 
 bool Material_BuildFastFile( Serializer* serializer )
 {
-    for ( size_t i = 0; i < g_parsedMaterialFilenames.size(); ++i )
+    for ( size_t i = 0; i < s_parsedMaterialFilenames.size(); ++i )
     {
-        std::string ffiName = Material_GetFastFileName( g_parsedMaterialFilenames[i] );
+        std::string ffiName = Material_GetFastFileName( s_parsedMaterialFilenames[i] );
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
             return false;
         }
         

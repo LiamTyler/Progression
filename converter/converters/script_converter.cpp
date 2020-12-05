@@ -1,19 +1,12 @@
-#include "core/assert.hpp"
+#include "converter.hpp"
 #include "asset/types/script.hpp"
-#include "asset/asset_versions.hpp"
-#include "utils/filesystem.hpp"
-#include "utils/file_dependency.hpp"
-#include "utils/json_parsing.hpp"
-#include "utils/logger.hpp"
-#include "utils/serializer.hpp"
 
 using namespace PG;
 
 extern void AddFastfileDependency( const std::string& file );
 
-std::vector< ScriptCreateInfo > g_parsedScripts;
-std::vector< ScriptCreateInfo > g_outOfDateScripts;
-extern bool g_parsingError;
+static std::vector< ScriptCreateInfo > s_parsedScripts;
+static std::vector< ScriptCreateInfo > s_outOfDateScripts;
 
 
 void Script_Parse( const rapidjson::Value& value )
@@ -31,10 +24,10 @@ void Script_Parse( const rapidjson::Value& value )
     if ( !PathExists( info.filename ) )
     {
         LOG_ERR( "Script file '%s' not found", info.filename.c_str() );
-        g_parsingError = true;
+        g_converterStatus.parsingError = true;
     }
 
-    g_parsedScripts.push_back( info );
+    s_parsedScripts.push_back( info );
 }
 
 
@@ -51,6 +44,11 @@ static std::string Script_GetFastFileName( const ScriptCreateInfo& info )
 
 static bool Script_IsOutOfDate( const ScriptCreateInfo& info )
 {
+    if ( g_converterConfigOptions.force )
+    {
+        return true;
+    }
+
     std::string ffName = Script_GetFastFileName( info );
     AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, info.filename );
@@ -59,7 +57,7 @@ static bool Script_IsOutOfDate( const ScriptCreateInfo& info )
 
 static bool Script_ConvertSingle( const ScriptCreateInfo& info )
 {
-    LOG( "Converting Script file '%s'...", info.filename.c_str() );
+    LOG( "Converting Script file '%s'...\n", info.filename.c_str() );
     Script asset;
     if ( !Script_Load( &asset, info ) )
     {
@@ -73,7 +71,7 @@ static bool Script_ConvertSingle( const ScriptCreateInfo& info )
     }
     if ( !Fastfile_Script_Save( &asset, &serializer ) )
     {
-        LOG_ERR( "Error while writing script '%s' to fastfile", info.name.c_str() );
+        LOG_ERR( "Error while writing script '%s' to fastfile\n", info.name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -87,15 +85,15 @@ static bool Script_ConvertSingle( const ScriptCreateInfo& info )
 
 int Script_Convert()
 {
-    if ( g_outOfDateScripts.size() == 0 )
+    if ( s_outOfDateScripts.size() == 0 )
     {
         return 0;
     }
 
     int couldNotConvert = 0;
-    for ( int i = 0; i < (int)g_outOfDateScripts.size(); ++i )
+    for ( int i = 0; i < (int)s_outOfDateScripts.size(); ++i )
     {
-        if ( !Script_ConvertSingle( g_outOfDateScripts[i] ) )
+        if ( !Script_ConvertSingle( s_outOfDateScripts[i] ) )
         {
             ++couldNotConvert;
         }
@@ -108,11 +106,11 @@ int Script_Convert()
 int Script_CheckDependencies()
 {
     int outOfDate = 0;
-    for ( size_t i = 0; i < g_parsedScripts.size(); ++i )
+    for ( size_t i = 0; i < s_parsedScripts.size(); ++i )
     {
-        if ( Script_IsOutOfDate( g_parsedScripts[i] ) )
+        if ( Script_IsOutOfDate( s_parsedScripts[i] ) )
         {
-            g_outOfDateScripts.push_back( g_parsedScripts[i] );
+            s_outOfDateScripts.push_back( s_parsedScripts[i] );
             ++outOfDate;
         }
     }
@@ -123,13 +121,13 @@ int Script_CheckDependencies()
 
 bool Script_BuildFastFile( Serializer* serializer )
 {
-    for ( size_t i = 0; i < g_parsedScripts.size(); ++i )
+    for ( size_t i = 0; i < s_parsedScripts.size(); ++i )
     {
-        std::string ffiName = Script_GetFastFileName( g_parsedScripts[i] );
+        std::string ffiName = Script_GetFastFileName( s_parsedScripts[i] );
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
+            LOG_ERR( "Could not open file '%s'\n", ffiName.c_str() );
             return false;
         }
         

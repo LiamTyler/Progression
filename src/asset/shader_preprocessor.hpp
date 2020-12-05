@@ -1,12 +1,9 @@
 #pragma once
 
-#include <string>
-#include <vector>
+#include "asset/types/shader.hpp"
 
 namespace PG
 {
-
-using DefineList = std::vector< std::pair< std::string, std::string > >;
 
 struct ShaderPreprocessOutput
 {
@@ -15,8 +12,9 @@ struct ShaderPreprocessOutput
     std::vector< std::string > includedFiles;
 };
 
-ShaderPreprocessOutput PreprocessShader( const std::string& filename, const DefineList& defines );
+ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo );
 
-ShaderPreprocessOutput PreprocessShaderForIncludeListOnly( const std::string& filename, const DefineList& defines );
+// returns the shaderc type casted to an int to avoid including shaderc in the header
+int PGShaderStageToShaderc( const ShaderStage stage );
 
 } // namespace PG

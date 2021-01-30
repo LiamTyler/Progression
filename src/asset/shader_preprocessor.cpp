@@ -59,24 +59,6 @@ std::string CleanUpPreproc( const std::string& preprocOutput )
 }
 
 
-static const char* PGShaderStageToDefine( PG::ShaderStage stage )
-{
-    static const char* shaderStageToDefine[] =
-    {
-        "IS_VERTEX_SHADER",
-        "IS_TESS_CONTROL_SHADER",
-        "IS_TESS_EVAL_SHADER",
-        "IS_GEOMETRY_SHADER",
-        "IS_FRAGMENT_SHADER",
-        "IS_COMPUTE_SHADER",
-    };
-    
-    int index = static_cast< int >( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index '" + std::to_string( index ) + "' not in range" );
-    return shaderStageToDefine[index];
-}
-
-
 static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
 {
     static shaderc_shader_kind convert[] =
@@ -153,7 +135,8 @@ public:
     std::vector< std::string >* includedFiles;
 };
 
-ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
+
+ShaderPreprocessOutput PreprocessShader( const std::string& filename, const ShaderDefineList& defines, ShaderStage shaderStage )
 {
     ShaderPreprocessOutput output;
     output.success = false;
@@ -164,23 +147,16 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
     auto includer = std::make_unique< ShaderIncluder >( &output.includedFiles );
     options.SetIncluder( std::move( includer ) );
     
-    std::string shaderStageDefine = PGShaderStageToDefine( createInfo.shaderStage );
-    auto defines = createInfo.defines;
-    defines.emplace_back( "PG_SHADER_CODE", "1" );
-    defines.emplace_back( PGShaderStageToDefine( createInfo.shaderStage ), "1" );
-    if ( createInfo.generateDebugInfo )
-    {
-        defines.emplace_back( "IS_DEBUG_SHADER", "1" );
-    }
+    options.AddMacroDefinition( "PG_SHADER_CODE", "1" );
     for ( const auto& [symbol, value] : defines )
     {
         options.AddMacroDefinition( symbol, value );
     }
 
     size_t fileLen;
-    char* fileContents = ReadShaderFile( createInfo.filename, fileLen );
-    shaderc_shader_kind shadercStage = PGToShadercShaderStage( createInfo.shaderStage );
-    shaderc::PreprocessedSourceCompilationResult result = compiler.PreprocessGlsl( fileContents, shadercStage, createInfo.filename.c_str(), options );
+    char* fileContents = ReadShaderFile( filename, fileLen );
+    shaderc_shader_kind shadercStage = PGToShadercShaderStage( shaderStage );
+    shaderc::PreprocessedSourceCompilationResult result = compiler.PreprocessGlsl( fileContents, shadercStage, filename.c_str(), options );
 
     if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
     {
@@ -191,32 +167,32 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
     output.success = true;
     output.outputShader = { result.cbegin(), result.cend() };
 
-    if ( createInfo.savePreproc )
-    {
-        output.outputShader = CleanUpPreproc( output.outputShader );
-        size_t seed = 0;
-        for ( const auto& [define, value] : defines )
-        {
-            hash_combine( seed, define + value );
-        }
-        std::string preprocFilename = PG_ASSET_DIR "cache/shader_preproc/" + GetRelativeFilename( createInfo.filename ) + "_" + std::to_string( seed ) + ".glsl";
-        std::ofstream out( preprocFilename );
-        if ( !out )
-        {
-            LOG_ERR( "Could not output preproc file '%s'",  preprocFilename.c_str() );
-            output.success = false;
-            return output;
-        }
-        out << output.outputShader << std::endl;
-        
-        // write list of #defines at the bottom for easier debugging
-        for ( const auto& [define, value] : defines )
-        {
-            out << "// #define " << define << " " << value << "\n";
-        }
-    }
-
     return output;
+}
+
+
+bool SaveShaderPreproc( const std::string& originalFilename, const ShaderDefineList& defines, std::string& preprocText )
+{
+    preprocText = CleanUpPreproc( preprocText );
+    size_t seed = 0;
+    for ( const auto& [define, value] : defines )
+    {
+        HashCombine( seed, define + value );
+    }
+    std::string preprocFilename = PG_ASSET_DIR "cache/shader_preproc/" + GetRelativeFilename( originalFilename ) + "_" + std::to_string( seed ) + ".glsl";
+    std::ofstream out( preprocFilename );
+    if ( !out )
+    {
+        LOG_ERR( "Could not output preproc file '%s'",  preprocFilename.c_str() );
+        return false;
+    }
+    out << preprocText << std::endl;
+        
+    // write list of #defines at the bottom for easier debugging
+    for ( const auto& [define, value] : defines )
+    {
+        out << "// #define " << define << " " << value << "\n";
+    }
 }
 
 

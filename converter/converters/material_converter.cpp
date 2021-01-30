@@ -1,12 +1,13 @@
 #include "converter.hpp"
-#include "asset/types/material.hpp"
+#include "asset/asset_manager.hpp"
+#include "utils/hash.hpp"
+#include <unordered_set>
 
 using namespace PG;
 
-extern void AddFastfileDependency( const std::string& file );
-
 static std::vector< std::string > s_parsedMaterialFilenames;
 static std::vector< std::string > s_outOfDateMaterialFilenames;
+static std::unordered_set< size_t > s_loadedMaterialFiles; // has of loaded files
 
 
 void Material_Parse( const rapidjson::Value& value )
@@ -30,7 +31,7 @@ void Material_Parse( const rapidjson::Value& value )
 }
 
 
-static std::string Material_GetFastFileName( const std::string& filename )
+static std::string MaterialFile_GetFastFileName( const std::string& filename )
 {
     std::string baseName = GetFilenameStem( filename );
     baseName += "_v" + std::to_string( PG_MATERIAL_VERSION );
@@ -40,14 +41,14 @@ static std::string Material_GetFastFileName( const std::string& filename )
 }
 
 
-static bool Material_IsOutOfDate( const std::string& filename )
+static bool MaterialFile_IsOutOfDate( const std::string& filename )
 {
     if ( g_converterConfigOptions.force )
     {
         return true;
     }
 
-    std::string ffName = Material_GetFastFileName( filename );
+    std::string ffName = MaterialFile_GetFastFileName( filename );
     AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, filename );
 }
@@ -82,7 +83,7 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
 }
 
 
-static bool Material_ConvertSingle( const std::string& filename )
+static bool MaterialFile_ConvertSingle( const std::string& filename )
 {
     LOG( "Converting material file '%s'...", filename.c_str() );
     std::vector< MaterialCreateInfo > createInfos;
@@ -91,7 +92,7 @@ static bool Material_ConvertSingle( const std::string& filename )
         return false;
     }
     
-    std::string fastfileName = Material_GetFastFileName( filename );
+    std::string fastfileName = MaterialFile_GetFastFileName( filename );
     Serializer serializer;
     if ( !serializer.OpenForWrite( fastfileName ) )
     {
@@ -126,7 +127,7 @@ int Material_Convert()
     int couldNotConvert = 0;
     for ( int i = 0; i < (int)s_outOfDateMaterialFilenames.size(); ++i )
     {
-        if ( !Material_ConvertSingle( s_outOfDateMaterialFilenames[i] ) )
+        if ( !MaterialFile_ConvertSingle( s_outOfDateMaterialFilenames[i] ) )
         {
             ++couldNotConvert;
         }
@@ -141,7 +142,7 @@ int Material_CheckDependencies()
     int outOfDate = 0;
     for ( size_t i = 0; i < s_parsedMaterialFilenames.size(); ++i )
     {
-        if ( Material_IsOutOfDate( s_parsedMaterialFilenames[i] ) )
+        if ( MaterialFile_IsOutOfDate( s_parsedMaterialFilenames[i] ) )
         {
             s_outOfDateMaterialFilenames.push_back( s_parsedMaterialFilenames[i] );
             ++outOfDate;
@@ -156,18 +157,45 @@ bool Material_BuildFastFile( Serializer* serializer )
 {
     for ( size_t i = 0; i < s_parsedMaterialFilenames.size(); ++i )
     {
-        std::string ffiName = Material_GetFastFileName( s_parsedMaterialFilenames[i] );
+        std::string ffiName = MaterialFile_GetFastFileName( s_parsedMaterialFilenames[i] );
+        size_t filenameHash = HashString( ffiName );
+        auto it = s_loadedMaterialFiles.find( filenameHash );
+        if ( it == s_loadedMaterialFiles.end() )
+        {
+            Serializer readSerializer;
+            if ( !readSerializer.OpenForRead( ffiName ) )
+            {
+                return false;
+            }
+            uint16_t numMaterials;
+            readSerializer.Read( numMaterials );
+            for ( uint16_t mat = 0; mat < numMaterials; ++mat )
+            {
+                Material* asset = new Material;
+                if ( !Fastfile_Material_Load( asset, &readSerializer ) )
+                {
+                    LOG_ERR( "Could not load Material from filename '%s'", ffiName.c_str() );
+                    return false;
+                }
+                AssetManager::Add< Material >( asset );
+            }
+
+            s_loadedMaterialFiles.insert( filenameHash );
+        }
+        
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
             LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
             return false;
         }
-        
         serializer->Write( AssetType::ASSET_TYPE_MATERIAL );
         serializer->Write( inFile.getData(), inFile.size() );
         inFile.close();
     }
+
+    s_outOfDateMaterialFilenames.clear();
+    s_parsedMaterialFilenames.clear();
 
     return true;
 }

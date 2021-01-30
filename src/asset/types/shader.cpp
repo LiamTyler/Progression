@@ -324,7 +324,7 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
 #endif // #if USING( COMPILING_CONVERTER )
     if ( !preprocShaderText )
     {
-        preproc = PreprocessShader( createInfo );
+        preproc = PreprocessShader( createInfo.filename, createInfo.defines, createInfo.shaderStage );
         if ( !preproc.success )
         {
             return false;

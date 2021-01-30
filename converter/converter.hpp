@@ -11,9 +11,9 @@
 struct ConverterConfigOptions
 {
     std::string assetListFile;
-    bool force                  = false;
-    bool generateShaderDebugInfo   = false;
-    bool saveShaderPreproc      = false;
+    bool force                   = false;
+    bool generateShaderDebugInfo = false;
+    bool saveShaderPreproc       = false;
 };
 
 struct ConverterStatus
@@ -22,7 +22,10 @@ struct ConverterStatus
     int checkDependencyErrors   = 0;
     bool convertAssetErrors     = false;
     bool buildFastfileErrors    = false;
+    std::vector< std::string > assetFiles;
 };
 
 extern ConverterConfigOptions g_converterConfigOptions;
 extern ConverterStatus g_converterStatus;
+
+void AddFastfileDependency( const std::string& file );

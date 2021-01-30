@@ -17,5 +17,5 @@ void main()
 {
     gl_Position = vec4( positions[gl_VertexIndex], 0.0, 1.0 );
     texCoord    = 0.5 * (positions[gl_VertexIndex] + vec2( 1, 1 ));
-    texCoord.y = 1 - texCoord.y;
-}   
+    texCoord.y  = 1 - texCoord.y;
+}

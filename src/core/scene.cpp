@@ -1,15 +1,16 @@
 #include "core/scene.hpp"
 #include "asset/asset_manager.hpp"
 #include "core/assert.hpp"
-//#include "core/lua.hpp"
 #include "core/time.hpp"
 #include "ecs/component_factory.hpp"
-//#include "resource/image.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/logger.hpp"
 #include <algorithm>
 #include <fstream>
 #include <sstream>
+#if USING( COMPILING_CONVERTER )
+#include "converter.hpp"
+#endif // #if USING( COMPILING_CONVERTER )
 
 using namespace PG;
 
@@ -21,7 +22,11 @@ static void ParseFastfile( const rapidjson::Value& v, Scene* scene )
         {
             PG_ASSERT( value.IsString() );
             std::string fname = value.GetString();
-            AssetManager::LoadFastFile( fname );
+            #if USING( COMPILING_CONVERTER )
+                g_converterStatus.assetFiles.push_back( fname );
+            #else // #if USING( COMPILING_CONVERTER )
+                AssetManager::LoadFastFile( fname );
+            #endif // #else // #if USING( COMPILING_CONVERTER )
         }
     });
 }

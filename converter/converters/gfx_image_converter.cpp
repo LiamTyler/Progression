@@ -4,10 +4,8 @@
 
 using namespace PG;
 
-extern void AddFastfileDependency( const std::string& file );
-
-std::vector< GfxImageCreateInfo > g_parsedImages;
-std::vector< GfxImageCreateInfo > g_outOfDateImages;
+static std::vector< GfxImageCreateInfo > s_parsedImages;
+static std::vector< GfxImageCreateInfo > s_outOfDateImages;
 
 static std::unordered_map< std::string, GfxImageSemantic > imageSemanticMap =
 {
@@ -134,7 +132,7 @@ void GfxImage_Parse( const rapidjson::Value& value )
         }
     }
 
-    g_parsedImages.push_back( info );
+    s_parsedImages.push_back( info );
 }
 
 
@@ -198,11 +196,11 @@ static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
 int GfxImage_CheckDependencies()
 {
     int outOfDate = 0;
-    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
+    for ( size_t i = 0; i < s_parsedImages.size(); ++i )
     {
-        if ( GfxImage_IsOutOfDate( g_parsedImages[i] ) )
+        if ( GfxImage_IsOutOfDate( s_parsedImages[i] ) )
         {
-            g_outOfDateImages.push_back( g_parsedImages[i] );
+            s_outOfDateImages.push_back( s_parsedImages[i] );
             ++outOfDate;
         }
     }
@@ -213,15 +211,15 @@ int GfxImage_CheckDependencies()
 
 int GfxImage_Convert()
 {
-    if ( g_outOfDateImages.size() == 0 )
+    if ( s_outOfDateImages.size() == 0 )
     {
         return 0;
     }
 
     int couldNotConvert = 0;
-    for ( int i = 0; i < (int)g_outOfDateImages.size(); ++i )
+    for ( int i = 0; i < (int)s_outOfDateImages.size(); ++i )
     {
-        if ( !GfxImage_ConvertSingle( g_outOfDateImages[i] ) )
+        if ( !GfxImage_ConvertSingle( s_outOfDateImages[i] ) )
         {
             ++couldNotConvert;
         }
@@ -233,9 +231,9 @@ int GfxImage_Convert()
 
 bool GfxImage_BuildFastFile( Serializer* serializer )
 {
-    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
+    for ( size_t i = 0; i < s_parsedImages.size(); ++i )
     {
-        std::string ffiName = GfxImage_GetFastFileName( g_parsedImages[i] );
+        std::string ffiName = GfxImage_GetFastFileName( s_parsedImages[i] );
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
@@ -247,6 +245,9 @@ bool GfxImage_BuildFastFile( Serializer* serializer )
         serializer->Write( inFile.getData(), inFile.size() );
         inFile.close();
     }
+
+    s_parsedImages.clear();
+    s_outOfDateImages.clear();
 
     return true;
 }

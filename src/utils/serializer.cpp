@@ -16,7 +16,7 @@ bool Serializer::OpenForRead( const std::string& fname )
     filename = fname;
     if ( !memMappedFile.open( fname, MemoryMapped::WholeFile, MemoryMapped::SequentialScan ) )
     {
-        LOG_ERR( "Could not memmap file: '%s'", fname.c_str() );
+        LOG_ERR( "Could not open file: '%s' for read", fname.c_str() );
         return false;
     }
     currentReadPos = memMappedFile.getData();
@@ -77,6 +77,12 @@ size_t Serializer::BytesLeft() const
 }
 
 
+void Serializer::SeekBeginning()
+{
+    currentReadPos = 0;
+}
+
+
 void Serializer::Write( const void* buffer, size_t bytes )
 {
     PG_ASSERT( buffer && writeFile.good() );
@@ -112,5 +118,28 @@ void Serializer::Read( std::string& s )
     {
         s.resize( strSize, ' ' );
         Read( &s[0], strSize );
+    }
+}
+
+
+void Serializer::Write( const std::vector< std::string >& vec )
+{
+    size_t size = vec.size();
+    Write( size );
+    for ( const std::string& str : vec )
+    {
+        Write( str );
+    }
+}
+
+
+void Serializer::Read( std::vector< std::string >& vec )
+{
+    size_t size;
+    Read( size );
+    vec.resize( size );
+    for ( size_t i = 0; i < size; ++i )
+    {
+        Read( vec[i] );
     }
 }

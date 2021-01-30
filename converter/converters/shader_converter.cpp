@@ -1,11 +1,9 @@
 #include "converter.hpp"
 #include "asset/shader_preprocessor.hpp"
 #include "asset/types/shader.hpp"
+#include "utils/hash.hpp"
 
 using namespace PG;
-
-extern void AddFastfileDependency( const std::string& file );
-
 
 static std::vector< ShaderCreateInfo > s_parsedShaders;
 static std::vector< ShaderCreateInfo > s_outOfDateShaders;
@@ -69,15 +67,21 @@ void Shader_Parse( const rapidjson::Value& value )
 
 static std::string Shader_GetFastFileName( const ShaderCreateInfo& info )
 {
-    std::string baseName = info.name;
-    baseName += "_" + GetRelativeFilename( info.filename );
-    baseName += "_v" + std::to_string( PG_SHADER_VERSION );
+    std::string ffName = info.name;
+    ffName += "_" + GetRelativeFilename( info.filename );
+    ffName += "_v" + std::to_string( PG_SHADER_VERSION );
+    size_t seed = 0;
+    for ( const auto& [define, value] : info.defines )
+    {
+        HashCombine( seed, define + value );
+    }
+    ffName += "_" + std::to_string( seed );
     if ( info.generateDebugInfo )
     {
-        baseName += "_d";
+        ffName += "_d";
     }
 
-    std::string fullName = PG_ASSET_DIR "cache/shaders/" + baseName + ".ffi";
+    std::string fullName = PG_ASSET_DIR "cache/shaders/" + ffName + ".ffi";
     return fullName;
 }
 
@@ -91,7 +95,7 @@ static bool Shader_IsOutOfDate( ShaderCreateInfo& info )
     bool savePreproc = info.savePreproc;
     info.savePreproc = false;
     std::string ffName = Shader_GetFastFileName( info );
-    ShaderPreprocessOutput preproc = PreprocessShader( info );
+    ShaderPreprocessOutput preproc = PreprocessShader( info.filename, info.defines, info.shaderStage );
     info.savePreproc = savePreproc;
     if ( !preproc.success )
     {
@@ -191,6 +195,9 @@ bool Shader_BuildFastFile( Serializer* serializer )
         serializer->Write( inFile.getData(), inFile.size() );
         inFile.close();
     }
+
+    s_parsedShaders.clear();
+    s_outOfDateShaders.clear();
 
     return true;
 }

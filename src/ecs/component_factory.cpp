@@ -37,12 +37,14 @@ namespace PG
         mapping.ForEachMember( value, registry, d );
     }
 
+
     static void ParseNameComponent( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {
         PG_ASSERT( value.IsString() );
         NameComponent& comp = registry.emplace< NameComponent >( e );
         comp.name = value.GetString();
     }
+
 
     static void ParseTransform( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {
@@ -57,6 +59,8 @@ namespace PG
         mapping.ForEachMember( value, t );
     }
 
+
+    // see model_renderer.hpp for details on why the converter pipeline saves the strings instead
     static void ParseModelRenderer( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {   
         auto& comp = registry.emplace< ModelRenderer >( e );
@@ -65,21 +69,31 @@ namespace PG
             { "model", []( const rapidjson::Value& v, ModelRenderer& comp )
                 {
                     PG_ASSERT( v.IsString(), "Please provide a string of the model's name" );
-                    comp.model = AssetManager::Get< Model >( v.GetString() );
-                    PG_ASSERT( comp.model != nullptr, "Model with name '" + std::string( v.GetString() ) + "' not found" );
-                    comp.materials = comp.model->originalMaterials;
+                    
+                    #if USING( COMPILING_CONVERTER )
+                        comp.modelName = v.GetString();
+                    #else // #if USING( COMPILING_CONVERTER )
+                        comp.model = AssetManager::Get< Model >( v.GetString() );
+                        PG_ASSERT( comp.model != nullptr, "Model with name '" + std::string( v.GetString() ) + "' not found" );
+                        comp.materials = comp.model->originalMaterials;
+                    #endif // #else // #if USING( COMPILING_CONVERTER )
                 }
             },
             { "material", []( const rapidjson::Value& v, ModelRenderer& comp )
                 {
                     PG_ASSERT( v.IsString(), "Please provide a string of the material's name" );
-                    auto mat = AssetManager::Get< Material >( v.GetString() );
-                    PG_ASSERT( mat != nullptr, "Material with name '" + std::string( v.GetString() ) + "' not found" );
-                    PG_ASSERT( comp.model != nullptr, "Must specify model before assigning materials for it" );
-                    for ( auto& matPtr : comp.materials )
-                    {
-                        matPtr = mat;
-                    }
+
+                    #if USING( COMPILING_CONVERTER )
+                        comp.materialOverride = v.GetString();
+                    #else // #if USING( COMPILING_CONVERTER )
+                        auto mat = AssetManager::Get< Material >( v.GetString() );
+                        PG_ASSERT( mat != nullptr, "Material with name '" + std::string( v.GetString() ) + "' not found" );
+                        PG_ASSERT( comp.model != nullptr, "Must specify model before assigning materials for it" );
+                        for ( auto& matPtr : comp.materials )
+                        {
+                            matPtr = mat;
+                        }
+                    #endif // #else // #if USING( COMPILING_CONVERTER )
                 }
             },
         });

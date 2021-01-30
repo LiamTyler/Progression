@@ -1,12 +1,15 @@
 #pragma once
 
+namespace PG
+{
+
 constexpr int PG_FASTFILE_VERSION = 3; // Material saving fixed
 
 constexpr int PG_GFX_IMAGE_VERSION = 2; // adding flipVerticallyOption
 
-constexpr int PG_MATERIAL_VERSION = 2; // including material counts
+constexpr int PG_MATERIAL_VERSION = 3; // adding material types
 
-constexpr int PG_MODEL_VERSION = 2; // changed input model file
+constexpr int PG_MODEL_VERSION = 3; // adding header info for models
 
 constexpr int PG_SCRIPT_VERSION = 1; // initial version
 
@@ -24,3 +27,5 @@ enum AssetType : unsigned int
 
     NUM_ASSET_TYPES
 };
+
+} // namespace PG

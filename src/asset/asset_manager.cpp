@@ -68,15 +68,13 @@ bool LoadFastFile( const std::string& fname )
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
+            if ( it != s_resourceMaps[assetType].end() )
             {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
+                LOG_WARN( "Overriding Image '%s'", asset->name.c_str() );
                 asset->Free();
                 delete asset;
             }
+            s_resourceMaps[assetType][asset->name] = asset;
             break;
         }
         case ASSET_TYPE_MATERIAL:
@@ -93,15 +91,13 @@ bool LoadFastFile( const std::string& fname )
                     return false;
                 }
                 auto it = s_resourceMaps[assetType].find( asset->name );
-                if ( it == s_resourceMaps[assetType].end() )
+                if ( it != s_resourceMaps[assetType].end() )
                 {
-                    s_resourceMaps[assetType][asset->name] = asset;
-                }
-                else
-                {
+                    LOG_WARN( "Overriding Material '%s'", asset->name.c_str() );
                     asset->Free();
                     delete asset;
                 }
+                s_resourceMaps[assetType][asset->name] = asset;
             }
             break;
         }
@@ -114,15 +110,14 @@ bool LoadFastFile( const std::string& fname )
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
+            if ( it != s_resourceMaps[assetType].end() )
             {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
+                LOG_WARN( "Overriding Script '%s'", asset->name.c_str() );
                 asset->Free();
                 delete asset;
             }
+            s_resourceMaps[assetType][asset->name] = asset;
+            s_resourceMaps[assetType][asset->name] = asset;
             break;
         }
         case ASSET_TYPE_MODEL:
@@ -134,15 +129,13 @@ bool LoadFastFile( const std::string& fname )
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
+            if ( it != s_resourceMaps[assetType].end() )
             {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
+                LOG_WARN( "Overriding Model '%s'", asset->name.c_str() );
                 asset->Free();
                 delete asset;
             }
+            s_resourceMaps[assetType][asset->name] = asset;
             break;
         }
         case ASSET_TYPE_SHADER:
@@ -154,15 +147,13 @@ bool LoadFastFile( const std::string& fname )
                 return false;
             }
             auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
+            if ( it != s_resourceMaps[assetType].end() )
             {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
+                LOG_WARN( "Overriding Shader '%s'", asset->name.c_str() );
                 asset->Free();
                 delete asset;
             }
+            s_resourceMaps[assetType][asset->name] = asset;
             break;
         }
         default:
@@ -189,7 +180,7 @@ void Shutdown()
 }
 
 
-Asset* Get( uint32_t assetTypeID, const std::string& name )
+Asset* GetInternal( uint32_t assetTypeID, const std::string& name )
 {
     PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = s_resourceMaps[assetTypeID].find( name );
@@ -199,6 +190,20 @@ Asset* Get( uint32_t assetTypeID, const std::string& name )
     }
 
     return nullptr;
+}
+
+
+void AddInternal( uint32_t assetTypeID, Asset* asset )
+{
+    PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
+    auto it = s_resourceMaps[assetTypeID].find( asset->name );
+    if ( it != s_resourceMaps[assetTypeID].end() )
+    {
+        LOG( "Overrriding asset '%s' with id %d", asset->name.c_str(), assetTypeID );
+        it->second->Free();
+        delete it->second;
+    }
+    s_resourceMaps[assetTypeID][asset->name] = asset;
 }
 
 

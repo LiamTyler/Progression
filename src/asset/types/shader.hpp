@@ -23,12 +23,14 @@ enum class ShaderStage
     NUM_SHADER_STAGES
 };
 
+using ShaderDefineList = std::vector< std::pair< std::string, std::string > >;
+
 struct ShaderCreateInfo
 {
     std::string name;
     std::string filename;
     ShaderStage shaderStage;
-    std::vector< std::pair< std::string, std::string > > defines;
+    ShaderDefineList defines;
     bool generateDebugInfo = false;
     bool savePreproc = false;
 
@@ -66,5 +68,7 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo );
 bool Fastfile_Shader_Load( Shader* shader, Serializer* serializer );
 
 bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer );
+
+bool Shader_CompilePreprocToSpirv( const std::string& preproc, ShaderStage shaderStage, std::vector< uint32_t >& outSpirv );
 
 } // namespace PG

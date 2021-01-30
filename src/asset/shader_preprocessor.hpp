@@ -12,7 +12,7 @@ struct ShaderPreprocessOutput
     std::vector< std::string > includedFiles;
 };
 
-ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo );
+ShaderPreprocessOutput PreprocessShader( const std::string& filename, const ShaderDefineList& defines, ShaderStage shaderStage );
 
 // returns the shaderc type casted to an int to avoid including shaderc in the header
 int PGShaderStageToShaderc( const ShaderStage stage );

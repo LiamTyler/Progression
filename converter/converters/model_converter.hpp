@@ -4,6 +4,10 @@
 
 class Serializer;
 
+namespace PG
+{
+    struct ModelHeader;
+}
 
 void Model_Parse( const rapidjson::Value& value );
 
@@ -15,3 +19,5 @@ int Model_Convert();
 
 // returns true if no errors occurred, false otherwise
 bool Model_BuildFastFile( Serializer* serializer );
+
+bool GetModelHeader( const std::string& modelName, PG::ModelHeader* header );

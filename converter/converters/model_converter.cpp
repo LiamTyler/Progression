@@ -1,12 +1,14 @@
 #include "converter.hpp"
 #include "asset/types/model.hpp"
+#include "utils/hash.hpp"
 
 using namespace PG;
 
-extern void AddFastfileDependency( const std::string& file );
-
 static std::vector< ModelCreateInfo > s_parsedModels;
 static std::vector< ModelCreateInfo > s_outOfDateModels;
+
+// name hash -> converted filename map
+static std::unordered_map< size_t, std::string > s_modelNameToConvertedFilenameMap;
 
 void Model_Parse( const rapidjson::Value& value )
 {
@@ -93,6 +95,10 @@ int Model_CheckDependencies()
             s_outOfDateModels.push_back( s_parsedModels[i] );
             ++outOfDate;
         }
+        else
+        {
+            s_modelNameToConvertedFilenameMap.emplace( HashString( s_parsedModels[i].name ), Model_GetFastFileName( s_parsedModels[i] ) );
+        }
     }
 
     return outOfDate;
@@ -112,6 +118,10 @@ int Model_Convert()
         if ( !Model_ConvertSingle( s_outOfDateModels[i] ) )
         {
             ++couldNotConvert;
+        }
+        else
+        {
+            s_modelNameToConvertedFilenameMap.emplace( HashString( s_parsedModels[i].name ), Model_GetFastFileName( s_parsedModels[i] ) );
         }
     }
 
@@ -136,5 +146,22 @@ bool Model_BuildFastFile( Serializer* serializer )
         inFile.close();
     }
 
+    s_outOfDateModels.clear();
+    s_parsedModels.clear();
+
     return true;
+}
+
+
+bool GetModelHeader( const std::string& modelName, ModelHeader* header )
+{
+    PG_ASSERT( header );
+    size_t hash = HashString( modelName );
+    auto it = s_modelNameToConvertedFilenameMap.find( hash );
+    if ( it == s_modelNameToConvertedFilenameMap.end() )
+    {
+        return false;
+    }
+
+    return Fastfile_Model_LoadHeader( it->second, *header );
 }

@@ -14,6 +14,18 @@ time_t GetFileTimestamp( const std::string& file )
 }
 
 
+bool IsFileOutOfDate( const std::string& file, const time_t dependencyTimestamp )
+{
+    time_t fTime = GetFileTimestamp( file );
+    if ( fTime == 0 )
+    {
+        return true;
+    }
+    return fTime < dependencyTimestamp;
+}
+
+
+
 bool IsFileOutOfDate( const std::string& file, const std::string& dependency )
 {
     time_t fTime = GetFileTimestamp( file );

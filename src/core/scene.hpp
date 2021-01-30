@@ -28,7 +28,7 @@ namespace PG
         glm::vec3 ambientColor    = glm::vec3( .1f );
         DirectionalLight directionalLight;
         PointLight pointLights[PG_MAX_POINT_LIGHTS];
-        SpotLight spotLights[PG_MAX_POINT_LIGHTS];
+        SpotLight spotLights[PG_MAX_SPOT_LIGHTS];
         uint32_t numDirectionalLights = 0;
         uint32_t numPointLights = 0;
         uint32_t numSpotLights  = 0;

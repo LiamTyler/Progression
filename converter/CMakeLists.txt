@@ -25,12 +25,29 @@ set(
     ${PROGRESSION_DIR}/src/asset/shader_preprocessor.hpp
     
     ${PROGRESSION_DIR}/src/core/assert.hpp
+    ${PROGRESSION_DIR}/src/core/bounding_box.cpp
+    ${PROGRESSION_DIR}/src/core/bounding_box.hpp
+    ${PROGRESSION_DIR}/src/core/camera.cpp
+    ${PROGRESSION_DIR}/src/core/camera.hpp
     ${PROGRESSION_DIR}/src/core/core_defines.hpp
+    ${PROGRESSION_DIR}/src/core/frustum.cpp
+    ${PROGRESSION_DIR}/src/core/frustum.hpp
     ${PROGRESSION_DIR}/src/core/image_calculate_size.cpp
     ${PROGRESSION_DIR}/src/core/image_calculate_size.hpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
-    ${PROGRESSION_DIR}/src/core/platform_defines.hpp 
+    ${PROGRESSION_DIR}/src/core/platform_defines.hpp
+    ${PROGRESSION_DIR}/src/core/scene.cpp
+    ${PROGRESSION_DIR}/src/core/scene.hpp
+    
+    ${PROGRESSION_DIR}/src/ecs/component_factory.cpp
+    ${PROGRESSION_DIR}/src/ecs/component_factory.hpp
+    ${PROGRESSION_DIR}/src/ecs/ecs.cpp
+    ${PROGRESSION_DIR}/src/ecs/ecs.hpp
+    ${PROGRESSION_DIR}/src/ecs/components/entity_metadata.hpp
+    ${PROGRESSION_DIR}/src/ecs/components/model_renderer.hpp
+    ${PROGRESSION_DIR}/src/ecs/components/transform.cpp
+    ${PROGRESSION_DIR}/src/ecs/components/transform.hpp
     
     ${PROGRESSION_DIR}/src/utils/cpu_profile.hpp
     ${PROGRESSION_DIR}/src/utils/file_dependency.cpp
@@ -58,6 +75,8 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/generate_missing_pipelines.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/generate_missing_pipelines.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
 )
 

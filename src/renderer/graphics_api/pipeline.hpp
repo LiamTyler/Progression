@@ -14,7 +14,7 @@ struct Shader;
 namespace Gfx
 {
 
-    enum class CompareFunction
+    enum class CompareFunction : uint8_t
     {
         NEVER   = 0,
         LESS    = 1,
@@ -35,7 +35,7 @@ namespace Gfx
         CompareFunction compareFunc = CompareFunction::LESS; 
     };
 
-    enum class BlendFactor
+    enum class BlendFactor : uint8_t
     {
         ZERO                    = 0,
         ONE                     = 1,
@@ -52,7 +52,7 @@ namespace Gfx
         NUM_BLEND_FACTORS
     };
 
-    enum class BlendEquation
+    enum class BlendEquation : uint8_t
     {
         ADD                 = 0,
         SUBTRACT            = 1,
@@ -74,7 +74,7 @@ namespace Gfx
         bool blendingEnabled = false;
     };
 
-    enum class  WindingOrder
+    enum class  WindingOrder : uint8_t
     {
         COUNTER_CLOCKWISE = 0,
         CLOCKWISE         = 1,
@@ -82,7 +82,7 @@ namespace Gfx
         NUM_WINDING_ORDER
     };
 
-    enum class CullFace
+    enum class CullFace : uint8_t
     {
         NONE            = 0,
         FRONT           = 1,
@@ -92,7 +92,7 @@ namespace Gfx
         NUM_CULL_FACE
     };
 
-    enum class PolygonMode
+    enum class PolygonMode : uint8_t
     {
         FILL  = 0,
         LINE  = 1,
@@ -137,7 +137,7 @@ namespace Gfx
 
     Scissor FullScreenScissor();
 
-    enum class PrimitiveType
+    enum class PrimitiveType : uint8_t
     {
         POINTS          = 0,
 

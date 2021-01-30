@@ -19,11 +19,14 @@ public:
 
     // if opened for reading, return how many bytes are left to read. Else 0
     size_t BytesLeft() const;
+    void SeekBeginning();
 
     void Write( const void* buffer, size_t bytes );
     void Read( void* buffer, size_t bytes );
     void Write( const std::string& s );
     void Read( std::string& s );
+    void Write( const std::vector< std::string >& vec );
+    void Read( std::vector< std::string >& vec );
 
     template< typename T >
     void Write( const T& x )

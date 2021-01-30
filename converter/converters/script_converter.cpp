@@ -3,8 +3,6 @@
 
 using namespace PG;
 
-extern void AddFastfileDependency( const std::string& file );
-
 static std::vector< ScriptCreateInfo > s_parsedScripts;
 static std::vector< ScriptCreateInfo > s_outOfDateScripts;
 
@@ -135,6 +133,9 @@ bool Script_BuildFastFile( Serializer* serializer )
         serializer->Write( inFile.getData(), inFile.size() );
         inFile.close();
     }
+
+    s_parsedScripts.clear();
+    s_outOfDateScripts.clear();
 
     return true;
 }

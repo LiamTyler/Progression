@@ -11,7 +11,6 @@ layout( location = 2 ) in vec2 texCoords;
 layout( location = 0 ) out vec4 outColor;
 
 
-//layout( set = 1, binding = 0 ) uniform sampler2D albedoTex;
 layout( set = 1, binding = 0 ) uniform sampler2D textures[];
 
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform

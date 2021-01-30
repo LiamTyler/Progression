@@ -1,5 +1,3 @@
-#include "asset/types/model.hpp"
-#include "asset/types/material.hpp"
 #include "asset/asset_manager.hpp"
 #include "core/assert.hpp"
 #include "renderer/r_globals.hpp"
@@ -7,6 +5,7 @@
 #include "utils/serializer.hpp"
 #include "glm/geometric.hpp"
 #include <cstring>
+#include <unordered_set>
 
 
 namespace PG
@@ -186,6 +185,16 @@ bool Fastfile_Model_Load( Model* model, Serializer* serializer )
 {
     PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( model && serializer );
+
+    ModelHeader header;
+    serializer->Read( header.numVertices );
+    serializer->Read( header.numNormals );
+    serializer->Read( header.numTexCoords );
+    serializer->Read( header.numTangents );
+    serializer->Read( header.numIndices );
+    serializer->Read( header.numMeshes );
+    serializer->Read( header.usedMaterials );
+
     serializer->Read( model->name );
     serializer->Read( model->vertexPositions );
     serializer->Read( model->vertexNormals );
@@ -219,12 +228,37 @@ bool Fastfile_Model_Load( Model* model, Serializer* serializer )
     return true;
 }
 
-
 bool Fastfile_Model_Save( const Model * const model, Serializer* serializer, const std::vector< std::string >& materialNames )
 {
     PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( model && serializer );
     PG_ASSERT( model->meshes.size() == materialNames.size() );
+
+    ModelHeader header;
+    header.numVertices  = static_cast< uint32_t >( model->vertexPositions.size() );
+    header.numNormals   = static_cast< uint32_t >( model->vertexNormals.size() );
+    header.numTexCoords = static_cast< uint32_t >( model->vertexTexCoords.size() );
+    header.numTangents  = static_cast< uint32_t >( model->vertexTangents.size() );
+    header.numIndices   = static_cast< uint32_t >( model->indices.size() );
+    header.numMeshes    = static_cast< uint32_t >( model->meshes.size() );
+    std::unordered_set< std::string > materialSet;
+    for ( size_t i = 0; i < model->meshes.size(); ++i )
+    {
+        materialSet.insert( materialNames[i] );
+    }
+    header.usedMaterials.reserve( materialSet.size() );
+    for ( const auto& matName : materialSet )
+    {
+        header.usedMaterials.push_back( matName );
+    }
+
+    serializer->Write( header.numVertices );
+    serializer->Write( header.numNormals );
+    serializer->Write( header.numTexCoords );
+    serializer->Write( header.numTangents );
+    serializer->Write( header.numIndices );
+    serializer->Write( header.numMeshes );
+    serializer->Write( header.usedMaterials );
 
     serializer->Write( model->name );
     serializer->Write( model->vertexPositions );
@@ -244,6 +278,26 @@ bool Fastfile_Model_Save( const Model * const model, Serializer* serializer, con
         serializer->Write( mesh.numVertices );
     }
 
+    return true;
+}
+
+
+bool Fastfile_Model_LoadHeader( const std::string& convertedModelFilename, ModelHeader& header )
+{
+    Serializer serializer;
+    if ( !serializer.OpenForRead( convertedModelFilename ) )
+    {
+        LOG_ERR( "Could not load model header for file '%s'", convertedModelFilename.c_str() );
+        return false;
+    }
+
+    serializer.Read( header.numVertices );
+    serializer.Read( header.numNormals );
+    serializer.Read( header.numTexCoords );
+    serializer.Read( header.numTangents );
+    serializer.Read( header.numIndices );
+    serializer.Read( header.numMeshes );
+    serializer.Read( header.usedMaterials );
     return true;
 }
 

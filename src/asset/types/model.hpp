@@ -28,6 +28,17 @@ struct ModelCreateInfo
     std::string filename;
 };
 
+struct ModelHeader
+{
+    uint32_t numVertices;
+    uint32_t numNormals;
+    uint32_t numTexCoords;
+    uint32_t numTangents;
+    uint32_t numIndices;
+    uint32_t numMeshes;
+    std::vector< std::string > usedMaterials;
+};
+
 struct Model : public Asset
 {
     void RecalculateNormals();
@@ -60,9 +71,10 @@ bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::v
 
 bool Model_Load( Model* model, const ModelCreateInfo& createInfo );
 
-
 bool Fastfile_Model_Load( Model* model, Serializer* serializer );
 
 bool Fastfile_Model_Save( const Model * const model, Serializer* serializer, const std::vector< std::string >& matNames );
+
+bool Fastfile_Model_LoadHeader( const std::string& convertedModelFilename, ModelHeader& header );
 
 } // namespace PG

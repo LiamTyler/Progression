@@ -56,7 +56,10 @@ bool Init( bool headless )
         }
     }
 
-    AssetManager::LoadFastFile( "gfx_required" );
+    if ( !AssetManager::LoadFastFile( "gfx_required" ) )
+    {
+        return false;
+    }
 
     VertexBindingDescriptor bindingDescs[] =
     {

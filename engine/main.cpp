@@ -21,13 +21,20 @@ int main( int argc, char* argv[] )
 	if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );
-        return 0;
+        return 1;
     }
 
-    Scene* scene = Scene::Load( PG_ASSET_DIR "scenes/singleMeshViewer.json" );
+    if ( argc < 2 )
+    {
+        LOG_ERR( "First argument needs to be path to scene file, relative to folder: %s", PG_ASSET_DIR );
+        EngineShutdown();
+        return 1;
+    }
+
+    Scene* scene = Scene::Load( PG_ASSET_DIR + std::string( argv[1] ) );
     if ( !scene )
     {
-        return 0;
+        return 1;
     }
 
     {

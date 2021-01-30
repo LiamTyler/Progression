@@ -76,6 +76,7 @@ namespace PG
                     auto mat = AssetManager::Get< Material >( v.GetString() );
                     PG_ASSERT( mat != nullptr, "Material with name '" + std::string( v.GetString() ) + "' not found" );
                     PG_ASSERT( comp.model != nullptr, "Must specify model before assigning materials for it" );
+                    comp.materials.resize( comp.model->meshes.size() );
                     for ( auto& matPtr : comp.materials )
                     {
                         matPtr = mat;

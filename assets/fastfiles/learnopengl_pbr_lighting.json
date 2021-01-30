@@ -1,0 +1,6 @@
+{ "AssetList":
+[
+	{ "MatFile": { "filename": "materials/basic_colors.pgMtl" } },
+	{ "MatFile": { "filename": "models/basicShapes/sphere.pgMtl" } },
+	{ "Model": { "name": "sphere", "filename": "models/basicShapes/sphere.pgModel" } }
+]}

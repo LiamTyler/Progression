@@ -1,0 +1,12 @@
+{ "Scene":
+[
+    { "Fastfile": { "filename": "learnopengl_pbr_lighting" } },
+    { "Camera": { "position": [ 0, 0, 5 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
+    { "BackgroundColor": { "color": [ 0.2, 0.2, 0.2, 1 ] } },
+    { "AmbientColor": { "color": [ 0, 0, 0 ] } },
+    { "Entity": {
+        "NameComponent": "sphere",
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "sphere", "material": "red" }
+    }}
+]}

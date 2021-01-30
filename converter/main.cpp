@@ -66,7 +66,7 @@ int main( int argc, char** argv )
     g_converterConfigOptions = {};
     int option_index = 0;
     int c            = -1;
-    while ( ( c = getopt_long( argc, argv, "fmso", long_options, &option_index ) ) != -1 )
+    while ( ( c = getopt_long( argc, argv, "dfhs", long_options, &option_index ) ) != -1 )
     {
         switch ( c )
         {

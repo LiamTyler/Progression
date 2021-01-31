@@ -63,7 +63,61 @@ public:
     }
 
     map_type mapping;
-};  
+};
+
+
+template < typename ...Args >
+class JSONFunctionMapperBoolCheck
+{
+    using function_type = std::function< bool( const rapidjson::Value&, Args... ) >;
+    using map_type = std::unordered_map< std::string, function_type >;
+public:
+    JSONFunctionMapperBoolCheck( const map_type& m ) : mapping( m ) {}
+
+    function_type& operator[]( const std::string& name )
+    {
+        PG_ASSERT( mapping.find( name ) != mapping.end(), name + " not found in mapping" );
+        return mapping[name];
+    }
+
+    bool Evaluate( const std::string& name, const rapidjson::Value& v, Args&&... args )
+    {
+        if ( mapping.find( name ) == mapping.end() )
+        {
+            LOG_WARN( "'%s' not found in mapping", name.c_str() );
+        }
+        else
+        {
+            return mapping[name]( v, std::forward<Args>( args )... );
+        }
+
+        return true;
+    }
+
+    bool ForEachMember( const rapidjson::Value& v, Args&... args )
+    {
+        for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
+        {
+            std::string name = it->name.GetString();
+            if ( mapping.find( name ) == mapping.end() )
+            {
+                LOG_WARN( "'%s' not found in mapping", name.c_str() );
+            }
+            else
+            {
+                if ( !mapping[name]( it->value, std::forward<Args>( args )... ) )
+                {
+                    return false;
+                }
+            }
+        }
+
+        return true;
+    }
+
+    map_type mapping;
+};
+
 
 template< typename Func >
 void ForEachJSONMember( const rapidjson::Value& v, const Func& func )

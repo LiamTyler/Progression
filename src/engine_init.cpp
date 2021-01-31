@@ -1,6 +1,7 @@
 #include "engine_init.hpp"
 #include "asset/asset_manager.hpp"
 #include "core/input.hpp"
+#include "core/lua.hpp"
 #include "core/time.hpp"
 #include "core/window.hpp"
 #include "renderer/render_system.hpp"
@@ -20,6 +21,7 @@ bool EngineInitialize( const EngineInitInfo& info )
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
     Random::SetSeed( time( NULL ) );
+    Lua::Init( Lua::g_LuaState );
 
     if ( !g_headless )
     {

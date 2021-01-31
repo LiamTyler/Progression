@@ -5,6 +5,8 @@
 #include "GLFW/glfw3.h"
 #include <string>
 
+struct lua_State;
+
 namespace PG
 {
 
@@ -44,6 +46,7 @@ protected:
     bool m_relativeMouse = false;
 };
 
+void RegisterLuaFunctions_Window( lua_State* state );
 void InitWindowSystem( const WindowCreateInfo& info );
 void ShutdownWindowSystem();
 Window* GetMainWindow();

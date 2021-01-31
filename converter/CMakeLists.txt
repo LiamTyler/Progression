@@ -89,7 +89,7 @@ elseif(MSVC)
     set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
 endif()
 
-set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES})
+set(LIBS lua lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES})
 
 include_directories(
     ${PROGRESSION_DIR}/converter/
@@ -97,6 +97,7 @@ include_directories(
     ${PROGRESSION_DIR}/ext/
 	${PROGRESSION_DIR}/assets/
     ${PROGRESSION_DIR}/assets/shaders/
+    ${PROGRESSION_DIR}/ext/lua/
     ${Vulkan_INCLUDE_DIR}
 )
 

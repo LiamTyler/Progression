@@ -1,4 +1,5 @@
 #include "core/window.hpp"
+#include "core/lua.hpp"
 #include "core/time.hpp"
 #include "utils/logger.hpp"
 #include <unordered_set>
@@ -17,6 +18,19 @@ static PG::Window* s_mainWindow = nullptr;
 
 namespace PG
 {
+
+void RegisterLuaFunctions_Window( lua_State* state )
+{
+    sol::state_view lua( state );
+
+    lua["GetMainWindow"] = &GetMainWindow;
+    sol::usertype< Window > window_type = lua.new_usertype< Window >( "Window" );
+    window_type.set_function( "Width",            &Window::Width );
+    window_type.set_function( "Height",           &Window::Height );
+    window_type.set_function( "SetRelativeMouse", &Window::SetRelativeMouse );
+    window_type.set_function( "IsRelativeMouse",  &Window::IsRelativeMouse );
+    window_type.set_function( "SetTitle",         &Window::SetTitle );
+}
 
 
 void InitWindowSystem( const WindowCreateInfo& info )

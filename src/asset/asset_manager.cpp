@@ -1,11 +1,12 @@
 #include "asset/asset_manager.hpp"
-#include "core/assert.hpp"
 #include "asset/asset_versions.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/material.hpp"
 #include "asset/types/model.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
+#include "core/assert.hpp"
+#include "core/lua.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include <unordered_map>
@@ -49,6 +50,7 @@ bool LoadFastFile( const std::string& fname )
     Serializer serializer;
     if ( !serializer.OpenForRead( fullName ) )
     {
+        LOG_ERR( "Failed to open fastfile '%s'", fullName.c_str() );
         return false;
     }
 
@@ -186,6 +188,42 @@ void Shutdown()
         }
         s_resourceMaps[i].clear();
     }
+}
+
+
+void RegisterLuaFunctions( lua_State* L )
+{
+    sol::state_view lua( L );
+    sol::table assetManagerNamespace = lua.create_named_table( "AssetManager" );
+    
+    assetManagerNamespace["GetGfxImage"] = []( const std::string& name ) { return AssetManager::Get< GfxImage >( name ); };
+    assetManagerNamespace["GetMaterial"] = []( const std::string& name ) { return AssetManager::Get< Material >( name ); };
+    assetManagerNamespace["GetScript"]   = []( const std::string& name ) { return AssetManager::Get< Script >( name ); };
+    assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get< Model >( name ); };
+
+    sol::usertype< Material > mat_type = lua.new_usertype< Material >( "Material" );
+    mat_type["name"]   = &Material::name;
+    mat_type["Kd"]     = &Material::Kd;
+    mat_type["map_Kd"] = &Material::map_Kd;
+    
+    sol::usertype< Model > model_type = lua.new_usertype< Model >( "Model" );
+    model_type["name"] = &Model::name;
+    model_type["name"] = &Model::meshes;
+    model_type["name"] = &Model::originalMaterials;
+
+    sol::usertype< GfxImage > image_type = lua.new_usertype< GfxImage >( "GfxImage" );
+    image_type["name"]        = &GfxImage::name;
+    image_type["width"]       = &GfxImage::width;
+    image_type["height"]      = &GfxImage::height;
+    image_type["depth"]       = &GfxImage::depth;
+    image_type["mipLevels"]   = &GfxImage::mipLevels;
+    image_type["numFaces"]    = &GfxImage::numFaces;
+    image_type["pixelFormat"] = &GfxImage::pixelFormat;
+    image_type["imageType"]   = &GfxImage::imageType;
+
+    sol::usertype< Script > script_type = lua.new_usertype< Script >( "Script" );
+    script_type["name"] = &Script::name;
+    script_type["scriptText"] = &Script::scriptText;
 }
 
 

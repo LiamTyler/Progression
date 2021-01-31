@@ -43,6 +43,9 @@ set(
     ${PROGRESSION_DIR}/src/core/input.hpp
     ${PROGRESSION_DIR}/src/core/input_types.hpp
     ${PROGRESSION_DIR}/src/core/lights.hpp
+    ${PROGRESSION_DIR}/src/core/lua.cpp
+    ${PROGRESSION_DIR}/src/core/lua.hpp
+    ${PROGRESSION_DIR}/src/core/math.cpp
     ${PROGRESSION_DIR}/src/core/math.hpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
@@ -154,7 +157,7 @@ elseif(MSVC)
     set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
 endif()
 
-set(LIBS lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} glfw ${Vulkan_LIBRARIES})
+set(LIBS lua lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} glfw ${Vulkan_LIBRARIES})
 
 include_directories(
     ${PROGRESSION_DIR}/src/
@@ -162,6 +165,7 @@ include_directories(
     ${PROGRESSION_DIR}/ext/glfw/include
     ${PROGRESSION_DIR}/assets/
     ${PROGRESSION_DIR}/assets/shaders/
+    ${PROGRESSION_DIR}/ext/lua
 	${Vulkan_INCLUDE_DIR}
 )
 

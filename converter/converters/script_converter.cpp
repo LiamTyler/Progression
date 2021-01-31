@@ -15,7 +15,7 @@ void Script_Parse( const rapidjson::Value& value )
     static JSONFunctionMapper< ScriptCreateInfo& > mapping(
     {
         { "name",      []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.name     = v.GetString(); } },
-        { "filename",  []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.filename = PG_ASSET_DIR "scripts/" + std::string( v.GetString() ); } },
+        { "filename",  []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
     ScriptCreateInfo info;

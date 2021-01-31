@@ -5,13 +5,9 @@
 namespace PG
 {
 
-struct NameComponent
-{
-    std::string name;
-};
-
 struct EntityMetaData
 {
+    std::string name;
     entt::entity parent = entt::null;
     bool isStatic       = false;
 };

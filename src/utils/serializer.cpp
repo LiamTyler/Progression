@@ -16,7 +16,6 @@ bool Serializer::OpenForRead( const std::string& fname )
     filename = fname;
     if ( !memMappedFile.open( fname, MemoryMapped::WholeFile, MemoryMapped::SequentialScan ) )
     {
-        LOG_ERR( "Could not memmap file: '%s'", fname.c_str() );
         return false;
     }
     currentReadPos = memMappedFile.getData();

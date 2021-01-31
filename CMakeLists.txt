@@ -43,9 +43,10 @@ elseif(MSVC)
     #add_link_options("/NODEFAULTLIB:library")
 endif()
 
+
+#----------------------------ASSIMP--------------------------------------------
 set(ASSIMP_BUILD_TESTS        OFF CACHE BOOL " " FORCE)
 set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL " " FORCE)
-
 # disable a bunch of importers that we wont use. Just add them to the list if you want it enabled again
 set(ASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT OFF CACHE BOOL " " FORCE)
 set(ASSIMP_BUILD_OBJ_IMPORTER     ON CACHE BOOL "Enable format OBJ"     FORCE)
@@ -58,18 +59,34 @@ set(ASSIMP_BUILD_COLLADA_IMPORTER ON CACHE BOOL "Enable format COLLADA" FORCE)
 set(ASSIMP_BUILD_STL_IMPORTER     ON CACHE BOOL "Enable format STL"     FORCE)
 set(ASSIMP_BUILD_GLTF_IMPORTER    ON CACHE BOOL "Enable format GLTF"    FORCE)
 endif()
-
 set(ASSIMP_BUILD_ALL_EXPORTERS_BY_DEFAULT OFF CACHE BOOL " " FORCE)
 # assimp doesnt compile if all exporters are disabled -.-
 set(ASSIMP_BUILD_OBJ_EXPORTER    ON CACHE BOOL "Enable format OBJ"    FORCE)
 add_subdirectory(ext/assimp)
+#------------------------------------------------------------------------------
 
+
+#------------------------------LZ4---------------------------------------------
 add_subdirectory(ext/lz4)
+#------------------------------------------------------------------------------
 
+#------------------------------GLFW--------------------------------------------
 set(GLFW_BUILD_EXAMPLES  OFF CACHE BOOL " " FORCE)
 set(GLFW_BUILD_TESTS     OFF CACHE BOOL " " FORCE)
 set(GLFW_BUILD_DOCS      OFF CACHE BOOL " " FORCE)
 add_subdirectory(ext/glfw)
+#------------------------------------------------------------------------------
+
+#-------------------------------LUA--------------------------------------------
+if(UNIX AND NOT APPLE)
+    add_definitions(-DLUA_USE_POSIX)
+endif()
+file(GLOB_RECURSE LUA_SRC ext/lua/*.c)
+list(REMOVE_ITEM LUA_SRC "${CMAKE_SOURCE_DIR}/ext/lua/lua.c")
+list(REMOVE_ITEM LUA_SRC "${CMAKE_SOURCE_DIR}/ext/lua/luac.c")
+add_library(lua STATIC ${LUA_SRC})
+#------------------------------------------------------------------------------
+
 
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 

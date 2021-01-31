@@ -7,6 +7,8 @@
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
 
+struct lua_State;
+
 namespace PG
 {
 namespace AssetManager
@@ -33,6 +35,8 @@ void Init();
 bool LoadFastFile( const std::string& fname );
 
 void Shutdown();
+
+void RegisterLuaFunctions( lua_State* L );
 
 Asset* Get( uint32_t assetTypeID, const std::string& name );
 

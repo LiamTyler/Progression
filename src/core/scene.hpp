@@ -35,4 +35,8 @@ namespace PG
         entt::registry registry;
     };
 
+    Scene* GetPrimaryScene();
+
+    void SetPrimaryScene( Scene* scene );
+
 } // namespace PG

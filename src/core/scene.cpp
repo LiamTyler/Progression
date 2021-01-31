@@ -1,7 +1,7 @@
 #include "core/scene.hpp"
 #include "asset/asset_manager.hpp"
 #include "core/assert.hpp"
-//#include "core/lua.hpp"
+#include "core/lua.hpp"
 #include "core/time.hpp"
 #include "ecs/component_factory.hpp"
 //#include "resource/image.hpp"
@@ -13,21 +13,16 @@
 
 using namespace PG;
 
-static void ParseFastfile( const rapidjson::Value& v, Scene* scene )
+Scene* s_primaryScene = nullptr;
+
+static bool ParseFastfile( const rapidjson::Value& v, Scene* scene )
 {
-    ForEachJSONMember( v, []( const std::string& name, const rapidjson::Value& value )
-    {
-        if ( name == "filename" )
-        {
-            PG_ASSERT( value.IsString() );
-            std::string fname = value.GetString();
-            AssetManager::LoadFastFile( fname );
-        }
-    });
+    PG_ASSERT( v.IsString() );
+    return AssetManager::LoadFastFile( v.GetString() );
 }
 
 
-static void ParseCamera( const rapidjson::Value& v, Scene* scene )
+static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
 {
     Camera& camera = scene->camera;
     static JSONFunctionMapper< Camera& > mapping(
@@ -44,10 +39,11 @@ static void ParseCamera( const rapidjson::Value& v, Scene* scene )
 
     camera.UpdateFrustum();
     camera.UpdateProjectionMatrix();
+    return true;
 }
 
 
-static void ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
+static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< DirectionalLight& > mapping(
     {
@@ -59,25 +55,27 @@ static void ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
     if ( scene->numDirectionalLights > 0 )
     {
         LOG_WARN( "Can't have more than one directional light in a scene, skipping" );
-        return;
+        return true;
     }
 
     scene->numDirectionalLights++;
     mapping.ForEachMember( value, scene->directionalLight );
+    return true;
 }
 
 
-static void ParseEntity( const rapidjson::Value& v, Scene* scene )
+static bool ParseEntity( const rapidjson::Value& v, Scene* scene )
 {
     auto e = scene->registry.create();
     for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
     {
         ParseComponent( it->value, e, scene->registry, it->name.GetString() );
     }
+    return true;
 }
 
 
-static void ParsePointLight( const rapidjson::Value& value, Scene* scene )
+static bool ParsePointLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< PointLight& > mapping(
     {
@@ -90,15 +88,16 @@ static void ParsePointLight( const rapidjson::Value& value, Scene* scene )
     if ( scene->numPointLights >= PG_MAX_POINT_LIGHTS )
     {
         LOG_WARN( "Can't have more than %d point lights in a scene, skipping", PG_MAX_POINT_LIGHTS );
-        return;
+        return true;
     }
 
     mapping.ForEachMember( value, scene->pointLights[scene->numPointLights] );
     scene->numPointLights++;
+    return true;
 }
 
 
-static void ParseSpotLight( const rapidjson::Value& value, Scene* scene )
+static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< SpotLight& > mapping(
     {
@@ -113,35 +112,48 @@ static void ParseSpotLight( const rapidjson::Value& value, Scene* scene )
     if ( scene->numSpotLights >= PG_MAX_SPOT_LIGHTS )
     {
         LOG_WARN( "Can't have more than %d spot lights in a scene, skipping", PG_MAX_SPOT_LIGHTS );
-        return;
+        return true;
     }
 
     mapping.ForEachMember( value, scene->spotLights[scene->numSpotLights] );
     scene->numSpotLights++;
+    return true;
 }
 
 
-static void ParseBackgroundColor( const rapidjson::Value& v, Scene* scene )
+static bool ParseBackgroundColor( const rapidjson::Value& v, Scene* scene )
 {
-    PG_ASSERT( v.HasMember( "color" ) );
-    auto& member           = v["color"];
-    scene->backgroundColor = ParseVec4( member );
+    PG_ASSERT( v.IsArray() );
+    scene->ambientColor = ParseVec4( v );
+    return true;
 }
 
 
-static void ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
+static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
 {
-    PG_ASSERT( v.HasMember( "color" ) );
-    auto& member        = v["color"];
-    scene->ambientColor = ParseVec3( member );
+    PG_ASSERT( v.IsArray() );
+    scene->ambientColor = ParseVec3( v );
+    return true;
 }
 
 
-static void ParseSkybox( const rapidjson::Value& v, Scene* scene )
+static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
 {
-    // PG_ASSERT( v.IsString() );
+    PG_ASSERT( v.IsString() );
     // scene->skybox = AssetManager::Get< Image >( v.GetString() );
     // PG_ASSERT( scene->skybox, "Could not find skybox with name '" + std::string( v.GetString() ) + "'" );
+    return false;
+}
+
+
+static bool ParseStartupScript( const rapidjson::Value& v, Scene* scene )
+{
+    PG_ASSERT( v.IsString() );
+    std::string s = v.GetString();
+    Script* script = AssetManager::Get< Script >( v.GetString() );
+    PG_ASSERT( script );
+    Lua::RunScriptNow( script->scriptText );
+    return true;
 }
 
 
@@ -165,7 +177,12 @@ Scene* Scene::Load( const std::string& filename )
         return nullptr;
     }
 
-    static JSONFunctionMapper< Scene* > mapping(
+    Scene* previousPrimaryScene = GetPrimaryScene();
+    SetPrimaryScene( scene );
+    Lua::g_LuaState["ECS"] = &scene->registry;
+    Lua::g_LuaState["scene"] = scene;
+
+    static JSONFunctionMapperBoolCheck< Scene* > mapping(
     {
         { "AmbientColor",     ParseAmbientColor },
         { "BackgroundColor",  ParseBackgroundColor },
@@ -176,55 +193,45 @@ Scene* Scene::Load( const std::string& filename )
         { "SpotLight",        ParseSpotLight },
         { "Fastfile",         ParseFastfile },
         { "Skybox",           ParseSkybox },
+        { "StartupScript",    ParseStartupScript },
     });
 
     PG_ASSERT( document.HasMember( "Scene" ), "scene file requires a single object 'Scene' that has a list of all scene objects + scene loading commands" );
     const auto& assetList = document["Scene"];
     for ( rapidjson::Value::ConstValueIterator itr = assetList.Begin(); itr != assetList.End(); ++itr )
     {
-        mapping.ForEachMember( *itr, scene );
+        if ( !mapping.ForEachMember( *itr, scene ) )
+        {
+            delete scene;
+            SetPrimaryScene( previousPrimaryScene );
+            return nullptr;
+        }
     }
 
     return scene;
 }
 
+
 void Scene::Start()
 {
-    /*
-    g_LuaState["registry"] = &registry;
-    g_LuaState["scene"] = this;
-    registry.view< ScriptComponent >().each([]( const entt::entity e, ScriptComponent& comp )
-    {
-        for ( int i = 0; i < comp.numScripts; ++i )
-        {
-            auto startFn = comp.scripts[i].env["Start"];
-            if ( startFn.valid() )
-            {
-                comp.scripts[i].env["entity"] = e;
-                CHECK_SOL_FUNCTION_CALL( startFn() );
-            }
-        }
-    });
-    */
 }
+
 
 void Scene::Update()
 {
-    /*
-    auto luaTimeNamespace = g_LuaState["Time"].get_or_create< sol::table >();
-    luaTimeNamespace["dt"] = Time::DeltaTime();
-    g_LuaState["registry"] = &registry;
-    registry.view< ScriptComponent >().each([]( const entt::entity e, ScriptComponent& comp )
-    {
-        for ( int i = 0; i < comp.numScriptsWithUpdate; ++i )
-        {
-            comp.scripts[i].env["entity"] = e;
-            CHECK_SOL_FUNCTION_CALL( comp.scripts[i].updateFunc.second() );
-        }
-    });
-
-    AnimationSystem::Update( this );
-    */
 }
 
-} // namespace Progression
+
+Scene* GetPrimaryScene()
+{
+    return s_primaryScene;
+}
+
+
+void SetPrimaryScene( Scene* scene )
+{
+    s_primaryScene = scene;
+}
+
+
+} // namespace PG

@@ -4,25 +4,34 @@
 #include "components/entity_metadata.hpp"
 #include "components/model_renderer.hpp"
 #include "core/assert.hpp"
+#include "ecs/ecs.hpp"
 #include "utils/json_parsing.hpp"
-#include "core/assert.hpp"
 #include <unordered_map>
 #include "entt/entt.hpp"
 
 namespace PG
 {
 
-    static void ParseEntityMetaData( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
+    static void ParseEntityMetadata( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {
         PG_ASSERT( value.IsObject() );
         EntityMetaData& d = registry.emplace< EntityMetaData >( e );
         static JSONFunctionMapper< entt::registry&, EntityMetaData& > mapping(
         {
+            { "name", []( const rapidjson::Value& v, entt::registry& reg, EntityMetaData& d )
+                {
+                    PG_ASSERT( v.IsString() );
+                    std::string name = v.GetString();
+                    PG_ASSERT( !name.empty() );
+                    PG_ASSERT( ECS::GetEntityByName( reg, name ) == entt::null, "ECS already contains entity with name '" + name + "'" );
+                    d.name = name;
+                }
+            },
             { "parent", []( const rapidjson::Value& v, entt::registry& reg, EntityMetaData& d )
                 {
                     PG_ASSERT( v.IsString() );
                     std::string parentName = v.GetString();
-                    d.parent = GetEntityByName( reg, parentName );
+                    d.parent = ECS::GetEntityByName( reg, parentName );
                     PG_ASSERT( d.parent != entt::null, "No entity found with name '" + parentName + "'" );
                 }
             },
@@ -37,12 +46,6 @@ namespace PG
         mapping.ForEachMember( value, registry, d );
     }
 
-    static void ParseNameComponent( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
-    {
-        PG_ASSERT( value.IsString() );
-        NameComponent& comp = registry.emplace< NameComponent >( e );
-        comp.name = value.GetString();
-    }
 
     static void ParseTransform( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {
@@ -56,6 +59,7 @@ namespace PG
 
         mapping.ForEachMember( value, t );
     }
+
 
     static void ParseModelRenderer( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {   
@@ -93,8 +97,7 @@ namespace PG
     {
         static JSONFunctionMapper< entt::entity, entt::registry& > mapping(
         {
-            { "EntityMetaData",  ParseEntityMetaData },
-            { "NameComponent",   ParseNameComponent },
+            { "Metadata",        ParseEntityMetadata },
             { "Transform",       ParseTransform },
             { "ModelRenderer",   ParseModelRenderer },
         });

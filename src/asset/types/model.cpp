@@ -125,6 +125,7 @@ bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::v
     Serializer modelFile;
     if ( !modelFile.OpenForRead( createInfo.filename ) )
     {
+        LOG_ERR( "Failed to open PGModel file '%s'", createInfo.filename.c_str() );
         return false;
     }
 

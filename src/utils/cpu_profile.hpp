@@ -6,7 +6,7 @@
 #if USING( SHIP_BUILD )
 
 #define PG_PROFILE_CPU_START( name ) do {} while( 0 )
-#define PG_PROFILE_CPU_GET_DURATION( name ) do {} while( 0 )
+#define PG_PROFILE_CPU_GET_DURATION( name ) (0.0 / 0.0)
 #define PG_PROFILE_CPU_END( name ) do {} while( 0 )
 
 #else // #if USING( SHIP_BUILD )

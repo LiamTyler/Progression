@@ -1,13 +1,14 @@
 #pragma once
 
 #include "core/platform_defines.hpp"
+#include "asset/types/script.hpp"
+#include "utils/logger.hpp"
+
 
 #if USING( DEBUG_BUILD )
 #define SOL_ALL_SAFETIES_ON 1
 #endif // #if USING( DEBUG_BUILD )
-
 #include "sol/sol.hpp"
-#include "utils/logger.hpp"
 
 #if USING( DEBUG_BUILD )
 #define CHECK_SOL_FUNCTION_CALL( statement ) \
@@ -16,8 +17,7 @@
         if ( !res.valid() ) \
         { \
             sol::error err = res; \
-		    std::string what = err.what(); \
-            LOG_ERR( "Sol function failed with error: '", what, "'" ); \
+            LOG_ERR( "Sol function failed with error: '%s'", err.what() ); \
         } \
     }    
 #else // #if USING( DEBUG_BUILD )
@@ -33,6 +33,19 @@ namespace Lua
     void Init( lua_State* L );
 
     void RunScriptNow( const std::string& script );
+
+    struct ScriptInstance
+    {
+        ScriptInstance() = default;
+        ScriptInstance( Script* scriptAsset );
+
+        void Update();
+
+        Script* scriptAsset = nullptr;
+        sol::environment env;
+        sol::function updateFunction;
+        bool hasUpdateFunction = false;
+    };
 
 } // namespace Lua
 } // namespace PG

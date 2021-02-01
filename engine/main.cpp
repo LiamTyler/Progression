@@ -54,6 +54,8 @@ int main( int argc, char* argv[] )
                 g_engineShutdown = true;
             }
 
+            scene->Update();
+
             RenderSystem::Render( scene );
 
             window->EndFrame();

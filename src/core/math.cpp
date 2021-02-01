@@ -24,6 +24,7 @@ void RegisterLuaFunctions_Math( lua_State* L )
     sol::usertype< vec3 > vec3_type = lua.new_usertype< vec3 >( "vec3", sol::constructors< vec3(), vec3( float ), vec3( const vec3& ), vec3( float, float, float ) >() );
     vec3_type["x"] = &vec3::x;
 	vec3_type["y"] = &vec3::y;
+	vec3_type["z"] = &vec3::z;
     vec3_type.set_function( sol::meta_function::addition,       []( const vec3& a, const vec3& b ){ return a + b; } );
     vec3_type.set_function( sol::meta_function::subtraction,    []( const vec3& a, const vec3& b ){ return a - b; } );
     vec3_type.set_function( sol::meta_function::multiplication, []( const vec3& a, const vec3& b ){ return a * b; } );
@@ -37,6 +38,8 @@ void RegisterLuaFunctions_Math( lua_State* L )
     sol::usertype< vec4 > vec4_type = lua.new_usertype< vec4 >( "vec4", sol::constructors< vec4(), vec4( float ), vec4( const vec4& ), vec4( float, float, float, float ) >() );
     vec4_type["x"] = &vec4::x;
 	vec4_type["y"] = &vec4::y;
+	vec4_type["z"] = &vec4::z;
+	vec4_type["w"] = &vec4::w;
     vec4_type.set_function( sol::meta_function::addition,       []( const vec4& a, const vec4& b ){ return a + b; } );
     vec4_type.set_function( sol::meta_function::subtraction,    []( const vec4& a, const vec4& b ){ return a - b; } );
     vec4_type.set_function( sol::meta_function::multiplication, []( const vec4& a, const vec4& b ){ return a * b; } );

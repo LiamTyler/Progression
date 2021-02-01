@@ -1,13 +1,15 @@
 #pragma once
 
 #include "core/camera.hpp"
-#include "ecs/ecs.hpp"
 #include "core/lights.hpp"
+#include "core/lua.hpp"
+#include "ecs/ecs.hpp"
 #include <string>
 #include <vector>
 
 #define PG_MAX_POINT_LIGHTS 1024
 #define PG_MAX_SPOT_LIGHTS 1024
+#define PG_MAX_NON_ENTITY_SCRIPTS 64
 
 namespace PG
 {
@@ -33,10 +35,16 @@ namespace PG
         uint32_t numPointLights = 0;
         uint32_t numSpotLights  = 0;
         entt::registry registry;
+
+        // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions
+        Lua::ScriptInstance nonEntityScripts[PG_MAX_NON_ENTITY_SCRIPTS];
+        uint16_t numNonEntityScripts = 0;
     };
 
     Scene* GetPrimaryScene();
 
     void SetPrimaryScene( Scene* scene );
+
+    void RegisterLuaFunctions_Scene( lua_State* L );
 
 } // namespace PG

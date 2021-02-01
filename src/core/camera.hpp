@@ -39,4 +39,6 @@ protected:
     Frustum m_frustum;
 };
 
+void RegisterLuaFunctions_Camera( lua_State* L );
+
 } // namespace PG

@@ -1,6 +1,7 @@
 #include "converter.hpp"
-#include "core/assert.hpp"
 #include "asset/asset_versions.hpp"
+#include "core/assert.hpp"
+#include "core/time.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
 #include "converters/model_converter.hpp"
@@ -170,7 +171,7 @@ bool ConvertAssets()
     CreateDirectory( PG_ASSET_DIR "cache/shaders/" );
     CreateDirectory( PG_ASSET_DIR "cache/shader_preproc/" );
 
-    PG_PROFILE_CPU_START( CONVERTER );
+    auto convertAssetsStartTime = PG::Time::GetTimePoint();
     LOG( "Loading asset list file '%s'...", g_converterConfigOptions.assetListFile.c_str() );
     rapidjson::Document document;
     if ( !ParseJSONFile( g_converterConfigOptions.assetListFile, document ) )
@@ -256,7 +257,7 @@ bool ConvertAssets()
         }
     }
 
-    float elapsedTime = PG_PROFILE_CPU_GET_DURATION( CONVERTER ) / 1000.0f;
+    double elapsedTime = PG::Time::GetDuration( convertAssetsStartTime ) / 1000.0;
     if ( status )
     {
         LOG( "Elapsed time: %.2f seconds", elapsedTime );
@@ -277,7 +278,7 @@ bool AssembleConvertedAssetsIntoFastfile()
         return false;
     }
 
-    PG_PROFILE_CPU_START( BUILDFASTFILE );
+    auto buildFastfileStartTime = PG::Time::GetTimePoint();
     LOG( "\nRunning build fastfile..." );
     auto startTime = std::chrono::system_clock::now();
     std::string ffName = PG_ASSET_DIR "cache/fastfiles/" + GetFilenameStem( g_converterConfigOptions.assetListFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
@@ -301,7 +302,7 @@ bool AssembleConvertedAssetsIntoFastfile()
     success = success && Model_BuildFastFile( &outFile );
     success = success && Shader_BuildFastFile( &outFile );
 
-    float elapsedTime = PG_PROFILE_CPU_GET_DURATION( BUILDFASTFILE ) / 1000.0f;
+    double elapsedTime = PG::Time::GetDuration( buildFastfileStartTime ) / 1000.0;
     if ( success )
     {
         LOG( "Build fastfile SUCCESS" );

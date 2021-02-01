@@ -1,4 +1,5 @@
 #include "core/time.hpp"
+#include "core/lua.hpp"
 
 using namespace std::chrono;
 using Clock = high_resolution_clock;
@@ -59,6 +60,17 @@ namespace Time
     {
         auto now = Clock::now();
         return duration_cast< microseconds >( now - point ).count() / static_cast< float >( 1000 );
+    }
+
+
+    void RegisterLuaFunctions( lua_State* L )
+    {
+        sol::state_view state( L );
+        auto luaTimeNamespace = state["Time"].get_or_create< sol::table >();
+        luaTimeNamespace["dt"] = 0;
+        luaTimeNamespace["Time"] = Time;
+        luaTimeNamespace["GetTimePoint"] = GetTimePoint;
+        luaTimeNamespace["GetDuration"] = GetDuration;
     }
 
 

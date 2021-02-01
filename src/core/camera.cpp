@@ -1,4 +1,5 @@
 #include "core/camera.hpp"
+#include "core/lua.hpp"
 #include "core/math.hpp"
 #include "glm/gtc/matrix_transform.hpp"
 
@@ -56,5 +57,28 @@ glm::vec3 Camera::GetUpDir() const      { return m_currUp; }
 glm::vec3 Camera::GetRightDir() const   { return m_currRight; }
 Frustum Camera::GetFrustum() const      { return m_frustum; }
 
+
+void RegisterLuaFunctions_Camera( lua_State* L )
+{
+    sol::state_view state( L );
+    sol::usertype< Camera > camera_type = state.new_usertype< Camera >( "Camera", sol::constructors< Camera() >() );
+    camera_type["position"]                 = &Camera::position;
+    camera_type["rotation"]                 = &Camera::rotation;
+    camera_type["vfov"]                     = &Camera::vFov;
+    camera_type["aspectRatio"]              = &Camera::aspectRatio;
+    camera_type["nearPlane"]                = &Camera::nearPlane;
+    camera_type["farPlane"]                 = &Camera::farPlane;
+    camera_type["UpdateFrustum"]            = &Camera::UpdateFrustum;
+    camera_type["UpdateOrientationVectors"] = &Camera::UpdateOrientationVectors;
+    camera_type["UpdateViewMatrix"]         = &Camera::UpdateViewMatrix;
+    camera_type["UpdateProjectionMatrix"]   = &Camera::UpdateProjectionMatrix;
+    camera_type["GetV"]                     = &Camera::GetV;
+    camera_type["GetP"]                     = &Camera::GetP;
+    camera_type["GetVP"]                    = &Camera::GetVP;
+    camera_type["GetForwardDir"]            = &Camera::GetForwardDir;
+    camera_type["GetUpDir"]                 = &Camera::GetUpDir;
+    camera_type["GetRightDir"]              = &Camera::GetRightDir;
+    camera_type["GetFrustum"]               = &Camera::GetFrustum;
+}
 
 } // namespace Progression

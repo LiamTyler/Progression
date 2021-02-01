@@ -157,6 +157,22 @@ static bool ParseStartupScript( const rapidjson::Value& v, Scene* scene )
 }
 
 
+static bool ParseScript( const rapidjson::Value& v, Scene* scene )
+{
+    PG_ASSERT( v.IsString() );
+    std::string s = v.GetString();
+    Script* script = AssetManager::Get< Script >( v.GetString() );
+    PG_ASSERT( script );
+    if ( scene->numNonEntityScripts == PG_MAX_NON_ENTITY_SCRIPTS )
+    {
+        LOG_ERR( "Could not add nonEntityScript '%s' because already reached the script limit %d", s, PG_MAX_NON_ENTITY_SCRIPTS );
+        return false;
+    }
+    scene->nonEntityScripts[scene->numNonEntityScripts++] = Lua::ScriptInstance( script );
+    return true;
+}
+
+
 namespace PG
 {
 
@@ -194,6 +210,7 @@ Scene* Scene::Load( const std::string& filename )
         { "Fastfile",         ParseFastfile },
         { "Skybox",           ParseSkybox },
         { "StartupScript",    ParseStartupScript },
+        { "Script",           ParseScript },
     });
 
     PG_ASSERT( document.HasMember( "Scene" ), "scene file requires a single object 'Scene' that has a list of all scene objects + scene loading commands" );
@@ -208,17 +225,41 @@ Scene* Scene::Load( const std::string& filename )
         }
     }
 
+    scene->Start();
     return scene;
 }
 
 
 void Scene::Start()
 {
+    Lua::g_LuaState["ECS"] = &registry;
+    Lua::g_LuaState["scene"] = this;
+
+    for ( int i = 0; i < numNonEntityScripts; ++i )
+    {
+        sol::function startFn = nonEntityScripts[i].env["Start"];
+        if ( startFn.valid() )
+        {
+            //nonEntityScripts[i].env["scene"] = this;
+            CHECK_SOL_FUNCTION_CALL( startFn() );
+        }
+    }
 }
 
 
 void Scene::Update()
 {
+    Lua::g_LuaState["ECS"] = &registry;
+    Lua::g_LuaState["scene"] = this;
+    auto luaTimeNamespace = Lua::g_LuaState["Time"].get< sol::table >();
+    luaTimeNamespace["dt"] = Time::DeltaTime();
+    for ( int i = 0; i < numNonEntityScripts; ++i )
+    {
+        if ( nonEntityScripts[i].hasUpdateFunction )
+        {
+            CHECK_SOL_FUNCTION_CALL( nonEntityScripts[i].updateFunction() );
+        }
+    }
 }
 
 
@@ -231,6 +272,14 @@ Scene* GetPrimaryScene()
 void SetPrimaryScene( Scene* scene )
 {
     s_primaryScene = scene;
+}
+
+
+void RegisterLuaFunctions_Scene( lua_State* L )
+{
+    sol::state_view lua( L );
+    sol::usertype< Scene > scene_type = lua.new_usertype< Scene >( "Scene" );
+    scene_type["camera"] = &Scene::camera;
 }
 
 

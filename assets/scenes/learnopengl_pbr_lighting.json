@@ -4,5 +4,6 @@
     { "Camera": { "position": [ 0, 0, 10 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
     { "BackgroundColor": [ 0.2, 0.2, 0.2, 1 ] },
     { "AmbientColor": [ 0, 1, 0 ] },
-    { "StartupScript": "learnopengl_pbr_lighting_start" }
+    { "StartupScript": "learnopengl_pbr_lighting_start" },
+    { "Script": "cameraController" }
 ]}

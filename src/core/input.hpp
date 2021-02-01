@@ -3,6 +3,8 @@
 #include "core/input_types.hpp"
 #include "glm/vec2.hpp"
 
+struct lua_State;
+
 namespace PG
 {
 namespace Input
@@ -27,6 +29,8 @@ namespace Input
     glm::vec2 GetMousePosition();
     glm::vec2 GetMouseChange();
     glm::vec2 GetScrollChange();
+
+    void RegisterLuaFunctions( lua_State* L );
 
 } // namespace Input
 } // namespace PG

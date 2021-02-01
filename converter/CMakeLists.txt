@@ -30,7 +30,9 @@ set(
     ${PROGRESSION_DIR}/src/core/image_calculate_size.hpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
-    ${PROGRESSION_DIR}/src/core/platform_defines.hpp 
+    ${PROGRESSION_DIR}/src/core/platform_defines.hpp
+    ${PROGRESSION_DIR}/src/core/time.cpp
+    ${PROGRESSION_DIR}/src/core/time.hpp
     
     ${PROGRESSION_DIR}/src/utils/cpu_profile.hpp
     ${PROGRESSION_DIR}/src/utils/file_dependency.cpp

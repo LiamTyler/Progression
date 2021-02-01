@@ -1,10 +1,10 @@
 #pragma once
 
-constexpr int PG_FASTFILE_VERSION = 3; // Material saving fixed
+constexpr int PG_FASTFILE_VERSION = 4; // Adding metalness and roughness maps + tints
 
 constexpr int PG_GFX_IMAGE_VERSION = 2; // adding flipVerticallyOption
 
-constexpr int PG_MATERIAL_VERSION = 2; // including material counts
+constexpr int PG_MATERIAL_VERSION = 1; // Adding metalness and roughness maps + tints
 
 constexpr int PG_MODEL_VERSION = 2; // changed input model file
 

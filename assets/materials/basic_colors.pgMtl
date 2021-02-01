@@ -1,11 +1,11 @@
 { "Materials":
 [
-    { "name": "red", "Kd": [ 1, 0, 0 ] },
-    { "name": "green", "Kd": [ 0, 1, 0 ] },
-    { "name": "blue", "Kd": [ 0, 0, 1 ] },
-    { "name": "white", "Kd": [ 1, 1, 1 ] },
-    { "name": "black", "Kd": [ 0, 0, 0 ] },
-    { "name": "yellow", "Kd": [ 1, 1, 0 ] },
-    { "name": "magenta", "Kd": [ 1, 0, 1 ] },
-    { "name": "cyan", "Kd": [ 0, 1, 1 ] }
+    { "name": "red", "albedo": [ 1, 0, 0 ] },
+    { "name": "green", "albedo": [ 0, 1, 0 ] },
+    { "name": "blue", "albedo": [ 0, 0, 1 ] },
+    { "name": "white", "albedo": [ 1, 1, 1 ] },
+    { "name": "black", "albedo": [ 0, 0, 0 ] },
+    { "name": "yellow", "albedo": [ 1, 1, 0 ] },
+    { "name": "magenta", "albedo": [ 1, 0, 1 ] },
+    { "name": "cyan", "albedo": [ 0, 1, 1 ] }
 ]}

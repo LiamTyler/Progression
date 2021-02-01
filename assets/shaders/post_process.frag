@@ -1,6 +1,9 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#include "lib/gamma.glsl"
+#include "lib/tonemap.glsl"
+
 layout( location = 0 ) in vec2 texCoord;
 
 layout( set = 0, binding = 0 ) uniform sampler2D originalColor;
@@ -11,8 +14,8 @@ const float gamma = 1.0;
 
 void main()
 {
-    vec3 color = texture( originalColor, texCoord ).rgb;
-    finalColor.rgb = pow( color, vec3( 1.0 / gamma ) );
+    vec3 linearHdrColor = texture( originalColor, texCoord ).rgb;
+    vec3 toneMappedColor = Reinhard( linearHdrColor );
+    finalColor.rgb = LinearToGammaSRGB( toneMappedColor );
     finalColor.a = 1;
-    //finalColor = vec4( texCoord, 0, 1 );
 }

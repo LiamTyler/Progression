@@ -64,9 +64,13 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
     
     static JSONFunctionMapper< MaterialCreateInfo& > mapping(
     {
-        { "name",        []( const Value& v, MaterialCreateInfo& i ) { i.name        = v.GetString(); } },
-        { "Kd",          []( const Value& v, MaterialCreateInfo& i ) { i.Kd          = ParseVec3( v ); } },
-        { "map_Kd_name", []( const Value& v, MaterialCreateInfo& i ) { i.map_Kd_name = v.GetString(); } },
+        { "name",         []( const Value& v, MaterialCreateInfo& i ) { i.name             = v.GetString(); } },
+        { "albedo",       []( const Value& v, MaterialCreateInfo& i ) { i.albedo           = ParseVec3( v ); } },
+        { "metalness",    []( const Value& v, MaterialCreateInfo& i ) { i.metalness        = ParseNumber< float >( v ); } },
+        { "roughness",    []( const Value& v, MaterialCreateInfo& i ) { i.roughness        = ParseNumber< float >( v ); } },
+        { "albedoMap",    []( const Value& v, MaterialCreateInfo& i ) { i.albedoMapName    = v.GetString(); } },
+        { "metalnessMap", []( const Value& v, MaterialCreateInfo& i ) { i.metalnessMapName = v.GetString(); } },
+        { "roughnessMap", []( const Value& v, MaterialCreateInfo& i ) { i.roughnessMapName = v.GetString(); } },
     });
     
     PG_ASSERT( document.HasMember( "Materials" ), "material file requires a single object 'Materials' that has a list of all material objects" );

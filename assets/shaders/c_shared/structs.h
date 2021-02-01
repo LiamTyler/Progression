@@ -18,7 +18,11 @@ struct PerObjectData
 struct MaterialData
 {
     VEC4 albedoTint;
-    UINT albedoTextureIndex;
+    float metalness;
+    float roughness;
+    UINT albedoMapIndex;
+    UINT metalnessMapIndex;
+    UINT roughnessMapIndex;
 };
 
 #define PG_SCENE_GLOBALS_BUFFER_SET 0

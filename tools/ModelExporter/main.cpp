@@ -276,9 +276,9 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
     for ( uint32_t mtlIdx = 0; mtlIdx < scene->mNumMaterials; ++mtlIdx )
     {
         std::string name;
-        glm::vec3 Kd = glm::vec3( 0 );
+        glm::vec3 albedo = glm::vec3( 0 );
         std::string imagePath;
-        std::string map_kd_name;
+        std::string albedoMapName;
 
         aiString assimpMatName;
         aiColor3D color;
@@ -289,12 +289,12 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
         
         color = aiColor3D( 0.f, 0.f, 0.f );
         assimpMat->Get( AI_MATKEY_COLOR_DIFFUSE, color );
-        Kd = { color.r, color.g, color.b };
+        albedo = { color.r, color.g, color.b };
 
         // If the model isn't loaded with the 'aiProcess_RemoveRedundantMaterials' flag, or there was no mtl file specified,
         // assimp automatically adds a default material before loading the others.
         // "default" is an always loaded material in the engine to use instead of the assimp one
-        if ( name == "DefaultMaterial" && glm::length( Kd - glm::vec3( .6f ) ) < 0.01f )
+        if ( name == "DefaultMaterial" && glm::length( albedo - glm::vec3( .6f ) ) < 0.01f )
         {
             materialNames.push_back( "default" );
             continue;
@@ -313,9 +313,9 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
                 LOG_ERR( "Could not find diffuse texture" );
                 return false;
             }
-            map_kd_name = GetRelativePathToDir( GetFilenameMinusExtension( imagePath ), g_parentToOutputDir );
+            albedoMapName = GetRelativePathToDir( GetFilenameMinusExtension( imagePath ), g_parentToOutputDir );
             ImageInfo info;
-            info.name     = map_kd_name;
+            info.name     = albedoMapName;
             info.filename = GetRelativePathToDir( imagePath, g_parentToOutputDir );
             info.semantic = "DIFFUSE";
             info.type     = "TYPE_2D";
@@ -324,10 +324,10 @@ bool SaveMaterials( const std::string& filename, const aiScene* scene, std::vect
 
         mtlJson += "\n\t{ ";
         mtlJson += "\"name\": \"" + name + "\", ";
-        mtlJson += "\"Kd\": [ " + std::to_string( Kd.r ) + ", " + std::to_string( Kd.g ) + ", " + std::to_string( Kd.b ) + " ]";
-        if ( map_kd_name != "" )
+        mtlJson += "\"Kd\": [ " + std::to_string( albedo.r ) + ", " + std::to_string( albedo.g ) + ", " + std::to_string( albedo.b ) + " ]";
+        if ( albedoMapName != "" )
         {
-            mtlJson += ", \"map_Kd_name\": \"" + map_kd_name + "\"";
+            mtlJson += ", \"map_Kd_name\": \"" + albedoMapName + "\"";
         }
         mtlJson += " }";
         if ( mtlIdx != scene->mNumMaterials - 1 )

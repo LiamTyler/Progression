@@ -39,7 +39,7 @@ void Init()
 
     Material* defaultMat = new Material;
     defaultMat->name = "default";
-    defaultMat->Kd = glm::vec3( 1, .41, .71 ); // hot pink. Material mainly used to bring attention when the intended material is missing
+    defaultMat->albedo = glm::vec3( 1, .41, .71 ); // hot pink. Material mainly used to bring attention when the intended material is missing
     s_resourceMaps[ASSET_TYPE_MATERIAL]["default"] = defaultMat;
 }
 
@@ -202,14 +202,18 @@ void RegisterLuaFunctions( lua_State* L )
     assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get< Model >( name ); };
 
     sol::usertype< Material > mat_type = lua.new_usertype< Material >( "Material" );
-    mat_type["name"]   = &Material::name;
-    mat_type["Kd"]     = &Material::Kd;
-    mat_type["map_Kd"] = &Material::map_Kd;
+    mat_type["name"]         = &Material::name;
+    mat_type["albedo"]       = &Material::albedo;
+    mat_type["metalness"]    = &Material::metalness;
+    mat_type["roughness"]    = &Material::roughness;
+    mat_type["albedoMap"]    = &Material::albedoMap;
+    mat_type["metalnessMap"] = &Material::metalnessMap;
+    mat_type["roughnessMap"] = &Material::roughnessMap;
     
     sol::usertype< Model > model_type = lua.new_usertype< Model >( "Model" );
     model_type["name"] = &Model::name;
-    model_type["name"] = &Model::meshes;
-    model_type["name"] = &Model::originalMaterials;
+    model_type["meshes"] = &Model::meshes;
+    model_type["originalMaterials"] = &Model::originalMaterials;
 
     sol::usertype< GfxImage > image_type = lua.new_usertype< GfxImage >( "GfxImage" );
     image_type["name"]        = &GfxImage::name;

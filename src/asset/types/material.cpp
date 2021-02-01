@@ -11,14 +11,26 @@ namespace PG
 
 bool Material_Load( Material* material, const MaterialCreateInfo& createInfo )
 {
-    static_assert( sizeof( Material ) == sizeof( std::string ) + 32, "Don't forget to update this function if added/removed members from Material!" );
+    static_assert( sizeof( Material ) == sizeof( std::string ) + 56, "Don't forget to update this function if added/removed members from Material!" );
     PG_ASSERT( material );
     material->name = createInfo.name;
-    material->Kd   = createInfo.Kd;
-    if ( createInfo.map_Kd_name.length() > 0 )
+    material->albedo = createInfo.albedo;
+    material->metalness = createInfo.metalness;
+    material->roughness = createInfo.roughness;
+    if ( createInfo.albedoMapName.length() > 0 )
     {
-        material->map_Kd = AssetManager::Get< GfxImage >( createInfo.map_Kd_name );
-        PG_ASSERT( material->map_Kd, "GfxImage '" + createInfo.map_Kd_name + "' not found for material '" + material->name + "'" );
+        material->albedoMap = AssetManager::Get< GfxImage >( createInfo.albedoMapName );
+        PG_ASSERT( material->albedoMap, "GfxImage '" + createInfo.albedoMapName + "' not found for material '" + material->name + "'" );
+    }
+    if ( createInfo.metalnessMapName.length() > 0 )
+    {
+        material->metalnessMap = AssetManager::Get< GfxImage >( createInfo.metalnessMapName );
+        PG_ASSERT( material->metalnessMap, "GfxImage '" + createInfo.metalnessMapName + "' not found for material '" + material->name + "'" );
+    }
+    if ( createInfo.roughnessMapName.length() > 0 )
+    {
+        material->roughnessMap = AssetManager::Get< GfxImage >( createInfo.roughnessMapName );
+        PG_ASSERT( material->roughnessMap, "GfxImage '" + createInfo.roughnessMapName + "' not found for material '" + material->name + "'" );
     }
 
     return true;
@@ -27,23 +39,31 @@ bool Material_Load( Material* material, const MaterialCreateInfo& createInfo )
 
 bool Fastfile_Material_Load( Material* material, Serializer* serializer )
 {
-    static_assert( sizeof( Material ) == sizeof( std::string ) + 32, "Don't forget to update this function if added/removed members from Material!" );
+    static_assert( sizeof( Material ) == sizeof( std::string ) + 56, "Don't forget to update this function if added/removed members from Material!" );
     PG_ASSERT( material && serializer );
     MaterialCreateInfo createInfo;
     serializer->Read( createInfo.name );
-    serializer->Read( createInfo.Kd );
-    serializer->Read( createInfo.map_Kd_name );
+    serializer->Read( createInfo.albedo );
+    serializer->Read( createInfo.metalness );
+    serializer->Read( createInfo.roughness );
+    serializer->Read( createInfo.albedoMapName );
+    serializer->Read( createInfo.metalnessMapName );
+    serializer->Read( createInfo.roughnessMapName );
     return Material_Load( material, createInfo );
 }
 
 
 bool Fastfile_Material_Save( const MaterialCreateInfo * const matCreateInfo, Serializer* serializer )
 {
-    static_assert( sizeof( Material ) == sizeof( std::string ) + 32, "Don't forget to update this function if added/removed members from Material!" );
+    static_assert( sizeof( Material ) == sizeof( std::string ) + 56, "Don't forget to update this function if added/removed members from Material!" );
     PG_ASSERT( matCreateInfo && serializer );
     serializer->Write( matCreateInfo->name );
-    serializer->Write( matCreateInfo->Kd );
-    serializer->Write( matCreateInfo->map_Kd_name );
+    serializer->Write( matCreateInfo->albedo );
+    serializer->Write( matCreateInfo->metalness );
+    serializer->Write( matCreateInfo->roughness );
+    serializer->Write( matCreateInfo->albedoMapName );
+    serializer->Write( matCreateInfo->metalnessMapName );
+    serializer->Write( matCreateInfo->roughnessMapName );
 
     return true;
 }

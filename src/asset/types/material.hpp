@@ -11,16 +11,25 @@ namespace PG
 struct MaterialCreateInfo
 {
     std::string name;
-    glm::vec3 Kd;
-    std::string map_Kd_name;
+    glm::vec3 albedo;
+    std::string albedoMapName;
+    float metalness;
+    std::string metalnessMapName;
+    float roughness;
+    std::string roughnessMapName;
 };
 
 struct GfxImage;
 
 struct Material : public Asset
 {
-    glm::vec3 Kd;
-    GfxImage* map_Kd = nullptr;
+    glm::vec3 albedo = glm::vec3( 0 );
+    float metalness  = 0;
+    float roughness  = 1.0f;
+
+    GfxImage* albedoMap = nullptr;
+    GfxImage* metalnessMap = nullptr;
+    GfxImage* roughnessMap = nullptr;
 };
 
 bool Material_Load( Material* material, const MaterialCreateInfo& createInfo );

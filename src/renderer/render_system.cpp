@@ -160,8 +160,12 @@ void Shutdown()
 MaterialData CPUMaterialToGPU( Material* material )
 {
     MaterialData gpuMaterial;
-    gpuMaterial.albedoTint = glm::vec4( material->Kd, 1 );
-    gpuMaterial.albedoTextureIndex = material->map_Kd ? material->map_Kd->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMaterial.albedoTint = glm::vec4( material->albedo, 1 );
+    gpuMaterial.metalness = material->metalness;
+    gpuMaterial.roughness = material->roughness;
+    gpuMaterial.albedoMapIndex = material->albedoMap ? material->albedoMap->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMaterial.metalnessMapIndex = material->metalnessMap ? material->metalnessMap->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMaterial.roughnessMapIndex = material->roughnessMap ? material->roughnessMap->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
 
     return gpuMaterial;
 }

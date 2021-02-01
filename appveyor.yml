@@ -13,11 +13,11 @@ configuration:
   - Ship
   
 environment:
-  VULKAN_SDK: c:\VulkanSDK\1.2.154.1
+  VULKAN_SDK: c:\VulkanSDK\1.2.162.1
   PG_IS_CI_BUILD: 1 
 
 install:
-  - curl -O --silent https://sdk.lunarg.com/sdk/download/latest/windows/vulkan_sdk.exe
+  - curl -O --silent https://sdk.lunarg.com/sdk/download/1.2.162.1/windows/vulkan_sdk.exe
   - .\vulkan_sdk.exe /S
 
 build:

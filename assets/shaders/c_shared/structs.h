@@ -1,5 +1,10 @@
 #include "c_shared/defines.h"
 
+#ifndef PG_SHADER_CODE
+namespace GPU
+{
+#endif // #ifndef PG_SHADER_CODE
+
 struct SceneGlobals
 {
     MAT4 V;
@@ -25,5 +30,18 @@ struct MaterialData
     UINT roughnessMapIndex;
 };
 
+struct PointLight
+{
+    VEC4 positionAndRadius;
+    VEC4 color;
+};
+
+#ifndef PG_SHADER_CODE
+} // namespace GPU
+#endif // #ifndef PG_SHADER_CODE
+
 #define PG_SCENE_GLOBALS_BUFFER_SET 0
 #define PG_BINDLESS_TEXTURE_SET     1
+#define PG_LIGHTS_SET               2
+    #define PG_POINT_LIGHTS_BIND_INDEX  0
+    #define PG_SPOT_LIGHTS_BIND_INDEX   1

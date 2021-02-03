@@ -7,6 +7,7 @@
 #include "renderer/r_texture_manager.hpp"
 #include "asset/asset_manager.hpp"
 #include "glm/glm.hpp"
+#include "shaders/c_shared/limits.h"
 #include "shaders/c_shared/structs.h"
 #include "core/assert.hpp"
 #include "core/scene.hpp"
@@ -30,9 +31,10 @@ Pipeline postProcessPipeline;
 
 DescriptorSet postProcessDescriptorSet;
 DescriptorSet sceneGlobalDescriptorSet;
+DescriptorSet lightsDescriptorSet;
 Buffer sceneGlobals;
+Buffer s_gpuPointLights;
 
-Texture chaletTex;
 DescriptorSet bindlessTexturesDescriptorSet;
 
 namespace PG
@@ -109,33 +111,38 @@ bool Init( bool headless )
 
 
     // BUFFERS + IMAGES
-    sceneGlobals = r_globals.device.NewBuffer( sizeof( SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
+    sceneGlobals = r_globals.device.NewBuffer( sizeof( GPU::SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
     sceneGlobals.Map();
+    s_gpuPointLights = r_globals.device.NewBuffer( PG_MAX_NUM_GPU_POINT_LIGHTS * sizeof( GPU::PointLight ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "point lights ubo" );
+    s_gpuPointLights.Map();
 
     // DESCRIPTOR SETS
+    std::vector< VkDescriptorImageInfo > imgDescriptors;
+    std::vector< VkDescriptorBufferInfo > bufferDescriptors;
+    std::vector< VkWriteDescriptorSet > writeDescriptorSets;
+
     postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
-    std::vector< VkDescriptorImageInfo > imgDescriptors =
+    imgDescriptors =
     {
         DescriptorImageInfo( r_globals.colorTex, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
     };
-    std::vector< VkWriteDescriptorSet > writeDescriptorSets =
+    writeDescriptorSets =
     {
         WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
     };
     r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     
-    sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( depthOnlyPipeline.GetResourceLayout()->sets[0] );
-    std::vector< VkDescriptorBufferInfo > bufferDescriptors =
-    {
-        DescriptorBufferInfo( sceneGlobals ),
-    };
-    writeDescriptorSets =
-    {
-        WriteDescriptorSet( sceneGlobalDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ),
-    };
+    sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_BUFFER_SET] );
+    bufferDescriptors   = { DescriptorBufferInfo( sceneGlobals ) };
+    writeDescriptorSets = { WriteDescriptorSet( sceneGlobalDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
     r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
-    bindlessTexturesDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[1] );
+    lightsDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_LIGHTS_SET] );
+    bufferDescriptors   = { DescriptorBufferInfo( s_gpuPointLights ) };
+    writeDescriptorSets = { WriteDescriptorSet( lightsDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
+    r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+
+    bindlessTexturesDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_BINDLESS_TEXTURE_SET] );
 
     return true;
 }
@@ -152,14 +159,16 @@ void Shutdown()
     
     sceneGlobals.UnMap();
     sceneGlobals.Free();
+    s_gpuPointLights.UnMap();
+    s_gpuPointLights.Free();
 
     R_Shutdown();
 }
 
 
-MaterialData CPUMaterialToGPU( Material* material )
+GPU::MaterialData CPUMaterialToGPU( Material* material )
 {
-    MaterialData gpuMaterial;
+    GPU::MaterialData gpuMaterial;
     gpuMaterial.albedoTint = glm::vec4( material->albedo, 1 );
     gpuMaterial.metalness = material->metalness;
     gpuMaterial.roughness = material->roughness;
@@ -168,6 +177,35 @@ MaterialData CPUMaterialToGPU( Material* material )
     gpuMaterial.roughnessMapIndex = material->roughnessMap ? material->roughnessMap->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
 
     return gpuMaterial;
+}
+
+
+static void UpdateGlobalAndLightBuffers( Scene* scene )
+{
+    GPU::SceneGlobals globalData;
+    globalData.V      = scene->camera.GetV();
+    globalData.P      = scene->camera.GetP();
+    globalData.VP     = scene->camera.GetVP();
+    globalData.invVP  = glm::inverse( scene->camera.GetVP() );
+    globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
+
+    memcpy( sceneGlobals.MappedPtr(), &globalData, sizeof( GPU::SceneGlobals ) );
+    sceneGlobals.FlushCpuWrites();
+
+    static GPU::PointLight cpuPointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
+    if ( scene->pointLights.size() > PG_MAX_NUM_GPU_POINT_LIGHTS )
+    {
+        LOG_WARN( "Exceeding limit (%d) of GPU point lights (%d). Ignoring any past limit", PG_MAX_NUM_GPU_POINT_LIGHTS, scene->pointLights.size() );
+    }
+    uint32_t numPointLights = std::min< uint32_t >( PG_MAX_NUM_GPU_POINT_LIGHTS, static_cast< uint32_t >( scene->pointLights.size() ) );
+    for ( uint32_t i = 0; i < numPointLights; ++i )
+    {
+        const PointLight& light = scene->pointLights[i];
+        cpuPointLights[i].positionAndRadius = glm::vec4( light.position, light.radius );
+        cpuPointLights[i].color = glm::vec4( light.intensity * light.color, 0 );
+    }
+    memcpy( s_gpuPointLights.MappedPtr(), cpuPointLights, numPointLights * sizeof( GPU::PointLight ) );
+    s_gpuPointLights.FlushCpuWrites();
 }
 
 
@@ -195,22 +233,12 @@ void Render( Scene* scene )
 
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
-    {
-        SceneGlobals globalData;
-        globalData.V      = scene->camera.GetV();
-        globalData.P      = scene->camera.GetP();
-        globalData.VP     = scene->camera.GetVP();
-        globalData.invVP  = glm::inverse( scene->camera.GetVP() );
-        globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
-
-        memcpy( sceneGlobals.MappedPtr(), &globalData, sizeof( SceneGlobals ) );
-        sceneGlobals.FlushCpuWrites();
-    }
+    UpdateGlobalAndLightBuffers( scene );
 
     // DEPTH
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_DEPTH_PREPASS ), *GetFramebuffer( GFX_RENDER_PASS_DEPTH_PREPASS ) );
     cmdBuf.BindPipeline( &depthOnlyPipeline );
-    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0);
+    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, PG_SCENE_GLOBALS_BUFFER_SET );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
     glm::mat4 VP = scene->camera.GetVP();
@@ -237,16 +265,17 @@ void Render( Scene* scene )
     cmdBuf.BindPipeline( &litPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
-    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, 0 );
-    cmdBuf.BindDescriptorSet( bindlessTexturesDescriptorSet, 1 );
+    cmdBuf.BindDescriptorSet( sceneGlobalDescriptorSet, PG_SCENE_GLOBALS_BUFFER_SET );
+    cmdBuf.BindDescriptorSet( bindlessTexturesDescriptorSet, PG_BINDLESS_TEXTURE_SET );
+    cmdBuf.BindDescriptorSet( lightsDescriptorSet, PG_LIGHTS_SET );
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
         {
             const auto& model = modelRenderer.model;
             
             auto M = transform.GetModelMatrix();
             auto N = glm::transpose( glm::inverse( M ) );
-            PerObjectData perObjData{ M, N };
-            cmdBuf.PushConstants( 0, sizeof( PerObjectData ), &perObjData );
+            GPU::PerObjectData perObjData{ M, N };
+            cmdBuf.PushConstants( 0, sizeof( GPU::PerObjectData ), &perObjData );
 
             cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
             cmdBuf.BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
@@ -257,7 +286,7 @@ void Render( Scene* scene )
             {
                 const Mesh& mesh   = modelRenderer.model->meshes[i];
                 Material* material = modelRenderer.materials[i];
-                MaterialData gpuMaterial = CPUMaterialToGPU( material );
+                GPU::MaterialData gpuMaterial = CPUMaterialToGPU( material );
                 cmdBuf.PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
                 PG_DEBUG_MARKER_INSERT( cmdBuf, "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
                 cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );

@@ -52,13 +52,6 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
         { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::vec4( glm::normalize( ParseVec3( v ) ), 0 ); } }
     });
 
-    if ( scene->numDirectionalLights > 0 )
-    {
-        LOG_WARN( "Can't have more than one directional light in a scene, skipping" );
-        return true;
-    }
-
-    scene->numDirectionalLights++;
     mapping.ForEachMember( value, scene->directionalLight );
     return true;
 }
@@ -85,14 +78,8 @@ static bool ParsePointLight( const rapidjson::Value& value, Scene* scene )
         { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius = ParseNumber< float >( v ); } },
     });
 
-    if ( scene->numPointLights >= PG_MAX_POINT_LIGHTS )
-    {
-        LOG_WARN( "Can't have more than %d point lights in a scene, skipping", PG_MAX_POINT_LIGHTS );
-        return true;
-    }
-
-    mapping.ForEachMember( value, scene->pointLights[scene->numPointLights] );
-    scene->numPointLights++;
+    scene->pointLights.emplace_back();
+    mapping.ForEachMember( value, scene->pointLights[scene->pointLights.size() - 1] );
     return true;
 }
 
@@ -109,14 +96,8 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
         { "cutoff",     []( const rapidjson::Value& v, SpotLight& l ) { l.cutoff    = glm::radians( ParseNumber< float >( v ) ); } }
     });
 
-    if ( scene->numSpotLights >= PG_MAX_SPOT_LIGHTS )
-    {
-        LOG_WARN( "Can't have more than %d spot lights in a scene, skipping", PG_MAX_SPOT_LIGHTS );
-        return true;
-    }
-
-    mapping.ForEachMember( value, scene->spotLights[scene->numSpotLights] );
-    scene->numSpotLights++;
+    scene->spotLights.emplace_back();
+    mapping.ForEachMember( value, scene->spotLights[scene->spotLights.size() - 1] );
     return true;
 }
 

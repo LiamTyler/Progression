@@ -1,9 +1,13 @@
 { "Scene":
 [
     { "Fastfile": "learnopengl_pbr_lighting" },
-    { "Camera": { "position": [ 0, 0, 10 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
+    { "Camera": { "position": [ 0, 0, 25 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
     { "BackgroundColor": [ 0.2, 0.2, 0.2, 1 ] },
     { "AmbientColor": [ 0, 1, 0 ] },
     { "StartupScript": "learnopengl_pbr_lighting_start" },
-    { "Script": "cameraController" }
+    { "Script": "cameraController" },
+    { "PointLight": { "position": [ -10, 10, 10 ],  "radius": 20, "color": [ 1, 1, 1 ], "intensity": 300 } },
+    { "PointLight": { "position": [ 10, 10, 10 ],   "radius": 20, "color": [ 1, 1, 1 ], "intensity": 300 } },
+    { "PointLight": { "position": [ -10, -10, 10 ], "radius": 20, "color": [ 1, 1, 1 ], "intensity": 300 } },
+    { "PointLight": { "position": [ 10, -10, 10 ],  "radius": 20, "color": [ 1, 1, 1 ], "intensity": 300 } }
 ]}

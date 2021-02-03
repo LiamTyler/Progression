@@ -201,7 +201,7 @@ void RegisterLuaFunctions( lua_State* L )
     assetManagerNamespace["GetScript"]   = []( const std::string& name ) { return AssetManager::Get< Script >( name ); };
     assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get< Model >( name ); };
 
-    sol::usertype< Material > mat_type = lua.new_usertype< Material >( "Material" );
+    sol::usertype< Material > mat_type = lua.new_usertype< Material >( "Material" ); //, sol::constructors< Material() >() );
     mat_type["name"]         = &Material::name;
     mat_type["albedo"]       = &Material::albedo;
     mat_type["metalness"]    = &Material::metalness;

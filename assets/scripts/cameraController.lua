@@ -2,7 +2,7 @@
 velocity     = nil
 currentSpeed = 3
 regularSpeed = 3
-boostSpeed   = 9
+boostSpeed   = 15
 turnSpeed    = 0.002
 maxAngle     = 85 * 3.14159/180
 camera       = nil

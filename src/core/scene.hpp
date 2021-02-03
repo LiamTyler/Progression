@@ -7,8 +7,6 @@
 #include <string>
 #include <vector>
 
-#define PG_MAX_POINT_LIGHTS 1024
-#define PG_MAX_SPOT_LIGHTS 1024
 #define PG_MAX_NON_ENTITY_SCRIPTS 64
 
 namespace PG
@@ -29,11 +27,8 @@ namespace PG
         glm::vec4 backgroundColor = glm::vec4( 0, 0, 0, 1 );
         glm::vec3 ambientColor    = glm::vec3( .1f );
         DirectionalLight directionalLight;
-        PointLight pointLights[PG_MAX_POINT_LIGHTS];
-        SpotLight spotLights[PG_MAX_POINT_LIGHTS];
-        uint32_t numDirectionalLights = 0;
-        uint32_t numPointLights = 0;
-        uint32_t numSpotLights  = 0;
+        std::vector< PointLight > pointLights;
+        std::vector< SpotLight > spotLights;
         entt::registry registry;
 
         // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions

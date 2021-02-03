@@ -190,6 +190,7 @@ namespace Gfx
             {
 			    continue;
             }
+            stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
 
 		    uint32_t arraySize = layout.arraySizes[i];
             if ( arraySize == UINT32_MAX )
@@ -550,7 +551,10 @@ namespace Gfx
 
                 if ( activeShaderBinds )
                 {
-                    combinedLayout.setStages[set] |= stageMask;
+                   // combinedLayout.setStages[set] |= stageMask;
+                    auto vert = 1u << static_cast< uint32_t >( ShaderStage::VERTEX );
+                    auto frag = 1u << static_cast< uint32_t >( ShaderStage::FRAGMENT );
+                    combinedLayout.setStages[set] |= vert | frag;
 			        ForEachBit( activeShaderBinds, [&]( uint32_t bit )
                     {
 				        combinedLayout.bindingStages[set][bit] |= stageMask;

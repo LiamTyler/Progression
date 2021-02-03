@@ -23,6 +23,7 @@ struct GfxImage;
 
 struct Material : public Asset
 {
+    Material() = default;
     glm::vec3 albedo = glm::vec3( 0 );
     float metalness  = 0;
     float roughness  = 1.0f;

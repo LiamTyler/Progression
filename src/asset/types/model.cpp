@@ -23,7 +23,7 @@ void Model::RecalculateNormals()
         const auto i0 = indices[i + 0];
         const auto i1 = indices[i + 1];
         const auto i2 = indices[i + 2];
-        glm::vec3 e01 = vertexPositions[i0] - vertexPositions[i0];
+        glm::vec3 e01 = vertexPositions[i1] - vertexPositions[i0];
         glm::vec3 e02 = vertexPositions[i2] - vertexPositions[i0];
         glm::vec3 n = glm::normalize( glm::cross( e01, e02 ) );
         newNormals[i0] += n;
@@ -151,7 +151,7 @@ bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::v
         modelFile.Read( mesh.numVertices );
     }
 
-    model->RecalculateNormals();
+    //model->RecalculateNormals();
 
     return true;
 }

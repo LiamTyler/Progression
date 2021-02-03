@@ -16,12 +16,6 @@
 #include "getopt/getopt.h"
 #include <algorithm>
 
-//#include "assetTypes/model.hpp"
-//#include "asset_manager.hpp"
-//#include "assetTypes/shader.hpp"
-//using namespace PG;
-
-
 static void DisplayHelp()
 {
     auto msg =
@@ -98,47 +92,8 @@ int main( int argc, char** argv )
 
     g_converterConfigOptions.assetListFile = argv[optind];
 
-    //LOG( "Hello world" );
-    //LOG( "Hello world" );
-
-
-    //DefineList defines =
-    //{
-    //};
-    //defines.emplace_back( "PG_SHADER_CODE", "1" );
-    //
-    //std::string filename = PG_ASSET_DIR "shaders/model.vert";
-    //ShaderPreprocessOutput preproc = PreprocessShader( filename, defines );
-    //if ( !preproc.success )
-    //{
-    //    LOG_ERR( "Error in preproc" );
-    //}
-    //else
-    //{
-    //    LOG( "Preproc sucess" );
-    //    std::ofstream out( "preproc.glsl" );
-    //    out << preproc.outputShader;
-    //}
-
     g_converterStatus.convertAssetErrors = !ConvertAssets();
     g_converterStatus.buildFastfileErrors = AssembleConvertedAssetsIntoFastfile();
-
-    //Shader shader;
-    //ShaderCreateInfo info;
-    //info.name = "gbufferFrag";
-    //info.shaderStage = ShaderStage::FRAGMENT;
-    //info.filename = PG_ASSET_DIR "shaders/gbuffer.frag";
-    //if ( !Shader_Load( &shader, info ) )
-    //{
-    //    return 0;
-    //}
-    //AssetManager::Init();
-    //AssetManager::LoadFastFile( "assetList" );
-    //Shader* asset = AssetManager::Get< Shader >( "gbufferFrag" );
-    //PG_ASSERT( asset->name == shader.name );
-    //PG_ASSERT( asset->shaderStage == shader.shaderStage );
-    //PG_ASSERT( asset->name == shader.name );
-    //PG_ASSERT( asset->spirv == shader.spirv );
 
     Logger_Shutdown();
     return 0;
@@ -282,7 +237,7 @@ bool AssembleConvertedAssetsIntoFastfile()
     LOG( "\nRunning build fastfile..." );
     auto startTime = std::chrono::system_clock::now();
     std::string ffName = PG_ASSET_DIR "cache/fastfiles/" + GetFilenameStem( g_converterConfigOptions.assetListFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
-    if ( s_outOfDateAssets == 0 && PathExists( ffName ) && GetFileTimestamp( ffName ) > s_latestAssetTimestamp )
+    if ( s_outOfDateAssets == 0 && PathExists( ffName ) && GetFileTimestamp( ffName ) >= s_latestAssetTimestamp )
     {
         LOG( "Fastfile '%s' is up to date, not rebuilding", ffName.c_str() );
         return true;

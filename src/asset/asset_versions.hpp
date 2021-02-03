@@ -6,7 +6,7 @@ constexpr int PG_GFX_IMAGE_VERSION = 2; // adding flipVerticallyOption
 
 constexpr int PG_MATERIAL_VERSION = 1; // Adding metalness and roughness maps + tints
 
-constexpr int PG_MODEL_VERSION = 2; // changed input model file
+constexpr int PG_MODEL_VERSION = 3; // fixed bug in RecalculateNormals, where an edge was (0,0,0), causing NaNs
 
 constexpr int PG_SCRIPT_VERSION = 1; // initial version
 

@@ -1,0 +1,12 @@
+{ "AssetList":
+[
+	{ "Image": { "name": "rusted_iron_albedo",    "semantic": "DIFFUSE",   "filename": "scenes/learnopengl_pbr_lighting/rusted_iron/albedo.png" } },
+	{ "Image": { "name": "rusted_iron_metalness", "semantic": "METALNESS", "filename": "scenes/learnopengl_pbr_lighting/rusted_iron/metallic.png" } },
+	{ "Image": { "name": "rusted_iron_roughness", "semantic": "ROUGHNESS", "filename": "scenes/learnopengl_pbr_lighting/rusted_iron/roughness.png" } },
+	{ "MatFile": { "filename": "scenes/learnopengl_pbr_lighting/rusted_iron.pgMtl" } },
+	{ "MatFile": { "filename": "materials/basic_colors.pgMtl" } },
+	{ "MatFile": { "filename": "models/basicShapes/sphere.pgMtl" } },
+	{ "Model": { "name": "sphere", "filename": "models/basicShapes/sphere.pgModel" } },
+	{ "Script": { "name": "learnopengl_pbr_lighting_start", "filename": "scenes/learnopengl_pbr_lighting/spawnSpheres.lua" } },
+	{ "Script": { "name": "cameraController", "filename": "scripts/cameraController.lua" } }
+]}

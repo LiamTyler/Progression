@@ -39,7 +39,7 @@ void Init()
 
     Material* defaultMat = new Material;
     defaultMat->name = "default";
-    defaultMat->albedo = glm::vec3( 1, .41, .71 ); // hot pink. Material mainly used to bring attention when the intended material is missing
+    defaultMat->albedoTint = glm::vec3( 1, .41, .71 ); // hot pink. Material mainly used to bring attention when the intended material is missing
     s_resourceMaps[ASSET_TYPE_MATERIAL]["default"] = defaultMat;
 }
 
@@ -202,13 +202,13 @@ void RegisterLuaFunctions( lua_State* L )
     assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get< Model >( name ); };
 
     sol::usertype< Material > mat_type = lua.new_usertype< Material >( "Material" ); //, sol::constructors< Material() >() );
-    mat_type["name"]         = &Material::name;
-    mat_type["albedo"]       = &Material::albedo;
-    mat_type["metalness"]    = &Material::metalness;
-    mat_type["roughness"]    = &Material::roughness;
-    mat_type["albedoMap"]    = &Material::albedoMap;
-    mat_type["metalnessMap"] = &Material::metalnessMap;
-    mat_type["roughnessMap"] = &Material::roughnessMap;
+    mat_type["name"]          = &Material::name;
+    mat_type["albedoTint"]    = &Material::albedoTint;
+    mat_type["metalnessTint"] = &Material::metalnessTint;
+    mat_type["roughnessTint"] = &Material::roughnessTint;
+    mat_type["albedoMap"]     = &Material::albedoMap;
+    mat_type["metalnessMap"]  = &Material::metalnessMap;
+    mat_type["roughnessMap"]  = &Material::roughnessMap;
     
     sol::usertype< Model > model_type = lua.new_usertype< Model >( "Model" );
     model_type["name"] = &Model::name;

@@ -23,8 +23,8 @@ struct PerObjectData
 struct MaterialData
 {
     VEC4 albedoTint;
-    float metalness;
-    float roughness;
+    float metalnessTint;
+    float roughnessTint;
     UINT albedoMapIndex;
     UINT metalnessMapIndex;
     UINT roughnessMapIndex;

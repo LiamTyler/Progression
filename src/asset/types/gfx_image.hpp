@@ -16,6 +16,8 @@ enum class GfxImageSemantic
 {
     DIFFUSE,
     NORMAL,
+    METALNESS,
+    ROUGHNESS,
 
     NUM_IMAGE_SEMANTICS
 };

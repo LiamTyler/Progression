@@ -34,8 +34,16 @@ void main()
 	{
 		albedo *= texture( textures[material.albedoMapIndex], texCoords ).rgb;
 	}
-    float metalness = material.metalness;
-    float roughness = material.roughness;
+    float metalness = material.metalnessTint;
+	if ( material.metalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
+	{
+		metalness *= texture( textures[material.metalnessMapIndex], texCoords ).r;
+	}
+    float roughness = material.roughnessTint;
+	if ( material.roughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
+	{
+		roughness *= texture( textures[material.roughnessMapIndex], texCoords ).r;
+	}
     
     vec3 N = normalize( worldSpaceNormal );
     vec3 V = normalize( globals.cameraPos.xyz - worldSpacePos );

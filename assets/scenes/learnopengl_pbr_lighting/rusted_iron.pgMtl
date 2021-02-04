@@ -1,0 +1,4 @@
+{ "Materials":
+[
+	{ "name": "rusted_iron", "albedo": [ 1, 1, 1 ], "metalness": 1, "roughness": 1, "albedoMap": "rusted_iron_albedo", "metalnessMap": "rusted_iron_metalness", "roughnessMap": "rusted_iron_roughness" }
+]}

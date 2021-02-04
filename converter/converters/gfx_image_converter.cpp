@@ -9,10 +9,12 @@ extern void AddFastfileDependency( const std::string& file );
 std::vector< GfxImageCreateInfo > g_parsedImages;
 std::vector< GfxImageCreateInfo > g_outOfDateImages;
 
-static std::unordered_map< std::string, GfxImageSemantic > imageSemanticMap =
+static std::unordered_map< std::string, GfxImageSemantic > s_imageSemanticMap =
 {
-    { "DIFFUSE", GfxImageSemantic::DIFFUSE },
-    { "NORMAL",  GfxImageSemantic::NORMAL }
+    { "DIFFUSE",    GfxImageSemantic::DIFFUSE },
+    { "NORMAL",     GfxImageSemantic::NORMAL },
+    { "METALNESS",  GfxImageSemantic::METALNESS },
+    { "ROUGHNESS",  GfxImageSemantic::ROUGHNESS },
 };
 
 
@@ -22,6 +24,8 @@ static std::string ImageSemanticToString( GfxImageSemantic semantic )
     {
         "DIFFUSE",
         "NORMAL",
+        "METALNESS",
+        "ROUGHNESS",
     };
 
     static_assert( ARRAY_COUNT( names ) == static_cast< int >( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) );
@@ -43,16 +47,6 @@ static std::unordered_map< std::string, Gfx::ImageType > imageTypeMap =
 
 void GfxImage_Parse( const rapidjson::Value& value )
 {
-    // static FunctionMapper< void, std::vector< std::string >& > cubemapParser(
-    // {
-    //     { "right",  []( rapidjson::Value& v, std::vector< std::string >& files ) { files[0] = v.GetString(); } },
-    //     { "left",   []( rapidjson::Value& v, std::vector< std::string >& files ) { files[1] = v.GetString(); } },
-    //     { "top",    []( rapidjson::Value& v, std::vector< std::string >& files ) { files[3] = v.GetString(); } },
-    //     { "bottom", []( rapidjson::Value& v, std::vector< std::string >& files ) { files[2] = v.GetString(); } },
-    //     { "back",   []( rapidjson::Value& v, std::vector< std::string >& files ) { files[4] = v.GetString(); } },
-    //     { "front",  []( rapidjson::Value& v, std::vector< std::string >& files ) { files[5] = v.GetString(); } },
-    // });
-
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
         { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
@@ -76,8 +70,8 @@ void GfxImage_Parse( const rapidjson::Value& value )
         { "semantic",  []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 std::string semanticName = v.GetString();
-                auto it = imageSemanticMap.find( semanticName );
-                if ( it == imageSemanticMap.end() )
+                auto it = s_imageSemanticMap.find( semanticName );
+                if ( it == s_imageSemanticMap.end() )
                 {
                     LOG_ERR( "No image semantic found matching '%s'", semanticName.c_str() );
                     i.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
@@ -129,7 +123,12 @@ void GfxImage_Parse( const rapidjson::Value& value )
         case GfxImageSemantic::NORMAL:
             info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_UNORM;
             break;
+        case GfxImageSemantic::METALNESS:
+        case GfxImageSemantic::ROUGHNESS:
+            info.dstPixelFormat = PixelFormat::R8_UNORM;
+            break;
         default:
+            LOG_ERR( "Semantic (%d) unknown when deciding final image format", info.semantic );
             break;
         }
     }

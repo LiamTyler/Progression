@@ -14,9 +14,9 @@ bool Material_Load( Material* material, const MaterialCreateInfo& createInfo )
     static_assert( sizeof( Material ) == sizeof( std::string ) + 56, "Don't forget to update this function if added/removed members from Material!" );
     PG_ASSERT( material );
     material->name = createInfo.name;
-    material->albedo = createInfo.albedo;
-    material->metalness = createInfo.metalness;
-    material->roughness = createInfo.roughness;
+    material->albedoTint = createInfo.albedoTint;
+    material->metalnessTint = createInfo.metalnessTint;
+    material->roughnessTint = createInfo.roughnessTint;
     if ( createInfo.albedoMapName.length() > 0 )
     {
         material->albedoMap = AssetManager::Get< GfxImage >( createInfo.albedoMapName );
@@ -43,9 +43,9 @@ bool Fastfile_Material_Load( Material* material, Serializer* serializer )
     PG_ASSERT( material && serializer );
     MaterialCreateInfo createInfo;
     serializer->Read( createInfo.name );
-    serializer->Read( createInfo.albedo );
-    serializer->Read( createInfo.metalness );
-    serializer->Read( createInfo.roughness );
+    serializer->Read( createInfo.albedoTint );
+    serializer->Read( createInfo.metalnessTint );
+    serializer->Read( createInfo.roughnessTint );
     serializer->Read( createInfo.albedoMapName );
     serializer->Read( createInfo.metalnessMapName );
     serializer->Read( createInfo.roughnessMapName );
@@ -58,9 +58,9 @@ bool Fastfile_Material_Save( const MaterialCreateInfo * const matCreateInfo, Ser
     static_assert( sizeof( Material ) == sizeof( std::string ) + 56, "Don't forget to update this function if added/removed members from Material!" );
     PG_ASSERT( matCreateInfo && serializer );
     serializer->Write( matCreateInfo->name );
-    serializer->Write( matCreateInfo->albedo );
-    serializer->Write( matCreateInfo->metalness );
-    serializer->Write( matCreateInfo->roughness );
+    serializer->Write( matCreateInfo->albedoTint );
+    serializer->Write( matCreateInfo->metalnessTint );
+    serializer->Write( matCreateInfo->roughnessTint );
     serializer->Write( matCreateInfo->albedoMapName );
     serializer->Write( matCreateInfo->metalnessMapName );
     serializer->Write( matCreateInfo->roughnessMapName );

@@ -8,7 +8,7 @@
 namespace PG
 {
 
-class Image;
+class Image2D;
 
 namespace Gfx
 {

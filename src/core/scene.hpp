@@ -11,7 +11,7 @@
 
 namespace PG
 {
-    class Image;
+    class Image2D;
     class Scene
     {
     public:

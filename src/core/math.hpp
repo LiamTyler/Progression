@@ -10,7 +10,7 @@
 #include "glm/mat4x4.hpp"
 #include <ostream>
 
-#define PI_F 3.14159265358979323846f
+#define PI 3.14159265358979323846f
 #define PI_D 3.14159265358979323846
 
 struct lua_State;

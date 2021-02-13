@@ -178,7 +178,7 @@ static void NormalizeImage( glm::vec4* pixels, int width, int height )
 }
 
 
-static void GenerateMipmaps( const Image& image, glm::vec4* outputPixels, GfxImageSemantic semantic )
+static void GenerateMipmaps( const Image2D& image, glm::vec4* outputPixels, GfxImageSemantic semantic )
 {
     //PG_PROFILE_START( GenerateMipmaps );
     PG_ASSERT( image.pixels );
@@ -323,13 +323,13 @@ static void ConvertRGBA32Float_AllMips( unsigned char* outputImage, int width, i
 
 static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
-    ImageCreateInfo srcImgCreateInfo;
+    Image2DCreateInfo srcImgCreateInfo;
     srcImgCreateInfo.filename = createInfo.filename;
     if ( createInfo.flipVertically )
     {
         srcImgCreateInfo.flags |= IMAGE_FLIP_VERTICALLY;
     }
-    Image srcImg;
+    Image2D srcImg;
     if ( !srcImg.Load( &srcImgCreateInfo ) )
     {
         return false;

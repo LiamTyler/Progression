@@ -25,16 +25,22 @@ bool IsFileOutOfDate( const std::string& file, const std::string& dependency )
 }
 
 
-bool IsFileOutOfDate( const std::string& file, const std::vector< std::string >& dependencies )
+bool IsFileOutOfDate( const std::string& file, const std::string* dependencies, size_t numDependencies )
 {
     time_t fileTime = GetFileTimestamp( file );
-    for ( const std::string& dependency : dependencies )
+    for ( size_t i = 0; i < numDependencies; ++i )
     {
-        if ( fileTime < GetFileTimestamp( dependency ) )
+        if ( fileTime < GetFileTimestamp( dependencies[i] ) )
         {
             return true;
         }
     }
 
     return false;
+}
+
+
+bool IsFileOutOfDate( const std::string& file, const std::vector< std::string >& dependencies )
+{
+    return IsFileOutOfDate( file, dependencies.data(), dependencies.size() );
 }

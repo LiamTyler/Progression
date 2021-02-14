@@ -10,4 +10,6 @@ time_t GetFileTimestamp( const std::string& file );
 // if file exists, and dependency doesnt, will return false
 bool IsFileOutOfDate( const std::string& file, const std::string& dependency );
 
+bool IsFileOutOfDate( const std::string& file, const std::string* dependencies, size_t numDependencies );
+
 bool IsFileOutOfDate( const std::string& file, const std::vector< std::string >& dependencies );

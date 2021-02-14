@@ -1,5 +1,6 @@
 #include "asset/asset_manager.hpp"
 #include "asset/asset_versions.hpp"
+#include "asset/types/environment_map.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/material.hpp"
 #include "asset/types/model.hpp"
@@ -25,17 +26,19 @@ static std::unordered_map< std::string, Asset* > s_resourceMaps[AssetType::NUM_A
 
 void Init()
 {
-    GetAssetTypeID< GfxImage >::ID(); // AssetType::ASSET_TYPE_GFX_IMAGE
-    GetAssetTypeID< Material >::ID(); // AssetType::ASSET_TYPE_MATERIAL
-    GetAssetTypeID< Script >::ID();   // AssetType::ASSET_TYPE_SCRIPT
-    GetAssetTypeID< Model >::ID();    // AssetType::ASSET_TYPE_MODEL
-    GetAssetTypeID< Shader >::ID();   // AssetType::ASSET_TYPE_SHADER
-    PG_ASSERT( GetAssetTypeID< GfxImage >::ID() == 0, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Material >::ID() == 1, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Script >::ID()   == 2, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Model >::ID()    == 3, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Shader >::ID()   == 4, "This needs to line up with AssetType ordering" );
-    static_assert( NUM_ASSET_TYPES == 5, "Dont forget to add GetAssetTypeID for new assets" );
+    GetAssetTypeID< GfxImage >::ID();        // AssetType::ASSET_TYPE_GFX_IMAGE
+    GetAssetTypeID< Material >::ID();        // AssetType::ASSET_TYPE_MATERIAL
+    GetAssetTypeID< Script >::ID();          // AssetType::ASSET_TYPE_SCRIPT
+    GetAssetTypeID< Model >::ID();           // AssetType::ASSET_TYPE_MODEL
+    GetAssetTypeID< Shader >::ID();          // AssetType::ASSET_TYPE_SHADER
+    GetAssetTypeID< EnvironmentMap >::ID();  // AssetType::ASSET_TYPE_ENVIRONMENTMAP
+    PG_ASSERT( GetAssetTypeID< GfxImage >::ID()       == 0, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID< Material >::ID()       == 1, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID< Script >::ID()         == 2, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID< Model >::ID()          == 3, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID< Shader >::ID()         == 4, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID< EnvironmentMap >::ID() == 5, "This needs to line up with AssetType ordering" );
+    static_assert( NUM_ASSET_TYPES == 6, "Dont forget to add GetAssetTypeID for new assets" );
 
     Material* defaultMat = new Material;
     defaultMat->name = "default";
@@ -167,8 +170,28 @@ bool LoadFastFile( const std::string& fname )
             }
             break;
         }
+        case ASSET_TYPE_ENVIRONMENTMAP:
+        {
+            EnvironmentMap* asset = new EnvironmentMap;
+            if ( !Fastfile_EnvironmentMap_Load( asset, &serializer ) )
+            {
+                LOG_ERR( "Could not load EnvironmentMap" );
+                return false;
+            }
+            auto it = s_resourceMaps[assetType].find( asset->name );
+            if ( it == s_resourceMaps[assetType].end() )
+            {
+                s_resourceMaps[assetType][asset->name] = asset;
+            }
+            else
+            {
+                asset->Free();
+                delete asset;
+            }
+            break;
+        }
         default:
-            LOG_ERR( "Unknown asset type '%d'", (int)assetType );
+            LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
             return false;
         }
     }   

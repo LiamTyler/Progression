@@ -10,6 +10,8 @@ set(
     ${PROGRESSION_DIR}/src/engine_init.hpp
     
     ${PROGRESSION_DIR}/src/asset/types/base_asset.hpp
+    ${PROGRESSION_DIR}/src/asset/types/environment_map.cpp
+    ${PROGRESSION_DIR}/src/asset/types/environment_map.hpp
     ${PROGRESSION_DIR}/src/asset/types/gfx_image.cpp
     ${PROGRESSION_DIR}/src/asset/types/gfx_image.hpp
     ${PROGRESSION_DIR}/src/asset/types/material.cpp

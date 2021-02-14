@@ -197,7 +197,7 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
         size_t seed = 0;
         for ( const auto& [define, value] : defines )
         {
-            hash_combine( seed, define + value );
+            HashCombine( seed, define + value );
         }
         std::string preprocFilename = PG_ASSET_DIR "cache/shader_preproc/" + GetRelativeFilename( createInfo.filename ) + "_" + std::to_string( seed ) + ".glsl";
         std::ofstream out( preprocFilename );

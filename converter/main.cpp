@@ -2,6 +2,7 @@
 #include "asset/asset_versions.hpp"
 #include "core/assert.hpp"
 #include "core/time.hpp"
+#include "converters/environment_map_converter.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
 #include "converters/model_converter.hpp"
@@ -118,6 +119,7 @@ bool ConvertAssets()
 
     LOG( "Running converter..." );
     CreateDirectory( PG_ASSET_DIR "cache/" );
+    CreateDirectory( PG_ASSET_DIR "cache/environment_maps/" );
     CreateDirectory( PG_ASSET_DIR "cache/fastfiles/" );
     CreateDirectory( PG_ASSET_DIR "cache/images/" );
     CreateDirectory( PG_ASSET_DIR "cache/materials/" );
@@ -136,11 +138,12 @@ bool ConvertAssets()
     
     static JSONFunctionMapper mapping(
     {
-        { "Image",   GfxImage_Parse },
-        { "MatFile", Material_Parse },
-        { "Script",  Script_Parse },
-        { "Model",   Model_Parse },
-        { "Shader",  Shader_Parse },
+        { "Image",          GfxImage_Parse },
+        { "MatFile",        Material_Parse },
+        { "Script",         Script_Parse },
+        { "Model",          Model_Parse },
+        { "Shader",         Shader_Parse },
+        { "EnvironmentMap", EnvironmentMap_Parse },
     });
 
 
@@ -178,6 +181,10 @@ bool ConvertAssets()
     s_outOfDateAssets += numShaderFilesOutOfDate;
     LOG( "Shaders out of date: %d", numShaderFilesOutOfDate );
 
+    int numEnvMapFilesOutOfDate = EnvironmentMap_CheckDependencies();
+    s_outOfDateAssets += numEnvMapFilesOutOfDate;
+    LOG( "EnvironmentMaps out of date: %d", numEnvMapFilesOutOfDate );
+
     bool status = true;
     if ( g_converterStatus.checkDependencyErrors > 0 )
     {
@@ -199,6 +206,7 @@ bool ConvertAssets()
             totalErrors += Script_Convert();
             totalErrors += Model_Convert();
             totalErrors += Shader_Convert();
+            totalErrors += EnvironmentMap_Convert();
 
             if ( totalErrors )
             {
@@ -249,13 +257,14 @@ bool AssembleConvertedAssetsIntoFastfile()
     {
         return false;
     }
-    static_assert( NUM_ASSET_TYPES == 5, "Dont forget to update this, otherwise new asset wont be written to fastfile" );
+    static_assert( NUM_ASSET_TYPES == 6, "Dont forget to update this, otherwise new asset wont be written to fastfile" );
     bool success = true;
     success = success && GfxImage_BuildFastFile( &outFile );
     success = success && Material_BuildFastFile( &outFile );
     success = success && Script_BuildFastFile( &outFile );
     success = success && Model_BuildFastFile( &outFile );
     success = success && Shader_BuildFastFile( &outFile );
+    success = success && EnvironmentMap_BuildFastFile( &outFile );
 
     double elapsedTime = PG::Time::GetDuration( buildFastfileStartTime ) / 1000.0;
     if ( success )

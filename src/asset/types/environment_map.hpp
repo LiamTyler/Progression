@@ -10,9 +10,10 @@ namespace PG
 struct EnvironmentMapCreateInfo
 {
     std::string name;
-    std::string cubeFaceFilenames[6];
-    bool flipVertically      = false;
-    bool convertFromLDRtoHDR = false;
+    std::string flattenedCubemapFilename;
+    std::string equirectangularFilename;
+    std::string faceFilenames[6];
+    bool flipVertically = false;
 };
 
 struct EnvironmentMap : public Asset

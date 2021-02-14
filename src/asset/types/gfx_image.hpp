@@ -4,9 +4,6 @@
 #include "core/pixel_formats.hpp"
 #include "renderer/graphics_api/texture.hpp"
 
-// define GFX_INVALID_TEXTURE_HANDLE (~0u)
-// ypedef uint32_t GfxTextureHandle;
-
 class Serializer;
 
 namespace PG
@@ -18,6 +15,8 @@ enum class GfxImageSemantic
     NORMAL,
     METALNESS,
     ROUGHNESS,
+
+    ENVIRONMENT_MAP,
 
     NUM_IMAGE_SEMANTICS
 };

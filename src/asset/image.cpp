@@ -2,6 +2,7 @@
 #include "core/assert.hpp"
 #include "core/math.hpp"
 #include "core/pixel_formats.hpp"
+#include "glm/glm.hpp"
 #define STBI_NO_PIC
 #define STBI_NO_PNM   
 #define STBI_NO_PSD   
@@ -16,6 +17,8 @@
 #include "utils/logger.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/cpu_profile.hpp"
+
+using namespace PG;
 
 
 static unsigned char UnormFloatToUChar( float x )
@@ -110,6 +113,24 @@ static glm::vec2 CartesianDirToEquirectangular( const glm::vec3& dir )
 }
 
 
+static glm::vec3 EquirectangularToCartesianDir( const glm::vec2& uv )
+{
+    float phi = (uv.x * 2.0f - 1) * PI;
+    float theta = (0.5f - uv.y) * PI;
+
+    glm::vec3 dir = { cos( theta ) * sin( phi ), sin( theta ), cos( theta ) * cos( phi ) };
+    return dir;
+}
+
+
+static int s_flattenedCubemapFaceLayout[12] =
+{
+    -1,        -1,        FACE_TOP,     -1,
+    FACE_BACK, FACE_LEFT, FACE_FRONT,   FACE_RIGHT,
+    -1,        -1,        FACE_BOTTOM,  -1
+};
+
+
 namespace PG
 {
 
@@ -136,10 +157,8 @@ Image2D::Image2D( Image2D&& src )
 
 Image2D& Image2D::operator=( Image2D&& src )
 {
-    name   = std::move( src.name );
     width  = src.width;
     height = src.height;
-    flags  = src.flags;
     if ( pixels )
     {
         free( pixels );
@@ -153,18 +172,15 @@ Image2D& Image2D::operator=( Image2D&& src )
 
 bool Image2D::Load( Image2DCreateInfo* createInfo )
 {
-    //PG_PROFILE_START( ImageLoad );
     PG_ASSERT( createInfo );
     PG_ASSERT( createInfo->filename != "" );
-    name     = createInfo->name;
-    flags    = createInfo->flags;
     const std::string& filename = createInfo->filename;
 
     bool loadSuccessful = true;
     std::string ext = GetFileExtension( filename );
     if ( ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp" || ext == ".hdr" )
     {
-        stbi_set_flip_vertically_on_load( flags & IMAGE_FLIP_VERTICALLY );
+        stbi_set_flip_vertically_on_load( createInfo->flipVertically );
         stbi_ldr_to_hdr_gamma( 1.0f );
         stbi_ldr_to_hdr_scale( 1.0f );
         int numComponents;
@@ -207,7 +223,6 @@ bool Image2D::Load( Image2DCreateInfo* createInfo )
     {
         LOG_ERR( "Failed to load image '%s'", filename.c_str() );
     }
-    //PG_PROFILE_END( ImageLoad );
 
     return loadSuccessful;
 }
@@ -217,7 +232,6 @@ bool Image2D::Save( const std::string& filename ) const
 {
     PG_ASSERT( pixels );
     PG_ASSERT( width != 0 && height != 0 );
-    PG_PROFILE_CPU_START( ImageSave );
     bool saveSuccessful = true;
     std::string ext = GetFileExtension( filename );
     int numChannels = 4;
@@ -276,9 +290,8 @@ bool Image2D::Save( const std::string& filename ) const
 
     if ( !saveSuccessful )
     {
-        LOG_ERR( "Could not save image '%' to file '%'", name.c_str(), filename.c_str() );
+        LOG_ERR( "Could not save image '%'", filename.c_str() );
     }
-    PG_PROFILE_CPU_END( ImageSave );
 
     return true;
 }
@@ -348,39 +361,6 @@ glm::vec4 Image2D::SampleEquirectangularBilinear( const glm::vec3& dir ) const
 }
 
 
-// +x -> right, +z -> forward, +y -> up
-// uv (0, 0) is upper left corner of image
-glm::vec3 CubemapTexCoordToCartesianDir( int cubeFace, glm::vec2 uv )
-{
-    uv = 2.0f * uv - glm::vec2( 1.0f );
-    uv.y *= -1; // since uv=(0,0) is assumed upper left corner
-    glm::vec3 dir;
-    switch ( cubeFace )
-    {
-    case FACE_BACK:
-        dir = glm::vec3( -uv.x, uv.y, -1 );
-        break;
-    case FACE_LEFT:
-        dir = glm::vec3( -1, uv.y, uv.x );
-        break;
-    case FACE_FRONT:
-        dir = glm::vec3( uv.x, uv.y, 1 );
-        break;
-    case FACE_RIGHT:
-        dir = glm::vec3( 1, uv.y, -uv.x );
-        break;
-    case FACE_TOP:
-        dir = glm::vec3( uv.x, 1, -uv.y );
-        break;
-    case FACE_BOTTOM:
-        dir = glm::vec3( uv.x, -1, uv.y );
-        break;
-    }
-
-    return glm::normalize( dir );
-}
-
-
 ImageCubemap::ImageCubemap( int size )
 {
     for ( int i = 0; i < 6; ++i )
@@ -439,10 +419,51 @@ bool ImageCubemap::Load( ImageCubemapCreateInfo* createInfo )
     }
     else if ( !createInfo->flattenedCubemapFilename.empty() )
     {
-        return false;
+        Image2DCreateInfo img2Dinfo;
+        img2Dinfo.filename = createInfo->flattenedCubemapFilename;
+        img2Dinfo.flipVertically = createInfo->flipVertically;
+        Image2D img;
+        if ( !img.Load( &img2Dinfo ) )
+        {
+            return false;
+        }
+        int width = img.width / 4;
+        int height = img.height / 3;
+        for ( int i = 0; i < 12; ++i )
+        {
+            int faceIndex = s_flattenedCubemapFaceLayout[i];
+            if ( faceIndex == -1 )
+            {
+                continue;
+            }
+            faces[faceIndex] = Image2D( width, height );
+
+            int startRow = height * (i / 4);
+            int startCol = width * (i % 4);
+            for ( int r = 0; r < height; ++r )
+            {
+                for ( int c = 0; c < width; ++ c )
+                {
+                    faces[faceIndex].SetPixel( r, c, img.GetPixel( startRow + r, startCol + c ) );
+                }
+            }
+        }
     }
     else if ( !createInfo->faceFilenames[0].empty() )
     {
+        Image2DCreateInfo faceCreateInfo;
+        faceCreateInfo.flipVertically = createInfo->flipVertically;
+        bool success = true;
+        for ( int i = 0; i < 6; ++i )
+        {
+            faceCreateInfo.filename = createInfo->faceFilenames[i];
+            success = success && faces[i].Load( &faceCreateInfo );
+        }
+        return success;
+    }
+    else
+    {
+        LOG_ERR( "No input images provided in ImageCubemap::Load" );
         return false;
     }
 
@@ -461,16 +482,10 @@ bool ImageCubemap::SaveAsFlattenedCubemap( const std::string& filename ) const
     {
         flattenedCubemap.pixels[i] = glm::vec4( 0, 0, 0, 1 );
     }
-    int indices[12] =
-    {
-        -1,        -1,        FACE_TOP,     -1,
-        FACE_BACK, FACE_LEFT, FACE_FRONT,   FACE_RIGHT,
-        -1,        -1,        FACE_BOTTOM,  -1
-    };
 
     for ( int i = 0; i < 12; ++i )
     {
-        int cubemapIndex = indices[i];
+        int cubemapIndex = s_flattenedCubemapFaceLayout[i];
         if ( cubemapIndex == -1 )
         {
             continue;
@@ -491,15 +506,37 @@ bool ImageCubemap::SaveAsFlattenedCubemap( const std::string& filename ) const
 }
 
 
-bool ImageCubemap::SaveIndividualFaces( const std::string& filename ) const
+bool ImageCubemap::SaveIndividualFaces( const std::string& filenamePrefix, const std::string& fileEnding ) const
 {
-    return false;
+    static_assert( FACE_BACK == 0 && FACE_LEFT == 1 && FACE_FRONT == 2 && FACE_RIGHT == 3 && FACE_TOP == 4 );
+    std::string faceNames[6] = { "back", "left", "front", "right", "top", "bottom" };
+    bool success = true;
+    for ( int i = 0; i < 6; ++i )
+    {
+        std::string filename = filenamePrefix + "_" + faceNames[i] + "." + fileEnding;
+        success = success && faces[i].Save( filename );
+    }
+
+    return success;
 }
 
 
 bool ImageCubemap::SaveAsEquirectangular( const std::string& filename ) const
 {
-    return false;
+    int width = faces[0].width * 4;
+    int height = faces[0].width * 2;
+    Image2D eqImg( width, height );
+    for ( int r = 0; r < height; ++r )
+    {
+        for ( int c = 0; c < width; ++c )
+        {
+            glm::vec2 uv = { (c + 0.5f) / (float)width, (r + 0.5f) / (float)height };
+            glm::vec3 dir = EquirectangularToCartesianDir( uv );
+            eqImg.SetPixel( r, c, SampleBilinear( dir ) );
+        }
+    }
+
+    return eqImg.Save( filename );
 }
 
     
@@ -563,5 +600,83 @@ glm::vec4 ImageCubemap::SampleBilinear( const glm::vec3& direction ) const
     glm::vec2 cubeFaceUV = SampleCube( direction, cubeFaceIndex );
     return faces[cubeFaceIndex].SampleBilinear( cubeFaceUV );
 }
+
+
+// +x -> right, +z -> forward, +y -> up
+// uv (0, 0) is upper left corner of image
+glm::vec3 CubemapTexCoordToCartesianDir( int cubeFace, glm::vec2 uv )
+{
+    uv = 2.0f * uv - glm::vec2( 1.0f );
+    uv.y *= -1; // since uv=(0,0) is assumed upper left corner
+    glm::vec3 dir;
+    switch ( cubeFace )
+    {
+    case FACE_BACK:
+        dir = glm::vec3( -uv.x, uv.y, -1 );
+        break;
+    case FACE_LEFT:
+        dir = glm::vec3( -1, uv.y, uv.x );
+        break;
+    case FACE_FRONT:
+        dir = glm::vec3( uv.x, uv.y, 1 );
+        break;
+    case FACE_RIGHT:
+        dir = glm::vec3( 1, uv.y, -uv.x );
+        break;
+    case FACE_TOP:
+        dir = glm::vec3( uv.x, 1, -uv.y );
+        break;
+    case FACE_BOTTOM:
+        dir = glm::vec3( uv.x, -1, uv.y );
+        break;
+    }
+
+    return glm::normalize( dir );
+}
+
+
+ImageCubemap GenerateIrradianceMap( const ImageCubemap& cubemap, int faceSize )
+{
+    ImageCubemap irradianceMap( faceSize );
+    for ( int faceIndex = 0; faceIndex < 6; ++faceIndex )
+    {
+        #pragma omp parallel for schedule(dynamic)
+        for ( int r = 0; r < faceSize; ++r )
+        {
+            for ( int c = 0; c < faceSize; ++ c )
+            {
+                glm::vec2 localUV = { (c + 0.5f) / (float)faceSize, (r + 0.5f) / (float)faceSize };
+                glm::vec3 N = CubemapTexCoordToCartesianDir( faceIndex, localUV );
+    
+                glm::vec3 up = glm::vec3( 0, 1, 0 );
+                if ( N == up )
+                {
+                    up = glm::vec3( -1, 0, 0 );
+                }
+                glm::vec3 right = glm::cross( N, up );
+                up = glm::cross( right, N );
+                    
+                glm::vec3 irradiance( 0 );
+                float numSamples = 0;
+                const float STEP_IN_RADIANS = 1.0f / 180.0f * PI;
+                for ( float phi = 0; phi < 2 * PI; phi += STEP_IN_RADIANS )
+                {
+                    for ( float theta = 0; theta < 0.5f * PI; theta += STEP_IN_RADIANS )
+                    {
+                        glm::vec3 tangentSpaceDir = { sin( theta ) * cos( phi ), sin( theta ) * sin( phi ), cos( theta ) };
+                        glm::vec3 worldSpaceDir   = tangentSpaceDir.x * right + tangentSpaceDir.y * up + tangentSpaceDir.z * N;
+                        glm::vec3 radiance = cubemap.SampleBilinear( worldSpaceDir );
+                        irradiance += radiance * cos( theta ) * sin( theta );
+                        ++numSamples;
+                    }
+                }
+                irradianceMap.SetPixel( faceIndex, r, c, (PI / numSamples) * irradiance );
+            }
+        }
+    }
+
+    return irradianceMap;
+}
+
 
 } // namespace PG

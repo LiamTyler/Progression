@@ -1,4 +1,5 @@
 #include "asset/types/environment_map.hpp"
+#include "asset/image.hpp"
 #include "core/assert.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"

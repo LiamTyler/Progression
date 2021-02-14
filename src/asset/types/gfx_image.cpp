@@ -325,10 +325,7 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
 {
     Image2DCreateInfo srcImgCreateInfo;
     srcImgCreateInfo.filename = createInfo.filename;
-    if ( createInfo.flipVertically )
-    {
-        srcImgCreateInfo.flags |= IMAGE_FLIP_VERTICALLY;
-    }
+    srcImgCreateInfo.flipVertically = createInfo.flipVertically;
     Image2D srcImg;
     if ( !srcImg.Load( &srcImgCreateInfo ) )
     {

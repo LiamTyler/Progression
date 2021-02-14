@@ -1,24 +1,18 @@
 #pragma once
 
-#include "glm/glm.hpp"
+#include "glm/vec2.hpp"
+#include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
 #include <string>
 
 namespace PG
 {
 
-enum ImageFlagBits
-{
-    IMAGE_FLIP_VERTICALLY        = 1 << 0,
-};
-typedef uint32_t ImageFlags;
-
 struct Image2DCreateInfo
 {
-    std::string name;
     std::string filename;
-    ImageFlags flags       = 0;
+    bool flipVertically = false;
 };
-
 
 class Image2D
 {
@@ -40,23 +34,19 @@ public:
     glm::vec4 SampleEquirectangularNearest( const glm::vec3& dir ) const;
     glm::vec4 SampleEquirectangularBilinear( const glm::vec3& dir ) const;
 
-    std::string name;
     int width              = 0;
     int height             = 0;
     glm::vec4* pixels      = nullptr;
-    ImageFlags flags       = 0;
 };
 
 
 struct ImageCubemapCreateInfo
 {
-    std::string name;
     std::string flattenedCubemapFilename;
     std::string equirectangularFilename;
     std::string faceFilenames[6];
-    ImageFlags flags       = 0;
+    bool flipVertically = false;
 };
-
 
 enum FaceIndex
 {
@@ -79,7 +69,8 @@ public:
 
     bool Load( ImageCubemapCreateInfo* createInfo );
     bool SaveAsFlattenedCubemap( const std::string& filename ) const;
-    bool SaveIndividualFaces( const std::string& filename ) const;
+    // Saves 6 images, named filenamePrefix + _[back/left/front/etc]. + fileEnding
+    bool SaveIndividualFaces( const std::string& filenamePrefix, const std::string& fileEnding ) const;
     bool SaveAsEquirectangular( const std::string& filename ) const;
     
     glm::vec4 GetPixel( int face, int row, int col ) const;
@@ -89,13 +80,11 @@ public:
     glm::vec4 SampleBilinear( const glm::vec3& direction ) const;
 
     std::string name;
-    Image2D faces[6];
+    Image2D faces[6]; // all faces should have same width and height
 };
 
 glm::vec3 CubemapTexCoordToCartesianDir( int cubeFace, glm::vec2 uv );
 
+ImageCubemap GenerateIrradianceMap( const ImageCubemap& cubemap, int faceSize = 64 );
 
 } // namespace PG
-
-
-bool SaveExr( const std::string& filename, int width, int height, glm::vec4* pixels );

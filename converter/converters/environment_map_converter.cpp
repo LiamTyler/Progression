@@ -1,5 +1,6 @@
 #include "converter.hpp"
 #include "asset/types/environment_map.hpp"
+#include "asset/image.hpp"
 #include "utils/hash.hpp"
 
 using namespace PG;
@@ -9,46 +10,24 @@ extern void AddFastfileDependency( const std::string& file );
 static std::vector< EnvironmentMapCreateInfo > s_parsedEnvironmentMaps;
 static std::vector< EnvironmentMapCreateInfo > s_outOfDateEnvironmentMaps;
 
-enum CubemapIndices
-{
-    INDEX_LEFT,
-    INDEX_RIGHT,
-    INDEX_FRONT,
-    INDEX_BACK,
-    INDEX_TOP,
-    INDEX_BOTTOM,
-};
-
-
 void EnvironmentMap_Parse( const rapidjson::Value& value )
 {
-
     static JSONFunctionMapper< EnvironmentMapCreateInfo& > mapping(
     {
-        { "name",       []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.name = v.GetString(); } },
-        { "filename",   []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.cubeFaceFilenames[0]            = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "left",       []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.cubeFaceFilenames[INDEX_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "right",      []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.cubeFaceFilenames[INDEX_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "front",      []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.cubeFaceFilenames[INDEX_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "back",       []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.cubeFaceFilenames[INDEX_BACK]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "top",        []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.cubeFaceFilenames[INDEX_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "bottom",     []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.cubeFaceFilenames[INDEX_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "flipVertically",      []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.flipVertically       = v.GetBool(); } },
-        { "convertFromLDRtoHDR", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.convertFromLDRtoHDR  = v.GetBool(); } },
+        { "name",           []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.name = v.GetString(); } },
+        { "flipVertically", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.flipVertically = v.GetBool(); } },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.flattenedCubemapFilename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.equirectangularFilename  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "left",   []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "right",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "front",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "back",   []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "top",    []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "bottom", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
     EnvironmentMapCreateInfo info = {};
     mapping.ForEachMember( value, info );
-
-    for ( int i = 0; i < 6; ++i )
-    {
-        if ( !PathExists( info.cubeFaceFilenames[i] ) )
-        {
-            LOG_ERR( "EnvironmentMap input file '%s' not found", info.cubeFaceFilenames[i].c_str() );
-            g_converterStatus.parsingError = true;
-        }
-    }
-
     s_parsedEnvironmentMaps.push_back( info );
 }
 
@@ -57,9 +36,11 @@ static std::string EnvironmentMap_GetFastFileName( const EnvironmentMapCreateInf
 {
     std::string baseName = info.name;
     size_t fileHashes = 0;
+    HashCombine( fileHashes, info.equirectangularFilename );
+    HashCombine( fileHashes, info.flattenedCubemapFilename );
     for ( int i = 0; i < 6; ++i )
     {
-        HashCombine( fileHashes, info.cubeFaceFilenames[i] );
+        HashCombine( fileHashes, info.faceFilenames[i] );
     }
     baseName += "_" + std::to_string( fileHashes );
     baseName += "_v" + std::to_string( PG_ENVIRONMENT_MAP_VERSION );
@@ -78,7 +59,10 @@ static bool EnvironmentMap_IsOutOfDate( const EnvironmentMapCreateInfo& info )
 
     std::string ffName = EnvironmentMap_GetFastFileName( info );
     AddFastfileDependency( ffName );
-    return IsFileOutOfDate( ffName, info.cubeFaceFilenames, 6 );
+    if ( !info.equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info.equirectangularFilename );
+    else if ( !info.flattenedCubemapFilename.empty() ) return IsFileOutOfDate( ffName, info.flattenedCubemapFilename );
+    else if ( !info.equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info.faceFilenames, 6 );
+    else return true;
 }
 
 

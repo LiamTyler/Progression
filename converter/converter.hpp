@@ -51,7 +51,45 @@ public:
 protected:
     virtual std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const = 0;
     virtual bool IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo ) = 0;
+    
+    // call ConvertSingleInternal from ConvertSingle, with correct template arguments
     virtual bool ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const = 0;
+
+    template< typename DerivedAssetType, typename DerivedAssetCreateInfoType >
+    bool ConvertSingleInternal( const BaseAssetCreateInfo* baseInfo ) const
+    {
+        const DerivedAssetCreateInfoType* info = (const DerivedAssetCreateInfoType*)baseInfo;
+        LOG( "Converting %s '%s'...", m_assetNameInJsonFile.c_str(), info->name.c_str() );
+        DerivedAssetType asset;
+        if ( !asset.Load( baseInfo ) )
+        {
+            return false;
+        }
+        std::string fastfileName = GetFastFileName( info );
+        try
+        {
+            Serializer serializer;
+            if ( !serializer.OpenForWrite( fastfileName ) )
+            {
+                return false;
+            }
+            if ( !asset.FastfileSave( &serializer ) )
+            {
+                LOG_ERR( "Error while writing %s '%s' to fastfile", m_assetNameInJsonFile.c_str(), info->name.c_str() );
+                serializer.Close();
+                DeleteFile( fastfileName );
+                return false;
+            }
+            serializer.Close();
+        }
+        catch ( std::exception& e )
+        {
+            DeleteFile( fastfileName );
+            throw e;
+        }
+
+        return true;
+    }
 
     const std::string m_assetNameInJsonFile;
     const AssetType m_assetType;

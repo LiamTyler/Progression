@@ -6,8 +6,6 @@
 #include "glm/vec3.hpp"
 #include <vector>
 
-class Serializer;
-
 namespace PG
 {
 
@@ -29,9 +27,12 @@ struct ModelCreateInfo : public BaseAssetCreateInfo
 
 struct Model : public BaseAsset
 {
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
+    void Free() override;
     void RecalculateNormals();
     void UploadToGPU();
-    void Free() override;
     void FreeCPU();
     void FreeGPU();
 

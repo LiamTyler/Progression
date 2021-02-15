@@ -2,8 +2,6 @@
 
 #include "asset/types/base_asset.hpp"
 
-class Serializer;
-
 namespace PG
 {
 
@@ -17,14 +15,11 @@ struct Script : public BaseAsset
 public:
     Script() = default;
 
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
+
     std::string scriptText;
 };
-
-bool Script_Load( Script* script, const ScriptCreateInfo& createInfo );
-
-bool Fastfile_Script_Load( Script* script, Serializer* serializer );
-
-bool Fastfile_Script_Save( const Script * const script, Serializer* serializer );
-
 
 } // namespace PG

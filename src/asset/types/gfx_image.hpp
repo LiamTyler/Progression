@@ -21,6 +21,9 @@ enum class GfxImageSemantic
 
 struct GfxImage : public BaseAsset
 {
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
     unsigned char* GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel = 0 ) const;
     void UploadToGpu();
@@ -46,12 +49,5 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
     PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID
     bool flipVertically        = true;
 };
-
-bool GfxImage_Load( GfxImage* image, const GfxImageCreateInfo& createInfo );
-
-bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer );
-
-bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serializer );
-
 
 } // namespace PG

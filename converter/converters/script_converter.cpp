@@ -27,7 +27,7 @@ void ScriptConverter::Parse( const rapidjson::Value& value )
 
 std::string ScriptConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    ScriptCreateInfo* info = (ScriptCreateInfo*)baseInfo;
+    const ScriptCreateInfo* info = (const ScriptCreateInfo*)baseInfo;
     std::string baseName = info->name;
     baseName += "_" + GetFilenameStem( info->filename );
     baseName += "_v" + std::to_string( PG_SCRIPT_VERSION );
@@ -44,7 +44,7 @@ bool ScriptConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
         return true;
     }
 
-    ScriptCreateInfo* info = (ScriptCreateInfo*)baseInfo;
+    const ScriptCreateInfo* info = (const ScriptCreateInfo*)baseInfo;
     std::string ffName = GetFastFileName( info );
     AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, info->filename );
@@ -53,30 +53,7 @@ bool ScriptConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 
 bool ScriptConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    ScriptCreateInfo* info = (ScriptCreateInfo*)baseInfo;
-    LOG( "Converting Script file '%s'...", info->filename.c_str() );
-    Script asset;
-    if ( !Script_Load( &asset, *info ) )
-    {
-        return false;
-    }
-    std::string fastfileName = GetFastFileName( info );
-    Serializer serializer;
-    if ( !serializer.OpenForWrite( fastfileName ) )
-    {
-        return false;
-    }
-    if ( !Fastfile_Script_Save( &asset, &serializer ) )
-    {
-        LOG_ERR( "Error while writing script '%s' to fastfile", info->name.c_str() );
-        serializer.Close();
-        DeleteFile( fastfileName );
-        return false;
-    }
-    
-    serializer.Close();
-
-    return true;
+    return ConvertSingleInternal< Script, ScriptCreateInfo >( baseInfo );
 }
 
 } // namespace PG

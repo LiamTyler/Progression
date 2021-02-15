@@ -78,7 +78,7 @@ size_t Serializer::BytesLeft() const
 
 void Serializer::Write( const void* buffer, size_t bytes )
 {
-    PG_ASSERT( buffer && writeFile.good() );
+    PG_ASSERT( writeFile.good() && (buffer || (!buffer && !bytes)) );
     writeFile.write( reinterpret_cast< const char* >( buffer ), bytes );
 }
 

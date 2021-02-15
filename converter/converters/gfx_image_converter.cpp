@@ -138,7 +138,7 @@ std::string GfxImageConverter::GetFastFileName( const BaseAssetCreateInfo* baseI
 {
     static_assert( sizeof( GfxImageCreateInfo ) == 16 + 2 * sizeof( std::string ), "Dont forget to add new hash value" );
 
-    GfxImageCreateInfo* info = (GfxImageCreateInfo*)baseInfo;
+    const GfxImageCreateInfo* info = (const GfxImageCreateInfo*)baseInfo;
     std::string baseName = info->name;
     baseName += "_v" + std::to_string( PG_GFX_IMAGE_VERSION );
     baseName += "_" + std::to_string( static_cast< int >( info->semantic ) );
@@ -146,7 +146,6 @@ std::string GfxImageConverter::GetFastFileName( const BaseAssetCreateInfo* baseI
     baseName += "_" + std::to_string( static_cast< int >( info->dstPixelFormat ) );
     baseName += "_" + std::to_string( static_cast< int >( info->flipVertically ) );
     baseName += "_" + std::to_string( std::hash< std::string >{}( info->filename ) );
-    FilenameSlashesToUnderscores( baseName );
 
     std::string fullName = PG_ASSET_DIR "cache/images/" + baseName + ".ffi";
     return fullName;
@@ -162,36 +161,73 @@ bool GfxImageConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 
     std::string ffName = GetFastFileName( baseInfo );
     AddFastfileDependency( ffName );
-    GfxImageCreateInfo* info = (GfxImageCreateInfo*)baseInfo;
+    const GfxImageCreateInfo* info = (const GfxImageCreateInfo*)baseInfo;
     return IsFileOutOfDate( ffName, info->filename );
 }
 
 
 bool GfxImageConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    GfxImageCreateInfo* info = (GfxImageCreateInfo*)baseInfo;
-    LOG( "Converting image '%s'...", info->name.c_str() );
-    GfxImage image;
-    if ( !GfxImage_Load( &image, *info ) )
-    {
-        return false;
-    }
-    std::string fastfileName = GetFastFileName( info );
-    Serializer serializer;
-    if ( !serializer.OpenForWrite( fastfileName ) )
-    {
-        return false;
-    }
-    if ( !Fastfile_GfxImage_Save( &image, &serializer ) )
-    {
-        LOG_ERR( "Error while writing image '%s' to fastfile", image.name.c_str() );
-        serializer.Close();
-        DeleteFile( fastfileName );
-        return false;
-    }
-    serializer.Close();
-
-    return true;
+    return ConvertSingleInternal< GfxImage, GfxImageCreateInfo >( baseInfo );
 }
 
 } // namespace PG
+
+/* SAVE: for when cubemap loading is added for GfxImages
+void EnvironmentMapConverter::Parse( const rapidjson::Value& value )
+{
+    static JSONFunctionMapper< EnvironmentMapCreateInfo& > mapping(
+    {
+        { "name",           []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.name = v.GetString(); } },
+        { "flipVertically", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.flipVertically = v.GetBool(); } },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.flattenedCubemapFilename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.equirectangularFilename  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "left",   []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "right",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "front",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "back",   []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "top",    []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "bottom", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
+    });
+
+    EnvironmentMapCreateInfo* info = new EnvironmentMapCreateInfo;
+    mapping.ForEachMember( value, *info );
+    m_parsedAssets.push_back( info );
+}
+
+
+std::string EnvironmentMapConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
+{
+    EnvironmentMapCreateInfo* info = (EnvironmentMapCreateInfo*)baseInfo;
+    std::string baseName = info->name;
+    size_t fileHashes = 0;
+    HashCombine( fileHashes, info->equirectangularFilename );
+    HashCombine( fileHashes, info->flattenedCubemapFilename );
+    for ( int i = 0; i < 6; ++i )
+    {
+        HashCombine( fileHashes, info->faceFilenames[i] );
+    }
+    baseName += "_" + std::to_string( fileHashes );
+    baseName += "_v" + std::to_string( PG_ENVIRONMENT_MAP_VERSION );
+
+    std::string fullName = PG_ASSET_DIR "cache/environment_maps/" + baseName + ".ffi";
+    return fullName;
+}
+
+
+bool EnvironmentMapConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
+{
+    if ( g_converterConfigOptions.force )
+    {
+        return true;
+    }
+
+    EnvironmentMapCreateInfo* info = (EnvironmentMapCreateInfo*)baseInfo;
+    std::string ffName = GetFastFileName( info );
+    AddFastfileDependency( ffName );
+    if ( !info->equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info->equirectangularFilename );
+    else if ( !info->flattenedCubemapFilename.empty() ) return IsFileOutOfDate( ffName, info->flattenedCubemapFilename );
+    else if ( !info->equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info->faceFilenames, 6 );
+    else return true;
+}
+*/

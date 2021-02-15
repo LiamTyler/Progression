@@ -2,7 +2,6 @@
 #include "asset/asset_versions.hpp"
 #include "core/assert.hpp"
 #include "core/time.hpp"
-#include "converters/environment_map_converter.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
 #include "converters/model_converter.hpp"
@@ -95,7 +94,6 @@ int main( int argc, char** argv )
         new ScriptConverter,
         new MaterialFileConverter,
         new ModelConverter,
-        new EnvironmentMapConverter,
     };
 
     if ( ConvertAssets( assetListFile, converters ) )
@@ -119,7 +117,6 @@ bool ConvertAssets( const std::string& assetListFile, const std::vector< Convert
 
     LOG( "Running converter..." );
     CreateDirectory( PG_ASSET_DIR "cache/" );
-    CreateDirectory( PG_ASSET_DIR "cache/environment_maps/" );
     CreateDirectory( PG_ASSET_DIR "cache/fastfiles/" );
     CreateDirectory( PG_ASSET_DIR "cache/images/" );
     CreateDirectory( PG_ASSET_DIR "cache/materials/" );

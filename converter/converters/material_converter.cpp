@@ -32,7 +32,7 @@ void MaterialFileConverter::Parse( const rapidjson::Value& value )
 
 std::string MaterialFileConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    MaterialFileCreateInfo* info = (MaterialFileCreateInfo*)baseInfo;
+    const MaterialFileCreateInfo* info = (const MaterialFileCreateInfo*)baseInfo;
     std::string baseName = GetFilenameStem( info->filename );
     baseName += "_v" + std::to_string( PG_MATERIAL_VERSION );
 
@@ -48,7 +48,7 @@ bool MaterialFileConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInf
         return true;
     }
 
-    MaterialFileCreateInfo* info = (MaterialFileCreateInfo*)baseInfo;
+    const MaterialFileCreateInfo* info = (const MaterialFileCreateInfo*)baseInfo;
     std::string ffName = GetFastFileName( info );
     AddFastfileDependency( ffName );
     return IsFileOutOfDate( ffName, info->filename );
@@ -90,8 +90,8 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
 
 bool MaterialFileConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    MaterialFileCreateInfo* info = (MaterialFileCreateInfo*)baseInfo;
-    LOG( "Converting material file '%s'...", info->filename.c_str() );
+    const MaterialFileCreateInfo* info = (const MaterialFileCreateInfo*)baseInfo;
+    LOG( "Converting MatFile '%s'...", info->filename.c_str() );
     std::vector< MaterialCreateInfo > createInfos;
     if ( !ParseMaterialFile( info->filename, createInfos ) )
     {
@@ -99,25 +99,32 @@ bool MaterialFileConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo )
     }
     
     std::string fastfileName = GetFastFileName( info );
-    Serializer serializer;
-    if ( !serializer.OpenForWrite( fastfileName ) )
+    try
     {
-        return false;
-    }
-    uint16_t numMaterials = static_cast< uint16_t >( createInfos.size() );
-    serializer.Write( numMaterials );
-    for ( const auto& info : createInfos )
-    {
-        if ( !Fastfile_Material_Save( &info, &serializer ) )
+        Serializer serializer;
+        if ( !serializer.OpenForWrite( fastfileName ) )
         {
-            LOG_ERR( "Error while writing material '%s' to fastfile", info.name.c_str() );
-            serializer.Close();
-            DeleteFile( fastfileName );
             return false;
         }
+        uint16_t numMaterials = static_cast< uint16_t >( createInfos.size() );
+        serializer.Write( numMaterials );
+        for ( const auto& info : createInfos )
+        {
+            if ( !Fastfile_Material_Save( &info, &serializer ) )
+            {
+                LOG_ERR( "Error while writing material '%s' to fastfile", info.name.c_str() );
+                serializer.Close();
+                DeleteFile( fastfileName );
+                return false;
+            }
+        }
+        serializer.Close();
     }
-    
-    serializer.Close();
+    catch ( std::exception& e )
+    {
+        DeleteFile( fastfileName );
+        throw e;
+    }
 
     return true;
 }

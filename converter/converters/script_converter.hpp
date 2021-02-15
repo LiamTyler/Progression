@@ -4,8 +4,6 @@
 #include "asset/types/gfx_image.hpp"
 #include "utils/json_parsing.hpp"
 
-class Serializer;
-
 namespace PG
 {
 

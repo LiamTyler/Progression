@@ -352,25 +352,25 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
 }
 
 
-bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
+bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 {
-    PG_ASSERT( gfxImage );
-
-    gfxImage->name        = createInfo.name;
-    gfxImage->imageType   = createInfo.imageType;
-    gfxImage->pixelFormat = createInfo.dstPixelFormat;
-    gfxImage->depth       = 1;
-    gfxImage->mipLevels   = 1;
-    gfxImage->numFaces    = 1;
+    PG_ASSERT( baseInfo );
+    const GfxImageCreateInfo* createInfo = (const GfxImageCreateInfo*)baseInfo;
+    name        = createInfo->name;
+    imageType   = createInfo->imageType;
+    pixelFormat = createInfo->dstPixelFormat;
+    depth       = 1;
+    mipLevels   = 1;
+    numFaces    = 1;
 
     bool success;
-    if ( createInfo.imageType == Gfx::ImageType::TYPE_2D )
+    if ( createInfo->imageType == Gfx::ImageType::TYPE_2D )
     {
-        success = Load_GfxImage_2D( gfxImage, createInfo );
+        success = Load_GfxImage_2D( this, *createInfo );
     } 
     else
     {
-        LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo.imageType ) );
+        LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo->imageType ) );
         success = false;
     }
 
@@ -378,46 +378,45 @@ bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 }
 
 
-bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer )
+bool GfxImage::FastfileLoad( Serializer* serializer )
 {
     static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
     
-    PG_ASSERT( image && serializer );
-    serializer->Read( image->name );
-    serializer->Read( image->width );
-    serializer->Read( image->height );
-    serializer->Read( image->depth );
-    serializer->Read( image->mipLevels );
-    serializer->Read( image->numFaces );
-    serializer->Read( image->totalSizeInBytes );
-    serializer->Read( image->pixelFormat );
-    serializer->Read( image->imageType );
-    image->pixels = static_cast< unsigned char* >( malloc( image->totalSizeInBytes ) );
-    serializer->Read( image->pixels, image->totalSizeInBytes );
-    //image->textureHandle = GFX_INVALID_TEXTURE_HANDLE;
+    PG_ASSERT( serializer );
+    serializer->Read( name );
+    serializer->Read( width );
+    serializer->Read( height );
+    serializer->Read( depth );
+    serializer->Read( mipLevels );
+    serializer->Read( numFaces );
+    serializer->Read( totalSizeInBytes );
+    serializer->Read( pixelFormat );
+    serializer->Read( imageType );
+    pixels = static_cast< unsigned char* >( malloc( totalSizeInBytes ) );
+    serializer->Read( pixels, totalSizeInBytes );
 
-    image->UploadToGpu();
+    UploadToGpu();
 
     return true;
 }
 
 
-bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serializer )
+bool GfxImage::FastfileSave( Serializer* serializer ) const
 {
     static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
     
-    PG_ASSERT( image && serializer );
-    PG_ASSERT( image->pixels );
-    serializer->Write( image->name );
-    serializer->Write( image->width );
-    serializer->Write( image->height );
-    serializer->Write( image->depth );
-    serializer->Write( image->mipLevels );
-    serializer->Write( image->numFaces );
-    serializer->Write( image->totalSizeInBytes );
-    serializer->Write( image->pixelFormat );
-    serializer->Write( image->imageType );
-    serializer->Write( image->pixels, image->totalSizeInBytes );
+    PG_ASSERT( serializer );
+    PG_ASSERT( pixels );
+    serializer->Write( name );
+    serializer->Write( width );
+    serializer->Write( height );
+    serializer->Write( depth );
+    serializer->Write( mipLevels );
+    serializer->Write( numFaces );
+    serializer->Write( totalSizeInBytes );
+    serializer->Write( pixelFormat );
+    serializer->Write( imageType );
+    serializer->Write( pixels, totalSizeInBytes );
 
     return true;
 }

@@ -8,39 +8,39 @@
 namespace PG
 {
 
-
-bool Material_Load( Material* material, const MaterialCreateInfo& createInfo )
+bool Material::Load( const BaseAssetCreateInfo* baseInfo )
 {
     static_assert( sizeof( Material ) == sizeof( std::string ) + 56, "Don't forget to update this function if added/removed members from Material!" );
-    PG_ASSERT( material );
-    material->name = createInfo.name;
-    material->albedoTint = createInfo.albedoTint;
-    material->metalnessTint = createInfo.metalnessTint;
-    material->roughnessTint = createInfo.roughnessTint;
-    if ( createInfo.albedoMapName.length() > 0 )
+    PG_ASSERT( baseInfo );
+    const MaterialCreateInfo* createInfo = (const MaterialCreateInfo*)baseInfo;
+    name = createInfo->name;
+    albedoTint = createInfo->albedoTint;
+    metalnessTint = createInfo->metalnessTint;
+    roughnessTint = createInfo->roughnessTint;
+    if ( createInfo->albedoMapName.length() > 0 )
     {
-        material->albedoMap = AssetManager::Get< GfxImage >( createInfo.albedoMapName );
-        PG_ASSERT( material->albedoMap, "GfxImage '" + createInfo.albedoMapName + "' not found for material '" + material->name + "'" );
+        albedoMap = AssetManager::Get< GfxImage >( createInfo->albedoMapName );
+        PG_ASSERT( albedoMap, "GfxImage '" + createInfo->albedoMapName + "' not found for material '" + name + "'" );
     }
-    if ( createInfo.metalnessMapName.length() > 0 )
+    if ( createInfo->metalnessMapName.length() > 0 )
     {
-        material->metalnessMap = AssetManager::Get< GfxImage >( createInfo.metalnessMapName );
-        PG_ASSERT( material->metalnessMap, "GfxImage '" + createInfo.metalnessMapName + "' not found for material '" + material->name + "'" );
+        metalnessMap = AssetManager::Get< GfxImage >( createInfo->metalnessMapName );
+        PG_ASSERT( metalnessMap, "GfxImage '" + createInfo->metalnessMapName + "' not found for material '" + name + "'" );
     }
-    if ( createInfo.roughnessMapName.length() > 0 )
+    if ( createInfo->roughnessMapName.length() > 0 )
     {
-        material->roughnessMap = AssetManager::Get< GfxImage >( createInfo.roughnessMapName );
-        PG_ASSERT( material->roughnessMap, "GfxImage '" + createInfo.roughnessMapName + "' not found for material '" + material->name + "'" );
+        roughnessMap = AssetManager::Get< GfxImage >( createInfo->roughnessMapName );
+        PG_ASSERT( roughnessMap, "GfxImage '" + createInfo->roughnessMapName + "' not found for material '" + name + "'" );
     }
 
     return true;
 }
 
 
-bool Fastfile_Material_Load( Material* material, Serializer* serializer )
+bool Material::FastfileLoad( Serializer* serializer )
 {
     static_assert( sizeof( Material ) == sizeof( std::string ) + 56, "Don't forget to update this function if added/removed members from Material!" );
-    PG_ASSERT( material && serializer );
+    PG_ASSERT( serializer );
     MaterialCreateInfo createInfo;
     serializer->Read( createInfo.name );
     serializer->Read( createInfo.albedoTint );
@@ -49,7 +49,15 @@ bool Fastfile_Material_Load( Material* material, Serializer* serializer )
     serializer->Read( createInfo.albedoMapName );
     serializer->Read( createInfo.metalnessMapName );
     serializer->Read( createInfo.roughnessMapName );
-    return Material_Load( material, createInfo );
+    return Load( &createInfo );
+}
+
+
+// Material has some special converter logic. Need the image string names from the createInfo struct,
+// instead of actual image assets, since the AssetManager is empty during the converter
+bool Material::FastfileSave( Serializer* serializer ) const
+{
+    return false;
 }
 
 

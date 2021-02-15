@@ -105,16 +105,14 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 
 static bool ParseBackgroundColor( const rapidjson::Value& v, Scene* scene )
 {
-    PG_ASSERT( v.HasMember( "color" ) );
-    scene->backgroundColor = ParseVec4( v["color"] );
+    scene->backgroundColor = ParseVec4( v );
     return true;
 }
 
 
 static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
 {
-    PG_ASSERT( v.HasMember( "color" ) );
-    scene->ambientColor = ParseVec3( v["color"] );
+    scene->ambientColor = ParseVec3( v );
     return true;
 }
 

@@ -64,7 +64,7 @@ void ShaderConverter::Parse( const rapidjson::Value& value )
 
 std::string ShaderConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    ShaderCreateInfo* info = (ShaderCreateInfo*)baseInfo;
+    const ShaderCreateInfo* info = (const ShaderCreateInfo*)baseInfo;
     std::string baseName = info->name;
     baseName += "_" + GetRelativeFilename( info->filename );
     baseName += "_v" + std::to_string( PG_SHADER_VERSION );
@@ -85,10 +85,12 @@ bool ShaderConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
         return true;
     }
 
+    std::string ffName = GetFastFileName( baseInfo );
+
+    // remove const qualifier so we can set savePreproc and return it later, to avoid making copy instead
     ShaderCreateInfo* info = (ShaderCreateInfo*)baseInfo;
     bool savePreproc = info->savePreproc;
     info->savePreproc = false;
-    std::string ffName = GetFastFileName( info );
     ShaderPreprocessOutput preproc = PreprocessShader( *info );
     info->savePreproc = savePreproc;
     if ( !preproc.success )
@@ -111,30 +113,7 @@ bool ShaderConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 
 bool ShaderConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    ShaderCreateInfo* info = (ShaderCreateInfo*)baseInfo;
-    LOG( "Converting Shader file '%s'...", info->filename.c_str() );
-    Shader asset;
-    if ( !Shader_Load( &asset, *info ) )
-    {
-        return false;
-    }
-    std::string fastfileName = GetFastFileName( info );
-    Serializer serializer;
-    if ( !serializer.OpenForWrite( fastfileName ) )
-    {
-        return false;
-    }
-    if ( !Fastfile_Shader_Save( &asset, &serializer ) )
-    {
-        LOG_ERR( "Error while writing Shader '%s' to fastfile", info->name.c_str() );
-        serializer.Close();
-        DeleteFile( fastfileName );
-        return false;
-    }
-    
-    serializer.Close();
-
-    return true;
+    return ConvertSingleInternal< Shader, ShaderCreateInfo >( baseInfo );
 }
 
 

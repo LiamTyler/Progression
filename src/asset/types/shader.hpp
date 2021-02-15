@@ -6,8 +6,6 @@
 #include "renderer/vulkan.hpp"
 #include <vector>
 
-class Serializer;
-
 namespace PG
 {
 
@@ -48,7 +46,10 @@ struct ShaderResourceLayout
 
 struct Shader : public BaseAsset
 {
-    void Free();
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
+    void Free() override;
 
     ShaderStage shaderStage;
     std::string entryPoint;
@@ -56,14 +57,8 @@ struct Shader : public BaseAsset
     ShaderResourceLayout resourceLayout;
 
 #if USING( COMPILING_CONVERTER )
-    std::vector< uint32_t > spirv;
+    std::vector< uint32_t > savedSpirv;
 #endif // #if USING( COMPILING_CONVERTER )
 };
-
-bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo );
-
-bool Fastfile_Shader_Load( Shader* shader, Serializer* serializer );
-
-bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer );
 
 } // namespace PG

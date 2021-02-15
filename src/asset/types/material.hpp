@@ -23,6 +23,10 @@ struct GfxImage;
 struct Material : public BaseAsset
 {
     Material() = default;
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
+
     glm::vec3 albedoTint = glm::vec3( 1.0f );
     float metalnessTint  = 1.0f;
     float roughnessTint  = 1.0f;
@@ -32,10 +36,7 @@ struct Material : public BaseAsset
     GfxImage* roughnessMap = nullptr;
 };
 
-bool Material_Load( Material* material, const MaterialCreateInfo& createInfo );
 
-bool Fastfile_Material_Load( Material* material, Serializer* serializer );
-
-bool Fastfile_Material_Save( const MaterialCreateInfo * const matcreateInfo, Serializer* serializer );
+bool Fastfile_Material_Save( const MaterialCreateInfo * const matCreateInfo, Serializer* serializer );
 
 } // namespace PG

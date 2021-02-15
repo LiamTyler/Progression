@@ -2,8 +2,6 @@
 
 #include "converter.hpp"
 
-class Serializer;
-
 namespace PG
 {
 

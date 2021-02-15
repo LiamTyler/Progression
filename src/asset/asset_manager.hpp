@@ -38,13 +38,13 @@ void Shutdown();
 
 void RegisterLuaFunctions( lua_State* L );
 
-Asset* Get( uint32_t assetTypeID, const std::string& name );
+BaseAsset* Get( uint32_t assetTypeID, const std::string& name );
 
 template < typename T >
 T* Get( const std::string& name )
 {
-    static_assert( std::is_base_of< Asset, T >::value && !std::is_same< Asset, T >::value, "Resource manager only manages classes derived from 'Resource'" );
-    Asset* res = Get( GetAssetTypeID< T >::ID(), name );
+    static_assert( std::is_base_of< BaseAsset, T >::value && !std::is_same< BaseAsset, T >::value, "Resource manager only manages classes derived from 'Resource'" );
+    BaseAsset* res = Get( GetAssetTypeID< T >::ID(), name );
     return static_cast< T* >( res );
 }
 

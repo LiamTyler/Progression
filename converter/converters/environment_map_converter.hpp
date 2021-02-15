@@ -1,17 +1,22 @@
 #pragma once
 
-#include "utils/json_parsing.hpp"
+#include "converter.hpp"
 
 class Serializer;
 
+namespace PG
+{
 
-void EnvironmentMap_Parse( const rapidjson::Value& value );
+class EnvironmentMapConverter : public Converter
+{
+public:
+    EnvironmentMapConverter() : Converter( "EnvironmentMap", ASSET_TYPE_ENVIRONMENTMAP ) {}
+    void Parse( const rapidjson::Value& value ) override;
 
-// returns how many assets are out of date
-int EnvironmentMap_CheckDependencies();
+protected:
+    std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const override;
+    bool IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo ) override;
+    bool ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const override;
+};
 
-// returns how many assets were unable to be converted
-int EnvironmentMap_Convert();
-
-// returns true if no errors occurred, false otherwise
-bool EnvironmentMap_BuildFastFile( Serializer* serializer );
+} // namespace PG

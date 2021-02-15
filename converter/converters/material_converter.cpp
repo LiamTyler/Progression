@@ -1,38 +1,39 @@
 #include "converter.hpp"
+#include "material_converter.hpp"
 #include "asset/types/material.hpp"
 
-using namespace PG;
-
-extern void AddFastfileDependency( const std::string& file );
-
-static std::vector< std::string > s_parsedMaterialFilenames;
-static std::vector< std::string > s_outOfDateMaterialFilenames;
-
-
-void Material_Parse( const rapidjson::Value& value )
+namespace PG
 {
 
-    static JSONFunctionMapper< std::string& > mapping(
+struct MaterialFileCreateInfo : public BaseAssetCreateInfo
+{
+    std::string filename;
+};
+
+void MaterialFileConverter::Parse( const rapidjson::Value& value )
+{
+    static JSONFunctionMapper< MaterialFileCreateInfo& > mapping(
     {
-        { "filename",  []( const rapidjson::Value& v, std::string& filename ) { filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "filename",  []( const rapidjson::Value& v, MaterialFileCreateInfo& info ) { info.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
-    std::string pgMtlFilename;
-    mapping.ForEachMember( value, pgMtlFilename );
+    MaterialFileCreateInfo* info = new MaterialFileCreateInfo;
+    mapping.ForEachMember( value, *info );
 
-    if ( !PathExists( pgMtlFilename ) )
+    if ( !PathExists( info->filename ) )
     {
-        LOG_ERR( "Material file '%s' not found", pgMtlFilename.c_str() );
+        LOG_ERR( "Material file '%s' not found", info->filename.c_str() );
         g_converterStatus.parsingError = true;
     }
 
-    s_parsedMaterialFilenames.push_back( pgMtlFilename );
+    m_parsedAssets.push_back( info );
 }
 
 
-static std::string Material_GetFastFileName( const std::string& filename )
+std::string MaterialFileConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    std::string baseName = GetFilenameStem( filename );
+    MaterialFileCreateInfo* info = (MaterialFileCreateInfo*)baseInfo;
+    std::string baseName = GetFilenameStem( info->filename );
     baseName += "_v" + std::to_string( PG_MATERIAL_VERSION );
 
     std::string fullName = PG_ASSET_DIR "cache/materials/" + baseName + ".ffi";
@@ -40,16 +41,17 @@ static std::string Material_GetFastFileName( const std::string& filename )
 }
 
 
-static bool Material_IsOutOfDate( const std::string& filename )
+bool MaterialFileConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 {
     if ( g_converterConfigOptions.force )
     {
         return true;
     }
 
-    std::string ffName = Material_GetFastFileName( filename );
+    MaterialFileCreateInfo* info = (MaterialFileCreateInfo*)baseInfo;
+    std::string ffName = GetFastFileName( info );
     AddFastfileDependency( ffName );
-    return IsFileOutOfDate( ffName, filename );
+    return IsFileOutOfDate( ffName, info->filename );
 }
 
 
@@ -86,16 +88,17 @@ static bool ParseMaterialFile( const std::string& filename, std::vector< Materia
 }
 
 
-static bool Material_ConvertSingle( const std::string& filename )
+bool MaterialFileConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    LOG( "Converting material file '%s'...", filename.c_str() );
+    MaterialFileCreateInfo* info = (MaterialFileCreateInfo*)baseInfo;
+    LOG( "Converting material file '%s'...", info->filename.c_str() );
     std::vector< MaterialCreateInfo > createInfos;
-    if ( !ParseMaterialFile( filename, createInfos ) )
+    if ( !ParseMaterialFile( info->filename, createInfos ) )
     {
         return false;
     }
     
-    std::string fastfileName = Material_GetFastFileName( filename );
+    std::string fastfileName = GetFastFileName( info );
     Serializer serializer;
     if ( !serializer.OpenForWrite( fastfileName ) )
     {
@@ -119,59 +122,4 @@ static bool Material_ConvertSingle( const std::string& filename )
     return true;
 }
 
-
-int Material_Convert()
-{
-    if ( s_outOfDateMaterialFilenames.size() == 0 )
-    {
-        return 0;
-    }
-
-    int couldNotConvert = 0;
-    for ( int i = 0; i < (int)s_outOfDateMaterialFilenames.size(); ++i )
-    {
-        if ( !Material_ConvertSingle( s_outOfDateMaterialFilenames[i] ) )
-        {
-            ++couldNotConvert;
-        }
-    }
-
-    return couldNotConvert;
-}
-
-
-int Material_CheckDependencies()
-{
-    int outOfDate = 0;
-    for ( size_t i = 0; i < s_parsedMaterialFilenames.size(); ++i )
-    {
-        if ( Material_IsOutOfDate( s_parsedMaterialFilenames[i] ) )
-        {
-            s_outOfDateMaterialFilenames.push_back( s_parsedMaterialFilenames[i] );
-            ++outOfDate;
-        }
-    }
-
-    return outOfDate;
-}
-
-
-bool Material_BuildFastFile( Serializer* serializer )
-{
-    for ( size_t i = 0; i < s_parsedMaterialFilenames.size(); ++i )
-    {
-        std::string ffiName = Material_GetFastFileName( s_parsedMaterialFilenames[i] );
-        MemoryMapped inFile;
-        if ( !inFile.open( ffiName ) )
-        {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
-            return false;
-        }
-        
-        serializer->Write( AssetType::ASSET_TYPE_MATERIAL );
-        serializer->Write( inFile.getData(), inFile.size() );
-        inFile.close();
-    }
-
-    return true;
-}
+} // namespace PG

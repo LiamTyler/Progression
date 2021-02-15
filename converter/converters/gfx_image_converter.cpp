@@ -1,13 +1,10 @@
-#include "converter.hpp"
+#include "gfx_image_converter.hpp"
 #include "asset/image.hpp"
 #include "asset/types/gfx_image.hpp"
 
-using namespace PG;
 
-extern void AddFastfileDependency( const std::string& file );
-
-std::vector< GfxImageCreateInfo > g_parsedImages;
-std::vector< GfxImageCreateInfo > g_outOfDateImages;
+namespace PG
+{
 
 static std::unordered_map< std::string, GfxImageSemantic > s_imageSemanticMap =
 {
@@ -45,7 +42,7 @@ static std::unordered_map< std::string, Gfx::ImageType > imageTypeMap =
 };
 
 
-void GfxImage_Parse( const rapidjson::Value& value )
+void GfxImageConverter::Parse( const rapidjson::Value& value )
 {
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
@@ -93,89 +90,93 @@ void GfxImage_Parse( const rapidjson::Value& value )
         },
     });
 
-    GfxImageCreateInfo info;
-    info.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
-    info.imageType = Gfx::ImageType::TYPE_2D;
-    mapping.ForEachMember( value, info );
+    GfxImageCreateInfo* info = new GfxImageCreateInfo;
+    info->semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
+    info->imageType = Gfx::ImageType::TYPE_2D;
+    mapping.ForEachMember( value, *info );
 
-    if ( !PathExists( info.filename ) )
+    if ( !PathExists( info->filename ) )
     {
-        LOG_ERR( "Filename '%s' not found for GfxImage '%s', skipping image", info.filename.c_str(), info.name.c_str() );
+        LOG_ERR( "Filename '%s' not found for GfxImage '%s', skipping image", info->filename.c_str(), info->name.c_str() );
         g_converterStatus.parsingError = true;
     }
-    if ( info.semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS )
+    if ( info->semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS )
     {
-        LOG_ERR( "Must specify a valid image semantic for image '%s'", info.name.c_str() );
+        LOG_ERR( "Must specify a valid image semantic for image '%s'", info->name.c_str() );
         g_converterStatus.parsingError = true;
     }
-    if ( info.imageType == Gfx::ImageType::NUM_IMAGE_TYPES )
+    if ( info->imageType == Gfx::ImageType::NUM_IMAGE_TYPES )
     {
-        LOG_ERR( "Must specify a valid imageType for image '%s'", info.name.c_str() );
+        LOG_ERR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
         g_converterStatus.parsingError = true;
     }
-    if ( info.dstPixelFormat == PixelFormat::INVALID )
+    if ( info->dstPixelFormat == PixelFormat::INVALID )
     {
-        switch ( info.semantic )
+        switch ( info->semantic )
         {
         case GfxImageSemantic::DIFFUSE:
-            info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_SRGB;
+            info->dstPixelFormat = PixelFormat::R8_G8_B8_A8_SRGB;
             break;
         case GfxImageSemantic::NORMAL:
-            info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_UNORM;
+            info->dstPixelFormat = PixelFormat::R8_G8_B8_A8_UNORM;
             break;
         case GfxImageSemantic::METALNESS:
         case GfxImageSemantic::ROUGHNESS:
-            info.dstPixelFormat = PixelFormat::R8_UNORM;
+            info->dstPixelFormat = PixelFormat::R8_UNORM;
             break;
         default:
-            LOG_ERR( "Semantic (%d) unknown when deciding final image format", info.semantic );
+            LOG_ERR( "Semantic (%d) unknown when deciding final image format", info->semantic );
             break;
         }
     }
 
-    g_parsedImages.push_back( info );
+    m_parsedAssets.push_back( info );
 }
 
 
-static std::string GfxImage_GetFastFileName( const GfxImageCreateInfo& info )
+std::string GfxImageConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
     static_assert( sizeof( GfxImageCreateInfo ) == 16 + 2 * sizeof( std::string ), "Dont forget to add new hash value" );
 
-    std::string baseName = info.name;
+    GfxImageCreateInfo* info = (GfxImageCreateInfo*)baseInfo;
+    std::string baseName = info->name;
     baseName += "_v" + std::to_string( PG_GFX_IMAGE_VERSION );
-    baseName += "_" + std::to_string( static_cast< int >( info.semantic ) );
-    baseName += "_" + std::to_string( static_cast< int >( info.imageType ) );
-    baseName += "_" + std::to_string( static_cast< int >( info.dstPixelFormat ) );
-    baseName += "_" + std::to_string( static_cast< int >( info.flipVertically ) );
-    baseName += "_" + std::to_string( std::hash< std::string >{}( info.filename ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->semantic ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->imageType ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->dstPixelFormat ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->flipVertically ) );
+    baseName += "_" + std::to_string( std::hash< std::string >{}( info->filename ) );
+    FilenameSlashesToUnderscores( baseName );
 
     std::string fullName = PG_ASSET_DIR "cache/images/" + baseName + ".ffi";
     return fullName;
 }
 
 
-static bool GfxImage_IsOutOfDate( const GfxImageCreateInfo& info )
+bool GfxImageConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 {
     if ( g_converterConfigOptions.force )
     {
         return true;
     }
 
-    std::string ffName = GfxImage_GetFastFileName( info );
+    std::string ffName = GetFastFileName( baseInfo );
     AddFastfileDependency( ffName );
-    return IsFileOutOfDate( ffName, info.filename );
+    GfxImageCreateInfo* info = (GfxImageCreateInfo*)baseInfo;
+    return IsFileOutOfDate( ffName, info->filename );
 }
 
 
-static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
+bool GfxImageConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    LOG( "Converting image '%s'...", info.name.c_str() );
+    GfxImageCreateInfo* info = (GfxImageCreateInfo*)baseInfo;
+    LOG( "Converting image '%s'...", info->name.c_str() );
     GfxImage image;
-    if ( !GfxImage_Load( &image, info ) )
+    if ( !GfxImage_Load( &image, *info ) )
     {
         return false;
     }
-    std::string fastfileName = GfxImage_GetFastFileName( info );
+    std::string fastfileName = GetFastFileName( info );
     Serializer serializer;
     if ( !serializer.OpenForWrite( fastfileName ) )
     {
@@ -193,59 +194,4 @@ static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
     return true;
 }
 
-
-int GfxImage_CheckDependencies()
-{
-    int outOfDate = 0;
-    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
-    {
-        if ( GfxImage_IsOutOfDate( g_parsedImages[i] ) )
-        {
-            g_outOfDateImages.push_back( g_parsedImages[i] );
-            ++outOfDate;
-        }
-    }
-
-    return outOfDate;
-}
-
-
-int GfxImage_Convert()
-{
-    if ( g_outOfDateImages.size() == 0 )
-    {
-        return 0;
-    }
-
-    int couldNotConvert = 0;
-    for ( int i = 0; i < (int)g_outOfDateImages.size(); ++i )
-    {
-        if ( !GfxImage_ConvertSingle( g_outOfDateImages[i] ) )
-        {
-            ++couldNotConvert;
-        }
-    }
-
-    return couldNotConvert;
-}
-
-
-bool GfxImage_BuildFastFile( Serializer* serializer )
-{
-    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
-    {
-        std::string ffiName = GfxImage_GetFastFileName( g_parsedImages[i] );
-        MemoryMapped inFile;
-        if ( !inFile.open( ffiName ) )
-        {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
-            return false;
-        }
-        
-        serializer->Write( AssetType::ASSET_TYPE_GFX_IMAGE );
-        serializer->Write( inFile.getData(), inFile.size() );
-        inFile.close();
-    }
-
-    return true;
-}
+} // namespace PG

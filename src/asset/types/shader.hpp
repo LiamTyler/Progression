@@ -23,9 +23,8 @@ enum class ShaderStage
     NUM_SHADER_STAGES
 };
 
-struct ShaderCreateInfo
+struct ShaderCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     std::string filename;
     ShaderStage shaderStage;
     std::vector< std::pair< std::string, std::string > > defines;
@@ -47,7 +46,7 @@ struct ShaderResourceLayout
 	Gfx::DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS];
 };
 
-struct Shader : public Asset
+struct Shader : public BaseAsset
 {
     void Free();
 

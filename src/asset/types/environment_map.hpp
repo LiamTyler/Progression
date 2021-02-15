@@ -7,16 +7,15 @@ class Serializer;
 namespace PG
 {
 
-struct EnvironmentMapCreateInfo
+struct EnvironmentMapCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     std::string flattenedCubemapFilename;
     std::string equirectangularFilename;
     std::string faceFilenames[6];
     bool flipVertically = false;
 };
 
-struct EnvironmentMap : public Asset
+struct EnvironmentMap : public BaseAsset
 {
 public:
     EnvironmentMap() = default;

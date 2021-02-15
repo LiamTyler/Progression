@@ -16,12 +16,10 @@ enum class GfxImageSemantic
     METALNESS,
     ROUGHNESS,
 
-    ENVIRONMENT_MAP,
-
     NUM_IMAGE_SEMANTICS
 };
 
-struct GfxImage : public Asset
+struct GfxImage : public BaseAsset
 {
     void Free() override;
     unsigned char* GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel = 0 ) const;
@@ -40,9 +38,8 @@ struct GfxImage : public Asset
     Gfx::Texture gpuTexture;
 };
 
-struct GfxImageCreateInfo
+struct GfxImageCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     std::string filename;
     GfxImageSemantic semantic  = GfxImageSemantic::DIFFUSE;
     Gfx::ImageType imageType   = Gfx::ImageType::TYPE_2D;

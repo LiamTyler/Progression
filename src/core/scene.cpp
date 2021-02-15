@@ -17,8 +17,9 @@ Scene* s_primaryScene = nullptr;
 
 static bool ParseFastfile( const rapidjson::Value& v, Scene* scene )
 {
-    PG_ASSERT( v.IsString() );
-    return AssetManager::LoadFastFile( v.GetString() );
+    PG_ASSERT( v.HasMember( "filename" ) );
+    std::string filename = v["filename"].GetString();
+    return AssetManager::LoadFastFile( filename );
 }
 
 
@@ -104,16 +105,16 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 
 static bool ParseBackgroundColor( const rapidjson::Value& v, Scene* scene )
 {
-    PG_ASSERT( v.IsArray() );
-    scene->ambientColor = ParseVec4( v );
+    PG_ASSERT( v.HasMember( "color" ) );
+    scene->backgroundColor = ParseVec4( v["color"] );
     return true;
 }
 
 
 static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
 {
-    PG_ASSERT( v.IsArray() );
-    scene->ambientColor = ParseVec3( v );
+    PG_ASSERT( v.HasMember( "color" ) );
+    scene->ambientColor = ParseVec3( v["color"] );
     return true;
 }
 

@@ -7,13 +7,12 @@ class Serializer;
 namespace PG
 {
 
-struct ScriptCreateInfo
+struct ScriptCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     std::string filename;
 };
 
-struct Script : public Asset
+struct Script : public BaseAsset
 {
 public:
     Script() = default;

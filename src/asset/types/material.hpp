@@ -8,9 +8,8 @@ class Serializer;
 namespace PG
 {
 
-struct MaterialCreateInfo
+struct MaterialCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     glm::vec3 albedoTint;
     std::string albedoMapName;
     float metalnessTint;
@@ -21,7 +20,7 @@ struct MaterialCreateInfo
 
 struct GfxImage;
 
-struct Material : public Asset
+struct Material : public BaseAsset
 {
     Material() = default;
     glm::vec3 albedoTint = glm::vec3( 1.0f );

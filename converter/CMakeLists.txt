@@ -51,6 +51,7 @@ set(
     ${PROGRESSION_DIR}/src/utils/serializer.cpp
     ${PROGRESSION_DIR}/src/utils/serializer.hpp
     
+    ${CMAKE_CURRENT_SOURCE_DIR}/converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/environment_map_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/environment_map_converter.hpp

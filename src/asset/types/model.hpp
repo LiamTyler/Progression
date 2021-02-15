@@ -22,13 +22,12 @@ struct Mesh
     uint32_t numVertices = 0;
 };
 
-struct ModelCreateInfo
+struct ModelCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     std::string filename;
 };
 
-struct Model : public Asset
+struct Model : public BaseAsset
 {
     void RecalculateNormals();
     void UploadToGPU();

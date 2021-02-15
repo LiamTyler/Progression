@@ -1,16 +1,12 @@
-#include "converter.hpp"
+#include "environment_map_converter.hpp"
 #include "asset/types/environment_map.hpp"
 #include "asset/image.hpp"
 #include "utils/hash.hpp"
 
-using namespace PG;
+namespace PG
+{
 
-extern void AddFastfileDependency( const std::string& file );
-
-static std::vector< EnvironmentMapCreateInfo > s_parsedEnvironmentMaps;
-static std::vector< EnvironmentMapCreateInfo > s_outOfDateEnvironmentMaps;
-
-void EnvironmentMap_Parse( const rapidjson::Value& value )
+void EnvironmentMapConverter::Parse( const rapidjson::Value& value )
 {
     static JSONFunctionMapper< EnvironmentMapCreateInfo& > mapping(
     {
@@ -26,21 +22,22 @@ void EnvironmentMap_Parse( const rapidjson::Value& value )
         { "bottom", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
-    EnvironmentMapCreateInfo info = {};
-    mapping.ForEachMember( value, info );
-    s_parsedEnvironmentMaps.push_back( info );
+    EnvironmentMapCreateInfo* info = new EnvironmentMapCreateInfo;
+    mapping.ForEachMember( value, *info );
+    m_parsedAssets.push_back( info );
 }
 
 
-static std::string EnvironmentMap_GetFastFileName( const EnvironmentMapCreateInfo& info )
+std::string EnvironmentMapConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    std::string baseName = info.name;
+    EnvironmentMapCreateInfo* info = (EnvironmentMapCreateInfo*)baseInfo;
+    std::string baseName = info->name;
     size_t fileHashes = 0;
-    HashCombine( fileHashes, info.equirectangularFilename );
-    HashCombine( fileHashes, info.flattenedCubemapFilename );
+    HashCombine( fileHashes, info->equirectangularFilename );
+    HashCombine( fileHashes, info->flattenedCubemapFilename );
     for ( int i = 0; i < 6; ++i )
     {
-        HashCombine( fileHashes, info.faceFilenames[i] );
+        HashCombine( fileHashes, info->faceFilenames[i] );
     }
     baseName += "_" + std::to_string( fileHashes );
     baseName += "_v" + std::to_string( PG_ENVIRONMENT_MAP_VERSION );
@@ -50,31 +47,33 @@ static std::string EnvironmentMap_GetFastFileName( const EnvironmentMapCreateInf
 }
 
 
-static bool EnvironmentMap_IsOutOfDate( const EnvironmentMapCreateInfo& info )
+bool EnvironmentMapConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 {
     if ( g_converterConfigOptions.force )
     {
         return true;
     }
 
-    std::string ffName = EnvironmentMap_GetFastFileName( info );
+    EnvironmentMapCreateInfo* info = (EnvironmentMapCreateInfo*)baseInfo;
+    std::string ffName = GetFastFileName( info );
     AddFastfileDependency( ffName );
-    if ( !info.equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info.equirectangularFilename );
-    else if ( !info.flattenedCubemapFilename.empty() ) return IsFileOutOfDate( ffName, info.flattenedCubemapFilename );
-    else if ( !info.equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info.faceFilenames, 6 );
+    if ( !info->equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info->equirectangularFilename );
+    else if ( !info->flattenedCubemapFilename.empty() ) return IsFileOutOfDate( ffName, info->flattenedCubemapFilename );
+    else if ( !info->equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info->faceFilenames, 6 );
     else return true;
 }
 
 
-static bool EnvironmentMap_ConvertSingle( const EnvironmentMapCreateInfo& info )
+bool EnvironmentMapConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    LOG( "Converting EnvironmentMap file '%s'...", info.name.c_str() );
+    EnvironmentMapCreateInfo* info = (EnvironmentMapCreateInfo*)baseInfo;
+    LOG( "Converting EnvironmentMap file '%s'...", info->name.c_str() );
     EnvironmentMap asset;
-    if ( !EnvironmentMap_Load( &asset, info ) )
+    if ( !EnvironmentMap_Load( &asset, *info ) )
     {
         return false;
     }
-    std::string fastfileName = EnvironmentMap_GetFastFileName( info );
+    std::string fastfileName = GetFastFileName( info );
     Serializer serializer;
     if ( !serializer.OpenForWrite( fastfileName ) )
     {
@@ -82,7 +81,7 @@ static bool EnvironmentMap_ConvertSingle( const EnvironmentMapCreateInfo& info )
     }
     if ( !Fastfile_EnvironmentMap_Save( &asset, &serializer ) )
     {
-        LOG_ERR( "Error while writing EnvironmentMap '%s' to fastfile", info.name.c_str() );
+        LOG_ERR( "Error while writing EnvironmentMap '%s' to fastfile", info->name.c_str() );
         serializer.Close();
         DeleteFile( fastfileName );
         return false;
@@ -93,59 +92,4 @@ static bool EnvironmentMap_ConvertSingle( const EnvironmentMapCreateInfo& info )
     return true;
 }
 
-
-int EnvironmentMap_Convert()
-{
-    if ( s_outOfDateEnvironmentMaps.size() == 0 )
-    {
-        return 0;
-    }
-
-    int couldNotConvert = 0;
-    for ( int i = 0; i < (int)s_outOfDateEnvironmentMaps.size(); ++i )
-    {
-        if ( !EnvironmentMap_ConvertSingle( s_outOfDateEnvironmentMaps[i] ) )
-        {
-            ++couldNotConvert;
-        }
-    }
-
-    return couldNotConvert;
-}
-
-
-int EnvironmentMap_CheckDependencies()
-{
-    int outOfDate = 0;
-    for ( size_t i = 0; i < s_parsedEnvironmentMaps.size(); ++i )
-    {
-        if ( EnvironmentMap_IsOutOfDate( s_parsedEnvironmentMaps[i] ) )
-        {
-            s_outOfDateEnvironmentMaps.push_back( s_parsedEnvironmentMaps[i] );
-            ++outOfDate;
-        }
-    }
-
-    return outOfDate;
-}
-
-
-bool EnvironmentMap_BuildFastFile( Serializer* serializer )
-{
-    for ( size_t i = 0; i < s_parsedEnvironmentMaps.size(); ++i )
-    {
-        std::string ffiName = EnvironmentMap_GetFastFileName( s_parsedEnvironmentMaps[i] );
-        MemoryMapped inFile;
-        if ( !inFile.open( ffiName ) )
-        {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
-            return false;
-        }
-        
-        serializer->Write( AssetType::ASSET_TYPE_ENVIRONMENTMAP );
-        serializer->Write( inFile.getData(), inFile.size() );
-        inFile.close();
-    }
-
-    return true;
-}
+} // namespace PG

@@ -5,9 +5,14 @@
 namespace PG
 {
 
-struct Asset
+struct BaseAssetCreateInfo
 {
-    virtual ~Asset() = default;
+    std::string name;
+};
+
+struct BaseAsset
+{
+    virtual ~BaseAsset() = default;
 
     virtual void Free() {}
     

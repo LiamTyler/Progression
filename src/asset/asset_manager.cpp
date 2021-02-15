@@ -21,7 +21,7 @@ namespace AssetManager
 uint32_t GetAssetTypeIDHelper::IDCounter = 0;
 
 
-static std::unordered_map< std::string, Asset* > s_resourceMaps[AssetType::NUM_ASSET_TYPES];
+static std::unordered_map< std::string, BaseAsset* > s_resourceMaps[AssetType::NUM_ASSET_TYPES];
 
 
 void Init()
@@ -254,7 +254,7 @@ void RegisterLuaFunctions( lua_State* L )
 }
 
 
-Asset* Get( uint32_t assetTypeID, const std::string& name )
+BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
 {
     PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = s_resourceMaps[assetTypeID].find( name );

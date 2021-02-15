@@ -1,17 +1,22 @@
 #pragma once
 
-#include "utils/json_parsing.hpp"
+#include "converter.hpp"
 
 class Serializer;
 
+namespace PG
+{
 
-void Shader_Parse( const rapidjson::Value& value );
+class ShaderConverter : public Converter
+{
+public:
+    ShaderConverter () : Converter( "Shader", ASSET_TYPE_SHADER ) {}
+    void Parse( const rapidjson::Value& value ) override;
 
-// returns how many assets are out of date
-int Shader_CheckDependencies();
+protected:
+    std::string GetFastFileName( const BaseAssetCreateInfo* info ) const override;
+    bool IsAssetOutOfDate( const BaseAssetCreateInfo* info ) override;
+    bool ConvertSingle( const BaseAssetCreateInfo* info ) const override;
+};
 
-// returns how many assets were unable to be converted
-int Shader_Convert();
-
-// returns true if no errors occurred, false otherwise
-bool Shader_BuildFastFile( Serializer* serializer );
+} // namespace PG

@@ -21,30 +21,25 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_STRING_VIEW_HPP
+#define SOL_STRING_VIEW_HPP
 
-/* Base, empty configuration file!
+#include <sol/version.hpp>
 
-     To override, place a file in your include paths of the form:
+#include <cstddef>
+#include <string>
+#include <string_view>
+#include <functional>
 
+namespace sol {
+	template <typename C, typename T = std::char_traits<C>>
+	using basic_string_view = std::basic_string_view<C, T>;
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+	typedef std::string_view string_view;
+	typedef std::wstring_view wstring_view;
+	typedef std::u16string_view u16string_view;
+	typedef std::u32string_view u32string_view;
+	typedef std::hash<std::string_view> string_view_hash;
+} // namespace sol
 
-
-     So that when sol2 includes the file
-
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_STRING_VIEW_HPP

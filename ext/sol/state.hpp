@@ -21,30 +21,42 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_STATE_HPP
+#define SOL_STATE_HPP
 
-/* Base, empty configuration file!
+#include <sol/state_view.hpp>
+#include <sol/thread.hpp>
 
-     To override, place a file in your include paths of the form:
+namespace sol {
 
+	class state : private std::unique_ptr<lua_State, detail::state_deleter>, public state_view {
+	private:
+		typedef std::unique_ptr<lua_State, detail::state_deleter> unique_base;
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+	public:
+		state(lua_CFunction panic = default_at_panic) : unique_base(luaL_newstate()), state_view(unique_base::get()) {
+			set_default_state(unique_base::get(), panic);
+		}
 
+		state(lua_CFunction panic, lua_Alloc alfunc, void* alpointer = nullptr)
+		: unique_base(lua_newstate(alfunc, alpointer)), state_view(unique_base::get()) {
+			set_default_state(unique_base::get(), panic);
+		}
 
-     So that when sol2 includes the file
+		state(const state&) = delete;
+		state(state&&) = default;
+		state& operator=(const state&) = delete;
+		state& operator=(state&& that) {
+			state_view::operator=(std::move(that));
+			unique_base::operator=(std::move(that));
+			return *this;
+		}
 
+		using state_view::get;
 
-#include <sol/config.hpp>
+		~state() {
+		}
+	};
+} // namespace sol
 
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_STATE_HPP

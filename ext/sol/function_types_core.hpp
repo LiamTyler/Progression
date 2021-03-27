@@ -21,30 +21,26 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_FUNCTION_TYPES_CORE_HPP
+#define SOL_FUNCTION_TYPES_CORE_HPP
 
-/* Base, empty configuration file!
+#include <sol/stack.hpp>
+#include <sol/wrapper.hpp>
 
-     To override, place a file in your include paths of the form:
+#include <memory>
 
+namespace sol { namespace function_detail {
+	template <typename Fx, int start = 1, bool is_yielding = false>
+	int call(lua_State* L) {
+		Fx& fx = stack::get<user<Fx>>(L, upvalue_index(start));
+		int nr = fx(L);
+		if (is_yielding) {
+			return lua_yield(L, nr);
+		}
+		else {
+			return nr;
+		}
+	}
+}} // namespace sol::function_detail
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
-
-
-     So that when sol2 includes the file
-
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_FUNCTION_TYPES_CORE_HPP

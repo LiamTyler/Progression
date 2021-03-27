@@ -21,30 +21,31 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_COMPATIBILITY_HPP
+#define SOL_COMPATIBILITY_HPP
 
-/* Base, empty configuration file!
+// The various pieces of the compatibility layer
+// comes from https://github.com/keplerproject/lua-compat-5.3
+// but has been modified in many places for use with sol and luajit,
+// though the core abstractions remain the same
 
-     To override, place a file in your include paths of the form:
+#include <sol/version.hpp>
+#include <sol/compatibility/lua_version.hpp>
 
+#if SOL_IS_ON(SOL_USE_COMPATIBILITY_LAYER_I_)
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+#if SOL_IS_ON(SOL_USE_CXX_LUA_I_) || SOL_IS_ON(SOL_USE_CXX_LUAJIT_I_)
+#ifndef COMPAT53_LUA_CPP
+#define COMPAT53_LUA_CPP 1
+#endif // Build Lua Compat layer as C++
+#endif
+#ifndef COMPAT53_INCLUDE_SOURCE
+#define COMPAT53_INCLUDE_SOURCE 1
+#endif // Build Compat Layer Inline
 
+#include <sol/compatibility/compat-5.3.h>
+#include <sol/compatibility/compat-5.4.h>
 
-     So that when sol2 includes the file
+#endif
 
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_COMPATIBILITY_HPP

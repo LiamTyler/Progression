@@ -114,6 +114,8 @@ set(
     ${PROGRESSION_DIR}/src/renderer/r_texture_manager.hpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.cpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.hpp
+	${PROGRESSION_DIR}/src/renderer/taskgraph/r_taskgraph.cpp
+    ${PROGRESSION_DIR}/src/renderer/taskgraph/r_taskgraph.hpp
 	
 	${PROGRESSION_DIR}/assets/shaders/c_shared/structs.h
 	${PROGRESSION_DIR}/assets/shaders/c_shared/defines.h

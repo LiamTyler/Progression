@@ -10,6 +10,8 @@
 #include "renderer/render_system.hpp"
 #include "utils/logger.hpp"
 
+#include "renderer/taskgraph/r_taskgraph.hpp"
+
 using namespace PG;
 using namespace Gfx;
 
@@ -17,6 +19,51 @@ bool g_paused = false;
 
 int main( int argc, char* argv[] )
 {
+    Logger_Init();
+    Logger_AddLogLocation( "stdout", stdout );
+
+    RenderTaskBuilder* task;
+    RenderGraph graph;
+
+    //task = graph.AddTask( "depth_prepass" );
+
+    task = graph.AddTask( "gbuffer" );
+    task->AddColorOutput( "albedo", PixelFormat::R8_G8_B8_A8_UNORM, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
+    task->AddColorOutput( "normal", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
+    
+    task = graph.AddTask( "lighting" );
+    task->AddTextureInput( "albedo" );
+    task->AddTextureInput( "normal" );
+    task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
+    
+    task = graph.AddTask( "transparency" );
+    task->AddColorOutput( "litOutput" );
+    
+    task = graph.AddTask( "gbuffer2" );
+    task->AddColorOutput( "albedo2", PixelFormat::R8_G8_B8_A8_UNORM, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
+    task->AddColorOutput( "normal2", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
+    
+    task = graph.AddTask( "lighting2" );
+    task->AddTextureInput( "albedo2" );
+    task->AddTextureInput( "normal2" );
+    task->AddColorOutput( "litOutput" );
+    
+    task = graph.AddTask( "transparency2" );
+    task->AddColorOutput( "litOutput" );
+    
+    task = graph.AddTask( "postProcessing" );
+    task->AddColorOutput( "BACK_BUFFER" );
+    
+    if ( !graph.Compile( 1920, 1080 ) )
+    {
+        printf( "Failed to compile task graph\n" );
+        return 1;
+    }
+    
+    graph.PrintTaskGraph();
+}
+
+/*
 	EngineInitInfo engineInitConfig;
 	if ( !EngineInitialize( engineInitConfig ) )
     {
@@ -68,3 +115,4 @@ int main( int argc, char* argv[] )
 
     return 0;
 }
+*/

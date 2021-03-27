@@ -11,7 +11,7 @@
 // the Software, and to permit persons to whom the Software is furnished to do so,
 // subject to the following conditions:
 
-// The above copyright notice and this permission notice shall be included in all
+// The above copyright notice and this Spermission notice shall be included in all
 // copies or substantial portions of the Software.
 
 // THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
@@ -21,30 +21,34 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_AS_ARGS_HPP
+#define SOL_AS_ARGS_HPP
 
-/* Base, empty configuration file!
+#include <sol/stack.hpp>
 
-     To override, place a file in your include paths of the form:
+namespace sol {
+	template <typename T>
+	struct as_args_t {
+		T src;
+	};
 
+	template <typename Source>
+	auto as_args(Source&& source) {
+		return as_args_t<Source> { std::forward<Source>(source) };
+	}
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+	namespace stack {
+		template <typename T>
+		struct unqualified_pusher<as_args_t<T>> {
+			int push(lua_State* L, const as_args_t<T>& e) {
+				int p = 0;
+				for (const auto& i : e.src) {
+					p += stack::push(L, i);
+				}
+				return p;
+			}
+		};
+	} // namespace stack
+} // namespace sol
 
-
-     So that when sol2 includes the file
-
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_AS_ARGS_HPP

@@ -21,30 +21,41 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_USERTYPE_TRAITS_HPP
+#define SOL_USERTYPE_TRAITS_HPP
 
-/* Base, empty configuration file!
+#include <sol/demangle.hpp>
 
-     To override, place a file in your include paths of the form:
+namespace sol {
 
+	template <typename T>
+	struct usertype_traits {
+		static const std::string& name() {
+			static const std::string& n = detail::short_demangle<T>();
+			return n;
+		}
+		static const std::string& qualified_name() {
+			static const std::string& q_n = detail::demangle<T>();
+			return q_n;
+		}
+		static const std::string& metatable() {
+			static const std::string m = std::string("sol.").append(detail::demangle<T>());
+			return m;
+		}
+		static const std::string& user_metatable() {
+			static const std::string u_m = std::string("sol.").append(detail::demangle<T>()).append(".user");
+			return u_m;
+		}
+		static const std::string& user_gc_metatable() {
+			static const std::string u_g_m = std::string("sol.").append(detail::demangle<T>()).append(".user\xE2\x99\xBB");
+			return u_g_m;
+		}
+		static const std::string& gc_table() {
+			static const std::string g_t = std::string("sol.").append(detail::demangle<T>()).append(".\xE2\x99\xBB");
+			return g_t;
+		}
+	};
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+} // namespace sol
 
-
-     So that when sol2 includes the file
-
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_USERTYPE_TRAITS_HPP

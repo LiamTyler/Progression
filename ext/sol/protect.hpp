@@ -21,30 +21,33 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_PROTECT_HPP
+#define SOL_PROTECT_HPP
 
-/* Base, empty configuration file!
+#include <sol/traits.hpp>
+#include <utility>
 
-     To override, place a file in your include paths of the form:
+namespace sol {
 
+	template <typename T>
+	struct protect_t {
+		T value;
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+		template <typename Arg, typename... Args, meta::disable<std::is_same<protect_t, meta::unqualified_t<Arg>>> = meta::enabler>
+		protect_t(Arg&& arg, Args&&... args) : value(std::forward<Arg>(arg), std::forward<Args>(args)...) {
+		}
 
+		protect_t(const protect_t&) = default;
+		protect_t(protect_t&&) = default;
+		protect_t& operator=(const protect_t&) = default;
+		protect_t& operator=(protect_t&&) = default;
+	};
 
-     So that when sol2 includes the file
+	template <typename T>
+	auto protect(T&& value) {
+		return protect_t<std::decay_t<T>>(std::forward<T>(value));
+	}
 
+} // namespace sol
 
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_PROTECT_HPP

@@ -21,30 +21,28 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_IN_PLACE_HPP
+#define SOL_IN_PLACE_HPP
 
-/* Base, empty configuration file!
+#include <cstddef>
+#include <utility>
 
-     To override, place a file in your include paths of the form:
+namespace sol {
 
+	using in_place_t = std::in_place_t;
+	constexpr std::in_place_t in_place {};
+	constexpr std::in_place_t in_place_of {};
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+	template <typename T>
+	using in_place_type_t = std::in_place_type_t<T>;
+	template <typename T>
+	constexpr std::in_place_type_t<T> in_place_type {};
 
+	template <size_t I>
+	using in_place_index_t = std::in_place_index_t<I>;
+	template <size_t I>
+	constexpr in_place_index_t<I> in_place_index {};
 
-     So that when sol2 includes the file
+} // namespace sol
 
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_IN_PLACE_HPP

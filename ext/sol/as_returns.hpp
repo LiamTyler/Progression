@@ -21,30 +21,42 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_AS_RETURNS_HPP
+#define SOL_AS_RETURNS_HPP
 
-/* Base, empty configuration file!
+#include <sol/traits.hpp>
+#include <sol/stack.hpp>
+#include <sol/ebco.hpp>
 
-     To override, place a file in your include paths of the form:
+namespace sol {
+	template <typename T>
+	struct as_returns_t : private detail::ebco<T> {
+	private:
+		using base_t = detail::ebco<T>;
 
+	public:
+		using base_t::base_t;
+		using base_t::value;
+	};
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+	template <typename Source>
+	auto as_returns(Source&& source) {
+		return as_returns_t<std::decay_t<Source>> { std::forward<Source>(source) };
+	}
 
+	namespace stack {
+		template <typename T>
+		struct unqualified_pusher<as_returns_t<T>> {
+			int push(lua_State* L, const as_returns_t<T>& e) {
+				auto& src = detail::unwrap(e.value());
+				int p = 0;
+				for (const auto& i : src) {
+					p += stack::push(L, i);
+				}
+				return p;
+			}
+		};
+	} // namespace stack
+} // namespace sol
 
-     So that when sol2 includes the file
-
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_AS_RETURNS_HPP

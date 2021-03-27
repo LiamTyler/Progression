@@ -21,30 +21,36 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_FORWARD_DETAIL_HPP
+#define SOL_FORWARD_DETAIL_HPP
 
-/* Base, empty configuration file!
+#include <sol/version.hpp>
 
-     To override, place a file in your include paths of the form:
+#include <sol/forward.hpp>
+#include <sol/traits.hpp>
+
+namespace sol {
+	namespace detail {
+		const bool default_safe_function_calls =
+#if SOL_IS_ON(SOL_SAFE_FUNCTION_CALLS_I_)
+		     true;
+#else
+		     false;
+#endif
+	} // namespace detail
 
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+	namespace meta { namespace meta_detail {
+	}} // namespace meta::meta_detail
 
+	namespace stack { namespace stack_detail {
+		using undefined_method_func = void (*)(stack_reference);
 
-     So that when sol2 includes the file
+		template <typename T>
+		void set_undefined_methods_on(stack_reference);
 
+		struct undefined_metatable;
+	}} // namespace stack::stack_detail
+} // namespace sol
 
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_FORWARD_DETAIL_HPP

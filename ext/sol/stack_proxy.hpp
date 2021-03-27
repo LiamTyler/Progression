@@ -21,30 +21,44 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_STACK_PROXY_HPP
+#define SOL_STACK_PROXY_HPP
 
-/* Base, empty configuration file!
+#include <sol/stack_proxy_base.hpp>
 
-     To override, place a file in your include paths of the form:
+namespace sol {
+	struct stack_proxy : public stack_proxy_base {
+	public:
+		stack_proxy() : stack_proxy_base() {
+		}
+		stack_proxy(lua_State* L, int index) : stack_proxy_base(L, index) {
+		}
 
+		template <typename... Ret, typename... Args>
+		decltype(auto) call(Args&&... args);
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+		template <typename... Args>
+		decltype(auto) operator()(Args&&... args) {
+			return call<>(std::forward<Args>(args)...);
+		}
+	};
 
+	namespace stack {
+		template <>
+		struct unqualified_getter<stack_proxy> {
+			static stack_proxy get(lua_State* L, int index, record& tracking) {
+				tracking.use(0);
+				return stack_proxy(L, index);
+			}
+		};
 
-     So that when sol2 includes the file
+		template <>
+		struct unqualified_pusher<stack_proxy> {
+			static int push(lua_State*, const stack_proxy& ref) {
+				return ref.push();
+			}
+		};
+	} // namespace stack
+} // namespace sol
 
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_STACK_PROXY_HPP

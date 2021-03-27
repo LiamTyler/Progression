@@ -21,30 +21,32 @@
 // IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-#ifndef SOL_CONFIG_HPP
-#define SOL_CONFIG_HPP
+#ifndef SOL_DEBUG_HPP
+#define SOL_DEBUG_HPP
 
-/* Base, empty configuration file!
+#include <sol/stack.hpp>
+#include <iostream>
 
-     To override, place a file in your include paths of the form:
+namespace sol { namespace detail { namespace debug {
+	inline std::string dump_types(lua_State* L) {
+		std::string visual;
+		std::size_t size = lua_gettop(L) + 1;
+		for (std::size_t i = 1; i < size; ++i) {
+			if (i != 1) {
+				visual += " | ";
+			}
+			visual += type_name(L, stack::get<type>(L, static_cast<int>(i)));
+		}
+		return visual;
+	}
 
+	inline void print_stack(lua_State* L) {
+		std::cout << dump_types(L) << std::endl;
+	}
 
-. (your include path here)
-| sol (directory, or equivalent)
-  | config.hpp (your config.hpp file)
+	inline void print_section(const std::string& message, lua_State* L) {
+		std::cout << "-- " << message << " -- [ " << dump_types(L) << " ]" << std::endl;
+	}
+}}} // namespace sol::detail::debug
 
-
-     So that when sol2 includes the file
-
-
-#include <sol/config.hpp>
-
-
-     it gives you the configuration values you desire. Configuration values can be
-seen in the safety.rst of the doc/src, or at
-https://sol2.readthedocs.io/en/latest/safety.html ! You can also pass them through
-the build system, or the command line options of your compiler.
-
-*/
-
-#endif // SOL_CONFIG_HPP
+#endif // SOL_DEBUG_HPP

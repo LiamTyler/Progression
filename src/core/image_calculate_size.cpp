@@ -21,6 +21,7 @@ namespace PG
     size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips )
     {
         PG_ASSERT( width > 0 && height > 0 );
+        PG_ASSERT( format != PixelFormat::INVALID );
         PG_ASSERT( !PixelFormatIsCompressed( format ), "compressed format not supported yet" );
         uint32_t w = width;
         uint32_t h = height;

@@ -1,5 +1,6 @@
 { "AssetList":
 [
+    { "Script": { "name": "cameraController", "filename": "scripts/cameraController.lua" } },
 	{ "Image": { "name": "sponza/lion", "filename": "models/sponza/lion.tga", "semantic": "DIFFUSE", "imageType": "TYPE_2D" } },
 	{ "Image": { "name": "sponza/background", "filename": "models/sponza/background.tga", "semantic": "DIFFUSE", "imageType": "TYPE_2D" } },
 	{ "Image": { "name": "sponza/vase_plant", "filename": "models/sponza/vase_plant.tga", "semantic": "DIFFUSE", "imageType": "TYPE_2D" } },

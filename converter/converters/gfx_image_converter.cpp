@@ -1,17 +1,27 @@
 #include "gfx_image_converter.hpp"
 #include "asset/image.hpp"
 #include "asset/types/gfx_image.hpp"
+#include "utils/hash.hpp"
 
 
 namespace PG
 {
 
+static std::unordered_map< std::string, ImageInputType > s_inputTypeMap =
+{
+    { "REGULAR_2D",        ImageInputType::REGULAR_2D },
+    { "EQUIRECTANGULAR",   ImageInputType::EQUIRECTANGULAR },
+    { "FLATTENED_CUBEMAP", ImageInputType::FLATTENED_CUBEMAP },
+    { "INDIVIDUAL_FACES",  ImageInputType::INDIVIDUAL_FACES },
+};
+
 static std::unordered_map< std::string, GfxImageSemantic > s_imageSemanticMap =
 {
-    { "DIFFUSE",    GfxImageSemantic::DIFFUSE },
-    { "NORMAL",     GfxImageSemantic::NORMAL },
-    { "METALNESS",  GfxImageSemantic::METALNESS },
-    { "ROUGHNESS",  GfxImageSemantic::ROUGHNESS },
+    { "DIFFUSE",         GfxImageSemantic::DIFFUSE },
+    { "NORMAL",          GfxImageSemantic::NORMAL },
+    { "METALNESS",       GfxImageSemantic::METALNESS },
+    { "ROUGHNESS",       GfxImageSemantic::ROUGHNESS },
+    { "ENVIRONMENT_MAP", GfxImageSemantic::ENVIRONMENT_MAP },
 };
 
 
@@ -23,6 +33,7 @@ static std::string ImageSemanticToString( GfxImageSemantic semantic )
         "NORMAL",
         "METALNESS",
         "ROUGHNESS",
+        "ENVIRONMENT_MAP",
     };
 
     static_assert( ARRAY_COUNT( names ) == static_cast< int >( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) );
@@ -48,7 +59,30 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
     {
         { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
         { "filename",       []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
+        { "inputType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
+            {
+                std::string inputType = v.GetString();
+                auto it = s_inputTypeMap.find( inputType );
+                if ( it == s_inputTypeMap.end() )
+                {
+                    LOG_ERR( "No ImageInputType found matching '%s'", inputType.c_str() );
+                    i.inputType = ImageInputType::NUM_IMAGE_INPUT_TYPES;
+                }
+                else
+                {
+                    i.inputType = it->second;
+                }
+            }
+        },
         { "imageType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 std::string imageName = v.GetString();
@@ -110,24 +144,9 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
         LOG_ERR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
         g_converterStatus.parsingError = true;
     }
-    if ( info->dstPixelFormat == PixelFormat::INVALID )
+    if ( info->inputType == ImageInputType::NUM_IMAGE_INPUT_TYPES )
     {
-        switch ( info->semantic )
-        {
-        case GfxImageSemantic::DIFFUSE:
-            info->dstPixelFormat = PixelFormat::R8_G8_B8_A8_SRGB;
-            break;
-        case GfxImageSemantic::NORMAL:
-            info->dstPixelFormat = PixelFormat::R8_G8_B8_A8_UNORM;
-            break;
-        case GfxImageSemantic::METALNESS:
-        case GfxImageSemantic::ROUGHNESS:
-            info->dstPixelFormat = PixelFormat::R8_UNORM;
-            break;
-        default:
-            LOG_ERR( "Semantic (%d) unknown when deciding final image format", info->semantic );
-            break;
-        }
+        g_converterStatus.parsingError = true;
     }
 
     m_parsedAssets.push_back( info );
@@ -136,7 +155,7 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
 
 std::string GfxImageConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    static_assert( sizeof( GfxImageCreateInfo ) == 16 + 2 * sizeof( std::string ), "Dont forget to add new hash value" );
+    static_assert( sizeof( GfxImageCreateInfo ) == 24 + 8 * sizeof( std::string ), "Dont forget to add new hash value" );
 
     const GfxImageCreateInfo* info = (const GfxImageCreateInfo*)baseInfo;
     std::string baseName = info->name;
@@ -145,7 +164,19 @@ std::string GfxImageConverter::GetFastFileName( const BaseAssetCreateInfo* baseI
     baseName += "_" + std::to_string( static_cast< int >( info->imageType ) );
     baseName += "_" + std::to_string( static_cast< int >( info->dstPixelFormat ) );
     baseName += "_" + std::to_string( static_cast< int >( info->flipVertically ) );
-    baseName += "_" + std::to_string( std::hash< std::string >{}( info->filename ) );
+    size_t inputFileHash = 0;
+    if ( info->inputType == ImageInputType::INDIVIDUAL_FACES )
+    {
+        for ( int i = 0; i < 6; ++i )
+        {
+            HashCombine( inputFileHash, info->faceFilenames[i] );
+        }
+    }
+    else
+    {
+        inputFileHash = Hash( info->filename );
+    }
+    baseName += "_" + std::to_string( inputFileHash );
 
     std::string fullName = PG_ASSET_DIR "cache/images/" + baseName + ".ffi";
     return fullName;

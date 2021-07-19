@@ -15,8 +15,19 @@ enum class GfxImageSemantic
     NORMAL,
     METALNESS,
     ROUGHNESS,
+    ENVIRONMENT_MAP,
 
     NUM_IMAGE_SEMANTICS
+};
+
+enum class ImageInputType
+{
+    REGULAR_2D,
+    EQUIRECTANGULAR,
+    FLATTENED_CUBEMAP,
+    INDIVIDUAL_FACES,
+
+    NUM_IMAGE_INPUT_TYPES
 };
 
 struct GfxImage : public BaseAsset
@@ -43,7 +54,9 @@ struct GfxImage : public BaseAsset
 
 struct GfxImageCreateInfo : public BaseAssetCreateInfo
 {
+    ImageInputType inputType = ImageInputType::REGULAR_2D;
     std::string filename;
+    std::string faceFilenames[6];
     GfxImageSemantic semantic  = GfxImageSemantic::DIFFUSE;
     Gfx::ImageType imageType   = Gfx::ImageType::TYPE_2D;
     PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID

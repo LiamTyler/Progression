@@ -163,6 +163,33 @@ void GfxImage::UploadToGpu()
 }
 
 
+static PixelFormat ChoosePixelFormatFromSemantic( const GfxImageSemantic& semantic )
+{
+    PixelFormat format = PixelFormat::INVALID;
+    switch ( semantic )
+    {
+    case GfxImageSemantic::DIFFUSE:
+        format = PixelFormat::R8_G8_B8_A8_SRGB;
+        break;
+    case GfxImageSemantic::NORMAL:
+        format = PixelFormat::R8_G8_B8_A8_UNORM;
+        break;
+    case GfxImageSemantic::METALNESS:
+    case GfxImageSemantic::ROUGHNESS:
+        format = PixelFormat::R8_UNORM;
+        break;
+    case GfxImageSemantic::ENVIRONMENT_MAP:
+        format = PixelFormat::R16_G16_B16_A16_FLOAT;
+        break;
+    default:
+        LOG_ERR( "Semantic (%d) unknown when deciding final image format", semantic );
+        break;
+    }
+
+    return format;
+}
+
+
 static void NormalizeImage( glm::vec4* pixels, int width, int height )
 {
     for ( int row = 0; row < height; ++row )
@@ -180,7 +207,6 @@ static void NormalizeImage( glm::vec4* pixels, int width, int height )
 
 static void GenerateMipmaps( const Image2D& image, glm::vec4* outputPixels, GfxImageSemantic semantic )
 {
-    //PG_PROFILE_START( GenerateMipmaps );
     PG_ASSERT( image.pixels );
     PG_ASSERT( image.width != 0 && image.height != 0 );
     int w = image.width;
@@ -219,7 +245,6 @@ static void GenerateMipmaps( const Image2D& image, glm::vec4* outputPixels, GfxI
         w = std::max( 1, w >> 1 );
         h = std::max( 1, h >> 1 );
     }
-    //PG_PROFILE_END( GenerateMipmaps );
 }
 
 
@@ -298,26 +323,26 @@ static void ConvertRGBA32Float_SingleMip( unsigned char* outputImage, int width,
 }
 
 
-static void ConvertRGBA32Float_AllMips( unsigned char* outputImage, int width, int height, glm::vec4* inputPixels, PixelFormat format )
+static void ConvertRGBA32Float_AllMips( unsigned char* outputImage, int width, int height, int numFaces, int numMips, glm::vec4* inputPixels, PixelFormat format )
 {
-    //PG_PROFILE_START( ConvertRGBA32Float_AllMips );
     PG_ASSERT( outputImage && inputPixels );
     int w = width;
     int h = height;
-    int numMips = CalculateNumMips( width, height );
     int bytesPerDstPixel = NumBytesPerPixel( format );
     
     glm::vec4* currentSrcImage     = inputPixels;
     unsigned char* currentDstImage = outputImage;
     for ( int mipLevel = 0; mipLevel < numMips; ++mipLevel )
     {
-        ConvertRGBA32Float_SingleMip( currentDstImage, w, h, currentSrcImage, format );
-        currentSrcImage += w * h;
-        currentDstImage += w * h * bytesPerDstPixel;
+        for ( int face = 0; face < numFaces; ++face )
+        {
+            ConvertRGBA32Float_SingleMip( currentDstImage, w, h, currentSrcImage, format );
+            currentSrcImage += w * h;
+            currentDstImage += w * h * bytesPerDstPixel;
+        }
         w = std::max( 1, w >> 1 );
         h = std::max( 1, h >> 1 );
     }
-    //PG_PROFILE_END( ConvertRGBA32Float_AllMips );
 }
 
 
@@ -341,12 +366,65 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
 
     gfxImage->width     = w;
     gfxImage->height    = h;
+    gfxImage->numFaces  = 1;
     gfxImage->mipLevels = CalculateNumMips( w, h );
-    gfxImage->totalSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, createInfo.dstPixelFormat );
+    gfxImage->totalSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
     gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
-    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, srcPixelsAllMips, gfxImage->pixelFormat );
+    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, srcPixelsAllMips, gfxImage->pixelFormat );
     
     free( srcPixelsAllMips );
+
+    return true;
+}
+
+
+static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
+{
+    ImageCubemapCreateInfo srcImgCreateInfo;
+    if ( createInfo.inputType == ImageInputType::EQUIRECTANGULAR )
+    {
+        srcImgCreateInfo.equirectangularFilename = createInfo.filename;
+    }
+    else if ( createInfo.inputType == ImageInputType::FLATTENED_CUBEMAP )
+    {
+        srcImgCreateInfo.flattenedCubemapFilename = createInfo.filename;
+    }
+    else if ( createInfo.inputType == ImageInputType::INDIVIDUAL_FACES )
+    {
+        for ( int i = 0; i < 6; ++i )
+        {
+            srcImgCreateInfo.faceFilenames[i] = createInfo.faceFilenames[i];
+        }
+    }
+    srcImgCreateInfo.flipVertically = createInfo.flipVertically;
+    ImageCubemap srcImg;
+    if ( !srcImg.Load( &srcImgCreateInfo ) )
+    {
+        return false;
+    }
+
+    int w = srcImg.faces[0].width;
+    int h = srcImg.faces[0].height;
+    size_t faceSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT, 1 );
+    glm::vec4* srcPixelsAllMips = static_cast< glm::vec4* >( malloc( 6 * faceSizeInBytes ) ); // layed out side-by-side, (6*width) x hight image
+    // Vulkan face order: front, back, up, down, right and lastly left
+    memcpy( srcPixelsAllMips + 0 * faceSizeInBytes, srcImg.faces[FACE_FRONT].pixels, faceSizeInBytes );
+    memcpy( srcPixelsAllMips + 1 * faceSizeInBytes, srcImg.faces[FACE_BACK].pixels, faceSizeInBytes );
+    memcpy( srcPixelsAllMips + 2 * faceSizeInBytes, srcImg.faces[FACE_TOP].pixels, faceSizeInBytes );
+    memcpy( srcPixelsAllMips + 3 * faceSizeInBytes, srcImg.faces[FACE_BOTTOM].pixels, faceSizeInBytes );
+    memcpy( srcPixelsAllMips + 4 * faceSizeInBytes, srcImg.faces[FACE_RIGHT].pixels, faceSizeInBytes );
+    memcpy( srcPixelsAllMips + 5 * faceSizeInBytes, srcImg.faces[FACE_LEFT].pixels, faceSizeInBytes );
+
+    gfxImage->width     = w;
+    gfxImage->height    = h;
+    gfxImage->mipLevels = 1; // CalculateNumMips( w, h );
+    gfxImage->numFaces  = 6;
+    gfxImage->totalSizeInBytes = 6 * CalculateTotalFaceSizeWithMips( w, h, createInfo.dstPixelFormat );
+    gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
+    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, srcPixelsAllMips, gfxImage->pixelFormat );
+    
+    free( srcPixelsAllMips );
+
 
     return true;
 }
@@ -363,11 +441,20 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
     mipLevels   = 1;
     numFaces    = 1;
 
+    if ( createInfo->dstPixelFormat == PixelFormat::INVALID )
+    {
+        pixelFormat = ChoosePixelFormatFromSemantic( createInfo->semantic );
+    }
+
     bool success;
     if ( createInfo->imageType == Gfx::ImageType::TYPE_2D )
     {
         success = Load_GfxImage_2D( this, *createInfo );
-    } 
+    }
+    else if ( createInfo->imageType == Gfx::ImageType::TYPE_CUBEMAP )
+    {
+        success = Load_GfxImage_Cubemap( this, *createInfo );
+    }
     else
     {
         LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo->imageType ) );

@@ -131,7 +131,12 @@ bool ConvertAssets( const std::string& assetListFile, const std::vector< Convert
     if ( !ParseJSONFile( assetListFile, document ) )
     {
         return false;
-    }    
+    }
+    if ( !document.HasMember( "AssetList" ) )
+    {
+        LOG_ERR( "Asset list file requires a single object 'AssetList' that has a list of all assets" );
+        return false;
+    }
     
     JSONFunctionMapper<>::StringToFuncMap map;
     for ( const auto& converter : converters )
@@ -140,7 +145,6 @@ bool ConvertAssets( const std::string& assetListFile, const std::vector< Convert
     }
     JSONFunctionMapper mapping( map );
 
-    PG_ASSERT( document.HasMember( "AssetList" ), "asset list file requires a single object 'AssetList' that has a list of all assets" );
     const auto& assetList = document["AssetList"];
     for ( rapidjson::Value::ConstValueIterator itr = assetList.Begin(); itr != assetList.End(); ++itr )
     {

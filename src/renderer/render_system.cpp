@@ -93,12 +93,12 @@ bool Init( bool headless )
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "litFrag" );
     litPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "Lit" );
     
-    // pipelineDesc.renderPass             = GetRenderPass( GFX_RENDER_PASS_SKYBOX );
-    // pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 1, attribDescs );
-    // pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
-    // pipelineDesc.shaders[0]             = AssetManager::Get< Shader >( "depthVert" );
-    // //pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "depthFrag" );
-    // skyboxPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "DepthPrepass" );
+    pipelineDesc.renderPass             = GetRenderPass( GFX_RENDER_PASS_SKYBOX );
+    pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 1, attribDescs );
+    pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
+    pipelineDesc.shaders[0]             = AssetManager::Get< Shader >( "depthVert" );
+    //pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "depthFrag" );
+    skyboxPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "DepthPrepass" );
     
     pipelineDesc.renderPass             = GetRenderPass( GFX_RENDER_PASS_POST_PROCESS );
     pipelineDesc.depthInfo.depthTestEnabled  = false;
@@ -154,7 +154,7 @@ void Shutdown()
 
     depthOnlyPipeline.Free();
     litPipeline.Free();
-    //skyboxPipeline.Free();
+    skyboxPipeline.Free();
     postProcessPipeline.Free();
     
     sceneGlobals.UnMap();
@@ -292,6 +292,14 @@ void Render( Scene* scene )
                 cmdBuf.DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
             }
         });
+    cmdBuf.EndRenderPass();
+
+    // SKYBOX
+    cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_SKYBOX ), *GetFramebuffer( GFX_RENDER_PASS_SKYBOX ) );
+    cmdBuf.BindPipeline( &skyboxPipeline );
+    cmdBuf.SetViewport( FullScreenViewport() );
+    cmdBuf.SetScissor( FullScreenScissor() );
+
     cmdBuf.EndRenderPass();
     
     // POST

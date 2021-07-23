@@ -20,8 +20,8 @@
 // CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
 // This file was generated with a script.
-// Generated 2021-01-25 02:52:07.863772 UTC
-// This header was generated with sol v3.2.3 (revision e1950b9a)
+// Generated 2021-07-23 04:36:49.866516 UTC
+// This header was generated with sol v4.0.0-alpha (revision bb5f60e1)
 // https://github.com/ThePhD/sol2
 
 #ifndef SOL_SINGLE_INCLUDE_FORWARD_HPP
@@ -334,6 +334,20 @@
 	#else
 		#define SOL_SAFE_NUMERICS_I_ SOL_DEFAULT_OFF
 	#endif
+#endif
+
+#if defined(SOL_ALL_INTEGER_VALUES_FIT)
+	#if (SOL_ALL_INTEGER_VALUES_FIT != 0)
+		#define SOL_ALL_INTEGER_VALUES_FIT_I_ SOL_ON
+	#else
+		#define SOL_ALL_INTEGER_VALUES_FIT_I_ SOL_OFF
+	#endif
+#elif !SOL_IS_DEFAULT_OFF(SOL_SAFE_NUMERICS_I_) && SOL_IS_OFF(SOL_SAFE_NUMERICS_I_)
+	// if numerics is intentionally turned off, flip this on
+	#define SOL_ALL_INTEGER_VALUES_FIT_I_ SOL_DEFAULT_ON
+#else
+	// default to off
+	#define SOL_ALL_INTEGER_VALUES_FIT_I_ SOL_DEFAULT_OFF
 #endif
 
 #if defined(SOL_SAFE_STACK_CHECK)
@@ -682,6 +696,41 @@
 	#else
 		#define SOL_CHAR8_T_I_ SOL_DEFAULT_OFF
 	#endif
+#endif
+
+#if SOL_IS_ON(SOL_USE_BOOST_I_)
+	#include <boost/version.hpp>
+
+	#if BOOST_VERSION >= 107500 // Since Boost 1.75.0 boost::none is constexpr
+		#define SOL_BOOST_NONE_CONSTEXPR_I_ constexpr
+	#else
+		#define SOL_BOOST_NONE_CONSTEXPR_I_ const
+	#endif // BOOST_VERSION
+#else
+	// assume boost isn't using a garbage version
+	#define SOL_BOOST_NONE_CONSTEXPR_I_ constexpr
+#endif
+
+#if defined(SOL2_CI)
+	#if (SOL2_CI != 0)
+		#define SOL2_CI_I_ SOL_ON
+	#else
+		#define SOL2_CI_I_ SOL_OFF
+	#endif
+#else
+	#define SOL2_CI_I_ SOL_OFF
+#endif
+
+#if defined(SOL_C_ASSERT)
+	#define SOL_USER_C_ASSERT_I_ SOL_ON
+#else
+	#define SOL_USER_C_ASSERT_I_ SOL_DEFAULT_OFF
+#endif
+
+#if defined(SOL_M_ASSERT)
+	#define SOL_USER_M_ASSERT_I_ SOL_ON
+#else
+	#define SOL_USER_M_ASSERT_I_ SOL_DEFAULT_OFF
 #endif
 
 // end of sol/version.hpp

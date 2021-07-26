@@ -151,6 +151,7 @@ Image2D::~Image2D()
 
 Image2D::Image2D( Image2D&& src )
 {
+    pixels = nullptr;
     *this = std::move( src );
 }
 

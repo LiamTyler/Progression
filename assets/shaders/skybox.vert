@@ -13,7 +13,7 @@ layout( location = 0 ) out vec3 UV;
 void main()
 {
     UV = vertex;
-    UV.y *= -1;
+    //UV.y *= -1;
     vec4 pos = VP * vec4( vertex, 1 );
     gl_Position = vec4( pos.xy, pos.w, pos.w );
 }

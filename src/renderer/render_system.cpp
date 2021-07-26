@@ -38,6 +38,8 @@ Buffer s_cubeVertexBuffer;
 Buffer s_cubeIndexBuffer;
 
 DescriptorSet bindlessTexturesDescriptorSet;
+DescriptorSet skyboxDescriptorSet;
+Texture* skyboxTexture;
 
 namespace PG
 {
@@ -142,6 +144,7 @@ bool Init( bool headless )
 
     bindlessTexturesDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_BINDLESS_TEXTURE_SET] );
 
+    skyboxDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( skyboxPipeline.GetResourceLayout()->sets[0] );
 
     glm::vec3 verts[] =
     {
@@ -247,17 +250,7 @@ static void UpdateGlobalAndLightBuffers( Scene* scene )
 void Render( Scene* scene )
 {
     PG_ASSERT( scene != nullptr );
-    
-    // auto chaletTex = AssetManager::Get< GfxImage >( "chalet" );
-    // std::vector< VkDescriptorImageInfo > imgDescriptors =
-    // {
-    //     DescriptorImageInfo( chaletTex->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
-    // };
-    // std::vector< VkWriteDescriptorSet > writeDescriptorSets =
-    // {
-    //     WriteDescriptorSet( litDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
-    // };
-    // r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+
     Gfx::TextureManager::UpdateDescriptors( bindlessTexturesDescriptorSet );
 
     auto swapChainImageIndex = r_globals.swapchain.AcquireNextImage( r_globals.presentCompleteSemaphore );
@@ -269,6 +262,16 @@ void Render( Scene* scene )
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
     UpdateGlobalAndLightBuffers( scene );
+    if ( skyboxTexture != &scene->skybox->gpuTexture )
+    {
+        skyboxTexture = &scene->skybox->gpuTexture;
+        std::vector< VkDescriptorImageInfo > imgDescriptors;
+        std::vector< VkWriteDescriptorSet > writeDescriptorSets;
+
+        imgDescriptors      = { DescriptorImageInfo( *skyboxTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
+        writeDescriptorSets = { WriteDescriptorSet( skyboxDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
+        r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+    }
 
     // DEPTH
     cmdBuf.BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_DEPTH_PREPASS ), *GetFramebuffer( GFX_RENDER_PASS_DEPTH_PREPASS ) );
@@ -334,6 +337,7 @@ void Render( Scene* scene )
     cmdBuf.BindPipeline( &skyboxPipeline );
     cmdBuf.SetViewport( FullScreenViewport() );
     cmdBuf.SetScissor( FullScreenScissor() );
+    cmdBuf.BindDescriptorSet( skyboxDescriptorSet, 0 );
     
     cmdBuf.BindVertexBuffer( s_cubeVertexBuffer );
     cmdBuf.BindIndexBuffer( s_cubeIndexBuffer, IndexType::UNSIGNED_SHORT );

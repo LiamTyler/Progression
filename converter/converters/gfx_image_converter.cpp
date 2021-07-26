@@ -57,10 +57,10 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
 {
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
-        { "filename",       []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.name = v.GetString(); } },
+        { "filename",       []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::REGULAR_2D; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::FLATTENED_CUBEMAP; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::EQUIRECTANGULAR; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
@@ -68,21 +68,6 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
         { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
-        { "inputType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
-            {
-                std::string inputType = v.GetString();
-                auto it = s_inputTypeMap.find( inputType );
-                if ( it == s_inputTypeMap.end() )
-                {
-                    LOG_ERR( "No ImageInputType found matching '%s'", inputType.c_str() );
-                    i.inputType = ImageInputType::NUM_IMAGE_INPUT_TYPES;
-                }
-                else
-                {
-                    i.inputType = it->second;
-                }
-            }
-        },
         { "imageType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 std::string imageName = v.GetString();
@@ -129,25 +114,31 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
     info->imageType = Gfx::ImageType::TYPE_2D;
     mapping.ForEachMember( value, *info );
 
-    if ( !PathExists( info->filename ) )
+    if ( info->name.empty() ) CONVERTER_ERROR( "Image missing a name! Filename '%s'", info->name.c_str(), info->filename.c_str() );
+    if ( info->semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS ) CONVERTER_ERROR( "Must specify a valid image semantic for image '%s'", info->name.c_str() );
+    if ( info->imageType == Gfx::ImageType::NUM_IMAGE_TYPES ) CONVERTER_ERROR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
+
+    int numFaces = 0;
+    for ( int i = 0; i < 6; ++i )
     {
-        LOG_ERR( "Filename '%s' not found for GfxImage '%s', skipping image", info->filename.c_str(), info->name.c_str() );
-        g_converterStatus.parsingError = true;
+        if ( !info->faceFilenames[i].empty() )
+        {
+            info->inputType = ImageInputType::INDIVIDUAL_FACES;
+            ++numFaces;
+        }
     }
-    if ( info->semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS )
+
+    if ( info->inputType == ImageInputType::NUM_IMAGE_INPUT_TYPES ) CONVERTER_ERROR( "Could not deduce ImageInputType. No filename given, nor 6 cubemap faces for image '%s'", info->name.c_str() );
+    if ( info->inputType == ImageInputType::INDIVIDUAL_FACES )
     {
-        LOG_ERR( "Must specify a valid image semantic for image '%s'", info->name.c_str() );
-        g_converterStatus.parsingError = true;
+        if ( numFaces != 6 ) CONVERTER_ERROR( "Please specify all 6 cubemap faces for image '%s'", info->name.c_str() );
+
+        for ( int i = 0; i < 6; ++i )
+        {
+            if ( !PathExists( info->faceFilenames[i] ) ) CONVERTER_ERROR( "Filename '%s' not found for image '%s'", info->filename.c_str(), info->name.c_str() );
+        }
     }
-    if ( info->imageType == Gfx::ImageType::NUM_IMAGE_TYPES )
-    {
-        LOG_ERR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
-        g_converterStatus.parsingError = true;
-    }
-    if ( info->inputType == ImageInputType::NUM_IMAGE_INPUT_TYPES )
-    {
-        g_converterStatus.parsingError = true;
-    }
+    else if ( !PathExists( info->filename ) ) CONVERTER_ERROR( "Filename '%s' not found for image '%s'", info->filename.c_str(), info->name.c_str() );
 
     m_parsedAssets.push_back( info );
 }

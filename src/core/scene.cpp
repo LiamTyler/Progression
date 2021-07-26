@@ -120,9 +120,9 @@ static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
 static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
 {
     PG_ASSERT( v.IsString() );
-    // scene->skybox = AssetManager::Get< Image >( v.GetString() );
-    // PG_ASSERT( scene->skybox, "Could not find skybox with name '" + std::string( v.GetString() ) + "'" );
-    return false;
+    scene->skybox = AssetManager::Get< GfxImage >( v.GetString() );
+    PG_ASSERT( scene->skybox, "Could not find skybox with name '" + std::string( v.GetString() ) + "'" );
+    return true;
 }
 
 

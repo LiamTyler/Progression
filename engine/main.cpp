@@ -19,7 +19,7 @@ bool g_paused = false;
 
 
 int main( int argc, char* argv[] )
-{
+ {
 	EngineInitInfo engineInitConfig;
 	if ( !EngineInitialize( engineInitConfig ) )
     {

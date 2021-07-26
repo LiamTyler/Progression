@@ -152,7 +152,7 @@ void GfxImage::UploadToGpu()
     desc.arrayLayers = numFaces;
     desc.mipLevels   = mipLevels;
     desc.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    desc.addToBindlessArray = true;
+    desc.addToBindlessArray = imageType == ImageType::TYPE_2D;
 
     gpuTexture = r_globals.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );
@@ -205,13 +205,13 @@ static void NormalizeImage( glm::vec4* pixels, int width, int height )
 }
 
 
-static void GenerateMipmaps( const Image2D& image, glm::vec4* outputPixels, GfxImageSemantic semantic )
+static void GenerateMipmaps_Float32( const glm::vec4* srcPixels, int width, int height, glm::vec4* dstPixels, GfxImageSemantic semantic )
 {
-    PG_ASSERT( image.pixels );
-    PG_ASSERT( image.width != 0 && image.height != 0 );
-    int w = image.width;
-    int h = image.height;
-    int numMips = CalculateNumMips( image.width, image.height );
+    PG_ASSERT( srcPixels );
+    PG_ASSERT( width != 0 && height != 0 );
+    int w = width;
+    int h = height;
+    int numMips = CalculateNumMips( width, height );
     
     int lastW, lastH;
     size_t lastOffset;
@@ -220,13 +220,15 @@ static void GenerateMipmaps( const Image2D& image, glm::vec4* outputPixels, GfxI
     {
         if ( mipLevel == 0 )
         {
-            // copy mip 0 into output buffer
-            memcpy( outputPixels, image.pixels, w * h * sizeof( glm::vec4 ) );
+            if ( srcPixels != dstPixels )
+            {
+                memcpy( dstPixels, srcPixels, w * h * sizeof( glm::vec4 ) );
+            }
         }
         else
         {
-            float* currentDstImg = reinterpret_cast< float* >( outputPixels + currentOffset );
-            float* currentSrcImage = reinterpret_cast< float* >( outputPixels + lastOffset );
+            float* currentDstImg = reinterpret_cast< float* >( dstPixels + currentOffset );
+            float* currentSrcImage = reinterpret_cast< float* >( dstPixels + lastOffset );
             int flags = 0;
             int alphaChannel = 3;
             stbir_resize_float_generic( currentSrcImage, lastW, lastH, lastW * sizeof( glm::vec4 ), currentDstImg, w, h, w * sizeof( glm::vec4 ), 4, alphaChannel, flags, STBIR_EDGE_CLAMP, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
@@ -235,7 +237,7 @@ static void GenerateMipmaps( const Image2D& image, glm::vec4* outputPixels, GfxI
         // renormalize normal maps
         if ( semantic == GfxImageSemantic::NORMAL )
         {
-            NormalizeImage( outputPixels + currentOffset, w, h );
+            NormalizeImage( dstPixels + currentOffset, w, h );
         }
 
         lastW = w;
@@ -360,9 +362,9 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
     int w = srcImg.width;
     int h = srcImg.height;
     size_t totalSrcImageSize = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );
-    glm::vec4* srcPixelsAllMips = static_cast< glm::vec4* >( malloc( totalSrcImageSize ) );
-    memset( srcPixelsAllMips, 0, totalSrcImageSize );
-    GenerateMipmaps( srcImg, srcPixelsAllMips, createInfo.semantic );
+    glm::vec4* pixelsAllMips = static_cast< glm::vec4* >( malloc( totalSrcImageSize ) );
+    memset( pixelsAllMips, 0, totalSrcImageSize );
+    GenerateMipmaps_Float32( srcImg.pixels, w, h, pixelsAllMips, createInfo.semantic );
 
     gfxImage->width     = w;
     gfxImage->height    = h;
@@ -370,9 +372,9 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
     gfxImage->mipLevels = CalculateNumMips( w, h );
     gfxImage->totalSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
     gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
-    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, srcPixelsAllMips, gfxImage->pixelFormat );
+    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, pixelsAllMips, gfxImage->pixelFormat );
     
-    free( srcPixelsAllMips );
+    free( pixelsAllMips );
 
     return true;
 }
@@ -405,25 +407,26 @@ static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo&
 
     int w = srcImg.faces[0].width;
     int h = srcImg.faces[0].height;
-    size_t faceSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT, 1 );
-    glm::vec4* srcPixelsAllMips = static_cast< glm::vec4* >( malloc( 6 * faceSizeInBytes ) ); // layed out side-by-side, (6*width) x hight image
+    size_t mipChainSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );
+    glm::vec4* pixelsAllMips = static_cast< glm::vec4* >( malloc( 6 * mipChainSizeInBytes ) );
     // Vulkan face order: front, back, up, down, right and lastly left
-    memcpy( srcPixelsAllMips + 0 * faceSizeInBytes, srcImg.faces[FACE_FRONT].pixels, faceSizeInBytes );
-    memcpy( srcPixelsAllMips + 1 * faceSizeInBytes, srcImg.faces[FACE_BACK].pixels, faceSizeInBytes );
-    memcpy( srcPixelsAllMips + 2 * faceSizeInBytes, srcImg.faces[FACE_TOP].pixels, faceSizeInBytes );
-    memcpy( srcPixelsAllMips + 3 * faceSizeInBytes, srcImg.faces[FACE_BOTTOM].pixels, faceSizeInBytes );
-    memcpy( srcPixelsAllMips + 4 * faceSizeInBytes, srcImg.faces[FACE_RIGHT].pixels, faceSizeInBytes );
-    memcpy( srcPixelsAllMips + 5 * faceSizeInBytes, srcImg.faces[FACE_LEFT].pixels, faceSizeInBytes );
+    int faceOrder[] = { FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM, FACE_RIGHT, FACE_LEFT };
+    for ( int face = 0; face < 6; ++face )
+    {
+        glm::vec4* faceMip0 = pixelsAllMips + face * (mipChainSizeInBytes / sizeof( glm::vec4 ));
+        memcpy( faceMip0, srcImg.faces[faceOrder[face]].pixels, w * h * sizeof( glm::vec4 ) );
+        GenerateMipmaps_Float32( faceMip0, w, h, faceMip0, createInfo.semantic );
+    }
 
     gfxImage->width     = w;
     gfxImage->height    = h;
-    gfxImage->mipLevels = 1; // CalculateNumMips( w, h );
+    gfxImage->mipLevels = CalculateNumMips( w, h );
     gfxImage->numFaces  = 6;
-    gfxImage->totalSizeInBytes = 6 * CalculateTotalFaceSizeWithMips( w, h, createInfo.dstPixelFormat );
+    gfxImage->totalSizeInBytes = 6 * CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
     gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
-    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, srcPixelsAllMips, gfxImage->pixelFormat );
+    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, pixelsAllMips, gfxImage->pixelFormat );
     
-    free( srcPixelsAllMips );
+    free( pixelsAllMips );
 
 
     return true;

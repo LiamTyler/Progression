@@ -9,6 +9,8 @@
 #include "utils/json_parsing.hpp"
 #include "utils/serializer.hpp"
 
+#define CONVERTER_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); g_converterStatus.parsingError = true; return; }
+
 namespace PG
 {
 

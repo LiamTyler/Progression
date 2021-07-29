@@ -9,6 +9,7 @@ layout( location = 0 ) out vec4 finalColor;
 
 void main()
 {
-    finalColor = texture( skybox, UV );
-	//finalColor = vec4( 0.5, 0, 0, 1 );
+	// Flip Z because in opengl, +z is forward instead of -z, because it uses a left handed system
+	// https://stackoverflow.com/questions/11685608/convention-of-faces-in-opengl-cubemapping
+    finalColor = texture( skybox, vec3( UV.xy, -UV.z ) );
 }

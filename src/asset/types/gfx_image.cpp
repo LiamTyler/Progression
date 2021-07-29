@@ -409,8 +409,7 @@ static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo&
     int h = srcImg.faces[0].height;
     size_t mipChainSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );
     glm::vec4* pixelsAllMips = static_cast< glm::vec4* >( malloc( 6 * mipChainSizeInBytes ) );
-    // Vulkan face order: front, back, up, down, right and lastly left
-    int faceOrder[] = { FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM, FACE_RIGHT, FACE_LEFT };
+    int faceOrder[] = { FACE_RIGHT, FACE_LEFT, FACE_TOP, FACE_BOTTOM, FACE_FRONT, FACE_BACK }; // shouldnt the end of this be back then front, not the other way around?
     for ( int face = 0; face < 6; ++face )
     {
         glm::vec4* faceMip0 = pixelsAllMips + face * (mipChainSizeInBytes / sizeof( glm::vec4 ));

@@ -181,7 +181,6 @@ bool Image2D::Load( Image2DCreateInfo* createInfo )
     std::string ext = GetFileExtension( filename );
     if ( ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp" || ext == ".hdr" )
     {
-        stbi_set_flip_vertically_on_load( createInfo->flipVertically );
         stbi_ldr_to_hdr_gamma( 1.0f );
         stbi_ldr_to_hdr_scale( 1.0f );
         int numComponents;
@@ -209,7 +208,7 @@ bool Image2D::Load( Image2DCreateInfo* createInfo )
     {
         const char* err = nullptr;
         loadSuccessful = LoadEXR( reinterpret_cast<float**>( &pixels ), &width, &height, filename.c_str(), &err ) == TINYEXR_SUCCESS;
-        if( err )
+        if ( err )
         {
             LOG_ERR( "Tinyexr error '%s'", err );
         }
@@ -223,6 +222,19 @@ bool Image2D::Load( Image2DCreateInfo* createInfo )
     if ( !loadSuccessful )
     {
         LOG_ERR( "Failed to load image '%s'", filename.c_str() );
+    }
+    else
+    {
+        if ( createInfo->flipVertically )
+        {
+            for ( int r = 0; r < height / 2; ++r )
+            {
+                for ( int c = 0; c < width; ++c )
+                {
+                    std::swap( pixels[r * width + c], pixels[(height - r - 1) * width + c] );
+                }
+            }
+        }
     }
 
     return loadSuccessful;

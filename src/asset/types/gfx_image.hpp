@@ -4,9 +4,6 @@
 #include "core/pixel_formats.hpp"
 #include "renderer/graphics_api/texture.hpp"
 
-// define GFX_INVALID_TEXTURE_HANDLE (~0u)
-// ypedef uint32_t GfxTextureHandle;
-
 class Serializer;
 
 namespace PG
@@ -18,12 +15,26 @@ enum class GfxImageSemantic
     NORMAL,
     METALNESS,
     ROUGHNESS,
+    ENVIRONMENT_MAP,
 
     NUM_IMAGE_SEMANTICS
 };
 
-struct GfxImage : public Asset
+enum class ImageInputType
 {
+    REGULAR_2D,
+    EQUIRECTANGULAR,
+    FLATTENED_CUBEMAP,
+    INDIVIDUAL_FACES,
+
+    NUM_IMAGE_INPUT_TYPES
+};
+
+struct GfxImage : public BaseAsset
+{
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
     unsigned char* GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel = 0 ) const;
     void UploadToGpu();
@@ -41,21 +52,15 @@ struct GfxImage : public Asset
     Gfx::Texture gpuTexture;
 };
 
-struct GfxImageCreateInfo
+struct GfxImageCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
+    ImageInputType inputType = ImageInputType::REGULAR_2D;
     std::string filename;
+    std::string faceFilenames[6];
     GfxImageSemantic semantic  = GfxImageSemantic::DIFFUSE;
     Gfx::ImageType imageType   = Gfx::ImageType::TYPE_2D;
     PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID
     bool flipVertically        = true;
 };
-
-bool GfxImage_Load( GfxImage* image, const GfxImageCreateInfo& createInfo );
-
-bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer );
-
-bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serializer );
-
 
 } // namespace PG

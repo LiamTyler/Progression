@@ -4,5 +4,8 @@
     { "Shader": { "name": "litVert", "shaderStage" : "vertex", "filename": "lit.vert" } },
     { "Shader": { "name": "litFrag", "shaderStage" : "fragment", "filename": "lit.frag" } },
     { "Shader": { "name": "postProcessVert", "shaderStage" : "vertex", "filename": "post_process.vert" } },
-    { "Shader": { "name": "postProcessFrag", "shaderStage" : "fragment", "filename": "post_process.frag" } }
+    { "Shader": { "name": "postProcessFrag", "shaderStage" : "fragment", "filename": "post_process.frag" } },
+    { "Shader": { "name": "skyboxVert", "shaderStage" : "vertex", "filename": "skybox.vert" } },
+    { "Shader": { "name": "skyboxFrag", "shaderStage" : "fragment", "filename": "skybox.frag" } },
+	{ "Model": { "name": "cube", "filename": "models/basic_shapes/cube.pgModel" } }
 ]}

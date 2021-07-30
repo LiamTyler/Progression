@@ -95,7 +95,7 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_SET_IMAGE_ONLY_NAME( img, name )          PG::Gfx::DebugMarker::SetImageName( PG::Gfx::r_globals.device.GetHandle(), img, PG_DEBUG_MARKER_NAME( "Image: ", name ) )
 #define PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, name )         PG::Gfx::DebugMarker::SetSamplerName( PG::Gfx::r_globals.device.GetHandle(), sampler.GetHandle(), PG_DEBUG_MARKER_NAME( "Sampler: ", name ) )
 #define PG_DEBUG_MARKER_SET_MEMORY_NAME( memory, name )           PG::Gfx::DebugMarker::SetDeviceMemoryName( PG::Gfx::r_globals.device.GetHandle(), memory, PG_DEBUG_MARKER_NAME( "Memory: ", name ) )
-#define PG_DEBUG_MARKER_SET_SHADER_NAME( shaderPtr, name )	      PG::Gfx::DebugMarker::SetShaderModuleName( PG::Gfx::r_globals.device.GetHandle(), shader->handle, PG_DEBUG_MARKER_NAME( "Shader: ", name ) )
+#define PG_DEBUG_MARKER_SET_SHADER_NAME( shaderPtr, name )	      PG::Gfx::DebugMarker::SetShaderModuleName( PG::Gfx::r_globals.device.GetHandle(), shaderPtr->handle, PG_DEBUG_MARKER_NAME( "Shader: ", name ) )
 #define PG_DEBUG_MARKER_SET_RENDER_PASS_NAME( pass, name )        PG::Gfx::DebugMarker::SetRenderPassName( PG::Gfx::r_globals.device.GetHandle(), pass.GetHandle(), PG_DEBUG_MARKER_NAME( "RenderPass: ", name ) )
 #define PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( framebuffer, name ) PG::Gfx::DebugMarker::SetFramebufferName( PG::Gfx::r_globals.device.GetHandle(), framebuffer.GetHandle(), PG_DEBUG_MARKER_NAME( "Framebuffer: ", name ) )
 #define PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( layout, name )  PG::Gfx::DebugMarker::SetDescriptorSetLayoutName( PG::Gfx::r_globals.device.GetHandle(), layout.GetHandle(), PG_DEBUG_MARKER_NAME( "Descriptor Set Layout: ", name ) )

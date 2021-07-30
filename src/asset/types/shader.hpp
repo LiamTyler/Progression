@@ -6,8 +6,6 @@
 #include "renderer/vulkan.hpp"
 #include <vector>
 
-class Serializer;
-
 namespace PG
 {
 
@@ -23,9 +21,8 @@ enum class ShaderStage
     NUM_SHADER_STAGES
 };
 
-struct ShaderCreateInfo
+struct ShaderCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     std::string filename;
     ShaderStage shaderStage;
     std::vector< std::pair< std::string, std::string > > defines;
@@ -47,9 +44,12 @@ struct ShaderResourceLayout
 	Gfx::DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS];
 };
 
-struct Shader : public Asset
+struct Shader : public BaseAsset
 {
-    void Free();
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
+    void Free() override;
 
     ShaderStage shaderStage;
     std::string entryPoint;
@@ -57,14 +57,8 @@ struct Shader : public Asset
     ShaderResourceLayout resourceLayout;
 
 #if USING( COMPILING_CONVERTER )
-    std::vector< uint32_t > spirv;
+    std::vector< uint32_t > savedSpirv;
 #endif // #if USING( COMPILING_CONVERTER )
 };
-
-bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo );
-
-bool Fastfile_Shader_Load( Shader* shader, Serializer* serializer );
-
-bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer );
 
 } // namespace PG

@@ -1,17 +1,22 @@
 #pragma once
 
+#include "converter.hpp"
+#include "asset/types/gfx_image.hpp"
 #include "utils/json_parsing.hpp"
 
-class Serializer;
+namespace PG
+{
 
+class ScriptConverter : public Converter
+{
+public:
+    ScriptConverter() : Converter( "Script", ASSET_TYPE_SCRIPT ) {}
+    void Parse( const rapidjson::Value& value ) override;
 
-void Script_Parse( const rapidjson::Value& value );
+protected:
+    std::string GetFastFileName( const BaseAssetCreateInfo* info ) const override;
+    bool IsAssetOutOfDate( const BaseAssetCreateInfo* info ) override;
+    bool ConvertSingle( const BaseAssetCreateInfo* info ) const override;
+};
 
-// returns how many assets are out of date
-int Script_CheckDependencies();
-
-// returns how many assets were unable to be converted
-int Script_Convert();
-
-// returns true if no errors occurred, false otherwise
-bool Script_BuildFastFile( Serializer* serializer );
+} // namespace PG

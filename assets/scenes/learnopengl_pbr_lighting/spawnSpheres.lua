@@ -1,6 +1,9 @@
 local model = AssetManager.GetModel( "sphere" )
 local USE_RED_SPHERES = true
 
+controllerIndex = 0
+assert( controllerIndex )
+
 if USE_RED_SPHERES then
 
 	materials = {}

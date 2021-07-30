@@ -1,17 +1,20 @@
 #pragma once
 
-#include "utils/json_parsing.hpp"
+#include "converter.hpp"
 
-class Serializer;
+namespace PG
+{
 
+class MaterialFileConverter : public Converter
+{
+public:
+    MaterialFileConverter() : Converter( "MatFile", ASSET_TYPE_MATERIAL ) {}
+    void Parse( const rapidjson::Value& value ) override;
 
-void Material_Parse( const rapidjson::Value& value );
+protected:
+    std::string GetFastFileName( const BaseAssetCreateInfo* info ) const override;
+    bool IsAssetOutOfDate( const BaseAssetCreateInfo* info ) override;
+    bool ConvertSingle( const BaseAssetCreateInfo* info ) const override;
+};
 
-// returns how many assets are out of date
-int Material_CheckDependencies();
-
-// returns how many assets were unable to be converted
-int Material_Convert();
-
-// returns true if no errors occurred, false otherwise
-bool Material_BuildFastFile( Serializer* serializer );
+} // namespace PG

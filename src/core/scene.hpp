@@ -11,7 +11,8 @@
 
 namespace PG
 {
-    class Image;
+    struct GfxImage;
+
     class Scene
     {
     public:
@@ -30,6 +31,7 @@ namespace PG
         std::vector< PointLight > pointLights;
         std::vector< SpotLight > spotLights;
         entt::registry registry;
+        GfxImage* skybox;
 
         // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions
         Lua::ScriptInstance nonEntityScripts[PG_MAX_NON_ENTITY_SCRIPTS];

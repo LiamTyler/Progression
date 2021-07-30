@@ -37,7 +37,7 @@ static bool InitRP_DepthPrepass()
 static bool InitRP_Lit()
 {
     RenderPassDescriptor renderPassDesc;
-    renderPassDesc.AddColorAttachment( PixelFormat::R16_G16_B16_A16_FLOAT, LoadAction::CLEAR, StoreAction::STORE, glm::vec4( 1 ), ImageLayout::UNDEFINED, ImageLayout::SHADER_READ_ONLY_OPTIMAL );
+    renderPassDesc.AddColorAttachment( PixelFormat::R16_G16_B16_A16_FLOAT, LoadAction::CLEAR, StoreAction::STORE, glm::vec4( 1 ), ImageLayout::UNDEFINED, ImageLayout::COLOR_ATTACHMENT_OPTIMAL );
     renderPassDesc.AddDepthAttachment( PixelFormat::DEPTH_32_FLOAT, LoadAction::LOAD, StoreAction::STORE, 1.0f, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
     //renderPassDesc.AddDepthAttachment( PixelFormat::DEPTH_32_FLOAT, LoadAction::LOAD, StoreAction::STORE, 1.0f, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
     s_renderPasses[GFX_RENDER_PASS_LIT] = r_globals.device.NewRenderPass( renderPassDesc, "Lit" );
@@ -60,7 +60,7 @@ static bool InitRP_Lit()
 static bool InitRP_Skybox()
 {
     RenderPassDescriptor renderPassDesc;
-    renderPassDesc.AddColorAttachment( PixelFormat::R16_G16_B16_A16_FLOAT, LoadAction::LOAD, StoreAction::STORE, glm::vec4( 0 ), ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::COLOR_ATTACHMENT_OPTIMAL );
+    renderPassDesc.AddColorAttachment( PixelFormat::R16_G16_B16_A16_FLOAT, LoadAction::LOAD, StoreAction::STORE, glm::vec4( 0 ), ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::SHADER_READ_ONLY_OPTIMAL );
     renderPassDesc.AddDepthAttachment( PixelFormat::DEPTH_32_FLOAT, LoadAction::LOAD, StoreAction::STORE, 1.0f, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
     s_renderPasses[GFX_RENDER_PASS_SKYBOX] = r_globals.device.NewRenderPass( renderPassDesc, "Skybox" );
 

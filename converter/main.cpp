@@ -2,7 +2,6 @@
 #include "asset/asset_versions.hpp"
 #include "core/assert.hpp"
 #include "core/time.hpp"
-#include "converters/environment_map_converter.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
 #include "converters/model_converter.hpp"
@@ -17,6 +16,8 @@
 #include "getopt/getopt.h"
 #include <algorithm>
 
+using namespace PG;
+
 static void DisplayHelp()
 {
     auto msg =
@@ -30,14 +31,9 @@ static void DisplayHelp()
     LOG( "%s", msg );   
 }
 
-ConverterConfigOptions g_converterConfigOptions;
-ConverterStatus g_converterStatus;
+bool ConvertAssets( const std::string& assetFile, const std::vector< Converter* >& converters );
 
-void AddFastfileDependency( const std::string& file );
-
-bool ConvertAssets();
-
-bool AssembleConvertedAssetsIntoFastfile();
+bool AssembleConvertedAssetsIntoFastfile( const std::string& assetFile, const std::vector< Converter* >& converters );
 
 int main( int argc, char** argv )
 {
@@ -90,36 +86,37 @@ int main( int argc, char** argv )
         DisplayHelp();
         return 0;
     }
+    std::string assetListFile = argv[optind];
+    std::vector< Converter* > converters =
+    {
+        new GfxImageConverter,
+        new ShaderConverter,
+        new ScriptConverter,
+        new MaterialFileConverter,
+        new ModelConverter,
+    };
 
-    g_converterConfigOptions.assetListFile = argv[optind];
-
-    g_converterStatus.convertAssetErrors = !ConvertAssets();
-    g_converterStatus.buildFastfileErrors = AssembleConvertedAssetsIntoFastfile();
+    if ( ConvertAssets( assetListFile, converters ) )
+    {
+        AssembleConvertedAssetsIntoFastfile( assetListFile, converters );
+    }
 
     Logger_Shutdown();
     return 0;
 }
 
 
-static time_t s_latestAssetTimestamp;
 static int s_outOfDateAssets;
 
 
-void AddFastfileDependency( const std::string& file )
+bool ConvertAssets( const std::string& assetListFile, const std::vector< Converter* >& converters )
 {
-    s_latestAssetTimestamp = std::max( s_latestAssetTimestamp, GetFileTimestamp( file ) );
-}
-
-
-bool ConvertAssets()
-{
+    ClearAllFastfileDependencies();
     s_outOfDateAssets       = 0;
-    s_latestAssetTimestamp  = 0;
     g_converterStatus       = {};
 
     LOG( "Running converter..." );
     CreateDirectory( PG_ASSET_DIR "cache/" );
-    CreateDirectory( PG_ASSET_DIR "cache/environment_maps/" );
     CreateDirectory( PG_ASSET_DIR "cache/fastfiles/" );
     CreateDirectory( PG_ASSET_DIR "cache/images/" );
     CreateDirectory( PG_ASSET_DIR "cache/materials/" );
@@ -129,25 +126,25 @@ bool ConvertAssets()
     CreateDirectory( PG_ASSET_DIR "cache/shader_preproc/" );
 
     auto convertAssetsStartTime = PG::Time::GetTimePoint();
-    LOG( "Loading asset list file '%s'...", g_converterConfigOptions.assetListFile.c_str() );
+    LOG( "Loading asset list file '%s'...", assetListFile.c_str() );
     rapidjson::Document document;
-    if ( !ParseJSONFile( g_converterConfigOptions.assetListFile, document ) )
+    if ( !ParseJSONFile( assetListFile, document ) )
     {
         return false;
     }
-    
-    static JSONFunctionMapper mapping(
+    if ( !document.HasMember( "AssetList" ) )
     {
-        { "Image",          GfxImage_Parse },
-        { "MatFile",        Material_Parse },
-        { "Script",         Script_Parse },
-        { "Model",          Model_Parse },
-        { "Shader",         Shader_Parse },
-        { "EnvironmentMap", EnvironmentMap_Parse },
-    });
+        LOG_ERR( "Asset list file requires a single object 'AssetList' that has a list of all assets" );
+        return false;
+    }
+    
+    JSONFunctionMapper<>::StringToFuncMap map;
+    for ( const auto& converter : converters )
+    {
+        map.emplace( converter->AssetNameInJSONFile(), [&]( const rapidjson::Value& value ) { converter->Parse( value ); } );
+    }
+    JSONFunctionMapper mapping( map );
 
-
-    PG_ASSERT( document.HasMember( "AssetList" ), "asset list file requires a single object 'AssetList' that has a list of all assets" );
     const auto& assetList = document["AssetList"];
     for ( rapidjson::Value::ConstValueIterator itr = assetList.Begin(); itr != assetList.End(); ++itr )
     {
@@ -161,29 +158,12 @@ bool ConvertAssets()
     }
 
     LOG( "Checking asset dependencies..." );
-    int numGfxImageOutOfDate = GfxImage_CheckDependencies();
-    s_outOfDateAssets += numGfxImageOutOfDate;
-    LOG( "GfxImages out of date: %d", numGfxImageOutOfDate );
-
-    int numMatFilesOutOfDate = Material_CheckDependencies();
-    s_outOfDateAssets += numMatFilesOutOfDate;
-    LOG( "MatFiles out of date: %d", numMatFilesOutOfDate );
-
-    int numScriptFilesOutOfDate = Script_CheckDependencies();
-    s_outOfDateAssets += numScriptFilesOutOfDate;
-    LOG( "Scripts out of date: %d", numScriptFilesOutOfDate );
-
-    int numModelFilesOutOfDate = Model_CheckDependencies();
-    s_outOfDateAssets += numModelFilesOutOfDate;
-    LOG( "Models out of date: %d", numModelFilesOutOfDate );
-
-    int numShaderFilesOutOfDate = Shader_CheckDependencies();
-    s_outOfDateAssets += numShaderFilesOutOfDate;
-    LOG( "Shaders out of date: %d", numShaderFilesOutOfDate );
-
-    int numEnvMapFilesOutOfDate = EnvironmentMap_CheckDependencies();
-    s_outOfDateAssets += numEnvMapFilesOutOfDate;
-    LOG( "EnvironmentMaps out of date: %d", numEnvMapFilesOutOfDate );
+    for ( const auto& converter : converters )
+    {
+        int outOfDate = converter->CheckAllDependencies();
+        s_outOfDateAssets += outOfDate;
+        LOG( "%s out of date: %d", converter->AssetNameInJSONFile().c_str(), outOfDate );
+    }
 
     bool status = true;
     if ( g_converterStatus.checkDependencyErrors > 0 )
@@ -200,17 +180,15 @@ bool ConvertAssets()
         else
         {
             LOG( "Converting %d assets...", s_outOfDateAssets );
-            int totalErrors = 0;
-            totalErrors += GfxImage_Convert();
-            totalErrors += Material_Convert();
-            totalErrors += Script_Convert();
-            totalErrors += Model_Convert();
-            totalErrors += Shader_Convert();
-            totalErrors += EnvironmentMap_Convert();
-
-            if ( totalErrors )
+            int totalConvertErrors = 0;
+            for ( const auto& converter : converters )
             {
-                LOG_ERR( "%d errors while converting, convert FAILED", totalErrors );
+                totalConvertErrors += converter->ConvertAll();
+            }
+
+            if ( totalConvertErrors )
+            {
+                LOG_ERR( "%d errors while converting, convert FAILED", totalConvertErrors );
                 status = false;
             }
             else
@@ -234,18 +212,13 @@ bool ConvertAssets()
 }
 
 
-bool AssembleConvertedAssetsIntoFastfile()
+bool AssembleConvertedAssetsIntoFastfile( const std::string& assetListFile, const std::vector< Converter* >& converters )
 {
-    if ( g_converterStatus.convertAssetErrors )
-    {
-        return false;
-    }
-
     auto buildFastfileStartTime = PG::Time::GetTimePoint();
     LOG( "\nRunning build fastfile..." );
     auto startTime = std::chrono::system_clock::now();
-    std::string ffName = PG_ASSET_DIR "cache/fastfiles/" + GetFilenameStem( g_converterConfigOptions.assetListFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
-    if ( s_outOfDateAssets == 0 && PathExists( ffName ) && GetFileTimestamp( ffName ) >= s_latestAssetTimestamp )
+    std::string ffName = PG_ASSET_DIR "cache/fastfiles/" + GetFilenameStem( assetListFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
+    if ( s_outOfDateAssets == 0 && PathExists( ffName ) && GetFileTimestamp( ffName ) >= GetLatestFastfileDependency() )
     {
         LOG( "Fastfile '%s' is up to date, not rebuilding", ffName.c_str() );
         return true;
@@ -257,14 +230,11 @@ bool AssembleConvertedAssetsIntoFastfile()
     {
         return false;
     }
-    static_assert( NUM_ASSET_TYPES == 6, "Dont forget to update this, otherwise new asset wont be written to fastfile" );
     bool success = true;
-    success = success && GfxImage_BuildFastFile( &outFile );
-    success = success && Material_BuildFastFile( &outFile );
-    success = success && Script_BuildFastFile( &outFile );
-    success = success && Model_BuildFastFile( &outFile );
-    success = success && Shader_BuildFastFile( &outFile );
-    success = success && EnvironmentMap_BuildFastFile( &outFile );
+    for ( const auto& converter : converters )
+    {
+        success = success && converter->BuildFastFile( &outFile );
+    }
 
     double elapsedTime = PG::Time::GetDuration( buildFastfileStartTime ) / 1000.0;
     if ( success )

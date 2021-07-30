@@ -7,49 +7,48 @@
 namespace PG
 {
 
-
-bool Script_Load( Script* script, const ScriptCreateInfo& createInfo )
+bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 {
     static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
-    PG_ASSERT( script );
-    script->name = createInfo.name;
-    std::ifstream in( createInfo.filename, std::ios::binary );
+    PG_ASSERT( baseInfo );
+    const ScriptCreateInfo* createInfo = (const ScriptCreateInfo*)baseInfo;
+    name = createInfo->name;
+    std::ifstream in( createInfo->filename, std::ios::binary );
     if ( !in )
     {
-        LOG_ERR( "Could not load script file '%s'", createInfo.filename.c_str() );
+        LOG_ERR( "Could not load script file '%s'", createInfo->filename.c_str() );
         return false;
     }
 
     in.seekg( 0, std::ios::end );
     size_t size = in.tellg();
-    script->scriptText.resize( size );
+    scriptText.resize( size );
     in.seekg( 0 );
-    in.read( &script->scriptText[0], size ); 
+    in.read( &scriptText[0], size ); 
 
     return true;
 }
 
 
-bool Fastfile_Script_Load( Script* script, Serializer* serializer )
+bool Script::FastfileLoad( Serializer* serializer )
 {
     static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
-    PG_ASSERT( script && serializer );
-    serializer->Read( script->name );
-    serializer->Read( script->scriptText );
+    PG_ASSERT( serializer );
+    serializer->Read( name );
+    serializer->Read( scriptText );
 
     return true;
 }
 
 
-bool Fastfile_Script_Save( const Script * const script, Serializer* serializer )
+bool Script::FastfileSave( Serializer* serializer ) const
 {
     static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
-    PG_ASSERT( script && serializer );
-    serializer->Write( script->name );
-    serializer->Write( script->scriptText );
+    PG_ASSERT( serializer );
+    serializer->Write( name );
+    serializer->Write( scriptText );
 
     return true;
 }
-
 
 } // namespace PG

@@ -6,8 +6,6 @@ include(set_compile_options_default)
 set(
 	SRC
     ${PROGRESSION_DIR}/src/asset/types/base_asset.hpp
-    ${PROGRESSION_DIR}/src/asset/types/environment_map.cpp
-    ${PROGRESSION_DIR}/src/asset/types/environment_map.hpp
     ${PROGRESSION_DIR}/src/asset/types/gfx_image.cpp
     ${PROGRESSION_DIR}/src/asset/types/gfx_image.hpp
     ${PROGRESSION_DIR}/src/asset/types/material.cpp
@@ -51,9 +49,8 @@ set(
     ${PROGRESSION_DIR}/src/utils/serializer.cpp
     ${PROGRESSION_DIR}/src/utils/serializer.hpp
     
+    ${CMAKE_CURRENT_SOURCE_DIR}/converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/converters/environment_map_converter.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/converters/environment_map_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/material_converter.cpp

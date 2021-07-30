@@ -1,6 +1,6 @@
 { "Scene":
 [
-    { "Fastfile": "learnopengl_pbr_lighting" },
+    { "Fastfile": { "filename": "learnopengl_pbr_lighting" } },
     { "Camera": { "position": [ 0, 0, 25 ], "rotation": [ 0, 0, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
     { "BackgroundColor": [ 0.2, 0.2, 0.2, 1 ] },
     { "AmbientColor": [ 0, 1, 0 ] },

@@ -23,12 +23,13 @@ glm::vec4 ParseVec4( const rapidjson::Value& v );
 template < typename ...Args >
 class JSONFunctionMapper
 {
-    using function_type = std::function< void( const rapidjson::Value&, Args... ) >;
-    using map_type = std::unordered_map< std::string, function_type >;
 public:
-    JSONFunctionMapper( const map_type& m ) : mapping( m ) {}
+    using FunctionType = std::function< void( const rapidjson::Value&, Args... ) >;
+    using StringToFuncMap = std::unordered_map< std::string, FunctionType >;
 
-    function_type& operator[]( const std::string& name )
+    JSONFunctionMapper( const StringToFuncMap& m ) : mapping( m ) {}
+
+    FunctionType& operator[]( const std::string& name )
     {
         PG_ASSERT( mapping.find( name ) != mapping.end(), name + " not found in mapping" );
         return mapping[name];
@@ -62,7 +63,7 @@ public:
         }
     }
 
-    map_type mapping;
+    StringToFuncMap mapping;
 };
 
 

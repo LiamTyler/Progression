@@ -6,8 +6,6 @@
 #include "glm/vec3.hpp"
 #include <vector>
 
-class Serializer;
-
 namespace PG
 {
 
@@ -22,17 +20,19 @@ struct Mesh
     uint32_t numVertices = 0;
 };
 
-struct ModelCreateInfo
+struct ModelCreateInfo : public BaseAssetCreateInfo
 {
-    std::string name;
     std::string filename;
 };
 
-struct Model : public Asset
+struct Model : public BaseAsset
 {
+    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
+    bool FastfileLoad( Serializer* serializer ) override;
+    bool FastfileSave( Serializer* serializer ) const override;
+    void Free() override;
     void RecalculateNormals();
     void UploadToGPU();
-    void Free() override;
     void FreeCPU();
     void FreeGPU();
 

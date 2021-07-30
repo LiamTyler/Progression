@@ -1,17 +1,20 @@
 #pragma once
 
-#include "utils/json_parsing.hpp"
+#include "converter.hpp"
 
-class Serializer;
+namespace PG
+{
 
+class ModelConverter : public Converter
+{
+public:
+    ModelConverter() : Converter( "Model", ASSET_TYPE_MODEL ) {}
+    void Parse( const rapidjson::Value& value ) override;
 
-void Model_Parse( const rapidjson::Value& value );
+protected:
+    std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const override;
+    bool IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo ) override;
+    bool ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const override;
+};
 
-// returns how many assets are out of date
-int Model_CheckDependencies();
-
-// returns how many assets were unable to be converted
-int Model_Convert();
-
-// returns true if no errors occurred, false otherwise
-bool Model_BuildFastFile( Serializer* serializer );
+} // namespace PG

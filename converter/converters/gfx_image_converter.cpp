@@ -1,20 +1,27 @@
-#include "converter.hpp"
+#include "gfx_image_converter.hpp"
 #include "asset/image.hpp"
 #include "asset/types/gfx_image.hpp"
+#include "utils/hash.hpp"
 
-using namespace PG;
 
-extern void AddFastfileDependency( const std::string& file );
+namespace PG
+{
 
-std::vector< GfxImageCreateInfo > g_parsedImages;
-std::vector< GfxImageCreateInfo > g_outOfDateImages;
+static std::unordered_map< std::string, ImageInputType > s_inputTypeMap =
+{
+    { "REGULAR_2D",        ImageInputType::REGULAR_2D },
+    { "EQUIRECTANGULAR",   ImageInputType::EQUIRECTANGULAR },
+    { "FLATTENED_CUBEMAP", ImageInputType::FLATTENED_CUBEMAP },
+    { "INDIVIDUAL_FACES",  ImageInputType::INDIVIDUAL_FACES },
+};
 
 static std::unordered_map< std::string, GfxImageSemantic > s_imageSemanticMap =
 {
-    { "DIFFUSE",    GfxImageSemantic::DIFFUSE },
-    { "NORMAL",     GfxImageSemantic::NORMAL },
-    { "METALNESS",  GfxImageSemantic::METALNESS },
-    { "ROUGHNESS",  GfxImageSemantic::ROUGHNESS },
+    { "DIFFUSE",         GfxImageSemantic::DIFFUSE },
+    { "NORMAL",          GfxImageSemantic::NORMAL },
+    { "METALNESS",       GfxImageSemantic::METALNESS },
+    { "ROUGHNESS",       GfxImageSemantic::ROUGHNESS },
+    { "ENVIRONMENT_MAP", GfxImageSemantic::ENVIRONMENT_MAP },
 };
 
 
@@ -26,6 +33,7 @@ static std::string ImageSemanticToString( GfxImageSemantic semantic )
         "NORMAL",
         "METALNESS",
         "ROUGHNESS",
+        "ENVIRONMENT_MAP",
     };
 
     static_assert( ARRAY_COUNT( names ) == static_cast< int >( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) );
@@ -45,12 +53,20 @@ static std::unordered_map< std::string, Gfx::ImageType > imageTypeMap =
 };
 
 
-void GfxImage_Parse( const rapidjson::Value& value )
+void GfxImageConverter::Parse( const rapidjson::Value& value )
 {
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.name = v.GetString(); } },
-        { "filename",       []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.name = v.GetString(); } },
+        { "filename",       []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::REGULAR_2D; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::FLATTENED_CUBEMAP; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::EQUIRECTANGULAR; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
         { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
         { "imageType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
@@ -93,159 +109,147 @@ void GfxImage_Parse( const rapidjson::Value& value )
         },
     });
 
-    GfxImageCreateInfo info;
-    info.semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
-    info.imageType = Gfx::ImageType::TYPE_2D;
-    mapping.ForEachMember( value, info );
+    GfxImageCreateInfo* info = new GfxImageCreateInfo;
+    info->semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
+    info->imageType = Gfx::ImageType::TYPE_2D;
+    mapping.ForEachMember( value, *info );
 
-    if ( !PathExists( info.filename ) )
+    if ( info->name.empty() ) CONVERTER_ERROR( "Image missing a name! Filename '%s'", info->name.c_str(), info->filename.c_str() );
+    if ( info->semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS ) CONVERTER_ERROR( "Must specify a valid image semantic for image '%s'", info->name.c_str() );
+    if ( info->imageType == Gfx::ImageType::NUM_IMAGE_TYPES ) CONVERTER_ERROR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
+
+    int numFaces = 0;
+    for ( int i = 0; i < 6; ++i )
     {
-        LOG_ERR( "Filename '%s' not found for GfxImage '%s', skipping image", info.filename.c_str(), info.name.c_str() );
-        g_converterStatus.parsingError = true;
-    }
-    if ( info.semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS )
-    {
-        LOG_ERR( "Must specify a valid image semantic for image '%s'", info.name.c_str() );
-        g_converterStatus.parsingError = true;
-    }
-    if ( info.imageType == Gfx::ImageType::NUM_IMAGE_TYPES )
-    {
-        LOG_ERR( "Must specify a valid imageType for image '%s'", info.name.c_str() );
-        g_converterStatus.parsingError = true;
-    }
-    if ( info.dstPixelFormat == PixelFormat::INVALID )
-    {
-        switch ( info.semantic )
+        if ( !info->faceFilenames[i].empty() )
         {
-        case GfxImageSemantic::DIFFUSE:
-            info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_SRGB;
-            break;
-        case GfxImageSemantic::NORMAL:
-            info.dstPixelFormat = PixelFormat::R8_G8_B8_A8_UNORM;
-            break;
-        case GfxImageSemantic::METALNESS:
-        case GfxImageSemantic::ROUGHNESS:
-            info.dstPixelFormat = PixelFormat::R8_UNORM;
-            break;
-        default:
-            LOG_ERR( "Semantic (%d) unknown when deciding final image format", info.semantic );
-            break;
+            info->inputType = ImageInputType::INDIVIDUAL_FACES;
+            ++numFaces;
         }
     }
 
-    g_parsedImages.push_back( info );
+    if ( info->inputType == ImageInputType::NUM_IMAGE_INPUT_TYPES ) CONVERTER_ERROR( "Could not deduce ImageInputType. No filename given, nor 6 cubemap faces for image '%s'", info->name.c_str() );
+    if ( info->inputType == ImageInputType::INDIVIDUAL_FACES )
+    {
+        if ( numFaces != 6 ) CONVERTER_ERROR( "Please specify all 6 cubemap faces for image '%s'", info->name.c_str() );
+
+        for ( int i = 0; i < 6; ++i )
+        {
+            if ( !PathExists( info->faceFilenames[i] ) ) CONVERTER_ERROR( "Filename '%s' not found for image '%s'", info->filename.c_str(), info->name.c_str() );
+        }
+    }
+    else if ( !PathExists( info->filename ) ) CONVERTER_ERROR( "Filename '%s' not found for image '%s'", info->filename.c_str(), info->name.c_str() );
+
+    m_parsedAssets.push_back( info );
 }
 
 
-static std::string GfxImage_GetFastFileName( const GfxImageCreateInfo& info )
+std::string GfxImageConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    static_assert( sizeof( GfxImageCreateInfo ) == 16 + 2 * sizeof( std::string ), "Dont forget to add new hash value" );
+    static_assert( sizeof( GfxImageCreateInfo ) == 24 + 8 * sizeof( std::string ), "Dont forget to add new hash value" );
 
-    std::string baseName = info.name;
+    const GfxImageCreateInfo* info = (const GfxImageCreateInfo*)baseInfo;
+    std::string baseName = info->name;
     baseName += "_v" + std::to_string( PG_GFX_IMAGE_VERSION );
-    baseName += "_" + std::to_string( static_cast< int >( info.semantic ) );
-    baseName += "_" + std::to_string( static_cast< int >( info.imageType ) );
-    baseName += "_" + std::to_string( static_cast< int >( info.dstPixelFormat ) );
-    baseName += "_" + std::to_string( static_cast< int >( info.flipVertically ) );
-    baseName += "_" + std::to_string( std::hash< std::string >{}( info.filename ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->semantic ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->imageType ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->dstPixelFormat ) );
+    baseName += "_" + std::to_string( static_cast< int >( info->flipVertically ) );
+    size_t inputFileHash = 0;
+    if ( info->inputType == ImageInputType::INDIVIDUAL_FACES )
+    {
+        for ( int i = 0; i < 6; ++i )
+        {
+            HashCombine( inputFileHash, info->faceFilenames[i] );
+        }
+    }
+    else
+    {
+        inputFileHash = Hash( info->filename );
+    }
+    baseName += "_" + std::to_string( inputFileHash );
 
     std::string fullName = PG_ASSET_DIR "cache/images/" + baseName + ".ffi";
     return fullName;
 }
 
 
-static bool GfxImage_IsOutOfDate( const GfxImageCreateInfo& info )
+bool GfxImageConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 {
     if ( g_converterConfigOptions.force )
     {
         return true;
     }
 
-    std::string ffName = GfxImage_GetFastFileName( info );
+    std::string ffName = GetFastFileName( baseInfo );
     AddFastfileDependency( ffName );
-    return IsFileOutOfDate( ffName, info.filename );
+    const GfxImageCreateInfo* info = (const GfxImageCreateInfo*)baseInfo;
+    return IsFileOutOfDate( ffName, info->filename );
 }
 
 
-static bool GfxImage_ConvertSingle( const GfxImageCreateInfo& info )
+bool GfxImageConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
 {
-    LOG( "Converting image '%s'...", info.name.c_str() );
-    GfxImage image;
-    if ( !GfxImage_Load( &image, info ) )
-    {
-        return false;
-    }
-    std::string fastfileName = GfxImage_GetFastFileName( info );
-    Serializer serializer;
-    if ( !serializer.OpenForWrite( fastfileName ) )
-    {
-        return false;
-    }
-    if ( !Fastfile_GfxImage_Save( &image, &serializer ) )
-    {
-        LOG_ERR( "Error while writing image '%s' to fastfile", image.name.c_str() );
-        serializer.Close();
-        DeleteFile( fastfileName );
-        return false;
-    }
-    serializer.Close();
-
-    return true;
+    return ConvertSingleInternal< GfxImage, GfxImageCreateInfo >( baseInfo );
 }
 
+} // namespace PG
 
-int GfxImage_CheckDependencies()
+/* SAVE: for when cubemap loading is added for GfxImages
+void EnvironmentMapConverter::Parse( const rapidjson::Value& value )
 {
-    int outOfDate = 0;
-    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
+    static JSONFunctionMapper< EnvironmentMapCreateInfo& > mapping(
     {
-        if ( GfxImage_IsOutOfDate( g_parsedImages[i] ) )
-        {
-            g_outOfDateImages.push_back( g_parsedImages[i] );
-            ++outOfDate;
-        }
-    }
+        { "name",           []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.name = v.GetString(); } },
+        { "flipVertically", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.flipVertically = v.GetBool(); } },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.flattenedCubemapFilename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.equirectangularFilename  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "left",   []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "right",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "front",  []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "back",   []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "top",    []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "bottom", []( const rapidjson::Value& v, EnvironmentMapCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
+    });
 
-    return outOfDate;
+    EnvironmentMapCreateInfo* info = new EnvironmentMapCreateInfo;
+    mapping.ForEachMember( value, *info );
+    m_parsedAssets.push_back( info );
 }
 
 
-int GfxImage_Convert()
+std::string EnvironmentMapConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
 {
-    if ( g_outOfDateImages.size() == 0 )
+    EnvironmentMapCreateInfo* info = (EnvironmentMapCreateInfo*)baseInfo;
+    std::string baseName = info->name;
+    size_t fileHashes = 0;
+    HashCombine( fileHashes, info->equirectangularFilename );
+    HashCombine( fileHashes, info->flattenedCubemapFilename );
+    for ( int i = 0; i < 6; ++i )
     {
-        return 0;
+        HashCombine( fileHashes, info->faceFilenames[i] );
     }
+    baseName += "_" + std::to_string( fileHashes );
+    baseName += "_v" + std::to_string( PG_ENVIRONMENT_MAP_VERSION );
 
-    int couldNotConvert = 0;
-    for ( int i = 0; i < (int)g_outOfDateImages.size(); ++i )
-    {
-        if ( !GfxImage_ConvertSingle( g_outOfDateImages[i] ) )
-        {
-            ++couldNotConvert;
-        }
-    }
-
-    return couldNotConvert;
+    std::string fullName = PG_ASSET_DIR "cache/environment_maps/" + baseName + ".ffi";
+    return fullName;
 }
 
 
-bool GfxImage_BuildFastFile( Serializer* serializer )
+bool EnvironmentMapConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
 {
-    for ( size_t i = 0; i < g_parsedImages.size(); ++i )
+    if ( g_converterConfigOptions.force )
     {
-        std::string ffiName = GfxImage_GetFastFileName( g_parsedImages[i] );
-        MemoryMapped inFile;
-        if ( !inFile.open( ffiName ) )
-        {
-            LOG_ERR( "Could not open file '%s'", ffiName.c_str() );
-            return false;
-        }
-        
-        serializer->Write( AssetType::ASSET_TYPE_GFX_IMAGE );
-        serializer->Write( inFile.getData(), inFile.size() );
-        inFile.close();
+        return true;
     }
 
-    return true;
+    EnvironmentMapCreateInfo* info = (EnvironmentMapCreateInfo*)baseInfo;
+    std::string ffName = GetFastFileName( info );
+    AddFastfileDependency( ffName );
+    if ( !info->equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info->equirectangularFilename );
+    else if ( !info->flattenedCubemapFilename.empty() ) return IsFileOutOfDate( ffName, info->flattenedCubemapFilename );
+    else if ( !info->equirectangularFilename.empty() ) return IsFileOutOfDate( ffName, info->faceFilenames, 6 );
+    else return true;
 }
+*/

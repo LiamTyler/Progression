@@ -12,6 +12,124 @@
 namespace PG
 {
 
+bool Model::Load( const BaseAssetCreateInfo* baseInfo )
+{
+    PG_ASSERT( baseInfo );
+    const ModelCreateInfo* createInfo = (const ModelCreateInfo*)baseInfo;
+    name = createInfo->name;
+    Serializer modelFile;
+    if ( !modelFile.OpenForRead( createInfo->filename ) )
+    {
+        LOG_ERR( "Failed to open PGModel file '%s'", createInfo->filename.c_str() );
+        return false;
+    }
+
+    modelFile.Read( vertexPositions );
+    modelFile.Read( vertexNormals );
+    modelFile.Read( vertexTexCoords );
+    modelFile.Read( vertexTangents );
+    modelFile.Read( indices );
+    size_t numMeshes;
+    modelFile.Read( numMeshes );
+    meshes.resize( numMeshes );
+    originalMaterials.resize( numMeshes );
+    for ( size_t i = 0; i < numMeshes; ++i )
+    {
+        Mesh& mesh = meshes[i];
+        modelFile.Read( mesh.name );
+        std::string matName;
+        modelFile.Read( matName ); // should always exist and at least be 'default'
+        modelFile.Read( mesh.startIndex );
+        modelFile.Read( mesh.numIndices );
+        modelFile.Read( mesh.startVertex );
+        modelFile.Read( mesh.numVertices );
+
+        // since there is no AssetManager in the converter, create dummy materials to track the names
+#if USING( COMPILING_CONVERTER )
+        originalMaterials[i] = new Material;
+        originalMaterials[i]->name = matName;
+#else // #if USING( COMPILING_CONVERTER )
+        originalMaterials[i] = AssetManager::Get< Material >( matName );
+        if ( !originalMaterials[i] )
+        {
+            LOG_ERR( "No material '%s' found", matName.c_str() );
+            return false;
+        }
+#endif // #else // #if USING( COMPILING_CONVERTER )
+    }
+
+    //model->RecalculateNormals();
+    UploadToGPU();
+
+    return true;
+}
+
+
+bool Model::FastfileLoad( Serializer* serializer )
+{
+    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
+    PG_ASSERT( serializer );
+    serializer->Read( name );
+    serializer->Read( vertexPositions );
+    serializer->Read( vertexNormals );
+    serializer->Read( vertexTexCoords );
+    serializer->Read( vertexTangents );
+    serializer->Read( indices );
+    size_t numMeshes;
+    serializer->Read( numMeshes );
+    meshes.resize( numMeshes );
+    originalMaterials.resize( numMeshes );
+    for ( size_t i = 0; i < meshes.size(); ++i )
+    {
+        Mesh& mesh = meshes[i];
+        serializer->Read( mesh.name );
+        std::string matName;
+        serializer->Read( matName );
+        originalMaterials[i] = AssetManager::Get< Material >( matName );
+        if ( !originalMaterials[i] )
+        {
+            LOG_ERR( "No material found with name '%s', using default material instead.", matName.c_str() );
+            originalMaterials[i] = AssetManager::Get< Material >( "default" );
+        }
+        serializer->Read( mesh.startIndex );
+        serializer->Read( mesh.numIndices );
+        serializer->Read( mesh.startVertex );
+        serializer->Read( mesh.numVertices );
+    }
+
+    UploadToGPU();
+
+    return true;
+}
+
+
+bool Model::FastfileSave( Serializer* serializer ) const
+{
+    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
+    PG_ASSERT( serializer );
+    PG_ASSERT( meshes.size() == originalMaterials.size() );
+
+    serializer->Write( name );
+    serializer->Write( vertexPositions );
+    serializer->Write( vertexNormals );
+    serializer->Write( vertexTexCoords );
+    serializer->Write( vertexTangents );
+    serializer->Write( indices );
+    serializer->Write( meshes.size() );
+    for ( size_t i = 0; i < meshes.size(); ++i )
+    {
+        const Mesh& mesh = meshes[i];
+        serializer->Write( mesh.name );
+        serializer->Write( originalMaterials[i]->name );
+        serializer->Write( mesh.startIndex );
+        serializer->Write( mesh.numIndices );
+        serializer->Write( mesh.startVertex );
+        serializer->Write( mesh.numVertices );
+    }
+
+    return true;
+}
+
 
 void Model::RecalculateNormals()
 {
@@ -115,137 +233,6 @@ void Model::FreeGPU()
         indexBuffer.Free();
     }
 #endif // #if !USING( COMPILING_CONVERTER )
-}
-
-
-bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::vector< std::string >& matNames )
-{
-    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
-    model->name = createInfo.name;
-    Serializer modelFile;
-    if ( !modelFile.OpenForRead( createInfo.filename ) )
-    {
-        LOG_ERR( "Failed to open PGModel file '%s'", createInfo.filename.c_str() );
-        return false;
-    }
-
-    modelFile.Read( model->vertexPositions );
-    modelFile.Read( model->vertexNormals );
-    modelFile.Read( model->vertexTexCoords );
-    modelFile.Read( model->vertexTangents );
-    modelFile.Read( model->indices );
-    size_t numMeshes;
-    modelFile.Read( numMeshes );
-    model->meshes.resize( numMeshes );
-    model->originalMaterials.resize( numMeshes );
-    for ( size_t i = 0; i < numMeshes; ++i )
-    {
-        Mesh& mesh = model->meshes[i];
-        modelFile.Read( mesh.name );
-        std::string matName;
-        modelFile.Read( matName ); // should always exist and at least be 'default'
-        matNames.push_back( matName );
-        modelFile.Read( mesh.startIndex );
-        modelFile.Read( mesh.numIndices );
-        modelFile.Read( mesh.startVertex );
-        modelFile.Read( mesh.numVertices );
-    }
-
-    //model->RecalculateNormals();
-
-    return true;
-}
-
-
-bool Model_Load( Model* model, const ModelCreateInfo& createInfo )
-{
-    std::vector< std::string > materialNames;
-    if ( !Model_Load_PGModel( model, createInfo, materialNames ) )
-    {
-        return false;
-    }
-
-    // now resolve materials
-    model->originalMaterials.resize( materialNames.size() );
-    for ( size_t i = 0; i < materialNames.size(); ++i )
-    {
-        model->originalMaterials[i] = AssetManager::Get< Material >( materialNames[i] );
-        if ( !model->originalMaterials[i] )
-        {
-            LOG_ERR( "No material '%s' found", materialNames[i].c_str() );
-            return false;
-        }
-    }
-
-    model->UploadToGPU();
-
-    return true;
-}
-
-
-bool Fastfile_Model_Load( Model* model, Serializer* serializer )
-{
-    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
-    PG_ASSERT( model && serializer );
-    serializer->Read( model->name );
-    serializer->Read( model->vertexPositions );
-    serializer->Read( model->vertexNormals );
-    serializer->Read( model->vertexTexCoords );
-    serializer->Read( model->vertexTangents );
-    serializer->Read( model->indices );
-    size_t numMeshes;
-    serializer->Read( numMeshes );
-    model->meshes.resize( numMeshes );
-    model->originalMaterials.resize( numMeshes );
-    for ( size_t i = 0; i < model->meshes.size(); ++i )
-    {
-        Mesh& mesh = model->meshes[i];
-        serializer->Read( mesh.name );
-        std::string matName;
-        serializer->Read( matName );
-        model->originalMaterials[i] = AssetManager::Get< Material >( matName );
-        if ( !model->originalMaterials[i] )
-        {
-            LOG_ERR( "No material found with name '%s', using default material instead.", matName.c_str() );
-            model->originalMaterials[i] = AssetManager::Get< Material >( "default" );
-        }
-        serializer->Read( mesh.startIndex );
-        serializer->Read( mesh.numIndices );
-        serializer->Read( mesh.startVertex );
-        serializer->Read( mesh.numVertices );
-    }
-
-    model->UploadToGPU();
-
-    return true;
-}
-
-
-bool Fastfile_Model_Save( const Model * const model, Serializer* serializer, const std::vector< std::string >& materialNames )
-{
-    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
-    PG_ASSERT( model && serializer );
-    PG_ASSERT( model->meshes.size() == materialNames.size() );
-
-    serializer->Write( model->name );
-    serializer->Write( model->vertexPositions );
-    serializer->Write( model->vertexNormals );
-    serializer->Write( model->vertexTexCoords );
-    serializer->Write( model->vertexTangents );
-    serializer->Write( model->indices );
-    serializer->Write( model->meshes.size() );
-    for ( size_t i = 0; i < model->meshes.size(); ++i )
-    {
-        const Mesh& mesh = model->meshes[i];
-        serializer->Write( mesh.name );
-        serializer->Write( materialNames[i] );
-        serializer->Write( mesh.startIndex );
-        serializer->Write( mesh.numIndices );
-        serializer->Write( mesh.startVertex );
-        serializer->Write( mesh.numVertices );
-    }
-
-    return true;
 }
 
 

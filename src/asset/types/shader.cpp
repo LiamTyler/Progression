@@ -300,31 +300,25 @@ static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBy
 #endif // #if !USING( COMPILING_CONVERTER )
 
 
-void Shader::Free()
+bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
 {
-#if !USING( COMPILING_CONVERTER )
-    vkDestroyShaderModule( PG::Gfx::r_globals.device.GetHandle(), handle, nullptr );
-#endif // #if !USING( COMPILING_CONVERTER )
-}
+    PG_ASSERT( baseInfo );
+    auto createInfo = (const ShaderCreateInfo*)baseInfo;
 
-
-bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
-{
-    PG_ASSERT( shader );
-    shader->name = createInfo.name;
-    shader->shaderStage = createInfo.shaderStage;
+    name = createInfo->name;
+    shaderStage = createInfo->shaderStage;
 
     ShaderPreprocessOutput preproc;
     const std::string* preprocShaderText = nullptr;
 #if USING( COMPILING_CONVERTER )
-    if ( !createInfo.preprocOutput.empty() )
+    if ( !createInfo->preprocOutput.empty() )
     {
-        preprocShaderText = &createInfo.preprocOutput;
+        preprocShaderText = &createInfo->preprocOutput;
     }
 #endif // #if USING( COMPILING_CONVERTER )
     if ( !preprocShaderText )
     {
-        preproc = PreprocessShader( createInfo );
+        preproc = PreprocessShader( *createInfo );
         if ( !preproc.success )
         {
             return false;
@@ -333,7 +327,7 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
     }
 
     std::vector< uint32_t > spirv;
-    if ( !CompilePreprocessedShaderToSPIRV( createInfo, *preprocShaderText, spirv ) )
+    if ( !CompilePreprocessedShaderToSPIRV( *createInfo, *preprocShaderText, spirv ) )
     {
         return false;
     }
@@ -342,68 +336,74 @@ bool Shader_Load( Shader* shader, const ShaderCreateInfo& createInfo )
     ShaderReflectData reflectData;
     if ( !ReflectShader_ReflectSpirv( spirv.data(), spirvSizeInBytes, reflectData ) )
     {
-        LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed", createInfo.name.c_str(), createInfo.filename.c_str() );
+        LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed", createInfo->name.c_str(), createInfo->filename.c_str() );
         return false;
     }
-    PG_ASSERT( shader->shaderStage == reflectData.stage );
-    shader->entryPoint = reflectData.entryPoint; // Todo: pointless, since shaderc assumes entry point is "main" for GLSL
-    memcpy( &shader->resourceLayout, &reflectData.layout, sizeof( ShaderResourceLayout ) );
+    PG_ASSERT( shaderStage == reflectData.stage );
+    entryPoint = reflectData.entryPoint; // Todo: pointless, since shaderc assumes entry point is "main" for GLSL
+    memcpy( &resourceLayout, &reflectData.layout, sizeof( ShaderResourceLayout ) );
 
 #if USING( COMPILING_CONVERTER )
-    shader->spirv = std::move( spirv );
+    savedSpirv = std::move( spirv );
 #else // #if USING( COMPILING_CONVERTER )
-    shader->handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
-    if ( shader->handle == VK_NULL_HANDLE )
+    handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
+    if ( handle == VK_NULL_HANDLE )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( shader, shader->name );
+    PG_DEBUG_MARKER_SET_SHADER_NAME( this, name );
 #endif // #else // #if USING( COMPILING_CONVERTER )
-
 
     return true;
 }
 
 
-bool Fastfile_Shader_Load( Shader* shader, Serializer* serializer )
+bool Shader::FastfileLoad( Serializer* serializer )
 {
-    PG_ASSERT( shader && serializer );
-    serializer->Read( shader->name );
-    serializer->Read( shader->shaderStage );
-    serializer->Read( shader->entryPoint );
-    serializer->Read( &shader->resourceLayout, sizeof( ShaderResourceLayout ) );
+    PG_ASSERT( serializer );
+    serializer->Read( name );
+    serializer->Read( shaderStage );
+    serializer->Read( entryPoint );
+    serializer->Read( &resourceLayout, sizeof( ShaderResourceLayout ) );
     std::vector< uint32_t > spirv;
     serializer->Read( spirv );
 
 #if !USING( COMPILING_CONVERTER )
-    shader->handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
-    if ( shader->handle == VK_NULL_HANDLE )
+    handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
+    if ( handle == VK_NULL_HANDLE )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( shader, shader->name );
+    PG_DEBUG_MARKER_SET_SHADER_NAME( this, name );
 #endif // #if !USING( COMPILING_CONVERTER )
 
     return true;
 }
 
 
-bool Fastfile_Shader_Save( const Shader * const shader, Serializer* serializer )
+bool Shader::FastfileSave( Serializer* serializer ) const
 {
-    PG_ASSERT( shader && serializer );
+    PG_ASSERT( serializer );
 #if !USING( COMPILING_CONVERTER )
     PG_ASSERT( false, "Spirv code is only kept around in Converter builds for saving" );
 #else // #if !USING( COMPILING_CONVERTER )
-    PG_ASSERT( shader && serializer );
-    serializer->Write( shader->name );
-    serializer->Write( shader->shaderStage );
-    serializer->Write( shader->entryPoint );
-    serializer->Write( &shader->resourceLayout, sizeof( ShaderResourceLayout ) );
+    serializer->Write( name );
+    serializer->Write( shaderStage );
+    serializer->Write( entryPoint );
+    serializer->Write( &resourceLayout, sizeof( ShaderResourceLayout ) );
 
-    serializer->Write( shader->spirv );
+    serializer->Write( savedSpirv );
 #endif // #else // #if !USING( COMPILING_CONVERTER )
 
     return true;
+}
+
+
+void Shader::Free()
+{
+#if !USING( COMPILING_CONVERTER )
+    vkDestroyShaderModule( PG::Gfx::r_globals.device.GetHandle(), handle, nullptr );
+#endif // #if !USING( COMPILING_CONVERTER )
 }
 
 } // namespace PG

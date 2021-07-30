@@ -9,6 +9,8 @@
 #include "renderer/graphics_api.hpp"
 #include "renderer/render_system.hpp"
 #include "utils/logger.hpp"
+#include "core/math.hpp"
+#include "asset/image.hpp"
 
 #include "renderer/taskgraph/r_taskgraph.hpp"
 
@@ -17,7 +19,9 @@ using namespace Gfx;
 
 bool g_paused = false;
 
+
 int main( int argc, char* argv[] )
+<<<<<<< HEAD
 {
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
@@ -64,6 +68,9 @@ int main( int argc, char* argv[] )
 }
 
 /*
+=======
+ {
+>>>>>>> cubemap
 	EngineInitInfo engineInitConfig;
 	if ( !EngineInitialize( engineInitConfig ) )
     {

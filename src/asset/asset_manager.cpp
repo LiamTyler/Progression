@@ -1,6 +1,5 @@
 #include "asset/asset_manager.hpp"
 #include "asset/asset_versions.hpp"
-#include "asset/types/environment_map.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/material.hpp"
 #include "asset/types/model.hpp"
@@ -21,7 +20,7 @@ namespace AssetManager
 uint32_t GetAssetTypeIDHelper::IDCounter = 0;
 
 
-static std::unordered_map< std::string, Asset* > s_resourceMaps[AssetType::NUM_ASSET_TYPES];
+static std::unordered_map< std::string, BaseAsset* > s_resourceMaps[AssetType::NUM_ASSET_TYPES];
 
 
 void Init()
@@ -31,20 +30,50 @@ void Init()
     GetAssetTypeID< Script >::ID();          // AssetType::ASSET_TYPE_SCRIPT
     GetAssetTypeID< Model >::ID();           // AssetType::ASSET_TYPE_MODEL
     GetAssetTypeID< Shader >::ID();          // AssetType::ASSET_TYPE_SHADER
-    GetAssetTypeID< EnvironmentMap >::ID();  // AssetType::ASSET_TYPE_ENVIRONMENTMAP
     PG_ASSERT( GetAssetTypeID< GfxImage >::ID()       == 0, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID< Material >::ID()       == 1, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID< Script >::ID()         == 2, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID< Model >::ID()          == 3, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID< Shader >::ID()         == 4, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< EnvironmentMap >::ID() == 5, "This needs to line up with AssetType ordering" );
-    static_assert( NUM_ASSET_TYPES == 6, "Dont forget to add GetAssetTypeID for new assets" );
+    static_assert( NUM_ASSET_TYPES == 5, "Dont forget to add GetAssetTypeID for new assets" );
 
     Material* defaultMat = new Material;
     defaultMat->name = "default";
     defaultMat->albedoTint = glm::vec3( 1, .41, .71 ); // hot pink. Material mainly used to bring attention when the intended material is missing
     s_resourceMaps[ASSET_TYPE_MATERIAL]["default"] = defaultMat;
 }
+
+
+template < typename ActualAssetType >
+bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType, const char* name )
+{
+    ActualAssetType* asset = new ActualAssetType;
+    if ( !asset->FastfileLoad( serializer ) )
+    {
+        LOG_ERR( "Could not load %s", name );
+        return false;
+    }
+    auto it = s_resourceMaps[assetType].find( asset->name );
+    if ( it == s_resourceMaps[assetType].end() )
+    {
+        s_resourceMaps[assetType][asset->name] = asset;
+    }
+    else
+    {
+        asset->Free();
+        delete asset;
+    }
+
+    return true;
+}
+
+#define LOAD_FF_CASE( ASSET_ENUM, actualAssetType, assetName ) \
+case ASSET_ENUM: \
+    if ( !LoadAssetFromFastFile< actualAssetType >( &serializer, assetType, assetName ) ) \
+    { \
+        return false; \
+    } \
+    break
 
 
 bool LoadFastFile( const std::string& fname )
@@ -64,132 +93,24 @@ bool LoadFastFile( const std::string& fname )
         PG_ASSERT( assetType < AssetType::NUM_ASSET_TYPES );
         switch ( assetType )
         {
-        case ASSET_TYPE_GFX_IMAGE:
-        {
-            GfxImage* asset = new GfxImage;
-            if ( !Fastfile_GfxImage_Load( asset, &serializer ) )
+            LOAD_FF_CASE( ASSET_TYPE_GFX_IMAGE, GfxImage, "GfxImage" );
+            LOAD_FF_CASE( ASSET_TYPE_SCRIPT, Script, "Script" );
+            LOAD_FF_CASE( ASSET_TYPE_MODEL, Model, "Model" );
+            LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader, "Shader" );
+            case ASSET_TYPE_MATERIAL:
             {
-                LOG_ERR( "Could not load GfxImage" );
-                return false;
-            }
-            auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
-            {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
-                asset->Free();
-                delete asset;
-            }
-            break;
-        }
-        case ASSET_TYPE_MATERIAL:
-        {
-            // ASSET_TYPE_MATERIAL in a fastfile actually implies all materials from a pgMat file, which is 1+ materials
-            uint16_t numMaterials;
-            serializer.Read( numMaterials );
-            for ( uint16_t mat = 0; mat < numMaterials; ++mat )
-            {
-                Material* asset = new Material;
-                if ( !Fastfile_Material_Load( asset, &serializer ) )
+                // ASSET_TYPE_MATERIAL in a fastfile actually implies all materials from a pgMat file, which is 1+ materials
+                uint16_t numMaterials;
+                serializer.Read( numMaterials );
+                for ( uint16_t mat = 0; mat < numMaterials; ++mat )
                 {
-                    LOG_ERR( "Could not load Material" );
-                    return false;
+                    if ( !LoadAssetFromFastFile< Material >( &serializer, assetType, "Material" ) )
+                    {
+                        return false;
+                    }
                 }
-                auto it = s_resourceMaps[assetType].find( asset->name );
-                if ( it == s_resourceMaps[assetType].end() )
-                {
-                    s_resourceMaps[assetType][asset->name] = asset;
-                }
-                else
-                {
-                    asset->Free();
-                    delete asset;
-                }
+                break;
             }
-            break;
-        }
-        case ASSET_TYPE_SCRIPT:
-        {
-            Script* asset = new Script;
-            if ( !Fastfile_Script_Load( asset, &serializer ) )
-            {
-                LOG_ERR( "Could not load Script" );
-                return false;
-            }
-            auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
-            {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
-                asset->Free();
-                delete asset;
-            }
-            break;
-        }
-        case ASSET_TYPE_MODEL:
-        {
-            Model* asset = new Model;
-            if ( !Fastfile_Model_Load( asset, &serializer ) )
-            {
-                LOG_ERR( "Could not load Model" );
-                return false;
-            }
-            auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
-            {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
-                asset->Free();
-                delete asset;
-            }
-            break;
-        }
-        case ASSET_TYPE_SHADER:
-        {
-            Shader* asset = new Shader;
-            if ( !Fastfile_Shader_Load( asset, &serializer ) )
-            {
-                LOG_ERR( "Could not load Shader" );
-                return false;
-            }
-            auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
-            {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
-                asset->Free();
-                delete asset;
-            }
-            break;
-        }
-        case ASSET_TYPE_ENVIRONMENTMAP:
-        {
-            EnvironmentMap* asset = new EnvironmentMap;
-            if ( !Fastfile_EnvironmentMap_Load( asset, &serializer ) )
-            {
-                LOG_ERR( "Could not load EnvironmentMap" );
-                return false;
-            }
-            auto it = s_resourceMaps[assetType].find( asset->name );
-            if ( it == s_resourceMaps[assetType].end() )
-            {
-                s_resourceMaps[assetType][asset->name] = asset;
-            }
-            else
-            {
-                asset->Free();
-                delete asset;
-            }
-            break;
-        }
         default:
             LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
             return false;
@@ -254,7 +175,7 @@ void RegisterLuaFunctions( lua_State* L )
 }
 
 
-Asset* Get( uint32_t assetTypeID, const std::string& name )
+BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
 {
     PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = s_resourceMaps[assetTypeID].find( name );

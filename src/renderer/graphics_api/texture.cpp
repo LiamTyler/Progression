@@ -49,7 +49,10 @@ namespace Gfx
         PG_ASSERT( sampler );
         m_sampler = sampler;
         PG_ASSERT( m_image == VK_NULL_HANDLE, "Changing sampler after image creation not supported yet" );
-        TextureManager::UpdateSampler( this );
+        if ( m_bindlessArrayIndex != PG_INVALID_TEXTURE_INDEX )
+        {
+            TextureManager::UpdateSampler( this );
+        }
     }
 
 } // namespace Gfx

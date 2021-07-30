@@ -418,7 +418,7 @@ namespace Gfx
         imageInfo.samples       = VK_SAMPLE_COUNT_1_BIT;
         if ( desc.arrayLayers == 6 )
         {
-            imageInfo.flags         = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+            imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
         }
 
         Texture tex;
@@ -630,6 +630,7 @@ namespace Gfx
             shaderStages[i].module = desc.shaders[i]->handle;
             shaderStages[i].pName  = desc.shaders[i]->entryPoint.c_str();
         }
+        PG_ASSERT( numShaderStages > 0 );
 
         p.m_resourceLayout = CombineShaderResourceLayouts( &desc.shaders[0], numShaderStages );
         p.m_isCompute = false;

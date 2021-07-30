@@ -152,7 +152,7 @@ void GfxImage::UploadToGpu()
     desc.arrayLayers = numFaces;
     desc.mipLevels   = mipLevels;
     desc.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    desc.addToBindlessArray = true;
+    desc.addToBindlessArray = imageType == ImageType::TYPE_2D;
 
     gpuTexture = r_globals.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );
@@ -160,6 +160,33 @@ void GfxImage::UploadToGpu()
     pixels = nullptr;
 
 #endif // #else // #if USING( COMPILING_CONVERTER )
+}
+
+
+static PixelFormat ChoosePixelFormatFromSemantic( const GfxImageSemantic& semantic )
+{
+    PixelFormat format = PixelFormat::INVALID;
+    switch ( semantic )
+    {
+    case GfxImageSemantic::DIFFUSE:
+        format = PixelFormat::R8_G8_B8_A8_SRGB;
+        break;
+    case GfxImageSemantic::NORMAL:
+        format = PixelFormat::R8_G8_B8_A8_UNORM;
+        break;
+    case GfxImageSemantic::METALNESS:
+    case GfxImageSemantic::ROUGHNESS:
+        format = PixelFormat::R8_UNORM;
+        break;
+    case GfxImageSemantic::ENVIRONMENT_MAP:
+        format = PixelFormat::R16_G16_B16_A16_FLOAT;
+        break;
+    default:
+        LOG_ERR( "Semantic (%d) unknown when deciding final image format", semantic );
+        break;
+    }
+
+    return format;
 }
 
 
@@ -178,14 +205,13 @@ static void NormalizeImage( glm::vec4* pixels, int width, int height )
 }
 
 
-static void GenerateMipmaps( const Image& image, glm::vec4* outputPixels, GfxImageSemantic semantic )
+static void GenerateMipmaps_Float32( const glm::vec4* srcPixels, int width, int height, glm::vec4* dstPixels, GfxImageSemantic semantic )
 {
-    //PG_PROFILE_START( GenerateMipmaps );
-    PG_ASSERT( image.pixels );
-    PG_ASSERT( image.width != 0 && image.height != 0 );
-    int w = image.width;
-    int h = image.height;
-    int numMips = CalculateNumMips( image.width, image.height );
+    PG_ASSERT( srcPixels );
+    PG_ASSERT( width != 0 && height != 0 );
+    int w = width;
+    int h = height;
+    int numMips = CalculateNumMips( width, height );
     
     int lastW, lastH;
     size_t lastOffset;
@@ -194,13 +220,15 @@ static void GenerateMipmaps( const Image& image, glm::vec4* outputPixels, GfxIma
     {
         if ( mipLevel == 0 )
         {
-            // copy mip 0 into output buffer
-            memcpy( outputPixels, image.pixels, w * h * sizeof( glm::vec4 ) );
+            if ( srcPixels != dstPixels )
+            {
+                memcpy( dstPixels, srcPixels, w * h * sizeof( glm::vec4 ) );
+            }
         }
         else
         {
-            float* currentDstImg = reinterpret_cast< float* >( outputPixels + currentOffset );
-            float* currentSrcImage = reinterpret_cast< float* >( outputPixels + lastOffset );
+            float* currentDstImg = reinterpret_cast< float* >( dstPixels + currentOffset );
+            float* currentSrcImage = reinterpret_cast< float* >( dstPixels + lastOffset );
             int flags = 0;
             int alphaChannel = 3;
             stbir_resize_float_generic( currentSrcImage, lastW, lastH, lastW * sizeof( glm::vec4 ), currentDstImg, w, h, w * sizeof( glm::vec4 ), 4, alphaChannel, flags, STBIR_EDGE_CLAMP, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
@@ -209,7 +237,7 @@ static void GenerateMipmaps( const Image& image, glm::vec4* outputPixels, GfxIma
         // renormalize normal maps
         if ( semantic == GfxImageSemantic::NORMAL )
         {
-            NormalizeImage( outputPixels + currentOffset, w, h );
+            NormalizeImage( dstPixels + currentOffset, w, h );
         }
 
         lastW = w;
@@ -219,7 +247,6 @@ static void GenerateMipmaps( const Image& image, glm::vec4* outputPixels, GfxIma
         w = std::max( 1, w >> 1 );
         h = std::max( 1, h >> 1 );
     }
-    //PG_PROFILE_END( GenerateMipmaps );
 }
 
 
@@ -298,38 +325,35 @@ static void ConvertRGBA32Float_SingleMip( unsigned char* outputImage, int width,
 }
 
 
-static void ConvertRGBA32Float_AllMips( unsigned char* outputImage, int width, int height, glm::vec4* inputPixels, PixelFormat format )
+static void ConvertRGBA32Float_AllMips( unsigned char* outputImage, int width, int height, int numFaces, int numMips, glm::vec4* inputPixels, PixelFormat format )
 {
-    //PG_PROFILE_START( ConvertRGBA32Float_AllMips );
     PG_ASSERT( outputImage && inputPixels );
     int w = width;
     int h = height;
-    int numMips = CalculateNumMips( width, height );
     int bytesPerDstPixel = NumBytesPerPixel( format );
     
     glm::vec4* currentSrcImage     = inputPixels;
     unsigned char* currentDstImage = outputImage;
     for ( int mipLevel = 0; mipLevel < numMips; ++mipLevel )
     {
-        ConvertRGBA32Float_SingleMip( currentDstImage, w, h, currentSrcImage, format );
-        currentSrcImage += w * h;
-        currentDstImage += w * h * bytesPerDstPixel;
+        for ( int face = 0; face < numFaces; ++face )
+        {
+            ConvertRGBA32Float_SingleMip( currentDstImage, w, h, currentSrcImage, format );
+            currentSrcImage += w * h;
+            currentDstImage += w * h * bytesPerDstPixel;
+        }
         w = std::max( 1, w >> 1 );
         h = std::max( 1, h >> 1 );
     }
-    //PG_PROFILE_END( ConvertRGBA32Float_AllMips );
 }
 
 
 static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
-    ImageCreateInfo srcImgCreateInfo;
+    Image2DCreateInfo srcImgCreateInfo;
     srcImgCreateInfo.filename = createInfo.filename;
-    if ( createInfo.flipVertically )
-    {
-        srcImgCreateInfo.flags |= IMAGE_FLIP_VERTICALLY;
-    }
-    Image srcImg;
+    srcImgCreateInfo.flipVertically = createInfo.flipVertically;
+    Image2D srcImg;
     if ( !srcImg.Load( &srcImgCreateInfo ) )
     {
         return false;
@@ -338,42 +362,104 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
     int w = srcImg.width;
     int h = srcImg.height;
     size_t totalSrcImageSize = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );
-    glm::vec4* srcPixelsAllMips = static_cast< glm::vec4* >( malloc( totalSrcImageSize ) );
-    memset( srcPixelsAllMips, 0, totalSrcImageSize );
-    GenerateMipmaps( srcImg, srcPixelsAllMips, createInfo.semantic );
+    glm::vec4* pixelsAllMips = static_cast< glm::vec4* >( malloc( totalSrcImageSize ) );
+    memset( pixelsAllMips, 0, totalSrcImageSize );
+    GenerateMipmaps_Float32( srcImg.pixels, w, h, pixelsAllMips, createInfo.semantic );
 
     gfxImage->width     = w;
     gfxImage->height    = h;
+    gfxImage->numFaces  = 1;
     gfxImage->mipLevels = CalculateNumMips( w, h );
-    gfxImage->totalSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, createInfo.dstPixelFormat );
+    gfxImage->totalSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
     gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
-    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, srcPixelsAllMips, gfxImage->pixelFormat );
+    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, pixelsAllMips, gfxImage->pixelFormat );
     
-    free( srcPixelsAllMips );
+    free( pixelsAllMips );
 
     return true;
 }
 
 
-bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
+static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
-    PG_ASSERT( gfxImage );
+    ImageCubemapCreateInfo srcImgCreateInfo;
+    if ( createInfo.inputType == ImageInputType::EQUIRECTANGULAR )
+    {
+        srcImgCreateInfo.equirectangularFilename = createInfo.filename;
+    }
+    else if ( createInfo.inputType == ImageInputType::FLATTENED_CUBEMAP )
+    {
+        srcImgCreateInfo.flattenedCubemapFilename = createInfo.filename;
+    }
+    else if ( createInfo.inputType == ImageInputType::INDIVIDUAL_FACES )
+    {
+        for ( int i = 0; i < 6; ++i )
+        {
+            srcImgCreateInfo.faceFilenames[i] = createInfo.faceFilenames[i];
+        }
+    }
+    srcImgCreateInfo.flipVertically = createInfo.flipVertically;
+    ImageCubemap srcImg;
+    if ( !srcImg.Load( &srcImgCreateInfo ) )
+    {
+        return false;
+    }
 
-    gfxImage->name        = createInfo.name;
-    gfxImage->imageType   = createInfo.imageType;
-    gfxImage->pixelFormat = createInfo.dstPixelFormat;
-    gfxImage->depth       = 1;
-    gfxImage->mipLevels   = 1;
-    gfxImage->numFaces    = 1;
+    int w = srcImg.faces[0].width;
+    int h = srcImg.faces[0].height;
+    size_t mipChainSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );
+    glm::vec4* pixelsAllMips = static_cast< glm::vec4* >( malloc( 6 * mipChainSizeInBytes ) );
+    int faceOrder[] = { FACE_RIGHT, FACE_LEFT, FACE_TOP, FACE_BOTTOM, FACE_FRONT, FACE_BACK }; // shouldnt the end of this be back then front, not the other way around?
+    for ( int face = 0; face < 6; ++face )
+    {
+        glm::vec4* faceMip0 = pixelsAllMips + face * (mipChainSizeInBytes / sizeof( glm::vec4 ));
+        memcpy( faceMip0, srcImg.faces[faceOrder[face]].pixels, w * h * sizeof( glm::vec4 ) );
+        GenerateMipmaps_Float32( faceMip0, w, h, faceMip0, createInfo.semantic );
+    }
+
+    gfxImage->width     = w;
+    gfxImage->height    = h;
+    gfxImage->mipLevels = CalculateNumMips( w, h );
+    gfxImage->numFaces  = 6;
+    gfxImage->totalSizeInBytes = 6 * CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
+    gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
+    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, pixelsAllMips, gfxImage->pixelFormat );
+    
+    free( pixelsAllMips );
+
+
+    return true;
+}
+
+
+bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
+{
+    PG_ASSERT( baseInfo );
+    const GfxImageCreateInfo* createInfo = (const GfxImageCreateInfo*)baseInfo;
+    name        = createInfo->name;
+    imageType   = createInfo->imageType;
+    pixelFormat = createInfo->dstPixelFormat;
+    depth       = 1;
+    mipLevels   = 1;
+    numFaces    = 1;
+
+    if ( createInfo->dstPixelFormat == PixelFormat::INVALID )
+    {
+        pixelFormat = ChoosePixelFormatFromSemantic( createInfo->semantic );
+    }
 
     bool success;
-    if ( createInfo.imageType == Gfx::ImageType::TYPE_2D )
+    if ( createInfo->imageType == Gfx::ImageType::TYPE_2D )
     {
-        success = Load_GfxImage_2D( gfxImage, createInfo );
-    } 
+        success = Load_GfxImage_2D( this, *createInfo );
+    }
+    else if ( createInfo->imageType == Gfx::ImageType::TYPE_CUBEMAP )
+    {
+        success = Load_GfxImage_Cubemap( this, *createInfo );
+    }
     else
     {
-        LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo.imageType ) );
+        LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo->imageType ) );
         success = false;
     }
 
@@ -381,46 +467,45 @@ bool GfxImage_Load( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 }
 
 
-bool Fastfile_GfxImage_Load( GfxImage* image, Serializer* serializer )
+bool GfxImage::FastfileLoad( Serializer* serializer )
 {
     static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
     
-    PG_ASSERT( image && serializer );
-    serializer->Read( image->name );
-    serializer->Read( image->width );
-    serializer->Read( image->height );
-    serializer->Read( image->depth );
-    serializer->Read( image->mipLevels );
-    serializer->Read( image->numFaces );
-    serializer->Read( image->totalSizeInBytes );
-    serializer->Read( image->pixelFormat );
-    serializer->Read( image->imageType );
-    image->pixels = static_cast< unsigned char* >( malloc( image->totalSizeInBytes ) );
-    serializer->Read( image->pixels, image->totalSizeInBytes );
-    //image->textureHandle = GFX_INVALID_TEXTURE_HANDLE;
+    PG_ASSERT( serializer );
+    serializer->Read( name );
+    serializer->Read( width );
+    serializer->Read( height );
+    serializer->Read( depth );
+    serializer->Read( mipLevels );
+    serializer->Read( numFaces );
+    serializer->Read( totalSizeInBytes );
+    serializer->Read( pixelFormat );
+    serializer->Read( imageType );
+    pixels = static_cast< unsigned char* >( malloc( totalSizeInBytes ) );
+    serializer->Read( pixels, totalSizeInBytes );
 
-    image->UploadToGpu();
+    UploadToGpu();
 
     return true;
 }
 
 
-bool Fastfile_GfxImage_Save( const GfxImage * const image, Serializer* serializer )
+bool GfxImage::FastfileSave( Serializer* serializer ) const
 {
     static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
     
-    PG_ASSERT( image && serializer );
-    PG_ASSERT( image->pixels );
-    serializer->Write( image->name );
-    serializer->Write( image->width );
-    serializer->Write( image->height );
-    serializer->Write( image->depth );
-    serializer->Write( image->mipLevels );
-    serializer->Write( image->numFaces );
-    serializer->Write( image->totalSizeInBytes );
-    serializer->Write( image->pixelFormat );
-    serializer->Write( image->imageType );
-    serializer->Write( image->pixels, image->totalSizeInBytes );
+    PG_ASSERT( serializer );
+    PG_ASSERT( pixels );
+    serializer->Write( name );
+    serializer->Write( width );
+    serializer->Write( height );
+    serializer->Write( depth );
+    serializer->Write( mipLevels );
+    serializer->Write( numFaces );
+    serializer->Write( totalSizeInBytes );
+    serializer->Write( pixelFormat );
+    serializer->Write( imageType );
+    serializer->Write( pixels, totalSizeInBytes );
 
     return true;
 }

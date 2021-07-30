@@ -12,9 +12,6 @@ constexpr int PG_SCRIPT_VERSION = 1; // initial version
 
 constexpr int PG_SHADER_VERSION = 3; // adding debug info for non-optimized shaders
 
-constexpr int PG_ENVIRONMENT_MAP_VERSION = 1; // initial version
-
-
 // If order is changed, all fastfiles need to be rebuilt
 enum AssetType : unsigned int
 {
@@ -23,7 +20,6 @@ enum AssetType : unsigned int
     ASSET_TYPE_SCRIPT,
     ASSET_TYPE_MODEL,
     ASSET_TYPE_SHADER,
-    ASSET_TYPE_ENVIRONMENTMAP,
 
     NUM_ASSET_TYPES
 };

@@ -21,41 +21,30 @@ bool g_paused = false;
 
 
 int main( int argc, char* argv[] )
-<<<<<<< HEAD
 {
-    Logger_Init();
-    Logger_AddLogLocation( "stdout", stdout );
+    EngineInitInfo engineInitConfig;
+	if ( !EngineInitialize( engineInitConfig ) )
+    {
+        LOG_ERR( "Failed to initialize the engine" );
+        return 1;
+    }
 
     RenderTaskBuilder* task;
     RenderGraph graph;
 
-    //task = graph.AddTask( "depth_prepass" );
+    task = graph.AddTask( "depth_prepass" );
+    task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1 );
 
-    task = graph.AddTask( "gbuffer" );
-    task->AddColorOutput( "albedo", PixelFormat::R8_G8_B8_A8_UNORM, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
-    task->AddColorOutput( "normal", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
-    
     task = graph.AddTask( "lighting" );
-    task->AddTextureInput( "albedo" );
-    task->AddTextureInput( "normal" );
+    task->AddTextureInput( "depth" );
     task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
     
-    task = graph.AddTask( "transparency" );
-    task->AddColorOutput( "litOutput" );
-    
-    task = graph.AddTask( "gbuffer2" );
-    task->AddColorOutput( "albedo2", PixelFormat::R8_G8_B8_A8_UNORM, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
-    task->AddColorOutput( "normal2", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
-    
-    task = graph.AddTask( "lighting2" );
-    task->AddTextureInput( "albedo2" );
-    task->AddTextureInput( "normal2" );
-    task->AddColorOutput( "litOutput" );
-    
-    task = graph.AddTask( "transparency2" );
+    task = graph.AddTask( "skybox" );
+    task->AddTextureInput( "depth" );
     task->AddColorOutput( "litOutput" );
     
     task = graph.AddTask( "postProcessing" );
+    task->AddTextureInput( "litOutput" );
     task->AddColorOutput( "BACK_BUFFER" );
     
     if ( !graph.Compile( 1920, 1080 ) )
@@ -65,12 +54,18 @@ int main( int argc, char* argv[] )
     }
     
     graph.PrintTaskGraph();
+
+    graph.Free();
+
+    EngineShutdown();
+
+    return 0;
 }
 
+
 /*
-=======
- {
->>>>>>> cubemap
+int main( int argc, char* argv[] )
+{
 	EngineInitInfo engineInitConfig;
 	if ( !EngineInitialize( engineInitConfig ) )
     {

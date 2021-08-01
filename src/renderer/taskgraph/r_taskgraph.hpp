@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/pixel_formats.hpp"
+#include "renderer/graphics_api/texture.hpp"
 #include "glm/vec4.hpp"
 #include <vector>
 
@@ -15,7 +16,7 @@ enum class ResourceType : uint8_t
     DEPTH_ATTACH,
     TEXTURE,
 
-    RESOURCETYPE_COUNT
+    COUNT
 };
 
 enum class ResourceState : uint8_t
@@ -24,7 +25,7 @@ enum class ResourceState : uint8_t
     READ_WRITE,
     WRITE_ONLY,
 
-    RESOURCESTATE_COUNT
+    COUNT
 };
 
 #define SCENE_WIDTH() (0xffff)
@@ -36,12 +37,13 @@ enum class ResourceState : uint8_t
 struct TG_ResourceDesc
 {
     TG_ResourceDesc() = default;
-    TG_ResourceDesc( PixelFormat inFormat, uint32_t inWidth, uint32_t inHeight, uint32_t inDepth, uint32_t inArrayLayers, uint32_t inMipLevels, const glm::vec4& inClearColor );
+    TG_ResourceDesc( ResourceType inType, PixelFormat inFormat, uint32_t inWidth, uint32_t inHeight, uint32_t inDepth, uint32_t inArrayLayers, uint32_t inMipLevels, const glm::vec4& inClearColor, bool inCleared );
     
     void ResolveSizes( uint16_t sceneWidth, uint16_t sceneHeight );
     bool operator==( const TG_ResourceDesc& d ) const;
     bool Mergable( const TG_ResourceDesc& d ) const;
 
+    ResourceType type    = ResourceType::COUNT;
     PixelFormat format   = PixelFormat::INVALID;
     uint32_t width       = 0;
     uint32_t height      = 0;
@@ -49,23 +51,20 @@ struct TG_ResourceDesc
     uint32_t arrayLayers = 1;
     uint32_t mipLevels   = 1;
     glm::vec4 clearColor = glm::vec4( 0 );
+    bool isCleared       = false;
 };
 
 struct TG_ResourceInput
 {
-    TG_ResourceInput( ResourceType _type, const std::string& _name );
-
-    ResourceType type;
     std::string name;
-    uint16_t physicalResourceIndex;
+    uint16_t createInfoIdx;
 };
 
 struct TG_ResourceOutput
 {
-    ResourceType type;
     std::string name;
     TG_ResourceDesc desc;
-    uint16_t physicalResourceIndex;
+    uint16_t createInfoIdx;
 };
 
 class RenderTaskBuilder
@@ -74,11 +73,16 @@ public:
     RenderTaskBuilder( const std::string& inName );
 
     void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
+    void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels );
     void AddColorOutput( const std::string& name );
+    void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, float clearValue );
+    void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height );
+    void AddDepthOutput( const std::string& name );
+    void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
+    void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels );
+    void AddTextureOutput( const std::string& name );
     void AddTextureInput( const std::string& name );
     void AddTextureInputOutput( const std::string& name );
-    void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
-    void AddTextureOutput( const std::string& name );
 
     std::string name;
     std::string dependentPass;
@@ -86,14 +90,17 @@ public:
     std::vector< TG_ResourceOutput > outputs;
 };
 
-struct PhysicalGraphResource
+struct GraphResource
 {
-    bool Mergable( const PhysicalGraphResource* res ) const;
+    GraphResource() = default;
+    GraphResource( const std::string& inName, const TG_ResourceDesc& inDesc, uint16_t currentTask );
+    bool Mergable( const GraphResource& res ) const;
 
     std::string name;
     TG_ResourceDesc desc;
     uint16_t firstTask;
     uint16_t lastTask;
+    uint16_t physicalResourceIndex;
 };
 
 struct RenderTask
@@ -114,17 +121,23 @@ public:
 
     RenderTaskBuilder* AddTask( const std::string& name );
     bool Compile( uint16_t sceneWidth, uint16_t sceneHeight );
+    void Free();
     void PrintTaskGraph() const;
 
+    static constexpr uint16_t MAX_FINAL_TASKS = 64;
+    static constexpr uint16_t MAX_PHYSICAL_RESOURCES = 256;
+
 private:
+    bool AllocatePhysicalResources();
+    bool CreateRenderPasses();
+
     std::vector< RenderTaskBuilder > buildRenderTasks;
 
-    static constexpr uint16_t MAX_FINAL_TASKS = 64;
     RenderTask renderTasks[MAX_FINAL_TASKS];
     uint16_t numRenderTasks;
 
-    static constexpr uint16_t MAX_PHYSICAL_RESOURCES = 256;
-    PhysicalGraphResource physicalResources[MAX_PHYSICAL_RESOURCES];
+    GraphResource physicalResources[MAX_PHYSICAL_RESOURCES];
+    Gfx::Texture textures[MAX_PHYSICAL_RESOURCES];
     uint16_t numPhysicalResources;
 
     uint16_t numLogicalOutputs;

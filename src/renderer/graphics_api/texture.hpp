@@ -59,11 +59,12 @@ namespace Gfx
         uint32_t GetWidth() const;
         uint32_t GetHeight() const;
         uint32_t GetDepth() const;
-
         VkImage GetHandle() const;
         VkImageView GetView() const;
         VkDeviceMemory GetMemoryHandle() const;
         uint16_t GetBindlessArrayIndex() const;
+        size_t GetTotalBytes() const;
+
         Sampler* GetSampler() const;
         void SetSampler( Sampler* sampler );
 

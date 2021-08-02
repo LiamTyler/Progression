@@ -93,16 +93,10 @@ namespace Gfx
             ImageLayout finalLayout = ImageLayout::UNDEFINED
         );
 
-        const ColorAttachmentDescriptor* GetColorAttachment( uint32_t i ) const;
-        const DepthAttachmentDescriptor* GetDepthAttachment() const;
-        uint8_t GetNumColorAttachments() const;
-        uint8_t GetNumDepthAttachments() const;
-
-    private:
-        std::array< ColorAttachmentDescriptor, 8 > m_colorAttachmentDescriptors;
-        DepthAttachmentDescriptor m_depthAttachmentDescriptor;
-        uint8_t m_numColorAttachments = 0;
-        uint8_t m_numDepthAttachments = 0;
+        std::array< ColorAttachmentDescriptor, 8 > colorAttachmentDescriptors;
+        DepthAttachmentDescriptor depthAttachmentDescriptor;
+        uint8_t numColorAttachments = 0;
+        uint8_t numDepthAttachments = 0;
     };
 
     class RenderPass

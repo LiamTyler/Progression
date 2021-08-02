@@ -50,14 +50,14 @@ namespace Gfx
 
         VkClearValue clearValues[9] = {};
         uint8_t attachmentIndex = 0;
-        for ( ; attachmentIndex < renderPass->desc.GetNumColorAttachments(); ++attachmentIndex )
+        for ( ; attachmentIndex < renderPass->desc.numColorAttachments; ++attachmentIndex )
         {
-            const glm::vec4& col = renderPass->desc.GetColorAttachment( attachmentIndex )->clearColor;
+            const glm::vec4& col = renderPass->desc.colorAttachmentDescriptors[attachmentIndex].clearColor;
             clearValues[attachmentIndex].color = { col.r, col.g, col.b, col.a };
         }
-        if ( renderPass->desc.GetNumDepthAttachments() > 0 )
+        if ( renderPass->desc.numDepthAttachments > 0 )
         {
-            clearValues[attachmentIndex].depthStencil = { renderPass->desc.GetDepthAttachment()->clearValue, 0 };
+            clearValues[attachmentIndex].depthStencil = { renderPass->desc.depthAttachmentDescriptor.clearValue, 0 };
             ++attachmentIndex;
         }
 

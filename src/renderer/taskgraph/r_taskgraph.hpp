@@ -1,8 +1,11 @@
 #pragma once
 
 #include "core/pixel_formats.hpp"
+#include "renderer/graphics_api/framebuffer.hpp"
+#include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/texture.hpp"
 #include "glm/vec4.hpp"
+#include <functional>
 #include <vector>
 
 namespace PG
@@ -15,15 +18,6 @@ enum class ResourceType : uint8_t
     COLOR_ATTACH,
     DEPTH_ATTACH,
     TEXTURE,
-
-    COUNT
-};
-
-enum class ResourceState : uint8_t
-{
-    READ_ONLY,
-    READ_WRITE,
-    WRITE_ONLY,
 
     COUNT
 };
@@ -67,6 +61,11 @@ struct TG_ResourceOutput
     uint16_t createInfoIdx;
 };
 
+struct RenderTask;
+class Scene;
+class CommandBuffer;
+using RenderFunction = std::function<void( RenderTask*, Scene* scene, CommandBuffer* cmdBuf )>;
+
 class RenderTaskBuilder
 {
 public:
@@ -83,12 +82,26 @@ public:
     void AddTextureOutput( const std::string& name );
     void AddTextureInput( const std::string& name );
     void AddTextureInputOutput( const std::string& name );
+    void SetRenderFunction( RenderFunction func );
 
     std::string name;
     std::string dependentPass;
     std::vector< TG_ResourceInput > inputs;
     std::vector< TG_ResourceOutput > outputs;
+    RenderFunction renderFunction;
 };
+
+class RenderGraphBuilder
+{
+    friend class RenderGraph;
+public:
+    RenderGraphBuilder();
+    RenderTaskBuilder* AddTask( const std::string& name );
+
+private:
+    std::vector< RenderTaskBuilder > tasks;
+};
+
 
 struct GraphResource
 {
@@ -112,26 +125,36 @@ struct RenderTask
     uint16_t outputIndices[MAX_OUTPUTS];
     uint8_t numInputs;
     uint8_t numOutputs;
+
+    RenderPass renderPass;
+    Framebuffer framebuffer;
+    RenderFunction renderFunction;
 };
 
 class RenderGraph
 {
 public:
-    RenderGraph();
+    RenderGraph() = default;
 
-    RenderTaskBuilder* AddTask( const std::string& name );
-    bool Compile( uint16_t sceneWidth, uint16_t sceneHeight );
+    bool Compile( RenderGraphBuilder& builder, uint16_t sceneWidth, uint16_t sceneHeight );
     void Free();
     void PrintTaskGraph() const;
+
+    void Render( Scene* scene, CommandBuffer* cmdBuf );
 
     static constexpr uint16_t MAX_FINAL_TASKS = 64;
     static constexpr uint16_t MAX_PHYSICAL_RESOURCES = 256;
 
+    struct Statistics
+    {
+        float memUsedMB;
+        uint16_t numTextures;
+        uint16_t numLogicalOutputs;
+    };
+    Statistics stats;
+
 private:
     bool AllocatePhysicalResources();
-    bool CreateRenderPasses();
-
-    std::vector< RenderTaskBuilder > buildRenderTasks;
 
     RenderTask renderTasks[MAX_FINAL_TASKS];
     uint16_t numRenderTasks;
@@ -140,7 +163,6 @@ private:
     Gfx::Texture textures[MAX_PHYSICAL_RESOURCES];
     uint16_t numPhysicalResources;
 
-    uint16_t numLogicalOutputs;
 };
 
 } // namespace Gfx

@@ -1,4 +1,5 @@
 #include "r_taskgraph.hpp"
+#include "renderer/graphics_api/command_buffer.hpp"
 #include "renderer/r_globals.hpp"
 #include <unordered_map>
 
@@ -80,12 +81,28 @@ namespace Gfx
     void RenderTaskBuilder::AddTextureOutput( const std::string& name )      { AddTextureOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0, glm::vec4( 0 ) ); }
     void RenderTaskBuilder::AddTextureInput( const std::string& name )       { inputs.push_back( { name } ); }
     void RenderTaskBuilder::AddTextureInputOutput( const std::string& name ) { inputs.push_back( { name } ); }
+    void RenderTaskBuilder::SetRenderFunction( RenderFunction func ) { renderFunction = func; }
+
+
+    RenderGraphBuilder::RenderGraphBuilder()
+    {
+        tasks.reserve( RenderGraph::MAX_FINAL_TASKS );
+    }
+
+
+    RenderTaskBuilder* RenderGraphBuilder::AddTask( const std::string& name )
+    {
+        size_t index = tasks.size();
+        tasks.push_back( name );
+        return &tasks[index];
+    }
 
 
     GraphResource::GraphResource( const std::string& inName, const TG_ResourceDesc& inDesc, uint16_t currentTask ) :
         name( inName ), desc( inDesc ), firstTask( currentTask ), lastTask( currentTask ), physicalResourceIndex( USHRT_MAX )
     {
     }
+
 
     bool GraphResource::Mergable( const GraphResource& res ) const
     {
@@ -100,38 +117,30 @@ namespace Gfx
     }
 
 
-    RenderGraph::RenderGraph()
-    {
-        buildRenderTasks.reserve( 64 );
-    }
-
-
-    RenderTaskBuilder* RenderGraph::AddTask( const std::string& name )
-    {
-        size_t index = buildRenderTasks.size();
-        buildRenderTasks.push_back( name );
-        return &buildRenderTasks[index];
-    }
-
-    bool RenderGraph::Compile( uint16_t sceneWidth, uint16_t sceneHeight )
+    bool RenderGraph::Compile( RenderGraphBuilder& builder, uint16_t sceneWidth, uint16_t sceneHeight )
     {
         // TODO: re-order tasks for more optimal rendering. For now, keep same order
-
+        // TODO: handle external images
+        // TODO: buffers
+        // TODO: compute tasks
         // TODO: cull tasks that dont affect the final image
-        assert( buildRenderTasks.size() <= MAX_FINAL_TASKS );
+        // TODO: use StoreOp::DONT_CARE when applicable
+
+        assert( builder.tasks.size() <= MAX_FINAL_TASKS );
 
         numRenderTasks = 0;
         numPhysicalResources = 0;
-        numLogicalOutputs = 0;
+        stats = {};
 
-        // find resource lifetimes
+        // 1. Create a list of all resources that are (logically) produced by the task graph.
+        //    Also resolves scene relatives sizes, and find initial lifetime of resource
         std::vector< GraphResource > graphOutputs;
         std::unordered_map< std::string, uint16_t > outputNameToLogicalMap;
 
-        uint16_t numBuildTasks = static_cast< uint16_t >( buildRenderTasks.size() );
+        uint16_t numBuildTasks = static_cast< uint16_t >( builder.tasks.size() );
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
-            RenderTaskBuilder& task = buildRenderTasks[taskIndex];
+            RenderTaskBuilder& task = builder.tasks[taskIndex];
             for ( TG_ResourceOutput& output : task.outputs )
             {
                 const std::string& name = output.name;
@@ -161,28 +170,36 @@ namespace Gfx
                     auto it = outputNameToLogicalMap.find( name );
                     if ( it == outputNameToLogicalMap.end() )
                     {
-                        printf( "Output '%s' used without any create params specified in this or previous tasks\n", name.c_str() );
+                        printf( "Output '%s' used without any create params specified in this task ('%s') or any previous tasks\n", name.c_str(), task.name.c_str() );
                         return false;
                     }
-                    graphOutputs[it->second].lastTask = taskIndex;
+                    GraphResource& resourceWithCreateInfo = graphOutputs[it->second];
+                    if ( resourceWithCreateInfo.firstTask == taskIndex )
+                    {
+                        printf( "Output '%s' used twice as an output in the same task '%s'\n", name.c_str(), task.name.c_str() );
+                        return false;
+                    }
+                    resourceWithCreateInfo.lastTask = taskIndex;
                     output.createInfoIdx = it->second;
                 }
             }
         }
 
+        // 2. Loop over all input resources to finish finding the resource lifetimes.
+        //    Currently assuming that all inputs were produced by the output of another task
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
-            RenderTaskBuilder& task = buildRenderTasks[taskIndex];
+            RenderTaskBuilder& task = builder.tasks[taskIndex];
             for ( auto& input : task.inputs )
             {
                 const std::string& name = input.name;
                 auto it = outputNameToLogicalMap.find( name );
-                // todo: external textures
                 if ( it == outputNameToLogicalMap.end() )
                 {
                     printf( "Resource '%s' used as input, but no tasks generate it as an output\n", name.c_str() );
                     return false;
                 }
+
                 input.createInfoIdx = it->second;
                 GraphResource& res = graphOutputs[it->second];
                 if ( res.firstTask >= taskIndex )
@@ -194,8 +211,9 @@ namespace Gfx
             }
         }
 
-        // select merge-able resources. Currently only allowing if the desc is the same size, format, etc.
-        // Eventually would be nice to allow smaller images to use the same memory of a larger one that isn't in use, or similar formats, etc
+        // 3. Before we create physical resources for these, find out if we can merge two "logical" resources
+        //    Two resources are mergeable, if their lifetimes do not overlap at all, and have the same resource descriptors.
+        //    Eventually want to allow for different imageviews, or different sized images (ex: storing a 720p image inside of an already allocated 1080p that is no longer needed)
         for ( size_t i = 0; i < graphOutputs.size(); ++i )
         {
             GraphResource& logicalRes = graphOutputs[i];
@@ -221,35 +239,62 @@ namespace Gfx
             }
         }
 
+        // 4. Gather all the info needed to create the task objects. This includes the RenderPass, and a list of physical resources used
         ImageLayout currentImageLayouts[MAX_PHYSICAL_RESOURCES] = { ImageLayout::UNDEFINED };
         int lastOutputTask[MAX_PHYSICAL_RESOURCES] = { -1 };
+        uint8_t lastAttachmentIdx[MAX_PHYSICAL_RESOURCES] = { 0 };
+        numRenderTasks = numBuildTasks;
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
-            RenderTask& finalTask = renderTasks[numRenderTasks];
-            RenderTaskBuilder& buildTask = buildRenderTasks[taskIndex];
-            RenderPassDescriptor renderPassDesc;
+            RenderTask& renderTask = renderTasks[taskIndex];
+            RenderTaskBuilder& buildTask = builder.tasks[taskIndex];
+            RenderPassDescriptor& renderPassDesc = renderTask.renderPass.desc;
 
-            finalTask.name = std::move( buildTask.name );
-            finalTask.numInputs = 0;
+            renderTask.name = std::move( buildTask.name );
+            renderTask.numInputs = 0;
+            renderTask.renderFunction = buildTask.renderFunction;
             for ( const TG_ResourceInput& input : buildTask.inputs )
             {
                 uint16_t physicalIdx = graphOutputs[input.createInfoIdx].physicalResourceIndex;
-                finalTask.inputIndices[finalTask.numInputs] = physicalIdx;
-                ++finalTask.numInputs;
+                renderTask.inputIndices[renderTask.numInputs] = physicalIdx;
+                ++renderTask.numInputs;
 
                 // check to see if the final layout of previous renderpass needs to be adjusted
-                if ( currentImageLayouts[physicalIdx] == ImageLayout::COLOR_ATTACHMENT_OPTIMAL )
+                if ( currentImageLayouts[physicalIdx] != ImageLayout::UNDEFINED )
                 {
+                    bool readAndWrite = false;
+                    for ( const TG_ResourceOutput& output : buildTask.outputs )
+                    {
+                        if ( output.name == input.name )
+                        {
+                            readAndWrite = true;
+                            break;
+                        }
+                    }
 
+                    if ( !readAndWrite )
+                    {
+                        if ( currentImageLayouts[physicalIdx] == ImageLayout::COLOR_ATTACHMENT_OPTIMAL )
+                        {
+                            currentImageLayouts[physicalIdx] = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+                            renderTasks[lastOutputTask[physicalIdx]].renderPass.desc.colorAttachmentDescriptors[physicalIdx].finalLayout = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+                        }
+                        else if ( currentImageLayouts[physicalIdx] == ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL )
+                        {
+                            currentImageLayouts[physicalIdx] = ImageLayout::DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                            renderTasks[lastOutputTask[physicalIdx]].renderPass.desc.depthAttachmentDescriptor.finalLayout = ImageLayout::DEPTH_STENCIL_READ_ONLY_OPTIMAL;
+                        }
+                    }
                 }
             }
 
-            finalTask.numOutputs = 0;
-            for ( const TG_ResourceOutput& output : buildTask.outputs )
+            renderTask.numOutputs = 0;
+            for ( size_t outputIdx = 0; outputIdx < buildTask.outputs.size(); ++outputIdx )
             {
+                const TG_ResourceOutput& output = buildTask.outputs[outputIdx];
                 uint16_t physicalIdx = graphOutputs[output.createInfoIdx].physicalResourceIndex;
-                finalTask.outputIndices[finalTask.numOutputs] = physicalIdx;
-                ++finalTask.numOutputs;
+                renderTask.outputIndices[renderTask.numOutputs] = physicalIdx;
+                ++renderTask.numOutputs;
 
                 LoadAction loadOp = LoadAction::LOAD;
                 if ( output.desc.isCleared )
@@ -261,27 +306,32 @@ namespace Gfx
                     loadOp = LoadAction::DONT_CARE;
                 }
 
-                // guess at the final layout, w
+                // guess at the final layout, fixed up later if needed by the input
                 if ( output.desc.type == ResourceType::COLOR_ATTACH )
                 {
                     renderPassDesc.AddColorAttachment( output.desc.format, loadOp, StoreAction::STORE, output.desc.clearColor, currentImageLayouts[physicalIdx], ImageLayout::COLOR_ATTACHMENT_OPTIMAL );
                     currentImageLayouts[physicalIdx] = ImageLayout::COLOR_ATTACHMENT_OPTIMAL;
+                    lastAttachmentIdx[physicalIdx] = renderPassDesc.numColorAttachments;
                 }
                 else if ( output.desc.type == ResourceType::DEPTH_ATTACH )
                 {
                     renderPassDesc.AddDepthAttachment( output.desc.format, loadOp, StoreAction::STORE, output.desc.clearColor[0], currentImageLayouts[physicalIdx], ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
                     currentImageLayouts[physicalIdx] = ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                 }
+                lastOutputTask[physicalIdx] = taskIndex;
             }
-
-            ++numRenderTasks;
         }
-        numLogicalOutputs = static_cast< uint16_t >( graphOutputs.size() );
 
+        // HACK!
+        renderTasks[numRenderTasks - 1].renderPass.desc.colorAttachmentDescriptors[0].finalLayout = ImageLayout::PRESENT_SRC_KHR;
+
+        // 5. Create the gpu resources. RenderPasses, Textures
         if ( !AllocatePhysicalResources() )
         {
             return false;
         }
+
+        stats.numLogicalOutputs = static_cast< uint16_t >( graphOutputs.size() );
 
         return true;
     }
@@ -301,7 +351,7 @@ namespace Gfx
 
     void RenderGraph::PrintTaskGraph() const
     {
-        printf( "Unique Outputs: %u\n", numLogicalOutputs );
+        printf( "Logical Outputs: %u\n", stats.numLogicalOutputs );
         printf( "Physical Resources: %u\n", numPhysicalResources );
         for ( uint16_t i = 0; i < numPhysicalResources; ++i )
         {
@@ -310,6 +360,7 @@ namespace Gfx
             printf( "\t\tUsed in tasks: %u - %u (%s - %s)\n", res.firstTask, res.lastTask, renderTasks[res.firstTask].name.c_str(), renderTasks[res.lastTask].name.c_str() );
             printf( "\t\tformat: %s, width: %u, height: %u, depth: %u, arrayLayers: %u, mipLevels: %u\n", PixelFormatName( res.desc.format ).c_str(), res.desc.width, res.desc.height, res.desc.depth, res.desc.arrayLayers, res.desc.mipLevels );
         }
+        printf( "Physical Resources Mem: %f(MB)\n", stats.memUsedMB );
 
         printf( "Tasks: %u\n", numRenderTasks );
         for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
@@ -330,8 +381,8 @@ namespace Gfx
 
     bool RenderGraph::AllocatePhysicalResources()
     {
-        bool ret = true;
-        for ( uint16_t i = 0; i < numPhysicalResources; ++i )
+        bool error = false;
+        for ( uint16_t i = 0; i < numPhysicalResources && !error; ++i )
         {
             GraphResource& resource = physicalResources[i];
             if ( resource.name == "BACK_BUFFER" )
@@ -358,47 +409,61 @@ namespace Gfx
                 texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
             }
             textures[i] = r_globals.device.NewTexture( texDesc, resource.name );
-            ret = ret && textures[i];
+            error = !textures[i];
+
+            stats.memUsedMB += textures[i].GetTotalBytes() / (1024.0f * 1024.0f);
+            stats.numTextures++;
         }
 
-        return ret;
+        for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
+        {
+            RenderTask& task = renderTasks[i];
+            task.renderPass = r_globals.device.NewRenderPass( task.renderPass.desc, task.name );
+            error = !task.renderPass;
+        }
+
+        for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
+        {
+            RenderTask& task = renderTasks[i];
+            VkImageView attachments[9];
+            VkFramebufferCreateInfo framebufferInfo = {};
+            for ( uint8_t outputIdx = 0; outputIdx < task.numOutputs; ++i )
+            {
+                const GraphResource& res = physicalResources[task.outputIndices[outputIdx]];
+                if ( res.name == "BACK_BUFFER" )
+                {
+                    continue;
+                }
+                if ( res.desc.width != physicalResources[task.outputIndices[0]].desc.width || res.desc.height != physicalResources[task.outputIndices[0]].desc.height )
+                {
+                    printf( "All attachments must be same size. Task %s\n", task.name.c_str() );
+                    return false;
+                }
+
+                const Texture& tex = textures[task.outputIndices[outputIdx]];
+                attachments[outputIdx] = tex.GetView();
+            }
+
+            framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+            framebufferInfo.renderPass      = task.renderPass.GetHandle();
+            framebufferInfo.attachmentCount = task.numOutputs;
+            framebufferInfo.pAttachments    = attachments;
+            framebufferInfo.width           = physicalResources[task.outputIndices[0]].desc.width;
+            framebufferInfo.height          = physicalResources[task.outputIndices[0]].desc.height;
+            framebufferInfo.layers          = 1;
+            task.framebuffer = r_globals.device.NewFramebuffer( framebufferInfo, task.name );
+            error = !task.framebuffer;
+        }
+
+        return !error;
     }
 
 
-    bool RenderGraph::CreateRenderPasses()
+    void RenderGraph::Render( Scene* scene, CommandBuffer* cmdBuf )
     {
-        //RenderPassDescriptor renderPassDesc;
-        //renderPassDesc.AddColorAttachment( PixelFormat::R16_G16_B16_A16_FLOAT, LoadAction::LOAD, StoreAction::STORE, glm::vec4( 0 ), ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::SHADER_READ_ONLY_OPTIMAL );
-        //renderPassDesc.AddDepthAttachment( PixelFormat::DEPTH_32_FLOAT, LoadAction::LOAD, StoreAction::STORE, 1.0f, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
-        //s_renderPasses[GFX_RENDER_PASS_SKYBOX] = r_globals.device.NewRenderPass( renderPassDesc, "Skybox" );
-        //
-        //VkImageView attachments[] = { r_globals.colorTex.GetView(), r_globals.depthTex.GetView() };
-        //VkFramebufferCreateInfo framebufferInfo = {};
-        //framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        //framebufferInfo.renderPass      = s_renderPasses[GFX_RENDER_PASS_SKYBOX].GetHandle();
-        //framebufferInfo.attachmentCount = 2;
-        //framebufferInfo.pAttachments    = attachments;
-        //framebufferInfo.width           = r_globals.swapchain.GetWidth();
-        //framebufferInfo.height          = r_globals.swapchain.GetHeight();
-        //framebufferInfo.layers          = 1;
-        //s_framebuffers[GFX_RENDER_PASS_SKYBOX] = r_globals.device.NewFramebuffer( framebufferInfo, "Skybox" );
-        //
-        //return s_renderPasses[GFX_RENDER_PASS_SKYBOX] && s_framebuffers[GFX_RENDER_PASS_SKYBOX];
-
-        for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
+        for ( uint16_t i = 0; i < numRenderTasks; ++i )
         {
-            RenderTask& task = renderTasks[taskIdx];
-            RenderPassDescriptor renderPassDesc;
-
-            VkImageView attachments[RenderTask::MAX_OUTPUTS];
-            for ( uint8_t outputIdx = 0; outputIdx < task.numOutputs; ++outputIdx )
-            {
-                const GraphResource& res = physicalResources[task.outputIndices[outputIdx]];
-                if ( res.desc.type == ResourceType::COLOR_ATTACH )
-                {
-                    renderPassDesc.AddColorAttachment( res.desc.format, LoadAction::LOAD, StoreAction::STORE, glm::vec4( 0 ), ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::SHADER_READ_ONLY_OPTIMAL );
-                }
-            }
+            task.Ren
         }
     }
 

@@ -1,5 +1,6 @@
 #include "renderer/graphics_api/texture.hpp"
 #include "core/assert.hpp"
+#include "core/image_calculate_size.hpp"
 #include "renderer/r_texture_manager.hpp"
 #include <algorithm>
 #include <cmath>
@@ -43,6 +44,12 @@ namespace Gfx
     uint16_t Texture::GetBindlessArrayIndex() const { return m_bindlessArrayIndex; }
     Sampler* Texture::GetSampler() const { return m_sampler; }
     Texture::operator bool() const { return m_image != VK_NULL_HANDLE; }
+
+    size_t Texture::GetTotalBytes() const
+    {
+        return CalculateTotalFaceSizeWithMips( m_desc.width, m_desc.height, m_desc.format, m_desc.mipLevels );
+    }
+
 
     void Texture::SetSampler( Sampler* sampler )
     {

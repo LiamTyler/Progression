@@ -30,24 +30,25 @@ int main( int argc, char* argv[] )
     }
 
     RenderTaskBuilder* task;
-    RenderGraph graph;
+    RenderGraphBuilder builder;
 
-    task = graph.AddTask( "depth_prepass" );
+    task = builder.AddTask( "depth_prepass" );
     task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1 );
 
-    task = graph.AddTask( "lighting" );
+    task = builder.AddTask( "lighting" );
     task->AddTextureInput( "depth" );
     task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
     
-    task = graph.AddTask( "skybox" );
+    task = builder.AddTask( "skybox" );
     task->AddTextureInput( "depth" );
     task->AddColorOutput( "litOutput" );
     
-    task = graph.AddTask( "postProcessing" );
+    task = builder.AddTask( "postProcessing" );
     task->AddTextureInput( "litOutput" );
     task->AddColorOutput( "BACK_BUFFER" );
     
-    if ( !graph.Compile( 1920, 1080 ) )
+    RenderGraph graph;
+    if ( !graph.Compile( builder, 1920, 1080 ) )
     {
         printf( "Failed to compile task graph\n" );
         return 1;

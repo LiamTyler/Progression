@@ -696,7 +696,7 @@ namespace Gfx
 
         uint8_t numColorAttachments = 0;
         VkPipelineColorBlendAttachmentState colorBlendAttachment[8] = {};
-        for ( uint8_t i = 0; i < desc.renderPass->desc.GetNumColorAttachments(); ++i )
+        for ( uint8_t i = 0; i < desc.renderPass->desc.numColorAttachments; ++i )
         {
             ++numColorAttachments;
             colorBlendAttachment[i].colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
@@ -800,18 +800,18 @@ namespace Gfx
         VkAttachmentDescription attachments[9];
         VkAttachmentReference attachmentRefs[9];
         uint8_t numAttachments = 0;
-        for ( uint8_t i = 0; i < desc.GetNumColorAttachments(); ++i )
+        for ( uint8_t i = 0; i < desc.numColorAttachments; ++i )
         {
-            const ColorAttachmentDescriptor* attach = desc.GetColorAttachment( i );
+            const ColorAttachmentDescriptor& attach = desc.colorAttachmentDescriptors[i];
             attachments[i].flags          = 0;
-            attachments[i].format         = PGToVulkanPixelFormat( attach->format );
+            attachments[i].format         = PGToVulkanPixelFormat( attach.format );
             attachments[i].samples        = VK_SAMPLE_COUNT_1_BIT;
-            attachments[i].loadOp         = PGToVulkanLoadAction( attach->loadAction );
-            attachments[i].storeOp        = PGToVulkanStoreAction( attach->storeAction );
+            attachments[i].loadOp         = PGToVulkanLoadAction( attach.loadAction );
+            attachments[i].storeOp        = PGToVulkanStoreAction( attach.storeAction );
             attachments[i].stencilLoadOp  = PGToVulkanLoadAction( LoadAction::DONT_CARE );
             attachments[i].stencilStoreOp = PGToVulkanStoreAction( StoreAction::DONT_CARE );
-            attachments[i].initialLayout  = PGToVulkanImageLayout( attach->initialLayout );
-            attachments[i].finalLayout    = PGToVulkanImageLayout( attach->finalLayout );
+            attachments[i].initialLayout  = PGToVulkanImageLayout( attach.initialLayout );
+            attachments[i].finalLayout    = PGToVulkanImageLayout( attach.finalLayout );
 
             attachmentRefs[i].attachment = i;
             attachmentRefs[i].layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
@@ -824,19 +824,20 @@ namespace Gfx
         subpass.pColorAttachments    = attachmentRefs;
 
         VkAttachmentReference depthAttachmentRef = {};
-        if ( desc.GetNumDepthAttachments() != 0 )
+        if ( desc.numDepthAttachments != 0 )
         {
-            const DepthAttachmentDescriptor* attach = desc.GetDepthAttachment();
+            const DepthAttachmentDescriptor& attach = desc.depthAttachmentDescriptor;
             VkAttachmentDescription depthAttachment;
             depthAttachment.flags          = 0;
-            depthAttachment.format         = PGToVulkanPixelFormat( attach->format );
+            depthAttachment.format         = PGToVulkanPixelFormat( attach.format );
             depthAttachment.samples        = VK_SAMPLE_COUNT_1_BIT;
-            depthAttachment.loadOp         = PGToVulkanLoadAction( attach->loadAction );
-            depthAttachment.storeOp        = PGToVulkanStoreAction( attach->storeAction );
+            depthAttachment.loadOp         = PGToVulkanLoadAction( attach.loadAction );
+            depthAttachment.storeOp        = PGToVulkanStoreAction( attach.storeAction );
+            PG_ASSERT( !PixelFormatHasStencil( attach.format ), "Stencil formats not implemented yet" );
             depthAttachment.stencilLoadOp  = PGToVulkanLoadAction( LoadAction::DONT_CARE );
             depthAttachment.stencilStoreOp = PGToVulkanStoreAction( StoreAction::DONT_CARE );
-            depthAttachment.initialLayout  = PGToVulkanImageLayout( attach->initialLayout );
-            depthAttachment.finalLayout    = PGToVulkanImageLayout( attach->finalLayout );
+            depthAttachment.initialLayout  = PGToVulkanImageLayout( attach.initialLayout );
+            depthAttachment.finalLayout    = PGToVulkanImageLayout( attach.finalLayout );
 
             depthAttachmentRef.attachment = numAttachments;
             depthAttachmentRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;

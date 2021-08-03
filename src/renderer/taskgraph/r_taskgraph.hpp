@@ -10,6 +10,9 @@
 
 namespace PG
 {
+
+class Scene;
+
 namespace Gfx
 {
 
@@ -22,11 +25,15 @@ enum class ResourceType : uint8_t
     COUNT
 };
 
-#define SCENE_WIDTH() (0xffff)
-#define SCENE_HEIGHT() (0xffff)
-#define SCENE_WIDTH_DIV( x ) ((x << 16) | 0xffff)
-#define SCENE_HEIGHT_DIV( x ) ((x << 16) | 0xffff)
-#define AUTO_FULL_MIP_CHAIN() (0xffff)
+#define SCENE_WIDTH() (0xFFFF)
+#define SCENE_HEIGHT() (0xFFFF)
+#define SCENE_WIDTH_DIV( x ) ((x << 16) | 0xFFFF)
+#define SCENE_HEIGHT_DIV( x ) ((x << 16) | 0xFFFF)
+//#define DISPLAY_WIDTH() (0xFFFE)
+//#define DISPLAY_HEIGHT() (0xFFFE)
+//#define DISPLAY_WIDTH_DIV( x ) ((x << 16) | 0xFFFE)
+//#define DISPLAY_HEIGHT_DIV( x ) ((x << 16) | 0xFFFE)
+#define AUTO_FULL_MIP_CHAIN() (0xFFFF)
 
 struct TG_ResourceDesc
 {
@@ -59,10 +66,10 @@ struct TG_ResourceOutput
     std::string name;
     TG_ResourceDesc desc;
     uint16_t createInfoIdx;
+    uint8_t renderPassAttachmentIdx;
 };
 
 struct RenderTask;
-class Scene;
 class CommandBuffer;
 using RenderFunction = std::function<void( RenderTask*, Scene* scene, CommandBuffer* cmdBuf )>;
 
@@ -153,7 +160,7 @@ public:
     };
     Statistics stats;
 
-private:
+//private:
     bool AllocatePhysicalResources();
 
     RenderTask renderTasks[MAX_FINAL_TASKS];
@@ -162,7 +169,6 @@ private:
     GraphResource physicalResources[MAX_PHYSICAL_RESOURCES];
     Gfx::Texture textures[MAX_PHYSICAL_RESOURCES];
     uint16_t numPhysicalResources;
-
 };
 
 } // namespace Gfx

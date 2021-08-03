@@ -3,6 +3,7 @@
 #include "graphics_api/render_pass.hpp"
 #include "graphics_api/framebuffer.hpp"
 
+/*
 namespace PG
 {
 namespace Gfx
@@ -28,3 +29,4 @@ Framebuffer* GetFramebuffer( RenderPasses renderPassKey );
 
 } // namespace Gfx
 } // namespace PG
+*/

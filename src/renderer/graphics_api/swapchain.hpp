@@ -21,6 +21,7 @@ public:
     void Free();
     operator bool() const;
 
+    uint32_t GetCurrentImageIndex() const;
     VkFormat GetFormat() const;
     uint32_t GetWidth() const;
     uint32_t GetHeight() const;

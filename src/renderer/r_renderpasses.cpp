@@ -4,6 +4,7 @@
 #include "utils/logger.hpp"
 #include <functional>
 
+/*
 namespace PG
 {
 namespace Gfx
@@ -162,3 +163,4 @@ Framebuffer* GetFramebuffer( RenderPasses renderPassKey )
 
 } // namespace Gfx
 } // namespace PG
+*/

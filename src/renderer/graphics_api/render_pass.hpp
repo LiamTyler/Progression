@@ -116,5 +116,7 @@ namespace Gfx
         VkDevice     m_device = VK_NULL_HANDLE;
     };
 
+    std::string ImageLayoutToString( ImageLayout layout );
+
 } // namespace Gfx
 } // namespace PG

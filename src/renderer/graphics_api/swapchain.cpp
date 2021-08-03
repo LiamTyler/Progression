@@ -214,6 +214,7 @@ SwapChain::operator bool() const
 }
 
 
+uint32_t SwapChain::GetCurrentImageIndex() const            { return m_currentImage; }
 VkFormat SwapChain::GetFormat() const                       { return m_imageFormat; }
 uint32_t SwapChain::GetWidth() const                        { return m_width; }
 uint32_t SwapChain::GetHeight() const                       { return m_height; }

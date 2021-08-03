@@ -243,29 +243,6 @@ static bool CreateSurface()
 }
 
 
-static bool CreateDepthTexture()
-{
-    TextureDescriptor info;
-    info.type    = ImageType::TYPE_2D;
-    info.format  = PixelFormat::DEPTH_32_FLOAT;
-    info.width   = r_globals.swapchain.GetWidth();
-    info.height  = r_globals.swapchain.GetHeight();
-    info.sampler = "nearest_clamped_nearest";
-    info.usage   = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    info.addToBindlessArray = false;
-    r_globals.depthTex = r_globals.device.NewTexture( info, "main depth texture" );
-
-    info.format  = PixelFormat::R16_G16_B16_A16_FLOAT;
-    info.width   = r_globals.swapchain.GetWidth();
-    info.height  = r_globals.swapchain.GetHeight();
-    info.sampler = "nearest_clamped_nearest";
-    info.usage   = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-    r_globals.colorTex = r_globals.device.NewTexture( info, "main color hdr tex" );
-
-    return r_globals.depthTex && r_globals.colorTex;
-}
-
-
 static bool CreateCommandPoolAndBuffers()
 {
     r_globals.commandPools[GFX_CMD_POOL_GRAPHICS]  = r_globals.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, CommandPoolQueueFamily::GRAPHICS, "global graphics" );
@@ -373,18 +350,6 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         return false;
     }
 
-    if ( !CreateDepthTexture() )
-    {
-        LOG_ERR( "Could not create depth texture" );
-        return false;
-    }
-
-    if ( !InitRenderPasses() )
-    {
-        LOG_ERR( "Could not init renderpass data" );
-        return false;
-    }
-
     if ( !CreateSynchronizationObjects() )
     {
         LOG_ERR( "Could not create synchronization objects" );
@@ -402,13 +367,10 @@ void R_Shutdown()
         r_globals.presentCompleteSemaphore.Free();
         r_globals.renderCompleteSemaphore.Free();
         r_globals.computeFence.Free();
-        r_globals.depthTex.Free();
-        r_globals.colorTex.Free();
-        for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
-        {
-            r_globals.swapchainFramebuffers[i].Free();
-        }
-        FreeRenderPasses();
+        //for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
+        //{
+        //    r_globals.swapchainFramebuffers[i].Free();
+        //}
         r_globals.swapchain.Free();
         FreeSamplers();
         vkDestroySurfaceKHR( r_globals.instance, r_globals.surface, nullptr );

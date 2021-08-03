@@ -26,11 +26,10 @@ struct R_Globals
     Device device;
     PhysicalDevice physicalDevice;
     SwapChain swapchain;
+    uint32_t swapChainImageIndex;
     Framebuffer swapchainFramebuffers[GFX_MAX_SWAPCHAIN_IMAGES];
     CommandPool commandPools[GFX_CMD_POOL_TOTAL];
     DescriptorPool descriptorPool;
-    Texture depthTex;
-    Texture colorTex;
     CommandBuffer graphicsCommandBuffer;
     CommandBuffer computeCommandBuffer;
     Semaphore presentCompleteSemaphore;

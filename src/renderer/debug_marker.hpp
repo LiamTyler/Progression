@@ -14,26 +14,20 @@ namespace Gfx
 namespace DebugMarker
 {
 	// Get function pointers for the debug report extensions from the device
-	void Init( VkDevice device, VkPhysicalDevice physicalDevice );
+	void Init( VkInstance instance );
 
     bool IsActive();
 
-	// Sets the debug name of an object
-	// All Objects in Vulkan are represented by their 64-bit handles which are passed into this function
-	// along with the object type
-	void SetObjectName( VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, const char *name );
+	void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, const char *name );
+	void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag );
 
-	// Set the tag for an object
-	void SetObjectTag( VkDevice device, uint64_t object, VkDebugReportObjectTypeEXT objectType, uint64_t name, size_t tagSize, const void* tag );
+	void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const char* name, glm::vec4 color = glm::vec4( 0 ) );
+	void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const char* name, glm::vec4 color = glm::vec4( 0 ) );
+	void EndRegion_CmdBuf( VkCommandBuffer cmdBuffer );
 
-	// Start a new debug marker region
-	void BeginRegion( VkCommandBuffer cmdbuffer, const char* pMarkerName, glm::vec4 color = glm::vec4( 0 ) );
-
-	// Insert a new debug marker into the command buffer
-	void Insert( VkCommandBuffer cmdbuffer, const char* name, glm::vec4 color = glm::vec4( 0 ) );
-
-	// End the current debug marker region
-	void EndRegion( VkCommandBuffer cmdBuffer );
+	void BeginRegion_Queue( VkQueue queue, const char* name, glm::vec4 color = glm::vec4( 0 ) );
+	void Insert_Queue( VkQueue queue, const char* name, glm::vec4 color = glm::vec4( 0 ) );
+	void EndRegion_Queue( VkQueue queue );
 
     // Object specific naming functions
 	void SetCommandPoolName( VkDevice device, VkCommandPool pool, const char * name );
@@ -70,9 +64,13 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_NAME( x, y ) ( std::string( x ) + y ).c_str()
 #define PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( s, x ) if ( !s.empty() ) { x; }
 
-#define PG_DEBUG_MARKER_BEGIN_REGION( cmdbuf, name, color ) PG::Gfx::DebugMarker::BeginRegion( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
-#define PG_DEBUG_MARKER_END_REGION( cmdbuf )                PG::Gfx::DebugMarker::EndRegion( cmdbuf.GetHandle() );
-#define PG_DEBUG_MARKER_INSERT( cmdbuf, name, color )       PG::Gfx::DebugMarker::Insert( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color ) PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+#define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )                PG::Gfx::DebugMarker::EndRegion_CmdBuf( cmdbuf.GetHandle() );
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name, color )	   PG::Gfx::DebugMarker::Insert_CmdBuf( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+
+#define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color ) PG::Gfx::DebugMarker::BeginRegion_Queue( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+#define PG_DEBUG_MARKER_END_REGION_QUEUE( queue )                PG::Gfx::DebugMarker::EndRegion_Queue( cmdbuf.GetHandle() );
+#define PG_DEBUG_MARKER_INSERT_QUEUE( queue, name, color )	   PG::Gfx::DebugMarker::Insert_Queue( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
 
 #define PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name ) \
     PG::Gfx::DebugMarker::SetBufferName( PG::Gfx::r_globals.device.GetHandle(), (buffer).GetHandle(), PG_DEBUG_MARKER_NAME( "Buffer: ", name ) ); \
@@ -103,7 +101,8 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( semaphore, name )     PG::Gfx::DebugMarker::SetSemaphoreName( PG::Gfx::r_globals.device.GetHandle(), semaphore.GetHandle(), PG_DEBUG_MARKER_NAME( "Semaphore: ", name ) )
 #define PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name )             PG::Gfx::DebugMarker::SetFenceName( PG::Gfx::r_globals.device.GetHandle(), fence.GetHandle(), PG_DEBUG_MARKER_NAME( "Fence: ", name ) )
 #define PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( swapchain, name )     PG::Gfx::DebugMarker::SetSwapChainName( PG::Gfx::r_globals.device.GetHandle(), swapchain, PG_DEBUG_MARKER_NAME( "Swapchain: ", name ) )
-#define PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( pDev, name )    // This one crashes Renderoc with an "Access violation reading location" exception?
+#define PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( pDev, name )    PG::Gfx::DebugMarker::SetPhysicalDeviceName( PG::Gfx::r_globals.device.GetHandle(), pDev.GetHandle(), PG_DEBUG_MARKER_NAME( "Physical Device: ", name ) )
+// This one crashes Renderoc with an "Access violation reading location" exception?
 #define PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( dev, name )      PG::Gfx::DebugMarker::SetLogicalDeviceName( dev.GetHandle(), PG_DEBUG_MARKER_NAME( "Device: ", name ) )
 #define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name )       PG::Gfx::DebugMarker::SetInstanceName( PG::Gfx::r_globals.device.GetHandle(), instance, PG_DEBUG_MARKER_NAME( "Instance: ", name ) )
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )          PG::Gfx::DebugMarker::SetDescriptorPoolName( PG::Gfx::r_globals.device.GetHandle(), pool.GetHandle(), PG_DEBUG_MARKER_NAME( "Descriptor Pool: ", name ) )

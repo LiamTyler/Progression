@@ -106,14 +106,12 @@ set(
     ${PROGRESSION_DIR}/src/renderer/r_globals.hpp
     ${PROGRESSION_DIR}/src/renderer/r_init.cpp
     ${PROGRESSION_DIR}/src/renderer/r_init.hpp
-    ${PROGRESSION_DIR}/src/renderer/r_renderpasses.cpp
-    ${PROGRESSION_DIR}/src/renderer/r_renderpasses.hpp
 	${PROGRESSION_DIR}/src/renderer/r_texture_manager.cpp
     ${PROGRESSION_DIR}/src/renderer/r_texture_manager.hpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.cpp
     ${PROGRESSION_DIR}/src/renderer/vulkan.hpp
-	${PROGRESSION_DIR}/src/renderer/taskgraph/r_taskgraph.cpp
-    ${PROGRESSION_DIR}/src/renderer/taskgraph/r_taskgraph.hpp
+	${PROGRESSION_DIR}/src/renderer/rendergraph/r_rendergraph.cpp
+    ${PROGRESSION_DIR}/src/renderer/rendergraph/r_rendergraph.hpp
 	
 	${PROGRESSION_DIR}/assets/shaders/c_shared/structs.h
 	${PROGRESSION_DIR}/assets/shaders/c_shared/defines.h
@@ -134,7 +132,7 @@ set(
     ${PROGRESSION_DIR}/src/utils/serializer.cpp
     ${PROGRESSION_DIR}/src/utils/serializer.hpp
 
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/engine_main.cpp
 )
 
 

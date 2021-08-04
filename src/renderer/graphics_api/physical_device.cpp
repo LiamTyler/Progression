@@ -253,7 +253,7 @@ bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
         }
 
         FindQueueFamilies( headless, vkDevices[i], r_globals.surface, devices[i].m_graphicsFamily, devices[i].m_presentFamily, devices[i].m_computeFamily );
-        devices[i].score   = RatePhysicalDevice( devices[i], headless );
+        devices[i].score = RatePhysicalDevice( devices[i], headless );
     }
 
     for ( uint32_t i = 0; i < deviceCount; ++i )

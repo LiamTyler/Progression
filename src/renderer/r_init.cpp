@@ -1,7 +1,6 @@
-#include "renderer/r_init.hpp"
+﻿#include "renderer/r_init.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
-#include "renderer/r_renderpasses.hpp"
 #include "core/window.hpp"
 #include "utils/logger.hpp"
 #include <cstring>
@@ -276,6 +275,8 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         LOG_ERR( "Could not create vulkan instance" );
         return false;
     }
+    DebugMarker::Init( r_globals.instance );
+
 
 #if !USING( SHIP_BUILD )
     if ( !SetupDebugCallback() )
@@ -312,8 +313,7 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         return false;
     }
     
-    DebugMarker::Init( r_globals.device.GetHandle(), r_globals.physicalDevice.GetHandle() );
-    PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( r_globals.physicalDeviceInfo.device, r_globals.physicalDeviceInfo.name );
+    PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( r_globals.physicalDevice, r_globals.physicalDevice.GetName() );
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( r_globals.instance, "global" );
     PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( r_globals.device, "default" );
     PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.GraphicsQueue(), "global graphics" );
@@ -367,10 +367,6 @@ void R_Shutdown()
         r_globals.presentCompleteSemaphore.Free();
         r_globals.renderCompleteSemaphore.Free();
         r_globals.computeFence.Free();
-        //for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
-        //{
-        //    r_globals.swapchainFramebuffers[i].Free();
-        //}
         r_globals.swapchain.Free();
         FreeSamplers();
         vkDestroySurfaceKHR( r_globals.instance, r_globals.surface, nullptr );

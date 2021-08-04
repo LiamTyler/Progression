@@ -3,8 +3,7 @@
 #include "renderer/render_system.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_init.hpp"
-#include "renderer/r_renderpasses.hpp"
-#include "renderer/taskgraph/r_taskgraph.hpp"
+#include "renderer/rendergraph/r_rendergraph.hpp"
 #include "renderer/r_texture_manager.hpp"
 #include "asset/asset_manager.hpp"
 #include "glm/glm.hpp"
@@ -348,7 +347,7 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
         for ( size_t i = 0; i < model->meshes.size(); ++i )
         {
             const auto& mesh = model->meshes[i];
-            PG_DEBUG_MARKER_INSERT( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
+            PG_DEBUG_MARKER_INSERT_CMDBUF( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
             cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
         }
     });
@@ -385,7 +384,7 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
             Material* material = modelRenderer.materials[i];
             GPU::MaterialData gpuMaterial = CPUMaterialToGPU( material );
             cmdBuf->PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
-            PG_DEBUG_MARKER_INSERT( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
+            PG_DEBUG_MARKER_INSERT_CMDBUF( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
             cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
         }
     });

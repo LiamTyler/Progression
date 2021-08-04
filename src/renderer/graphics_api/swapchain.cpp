@@ -127,9 +127,14 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
 
     m_numImages = swapChainSupport.capabilities.minImageCount + 1;
     // maxImageCount == 0 means no maximum
-    if ( swapChainSupport.capabilities.maxImageCount > 0 && m_numImages > swapChainSupport.capabilities.maxImageCount )
+    if ( swapChainSupport.capabilities.maxImageCount > 0 )
     {
-        m_numImages = swapChainSupport.capabilities.maxImageCount;
+        m_numImages = std::min( m_numImages, swapChainSupport.capabilities.maxImageCount );
+    }
+    m_numImages = std::min<uint32_t>( m_numImages, GFX_MAX_SWAPCHAIN_IMAGES );
+    if ( m_numImages < swapChainSupport.capabilities.minImageCount )
+    {
+        LOG_ERR( "Swapchain num images is lower than the minimum for this gpu! Increase GFX_MAX_SWAPCHAIN_IMAGES?" );
     }
 
     VkSwapchainCreateInfoKHR createInfo = {};
@@ -174,7 +179,7 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
 
     // m_numImages is a minimum, the driver is allowed to make more
     VK_CHECK_RESULT( vkGetSwapchainImagesKHR( m_device, m_handle, &m_numImages, nullptr ) );
-    PG_ASSERT( m_numImages <= GFX_MAX_SWAPCHAIN_IMAGES, "Make m_numImages array larger!" );
+    PG_ASSERT( m_numImages <= GFX_MAX_SWAPCHAIN_IMAGES, "Increase GFX_MAX_SWAPCHAIN_IMAGES!" );
     VK_CHECK_RESULT( vkGetSwapchainImagesKHR( m_device, m_handle, &m_numImages, m_images.data() ) );
 
     for ( uint32_t i = 0; i < m_numImages; ++i )

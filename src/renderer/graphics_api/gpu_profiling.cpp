@@ -1,6 +1,7 @@
 #include "renderer/graphics_api/gpu_profiling.hpp"
 #include "core/assert.hpp"
 #include "core/time.hpp"
+#include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
 #include "utils/logger.hpp"
 #include <algorithm>
@@ -42,7 +43,7 @@ namespace Profile
         createInfo.queryType    = VK_QUERY_TYPE_TIMESTAMP;
         createInfo.queryCount   = MAX_NUM_QUERIES;
         VK_CHECK_RESULT( vkCreateQueryPool( r_globals.device.GetHandle(), &createInfo, nullptr, &s_queryPool ) );
-        //PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_queryPool, "GPU Profiling Timestamps" );
+        PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_queryPool, "GPU Profiling Timestamps" );
 
         s_timestampToMillisInv = 1.0 / (r_globals.physicalDevice.GetProperties().timestampFrequency / 1000.0);
         s_nextFreeIndex = 0;

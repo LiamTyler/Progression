@@ -43,8 +43,6 @@ namespace DebugMarker
 		{
 			LOG_ERR( "Could not initialize debug marking functions!" );
 		}
-
-		s_active = false; // TODO: fix intermittent crashes when this is enabled
 	}
 
     bool IsActive()
@@ -52,7 +50,7 @@ namespace DebugMarker
         return s_active;
     }
 
-	void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, const char *name )
+	void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, const std::string& name )
 	{
 		if ( s_active )
 		{
@@ -61,7 +59,7 @@ namespace DebugMarker
 			nameInfo.pNext		  = nullptr;
 			nameInfo.objectType   = objectType;
 			nameInfo.objectHandle = object;
-			nameInfo.pObjectName  = name;
+			nameInfo.pObjectName  = name.c_str();
 			VK_CHECK_RESULT( vkSetDebugUtilsObjectName( device, &nameInfo ) );
 		}
 	}
@@ -82,27 +80,27 @@ namespace DebugMarker
 		}
 	}
 
-	void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const char* name, glm::vec4 color )
+	void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color )
 	{
 		if ( s_active )
 		{
 			VkDebugUtilsLabelEXT label;
 			label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			label.pNext = nullptr;
-			label.pLabelName = name;
+			label.pLabelName = name.c_str();
 			memcpy( label.color, &color[0], sizeof( float ) * 4 );
 			vkCmdDebugMarkerBegin( cmdbuffer, &label );
 		}
 	}
 
-	void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const char* name, glm::vec4 color )
+	void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color )
 	{
 		if ( s_active )
 		{
 			VkDebugUtilsLabelEXT label;
 			label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			label.pNext = nullptr;
-			label.pLabelName = name;
+			label.pLabelName = name.c_str();
 			memcpy( label.color, &color[0], sizeof( float ) * 4 );
 			vkCmdDebugMarkerInsert( cmdbuffer, &label );
 		}
@@ -116,27 +114,27 @@ namespace DebugMarker
 		}
 	}
 
-	void BeginRegion_Queue( VkQueue queue, const char* name, glm::vec4 color )
+	void BeginRegion_Queue( VkQueue queue, const std::string& name, glm::vec4 color )
 	{
 		if ( s_active )
 		{
 			VkDebugUtilsLabelEXT label;
 			label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			label.pNext = nullptr;
-			label.pLabelName = name;
+			label.pLabelName = name.c_str();
 			memcpy( label.color, &color[0], sizeof( float ) * 4 );
 			vkQueueDebugMarkerBegin( queue, &label );
 		}
 	}
 
-	void Insert_Queue( VkQueue queue, const char* name, glm::vec4 color )
+	void Insert_Queue( VkQueue queue, const std::string& name, glm::vec4 color )
 	{
 		if ( s_active )
 		{
 			VkDebugUtilsLabelEXT label;
 			label.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
 			label.pNext = nullptr;
-			label.pLabelName = name;
+			label.pLabelName = name.c_str();
 			memcpy( label.color, &color[0], sizeof( float ) * 4 );
 			vkQueueDebugMarkerInsert( queue, &label );
 		}
@@ -150,122 +148,122 @@ namespace DebugMarker
 		}
 	}
 
-    void SetCommandPoolName( VkDevice device, VkCommandPool pool, const char * name )
+    void SetCommandPoolName( VkDevice device, VkCommandPool pool, const std::string& name )
     {
         SetObjectName( device, ( uint64_t )pool, VK_OBJECT_TYPE_COMMAND_POOL, name );
     }
 
-    void SetCommandBufferName( VkDevice device, VkCommandBuffer cmdBuffer, const char * name )
+    void SetCommandBufferName( VkDevice device, VkCommandBuffer cmdBuffer, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )cmdBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER, name );
     }
 
-    void SetQueueName( VkDevice device, VkQueue queue, const char * name )
+    void SetQueueName( VkDevice device, VkQueue queue, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )queue, VK_OBJECT_TYPE_QUEUE, name );
     }
 
-    void SetImageName( VkDevice device, VkImage image, const char * name )
+    void SetImageName( VkDevice device, VkImage image, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )image, VK_OBJECT_TYPE_IMAGE, name );
     }
 
-    void SetImageViewName( VkDevice device, VkImageView view, const char * name )
+    void SetImageViewName( VkDevice device, VkImageView view, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )view, VK_OBJECT_TYPE_IMAGE_VIEW, name );
     }
 
-    void SetSamplerName( VkDevice device, VkSampler sampler, const char * name )
+    void SetSamplerName( VkDevice device, VkSampler sampler, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )sampler, VK_OBJECT_TYPE_SAMPLER, name );
     }
 
-    void SetBufferName( VkDevice device, VkBuffer buffer, const char * name )
+    void SetBufferName( VkDevice device, VkBuffer buffer, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )buffer, VK_OBJECT_TYPE_BUFFER, name );
     }
 
-    void SetDeviceMemoryName( VkDevice device, VkDeviceMemory memory, const char * name )
+    void SetDeviceMemoryName( VkDevice device, VkDeviceMemory memory, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )memory, VK_OBJECT_TYPE_DEVICE_MEMORY, name );
     }
 
-    void SetShaderModuleName( VkDevice device, VkShaderModule shaderModule, const char * name )
+    void SetShaderModuleName( VkDevice device, VkShaderModule shaderModule, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )shaderModule, VK_OBJECT_TYPE_SHADER_MODULE, name );
     }
 
-    void SetPipelineName( VkDevice device, VkPipeline pipeline, const char * name )
+    void SetPipelineName( VkDevice device, VkPipeline pipeline, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )pipeline, VK_OBJECT_TYPE_PIPELINE, name );
     }
 
-    void SetPipelineLayoutName( VkDevice device, VkPipelineLayout pipelineLayout, const char * name )
+    void SetPipelineLayoutName( VkDevice device, VkPipelineLayout pipelineLayout, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )pipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, name );
     }
 
-    void SetRenderPassName( VkDevice device, VkRenderPass renderPass, const char * name )
+    void SetRenderPassName( VkDevice device, VkRenderPass renderPass, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )renderPass, VK_OBJECT_TYPE_RENDER_PASS, name );
     }
 
-    void SetFramebufferName( VkDevice device, VkFramebuffer framebuffer, const char * name )
+    void SetFramebufferName( VkDevice device, VkFramebuffer framebuffer, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )framebuffer, VK_OBJECT_TYPE_FRAMEBUFFER, name );
     }
 
-    void SetDescriptorSetLayoutName( VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const char * name )
+    void SetDescriptorSetLayoutName( VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )descriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, name );
     }
 
-    void SetDescriptorSetName( VkDevice device, VkDescriptorSet descriptorSet, const char * name )
+    void SetDescriptorSetName( VkDevice device, VkDescriptorSet descriptorSet, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )descriptorSet, VK_OBJECT_TYPE_DESCRIPTOR_SET, name );
     }
 
-    void SetSemaphoreName( VkDevice device, VkSemaphore semaphore, const char * name )
+    void SetSemaphoreName( VkDevice device, VkSemaphore semaphore, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )semaphore, VK_OBJECT_TYPE_SEMAPHORE, name );
     }
 
-    void SetFenceName( VkDevice device, VkFence fence, const char * name )
+    void SetFenceName( VkDevice device, VkFence fence, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )fence, VK_OBJECT_TYPE_FENCE, name );
     }
 
-    void SetEventName( VkDevice device, VkEvent _event, const char * name )
+    void SetEventName( VkDevice device, VkEvent _event, const std::string& name )
     {
 	    SetObjectName( device, ( uint64_t )_event, VK_OBJECT_TYPE_EVENT, name );
     }
 
-    void SetSwapChainName( VkDevice device, VkSwapchainKHR swapchain, const char * name )
+    void SetSwapChainName( VkDevice device, VkSwapchainKHR swapchain, const std::string& name )
     {
         SetObjectName( device, ( uint64_t )swapchain, VK_OBJECT_TYPE_SWAPCHAIN_KHR, name );
     }
 
-    void SetPhysicalDeviceName( VkDevice device, VkPhysicalDevice pDev, const char * name )
+    void SetPhysicalDeviceName( VkDevice device, VkPhysicalDevice pDev, const std::string& name )
     {
         SetObjectName( device, ( uint64_t )pDev, VK_OBJECT_TYPE_PHYSICAL_DEVICE, name );
     }
 
-    void SetLogicalDeviceName( VkDevice device, const char * name )
+    void SetLogicalDeviceName( VkDevice device, const std::string& name )
     {
         SetObjectName( device, ( uint64_t )device, VK_OBJECT_TYPE_DEVICE, name );
     }
 
-    void SetInstanceName( VkDevice device, VkInstance instance, const char * name )
+    void SetInstanceName( VkDevice device, VkInstance instance, const std::string& name )
     {
         SetObjectName( device, ( uint64_t )instance, VK_OBJECT_TYPE_INSTANCE, name );
     }
 
-    void SetDescriptorPoolName( VkDevice device, VkDescriptorPool pool, const char * name )
+    void SetDescriptorPoolName( VkDevice device, VkDescriptorPool pool, const std::string& name )
     {
         SetObjectName( device, ( uint64_t )pool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, name );
     }
 
-	void SetQueryPoolName( VkDevice device, VkQueryPool pool, const char * name )
+	void SetQueryPoolName( VkDevice device, VkQueryPool pool, const std::string& name )
     {
         SetObjectName( device, ( uint64_t )pool, VK_OBJECT_TYPE_QUERY_POOL, name );
     }

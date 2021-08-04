@@ -18,42 +18,42 @@ namespace DebugMarker
 
     bool IsActive();
 
-	void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, const char *name );
+	void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, const std::string&name );
 	void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag );
 
-	void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const char* name, glm::vec4 color = glm::vec4( 0 ) );
-	void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const char* name, glm::vec4 color = glm::vec4( 0 ) );
+	void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
+	void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
 	void EndRegion_CmdBuf( VkCommandBuffer cmdBuffer );
 
-	void BeginRegion_Queue( VkQueue queue, const char* name, glm::vec4 color = glm::vec4( 0 ) );
-	void Insert_Queue( VkQueue queue, const char* name, glm::vec4 color = glm::vec4( 0 ) );
+	void BeginRegion_Queue( VkQueue queue, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
+	void Insert_Queue( VkQueue queue, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
 	void EndRegion_Queue( VkQueue queue );
 
     // Object specific naming functions
-	void SetCommandPoolName( VkDevice device, VkCommandPool pool, const char * name );
-	void SetCommandBufferName( VkDevice device, VkCommandBuffer cmdBuffer, const char * name );
-	void SetQueueName( VkDevice device, VkQueue queue, const char * name );
-	void SetImageName( VkDevice device, VkImage image, const char * name );
-	void SetImageViewName( VkDevice device, VkImageView image, const char * name );
-	void SetSamplerName( VkDevice device, VkSampler sampler, const char * name );
-	void SetBufferName( VkDevice device, VkBuffer buffer, const char * name );
-	void SetDeviceMemoryName( VkDevice device, VkDeviceMemory memory, const char * name );
-	void SetShaderModuleName( VkDevice device, VkShaderModule shaderModule, const char * name );
-	void SetPipelineName( VkDevice device, VkPipeline pipeline, const char * name );
-	void SetPipelineLayoutName( VkDevice device, VkPipelineLayout pipelineLayout, const char * name );
-	void SetRenderPassName( VkDevice device, VkRenderPass renderPass, const char * name );
-	void SetFramebufferName( VkDevice device, VkFramebuffer framebuffer, const char * name );
-	void SetDescriptorSetLayoutName( VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const char * name );
-	void SetDescriptorSetName( VkDevice device, VkDescriptorSet descriptorSet, const char * name );
-	void SetSemaphoreName( VkDevice device, VkSemaphore semaphore, const char * name );
-	void SetFenceName( VkDevice device, VkFence fence, const char * name );
-	void SetEventName( VkDevice device, VkEvent _event, const char * name );
-	void SetSwapChainName( VkDevice device, VkSwapchainKHR swapchain, const char * name );
-	void SetPhysicalDeviceName( VkDevice device, VkPhysicalDevice pDev, const char * name ); // stops application in renderdoc?
-	void SetLogicalDeviceName( VkDevice device, const char * name );
-	void SetInstanceName( VkDevice device, VkInstance instance, const char * name );
-	void SetDescriptorPoolName( VkDevice device, VkDescriptorPool pool, const char * name );
-	void SetQueryPoolName( VkDevice device, VkQueryPool pool, const char * name );
+	void SetCommandPoolName( VkDevice device, VkCommandPool pool, const std::string& name );
+	void SetCommandBufferName( VkDevice device, VkCommandBuffer cmdBuffer, const std::string& name );
+	void SetQueueName( VkDevice device, VkQueue queue, const std::string& name );
+	void SetImageName( VkDevice device, VkImage image, const std::string& name );
+	void SetImageViewName( VkDevice device, VkImageView image, const std::string& name );
+	void SetSamplerName( VkDevice device, VkSampler sampler, const std::string& name );
+	void SetBufferName( VkDevice device, VkBuffer buffer, const std::string& name );
+	void SetDeviceMemoryName( VkDevice device, VkDeviceMemory memory, const std::string& name );
+	void SetShaderModuleName( VkDevice device, VkShaderModule shaderModule, const std::string& name );
+	void SetPipelineName( VkDevice device, VkPipeline pipeline, const std::string& name );
+	void SetPipelineLayoutName( VkDevice device, VkPipelineLayout pipelineLayout, const std::string& name );
+	void SetRenderPassName( VkDevice device, VkRenderPass renderPass, const std::string& name );
+	void SetFramebufferName( VkDevice device, VkFramebuffer framebuffer, const std::string& name );
+	void SetDescriptorSetLayoutName( VkDevice device, VkDescriptorSetLayout descriptorSetLayout, const std::string& name );
+	void SetDescriptorSetName( VkDevice device, VkDescriptorSet descriptorSet, const std::string& name );
+	void SetSemaphoreName( VkDevice device, VkSemaphore semaphore, const std::string& name );
+	void SetFenceName( VkDevice device, VkFence fence, const std::string& name );
+	void SetEventName( VkDevice device, VkEvent _event, const std::string& name );
+	void SetSwapChainName( VkDevice device, VkSwapchainKHR swapchain, const std::string& name );
+	void SetPhysicalDeviceName( VkDevice device, VkPhysicalDevice pDev, const std::string& name ); // stops application in renderdoc?
+	void SetLogicalDeviceName( VkDevice device, const std::string& name );
+	void SetInstanceName( VkDevice device, VkInstance instance, const std::string& name );
+	void SetDescriptorPoolName( VkDevice device, VkDescriptorPool pool, const std::string& name );
+	void SetQueryPoolName( VkDevice device, VkQueryPool pool, const std::string& name );
 
 } // namespace DebugMarker
 } // namespace Gfx
@@ -61,7 +61,7 @@ namespace DebugMarker
 
 #if !USING( SHIP_BUILD ) && !USING( COMPILING_CONVERTER )
 
-#define PG_DEBUG_MARKER_NAME( x, y ) ( std::string( x ) + y ).c_str()
+#define PG_DEBUG_MARKER_NAME( x, y ) ( std::string( x ) + y )
 #define PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( s, x ) if ( !s.empty() ) { x; }
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color ) PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
@@ -102,9 +102,8 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name )             PG::Gfx::DebugMarker::SetFenceName( PG::Gfx::r_globals.device.GetHandle(), fence.GetHandle(), PG_DEBUG_MARKER_NAME( "Fence: ", name ) )
 #define PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( swapchain, name )     PG::Gfx::DebugMarker::SetSwapChainName( PG::Gfx::r_globals.device.GetHandle(), swapchain, PG_DEBUG_MARKER_NAME( "Swapchain: ", name ) )
 #define PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( pDev, name )    PG::Gfx::DebugMarker::SetPhysicalDeviceName( PG::Gfx::r_globals.device.GetHandle(), pDev.GetHandle(), PG_DEBUG_MARKER_NAME( "Physical Device: ", name ) )
-// This one crashes Renderoc with an "Access violation reading location" exception?
 #define PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( dev, name )      PG::Gfx::DebugMarker::SetLogicalDeviceName( dev.GetHandle(), PG_DEBUG_MARKER_NAME( "Device: ", name ) )
-#define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name )       PG::Gfx::DebugMarker::SetInstanceName( PG::Gfx::r_globals.device.GetHandle(), instance, PG_DEBUG_MARKER_NAME( "Instance: ", name ) )
+#define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name )       // Causes a crash for some reason :/ PG::Gfx::DebugMarker::SetInstanceName( PG::Gfx::r_globals.device.GetHandle(), instance, PG_DEBUG_MARKER_NAME( "Instance: ", name ) )
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )          PG::Gfx::DebugMarker::SetDescriptorPoolName( PG::Gfx::r_globals.device.GetHandle(), pool.GetHandle(), PG_DEBUG_MARKER_NAME( "Descriptor Pool: ", name ) )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )         PG::Gfx::DebugMarker::SetQueryPoolName( PG::Gfx::r_globals.device.GetHandle(), pool, PG_DEBUG_MARKER_NAME( "Query Pool: ", name ) )
 

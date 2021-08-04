@@ -67,10 +67,6 @@ namespace Gfx
         {
             extensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
         }
-        if ( pDev.ExtensionSupported( VK_EXT_DEBUG_MARKER_EXTENSION_NAME ) )
-		{
-			extensions.push_back( VK_EXT_DEBUG_MARKER_EXTENSION_NAME );
-		}
         createInfo.enabledExtensionCount   = static_cast< uint32_t >( extensions.size() );
         createInfo.ppEnabledExtensionNames = extensions.data();
 

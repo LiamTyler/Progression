@@ -21,30 +21,55 @@ enum class ResourceType : uint8_t
     COLOR_ATTACH,
     DEPTH_ATTACH,
     TEXTURE,
+    BUFFER,
 
     COUNT
 };
 
-#define SCENE_WIDTH() (0xFFFF)
-#define SCENE_HEIGHT() (0xFFFF)
-#define SCENE_WIDTH_DIV( x ) ((x << 16) | 0xFFFF)
-#define SCENE_HEIGHT_DIV( x ) ((x << 16) | 0xFFFF)
-//#define DISPLAY_WIDTH() (0xFFFE)
-//#define DISPLAY_HEIGHT() (0xFFFE)
-//#define DISPLAY_WIDTH_DIV( x ) ((x << 16) | 0xFFFE)
-//#define DISPLAY_HEIGHT_DIV( x ) ((x << 16) | 0xFFFE)
-#define AUTO_FULL_MIP_CHAIN() (0xFFFF)
-
-struct TG_ResourceDesc
+enum class ResourceState : uint8_t
 {
-    TG_ResourceDesc() = default;
-    TG_ResourceDesc( ResourceType inType, PixelFormat inFormat, uint32_t inWidth, uint32_t inHeight, uint32_t inDepth, uint32_t inArrayLayers, uint32_t inMipLevels, const glm::vec4& inClearColor, bool inCleared );
-    
-    void ResolveSizes( uint16_t sceneWidth, uint16_t sceneHeight );
-    bool operator==( const TG_ResourceDesc& d ) const;
-    bool Mergable( const TG_ResourceDesc& d ) const;
+    READ_ONLY,
+    WRITE,
 
+    COUNT
+};
+
+enum class RelativeSizes : uint32_t
+{
+    Scene = 1 << 30,
+    Display = 1 << 31,
+
+    ALL = Scene | Display
+};
+
+constexpr uint32_t AUTO_FULL_MIP_CHAIN() { return UINT32_MAX; }
+constexpr uint32_t SIZE_SCENE() { return static_cast<uint32_t>( RelativeSizes::Scene ); }
+constexpr uint32_t SIZE_DISPLAY() { return static_cast<uint32_t>( RelativeSizes::Display ); }
+constexpr uint32_t SIZE_SCENE_DIV( uint32_t x ) { return static_cast<uint32_t>( RelativeSizes::Scene ) | x; }
+constexpr uint32_t SIZE_DISPLAY_DIV( uint32_t x ) { return static_cast<uint32_t>( RelativeSizes::Display ) | x; }
+constexpr uint32_t ResolveRelativeSize( uint32_t scene, uint32_t display, uint32_t relSize )
+{
+    uint32_t size = relSize & ~(uint32_t)RelativeSizes::ALL;
+    if ( relSize & (uint32_t)RelativeSizes::Scene )
+    {
+        return size == 0 ? scene : scene / size;
+    }
+    else if ( relSize & (uint32_t)RelativeSizes::Display )
+    {
+        return size == 0 ? display : display / size;
+    }
+    else
+    {
+        return relSize;
+    }
+}
+
+
+struct RG_Element
+{
+    std::string name;
     ResourceType type    = ResourceType::COUNT;
+    ResourceState state  = ResourceState::COUNT;
     PixelFormat format   = PixelFormat::INVALID;
     uint32_t width       = 0;
     uint32_t height      = 0;
@@ -55,28 +80,47 @@ struct TG_ResourceDesc
     bool isCleared       = false;
 };
 
-struct TG_ResourceInput
+struct RG_PhysicalResource
 {
     std::string name;
-    uint16_t createInfoIdx;
+    union
+    {
+        Gfx::Texture texture;
+    };
 };
 
-struct TG_ResourceOutput
+struct RG_TaskRenderTargets
+{
+    Texture* colorAttachments[MAX_COLOR_ATTACHMENTS];
+    Texture* depthAttach;
+    uint8_t numColorAttachments;
+};
+
+struct RenderTask
 {
     std::string name;
-    TG_ResourceDesc desc;
-    uint16_t createInfoIdx;
-    uint8_t renderPassAttachmentIdx;
+
+    RenderPass renderPass;
+    Framebuffer framebuffer;
+    RenderFunction renderFunction;
+    RG_TaskRenderTargets renderTargets;
 };
 
-struct RenderTask;
+struct RenderGraphCompileInfo
+{
+    uint32_t sceneWidth;
+    uint32_t sceneHeight;
+    uint32_t displayWidth;
+    uint32_t displayHeight;
+};
+
 class CommandBuffer;
 using RenderFunction = std::function<void( RenderTask*, Scene* scene, CommandBuffer* cmdBuf )>;
 
 class RenderTaskBuilder
 {
 public:
-    RenderTaskBuilder( const std::string& inName );
+    RenderTaskBuilder( const std::string& inName ) : name( inName ) {}
 
     void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
     void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels );
@@ -88,15 +132,14 @@ public:
     void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels );
     void AddTextureOutput( const std::string& name );
     void AddTextureInput( const std::string& name );
-    void AddTextureInputOutput( const std::string& name );
+
     void SetRenderFunction( RenderFunction func );
 
     std::string name;
-    std::string dependentPass;
-    std::vector< TG_ResourceInput > inputs;
-    std::vector< TG_ResourceOutput > outputs;
+    std::vector< RG_Element > elements;
     RenderFunction renderFunction;
 };
+
 
 class RenderGraphBuilder
 {
@@ -105,51 +148,25 @@ public:
     RenderGraphBuilder();
     RenderTaskBuilder* AddTask( const std::string& name );
 
+    bool Validate() const;
+
 private:
     std::vector< RenderTaskBuilder > tasks;
 };
 
-
-struct GraphResource
-{
-    GraphResource() = default;
-    GraphResource( const std::string& inName, const TG_ResourceDesc& inDesc, uint16_t currentTask );
-    bool Mergable( const GraphResource& res ) const;
-
-    std::string name;
-    TG_ResourceDesc desc;
-    uint16_t firstTask;
-    uint16_t lastTask;
-    uint16_t physicalResourceIndex;
-};
-
-struct RenderTask
-{
-    std::string name;
-    static constexpr uint8_t MAX_INPUTS = 16;
-    static constexpr uint8_t MAX_OUTPUTS = 16;
-    uint16_t inputIndices[MAX_INPUTS];
-    uint16_t outputIndices[MAX_OUTPUTS];
-    uint8_t numInputs;
-    uint8_t numOutputs;
-
-    RenderPass renderPass;
-    Framebuffer framebuffer;
-    RenderFunction renderFunction;
-};
 
 class RenderGraph
 {
 public:
     RenderGraph() = default;
 
-    bool Compile( RenderGraphBuilder& builder, uint16_t sceneWidth, uint16_t sceneHeight );
+    bool Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo );
     void Free();
     void PrintTaskGraph() const;
 
     void Render( Scene* scene, CommandBuffer* cmdBuf );
 
-    static constexpr uint16_t MAX_FINAL_TASKS = 64;
+    static constexpr uint16_t MAX_TASKS = 64;
     static constexpr uint16_t MAX_PHYSICAL_RESOURCES = 256;
 
     struct Statistics
@@ -163,11 +180,10 @@ public:
 //private:
     bool AllocatePhysicalResources();
 
-    RenderTask renderTasks[MAX_FINAL_TASKS];
+    RenderTask renderTasks[MAX_TASKS];
     uint16_t numRenderTasks;
 
-    GraphResource physicalResources[MAX_PHYSICAL_RESOURCES];
-    Gfx::Texture textures[MAX_PHYSICAL_RESOURCES];
+    RG_PhysicalResource physicalResources[MAX_PHYSICAL_RESOURCES];
     uint16_t numPhysicalResources;
 };
 

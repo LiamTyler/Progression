@@ -9,6 +9,7 @@ namespace PG
 {
 namespace Gfx
 {
+    constexpr uint8_t MAX_COLOR_ATTACHMENTS = 8;
 
     enum class LoadAction
     {
@@ -93,7 +94,7 @@ namespace Gfx
             ImageLayout finalLayout = ImageLayout::UNDEFINED
         );
 
-        std::array< ColorAttachmentDescriptor, 8 > colorAttachmentDescriptors;
+        std::array< ColorAttachmentDescriptor, MAX_COLOR_ATTACHMENTS > colorAttachmentDescriptors;
         DepthAttachmentDescriptor depthAttachmentDescriptor;
         uint8_t numColorAttachments = 0;
         uint8_t numDepthAttachments = 0;

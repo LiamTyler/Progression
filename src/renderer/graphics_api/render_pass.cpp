@@ -17,7 +17,7 @@ namespace Gfx
 
     void RenderPassDescriptor::AddColorAttachment( PixelFormat format, LoadAction loadAction, StoreAction storeAction, const glm::vec4& clearColor, ImageLayout initialLayout, ImageLayout finalLayout )
     {
-        PG_ASSERT( numColorAttachments < 8, "Can't add more than 8 color attachments" );
+        PG_ASSERT( numColorAttachments < MAX_COLOR_ATTACHMENTS, "Can't add more than " + std::to_string( MAX_COLOR_ATTACHMENTS ) + " color attachments" );
         colorAttachmentDescriptors[numColorAttachments].format        = format;
         colorAttachmentDescriptors[numColorAttachments].loadAction    = loadAction;
         colorAttachmentDescriptors[numColorAttachments].storeAction   = storeAction;

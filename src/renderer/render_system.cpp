@@ -165,7 +165,8 @@ bool Init( bool headless )
 
     // TODO! colorTex no longer valid!
     postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
-    imgDescriptors      = { DescriptorImageInfo( s_renderGraph.textures[1] , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
+    PG_ASSERT( false );
+    //imgDescriptors      = { DescriptorImageInfo( s_renderGraph.textures[1] , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
     writeDescriptorSets = { WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
     r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     
@@ -427,6 +428,7 @@ static bool InitRenderGraph( int width, int height )
     RenderTaskBuilder* task;
     RenderGraphBuilder builder;
 
+    /*
     task = builder.AddTask( "depth_prepass" );
     task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1 );
     task->SetRenderFunction( RenderFunc_DepthPass );
@@ -453,6 +455,7 @@ static bool InitRenderGraph( int width, int height )
     }
     
     s_renderGraph.PrintTaskGraph();
+    */
 
     return true;
 }

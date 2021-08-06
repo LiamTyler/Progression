@@ -36,8 +36,8 @@ enum class ResourceState : uint8_t
 
 enum class RelativeSizes : uint32_t
 {
-    Scene = 1 << 30,
-    Display = 1 << 31,
+    Scene = 1u << 30,
+    Display = 1u << 31,
 
     ALL = Scene | Display
 };
@@ -82,6 +82,11 @@ struct RG_Element
 
 struct RG_PhysicalResource
 {
+    RG_PhysicalResource()
+    {
+    }
+    ~RG_PhysicalResource() {}
+
     std::string name;
     union
     {
@@ -95,6 +100,11 @@ struct RG_TaskRenderTargets
     Texture* depthAttach;
     uint8_t numColorAttachments;
 };
+
+
+class CommandBuffer;
+struct RenderTask;
+using RenderFunction = std::function<void( RenderTask*, Scene* scene, CommandBuffer* cmdBuf )>;
 
 struct RenderTask
 {
@@ -113,9 +123,6 @@ struct RenderGraphCompileInfo
     uint32_t displayWidth;
     uint32_t displayHeight;
 };
-
-class CommandBuffer;
-using RenderFunction = std::function<void( RenderTask*, Scene* scene, CommandBuffer* cmdBuf )>;
 
 class RenderTaskBuilder
 {
@@ -158,7 +165,9 @@ private:
 class RenderGraph
 {
 public:
-    RenderGraph() = default;
+    RenderGraph()
+    {
+    }
 
     bool Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo );
     void Free();
@@ -176,9 +185,6 @@ public:
         uint16_t numLogicalOutputs;
     };
     Statistics stats;
-
-//private:
-    bool AllocatePhysicalResources();
 
     RenderTask renderTasks[MAX_TASKS];
     uint16_t numRenderTasks;

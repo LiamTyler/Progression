@@ -171,6 +171,8 @@ namespace Gfx
                 }
             }
         }
+
+        return true;
     }
 
 
@@ -212,16 +214,16 @@ namespace Gfx
             return false;
         }
 
-        numRenderTasks = 0;
+        uint16_t numBuildTasks = static_cast< uint16_t >( builder.tasks.size() );
+        numRenderTasks = numBuildTasks;
         numPhysicalResources = 0;
         stats = {};
 
         // 1. Create a list of all resources that are (logically) produced by the task graph.
-        //    Also resolves scene relatives sizes, and find initial lifetime of resource
+        //    Also resolves scene relatives sizes, and find lifetime of resource
         std::vector< RG_LogicalOutput > logicalOutputs;
         std::unordered_map< std::string, uint16_t > outputNameToLogicalMap;
 
-        uint16_t numBuildTasks = static_cast< uint16_t >( builder.tasks.size() );
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
             RenderTaskBuilder& task = builder.tasks[taskIndex];
@@ -234,7 +236,7 @@ namespace Gfx
                     if ( element.format != PixelFormat::INVALID )
                     {
                         outputNameToLogicalMap[element.name] = static_cast< uint16_t >( logicalOutputs.size() );
-                        logicalOutputs.emplace_back( element.name, &element, taskIndex, taskIndex, USHRT_MAX );
+                        logicalOutputs.push_back( { element.name, &element, taskIndex, taskIndex, USHRT_MAX } );
                     }
                     else
                     {
@@ -243,17 +245,7 @@ namespace Gfx
                         logicalOutput.lastTask = taskIndex;
                     }
                 }
-            }
-        }
-
-        // 2. Loop over all input resources to finish finding the resource lifetimes.
-        //    Currently assuming that all inputs were produced by the output of another task
-        for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
-        {
-            RenderTaskBuilder& task = builder.tasks[taskIndex];
-            for ( RG_Element& element : task.elements )
-            {
-                if ( element.state == ResourceState::READ_ONLY )
+                else if ( element.state == ResourceState::READ_ONLY )
                 {
                     auto it = outputNameToLogicalMap.find( element.name );
                     logicalOutputs[it->second].lastTask = std::max( logicalOutputs[it->second].lastTask, taskIndex );
@@ -261,11 +253,10 @@ namespace Gfx
             }
         }
 
-        // 3. Before we create physical resources for these, find out if we can merge two "logical" resources
+        // 2. Before we create physical resources for these, find out if we can merge two "logical" resources
         //    Two resources are mergeable, if their lifetimes do not overlap at all, and have the same resource descriptors.
         //    Eventually want to allow for different imageviews, or different sized images (ex: storing a 720p image inside of an already allocated 1080p that is no longer needed)
-
-        std::vector<RG_LogicalOutput> mergedLogicalOutputs;
+        std::vector< RG_LogicalOutput > mergedLogicalOutputs;
         mergedLogicalOutputs.reserve( logicalOutputs.size() );
         for ( size_t i = 0; i < logicalOutputs.size(); ++i )
         {
@@ -291,11 +282,16 @@ namespace Gfx
             }
         }
 
-        // 4. Gather all the info needed to create the task objects. This includes the RenderPass and a list of physical resources used
-        ImageLayout currentImageLayouts[MAX_PHYSICAL_RESOURCES] = { ImageLayout::UNDEFINED };
-        int lastOutputTask[MAX_PHYSICAL_RESOURCES] = { -1 };
-        uint8_t lastAttachmentIdx[MAX_PHYSICAL_RESOURCES] = { 0 };
-        numRenderTasks = numBuildTasks;
+        // 4. Gather all the info needed to create the task objects
+        struct ResourceStateTrackingInfo
+        {
+            ImageLayout currentLayout = ImageLayout::UNDEFINED;
+            uint16_t lastWriteTask = USHRT_MAX;
+            uint16_t lastReadTask = USHRT_MAX;
+            uint8_t lastAttachmentIndex = 255;
+        };
+        ResourceStateTrackingInfo resourceTrackingInfo[MAX_PHYSICAL_RESOURCES] = {};
+
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
             RenderTask& renderTask = renderTasks[taskIndex];
@@ -308,59 +304,138 @@ namespace Gfx
             memset( &renderTask.renderTargets, 0, sizeof( RG_TaskRenderTargets ) );
             for ( RG_Element& element : buildTask.elements )
             {
-                if ( element.type == ResourceType::COLOR_ATTACH )
+                uint16_t physicalIdx = logicalOutputs[outputNameToLogicalMap[element.name]].physicalResourceIndex;
+                ResourceStateTrackingInfo& trackingInfo = resourceTrackingInfo[physicalIdx];
+
+                if ( element.state == ResourceState::WRITE )
                 {
-                    renderTask.renderTargets.numColorAttachments;
+                    LoadAction loadOp = LoadAction::LOAD;
+                    if ( element.isCleared )
+                    {
+                        loadOp = LoadAction::CLEAR;
+                    }
+                    else if ( trackingInfo.currentLayout == ImageLayout::UNDEFINED )
+                    {
+                        loadOp = LoadAction::DONT_CARE;
+                    }
+
+                    if ( element.type == ResourceType::COLOR_ATTACH )
+                    {
+                        renderTask.renderTargets.colorAttachments[renderTask.renderTargets.numColorAttachments] = nullptr;
+                        ++renderTask.renderTargets.numColorAttachments;
+
+                        trackingInfo.lastAttachmentIndex = renderPassDesc.numColorAttachments;
+                        renderPassDesc.AddColorAttachment( element.format, loadOp, StoreAction::STORE, element.clearColor, trackingInfo.currentLayout, ImageLayout::COLOR_ATTACHMENT_OPTIMAL );
+                        trackingInfo.currentLayout = ImageLayout::COLOR_ATTACHMENT_OPTIMAL;
+                    }
+                    else if ( element.type == ResourceType::DEPTH_ATTACH )
+                    {
+                        renderTask.renderTargets.depthAttach = nullptr;
+
+                        renderPassDesc.AddDepthAttachment( element.format, loadOp, StoreAction::STORE, element.clearColor[0], trackingInfo.currentLayout, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
+                        trackingInfo.currentLayout = ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+                    }
+
+                    trackingInfo.lastWriteTask = taskIndex;
                 }
-                else if ( element.type == ResourceType::DEPTH_ATTACH )
+                else if ( element.state == ResourceState::READ_ONLY )
                 {
+                    // if the most recent state was a write, then we need to fixup the last task to change the final layout to READ, for the current task
+                    if ( trackingInfo.lastReadTask < trackingInfo.lastWriteTask )
+                    {
+                        RenderPassDescriptor& lastDesc = renderTasks[trackingInfo.lastWriteTask].renderPass.desc;
+                        if ( element.type == ResourceType::COLOR_ATTACH )
+                        {
+                            lastDesc.colorAttachmentDescriptors[trackingInfo.lastAttachmentIndex].finalLayout = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+                            trackingInfo.currentLayout = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+                        }
+                        else if ( element.type == ResourceType::DEPTH_ATTACH )
+                        {
+                            lastDesc.depthAttachmentDescriptor.finalLayout = ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+                            trackingInfo.currentLayout = ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+                        }
+                    }
+
+                    trackingInfo.lastReadTask = taskIndex;
                 }
             }
-
-            /*
-            for ( size_t outputIdx = 0; outputIdx < buildTask.outputs.size(); ++outputIdx )
-            {
-                const GraphResource& resource = logicalOutputs[buildTask.outputs[outputIdx].createInfoIdx];
-                uint16_t physicalIdx = resource.physicalResourceIndex;
-                renderTask.outputIndices[renderTask.numOutputs] = physicalIdx;
-                ++renderTask.numOutputs;
-
-                LoadAction loadOp = LoadAction::LOAD;
-                if ( resource.desc.isCleared )
-                {
-                    loadOp = LoadAction::CLEAR;
-                }
-                else if ( currentImageLayouts[physicalIdx] == ImageLayout::UNDEFINED )
-                {
-                    loadOp = LoadAction::DONT_CARE;
-                }
-
-                // guess at the final layout, fixed up later if needed by the input
-                if ( resource.desc.type == ResourceType::COLOR_ATTACH )
-                {
-                    //buildTask.outputs[outputIdx].renderPassAttachmentIdx = renderPassDesc.numColorAttachments;
-                    lastAttachmentIdx[physicalIdx] = renderPassDesc.numColorAttachments;
-                    renderPassDesc.AddColorAttachment( resource.desc.format, loadOp, StoreAction::STORE, resource.desc.clearColor, currentImageLayouts[physicalIdx], ImageLayout::COLOR_ATTACHMENT_OPTIMAL );
-                    currentImageLayouts[physicalIdx] = ImageLayout::COLOR_ATTACHMENT_OPTIMAL;
-                }
-                else if ( resource.desc.type == ResourceType::DEPTH_ATTACH )
-                {
-                    renderPassDesc.AddDepthAttachment( resource.desc.format, loadOp, StoreAction::STORE, resource.desc.clearColor[0], currentImageLayouts[physicalIdx], ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
-                    currentImageLayouts[physicalIdx] = ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-                }
-                lastOutputTask[physicalIdx] = taskIndex;
-            }
-            */
         }
 
         // HACK!
         //renderTasks[numRenderTasks - 1].renderPass.desc.colorAttachmentDescriptors[0].format = VulkanToPGPixelFormat( r_globals.swapchain.GetFormat() );
         //renderTasks[numRenderTasks - 1].renderPass.desc.colorAttachmentDescriptors[0].finalLayout = ImageLayout::PRESENT_SRC_KHR;
 
-        // 5. Create the gpu resources. RenderPasses, Textures
-        if ( !AllocatePhysicalResources() )
+        // 4. Create the gpu resources. RenderPasses, Textures
         {
-            return false;
+            bool error = false;
+            for ( uint16_t i = 0; i < numPhysicalResources && !error; ++i )
+            {
+                RG_PhysicalResource& pRes = physicalResources[i];
+                const RG_LogicalOutput& lRes = mergedLogicalOutputs[i];
+
+                PG_ASSERT( lRes.element->type != ResourceType::BUFFER );
+
+                TextureDescriptor texDesc;
+                texDesc.format = lRes.element->format;
+                texDesc.width  = lRes.element->width;
+                texDesc.height = lRes.element->height;
+                texDesc.depth  = lRes.element->depth;
+                texDesc.arrayLayers = lRes.element->arrayLayers;
+                texDesc.mipLevels   = lRes.element->mipLevels;
+                texDesc.addToBindlessArray = true;
+                texDesc.type = ImageType::TYPE_2D;
+                texDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+                if ( lRes.element->type == ResourceType::COLOR_ATTACH )
+                {
+                    texDesc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+                }
+                else if ( lRes.element->type == ResourceType::DEPTH_ATTACH )
+                {
+                    texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+                }
+            
+                pRes.texture = r_globals.device.NewTexture( texDesc, pRes.name );
+                error = !pRes.texture;
+
+                stats.memUsedMB += pRes.texture.GetTotalBytes() / (1024.0f * 1024.0f);
+                stats.numTextures++;
+            }
+
+            for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
+            {
+                RenderTask& task = renderTasks[i];
+                task.renderPass = r_globals.device.NewRenderPass( task.renderPass.desc, task.name );
+                error = !task.renderPass;
+            }
+
+            for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
+            {
+                //RenderTask& task = renderTasks[i];
+                //VkImageView attachments[9];
+                //VkFramebufferCreateInfo framebufferInfo = {};
+                //for ( uint8_t outputIdx = 0; outputIdx < task.numOutputs; ++outputIdx )
+                //{
+                //    const GraphResource& res = physicalResources[task.outputIndices[outputIdx]];
+                //    if ( res.desc.width != physicalResources[task.outputIndices[0]].desc.width || res.desc.height != physicalResources[task.outputIndices[0]].desc.height )
+                //    {
+                //        printf( "All attachments must be same size. Task %s\n", task.name.c_str() );
+                //        return false;
+                //    }
+                //
+                //    const Texture& tex = textures[task.outputIndices[outputIdx]];
+                //    attachments[outputIdx] = tex.GetView();
+                //}
+                //
+                //framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+                //framebufferInfo.renderPass      = task.renderPass.GetHandle();
+                //framebufferInfo.attachmentCount = task.numOutputs;
+                //framebufferInfo.pAttachments    = attachments;
+                //framebufferInfo.width           = physicalResources[task.outputIndices[0]].desc.width;
+                //framebufferInfo.height          = physicalResources[task.outputIndices[0]].desc.height;
+                //framebufferInfo.layers          = 1;
+                //task.framebuffer = r_globals.device.NewFramebuffer( framebufferInfo, task.name );
+                //error = !task.framebuffer;
+            }
         }
 
         stats.numLogicalOutputs = static_cast< uint16_t >( logicalOutputs.size() );
@@ -409,6 +484,7 @@ namespace Gfx
         printf( "Tasks: %u\n", numRenderTasks );
         for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
         {
+            /*
             const auto& task = renderTasks[taskIdx];
             printf( "Task[%u]: %s\n", taskIdx, task.name.c_str() );
             for ( uint8_t i = 0; i < task.numInputs; ++i )
@@ -433,87 +509,8 @@ namespace Gfx
                     printf( "\t\tImageLayout: %s -> %s\n", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
                 }
             }
+            */
         }
-    }
-
-
-    bool RenderGraph::AllocatePhysicalResources()
-    {
-        /*
-        bool error = false;
-        for ( uint16_t i = 0; i < numPhysicalResources && !error; ++i )
-        {
-            GraphResource& resource = physicalResources[i];
-            if ( resource.name == "BACK_BUFFER" )
-            {
-                continue;
-            }
-
-            TextureDescriptor texDesc;
-            texDesc.format = resource.desc.format;
-            texDesc.width = resource.desc.width;
-            texDesc.height = resource.desc.height;
-            texDesc.depth = resource.desc.depth;
-            texDesc.arrayLayers = resource.desc.arrayLayers;
-            texDesc.mipLevels = resource.desc.mipLevels;
-            texDesc.addToBindlessArray = true;
-            texDesc.type = ImageType::TYPE_2D;
-            texDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-            if ( resource.desc.type == ResourceType::COLOR_ATTACH )
-            {
-                texDesc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-            }
-            else if ( resource.desc.type == ResourceType::DEPTH_ATTACH )
-            {
-                texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-            }
-            textures[i] = r_globals.device.NewTexture( texDesc, resource.name );
-            error = !textures[i];
-
-            stats.memUsedMB += textures[i].GetTotalBytes() / (1024.0f * 1024.0f);
-            stats.numTextures++;
-        }
-
-        for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
-        {
-            RenderTask& task = renderTasks[i];
-            task.renderPass = r_globals.device.NewRenderPass( task.renderPass.desc, task.name );
-            error = !task.renderPass;
-        }
-
-        for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
-        {
-            RenderTask& task = renderTasks[i];
-            if ( task.name == "postProcessing" )
-                continue;
-            VkImageView attachments[9];
-            VkFramebufferCreateInfo framebufferInfo = {};
-            for ( uint8_t outputIdx = 0; outputIdx < task.numOutputs; ++outputIdx )
-            {
-                const GraphResource& res = physicalResources[task.outputIndices[outputIdx]];
-                if ( res.desc.width != physicalResources[task.outputIndices[0]].desc.width || res.desc.height != physicalResources[task.outputIndices[0]].desc.height )
-                {
-                    printf( "All attachments must be same size. Task %s\n", task.name.c_str() );
-                    return false;
-                }
-
-                const Texture& tex = textures[task.outputIndices[outputIdx]];
-                attachments[outputIdx] = tex.GetView();
-            }
-
-            framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-            framebufferInfo.renderPass      = task.renderPass.GetHandle();
-            framebufferInfo.attachmentCount = task.numOutputs;
-            framebufferInfo.pAttachments    = attachments;
-            framebufferInfo.width           = physicalResources[task.outputIndices[0]].desc.width;
-            framebufferInfo.height          = physicalResources[task.outputIndices[0]].desc.height;
-            framebufferInfo.layers          = 1;
-            task.framebuffer = r_globals.device.NewFramebuffer( framebufferInfo, task.name );
-            error = !task.framebuffer;
-        }
-
-        return !error;
-        */
     }
 
 

@@ -21,6 +21,13 @@ bool g_paused = false;
 
 int main( int argc, char* argv[] )
 {
+    //EngineInitInfo engineInitConfig;
+	//if ( !EngineInitialize( engineInitConfig ) )
+    //{
+    //    LOG_ERR( "Failed to initialize the engine" );
+    //    return 1;
+    //}
+
     RenderTaskBuilder* task;
     RenderGraphBuilder builder;
 
@@ -40,7 +47,7 @@ int main( int argc, char* argv[] )
     task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
     
     RenderGraph graph;
-    RG_CompileInfo compileInfo;
+    RenderGraphCompileInfo compileInfo;
     compileInfo.sceneWidth = 1280;
     compileInfo.sceneHeight = 720;
     compileInfo.displayWidth = 1980;
@@ -52,6 +59,8 @@ int main( int argc, char* argv[] )
     }
     
     graph.PrintTaskGraph();
+
+    //EngineShutdown();
     return 0;
 
     /*

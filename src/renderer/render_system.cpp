@@ -52,6 +52,7 @@ namespace RenderSystem
 
 static bool InitRenderGraph( int width, int height );
 
+
 bool Init( bool headless )
 {
     s_window = GetMainWindow();
@@ -78,30 +79,30 @@ bool Init( bool headless )
         return false;
     }
 
-    {
-        VkImageView attachments[1];
-        VkFramebufferCreateInfo framebufferInfo = {};
-        framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        framebufferInfo.renderPass      = s_renderGraph.renderTasks[3].renderPass.GetHandle();
-        framebufferInfo.attachmentCount = 1;
-        framebufferInfo.pAttachments    = attachments;
-        framebufferInfo.width           = r_globals.swapchain.GetWidth();
-        framebufferInfo.height          = r_globals.swapchain.GetHeight();
-        framebufferInfo.layers          = 1;
-
-        s_swapChainFrameBuffers.resize( r_globals.swapchain.GetNumImages() );
-        for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
-        {
-            attachments[0] = r_globals.swapchain.GetImageView( i );
-
-            s_swapChainFrameBuffers[i] = r_globals.device.NewFramebuffer( framebufferInfo, "swapchain " + std::to_string( i ) );
-            //r_globals.swapchainFramebuffers[i] = r_globals.device.NewFramebuffer( framebufferInfo, "swapchain " + std::to_string( i ) );
-            //if ( !r_globals.swapchainFramebuffers[i] )
-            //{
-            //    return false;
-            //}
-        }
-    }
+    //{
+    //    VkImageView attachments[1];
+    //    VkFramebufferCreateInfo framebufferInfo = {};
+    //    framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+    //    framebufferInfo.renderPass      = s_renderGraph.renderTasks[3].renderPass.GetHandle();
+    //    framebufferInfo.attachmentCount = 1;
+    //    framebufferInfo.pAttachments    = attachments;
+    //    framebufferInfo.width           = r_globals.swapchain.GetWidth();
+    //    framebufferInfo.height          = r_globals.swapchain.GetHeight();
+    //    framebufferInfo.layers          = 1;
+    //
+    //    s_swapChainFrameBuffers.resize( r_globals.swapchain.GetNumImages() );
+    //    for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
+    //    {
+    //        attachments[0] = r_globals.swapchain.GetImageView( i );
+    //
+    //        s_swapChainFrameBuffers[i] = r_globals.device.NewFramebuffer( framebufferInfo, "swapchain " + std::to_string( i ) );
+    //        //r_globals.swapchainFramebuffers[i] = r_globals.device.NewFramebuffer( framebufferInfo, "swapchain " + std::to_string( i ) );
+    //        //if ( !r_globals.swapchainFramebuffers[i] )
+    //        //{
+    //        //    return false;
+    //        //}
+    //    }
+    //}
 
     VertexBindingDescriptor bindingDescs[] =
     {
@@ -165,10 +166,10 @@ bool Init( bool headless )
 
     // TODO! colorTex no longer valid!
     postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
-    PG_ASSERT( false );
+    //PG_ASSERT( false );
     //imgDescriptors      = { DescriptorImageInfo( s_renderGraph.textures[1] , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-    writeDescriptorSets = { WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
-    r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+    //writeDescriptorSets = { WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
+    //r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     
     sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_BUFFER_SET] );
     bufferDescriptors   = { DescriptorBufferInfo( sceneGlobals ) };
@@ -428,35 +429,35 @@ static bool InitRenderGraph( int width, int height )
     RenderTaskBuilder* task;
     RenderGraphBuilder builder;
 
-    /*
     task = builder.AddTask( "depth_prepass" );
-    task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1 );
-    task->SetRenderFunction( RenderFunc_DepthPass );
+    task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1 );
 
     task = builder.AddTask( "lighting" );
-    task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SCENE_WIDTH(), SCENE_HEIGHT(), 1, 1, 1, glm::vec4( 0 ) );
+    task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1, 1, 1, glm::vec4( 0 ) );
     task->AddDepthOutput( "depth" );
-    task->SetRenderFunction( RenderFunc_LitPass );
 
     task = builder.AddTask( "skybox" );
     task->AddColorOutput( "litOutput" );
     task->AddDepthOutput( "depth" );
-    task->SetRenderFunction( RenderFunc_SkyboxPass );
     
     task = builder.AddTask( "postProcessing" );
     task->AddTextureInput( "litOutput" );
-    task->AddColorOutput( "BACK_BUFFER" );
-    task->SetRenderFunction( RenderFunc_PostProcessPass );
+    task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
     
-    if ( !s_renderGraph.Compile( builder, width, height ) )
+    //RenderGraph graph;
+    RenderGraphCompileInfo compileInfo;
+    compileInfo.sceneWidth = 1280;
+    compileInfo.sceneHeight = 720;
+    compileInfo.displayWidth = 1980;
+    compileInfo.displayHeight = 1080;
+    if ( !s_renderGraph.Compile( builder, compileInfo ) )
     {
         printf( "Failed to compile task graph\n" );
         return false;
     }
-    
-    s_renderGraph.PrintTaskGraph();
-    */
 
+    s_renderGraph.Print();
+    
     return true;
 }
 

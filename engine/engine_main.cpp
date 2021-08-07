@@ -21,13 +21,14 @@ bool g_paused = false;
 
 int main( int argc, char* argv[] )
 {
-    //EngineInitInfo engineInitConfig;
-	//if ( !EngineInitialize( engineInitConfig ) )
-    //{
-    //    LOG_ERR( "Failed to initialize the engine" );
-    //    return 1;
-    //}
+    EngineInitInfo engineInitConfig;
+	if ( !EngineInitialize( engineInitConfig ) )
+    {
+        LOG_ERR( "Failed to initialize the engine" );
+        return 1;
+    }
 
+    /*
     RenderTaskBuilder* task;
     RenderGraphBuilder builder;
 
@@ -59,8 +60,9 @@ int main( int argc, char* argv[] )
     }
     
     graph.PrintTaskGraph();
+    */
 
-    //EngineShutdown();
+    EngineShutdown();
     return 0;
 
     /*

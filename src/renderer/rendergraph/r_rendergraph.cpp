@@ -25,7 +25,7 @@ namespace Gfx
     void ResolveSizes( RG_Element& element, const RenderGraphCompileInfo& info )
     {
         element.width = ResolveRelativeSize( info.sceneWidth, info.displayWidth, element.width );
-        element.height = ResolveRelativeSize( info.displayHeight, info.displayHeight, element.height );
+        element.height = ResolveRelativeSize( info.sceneHeight, info.displayHeight, element.height );
 
         if ( element.mipLevels == AUTO_FULL_MIP_CHAIN() )
         {
@@ -182,15 +182,19 @@ namespace Gfx
         {
             bool overlapForward  = res.lastTask >= firstTask && res.firstTask <= lastTask;
             bool overlapBackward = lastTask >= res.firstTask && firstTask <= res.lastTask;
-            if ( overlapForward || overlapBackward )
-            {
-                return false;
-            }
-            return ElementsMergable( *this->element, *res.element );
+            if ( overlapForward || overlapBackward ) return false;
+            if ( !ElementsMergable( this->element, res.element ) ) return false;
+
+            // not tracking multiple clears right now, so in a merged sequence, only the earliest task can have a clear
+            if ( element.isCleared && res.element.isCleared ) return false;
+            if ( firstTask < res.firstTask && res.element.isCleared ) return false;
+            else if ( res.firstTask < firstTask && element.isCleared ) return false;
+
+            return true;
         }
 
         std::string mergedName;
-        RG_Element* element;
+        RG_Element element;
         uint16_t firstTask;
         uint16_t lastTask;
         uint16_t physicalResourceIndex;
@@ -205,6 +209,8 @@ namespace Gfx
         // TODO: compute tasks
         // TODO: cull tasks that dont affect the final image
         // TODO: use StoreOp::DONT_CARE when applicable
+        // TODO: right now, if a resource is used as an input, the layouts will never be transitioned to WRITE if it's used as an output later
+        // TODO: allow merging with multiple clears. Right now, only 1 clear will happen
 
         assert( builder.tasks.size() <= MAX_TASKS );
 
@@ -236,7 +242,7 @@ namespace Gfx
                     if ( element.format != PixelFormat::INVALID )
                     {
                         outputNameToLogicalMap[element.name] = static_cast< uint16_t >( logicalOutputs.size() );
-                        logicalOutputs.push_back( { element.name, &element, taskIndex, taskIndex, USHRT_MAX } );
+                        logicalOutputs.push_back( { element.name, element, taskIndex, taskIndex, USHRT_MAX } );
                     }
                     else
                     {
@@ -252,6 +258,7 @@ namespace Gfx
                 }
             }
         }
+        stats.numLogicalOutputs = static_cast< uint16_t >( logicalOutputs.size() );
 
         // 2. Before we create physical resources for these, find out if we can merge two "logical" resources
         //    Two resources are mergeable, if their lifetimes do not overlap at all, and have the same resource descriptors.
@@ -300,17 +307,18 @@ namespace Gfx
 
             renderTask.name = std::move( buildTask.name );
             renderTask.renderFunction = buildTask.renderFunction;
-
-            memset( &renderTask.renderTargets, 0, sizeof( RG_TaskRenderTargets ) );
+            renderTask.renderTargets.numColorAttachments = 0;
+            renderTask.renderTargets.depthAttach = USHRT_MAX;
             for ( RG_Element& element : buildTask.elements )
             {
                 uint16_t physicalIdx = logicalOutputs[outputNameToLogicalMap[element.name]].physicalResourceIndex;
                 ResourceStateTrackingInfo& trackingInfo = resourceTrackingInfo[physicalIdx];
+                const RG_LogicalOutput& logicalRes = mergedLogicalOutputs[physicalIdx];
 
-                if ( element.state == ResourceState::WRITE )
+                if ( logicalRes.element.state == ResourceState::WRITE )
                 {
                     LoadAction loadOp = LoadAction::LOAD;
-                    if ( element.isCleared )
+                    if ( logicalRes.element.isCleared )
                     {
                         loadOp = LoadAction::CLEAR;
                     }
@@ -321,18 +329,18 @@ namespace Gfx
 
                     if ( element.type == ResourceType::COLOR_ATTACH )
                     {
-                        renderTask.renderTargets.colorAttachments[renderTask.renderTargets.numColorAttachments] = nullptr;
+                        renderTask.renderTargets.colorAttachments[renderTask.renderTargets.numColorAttachments] = physicalIdx;
                         ++renderTask.renderTargets.numColorAttachments;
 
                         trackingInfo.lastAttachmentIndex = renderPassDesc.numColorAttachments;
-                        renderPassDesc.AddColorAttachment( element.format, loadOp, StoreAction::STORE, element.clearColor, trackingInfo.currentLayout, ImageLayout::COLOR_ATTACHMENT_OPTIMAL );
+                        renderPassDesc.AddColorAttachment( logicalRes.element.format, loadOp, StoreAction::STORE, logicalRes.element.clearColor, trackingInfo.currentLayout, ImageLayout::COLOR_ATTACHMENT_OPTIMAL );
                         trackingInfo.currentLayout = ImageLayout::COLOR_ATTACHMENT_OPTIMAL;
                     }
                     else if ( element.type == ResourceType::DEPTH_ATTACH )
                     {
-                        renderTask.renderTargets.depthAttach = nullptr;
+                        renderTask.renderTargets.depthAttach = physicalIdx;
 
-                        renderPassDesc.AddDepthAttachment( element.format, loadOp, StoreAction::STORE, element.clearColor[0], trackingInfo.currentLayout, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
+                        renderPassDesc.AddDepthAttachment( logicalRes.element.format, loadOp, StoreAction::STORE, logicalRes.element.clearColor[0], trackingInfo.currentLayout, ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL );
                         trackingInfo.currentLayout = ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
                     }
 
@@ -368,28 +376,32 @@ namespace Gfx
         // 4. Create the gpu resources. RenderPasses, Textures
         {
             bool error = false;
+            numPhysicalResources = static_cast<uint16_t>( mergedLogicalOutputs.size() );
             for ( uint16_t i = 0; i < numPhysicalResources && !error; ++i )
             {
                 RG_PhysicalResource& pRes = physicalResources[i];
                 const RG_LogicalOutput& lRes = mergedLogicalOutputs[i];
+                pRes.name = lRes.mergedName;
+                pRes.firstTask = lRes.firstTask;
+                pRes.lastTask = lRes.lastTask;
 
-                PG_ASSERT( lRes.element->type != ResourceType::BUFFER );
+                PG_ASSERT( lRes.element.type != ResourceType::BUFFER );
 
                 TextureDescriptor texDesc;
-                texDesc.format = lRes.element->format;
-                texDesc.width  = lRes.element->width;
-                texDesc.height = lRes.element->height;
-                texDesc.depth  = lRes.element->depth;
-                texDesc.arrayLayers = lRes.element->arrayLayers;
-                texDesc.mipLevels   = lRes.element->mipLevels;
+                texDesc.format = lRes.element.format;
+                texDesc.width  = lRes.element.width;
+                texDesc.height = lRes.element.height;
+                texDesc.depth  = lRes.element.depth;
+                texDesc.arrayLayers = lRes.element.arrayLayers;
+                texDesc.mipLevels   = lRes.element.mipLevels;
                 texDesc.addToBindlessArray = true;
                 texDesc.type = ImageType::TYPE_2D;
                 texDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-                if ( lRes.element->type == ResourceType::COLOR_ATTACH )
+                if ( lRes.element.type == ResourceType::COLOR_ATTACH )
                 {
                     texDesc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
                 }
-                else if ( lRes.element->type == ResourceType::DEPTH_ATTACH )
+                else if ( lRes.element.type == ResourceType::DEPTH_ATTACH )
                 {
                     texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 }
@@ -401,44 +413,43 @@ namespace Gfx
                 stats.numTextures++;
             }
 
-            for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
+            for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks && !error; ++taskIdx )
             {
-                RenderTask& task = renderTasks[i];
+                RenderTask& task = renderTasks[taskIdx];
                 task.renderPass = r_globals.device.NewRenderPass( task.renderPass.desc, task.name );
-                error = !task.renderPass;
-            }
 
-            for ( uint16_t i = 0; i < numRenderTasks && !error; ++i )
-            {
-                //RenderTask& task = renderTasks[i];
-                //VkImageView attachments[9];
-                //VkFramebufferCreateInfo framebufferInfo = {};
-                //for ( uint8_t outputIdx = 0; outputIdx < task.numOutputs; ++outputIdx )
-                //{
-                //    const GraphResource& res = physicalResources[task.outputIndices[outputIdx]];
-                //    if ( res.desc.width != physicalResources[task.outputIndices[0]].desc.width || res.desc.height != physicalResources[task.outputIndices[0]].desc.height )
-                //    {
-                //        printf( "All attachments must be same size. Task %s\n", task.name.c_str() );
-                //        return false;
-                //    }
-                //
-                //    const Texture& tex = textures[task.outputIndices[outputIdx]];
-                //    attachments[outputIdx] = tex.GetView();
-                //}
-                //
-                //framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-                //framebufferInfo.renderPass      = task.renderPass.GetHandle();
-                //framebufferInfo.attachmentCount = task.numOutputs;
-                //framebufferInfo.pAttachments    = attachments;
-                //framebufferInfo.width           = physicalResources[task.outputIndices[0]].desc.width;
-                //framebufferInfo.height          = physicalResources[task.outputIndices[0]].desc.height;
-                //framebufferInfo.layers          = 1;
-                //task.framebuffer = r_globals.device.NewFramebuffer( framebufferInfo, task.name );
-                //error = !task.framebuffer;
+                VkImageView attachments[9];
+                uint32_t width = UINT32_MAX;
+                uint32_t height = UINT32_MAX;
+                for ( uint8_t attachIdx = 0; attachIdx < task.renderTargets.numColorAttachments; ++attachIdx )
+                {
+                    const Texture& tex = physicalResources[task.renderTargets.colorAttachments[attachIdx]].texture;
+                    attachments[attachIdx] = tex.GetView();
+                    width = tex.GetWidth();
+                    height = tex.GetHeight();
+                }
+                uint32_t numAttach = task.renderTargets.numColorAttachments;
+                if ( task.renderTargets.depthAttach != USHRT_MAX )
+                {
+                    const Texture& tex = physicalResources[task.renderTargets.depthAttach].texture;
+                    attachments[numAttach++] = tex.GetView();
+                    width = tex.GetWidth();
+                    height = tex.GetHeight();
+                }
+
+                VkFramebufferCreateInfo framebufferInfo = {};
+                framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+                framebufferInfo.renderPass      = task.renderPass.GetHandle();
+                framebufferInfo.attachmentCount = numAttach;
+                framebufferInfo.pAttachments    = attachments;
+                framebufferInfo.width           = width;
+                framebufferInfo.height          = height;
+                framebufferInfo.layers          = 1;
+                task.framebuffer = r_globals.device.NewFramebuffer( framebufferInfo, task.name );
+                
+                error = !task.renderPass || !task.framebuffer;
             }
         }
-
-        stats.numLogicalOutputs = static_cast< uint16_t >( logicalOutputs.size() );
 
         return true;
     }
@@ -468,7 +479,7 @@ namespace Gfx
     }
 
 
-    void RenderGraph::PrintTaskGraph() const
+    void RenderGraph::Print() const
     {
         printf( "Logical Outputs: %u\n", stats.numLogicalOutputs );
         printf( "Physical Resources: %u\n", numPhysicalResources );
@@ -476,40 +487,35 @@ namespace Gfx
         {
             const auto& res = physicalResources[i];
             printf( "\tPhysical resource[%u]: '%s'\n", i, res.name.c_str() );
-            //printf( "\t\tUsed in tasks: %u - %u (%s - %s)\n", res.firstTask, res.lastTask, renderTasks[res.firstTask].name.c_str(), renderTasks[res.lastTask].name.c_str() );
-            //printf( "\t\tformat: %s, width: %u, height: %u, depth: %u, arrayLayers: %u, mipLevels: %u\n", PixelFormatName( res.desc.format ).c_str(), res.desc.width, res.desc.height, res.desc.depth, res.desc.arrayLayers, res.desc.mipLevels );
+            printf( "\t\tUsed in tasks: %u - %u (%s - %s)\n", res.firstTask, res.lastTask, renderTasks[res.firstTask].name.c_str(), renderTasks[res.lastTask].name.c_str() );
+            const auto& tex = res.texture;
+            printf( "\t\tformat: %s, width: %u, height: %u, depth: %u, arrayLayers: %u, mipLevels: %u\n", PixelFormatName( tex.GetPixelFormat() ).c_str(), tex.GetWidth(), tex.GetHeight(), tex.GetDepth(), tex.GetArrayLayers(), tex.GetMipLevels() );
         }
         printf( "Physical Resources Mem: %f(MB)\n", stats.memUsedMB );
 
         printf( "Tasks: %u\n", numRenderTasks );
         for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
         {
-            /*
             const auto& task = renderTasks[taskIdx];
             printf( "Task[%u]: %s\n", taskIdx, task.name.c_str() );
-            for ( uint8_t i = 0; i < task.numInputs; ++i )
-            {
-                printf( "\tInput[%u]: %s\n", i, physicalResources[task.inputIndices[i]].name.c_str() );
-            }
+            //for ( uint8_t i = 0; i < task.numInputs; ++i )
+            //{
+            //    printf( "\tInput[%u]: %s\n", i, physicalResources[task.inputIndices[i]].name.c_str() );
+            //}
             uint8_t numColor = 0;
-            for ( uint8_t i = 0; i < task.numOutputs; ++i )
+            for ( uint8_t i = 0; i < task.renderPass.desc.numColorAttachments; ++i )
             {
-                const GraphResource& resource = physicalResources[task.outputIndices[i]];
-                printf( "\tOutput[%u]: %s\n", i, physicalResources[task.outputIndices[i]].name.c_str() );
+                printf( "\tColorAttachment[%u]: %s\n", i, physicalResources[task.renderTargets.colorAttachments[i]].name.c_str() );
 
-                if ( resource.desc.type == ResourceType::COLOR_ATTACH )
-                {
-                    const auto& attach = task.renderPass.desc.colorAttachmentDescriptors[numColor];
-                    printf( "\t\tImageLayout: %s -> %s\n", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
-                    ++numColor;
-                }
-                else if ( resource.desc.type == ResourceType::DEPTH_ATTACH )
-                {
-                    const auto& attach = task.renderPass.desc.depthAttachmentDescriptor;
-                    printf( "\t\tImageLayout: %s -> %s\n", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
-                }
+                const auto& attach = task.renderPass.desc.colorAttachmentDescriptors[numColor];
+                printf( "\t\tImageLayout: %s -> %s\n", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
             }
-            */
+            if ( task.renderPass.desc.numDepthAttachments != 0 )
+            {
+                printf( "\tDepthAttachment: %s\n", physicalResources[task.renderTargets.depthAttach].name.c_str() );
+                const auto& attach = task.renderPass.desc.depthAttachmentDescriptor;
+                printf( "\t\tImageLayout: %s -> %s\n", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
+            }
         }
     }
 

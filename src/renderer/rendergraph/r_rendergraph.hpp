@@ -92,12 +92,14 @@ struct RG_PhysicalResource
     {
         Gfx::Texture texture;
     };
+    uint16_t firstTask;
+    uint16_t lastTask;
 };
 
 struct RG_TaskRenderTargets
 {
-    Texture* colorAttachments[MAX_COLOR_ATTACHMENTS];
-    Texture* depthAttach;
+    uint16_t colorAttachments[MAX_COLOR_ATTACHMENTS];
+    uint16_t depthAttach;
     uint8_t numColorAttachments;
 };
 
@@ -171,7 +173,7 @@ public:
 
     bool Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo );
     void Free();
-    void PrintTaskGraph() const;
+    void Print() const;
 
     void Render( Scene* scene, CommandBuffer* cmdBuf );
 

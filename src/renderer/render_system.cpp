@@ -119,13 +119,13 @@ bool Init( bool headless )
     };
 
     PipelineDescriptor pipelineDesc;
-    pipelineDesc.renderPass             = &s_renderGraph.renderTasks[0].renderPass;// GetRenderPass( GFX_RENDER_PASS_DEPTH_PREPASS );
+    pipelineDesc.renderPass             = &s_renderGraph.GetRenderTask( "depth_prepass" )->renderPass;
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 1, attribDescs );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
     pipelineDesc.shaders[0]             = AssetManager::Get< Shader >( "depthVert" );
     depthOnlyPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "DepthPrepass" );
     
-    pipelineDesc.renderPass             = &s_renderGraph.renderTasks[1].renderPass; //GetRenderPass( GFX_RENDER_PASS_LIT );
+    pipelineDesc.renderPass             = &s_renderGraph.GetRenderTask( "lighting" )->renderPass;
     pipelineDesc.depthInfo.compareFunc  = CompareFunction::LEQUAL;
     pipelineDesc.depthInfo.depthWriteEnabled = false;
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 3, bindingDescs, 3, attribDescs );
@@ -134,7 +134,7 @@ bool Init( bool headless )
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "litFrag" );
     litPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "Lit" );
     
-    pipelineDesc.renderPass             = &s_renderGraph.renderTasks[2].renderPass; //GetRenderPass( GFX_RENDER_PASS_SKYBOX );
+    pipelineDesc.renderPass             = &s_renderGraph.GetRenderTask( "skybox" )->renderPass;
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 1, attribDescs );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
     pipelineDesc.rasterizerInfo.cullFace = CullFace::NONE;
@@ -142,7 +142,7 @@ bool Init( bool headless )
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "skyboxFrag" );
     skyboxPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "Skybox" );
     
-    pipelineDesc.renderPass             = &s_renderGraph.renderTasks[3].renderPass; //GetRenderPass( GFX_RENDER_PASS_POST_PROCESS );
+    pipelineDesc.renderPass             = &s_renderGraph.GetRenderTask( "post_processing" )->renderPass;
     pipelineDesc.depthInfo.depthTestEnabled  = false;
     pipelineDesc.depthInfo.depthWriteEnabled = false;
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
@@ -152,72 +152,72 @@ bool Init( bool headless )
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "postProcessFrag" );
     postProcessPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "PostProcess" );
 
-
     // BUFFERS + IMAGES
-    sceneGlobals = r_globals.device.NewBuffer( sizeof( GPU::SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
-    sceneGlobals.Map();
-    s_gpuPointLights = r_globals.device.NewBuffer( PG_MAX_NUM_GPU_POINT_LIGHTS * sizeof( GPU::PointLight ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "point lights ubo" );
-    s_gpuPointLights.Map();
+    {
+        sceneGlobals = r_globals.device.NewBuffer( sizeof( GPU::SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
+        sceneGlobals.Map();
+        s_gpuPointLights = r_globals.device.NewBuffer( PG_MAX_NUM_GPU_POINT_LIGHTS * sizeof( GPU::PointLight ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "point lights ubo" );
+        s_gpuPointLights.Map();
+
+        glm::vec3 verts[] =
+        {
+            glm::vec3( -1, -1, -1 ),
+            glm::vec3( -1,  1, -1 ),
+            glm::vec3(  1, -1, -1 ),
+            glm::vec3(  1,  1, -1 ),
+            glm::vec3( -1, -1,  1 ),
+            glm::vec3( -1,  1,  1 ),
+            glm::vec3(  1, -1,  1 ),
+            glm::vec3(  1,  1,  1 ),
+        };
+        uint16_t indices[] =
+        {
+            0, 1, 3, // front
+            0, 3, 2,
+
+            2, 3, 7, // right
+            2, 7, 6,
+        
+            6, 7, 5, // back
+            6, 5, 4,
+        
+            4, 5, 1, // left
+            4, 1, 0,
+
+            4, 0, 2, // top
+            4, 2, 6,
+        
+            1, 5, 7, // bottom
+            1, 7, 3,
+        };
+        s_cubeVertexBuffer = r_globals.device.NewBuffer( sizeof( verts ), verts, BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "cube vertex buffer" );
+        s_cubeIndexBuffer = r_globals.device.NewBuffer( sizeof( indices ), indices, BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "cube index buffer" );
+    }
 
     // DESCRIPTOR SETS
-    std::vector< VkDescriptorImageInfo > imgDescriptors;
-    std::vector< VkDescriptorBufferInfo > bufferDescriptors;
-    std::vector< VkWriteDescriptorSet > writeDescriptorSets;
+    {
+        std::vector< VkDescriptorImageInfo > imgDescriptors;
+        std::vector< VkDescriptorBufferInfo > bufferDescriptors;
+        std::vector< VkWriteDescriptorSet > writeDescriptorSets;
 
-    // TODO! colorTex no longer valid!
-    postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
-    //PG_ASSERT( false );
-    //imgDescriptors      = { DescriptorImageInfo( s_renderGraph.textures[1] , VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-    //writeDescriptorSets = { WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
-    //r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
+        imgDescriptors      = { DescriptorImageInfo( s_renderGraph.GetPhysicalResource( "litOutput" )->texture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
+        writeDescriptorSets = { WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
+        r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     
-    sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_BUFFER_SET] );
-    bufferDescriptors   = { DescriptorBufferInfo( sceneGlobals ) };
-    writeDescriptorSets = { WriteDescriptorSet( sceneGlobalDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
-    r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_BUFFER_SET] );
+        bufferDescriptors   = { DescriptorBufferInfo( sceneGlobals ) };
+        writeDescriptorSets = { WriteDescriptorSet( sceneGlobalDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
+        r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
-    lightsDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_LIGHTS_SET] );
-    bufferDescriptors   = { DescriptorBufferInfo( s_gpuPointLights ) };
-    writeDescriptorSets = { WriteDescriptorSet( lightsDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
-    r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        lightsDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_LIGHTS_SET] );
+        bufferDescriptors   = { DescriptorBufferInfo( s_gpuPointLights ) };
+        writeDescriptorSets = { WriteDescriptorSet( lightsDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
+        r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
-    bindlessTexturesDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_BINDLESS_TEXTURE_SET] );
-
-    skyboxDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( skyboxPipeline.GetResourceLayout()->sets[0] );
-
-    glm::vec3 verts[] =
-    {
-        glm::vec3( -1, -1, -1 ),
-        glm::vec3( -1,  1, -1 ),
-        glm::vec3(  1, -1, -1 ),
-        glm::vec3(  1,  1, -1 ),
-        glm::vec3( -1, -1,  1 ),
-        glm::vec3( -1,  1,  1 ),
-        glm::vec3(  1, -1,  1 ),
-        glm::vec3(  1,  1,  1 ),
-    };
-    uint16_t indices[] =
-    {
-        0, 1, 3, // front
-        0, 3, 2,
-
-        2, 3, 7, // right
-        2, 7, 6,
-        
-        6, 7, 5, // back
-        6, 5, 4,
-        
-        4, 5, 1, // left
-        4, 1, 0,
-
-        4, 0, 2, // top
-        4, 2, 6,
-        
-        1, 5, 7, // bottom
-        1, 7, 3,
-    };
-    s_cubeVertexBuffer = r_globals.device.NewBuffer( sizeof( verts ), verts, BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "cube vertex buffer" );
-    s_cubeIndexBuffer = r_globals.device.NewBuffer( sizeof( indices ), indices, BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "cube index buffer" );
+        bindlessTexturesDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_BINDLESS_TEXTURE_SET] );
+        skyboxDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( skyboxPipeline.GetResourceLayout()->sets[0] );
+    }
 
     return true;
 }
@@ -440,7 +440,7 @@ static bool InitRenderGraph( int width, int height )
     task->AddColorOutput( "litOutput" );
     task->AddDepthOutput( "depth" );
     
-    task = builder.AddTask( "postProcessing" );
+    task = builder.AddTask( "post_processing" );
     task->AddTextureInput( "litOutput" );
     task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
     

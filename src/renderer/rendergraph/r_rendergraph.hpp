@@ -156,29 +156,29 @@ class RenderGraphBuilder
 public:
     RenderGraphBuilder();
     RenderTaskBuilder* AddTask( const std::string& name );
+    void SetBackbufferResource( const std::string& name );
 
     bool Validate() const;
 
 private:
     std::vector< RenderTaskBuilder > tasks;
+    std::string backbuffer;
 };
 
 
 class RenderGraph
 {
 public:
-    RenderGraph()
-    {
-    }
+    RenderGraph() {}
 
     bool Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo );
     void Free();
     void Print() const;
-
     void Render( Scene* scene, CommandBuffer* cmdBuf );
-
-    static constexpr uint16_t MAX_TASKS = 64;
-    static constexpr uint16_t MAX_PHYSICAL_RESOURCES = 256;
+    RG_PhysicalResource* GetPhysicalResource( uint16_t idx );
+    RG_PhysicalResource* GetPhysicalResource( const std::string& logicalName );
+    RG_PhysicalResource* GetBackBufferResource();
+    RenderTask* GetRenderTask( const std::string& name );
 
     struct Statistics
     {
@@ -186,13 +186,23 @@ public:
         uint16_t numTextures;
         uint16_t numLogicalOutputs;
     };
-    Statistics stats;
+    Statistics GetStats() const;
 
-    RenderTask renderTasks[MAX_TASKS];
+    static constexpr uint16_t MAX_TASKS = 64;
+    static constexpr uint16_t MAX_PHYSICAL_RESOURCES = 256;
+
+private:
+
     uint16_t numRenderTasks;
+    RenderTask renderTasks[MAX_TASKS];
+    std::unordered_map<std::string, uint16_t> taskNameToIndexMap;
 
-    RG_PhysicalResource physicalResources[MAX_PHYSICAL_RESOURCES];
     uint16_t numPhysicalResources;
+    RG_PhysicalResource physicalResources[MAX_PHYSICAL_RESOURCES];
+    std::unordered_map<std::string, uint16_t> resourceNameToIndexMap;
+    std::string backBufferName;
+
+    Statistics stats;
 };
 
 } // namespace Gfx

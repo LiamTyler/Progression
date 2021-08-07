@@ -193,7 +193,7 @@ namespace Gfx
             return true;
         }
 
-        std::string mergedName;
+        std::string name;
         RG_Element element;
         uint16_t firstTask;
         uint16_t lastTask;
@@ -221,6 +221,7 @@ namespace Gfx
         }
 
         uint16_t numBuildTasks = static_cast< uint16_t >( builder.tasks.size() );
+        backBufferName = builder.backbuffer;
         numRenderTasks = numBuildTasks;
         numPhysicalResources = 0;
         stats = {};
@@ -233,6 +234,8 @@ namespace Gfx
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
             RenderTaskBuilder& task = builder.tasks[taskIndex];
+            taskNameToIndexMap[task.name] = taskIndex;
+
             for ( RG_Element& element : task.elements )
             {
                 ResolveSizes( element, compileInfo );
@@ -275,7 +278,7 @@ namespace Gfx
                 {
                     mergedOutput.firstTask = std::min( mergedOutput.firstTask, logicalOutput.firstTask );
                     mergedOutput.lastTask = std::max( mergedOutput.lastTask, logicalOutput.lastTask );
-                    mergedOutput.mergedName += "_" + logicalOutput.mergedName;
+                    mergedOutput.name += "_" + logicalOutput.name;
                     logicalOutput.physicalResourceIndex = mergedOutput.physicalResourceIndex;
                     mergedResourceFound = true;
                     break;
@@ -287,6 +290,7 @@ namespace Gfx
                 logicalOutput.physicalResourceIndex = static_cast<uint16_t>( mergedLogicalOutputs.size() );
                 mergedLogicalOutputs.push_back( logicalOutput );
             }
+            resourceNameToIndexMap[logicalOutput.name] = logicalOutput.physicalResourceIndex;
         }
 
         // 4. Gather all the info needed to create the task objects
@@ -381,7 +385,7 @@ namespace Gfx
             {
                 RG_PhysicalResource& pRes = physicalResources[i];
                 const RG_LogicalOutput& lRes = mergedLogicalOutputs[i];
-                pRes.name = lRes.mergedName;
+                pRes.name = lRes.name;
                 pRes.firstTask = lRes.firstTask;
                 pRes.lastTask = lRes.lastTask;
 
@@ -526,17 +530,42 @@ namespace Gfx
         {
             RenderTask* task = &renderTasks[i];
 
-            if ( task->name == "postProcessing" )
-            {
-                task->renderFunction( task, scene, cmdBuf );
-            }
-            else
-            {
-                cmdBuf->BeginRenderPass( &task->renderPass, task->framebuffer );
-                task->renderFunction( task, scene, cmdBuf );
-                cmdBuf->EndRenderPass();
-            }
+            cmdBuf->BeginRenderPass( &task->renderPass, task->framebuffer );
+            task->renderFunction( task, scene, cmdBuf );
+            cmdBuf->EndRenderPass();
         }
+    }
+
+
+    RG_PhysicalResource* RenderGraph::GetPhysicalResource( uint16_t idx )
+    {
+        return &physicalResources[idx];
+    }
+
+
+    RG_PhysicalResource* RenderGraph::GetPhysicalResource( const std::string& logicalName )
+    {
+        auto it = resourceNameToIndexMap.find( logicalName );
+        return it == resourceNameToIndexMap.end() ? nullptr : &physicalResources[it->second];
+    }
+
+
+    RG_PhysicalResource* RenderGraph::GetBackBufferResource()
+    {
+        return GetPhysicalResource( backBufferName );
+    }
+
+
+    RenderTask* RenderGraph::GetRenderTask( const std::string& name )
+    {
+        auto it = taskNameToIndexMap.find( name );
+        return it == taskNameToIndexMap.end() ? nullptr : &renderTasks[it->second];
+    }
+
+
+    RenderGraph::Statistics RenderGraph::GetStats() const
+    {
+        return stats;
     }
 
 } // namespace Gfx

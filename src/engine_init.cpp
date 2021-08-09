@@ -36,7 +36,7 @@ bool EngineInitialize( const EngineInitInfo& info )
     }
     
     AssetManager::Init();
-    if ( !RenderSystem::Init( g_headless ) )
+    if ( !RenderSystem::Init( info.sceneWidth, info.sceneHeight, g_headless ) )
     {
         LOG_ERR( "Could not initialize render system" );
         return false;

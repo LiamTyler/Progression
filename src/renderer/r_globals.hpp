@@ -36,7 +36,14 @@ struct R_Globals
     Semaphore renderCompleteSemaphore;
     Fence computeFence;
     bool headless;
+    uint32_t sceneWidth;
+    uint32_t sceneHeight;
 };
+
+Viewport DisplaySizedViewport( bool vulkanFlipViewport = true );
+Scissor  DisplaySizedScissor();
+Viewport SceneSizedViewport( bool vulkanFlipViewport = true );
+Scissor  SceneSizedScissor();
 
 extern R_Globals r_globals;
 

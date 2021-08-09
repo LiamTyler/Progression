@@ -266,7 +266,7 @@ static bool CreateCommandPoolAndBuffers()
 }
 
 
-bool R_Init( bool headless, uint32_t width, uint32_t height )
+bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 {
     r_globals = {};
     r_globals.headless = headless;
@@ -344,7 +344,7 @@ bool R_Init( bool headless, uint32_t width, uint32_t height )
         return true;
     }
 
-    if ( !r_globals.swapchain.Create( r_globals.device.GetHandle(), width, height ) )
+    if ( !r_globals.swapchain.Create( r_globals.device.GetHandle(), displayWidth, displayHeight ) )
     {
         LOG_ERR( "Could not create swap chain" );
         return false;

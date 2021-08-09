@@ -8,29 +8,6 @@ namespace PG
 namespace Gfx
 {
 
-    Viewport FullScreenViewport( bool vulkanFlipViewport )
-    {
-        Viewport v;
-        v.width  = static_cast< float >( r_globals.swapchain.GetWidth() );
-        v.height = static_cast< float >( r_globals.swapchain.GetHeight() );
-        if ( vulkanFlipViewport )
-        {
-	        v.y = v.height;
-            v.height *= -1;
-        }
-        return v;
-    }
-
-
-    Scissor FullScreenScissor()
-    {
-        Scissor s;
-        s.width  = r_globals.swapchain.GetWidth();
-        s.height = r_globals.swapchain.GetHeight();
-        return s;
-    }
-
-
     void Pipeline::Free()
     {
         PG_ASSERT( m_pipeline != VK_NULL_HANDLE && m_pipelineLayout != VK_NULL_HANDLE );

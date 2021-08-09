@@ -10,7 +10,7 @@ class Scene;
 namespace RenderSystem
 {
 
-    bool Init( bool headless = false );
+    bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless = false );
 
     void Shutdown();
 

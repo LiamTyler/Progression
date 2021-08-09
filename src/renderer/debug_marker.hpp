@@ -9,10 +9,11 @@ namespace PG
 {
 namespace Gfx
 {
-
 // From https://www.saschawillems.de/blog/2016/05/28/tutorial-on-using-vulkans-vk_ext_debug_marker-with-renderdoc/
 namespace DebugMarker
 {
+	glm::vec4 GetNextRegionColor();
+
 	// Get function pointers for the debug report extensions from the device
 	void Init( VkInstance instance );
 

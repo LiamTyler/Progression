@@ -540,17 +540,22 @@ namespace Gfx
     }
 
 
-    void RenderGraph::Render( Scene* scene, CommandBuffer* cmdBuf, uint32_t swapChainIdx )
+    void RenderGraph::Render( Scene* scene, CommandBuffer* cmdBuf )
     {
         for ( uint16_t i = 0; i < numRenderTasks; ++i )
         {
             RenderTask* task = &renderTasks[i];
 
+            PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( (*cmdBuf), task->name, DebugMarker::GetNextRegionColor() );
+            PG_PROFILE_GPU_START( (*cmdBuf), task->name );
             cmdBuf->BeginRenderPass( &task->renderPass, task->framebuffer );
             task->renderFunction( task, scene, cmdBuf );
             cmdBuf->EndRenderPass();
+            PG_PROFILE_GPU_END( (*cmdBuf), task->name );
+            PG_DEBUG_MARKER_END_REGION_CMDBUF( (*cmdBuf) );
         }
 
+        PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( (*cmdBuf), "Blit " + GetBackBufferResource()->name + " to swapchain", DebugMarker::GetNextRegionColor() );
         const Texture& srcTex = GetBackBufferResource()->texture;
         VkImageBlit region;
         memset( &region, 0, sizeof( VkImageBlit ) );
@@ -563,16 +568,12 @@ namespace Gfx
         region.dstOffsets[1].y = r_globals.swapchain.GetHeight();
         region.dstOffsets[1].z = 1;
 
-        VkImage swapImg = r_globals.swapchain.GetImage( swapChainIdx );
-        //cmdBuf->TransitionImageLayout( srcTex.GetHandle(), VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::TRANSFER_SRC_OPTIMAL, PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT_BIT, PipelineStageFlags::TRANSFER_BIT );
-        //cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::PRESENT_SRC_KHR, ImageLayout::TRANSFER_DST_OPTIMAL, PipelineStageFlags::TOP_OF_PIPE_BIT, PipelineStageFlags::TRANSFER_BIT );
-        //cmdBuf->BlitImage( srcTex.GetHandle(), ImageLayout::TRANSFER_SRC_OPTIMAL, swapImg, ImageLayout::TRANSFER_DST_OPTIMAL, region );
-        //cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::TRANSFER_DST_OPTIMAL, ImageLayout::PRESENT_SRC_KHR, PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags::ALL_COMMANDS_BIT );
-
-        cmdBuf->TransitionImageLayout( srcTex.GetHandle(), VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::TRANSFER_SRC_OPTIMAL );
-        cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST_OPTIMAL );
+        VkImage swapImg = r_globals.swapchain.GetImage( r_globals.swapChainImageIndex );
+        cmdBuf->TransitionImageLayout( srcTex.GetHandle(), VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::TRANSFER_SRC_OPTIMAL, PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT_BIT, PipelineStageFlags::TRANSFER_BIT );
+        cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST_OPTIMAL, PipelineStageFlags::TOP_OF_PIPE_BIT, PipelineStageFlags::TRANSFER_BIT );
         cmdBuf->BlitImage( srcTex.GetHandle(), ImageLayout::TRANSFER_SRC_OPTIMAL, swapImg, ImageLayout::TRANSFER_DST_OPTIMAL, region );
-        cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::TRANSFER_DST_OPTIMAL, ImageLayout::PRESENT_SRC_KHR );
+        cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::TRANSFER_DST_OPTIMAL, ImageLayout::PRESENT_SRC_KHR, PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags::ALL_COMMANDS_BIT );
+        PG_DEBUG_MARKER_END_REGION_CMDBUF( (*cmdBuf) );
     }
 
 

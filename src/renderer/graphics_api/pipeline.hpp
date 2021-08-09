@@ -158,13 +158,11 @@ namespace Gfx
 
         float x = 0;
         float y = 0;
-        float width;
-        float height;
+        float width = 0;
+        float height = 0;
         float minDepth = 0.0f;
         float maxDepth = 1.0f;
     };
-
-    Viewport FullScreenViewport( bool vulkanFlipViewport = true );
 
     struct Scissor
     {
@@ -173,11 +171,9 @@ namespace Gfx
 
         int x = 0;
         int y = 0;
-        int width;
-        int height;
+        int width = 0;
+        int height = 0;
     };
-
-    Scissor FullScreenScissor();
 
     enum class PrimitiveType
     {

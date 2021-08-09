@@ -3,13 +3,28 @@
 #include <cstring>
 #include <vector>
 
+static glm::vec4 s_regionColors[] =
+{
+	glm::vec4( 213, 62,  79,  255 ) / 255.0f,
+	glm::vec4( 252, 141, 89,  255 ) / 255.0f,
+	glm::vec4( 254, 224, 139, 255 ) / 255.0f,
+	glm::vec4( 230, 245, 152, 255 ) / 255.0f,
+	glm::vec4( 153, 213, 148, 255 ) / 255.0f,
+	glm::vec4( 50,  136, 189, 255 ) / 255.0f,
+};
+
 namespace PG
 {
 namespace Gfx
 {
-
 namespace DebugMarker
 {
+
+	glm::vec4 GetNextRegionColor()
+	{
+		static size_t index = 0;
+		return s_regionColors[index++ % ARRAY_COUNT( s_regionColors )];
+	}
 
 	static bool s_active           = false;
 	static bool s_extensionPresent = false;

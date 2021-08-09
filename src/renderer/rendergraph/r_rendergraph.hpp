@@ -174,7 +174,7 @@ public:
     bool Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo );
     void Free();
     void Print() const;
-    void Render( Scene* scene, CommandBuffer* cmdBuf, uint32_t swapChainIdx );
+    void Render( Scene* scene, CommandBuffer* cmdBuf );
     RG_PhysicalResource* GetPhysicalResource( uint16_t idx );
     RG_PhysicalResource* GetPhysicalResource( const std::string& logicalName );
     RG_PhysicalResource* GetBackBufferResource();

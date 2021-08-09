@@ -103,6 +103,7 @@ set(
     ${PROGRESSION_DIR}/src/renderer/graphics_api.hpp
     ${PROGRESSION_DIR}/src/renderer/render_system.cpp
     ${PROGRESSION_DIR}/src/renderer/render_system.hpp
+    ${PROGRESSION_DIR}/src/renderer/r_globals.cpp
     ${PROGRESSION_DIR}/src/renderer/r_globals.hpp
     ${PROGRESSION_DIR}/src/renderer/r_init.cpp
     ${PROGRESSION_DIR}/src/renderer/r_init.hpp

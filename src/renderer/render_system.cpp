@@ -22,8 +22,6 @@ using namespace Gfx;
 
 static Window* s_window;
 
-R_Globals PG::Gfx::r_globals;
-
 Pipeline depthOnlyPipeline;
 Pipeline litPipeline;
 Pipeline skyboxPipeline;
@@ -43,8 +41,6 @@ Texture* skyboxTexture;
 
 RenderGraph s_renderGraph;
 
-std::vector< Framebuffer > s_swapChainFrameBuffers;
-
 namespace PG
 {
 namespace RenderSystem
@@ -53,7 +49,7 @@ namespace RenderSystem
 static bool InitRenderGraph( int width, int height );
 
 
-bool Init( bool headless )
+bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 {
     s_window = GetMainWindow();
 
@@ -68,41 +64,18 @@ bool Init( bool headless )
             return false;
         }
     }
+    r_globals.sceneWidth = sceneWidth;
+    r_globals.sceneHeight = sceneHeight;
 
     if ( !AssetManager::LoadFastFile( "gfx_required" ) )
     {
         return false;
     }
     
-    if ( !InitRenderGraph( s_window->Width(), s_window->Height() ) )
+    if ( !InitRenderGraph( sceneWidth, sceneHeight ) )
     {
         return false;
     }
-
-    //{
-    //    VkImageView attachments[1];
-    //    VkFramebufferCreateInfo framebufferInfo = {};
-    //    framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    //    framebufferInfo.renderPass      = s_renderGraph.renderTasks[3].renderPass.GetHandle();
-    //    framebufferInfo.attachmentCount = 1;
-    //    framebufferInfo.pAttachments    = attachments;
-    //    framebufferInfo.width           = r_globals.swapchain.GetWidth();
-    //    framebufferInfo.height          = r_globals.swapchain.GetHeight();
-    //    framebufferInfo.layers          = 1;
-    //
-    //    s_swapChainFrameBuffers.resize( r_globals.swapchain.GetNumImages() );
-    //    for ( uint32_t i = 0; i < r_globals.swapchain.GetNumImages(); ++i )
-    //    {
-    //        attachments[0] = r_globals.swapchain.GetImageView( i );
-    //
-    //        s_swapChainFrameBuffers[i] = r_globals.device.NewFramebuffer( framebufferInfo, "swapchain " + std::to_string( i ) );
-    //        //r_globals.swapchainFramebuffers[i] = r_globals.device.NewFramebuffer( framebufferInfo, "swapchain " + std::to_string( i ) );
-    //        //if ( !r_globals.swapchainFramebuffers[i] )
-    //        //{
-    //        //    return false;
-    //        //}
-    //    }
-    //}
 
     VertexBindingDescriptor bindingDescs[] =
     {
@@ -228,11 +201,6 @@ void Shutdown()
     r_globals.device.WaitForIdle();
 
     s_renderGraph.Free();
-    for ( auto& fbo : s_swapChainFrameBuffers )
-    {
-        fbo.Free();
-    }
-
     depthOnlyPipeline.Free();
     litPipeline.Free();
     skyboxPipeline.Free();
@@ -298,12 +266,11 @@ void Render( Scene* scene )
 
     Gfx::TextureManager::UpdateDescriptors( bindlessTexturesDescriptorSet );
 
-    auto swapChainImageIndex = r_globals.swapchain.AcquireNextImage( r_globals.presentCompleteSemaphore );
+    r_globals.swapChainImageIndex = r_globals.swapchain.AcquireNextImage( r_globals.presentCompleteSemaphore );
 
     auto& cmdBuf = r_globals.graphicsCommandBuffer;
     cmdBuf.BeginRecording();
     PG_PROFILE_GPU_RESET( cmdBuf );
-
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
     UpdateGlobalAndLightBuffers( scene );
@@ -318,25 +285,22 @@ void Render( Scene* scene )
         r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     }
 
-    s_renderGraph.Render( scene, &cmdBuf, swapChainImageIndex );
+    s_renderGraph.Render( scene, &cmdBuf );
 
     PG_PROFILE_GPU_END( cmdBuf, "Frame" );
-
     cmdBuf.EndRecording();
     r_globals.device.SubmitRenderCommands( 1, &cmdBuf );
-    r_globals.device.SubmitFrame( swapChainImageIndex );
-
+    r_globals.device.SubmitFrame( r_globals.swapChainImageIndex );
     PG_PROFILE_GPU_GET_RESULTS();
 }
 
 
 static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
-    //cmdBuf->BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_DEPTH_PREPASS ), *GetFramebuffer( GFX_RENDER_PASS_DEPTH_PREPASS ) );
     cmdBuf->BindPipeline( &depthOnlyPipeline );
     cmdBuf->BindDescriptorSet( sceneGlobalDescriptorSet, PG_SCENE_GLOBALS_BUFFER_SET );
-    cmdBuf->SetViewport( FullScreenViewport() );
-    cmdBuf->SetScissor( FullScreenScissor() );
+    cmdBuf->SetViewport( SceneSizedViewport() );
+    cmdBuf->SetScissor( SceneSizedScissor() );
     glm::mat4 VP = scene->camera.GetVP();
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& renderer, Transform& transform )
     {
@@ -353,17 +317,14 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
             cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
         }
     });
-    
-    //cmdBuf.EndRenderPass();
 }
 
 
 static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
-    //cmdBuf->BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_LIT ), *GetFramebuffer( GFX_RENDER_PASS_LIT ) );
     cmdBuf->BindPipeline( &litPipeline );
-    cmdBuf->SetViewport( FullScreenViewport() );
-    cmdBuf->SetScissor( FullScreenScissor() );
+    cmdBuf->SetViewport( SceneSizedViewport() );
+    cmdBuf->SetScissor( SceneSizedScissor() );
     cmdBuf->BindDescriptorSet( sceneGlobalDescriptorSet, PG_SCENE_GLOBALS_BUFFER_SET );
     cmdBuf->BindDescriptorSet( bindlessTexturesDescriptorSet, PG_BINDLESS_TEXTURE_SET );
     cmdBuf->BindDescriptorSet( lightsDescriptorSet, PG_LIGHTS_SET );
@@ -390,16 +351,14 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
             cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
         }
     });
-    //cmdBuf.EndRenderPass();
 }
 
 
 static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
-    //cmdBuf->BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_SKYBOX ), *GetFramebuffer( GFX_RENDER_PASS_SKYBOX ) );
     cmdBuf->BindPipeline( &skyboxPipeline );
-    //cmdBuf->SetViewport( FullScreenViewport() );
-    //cmdBuf->SetScissor( FullScreenScissor() );
+    cmdBuf->SetViewport( SceneSizedViewport() );
+    cmdBuf->SetScissor( SceneSizedScissor() );
     cmdBuf->BindDescriptorSet( skyboxDescriptorSet, 0 );
     
     cmdBuf->BindVertexBuffer( s_cubeVertexBuffer );
@@ -407,16 +366,14 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
     glm::mat4 cubeVP = scene->camera.GetP() * glm::mat4( glm::mat3( scene->camera.GetV() ) );
     cmdBuf->PushConstants( 0, sizeof( cubeVP ), &cubeVP );
     cmdBuf->DrawIndexed( 0, 36 );
-    
-    //cmdBuf->EndRenderPass();
 }
 
 
 static void RenderFunc_PostProcessPass( RenderTask*  task, Scene* scene, CommandBuffer* cmdBuf )
 {
     cmdBuf->BindPipeline( &postProcessPipeline );
-    //cmdBuf->SetViewport( FullScreenViewport() );
-    //cmdBuf->SetScissor( FullScreenScissor() );
+    cmdBuf->SetViewport( DisplaySizedViewport() );
+    cmdBuf->SetScissor( DisplaySizedScissor() );
     cmdBuf->BindDescriptorSet( postProcessDescriptorSet, 0 );
     cmdBuf->Draw( 0, 6 );
 }
@@ -448,8 +405,8 @@ static bool InitRenderGraph( int width, int height )
     builder.SetBackbufferResource( "finalOutput" );
     
     RenderGraphCompileInfo compileInfo;
-    compileInfo.sceneWidth = 1280;
-    compileInfo.sceneHeight = 720;
+    compileInfo.sceneWidth = width;
+    compileInfo.sceneHeight = height;
     compileInfo.displayWidth = r_globals.swapchain.GetWidth();
     compileInfo.displayHeight = r_globals.swapchain.GetHeight();
     if ( !s_renderGraph.Compile( builder, compileInfo ) )

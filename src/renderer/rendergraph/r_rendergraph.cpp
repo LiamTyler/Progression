@@ -2,6 +2,7 @@
 #include "renderer/graphics_api/command_buffer.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
+#include "utils/logger.hpp"
 #include <unordered_map>
 #include <unordered_set>
 
@@ -82,13 +83,31 @@ namespace Gfx
     }
 
 
+    void RenderGraphBuilder::SetBackbufferResource( const std::string& name )
+    {
+        backbuffer = name;
+    }
+
+
     bool RenderGraphBuilder::Validate() const
     {
+        if ( backbuffer.empty() )
+        {
+            LOG_ERR( "Please designate an output as the image to be displayed via SetBackbufferResource()" );
+            return false;
+        }
+
         uint16_t numBuildTasks = static_cast< uint16_t >( tasks.size() );
         std::unordered_map<std::string, uint16_t> logicalOutputs; // name, task created
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
             const RenderTaskBuilder& task = tasks[taskIndex];
+            if ( !task.renderFunction )
+            {
+                LOG_ERR( "Task %s is missing a render function!", task.name.c_str() );
+                return false;
+            }
+
             std::unordered_set<std::string> inputs;
             std::unordered_set<std::string> outputs;
             uint8_t numColorAttach = 0;
@@ -100,7 +119,7 @@ namespace Gfx
                 {
                     if ( inputs.find( name ) != inputs.end() )
                     {
-                        printf( "Resource %s used twice as an input to task %s\n", name.c_str(), task.name.c_str() );
+                        LOG_ERR( "Resource %s used twice as an input to task %s", name.c_str(), task.name.c_str() );
                         return false;
                     }
                     inputs.insert( name );
@@ -109,7 +128,7 @@ namespace Gfx
                 {
                     if ( outputs.find( name ) != outputs.end() )
                     {
-                        printf( "Resource %s used twice as an output to task %s\n", name.c_str(), task.name.c_str() );
+                        LOG_ERR( "Resource %s used twice as an output to task %s", name.c_str(), task.name.c_str() );
                         return false;
                     }
                     outputs.insert( name );
@@ -120,7 +139,7 @@ namespace Gfx
                         if ( it != logicalOutputs.end() )
                         {
                             const std::string& originalTask = tasks[logicalOutputs[name]].name;
-                            printf( "Output %s created for a second time in task %s. Initial creation was in task %s. Should only create an output once\n", name.c_str(), task.name.c_str(), originalTask.c_str() );
+                            LOG_ERR( "Output %s created for a second time in task %s. Initial creation was in task %s. Should only create an output once", name.c_str(), task.name.c_str(), originalTask.c_str() );
                             return false;
                         }
                         logicalOutputs[name] = taskIndex;
@@ -129,7 +148,7 @@ namespace Gfx
                     {
                         if ( it == logicalOutputs.end() )
                         {
-                            printf( "Output %s in task %s has no create info, but was never created before this task.\n", name.c_str(), task.name.c_str() );
+                            LOG_ERR( "Output %s in task %s has no create info, but was never created before this task.", name.c_str(), task.name.c_str() );
                             return false;
                         }
                     }
@@ -140,12 +159,12 @@ namespace Gfx
 
                 if ( numColorAttach > MAX_COLOR_ATTACHMENTS )
                 {
-                    printf( "Task %s has %u color attachments, which exceeds the limit of %u\n", task.name.c_str(), numColorAttach, MAX_COLOR_ATTACHMENTS );
+                    LOG_ERR( "Task %s has %u color attachments, which exceeds the limit of %u", task.name.c_str(), numColorAttach, MAX_COLOR_ATTACHMENTS );
                     return false;
                 }
                 if ( numDepthAttach > 1 )
                 {
-                    printf( "Task %s has %u depth attachments, but at most 1 is allowed\n", task.name.c_str(), numDepthAttach );
+                    LOG_ERR( "Task %s has %u depth attachments, but at most 1 is allowed", task.name.c_str(), numDepthAttach );
                     return false;
                 }
             }
@@ -158,14 +177,14 @@ namespace Gfx
                     auto it = logicalOutputs.find( name );
                     if ( it == logicalOutputs.end() )
                     {
-                        printf( "Resource %s used as input, but no tasks generate it as an output\n", name.c_str() );
+                        LOG_ERR( "Resource %s used as input, but no tasks generate it as an output", name.c_str() );
                         return false;
                     }
 
                     uint16_t createdInTask = it->second;
                     if ( createdInTask >= taskIndex )
                     {
-                        printf( "Resource %s used as input in task %s before it created as an output in task %s.\n", name.c_str(), task.name.c_str(), tasks[createdInTask].name.c_str() );
+                        LOG_ERR( "Resource %s used as input in task %s before it created as an output in task %s.", name.c_str(), task.name.c_str(), tasks[createdInTask].name.c_str() );
                         return false;
                     }
                 }
@@ -216,7 +235,7 @@ namespace Gfx
 
         if ( !builder.Validate() )
         {
-            printf( "RenderGraph::Compile failed: Invalid RenderGraphBuilder!\n" );
+            LOG_ERR( "RenderGraph::Compile failed: Invalid RenderGraphBuilder!" );
             return false;
         }
 
@@ -319,7 +338,7 @@ namespace Gfx
                 ResourceStateTrackingInfo& trackingInfo = resourceTrackingInfo[physicalIdx];
                 const RG_LogicalOutput& logicalRes = mergedLogicalOutputs[physicalIdx];
 
-                if ( logicalRes.element.state == ResourceState::WRITE )
+                if ( element.state == ResourceState::WRITE )
                 {
                     LoadAction loadOp = LoadAction::LOAD;
                     if ( logicalRes.element.isCleared )
@@ -353,18 +372,18 @@ namespace Gfx
                 else if ( element.state == ResourceState::READ_ONLY )
                 {
                     // if the most recent state was a write, then we need to fixup the last task to change the final layout to READ, for the current task
-                    if ( trackingInfo.lastReadTask < trackingInfo.lastWriteTask )
+                    if ( trackingInfo.lastReadTask < trackingInfo.lastWriteTask || (trackingInfo.lastReadTask == USHRT_MAX && trackingInfo.lastWriteTask != USHRT_MAX) )
                     {
                         RenderPassDescriptor& lastDesc = renderTasks[trackingInfo.lastWriteTask].renderPass.desc;
-                        if ( element.type == ResourceType::COLOR_ATTACH )
-                        {
-                            lastDesc.colorAttachmentDescriptors[trackingInfo.lastAttachmentIndex].finalLayout = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
-                            trackingInfo.currentLayout = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
-                        }
-                        else if ( element.type == ResourceType::DEPTH_ATTACH )
+                        if ( logicalRes.element.type == ResourceType::DEPTH_ATTACH )
                         {
                             lastDesc.depthAttachmentDescriptor.finalLayout = ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
                             trackingInfo.currentLayout = ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
+                        }
+                        else
+                        {
+                            lastDesc.colorAttachmentDescriptors[trackingInfo.lastAttachmentIndex].finalLayout = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
+                            trackingInfo.currentLayout = ImageLayout::SHADER_READ_ONLY_OPTIMAL;
                         }
                     }
 
@@ -485,46 +504,43 @@ namespace Gfx
 
     void RenderGraph::Print() const
     {
-        printf( "Logical Outputs: %u\n", stats.numLogicalOutputs );
-        printf( "Physical Resources: %u\n", numPhysicalResources );
+        LOG( "Logical Outputs: %u", stats.numLogicalOutputs );
+        LOG( "Physical Resources: %u", numPhysicalResources );
         for ( uint16_t i = 0; i < numPhysicalResources; ++i )
         {
             const auto& res = physicalResources[i];
-            printf( "\tPhysical resource[%u]: '%s'\n", i, res.name.c_str() );
-            printf( "\t\tUsed in tasks: %u - %u (%s - %s)\n", res.firstTask, res.lastTask, renderTasks[res.firstTask].name.c_str(), renderTasks[res.lastTask].name.c_str() );
+            LOG( "\tPhysical resource[%u]: '%s'", i, res.name.c_str() );
+            LOG( "\t\tUsed in tasks: %u - %u (%s - %s)", res.firstTask, res.lastTask, renderTasks[res.firstTask].name.c_str(), renderTasks[res.lastTask].name.c_str() );
             const auto& tex = res.texture;
-            printf( "\t\tformat: %s, width: %u, height: %u, depth: %u, arrayLayers: %u, mipLevels: %u\n", PixelFormatName( tex.GetPixelFormat() ).c_str(), tex.GetWidth(), tex.GetHeight(), tex.GetDepth(), tex.GetArrayLayers(), tex.GetMipLevels() );
+            LOG( "\t\tformat: %s, width: %u, height: %u, depth: %u, arrayLayers: %u, mipLevels: %u", PixelFormatName( tex.GetPixelFormat() ).c_str(), tex.GetWidth(), tex.GetHeight(), tex.GetDepth(), tex.GetArrayLayers(), tex.GetMipLevels() );
         }
-        printf( "Physical Resources Mem: %f(MB)\n", stats.memUsedMB );
+        LOG( "Physical Resources Mem: %f(MB)", stats.memUsedMB );
 
-        printf( "Tasks: %u\n", numRenderTasks );
+        LOG( "Tasks: %u", numRenderTasks );
         for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
         {
             const auto& task = renderTasks[taskIdx];
-            printf( "Task[%u]: %s\n", taskIdx, task.name.c_str() );
-            //for ( uint8_t i = 0; i < task.numInputs; ++i )
-            //{
-            //    printf( "\tInput[%u]: %s\n", i, physicalResources[task.inputIndices[i]].name.c_str() );
-            //}
+            LOG( "Task[%u]: %s", taskIdx, task.name.c_str() );
+
             uint8_t numColor = 0;
             for ( uint8_t i = 0; i < task.renderPass.desc.numColorAttachments; ++i )
             {
-                printf( "\tColorAttachment[%u]: %s\n", i, physicalResources[task.renderTargets.colorAttachments[i]].name.c_str() );
+                LOG( "\tColorAttachment[%u]: %s", i, physicalResources[task.renderTargets.colorAttachments[i]].name.c_str() );
 
                 const auto& attach = task.renderPass.desc.colorAttachmentDescriptors[numColor];
-                printf( "\t\tImageLayout: %s -> %s\n", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
+                LOG( "\t\tImageLayout: %s -> %s", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
             }
             if ( task.renderPass.desc.numDepthAttachments != 0 )
             {
-                printf( "\tDepthAttachment: %s\n", physicalResources[task.renderTargets.depthAttach].name.c_str() );
+                LOG( "\tDepthAttachment: %s", physicalResources[task.renderTargets.depthAttach].name.c_str() );
                 const auto& attach = task.renderPass.desc.depthAttachmentDescriptor;
-                printf( "\t\tImageLayout: %s -> %s\n", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
+                LOG( "\t\tImageLayout: %s -> %s", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
             }
         }
     }
 
 
-    void RenderGraph::Render( Scene* scene, CommandBuffer* cmdBuf )
+    void RenderGraph::Render( Scene* scene, CommandBuffer* cmdBuf, uint32_t swapChainIdx )
     {
         for ( uint16_t i = 0; i < numRenderTasks; ++i )
         {
@@ -534,6 +550,29 @@ namespace Gfx
             task->renderFunction( task, scene, cmdBuf );
             cmdBuf->EndRenderPass();
         }
+
+        const Texture& srcTex = GetBackBufferResource()->texture;
+        VkImageBlit region;
+        memset( &region, 0, sizeof( VkImageBlit ) );
+        region.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+        region.srcOffsets[1].x = srcTex.GetWidth();
+        region.srcOffsets[1].y = srcTex.GetHeight();
+        region.srcOffsets[1].z = 1;
+        region.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
+        region.dstOffsets[1].x = r_globals.swapchain.GetWidth();
+        region.dstOffsets[1].y = r_globals.swapchain.GetHeight();
+        region.dstOffsets[1].z = 1;
+
+        VkImage swapImg = r_globals.swapchain.GetImage( swapChainIdx );
+        //cmdBuf->TransitionImageLayout( srcTex.GetHandle(), VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::TRANSFER_SRC_OPTIMAL, PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT_BIT, PipelineStageFlags::TRANSFER_BIT );
+        //cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::PRESENT_SRC_KHR, ImageLayout::TRANSFER_DST_OPTIMAL, PipelineStageFlags::TOP_OF_PIPE_BIT, PipelineStageFlags::TRANSFER_BIT );
+        //cmdBuf->BlitImage( srcTex.GetHandle(), ImageLayout::TRANSFER_SRC_OPTIMAL, swapImg, ImageLayout::TRANSFER_DST_OPTIMAL, region );
+        //cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::TRANSFER_DST_OPTIMAL, ImageLayout::PRESENT_SRC_KHR, PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags::ALL_COMMANDS_BIT );
+
+        cmdBuf->TransitionImageLayout( srcTex.GetHandle(), VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::TRANSFER_SRC_OPTIMAL );
+        cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST_OPTIMAL );
+        cmdBuf->BlitImage( srcTex.GetHandle(), ImageLayout::TRANSFER_SRC_OPTIMAL, swapImg, ImageLayout::TRANSFER_DST_OPTIMAL, region );
+        cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::TRANSFER_DST_OPTIMAL, ImageLayout::PRESENT_SRC_KHR );
     }
 
 

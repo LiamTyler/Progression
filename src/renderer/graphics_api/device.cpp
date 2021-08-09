@@ -469,9 +469,9 @@ namespace Gfx
         VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
         PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
         
-        TransitionImageLayout( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+        TransitionImageLayoutImmediate( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
         CopyBufferToImage( stagingBuffer, tex );
-        TransitionImageLayout( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+        TransitionImageLayoutImmediate( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
 
         stagingBuffer.Free();
 
@@ -999,7 +999,8 @@ namespace Gfx
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
         VkSemaphore waitSemaphores[]      = { r_globals.presentCompleteSemaphore.GetHandle() };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        //VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_ALL_COMMANDS_BIT };
         submitInfo.waitSemaphoreCount     = 1;
         submitInfo.pWaitSemaphores        = waitSemaphores;
         submitInfo.pWaitDstStageMask      = waitStages;

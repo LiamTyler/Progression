@@ -145,7 +145,7 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
     createInfo.imageColorSpace          = surfaceFormat.colorSpace;
     createInfo.imageExtent              = extent;
     createInfo.imageArrayLayers         = 1; // always 1 unless doing VR
-    createInfo.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+    createInfo.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     const PhysicalDevice& pDev = r_globals.physicalDevice;
     uint32_t queueFamilyIndices[] = { pDev.GetGraphicsQueueFamily(), pDev.GetPresentationQueueFamily(), pDev.GetComputeQueueFamily() };

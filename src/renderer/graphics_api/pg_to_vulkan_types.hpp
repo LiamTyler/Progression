@@ -465,5 +465,15 @@ namespace Gfx
         return static_cast< VkImageLayout >( op );
     }
 
+    constexpr VkAccessFlags PGToVulkanAccessFlags( AccessFlags flags )
+    {
+        return static_cast< VkAccessFlags >( flags );
+    }
+
+    constexpr VkPipelineStageFlags PGToVulkanPipelineStageFlags( PipelineStageFlags flags )
+    {
+        return static_cast< VkPipelineStageFlags >( flags );
+    }
+
 } // namespace Gfx
 } // namespace PG

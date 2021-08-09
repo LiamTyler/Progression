@@ -38,8 +38,8 @@ namespace Gfx
         void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, uint32_t firstBinding = 0 ) const;
         void BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding = 0 ) const;
         void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;
-        void PipelineBufferBarrier( VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, const VkBufferMemoryBarrier& barrier ) const;
-        void PipelineImageBarrier( VkPipelineStageFlags srcStage, VkPipelineStageFlags dstStage, const VkImageMemoryBarrier& barrier ) const;
+        void PipelineBufferBarrier( PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkBufferMemoryBarrier& barrier ) const;
+        void PipelineImageBarrier( PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkImageMemoryBarrier& barrier ) const;
         void SetViewport( const Viewport& viewport ) const;
         void SetScissor( const Scissor& scissor ) const;
         void SetDepthBias( float constant, float clamp, float slope ) const;
@@ -47,6 +47,12 @@ namespace Gfx
         void PushConstants( uint32_t offset, uint32_t size, void* data ) const;
 
         void CopyBuffer( const Buffer& dst, const Buffer& src, size_t size = VK_WHOLE_SIZE, size_t srcOffset = 0, size_t dstOffset = 0 ) const;
+        void BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, ImageLayout dstLayout, const VkImageBlit& region ) const;
+        void TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkImageSubresourceRange subresourceRange,
+            PipelineStageFlags srcStageMask = PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags dstStageMask = PipelineStageFlags::ALL_COMMANDS_BIT ) const;
+        // subresource is auto set to first mip and layer
+        void TransitionImageLayout( VkImage image, VkImageAspectFlags aspectMask, ImageLayout oldLayout, ImageLayout newLayout,
+            PipelineStageFlags srcStageMask = PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags dstStageMask = PipelineStageFlags::ALL_COMMANDS_BIT ) const;
 
         void Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount = 1, uint32_t firstInstance = 0 ) const;
         void DrawIndexed( uint32_t firstIndex, uint32_t indexCount, int vertexOffset = 0, uint32_t firstInstance = 0, uint32_t instanceCount = 1 ) const;

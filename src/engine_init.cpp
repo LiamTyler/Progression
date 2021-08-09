@@ -27,8 +27,8 @@ bool EngineInitialize( const EngineInitInfo& info )
     {
         WindowCreateInfo winCreate;
         winCreate.title   = info.windowTitle;
-        winCreate.width   = 1280;
-        winCreate.height  = 720;
+        winCreate.width   = info.windowWidth;
+        winCreate.height  = info.windowHeight;
         winCreate.visible = true;
         winCreate.vsync   = false;
         InitWindowSystem( winCreate );

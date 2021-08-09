@@ -318,7 +318,7 @@ void Render( Scene* scene )
         r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     }
 
-    s_renderGraph.Render( scene, &cmdBuf );
+    s_renderGraph.Render( scene, &cmdBuf, swapChainImageIndex );
 
     PG_PROFILE_GPU_END( cmdBuf, "Frame" );
 
@@ -398,8 +398,8 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
 {
     //cmdBuf->BeginRenderPass( GetRenderPass( GFX_RENDER_PASS_SKYBOX ), *GetFramebuffer( GFX_RENDER_PASS_SKYBOX ) );
     cmdBuf->BindPipeline( &skyboxPipeline );
-    cmdBuf->SetViewport( FullScreenViewport() );
-    cmdBuf->SetScissor( FullScreenScissor() );
+    //cmdBuf->SetViewport( FullScreenViewport() );
+    //cmdBuf->SetScissor( FullScreenScissor() );
     cmdBuf->BindDescriptorSet( skyboxDescriptorSet, 0 );
     
     cmdBuf->BindVertexBuffer( s_cubeVertexBuffer );
@@ -414,13 +414,11 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
 
 static void RenderFunc_PostProcessPass( RenderTask*  task, Scene* scene, CommandBuffer* cmdBuf )
 {
-    cmdBuf->BeginRenderPass( &task->renderPass, s_swapChainFrameBuffers[r_globals.swapchain.GetCurrentImageIndex()] );
     cmdBuf->BindPipeline( &postProcessPipeline );
-    cmdBuf->SetViewport( FullScreenViewport() );
-    cmdBuf->SetScissor( FullScreenScissor() );
+    //cmdBuf->SetViewport( FullScreenViewport() );
+    //cmdBuf->SetScissor( FullScreenScissor() );
     cmdBuf->BindDescriptorSet( postProcessDescriptorSet, 0 );
     cmdBuf->Draw( 0, 6 );
-    cmdBuf->EndRenderPass();
 }
 
 
@@ -431,28 +429,32 @@ static bool InitRenderGraph( int width, int height )
 
     task = builder.AddTask( "depth_prepass" );
     task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1 );
+    task->SetRenderFunction( RenderFunc_DepthPass );
 
     task = builder.AddTask( "lighting" );
     task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1, 1, 1, glm::vec4( 0 ) );
     task->AddDepthOutput( "depth" );
+    task->SetRenderFunction( RenderFunc_LitPass );
 
     task = builder.AddTask( "skybox" );
     task->AddColorOutput( "litOutput" );
     task->AddDepthOutput( "depth" );
+    task->SetRenderFunction( RenderFunc_SkyboxPass );
     
     task = builder.AddTask( "post_processing" );
     task->AddTextureInput( "litOutput" );
     task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
+    task->SetRenderFunction( RenderFunc_PostProcessPass );
+    builder.SetBackbufferResource( "finalOutput" );
     
-    //RenderGraph graph;
     RenderGraphCompileInfo compileInfo;
     compileInfo.sceneWidth = 1280;
     compileInfo.sceneHeight = 720;
-    compileInfo.displayWidth = 1980;
-    compileInfo.displayHeight = 1080;
+    compileInfo.displayWidth = r_globals.swapchain.GetWidth();
+    compileInfo.displayHeight = r_globals.swapchain.GetHeight();
     if ( !s_renderGraph.Compile( builder, compileInfo ) )
     {
-        printf( "Failed to compile task graph\n" );
+        LOG_ERR( "Failed to compile task graph" );
         return false;
     }
 

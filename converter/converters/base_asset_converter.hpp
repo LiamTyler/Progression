@@ -38,11 +38,11 @@ time_t GetLatestFastfileDependency();
 
 void FilenameSlashesToUnderscores( std::string& str );
 
-class Converter
+class BaseAssetConverter
 {
 public:
-    Converter( const std::string& assetName, AssetType assetType ) : m_assetNameInJsonFile( assetName ), m_assetType( assetType ) {}
-    ~Converter();
+    BaseAssetConverter( const std::string& assetName, AssetType assetType ) : m_assetNameInJsonFile( assetName ), m_assetType( assetType ) {}
+    ~BaseAssetConverter();
 
     virtual void Parse( const rapidjson::Value& value ) = 0;
     int ConvertAll();

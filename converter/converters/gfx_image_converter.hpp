@@ -1,14 +1,14 @@
 #pragma once
 
-#include "converter.hpp"
+#include "base_asset_converter.hpp"
 
 namespace PG
 {
 
-class GfxImageConverter : public Converter
+class GfxImageConverter : public BaseAssetConverter
 {
 public:
-    GfxImageConverter() : Converter( "Image", ASSET_TYPE_GFX_IMAGE ) {}
+    GfxImageConverter() : BaseAssetConverter( "Image", ASSET_TYPE_GFX_IMAGE ) {}
     void Parse( const rapidjson::Value& value ) override;
 
 protected:

@@ -1,7 +1,7 @@
-#include "converter.hpp"
 #include "asset/asset_versions.hpp"
 #include "core/assert.hpp"
 #include "core/time.hpp"
+#include "converters/base_asset_converter.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
 #include "converters/model_converter.hpp"
@@ -31,9 +31,9 @@ static void DisplayHelp()
     LOG( "%s", msg );   
 }
 
-bool ConvertAssets( const std::string& assetFile, const std::vector< Converter* >& converters );
+bool ConvertAssets( const std::string& assetFile, const std::vector< BaseAssetConverter* >& converters );
 
-bool AssembleConvertedAssetsIntoFastfile( const std::string& assetFile, const std::vector< Converter* >& converters );
+bool AssembleConvertedAssetsIntoFastfile( const std::string& assetFile, const std::vector< BaseAssetConverter* >& converters );
 
 int main( int argc, char** argv )
 {
@@ -87,7 +87,7 @@ int main( int argc, char** argv )
         return 0;
     }
     std::string assetListFile = argv[optind];
-    std::vector< Converter* > converters =
+    std::vector< BaseAssetConverter* > converters =
     {
         new GfxImageConverter,
         new ShaderConverter,
@@ -109,7 +109,7 @@ int main( int argc, char** argv )
 static int s_outOfDateAssets;
 
 
-bool ConvertAssets( const std::string& assetListFile, const std::vector< Converter* >& converters )
+bool ConvertAssets( const std::string& assetListFile, const std::vector< BaseAssetConverter* >& converters )
 {
     ClearAllFastfileDependencies();
     s_outOfDateAssets       = 0;
@@ -212,7 +212,7 @@ bool ConvertAssets( const std::string& assetListFile, const std::vector< Convert
 }
 
 
-bool AssembleConvertedAssetsIntoFastfile( const std::string& assetListFile, const std::vector< Converter* >& converters )
+bool AssembleConvertedAssetsIntoFastfile( const std::string& assetListFile, const std::vector< BaseAssetConverter* >& converters )
 {
     auto buildFastfileStartTime = PG::Time::GetTimePoint();
     LOG( "\nRunning build fastfile..." );

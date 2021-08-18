@@ -1,14 +1,14 @@
 #pragma once
 
-#include "converter.hpp"
+#include "base_asset_converter.hpp"
 
 namespace PG
 {
 
-class ModelConverter : public Converter
+class ModelConverter : public BaseAssetConverter
 {
 public:
-    ModelConverter() : Converter( "Model", ASSET_TYPE_MODEL ) {}
+    ModelConverter() : BaseAssetConverter( "Model", ASSET_TYPE_MODEL ) {}
     void Parse( const rapidjson::Value& value ) override;
 
 protected:

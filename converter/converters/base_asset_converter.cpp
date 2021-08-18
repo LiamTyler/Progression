@@ -1,4 +1,4 @@
-#include "converter.hpp"
+#include "base_asset_converter.hpp"
 
 namespace PG
 {
@@ -38,7 +38,7 @@ void FilenameSlashesToUnderscores( std::string& str )
 }
 
 
-Converter::~Converter()
+BaseAssetConverter::~BaseAssetConverter()
 {
     for ( const auto& assetInfo : m_parsedAssets )
     {
@@ -47,7 +47,7 @@ Converter::~Converter()
 }
 
 
-int Converter::ConvertAll()
+int BaseAssetConverter::ConvertAll()
 {
     if ( m_outOfDateAssets.size() == 0 )
     {
@@ -67,7 +67,7 @@ int Converter::ConvertAll()
 }
 
 
-int Converter::CheckAllDependencies()
+int BaseAssetConverter::CheckAllDependencies()
 {
     int outOfDate = 0;
     for ( const auto& assetInfo : m_parsedAssets )
@@ -83,7 +83,7 @@ int Converter::CheckAllDependencies()
 }
 
 
-bool Converter::BuildFastFile( Serializer* serializer ) const
+bool BaseAssetConverter::BuildFastFile( Serializer* serializer ) const
 {
     for ( size_t i = 0; i < m_parsedAssets.size(); ++i )
     {

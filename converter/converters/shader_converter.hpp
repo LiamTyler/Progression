@@ -1,14 +1,14 @@
 #pragma once
 
-#include "converter.hpp"
+#include "base_asset_converter.hpp"
 
 namespace PG
 {
 
-class ShaderConverter : public Converter
+class ShaderConverter : public BaseAssetConverter
 {
 public:
-    ShaderConverter () : Converter( "Shader", ASSET_TYPE_SHADER ) {}
+    ShaderConverter () : BaseAssetConverter( "Shader", ASSET_TYPE_SHADER ) {}
     void Parse( const rapidjson::Value& value ) override;
 
 protected:

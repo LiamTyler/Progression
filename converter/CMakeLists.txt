@@ -49,8 +49,8 @@ set(
     ${PROGRESSION_DIR}/src/utils/serializer.cpp
     ${PROGRESSION_DIR}/src/utils/serializer.hpp
     
-    ${CMAKE_CURRENT_SOURCE_DIR}/converter.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/converter.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters/base_asset_converter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters/base_asset_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/material_converter.cpp
@@ -61,6 +61,10 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/asset_cache.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/asset_cache.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/asset_file_database.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/asset_file_database.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter_main.cpp
 )
 

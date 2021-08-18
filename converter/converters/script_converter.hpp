@@ -1,16 +1,16 @@
 #pragma once
 
-#include "converter.hpp"
+#include "base_asset_converter.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "utils/json_parsing.hpp"
 
 namespace PG
 {
 
-class ScriptConverter : public Converter
+class ScriptConverter : public BaseAssetConverter
 {
 public:
-    ScriptConverter() : Converter( "Script", ASSET_TYPE_SCRIPT ) {}
+    ScriptConverter() : BaseAssetConverter( "Script", ASSET_TYPE_SCRIPT ) {}
     void Parse( const rapidjson::Value& value ) override;
 
 protected:

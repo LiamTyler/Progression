@@ -1,4 +1,3 @@
-{ "Scene":
 [
     { "Fastfile": { "filename": "sponza" } },
     { "_Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ], "nearPlane": 0.1, "farPlane": 100 } },
@@ -14,4 +13,4 @@
         "ModelRenderer": { "model": "sponza" }
         }
     }
-]}
+]

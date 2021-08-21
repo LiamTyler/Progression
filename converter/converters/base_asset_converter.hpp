@@ -10,6 +10,7 @@
 #include "utils/serializer.hpp"
 
 #define CONVERTER_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); g_converterStatus.parsingError = true; return; }
+#define PARSE_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); return nullptr; }
 
 namespace PG
 {
@@ -44,7 +45,8 @@ public:
     BaseAssetConverter( const std::string& assetName, AssetType assetType ) : m_assetNameInJsonFile( assetName ), m_assetType( assetType ) {}
     ~BaseAssetConverter();
 
-    virtual void Parse( const rapidjson::Value& value ) = 0;
+    virtual void Parse( const rapidjson::Value& value ) {};
+    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) { return nullptr; }
     int ConvertAll();
     int CheckAllDependencies();
     virtual bool BuildFastFile( Serializer* serializer ) const;
@@ -53,8 +55,6 @@ public:
 protected:
     virtual std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const = 0;
     virtual bool IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo ) = 0;
-    
-    // call ConvertSingleInternal from ConvertSingle, with correct template arguments
     virtual bool ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const = 0;
 
     template< typename DerivedAssetType, typename DerivedAssetCreateInfoType >

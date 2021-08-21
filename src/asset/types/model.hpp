@@ -53,16 +53,4 @@ struct Model : public BaseAsset
     size_t gpuTangentOffset;
 };
 
-
-// Need this during the converter, since the normal Model_Load actually tries to lookup the materials in the AssetManager,
-// but the AssetManager is empty during the Converter. Just need the model data + material names
-bool Model_Load_PGModel( Model* model, const ModelCreateInfo& createInfo, std::vector< std::string >& matNames );
-
-bool Model_Load( Model* model, const ModelCreateInfo& createInfo );
-
-
-bool Fastfile_Model_Load( Model* model, Serializer* serializer );
-
-bool Fastfile_Model_Save( const Model * const model, Serializer* serializer, const std::vector< std::string >& matNames );
-
 } // namespace PG

@@ -27,9 +27,6 @@ bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
     }
 
     fclose( fp );
-
-    PG_ASSERT( document.IsObject() );
-
     return true;
 }
 

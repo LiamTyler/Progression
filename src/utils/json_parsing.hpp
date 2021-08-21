@@ -37,11 +37,7 @@ public:
 
     void Evaluate( const std::string& name, const rapidjson::Value& v, Args&&... args )
     {
-        if ( mapping.find( name ) == mapping.end() )
-        {
-            LOG_WARN( "'%s' not found in mapping", name.c_str() );
-        }
-        else
+        if ( mapping.find( name ) != mapping.end() )
         {
             mapping[name]( v, std::forward<Args>( args )... );
         }
@@ -52,11 +48,7 @@ public:
         for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
         {
             std::string name = it->name.GetString();
-            if ( mapping.find( name ) == mapping.end() )
-            {
-                LOG_WARN( "'%s' not found in mapping", name.c_str() );
-            }
-            else
+            if ( mapping.find( name ) != mapping.end() )
             {
                 mapping[name]( it->value, std::forward<Args>( args )... );
             }
@@ -83,11 +75,7 @@ public:
 
     bool Evaluate( const std::string& name, const rapidjson::Value& v, Args&&... args )
     {
-        if ( mapping.find( name ) == mapping.end() )
-        {
-            LOG_WARN( "'%s' not found in mapping", name.c_str() );
-        }
-        else
+        if ( mapping.find( name ) != mapping.end() )
         {
             return mapping[name]( v, std::forward<Args>( args )... );
         }
@@ -100,11 +88,7 @@ public:
         for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
         {
             std::string name = it->name.GetString();
-            if ( mapping.find( name ) == mapping.end() )
-            {
-                LOG_WARN( "'%s' not found in mapping", name.c_str() );
-            }
-            else
+            if ( mapping.find( name ) != mapping.end() )
             {
                 if ( !mapping[name]( it->value, std::forward<Args>( args )... ) )
                 {

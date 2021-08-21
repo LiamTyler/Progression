@@ -1,7 +1,6 @@
 #include "utils/filesystem.hpp"
 #include "utils/logger.hpp"
 #include <filesystem>
-
 #include <iostream>
 
 namespace fs = std::filesystem;

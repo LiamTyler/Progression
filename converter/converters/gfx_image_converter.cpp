@@ -53,20 +53,21 @@ static std::unordered_map< std::string, Gfx::ImageType > imageTypeMap =
 };
 
 
-void GfxImageConverter::Parse( const rapidjson::Value& value )
+
+std::shared_ptr<BaseAssetCreateInfo> GfxImageConverter::Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent )
 {
+    #define ABS_PATH( v ) PG_ASSET_DIR + std::string( v.GetString() )
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "name",           []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.name = v.GetString(); } },
-        { "filename",       []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::REGULAR_2D; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::FLATTENED_CUBEMAP; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType =  ImageInputType::EQUIRECTANGULAR; s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = PG_ASSET_DIR + std::string( v.GetString() ); } },
-        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType = ImageInputType::REGULAR_2D; s.filename = ABS_PATH( v ); } },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType = ImageInputType::FLATTENED_CUBEMAP; s.filename = ABS_PATH( v ); } },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType = ImageInputType::EQUIRECTANGULAR; s.filename = ABS_PATH( v ); } },
+        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = ABS_PATH( v ); } },
+        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = ABS_PATH( v ); } },
+        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = ABS_PATH( v ); } },
+        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = ABS_PATH( v ); } },
+        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = ABS_PATH( v ); } },
+        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = ABS_PATH( v ); } },
         { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
         { "imageType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
@@ -109,14 +110,15 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
         },
     });
 
-    GfxImageCreateInfo* info = new GfxImageCreateInfo;
-    info->semantic = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
-    info->imageType = Gfx::ImageType::TYPE_2D;
+    auto info = std::make_shared<GfxImageCreateInfo>();
+    if ( parent )
+    {
+        *info = *std::static_pointer_cast<const GfxImageCreateInfo>( parent );
+    }
     mapping.ForEachMember( value, *info );
 
-    if ( info->name.empty() ) CONVERTER_ERROR( "Image missing a name! Filename '%s'", info->name.c_str(), info->filename.c_str() );
-    if ( info->semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS ) CONVERTER_ERROR( "Must specify a valid image semantic for image '%s'", info->name.c_str() );
-    if ( info->imageType == Gfx::ImageType::NUM_IMAGE_TYPES ) CONVERTER_ERROR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
+    if ( info->semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS ) PARSE_ERROR( "Must specify a valid image semantic for image '%s'", info->name.c_str() );
+    if ( info->imageType == Gfx::ImageType::NUM_IMAGE_TYPES ) PARSE_ERROR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
 
     int numFaces = 0;
     for ( int i = 0; i < 6; ++i )
@@ -127,20 +129,10 @@ void GfxImageConverter::Parse( const rapidjson::Value& value )
             ++numFaces;
         }
     }
+    if ( info->inputType == ImageInputType::NUM_IMAGE_INPUT_TYPES ) PARSE_ERROR( "Could not deduce ImageInputType. No filename given, nor 6 cubemap faces for image '%s'", info->name.c_str() );
+    if ( info->inputType == ImageInputType::INDIVIDUAL_FACES && numFaces != 6 ) PARSE_ERROR( "Please specify all 6 cubemap faces for image '%s'", info->name.c_str() );
 
-    if ( info->inputType == ImageInputType::NUM_IMAGE_INPUT_TYPES ) CONVERTER_ERROR( "Could not deduce ImageInputType. No filename given, nor 6 cubemap faces for image '%s'", info->name.c_str() );
-    if ( info->inputType == ImageInputType::INDIVIDUAL_FACES )
-    {
-        if ( numFaces != 6 ) CONVERTER_ERROR( "Please specify all 6 cubemap faces for image '%s'", info->name.c_str() );
-
-        for ( int i = 0; i < 6; ++i )
-        {
-            if ( !PathExists( info->faceFilenames[i] ) ) CONVERTER_ERROR( "Filename '%s' not found for image '%s'", info->filename.c_str(), info->name.c_str() );
-        }
-    }
-    else if ( !PathExists( info->filename ) ) CONVERTER_ERROR( "Filename '%s' not found for image '%s'", info->filename.c_str(), info->name.c_str() );
-
-    m_parsedAssets.push_back( info );
+    return info;
 }
 
 

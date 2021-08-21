@@ -23,3 +23,12 @@ enum AssetType : unsigned int
 
     NUM_ASSET_TYPES
 };
+
+const char* PG_ASSET_NAMES[] =
+{
+    "Image",
+    "Material",
+    "Script",
+    "Model",
+    "Shader",
+};

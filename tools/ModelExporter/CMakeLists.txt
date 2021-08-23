@@ -19,11 +19,6 @@ set(SRC
     ${PROGRESSION_DIR}/src/utils/filesystem.hpp
     ${PROGRESSION_DIR}/src/utils/logger.cpp
     ${PROGRESSION_DIR}/src/utils/logger.hpp
-    ${PROGRESSION_DIR}/src/utils/serializer.cpp
-    ${PROGRESSION_DIR}/src/utils/serializer.hpp
-    
-    ${PROGRESSION_DIR}/ext/memory_map/MemoryMapped.h
-    ${PROGRESSION_DIR}/ext/memory_map/MemoryMapped.cpp
 )
 
 set(LIBS

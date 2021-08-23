@@ -12,15 +12,11 @@
 #include <unordered_map>
 
 
-namespace PG
-{
-namespace AssetManager
+namespace PG::AssetManager
 {
 
 uint32_t GetAssetTypeIDHelper::IDCounter = 0;
-
-
-static std::unordered_map< std::string, BaseAsset* > s_resourceMaps[AssetType::NUM_ASSET_TYPES];
+std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::NUM_ASSET_TYPES];
 
 
 void Init()
@@ -40,7 +36,7 @@ void Init()
     Material* defaultMat = new Material;
     defaultMat->name = "default";
     defaultMat->albedoTint = glm::vec3( 1, .41, .71 ); // hot pink. Material mainly used to bring attention when the intended material is missing
-    s_resourceMaps[ASSET_TYPE_MATERIAL]["default"] = defaultMat;
+    g_resourceMaps[ASSET_TYPE_MATERIAL]["default"] = defaultMat;
 }
 
 
@@ -53,10 +49,10 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType, const c
         LOG_ERR( "Could not load %s", name );
         return false;
     }
-    auto it = s_resourceMaps[assetType].find( asset->name );
-    if ( it == s_resourceMaps[assetType].end() )
+    auto it = g_resourceMaps[assetType].find( asset->name );
+    if ( it == g_resourceMaps[assetType].end() )
     {
-        s_resourceMaps[assetType][asset->name] = asset;
+        g_resourceMaps[assetType][asset->name] = asset;
     }
     else
     {
@@ -125,12 +121,12 @@ void Shutdown()
 {
     for ( uint32_t i = 0; i < AssetType::NUM_ASSET_TYPES; ++i )
     {
-        for ( const auto& it : s_resourceMaps[i] )
+        for ( const auto& it : g_resourceMaps[i] )
         {
             it.second->Free();
             delete it.second;
         }
-        s_resourceMaps[i].clear();
+        g_resourceMaps[i].clear();
     }
 }
 
@@ -178,8 +174,8 @@ void RegisterLuaFunctions( lua_State* L )
 BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
 {
     PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
-    auto it = s_resourceMaps[assetTypeID].find( name );
-    if ( it != s_resourceMaps[assetTypeID].end() )
+    auto it = g_resourceMaps[assetTypeID].find( name );
+    if ( it != g_resourceMaps[assetTypeID].end() )
     {
         return it->second;
     }
@@ -187,6 +183,4 @@ BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
     return nullptr;
 }
 
-
-} // namespace AssetManager
-} // namesapce PG
+} // namesapce PG::AssetManager

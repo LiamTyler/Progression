@@ -1,4 +1,3 @@
-{ "AssetList":
 [
     { "Shader": { "name": "depthVert", "shaderStage" : "vertex", "filename": "depth.vert" } },
     { "Shader": { "name": "litVert", "shaderStage" : "vertex", "filename": "lit.vert" } },
@@ -8,4 +7,4 @@
     { "Shader": { "name": "skyboxVert", "shaderStage" : "vertex", "filename": "skybox.vert" } },
     { "Shader": { "name": "skyboxFrag", "shaderStage" : "fragment", "filename": "skybox.frag" } },
 	{ "Model": { "name": "cube", "filename": "models/basic_shapes/cube.pgModel" } }
-]}
+]

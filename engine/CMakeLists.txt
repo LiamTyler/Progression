@@ -57,7 +57,6 @@ set(
     ${PROGRESSION_DIR}/src/core/window.cpp
     ${PROGRESSION_DIR}/src/core/window.hpp
     
-    
     ${PROGRESSION_DIR}/src/ecs/component_factory.cpp
     ${PROGRESSION_DIR}/src/ecs/component_factory.hpp
     ${PROGRESSION_DIR}/src/ecs/ecs.cpp

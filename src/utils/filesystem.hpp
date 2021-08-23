@@ -31,6 +31,7 @@ std::string GetFileExtension( const std::string& filename );
 std::string GetFilenameMinusExtension( const std::string& filename );
 
 // Returns the base filename without the last extension or directories. Same as std::filesystem::path::stem
+// Ex: /foo/bar/baz.txt -> baz
 // Ex: /foo/bar/baz.log.TXT -> baz.log
 std::string GetFilenameStem( const std::string& filename );
 
@@ -47,3 +48,7 @@ std::string GetParentPath( std::string path );
 // Returns path relative to parentPath
 // Ex: file = /foo/bar/baz/test.txt, relativeDir = /foo/bar/ -> baz/test.txt
 std::string GetRelativePathToDir( const std::string& file, const std::string& relativeDir );
+
+// Ex: path = /foo/bar/ -> bar
+// Ex: path = /foo/bar/baz.txt -> bar
+std::string GetDirectoryStem( const std::string& path );

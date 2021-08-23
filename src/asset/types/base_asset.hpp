@@ -15,6 +15,8 @@ struct BaseAssetCreateInfo
 class BaseAsset
 {
 public:
+    BaseAsset() = default;
+    BaseAsset( const std::string& inName ) : name( inName ) {}
     virtual ~BaseAsset() = default;
 
     virtual bool Load( const BaseAssetCreateInfo* baseInfo )  { return false; }

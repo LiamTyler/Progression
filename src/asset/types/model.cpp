@@ -44,18 +44,12 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         modelFile.Read( mesh.startVertex );
         modelFile.Read( mesh.numVertices );
 
-        // since there is no AssetManager in the converter, create dummy materials to track the names
-#if USING( COMPILING_CONVERTER )
-        originalMaterials[i] = new Material;
-        originalMaterials[i]->name = matName;
-#else // #if USING( COMPILING_CONVERTER )
         originalMaterials[i] = AssetManager::Get< Material >( matName );
         if ( !originalMaterials[i] )
         {
             LOG_ERR( "No material '%s' found", matName.c_str() );
             return false;
         }
-#endif // #else // #if USING( COMPILING_CONVERTER )
     }
 
     //model->RecalculateNormals();

@@ -15,14 +15,6 @@ using namespace PG;
 
 Scene* s_primaryScene = nullptr;
 
-static bool ParseFastfile( const rapidjson::Value& v, Scene* scene )
-{
-    PG_ASSERT( v.HasMember( "filename" ) );
-    std::string filename = v["filename"].GetString();
-    return AssetManager::LoadFastFile( filename );
-}
-
-
 static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
 {
     Camera& camera = scene->camera;
@@ -187,15 +179,12 @@ Scene* Scene::Load( const std::string& filename )
         { "DirectionalLight", ParseDirectionalLight },
         { "PointLight",       ParsePointLight },
         { "SpotLight",        ParseSpotLight },
-        { "Fastfile",         ParseFastfile },
         { "Skybox",           ParseSkybox },
         { "StartupScript",    ParseStartupScript },
         { "Script",           ParseScript },
     });
 
-    PG_ASSERT( document.HasMember( "Scene" ), "scene file requires a single object 'Scene' that has a list of all scene objects + scene loading commands" );
-    const auto& assetList = document["Scene"];
-    for ( rapidjson::Value::ConstValueIterator itr = assetList.Begin(); itr != assetList.End(); ++itr )
+    for ( rapidjson::Value::ConstValueIterator itr = document.Begin(); itr != document.End(); ++itr )
     {
         if ( !mapping.ForEachMember( *itr, scene ) )
         {

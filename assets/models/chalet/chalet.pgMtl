@@ -1,4 +1,0 @@
-{ "Materials":
-[
-	{ "name": "chalet", "Kd": [ 0.800000, 0.800000, 0.800000 ], "map_Kd_name": "chalet" }
-]}

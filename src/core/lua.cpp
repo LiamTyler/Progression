@@ -20,13 +20,15 @@ namespace Lua
         state.open_libraries( sol::lib::base, sol::lib::math );
 
         RegisterLuaFunctions_Math( L );
-        RegisterLuaFunctions_Window( L );
         RegisterLuaFunctions_Scene( L );
         RegisterLuaFunctions_Camera( L );
         ECS::RegisterLuaFunctions( L );
         AssetManager::RegisterLuaFunctions( L );
         Time::RegisterLuaFunctions( L );
+#if !USING( COMPILING_CONVERTER )
+        RegisterLuaFunctions_Window( L );
         Input::RegisterLuaFunctions( L );
+#endif // #if !USING( COMPILING_CONVERTER )
     }
 
 
@@ -38,11 +40,14 @@ namespace Lua
 
     ScriptInstance::ScriptInstance( Script* inScriptAsset )
     {
-        PG_ASSERT( inScriptAsset && !inScriptAsset->scriptText.empty() );
+        PG_ASSERT( inScriptAsset );
         scriptAsset = inScriptAsset;
         env = sol::environment( g_LuaState, sol::create, g_LuaState.globals() );
-        g_LuaState.script( scriptAsset->scriptText, env );
-        updateFunction = env["Update"];
+        if ( !scriptAsset->scriptText.empty() )
+        {
+            g_LuaState.script( scriptAsset->scriptText, env );
+            updateFunction = env["Update"];
+        }
         hasUpdateFunction = updateFunction.valid();
     }
 

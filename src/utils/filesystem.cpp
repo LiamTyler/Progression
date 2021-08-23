@@ -178,3 +178,29 @@ std::string GetRelativePathToDir( const std::string& file, const std::string& pa
 {
     return BackToForwardSlashes( fs::relative( file, parentPath ).string() );
 }
+
+
+std::string GetDirectoryStem( const std::string& path )
+{
+    if ( path.empty() ) return "";
+    if ( path[path.length() - 1] == '/' || path[path.length() - 1] == '\\' )
+    {
+        return GetFilenameStem( path.substr( 0, path.length() - 1 ) );
+    }
+    else
+    {
+        return GetFilenameStem( path );
+    }
+    //std::string ret;
+    //auto p = fs::path( path );
+    //if ( fs::is_directory( p ) )
+    //{
+    //    size_t l = path.length();
+    //    int end = (int)l - 1;
+    //    while ( end > 0 && (path[end] == '/' || path[end] == '\\' ) ) --end;
+    //    int start = end - 1;
+    //    while ( start >= 0 && (path[start] != '/' && path[start] != '\\' ) ) --start;
+    //    start = start < 0 ? 0 : start + 1;
+    //    ret = path.substr( start, end - start + 1 );
+    //}
+}

@@ -32,11 +32,6 @@ void Init()
     PG_ASSERT( GetAssetTypeID< Model >::ID()          == 3, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID< Shader >::ID()         == 4, "This needs to line up with AssetType ordering" );
     static_assert( NUM_ASSET_TYPES == 5, "Dont forget to add GetAssetTypeID for new assets" );
-
-    Material* defaultMat = new Material;
-    defaultMat->name = "default";
-    defaultMat->albedoTint = glm::vec3( 1, .41, .71 ); // hot pink. Material mainly used to bring attention when the intended material is missing
-    g_resourceMaps[ASSET_TYPE_MATERIAL]["default"] = defaultMat;
 }
 
 

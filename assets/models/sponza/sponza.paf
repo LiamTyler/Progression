@@ -1,0 +1,247 @@
+[
+	{ "Image": {
+		"name": "lion",
+		"filename": "models/sponza/textures/lion.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "Material__25",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "lion"
+	} },
+	{ "Image": {
+		"name": "background",
+		"filename": "models/sponza/textures/background.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "Material__298",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "background"
+	} },
+	{ "Material": {
+		"name": "Material__47",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ]
+	} },
+	{ "Image": {
+		"name": "vase_plant",
+		"filename": "models/sponza/textures/vase_plant.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "Material__57",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "vase_plant"
+	} },
+	{ "Image": {
+		"name": "sponza_arch_diff",
+		"filename": "models/sponza/textures/sponza_arch_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "arch",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_arch_diff"
+	} },
+	{ "Image": {
+		"name": "spnza_bricks_a_diff",
+		"filename": "models/sponza/textures/spnza_bricks_a_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "bricks",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "spnza_bricks_a_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_ceiling_a_diff",
+		"filename": "models/sponza/textures/sponza_ceiling_a_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "ceiling",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_ceiling_a_diff"
+	} },
+	{ "Image": {
+		"name": "chain_texture",
+		"filename": "models/sponza/textures/chain_texture.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "chain",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "chain_texture"
+	} },
+	{ "Image": {
+		"name": "sponza_column_a_diff",
+		"filename": "models/sponza/textures/sponza_column_a_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "column_a",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_column_a_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_column_b_diff",
+		"filename": "models/sponza/textures/sponza_column_b_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "column_b",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_column_b_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_column_c_diff",
+		"filename": "models/sponza/textures/sponza_column_c_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "column_c",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_column_c_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_details_diff",
+		"filename": "models/sponza/textures/sponza_details_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "details",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_details_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_fabric_diff",
+		"filename": "models/sponza/textures/sponza_fabric_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "fabric_a",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_fabric_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_curtain_diff",
+		"filename": "models/sponza/textures/sponza_curtain_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "fabric_c",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_curtain_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_fabric_blue_diff",
+		"filename": "models/sponza/textures/sponza_fabric_blue_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "fabric_d",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_fabric_blue_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_fabric_green_diff",
+		"filename": "models/sponza/textures/sponza_fabric_green_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "fabric_e",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_fabric_green_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_curtain_green_diff",
+		"filename": "models/sponza/textures/sponza_curtain_green_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "fabric_f",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_curtain_green_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_curtain_blue_diff",
+		"filename": "models/sponza/textures/sponza_curtain_blue_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "fabric_g",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_curtain_blue_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_flagpole_diff",
+		"filename": "models/sponza/textures/sponza_flagpole_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "flagpole",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_flagpole_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_floor_a_diff",
+		"filename": "models/sponza/textures/sponza_floor_a_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "floor",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_floor_a_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_thorn_diff",
+		"filename": "models/sponza/textures/sponza_thorn_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "leaf",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_thorn_diff"
+	} },
+	{ "Image": {
+		"name": "sponza_roof_diff",
+		"filename": "models/sponza/textures/sponza_roof_diff.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "roof",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "sponza_roof_diff"
+	} },
+	{ "Image": {
+		"name": "vase_dif",
+		"filename": "models/sponza/textures/vase_dif.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "vase",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "vase_dif"
+	} },
+	{ "Image": {
+		"name": "vase_hanging",
+		"filename": "models/sponza/textures/vase_hanging.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "vase_hanging",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "vase_hanging"
+	} },
+	{ "Image": {
+		"name": "vase_round",
+		"filename": "models/sponza/textures/vase_round.tga",
+		"semantic": "DIFFUSE"
+	} },
+	{ "Material": {
+		"name": "vase_round",
+		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoMap": "vase_round"
+	} },
+	{ "Model": { "name": "sponza", "filename": "models/sponza/sponza.pmodel" } }
+]

@@ -9,7 +9,7 @@ class ModelConverter : public BaseAssetConverter
 {
 public:
     ModelConverter() : BaseAssetConverter( "Model", ASSET_TYPE_MODEL ) {}
-    void Parse( const rapidjson::Value& value ) override;
+    std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) override;
 
 protected:
     std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const override;

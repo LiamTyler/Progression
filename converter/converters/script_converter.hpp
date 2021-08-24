@@ -11,7 +11,7 @@ class ScriptConverter : public BaseAssetConverter
 {
 public:
     ScriptConverter() : BaseAssetConverter( "Script", ASSET_TYPE_SCRIPT ) {}
-    void Parse( const rapidjson::Value& value ) override;
+    std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) override;
 
 protected:
     std::string GetFastFileName( const BaseAssetCreateInfo* info ) const override;

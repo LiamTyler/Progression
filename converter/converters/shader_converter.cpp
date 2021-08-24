@@ -16,7 +16,7 @@ static std::unordered_map< std::string, ShaderStage > shaderStageMap =
 };
 
 
-void ShaderConverter::Parse( const rapidjson::Value& value )
+std::shared_ptr<BaseAssetCreateInfo> ShaderConverter::Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent )
 {
     static JSONFunctionMapper< ShaderCreateInfo& > mapping(
     {
@@ -39,26 +39,16 @@ void ShaderConverter::Parse( const rapidjson::Value& value )
         },
     });
 
-    ShaderCreateInfo* info = new ShaderCreateInfo;
-    info->shaderStage = ShaderStage::NUM_SHADER_STAGES;
+    auto info = std::make_shared<ShaderCreateInfo>();
+    if ( parent )
+    {
+        *info = *std::static_pointer_cast<const ShaderCreateInfo>( parent );
+    }
     mapping.ForEachMember( value, *info );
 
-    if ( !PathExists( info->filename ) )
-    {
-        LOG_ERR( "Shader file '%s' not found", info->filename.c_str() );
-        g_converterStatus.parsingError = true;
-    }
+    if ( info->shaderStage == ShaderStage::NUM_SHADER_STAGES ) PARSE_ERROR( "Shader '%s' must have a valid ShaderStage!", info->name.c_str() );
 
-    if ( info->shaderStage == ShaderStage::NUM_SHADER_STAGES )
-    {
-        LOG_ERR( "Shader '%s' must have a valid ShaderStage!", info->name.c_str() );
-        g_converterStatus.parsingError = true;
-    }
-
-    info->generateDebugInfo = g_converterConfigOptions.generateShaderDebugInfo;
-    info->savePreproc = g_converterConfigOptions.saveShaderPreproc;
-
-    m_parsedAssets.push_back( info );
+    return info;
 }
 
 

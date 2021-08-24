@@ -22,7 +22,7 @@ bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
     rapidjson::ParseResult ok = document.ParseStream( is );
     if ( !ok )
     {
-        LOG_ERR( "JSON parse error '%s' (%d)", rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
+        LOG_ERR( "Failed to parse json file '%s'. Error: '%s' (%d)", filename.c_str(), rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
         return false;
     }
 

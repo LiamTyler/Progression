@@ -23,7 +23,7 @@ static bool ParseAssetFile( const std::string& filename )
     static std::vector< std::shared_ptr<BaseAssetConverter> > converters =
     {
         std::make_shared<GfxImageConverter>(),
-        std::make_shared<MaterialFileConverter>(),
+        std::make_shared<MaterialConverter>(),
         std::make_shared<ScriptConverter>(),
         std::make_shared<ModelConverter>(),
         std::make_shared<ShaderConverter>(),
@@ -42,6 +42,7 @@ static bool ParseAssetFile( const std::string& filename )
     json::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
+        LOG_ERR( "Skipping asset file %s", filename.c_str() );
         return false;
     }
     for ( json::Value::ConstValueIterator assetIter = document.Begin(); assetIter != document.End(); ++assetIter )
@@ -98,7 +99,6 @@ void Init()
     {
         if ( entry.is_regular_file() && GetFileExtension( entry.path().string() ) == ".paf" )
         {
-            
             ParseAssetFile( entry.path().string() );
         }
     }

@@ -11,7 +11,7 @@ include_directories(
 )
 
 set(SRC
-    ${CMAKE_CURRENT_SOURCE_DIR}/main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/model_exporter_main.cpp
     ${PROGRESSION_DIR}/src/core/assert.hpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp

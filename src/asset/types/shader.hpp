@@ -24,7 +24,7 @@ enum class ShaderStage
 struct ShaderCreateInfo : public BaseAssetCreateInfo
 {
     std::string filename;
-    ShaderStage shaderStage;
+    ShaderStage shaderStage = ShaderStage::NUM_SHADER_STAGES;
     std::vector< std::pair< std::string, std::string > > defines;
     bool generateDebugInfo = false;
     bool savePreproc = false;

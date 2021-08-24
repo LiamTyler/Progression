@@ -4,7 +4,7 @@
 namespace PG
 {
 
-void ScriptConverter::Parse( const rapidjson::Value& value )
+std::shared_ptr<BaseAssetCreateInfo> ScriptConverter::Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent )
 {
     static JSONFunctionMapper< ScriptCreateInfo& > mapping(
     {
@@ -12,16 +12,14 @@ void ScriptConverter::Parse( const rapidjson::Value& value )
         { "filename",  []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
-    ScriptCreateInfo* info = new ScriptCreateInfo;
+    auto info = std::make_shared<ScriptCreateInfo>();
+    if ( parent )
+    {
+        *info = *std::static_pointer_cast<const ScriptCreateInfo>( parent );
+    }
     mapping.ForEachMember( value, *info );
 
-    if ( !PathExists( info->filename ) )
-    {
-        LOG_ERR( "Script file '%s' not found", info->filename.c_str() );
-        g_converterStatus.parsingError = true;
-    }
-
-    m_parsedAssets.push_back( info );
+    return info;
 }
 
 

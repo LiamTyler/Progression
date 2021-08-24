@@ -56,7 +56,8 @@ T* Get( const std::string& name )
     {
         auto newAsset = new T;
         newAsset->name = name;
-        g_resourceMaps[GetAssetTypeID<T>::ID()][name] = newAsset;
+        AssetType typeIdx = (AssetType)GetAssetTypeID<T>::ID();
+        g_resourceMaps[typeIdx][name] = newAsset;
         return newAsset;
     }
     else

@@ -17,9 +17,7 @@ namespace PG
 
 struct ConverterConfigOptions
 {
-    bool force                   = false;
-    bool generateShaderDebugInfo = false;
-    bool saveShaderPreproc       = false;
+    bool force = false;
 };
 
 struct ConverterStatus
@@ -45,8 +43,7 @@ public:
     BaseAssetConverter( const std::string& assetName, AssetType assetType ) : m_assetNameInJsonFile( assetName ), m_assetType( assetType ) {}
     ~BaseAssetConverter();
 
-    virtual void Parse( const rapidjson::Value& value ) {};
-    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) { return nullptr; }
+    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) = 0;
     int ConvertAll();
     int CheckAllDependencies();
     virtual bool BuildFastFile( Serializer* serializer ) const;

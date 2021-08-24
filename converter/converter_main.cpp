@@ -14,6 +14,7 @@
 #include "ecs/components/model_renderer.hpp"
 #include "asset_file_database.hpp"
 #include <algorithm>
+#include <unordered_set>
 
 using namespace PG;
 
@@ -21,12 +22,14 @@ static void DisplayHelp()
 {
     auto msg =
       "Usage: converter [options] SCENE_FILE\n"
+      "SCENE_FILE is relative to the project's assets/ folder\n";
       "Options\n"
       "  --force                     Don't check asset file dependencies, just reconvert everything\n"
       "  --help                      Print this message and exit\n";
 
     LOG( "%s", msg );
 }
+
 
 static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile )
 {
@@ -71,11 +74,9 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
 }
 
 
-static int s_outOfDateAssets;
 bool ConvertAssets( const std::string& sceneFile )
 {
     ClearAllFastfileDependencies();
-    s_outOfDateAssets       = 0;
     g_converterStatus       = {};
     auto convertAssetsStartTime = Time::GetTimePoint();
 
@@ -83,7 +84,7 @@ bool ConvertAssets( const std::string& sceneFile )
 }
 
 
-void FindAssetsUsedInScene( const std::string& sceneFile, std::vector<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
+void FindAssetsUsedInScene( const std::string& sceneFile, std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
 {
     Scene* scene = Scene::Load( sceneFile );
 
@@ -92,26 +93,55 @@ void FindAssetsUsedInScene( const std::string& sceneFile, std::vector<std::strin
         assetsUsed[assetTypeIdx].reserve( AssetManager::g_resourceMaps[assetTypeIdx].size() );
         for ( auto [assetName, _] : AssetManager::g_resourceMaps[assetTypeIdx] )
         {
-            assetsUsed[assetTypeIdx].push_back( assetName );
+            assetsUsed[assetTypeIdx].insert( assetName );
         }
     }
 
-    scene->registry.view<ModelRenderer>().each( [&]( ModelRenderer& modelRenderer )
+    for ( const auto [assetName, _] : AssetManager::g_resourceMaps[ASSET_TYPE_MODEL] )
     {
-        if ( modelRenderer.materials.empty() )
+        auto modelInfo = std::static_pointer_cast<ModelCreateInfo>( AssetDatabase::FindAssetInfo( ASSET_TYPE_MODEL, assetName ) );
+        if ( !modelInfo )
         {
-            auto baseInfo = AssetDatabase::FindAssetInfo( ASSET_TYPE_MODEL, modelRenderer.model->name );
-            if ( !baseInfo )
+            LOG_ERR( "Model %s not found in database", assetName.c_str() );
+        }
+        else
+        {
+            std::ifstream in( modelInfo->filename );
+            if ( !in )
             {
-                LOG_ERR( "Model %s not found in database", modelRenderer.model->name.c_str() );
+                LOG_ERR( "Could not open model file %s", modelInfo->filename.c_str() );
+                continue;
             }
-            else
+
+            std::string line, matName, tmp;
+            std::getline( in, line );
+            std::stringstream ss( line );
+            int numMaterials;
+            ss >> tmp >> numMaterials;
+            for ( int i = 0; i < numMaterials; ++i )
             {
-                auto modelInfo = std::static_pointer_cast<ModelCreateInfo>( baseInfo );
-                //modelInfo->filename;
+                std::getline( in, line );
+                ss = std::stringstream( line );
+                ss >> tmp >> matName;
+                assetsUsed[ASSET_TYPE_MATERIAL].insert( matName );
             }
         }
-    });
+    }
+
+    for ( const std::string& matName : assetsUsed[ASSET_TYPE_MATERIAL] )
+    {
+        auto info = std::static_pointer_cast<MaterialCreateInfo>( AssetDatabase::FindAssetInfo( ASSET_TYPE_MATERIAL, matName ) );
+        if ( !info )
+        {
+            LOG_ERR( "Material %s not found in database", matName.c_str() );
+        }
+        else
+        {
+            if ( !info->albedoMapName.empty() ) assetsUsed[ASSET_TYPE_GFX_IMAGE].insert( info->albedoMapName );
+            if ( !info->metalnessMapName.empty() ) assetsUsed[ASSET_TYPE_GFX_IMAGE].insert( info->metalnessMapName );
+            if ( !info->roughnessMapName.empty() ) assetsUsed[ASSET_TYPE_GFX_IMAGE].insert( info->roughnessMapName );
+        }
+    }
 
     delete scene;
 }
@@ -121,6 +151,8 @@ int main( int argc, char** argv )
 {
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
+    AssetManager::Init();
+
     g_converterConfigOptions = {};
     
     std::string sceneFile;
@@ -128,9 +160,7 @@ int main( int argc, char** argv )
 
     AssetDatabase::Init();
 
-    ConvertAssets( sceneFile );
-
-    std::vector< std::string > assetsUsed[AssetType::NUM_ASSET_TYPES];
+    std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
     FindAssetsUsedInScene( sceneFile, assetsUsed );
     
     const char* PG_ASSET_NAMES[] =
@@ -144,11 +174,9 @@ int main( int argc, char** argv )
 
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
-        for ( size_t assetIdx = 0; assetIdx < assetsUsed[assetTypeIdx].size(); ++assetIdx )
+        for ( const auto& asset : assetsUsed[assetTypeIdx] )
         {
-            const std::string& assetName = assetsUsed[assetTypeIdx][assetIdx];
-
-            LOG( "%s: %s", PG_ASSET_NAMES[assetTypeIdx], assetName.c_str() );
+            LOG( "%s: %s", PG_ASSET_NAMES[assetTypeIdx], asset.c_str() );
 
             //auto createInfoPtr = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
             //if ( !createInfoPtr )

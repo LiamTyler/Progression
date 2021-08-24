@@ -4,7 +4,7 @@
 namespace PG
 {
 
-void ModelConverter::Parse( const rapidjson::Value& value )
+std::shared_ptr<BaseAssetCreateInfo> ModelConverter::Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent )
 {
     static JSONFunctionMapper< ModelCreateInfo& > mapping(
     {
@@ -12,16 +12,14 @@ void ModelConverter::Parse( const rapidjson::Value& value )
         { "filename",  []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
 
-    ModelCreateInfo* info = new ModelCreateInfo;
+    auto info = std::make_shared<ModelCreateInfo>();
+    if ( parent )
+    {
+        *info = *std::static_pointer_cast<const ModelCreateInfo>( parent );
+    }
     mapping.ForEachMember( value, *info );
 
-    if ( !PathExists( info->filename ) )
-    {
-        LOG_ERR( "Filename '%s' not found for Model '%s', skipping model", info->filename.c_str(), info->name.c_str() );
-        g_converterStatus.parsingError = true;
-    }
-
-    m_parsedAssets.push_back( info );
+    return info;
 }
 
 

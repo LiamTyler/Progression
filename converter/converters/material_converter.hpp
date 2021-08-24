@@ -5,11 +5,11 @@
 namespace PG
 {
 
-class MaterialFileConverter : public BaseAssetConverter
+class MaterialConverter : public BaseAssetConverter
 {
 public:
-    MaterialFileConverter() : BaseAssetConverter( "MatFile", ASSET_TYPE_MATERIAL ) {}
-    void Parse( const rapidjson::Value& value ) override;
+    MaterialConverter() : BaseAssetConverter( "Material", ASSET_TYPE_MATERIAL ) {}
+    std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) override;
 
 protected:
     std::string GetFastFileName( const BaseAssetCreateInfo* info ) const override;

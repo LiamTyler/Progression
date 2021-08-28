@@ -1,22 +1,15 @@
 #pragma once
 
 #include "asset/asset_versions.hpp"
+#include "asset/types/base_asset.hpp"
 #include <string>
 
 
-namespace PG
+namespace PG::AssetCache
 {
 
-class BaseAsset;
+    void Init();
+    time_t GetAssetTimestamp( AssetType assetType, const std::string& assetCacheName );
+    bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAsset* asset );
 
-class AssetCache
-{
-public:
-    AssetCache();
-
-    bool IsAssetOutOfDate( AssetType assetType, const std::string& assetCacheName );
-
-    void CacheAsset( BaseAsset* asset );
-};
-
-} // namespace PG
+} // namespace PG::AssetCache

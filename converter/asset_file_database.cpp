@@ -29,15 +29,6 @@ static bool ParseAssetFile( const std::string& filename )
         std::make_shared<ShaderConverter>(),
     };
 
-    const char* assetNames[] =
-    {
-        "Image",
-        "Material",
-        "Script",
-        "Model",
-        "Shader",
-    };
-    
     namespace json = rapidjson;
     json::Document document;
     if ( !ParseJSONFile( filename, document ) )
@@ -47,11 +38,11 @@ static bool ParseAssetFile( const std::string& filename )
     }
     for ( json::Value::ConstValueIterator assetIter = document.Begin(); assetIter != document.End(); ++assetIter )
     {
-        const char* assetType = assetIter->MemberBegin()->name.GetString();
+        std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
         const json::Value& value = assetIter->MemberBegin()->value;
-        for ( int typeIndex = 0; typeIndex < ARRAY_COUNT( assetNames ); ++typeIndex )
+        for ( int typeIndex = 0; typeIndex < converters.size(); ++typeIndex )
         {
-            if ( !strcmp( assetType, assetNames[typeIndex] ) )
+            if ( assetTypeStr == converters[typeIndex]->assetNameInJsonFile )
             {
                 const std::string assetName = value["name"].GetString();
                 if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )

@@ -1,20 +1,20 @@
 #pragma once
 
 #include "base_asset_converter.hpp"
+#include "asset/types/shader.hpp"
 
 namespace PG
 {
 
-class ShaderConverter : public BaseAssetConverter
+class ShaderConverter : public BaseAssetConverterTemplate<Shader, ShaderCreateInfo>
 {
 public:
-    ShaderConverter () : BaseAssetConverter( "Shader", ASSET_TYPE_SHADER ) {}
-    std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) override;
+    ShaderConverter() : BaseAssetConverterTemplate( "Shader", ASSET_TYPE_SHADER ) {}
 
 protected:
-    std::string GetFastFileName( const BaseAssetCreateInfo* info ) const override;
-    bool IsAssetOutOfDate( const BaseAssetCreateInfo* info ) override;
-    bool ConvertSingle( const BaseAssetCreateInfo* info ) const override;
+    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    std::string GetCacheNameInternal( ConstInfoPtr info ) override;
+    bool IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) override;
 };
 
 } // namespace PG

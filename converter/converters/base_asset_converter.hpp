@@ -2,6 +2,8 @@
 
 #include "asset/asset_versions.hpp"
 #include "asset/types/base_asset.hpp"
+#include "asset_file_database.hpp"
+#include "asset_cache.hpp"
 #include "core/assert.hpp"
 #include "utils/logger.hpp"
 #include "utils/filesystem.hpp"
@@ -9,8 +11,7 @@
 #include "utils/json_parsing.hpp"
 #include "utils/serializer.hpp"
 
-#define CONVERTER_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); g_converterStatus.parsingError = true; return; }
-#define PARSE_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); return nullptr; }
+#define PARSE_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); return false; }
 
 namespace PG
 {
@@ -22,8 +23,7 @@ struct ConverterConfigOptions
 
 struct ConverterStatus
 {
-    bool parsingError           = false;
-    int checkDependencyErrors   = 0;
+    bool error = false;
 };
 
 extern ConverterConfigOptions g_converterConfigOptions;
@@ -34,66 +34,106 @@ extern ConverterStatus g_converterStatus;
 void AddFastfileDependency( const std::string& file );
 void ClearAllFastfileDependencies();
 time_t GetLatestFastfileDependency();
-
 void FilenameSlashesToUnderscores( std::string& str );
+
 
 class BaseAssetConverter
 {
 public:
-    BaseAssetConverter( const std::string& assetName, AssetType assetType ) : m_assetNameInJsonFile( assetName ), m_assetType( assetType ) {}
-    ~BaseAssetConverter();
+    using BaseInfoPtr = std::shared_ptr<BaseAssetCreateInfo>;
+    using ConstBaseInfoPtr = const std::shared_ptr<const BaseAssetCreateInfo>&;
 
-    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) = 0;
-    int ConvertAll();
-    int CheckAllDependencies();
-    virtual bool BuildFastFile( Serializer* serializer ) const;
-    std::string AssetNameInJSONFile() const { return m_assetNameInJsonFile; }
+    const std::string assetNameInJsonFile;
+    const AssetType assetType;
 
-protected:
-    virtual std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const = 0;
-    virtual bool IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo ) = 0;
-    virtual bool ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const = 0;
+    BaseAssetConverter( const std::string& inAssetName, AssetType inAssetType ) : assetNameInJsonFile( inAssetName ), assetType( inAssetType ) {}
 
-    template< typename DerivedAssetType, typename DerivedAssetCreateInfoType >
-    bool ConvertSingleInternal( const BaseAssetCreateInfo* baseInfo ) const
+    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, ConstBaseInfoPtr parent ) = 0;
+    virtual std::string GetCacheName( ConstBaseInfoPtr baseInfo ) = 0;
+    virtual bool IsAssetOutOfDate( const std::string& assetName ) = 0;
+    virtual bool Convert( const std::string& assetName ) = 0;
+};
+
+
+template< typename DerivedAsset, typename DerivedInfo>
+class BaseAssetConverterTemplate : public BaseAssetConverter
+{
+public:
+    BaseAssetConverterTemplate() = default;
+    using InfoPtr = std::shared_ptr<DerivedInfo>;
+    using ConstInfoPtr = const std::shared_ptr<const DerivedInfo>&;
+
+    BaseAssetConverterTemplate( const std::string& inAssetName, AssetType inAssetType ) : BaseAssetConverter( inAssetName, assetType ) {}
+
+    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, ConstBaseInfoPtr parent ) override
     {
-        const DerivedAssetCreateInfoType* info = (const DerivedAssetCreateInfoType*)baseInfo;
-        LOG( "Converting %s '%s'...", m_assetNameInJsonFile.c_str(), info->name.c_str() );
-        DerivedAssetType asset;
-        if ( !asset.Load( baseInfo ) )
+        auto info = std::make_shared<DerivedInfo>();
+        if ( parent )
+        {
+            *info = *std::static_pointer_cast<const DerivedInfo>( parent );
+        }
+        const std::string assetName = value["name"].GetString();
+        info->name = assetName;
+
+        if ( !ParseInternal( value, info ) )
+        {
+            return nullptr;
+        }
+        return info;
+    }
+
+    virtual std::string GetCacheName( ConstBaseInfoPtr baseInfo )
+    {
+        return GetCacheNameInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
+    }
+
+    virtual bool IsAssetOutOfDate( const std::string& assetName ) override
+    {
+        auto info = AssetDatabase::FindAssetInfo<DerivedInfo>( assetType, assetName );
+        if ( !info )
+        {
+            LOG_ERR( "Scene requires asset %s of type %s, but no valid entry found in the database.", assetName.c_str(), assetNameInJsonFile.c_str() );
+            g_converterStatus.error = true;
+            return false;
+        }
+
+        if ( g_converterConfigOptions.force ) return true;
+
+        time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, GetCacheName( info ) );
+        if ( cachedTimestamp == NO_TIMESTAMP ) return true;
+
+        return IsAssetOutOfDateInternal( info, cachedTimestamp );
+    }
+
+    virtual bool Convert( const std::string& assetName ) override
+    {
+        if ( !IsAssetOutOfDate( assetName ) )
+        {
+            return true;
+        }
+
+        auto info = AssetDatabase::FindAssetInfo<DerivedInfo>( assetType, assetName );
+        LOG( "Converting %s '%s'...", assetNameInJsonFile.c_str(), info->name.c_str() );
+        DerivedAsset asset;
+        if ( !asset.Load( info.get() ) )
         {
             return false;
         }
-        std::string fastfileName = GetFastFileName( info );
-        try
+
+        std::string cacheName = GetCacheName( info );
+        if ( !AssetCache::CacheAsset( assetType, cacheName, &asset ) )
         {
-            Serializer serializer;
-            if ( !serializer.OpenForWrite( fastfileName ) )
-            {
-                return false;
-            }
-            if ( !asset.FastfileSave( &serializer ) )
-            {
-                LOG_ERR( "Error while writing %s '%s' to fastfile", m_assetNameInJsonFile.c_str(), info->name.c_str() );
-                serializer.Close();
-                DeleteFile( fastfileName );
-                return false;
-            }
-            serializer.Close();
-        }
-        catch ( std::exception& e )
-        {
-            DeleteFile( fastfileName );
-            throw e;
+            LOG_ERR( "Failed to cache asset %s %s (%s)", assetNameInJsonFile.c_str(), assetName.c_str(), cacheName.c_str() );
+            return false;
         }
 
         return true;
     }
 
-    const std::string m_assetNameInJsonFile;
-    const AssetType m_assetType;
-    std::vector< BaseAssetCreateInfo* > m_parsedAssets;
-    std::vector< BaseAssetCreateInfo* > m_outOfDateAssets;
+protected:
+    virtual bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) = 0;
+    virtual std::string GetCacheNameInternal( ConstInfoPtr info ) = 0;
+    virtual bool IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) = 0;
 };
 
 } // namespace PG

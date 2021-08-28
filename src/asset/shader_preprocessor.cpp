@@ -153,7 +153,7 @@ public:
     std::vector< std::string >* includedFiles;
 };
 
-ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
+ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, bool savePreproc )
 {
     ShaderPreprocessOutput output;
     output.success = false;
@@ -191,7 +191,7 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo )
     output.success = true;
     output.outputShader = { result.cbegin(), result.cend() };
 
-    if ( createInfo.savePreproc )
+    if ( savePreproc )
     {
         output.outputShader = CleanUpPreproc( output.outputShader );
         size_t seed = 0;

@@ -311,14 +311,11 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     ShaderPreprocessOutput preproc;
     const std::string* preprocShaderText = nullptr;
 #if USING( COMPILING_CONVERTER )
-    if ( !createInfo->preprocOutput.empty() )
-    {
-        preprocShaderText = &createInfo->preprocOutput;
-    }
+    PG_ASSERT( false ); // todo: get cached preproc if available
 #endif // #if USING( COMPILING_CONVERTER )
     if ( !preprocShaderText )
     {
-        preproc = PreprocessShader( *createInfo );
+        preproc = PreprocessShader( *createInfo, true );
         if ( !preproc.success )
         {
             return false;

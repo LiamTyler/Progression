@@ -11,6 +11,7 @@
 #include "utils/serializer.hpp"
 #include "getopt/getopt.h"
 #include "converters/base_asset_converter.hpp"
+#include "converters/script_converter.hpp"
 #include "ecs/components/model_renderer.hpp"
 #include "asset_file_database.hpp"
 #include <algorithm>
@@ -172,21 +173,34 @@ int main( int argc, char** argv )
         "Shader",
     };
 
+    static std::vector< std::shared_ptr<BaseAssetConverter> > converters =
+    {
+        //std::make_shared<GfxImageConverter>(),
+        //std::make_shared<MaterialConverter>(),
+        //std::make_shared<ScriptConverter2>(),
+        //std::make_shared<ModelConverter>(),
+        //std::make_shared<ShaderConverter>(),
+    };
+
+    auto startTime = Time::GetTimePoint();
+    uint32_t convertErrors = 0;
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
         for ( const auto& asset : assetsUsed[assetTypeIdx] )
         {
-            LOG( "%s: %s", PG_ASSET_NAMES[assetTypeIdx], asset.c_str() );
+            LOG( "%s: %s", PG_ASSET_NAMES[assetTypeIdx], asset.c_str() );            
 
-            //auto createInfoPtr = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
-            //if ( !createInfoPtr )
-            //{
-            //    LOG_ERR( "Scene requires asset %s of type %s, but no valid entry found in the database.", assetName.c_str(), PG_ASSET_NAMES[assetTypeIdx] );
-            //    LOG_ERR( "Failed to convert scene %s", sceneFile.c_str() );
-            //    return 0;
-            //}
-
+            convertErrors += converters[assetTypeIdx]->Convert( asset );
         }
+    }
+    double duration = Time::GetDuration( startTime ) / 1000.0f;
+    if ( convertErrors )
+    {
+        LOG_ERR( "Convert FAILED with %u errors in %.2f seconds", convertErrors, duration );
+    }
+    else
+    {
+        LOG( "Convert SUCCEEDED in %.2f seconds", duration );
     }
     
 

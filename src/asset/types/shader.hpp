@@ -27,13 +27,6 @@ struct ShaderCreateInfo : public BaseAssetCreateInfo
     ShaderStage shaderStage = ShaderStage::NUM_SHADER_STAGES;
     std::vector< std::pair< std::string, std::string > > defines;
     bool generateDebugInfo = false;
-    bool savePreproc = false;
-
-    // The converter has to run the preprocessor to get the list of includes for dependency checks (if not skipping dependnecy checks with --force)
-    // Save the result so we don't have to run the preprocessor twice
-#if USING( COMPILING_CONVERTER )
-    std::string preprocOutput;
-#endif // #if USING( COMPILING_CONVERTER )
 };
 
 struct ShaderResourceLayout

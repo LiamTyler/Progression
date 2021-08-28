@@ -1,4 +1,6 @@
 #include "base_asset_converter.hpp"
+#include "asset_file_database.hpp"
+#include "asset_cache.hpp"
 
 namespace PG
 {
@@ -37,57 +39,12 @@ void FilenameSlashesToUnderscores( std::string& str )
     }
 }
 
-
-BaseAssetConverter::~BaseAssetConverter()
-{
-    for ( const auto& assetInfo : m_parsedAssets )
-    {
-        delete assetInfo;
-    }
-}
-
-
-int BaseAssetConverter::ConvertAll()
-{
-    if ( m_outOfDateAssets.size() == 0 )
-    {
-        return 0;
-    }
-
-    int couldNotConvert = 0;
-    for ( const auto& assetInfo : m_outOfDateAssets )
-    {
-        if ( !ConvertSingle( assetInfo ) )
-        {
-            ++couldNotConvert;
-        }
-    }
-
-    return couldNotConvert;
-}
-
-
-int BaseAssetConverter::CheckAllDependencies()
-{
-    int outOfDate = 0;
-    for ( const auto& assetInfo : m_parsedAssets )
-    {
-        if ( IsAssetOutOfDate( assetInfo ) )
-        {
-            m_outOfDateAssets.push_back( assetInfo );
-            ++outOfDate;
-        }
-    }
-
-    return outOfDate;
-}
-
-
+/*
 bool BaseAssetConverter::BuildFastFile( Serializer* serializer ) const
 {
     for ( size_t i = 0; i < m_parsedAssets.size(); ++i )
     {
-        std::string ffiName = GetFastFileName( m_parsedAssets[i] );
+        std::string ffiName = GetCacheName( m_parsedAssets[i] );
         MemoryMapped inFile;
         if ( !inFile.open( ffiName ) )
         {
@@ -99,8 +56,8 @@ bool BaseAssetConverter::BuildFastFile( Serializer* serializer ) const
         serializer->Write( inFile.getData(), inFile.size() );
         inFile.close();
     }
-
     return true;
 }
+*/
 
 } // namespace PG

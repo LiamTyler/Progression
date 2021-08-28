@@ -1,20 +1,20 @@
 #pragma once
 
 #include "base_asset_converter.hpp"
+#include "asset/types/model.hpp"
 
 namespace PG
 {
 
-class ModelConverter : public BaseAssetConverter
+class ModelConverter : public BaseAssetConverterTemplate<Model, ModelCreateInfo>
 {
 public:
-    ModelConverter() : BaseAssetConverter( "Model", ASSET_TYPE_MODEL ) {}
-    std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) override;
+    ModelConverter() : BaseAssetConverterTemplate( "Model", ASSET_TYPE_MODEL ) {}
 
 protected:
-    std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const override;
-    bool IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo ) override;
-    bool ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const override;
+    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    std::string GetCacheNameInternal( ConstInfoPtr info ) override;
+    bool IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) override;
 };
 
 } // namespace PG

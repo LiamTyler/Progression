@@ -19,7 +19,8 @@ inline void HashCombine( std::size_t& seed, const char* str )
 }
 
 
-inline size_t Hash( const std::string& str )
+template <class T>
+inline size_t Hash( const T& x )
 {
-    return std::hash< std::string >{}( str );
+    return std::hash<T>{}( x );
 }

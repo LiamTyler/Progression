@@ -1,20 +1,20 @@
 #pragma once
 
 #include "base_asset_converter.hpp"
+#include "asset/types/gfx_image.hpp"
 
 namespace PG
 {
 
-class GfxImageConverter : public BaseAssetConverter
+class GfxImageConverter : public BaseAssetConverterTemplate<GfxImage, GfxImageCreateInfo>
 {
 public:
-    GfxImageConverter() : BaseAssetConverter( "Image", ASSET_TYPE_GFX_IMAGE ) {}
-    std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent ) override;
+    GfxImageConverter() : BaseAssetConverterTemplate( "Image", ASSET_TYPE_GFX_IMAGE ) {}
 
 protected:
-    std::string GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const override;
-    bool IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo ) override;
-    bool ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const override;
+    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    std::string GetCacheNameInternal( ConstInfoPtr info ) override;
+    bool IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) override;
 };
 
 } // namespace PG

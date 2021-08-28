@@ -1,6 +1,5 @@
 #include "shader_converter.hpp"
 #include "asset/shader_preprocessor.hpp"
-#include "asset/types/shader.hpp"
 
 namespace PG
 {
@@ -15,10 +14,9 @@ static std::unordered_map< std::string, ShaderStage > shaderStageMap =
     { "compute",                 ShaderStage::COMPUTE },
 };
 
-
-std::shared_ptr<BaseAssetCreateInfo> ShaderConverter::Parse( const rapidjson::Value& value, std::shared_ptr<const BaseAssetCreateInfo> parent )
+bool ShaderConverter::ParseInternal( const rapidjson::Value& value, InfoPtr info )
 {
-    static JSONFunctionMapper< ShaderCreateInfo& > mapping(
+    static JSONFunctionMapper<ShaderCreateInfo&> mapping(
     {
         { "name",        []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.name     = v.GetString(); } },
         { "filename",    []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.filename = PG_ASSET_DIR "shaders/" + std::string( v.GetString() ); } },
@@ -38,73 +36,43 @@ std::shared_ptr<BaseAssetCreateInfo> ShaderConverter::Parse( const rapidjson::Va
             }
         },
     });
-
-    auto info = std::make_shared<ShaderCreateInfo>();
-    if ( parent )
-    {
-        *info = *std::static_pointer_cast<const ShaderCreateInfo>( parent );
-    }
     mapping.ForEachMember( value, *info );
 
     if ( info->shaderStage == ShaderStage::NUM_SHADER_STAGES ) PARSE_ERROR( "Shader '%s' must have a valid ShaderStage!", info->name.c_str() );
-
-    return info;
+    return true;
 }
 
 
-std::string ShaderConverter::GetFastFileName( const BaseAssetCreateInfo* baseInfo ) const
+
+std::string ShaderConverter::GetCacheNameInternal( ConstInfoPtr info )
 {
-    const ShaderCreateInfo* info = (const ShaderCreateInfo*)baseInfo;
-    std::string baseName = info->name;
-    baseName += "_" + GetRelativeFilename( info->filename );
-    baseName += "_v" + std::to_string( PG_SHADER_VERSION );
+    std::string cacheName = info->name;
+    cacheName += "_" + GetRelativeFilename( info->filename );
     if ( info->generateDebugInfo )
     {
-        baseName += "_d";
+        cacheName += "_d";
     }
-
-    std::string fullName = PG_ASSET_DIR "cache/shaders/" + baseName + ".ffi";
-    return fullName;
+    return cacheName;
 }
 
 
-bool ShaderConverter::IsAssetOutOfDate( const BaseAssetCreateInfo* baseInfo )
+bool ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
 {
-    if ( g_converterConfigOptions.force )
-    {
-        return true;
-    }
-
-    std::string ffName = GetFastFileName( baseInfo );
-
-    // remove const qualifier so we can set savePreproc and return it later, to avoid making copy instead
-    ShaderCreateInfo* info = (ShaderCreateInfo*)baseInfo;
-    bool savePreproc = info->savePreproc;
-    info->savePreproc = false;
-    ShaderPreprocessOutput preproc = PreprocessShader( *info );
-    info->savePreproc = savePreproc;
+    ShaderPreprocessOutput preproc = PreprocessShader( *info, false );
     if ( !preproc.success )
     {
         LOG_ERR( "Preprocessing shader asset '%s' for the included files failed", info->name.c_str() );
-        g_converterStatus.checkDependencyErrors += 1;
-        return false;
+        g_converterStatus.error = true;
+        return true;
     }
-    info->preprocOutput = std::move( preproc.outputShader );
+    // std::move( preproc.outputShader ); todo: cache shader preproc for compiling later
 
-    AddFastfileDependency( ffName );
     for ( const auto& file : preproc.includedFiles )
     {
         AddFastfileDependency( file );
     }
 
-    return IsFileOutOfDate( ffName, info->filename ) || IsFileOutOfDate( ffName, preproc.includedFiles );
+    return IsFileOutOfDate( cacheTimestamp, info->filename ) || IsFileOutOfDate( cacheTimestamp, preproc.includedFiles );
 }
-
-
-bool ShaderConverter::ConvertSingle( const BaseAssetCreateInfo* baseInfo ) const
-{
-    return ConvertSingleInternal< Shader, ShaderCreateInfo >( baseInfo );
-}
-
 
 } // namespace PG

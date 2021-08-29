@@ -1,0 +1,3 @@
+[
+    { "Script": { "name": "cameraController", "filename": "scripts/cameraController.lua" } }
+]

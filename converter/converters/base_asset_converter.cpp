@@ -6,9 +6,7 @@ namespace PG
 {
 
 ConverterConfigOptions g_converterConfigOptions;
-ConverterStatus g_converterStatus;
 static time_t s_latestAssetTimestamp;
-
 
 void AddFastfileDependency( const std::string& file )
 {
@@ -25,18 +23,6 @@ void ClearAllFastfileDependencies()
 time_t GetLatestFastfileDependency()
 {
     return s_latestAssetTimestamp;
-}
-
-
-void FilenameSlashesToUnderscores( std::string& str )
-{
-    for ( char& c : str )
-    {
-        if ( c == '/' || c == '\\' )
-        {
-            c = '_';
-        }
-    }
 }
 
 /*

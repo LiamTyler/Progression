@@ -40,10 +40,10 @@ std::string MaterialConverter::GetCacheNameInternal( ConstInfoPtr info )
 }
 
 
-bool MaterialConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
+ConvertDate MaterialConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
 {
     // if cache name is found at all, it should be up to date
-    return false;
+    return ConvertDate::UP_TO_DATE;
 }
 
 } // namespace PG

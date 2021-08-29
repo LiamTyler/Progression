@@ -35,8 +35,6 @@ set(
     ${PROGRESSION_DIR}/src/core/frustum.hpp
 	${PROGRESSION_DIR}/src/core/image_calculate_size.cpp
     ${PROGRESSION_DIR}/src/core/image_calculate_size.hpp
-    #${PROGRESSION_DIR}/src/core/input.cpp
-    #${PROGRESSION_DIR}/src/core/input.hpp
     ${PROGRESSION_DIR}/src/core/input_types.hpp
     ${PROGRESSION_DIR}/src/core/lights.hpp
     ${PROGRESSION_DIR}/src/core/lua.cpp
@@ -50,8 +48,6 @@ set(
     ${PROGRESSION_DIR}/src/core/time.hpp
     ${PROGRESSION_DIR}/src/core/scene.cpp
     ${PROGRESSION_DIR}/src/core/scene.hpp
-    #${PROGRESSION_DIR}/src/core/window.cpp
-    #${PROGRESSION_DIR}/src/core/window.hpp
     
     ${PROGRESSION_DIR}/src/ecs/component_factory.cpp
     ${PROGRESSION_DIR}/src/ecs/component_factory.hpp
@@ -93,6 +89,8 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/asset_cache.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/asset_file_database.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/asset_file_database.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter_main.cpp
 )
 

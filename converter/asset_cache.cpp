@@ -32,14 +32,14 @@ void Init()
 
 time_t GetAssetTimestamp( AssetType assetType, const std::string& assetCacheName )
 {
-    std::string path = PG_ASSET_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
+    std::string path = ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
     return GetFileTimestamp( path );
 }
 
 
 bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAsset* asset )
 {
-    std::string path = PG_ASSET_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
+    std::string path = ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
 
     try
     {

@@ -36,7 +36,4 @@ struct Material : public BaseAsset
     GfxImage* roughnessMap = nullptr;
 };
 
-
-bool Fastfile_Material_Save( const MaterialCreateInfo * const matCreateInfo, Serializer* serializer );
-
 } // namespace PG

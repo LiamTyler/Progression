@@ -21,16 +21,16 @@ std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::NUM_ASSE
 
 void Init()
 {
-    GetAssetTypeID< GfxImage >::ID();        // AssetType::ASSET_TYPE_GFX_IMAGE
-    GetAssetTypeID< Material >::ID();        // AssetType::ASSET_TYPE_MATERIAL
-    GetAssetTypeID< Script >::ID();          // AssetType::ASSET_TYPE_SCRIPT
-    GetAssetTypeID< Model >::ID();           // AssetType::ASSET_TYPE_MODEL
-    GetAssetTypeID< Shader >::ID();          // AssetType::ASSET_TYPE_SHADER
-    PG_ASSERT( GetAssetTypeID< GfxImage >::ID()       == 0, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Material >::ID()       == 1, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Script >::ID()         == 2, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Model >::ID()          == 3, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID< Shader >::ID()         == 4, "This needs to line up with AssetType ordering" );
+    GetAssetTypeID<GfxImage>::ID(); // AssetType::ASSET_TYPE_GFX_IMAGE
+    GetAssetTypeID<Material>::ID(); // AssetType::ASSET_TYPE_MATERIAL
+    GetAssetTypeID<Script>::ID();   // AssetType::ASSET_TYPE_SCRIPT
+    GetAssetTypeID<Model>::ID();    // AssetType::ASSET_TYPE_MODEL
+    GetAssetTypeID<Shader>::ID();   // AssetType::ASSET_TYPE_SHADER
+    PG_ASSERT( GetAssetTypeID<GfxImage>::ID() == 0, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Material>::ID() == 1, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Script>::ID()   == 2, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Model>::ID()    == 3, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Shader>::ID()   == 4, "This needs to line up with AssetType ordering" );
     static_assert( NUM_ASSET_TYPES == 5, "Dont forget to add GetAssetTypeID for new assets" );
 }
 

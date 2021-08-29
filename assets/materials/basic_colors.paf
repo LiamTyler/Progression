@@ -1,10 +1,10 @@
 [
-    { "name": "red", "albedo": [ 1, 0, 0 ] },
-    { "name": "green", "albedo": [ 0, 1, 0 ] },
-    { "name": "blue", "albedo": [ 0, 0, 1 ] },
-    { "name": "white", "albedo": [ 1, 1, 1 ] },
-    { "name": "black", "albedo": [ 0, 0, 0 ] },
-    { "name": "yellow", "albedo": [ 1, 1, 0 ] },
-    { "name": "magenta", "albedo": [ 1, 0, 1 ] },
-    { "name": "cyan", "albedo": [ 0, 1, 1 ] }
+    { "Material": { "name": "red", "albedo": [ 1, 0, 0 ] } },
+    { "Material": { "name": "green", "albedo": [ 0, 1, 0 ] } },
+    { "Material": { "name": "blue", "albedo": [ 0, 0, 1 ] } },
+    { "Material": { "name": "white", "albedo": [ 1, 1, 1 ] } },
+    { "Material": { "name": "black", "albedo": [ 0, 0, 0 ] } },
+    { "Material": { "name": "yellow", "albedo": [ 1, 1, 0 ] } },
+    { "Material": { "name": "magenta", "albedo": [ 1, 0, 1 ] } },
+    { "Material": { "name": "cyan", "albedo":  [ 0, 1, 1 ] } }
 ]

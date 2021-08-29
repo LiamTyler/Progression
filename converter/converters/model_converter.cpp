@@ -22,10 +22,10 @@ std::string ModelConverter::GetCacheNameInternal( ConstInfoPtr info )
 }
 
 
-bool ModelConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
+ConvertDate ModelConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
 {
     AddFastfileDependency( info->filename );
-    return IsFileOutOfDate( cacheTimestamp, info->filename );
+    return IsFileOutOfDate( cacheTimestamp, info->filename ) ? ConvertDate::OUT_OF_DATE : ConvertDate::UP_TO_DATE;
 }
 
 } // namespace PG

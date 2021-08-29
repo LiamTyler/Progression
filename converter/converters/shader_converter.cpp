@@ -56,14 +56,13 @@ std::string ShaderConverter::GetCacheNameInternal( ConstInfoPtr info )
 }
 
 
-bool ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
+ConvertDate ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
 {
     ShaderPreprocessOutput preproc = PreprocessShader( *info, false );
     if ( !preproc.success )
     {
         LOG_ERR( "Preprocessing shader asset '%s' for the included files failed", info->name.c_str() );
-        g_converterStatus.error = true;
-        return true;
+        return ConvertDate::ERROR;
     }
     // std::move( preproc.outputShader ); todo: cache shader preproc for compiling later
 
@@ -72,7 +71,8 @@ bool ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheT
         AddFastfileDependency( file );
     }
 
-    return IsFileOutOfDate( cacheTimestamp, info->filename ) || IsFileOutOfDate( cacheTimestamp, preproc.includedFiles );
+    bool outOfDate = IsFileOutOfDate( cacheTimestamp, info->filename ) || IsFileOutOfDate( cacheTimestamp, preproc.includedFiles );
+    return outOfDate ? ConvertDate::OUT_OF_DATE : ConvertDate::UP_TO_DATE;
 }
 
 } // namespace PG

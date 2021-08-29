@@ -1,10 +1,5 @@
 #include "asset_file_database.hpp"
-#include "converters/base_asset_converter.hpp"
-#include "converters/gfx_image_converter.hpp"
-#include "converters/material_converter.hpp"
-#include "converters/model_converter.hpp"
-#include "converters/script_converter.hpp"
-#include "converters/shader_converter.hpp"
+#include "converters.hpp"
 #include "core/platform_defines.hpp"
 #include "core/time.hpp"
 #include "utils/filesystem.hpp"
@@ -20,29 +15,20 @@ static std::unordered_map< std::string, std::shared_ptr<BaseAssetCreateInfo> > s
 
 static bool ParseAssetFile( const std::string& filename )
 {
-    static std::vector< std::shared_ptr<BaseAssetConverter> > converters =
-    {
-        std::make_shared<GfxImageConverter>(),
-        std::make_shared<MaterialConverter>(),
-        std::make_shared<ScriptConverter>(),
-        std::make_shared<ModelConverter>(),
-        std::make_shared<ShaderConverter>(),
-    };
-
     namespace json = rapidjson;
     json::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
-        LOG_ERR( "Skipping asset file %s", filename.c_str() );
+        LOG_WARN( "Skipping asset file %s", filename.c_str() );
         return false;
     }
     for ( json::Value::ConstValueIterator assetIter = document.Begin(); assetIter != document.End(); ++assetIter )
     {
         std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
         const json::Value& value = assetIter->MemberBegin()->value;
-        for ( int typeIndex = 0; typeIndex < converters.size(); ++typeIndex )
+        for ( int typeIndex = 0; typeIndex < NUM_ASSET_TYPES; ++typeIndex )
         {
-            if ( assetTypeStr == converters[typeIndex]->assetNameInJsonFile )
+            if ( assetTypeStr == g_converters[typeIndex]->assetNameInJsonFile )
             {
                 const std::string assetName = value["name"].GetString();
                 if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )
@@ -64,7 +50,7 @@ static bool ParseAssetFile( const std::string& filename )
                             parent = it->second;
                         }
                     }
-                    auto createInfo = converters[typeIndex]->Parse( value, parent );
+                    auto createInfo = g_converters[typeIndex]->Parse( value, parent );
                     if ( createInfo )
                     {
                         createInfo->name = assetName;

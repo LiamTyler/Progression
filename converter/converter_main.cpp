@@ -1,19 +1,17 @@
 #include "asset/asset_versions.hpp"
 #include "asset/asset_manager.hpp"
+#include "asset_file_database.hpp"
+#include "converters.hpp"
 #include "core/assert.hpp"
 #include "core/scene.hpp"
 #include "core/time.hpp"
+#include "getopt/getopt.h"
 #include "utils/cpu_profile.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/file_dependency.hpp"
 #include "utils/logger.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/serializer.hpp"
-#include "getopt/getopt.h"
-#include "converters/base_asset_converter.hpp"
-#include "converters/script_converter.hpp"
-#include "ecs/components/model_renderer.hpp"
-#include "asset_file_database.hpp"
 #include <algorithm>
 #include <unordered_set>
 
@@ -75,16 +73,6 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
 }
 
 
-bool ConvertAssets( const std::string& sceneFile )
-{
-    ClearAllFastfileDependencies();
-    g_converterStatus       = {};
-    auto convertAssetsStartTime = Time::GetTimePoint();
-
-    return true;
-}
-
-
 void FindAssetsUsedInScene( const std::string& sceneFile, std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
 {
     Scene* scene = Scene::Load( sceneFile );
@@ -114,16 +102,12 @@ void FindAssetsUsedInScene( const std::string& sceneFile, std::unordered_set<std
                 continue;
             }
 
-            std::string line, matName, tmp;
-            std::getline( in, line );
-            std::stringstream ss( line );
+            std::string matName, tmp;
             int numMaterials;
-            ss >> tmp >> numMaterials;
+            in >> tmp >> numMaterials;
             for ( int i = 0; i < numMaterials; ++i )
             {
-                std::getline( in, line );
-                ss = std::stringstream( line );
-                ss >> tmp >> matName;
+                in >> tmp >> matName;
                 assetsUsed[ASSET_TYPE_MATERIAL].insert( matName );
             }
         }
@@ -152,48 +136,39 @@ int main( int argc, char** argv )
 {
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
-    AssetManager::Init();
 
+    auto initStartTime = Time::GetTimePoint();
     g_converterConfigOptions = {};
-    
     std::string sceneFile;
-    if ( !ParseCommandLineArgs( argc, argv, sceneFile ) ) return 0;
-
+    if ( !ParseCommandLineArgs( argc, argv, sceneFile ) )
+    {
+        return 0;
+    }
+    AssetManager::Init();
+    InitConverters();
     AssetDatabase::Init();
+    LOG( "Converter initialized in %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
 
+    auto enumerateStartTime = Time::GetTimePoint();
     std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
     FindAssetsUsedInScene( sceneFile, assetsUsed );
-    
-    const char* PG_ASSET_NAMES[] =
-    {
-        "Image",
-        "Material",
-        "Script",
-        "Model",
-        "Shader",
-    };
+    LOG( "Scene assets enumerated in %.2f seconds", Time::GetDuration( enumerateStartTime ) / 1000.0f );
 
-    static std::vector< std::shared_ptr<BaseAssetConverter> > converters =
-    {
-        //std::make_shared<GfxImageConverter>(),
-        //std::make_shared<MaterialConverter>(),
-        //std::make_shared<ScriptConverter2>(),
-        //std::make_shared<ModelConverter>(),
-        //std::make_shared<ShaderConverter>(),
-    };
-
-    auto startTime = Time::GetTimePoint();
+    auto convertStartTime = Time::GetTimePoint();
+    ClearAllFastfileDependencies();
     uint32_t convertErrors = 0;
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
         for ( const auto& asset : assetsUsed[assetTypeIdx] )
         {
-            LOG( "%s: %s", PG_ASSET_NAMES[assetTypeIdx], asset.c_str() );            
-
-            convertErrors += converters[assetTypeIdx]->Convert( asset );
+            if ( !g_converters[assetTypeIdx]->Convert( asset ) )
+            {
+                convertErrors += 1;
+            }
         }
     }
-    double duration = Time::GetDuration( startTime ) / 1000.0f;
+
+    double duration = Time::GetDuration( convertStartTime ) / 1000.0f;
     if ( convertErrors )
     {
         LOG_ERR( "Convert FAILED with %u errors in %.2f seconds", convertErrors, duration );
@@ -203,7 +178,7 @@ int main( int argc, char** argv )
         LOG( "Convert SUCCEEDED in %.2f seconds", duration );
     }
     
-
+    ShutdownConverters();
     Logger_Shutdown();
     return 0;
 }

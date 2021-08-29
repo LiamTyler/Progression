@@ -36,14 +36,14 @@ struct Model : public BaseAsset
     void FreeCPU();
     void FreeGPU();
 
-    std::vector< glm::vec3 > vertexPositions;
-    std::vector< glm::vec3 > vertexNormals;
-    std::vector< glm::vec2 > vertexTexCoords;
-    std::vector< glm::vec3 > vertexTangents;
-    std::vector< uint32_t > indices;
+    std::vector<glm::vec3> positions;
+    std::vector<glm::vec3> normals;
+    std::vector<glm::vec2> texCoords;
+    std::vector<glm::vec3> tangents;
+    std::vector<uint32_t> indices;
 
-    std::vector< Mesh > meshes;
-    std::vector< Material* > originalMaterials;
+    std::vector<Mesh> meshes;
+    std::vector<Material*> originalMaterials;
 
     Gfx::Buffer vertexBuffer;
     Gfx::Buffer indexBuffer;

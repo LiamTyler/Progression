@@ -85,23 +85,10 @@ bool LoadFastFile( const std::string& fname )
         switch ( assetType )
         {
             LOAD_FF_CASE( ASSET_TYPE_GFX_IMAGE, GfxImage, "GfxImage" );
+            LOAD_FF_CASE( ASSET_TYPE_MATERIAL, Material, "Material" );
             LOAD_FF_CASE( ASSET_TYPE_SCRIPT, Script, "Script" );
             LOAD_FF_CASE( ASSET_TYPE_MODEL, Model, "Model" );
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader, "Shader" );
-            case ASSET_TYPE_MATERIAL:
-            {
-                // ASSET_TYPE_MATERIAL in a fastfile actually implies all materials from a pgMat file, which is 1+ materials
-                uint16_t numMaterials;
-                serializer.Read( numMaterials );
-                for ( uint16_t mat = 0; mat < numMaterials; ++mat )
-                {
-                    if ( !LoadAssetFromFastFile< Material >( &serializer, assetType, "Material" ) )
-                    {
-                        return false;
-                    }
-                }
-                break;
-            }
         default:
             LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
             return false;

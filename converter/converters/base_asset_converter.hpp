@@ -33,6 +33,7 @@ extern ConverterConfigOptions g_converterConfigOptions;
 // IsAssetOutOfDate will take care of all the individual input files for each asset, but
 // AddFastfileDependency needs to be called on each converted .ffi file
 void AddFastfileDependency( const std::string& file );
+void AddFastfileDependency( time_t timestamp );
 void ClearAllFastfileDependencies();
 time_t GetLatestFastfileDependency();
 void FilenameSlashesToUnderscores( std::string& str );
@@ -101,6 +102,7 @@ public:
         if ( g_converterConfigOptions.force ) return ConvertDate::OUT_OF_DATE;
 
         time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, GetCacheName( info ) );
+        AddFastfileDependency( cachedTimestamp );
         if ( cachedTimestamp == NO_TIMESTAMP ) return ConvertDate::OUT_OF_DATE;
 
         return IsAssetOutOfDateInternal( info, cachedTimestamp );
@@ -111,7 +113,7 @@ public:
         ConvertDate status = IsAssetOutOfDate( assetName );
         if ( status == ConvertDate::UP_TO_DATE )
         {
-            LOG( "Asset %s is up to date", assetName.c_str() );
+            //LOG( "Asset %s is up to date", assetName.c_str() );
             return true;
         }
         else if ( status == ConvertDate::ERROR ) return false;

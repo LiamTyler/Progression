@@ -4,7 +4,7 @@
 #include "utils/file_dependency.hpp"
 #include "utils/serializer.hpp"
 
-#define ROOT_DIR PG_ASSET_DIR "cache/"
+#define ROOT_DIR std::string( PG_ASSET_DIR "cache/" )
 
 std::string assetCacheFolders[NUM_ASSET_TYPES] =
 {
@@ -14,6 +14,11 @@ std::string assetCacheFolders[NUM_ASSET_TYPES] =
     "models/",    // ASSET_TYPE_MODEL
     "shaders/",   // ASSET_TYPE_SHADER
 };
+
+static std::string GetCachedPath( AssetType assetType, const std::string& assetCacheName )
+{
+    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
+}
 
 namespace PG::AssetCache
 {
@@ -25,22 +30,20 @@ void Init()
     {
         CreateDirectory( ROOT_DIR + assetCacheFolders[i] );
     }
-    CreateDirectory( ROOT_DIR "fastfiles/" );
-    CreateDirectory( ROOT_DIR "shader_preproc/" );
+    CreateDirectory( ROOT_DIR + "fastfiles/" );
+    CreateDirectory( ROOT_DIR + "shader_preproc/" );
 }
 
 
 time_t GetAssetTimestamp( AssetType assetType, const std::string& assetCacheName )
 {
-    std::string path = ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
-    return GetFileTimestamp( path );
+    return GetFileTimestamp( GetCachedPath( assetType, assetCacheName ) );
 }
 
 
 bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAsset* asset )
 {
-    std::string path = ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
-
+    std::string path = GetCachedPath( assetType, assetCacheName );
     try
     {
         Serializer serializer;
@@ -63,6 +66,22 @@ bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAss
     }
 
     return true;
+}
+
+
+std::unique_ptr<char[]> GetCachedAssetRaw( AssetType assetType, const std::string& assetCacheName, size_t& numBytes )
+{
+    numBytes = 0;
+    std::string path = GetCachedPath( assetType, assetCacheName );
+    Serializer in;
+    if ( !in.OpenForRead( path ) )
+    {
+        return false;
+    }
+    numBytes = in.BytesLeft();
+    std::unique_ptr<char[]> ret( new char[numBytes] );
+    in.Read( ret.get(), numBytes );
+    return ret;
 }
 
 } // namespace PG::AssetCache

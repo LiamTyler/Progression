@@ -132,36 +132,16 @@ void FindAssetsUsedInScene( const std::string& sceneFile, std::unordered_set<std
 }
 
 
-int main( int argc, char** argv )
+bool ConvertAssets( const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
 {
-    Logger_Init();
-    Logger_AddLogLocation( "stdout", stdout );
-
-    auto initStartTime = Time::GetTimePoint();
-    g_converterConfigOptions = {};
-    std::string sceneFile;
-    if ( !ParseCommandLineArgs( argc, argv, sceneFile ) )
-    {
-        return 0;
-    }
-    AssetManager::Init();
-    InitConverters();
-    AssetDatabase::Init();
-    LOG( "Converter initialized in %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
-
-    auto enumerateStartTime = Time::GetTimePoint();
-    std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
-    FindAssetsUsedInScene( sceneFile, assetsUsed );
-    LOG( "Scene assets enumerated in %.2f seconds", Time::GetDuration( enumerateStartTime ) / 1000.0f );
-
     auto convertStartTime = Time::GetTimePoint();
     ClearAllFastfileDependencies();
     uint32_t convertErrors = 0;
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
-        for ( const auto& asset : assetsUsed[assetTypeIdx] )
+        for ( const auto& assetName : assetsUsed[assetTypeIdx] )
         {
-            if ( !g_converters[assetTypeIdx]->Convert( asset ) )
+            if ( !g_converters[assetTypeIdx]->Convert( assetName ) )
             {
                 convertErrors += 1;
             }
@@ -176,6 +156,83 @@ int main( int argc, char** argv )
     else
     {
         LOG( "Convert SUCCEEDED in %.2f seconds", duration );
+    }
+
+    return convertErrors == 0;
+}
+
+
+bool OutputFastfile( const std::string& sceneFile, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
+{
+    std::string fastfileName = GetFilenameStem( sceneFile ) + ".ff";
+    std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
+    time_t ffTimestamp = GetFileTimestamp( fastfilePath );
+    if ( ffTimestamp == NO_TIMESTAMP || ffTimestamp < GetLatestFastfileDependency() )
+    {
+        LOG( "Fastfile %s is out of date. Rebuilding...", fastfileName.c_str() );
+        auto startTime = Time::GetTimePoint();
+        Serializer ff;
+        if ( !ff.OpenForWrite( fastfilePath ) )
+        {
+            LOG_ERR( "Could not open fastfile for writing" );
+            return false;
+        }
+
+        for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
+        {
+            for ( const auto& assetName : assetsUsed[assetTypeIdx] )
+            {
+                auto baseInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
+                const std::string cacheName = g_converters[assetTypeIdx]->GetCacheName( baseInfo );
+                size_t numBytes;
+                auto assetRawBytes = AssetCache::GetCachedAssetRaw( (AssetType)assetTypeIdx, cacheName, numBytes );
+                if ( !assetRawBytes )
+                {
+                    ff.Close();
+                    DeleteFile( fastfilePath );
+                    LOG_ERR( "Could not get cached asset %s", cacheName.c_str() );
+                    return false;
+                }
+                ff.Write( assetRawBytes.get(), numBytes );
+            }
+        }
+        ff.Close();
+        LOG( "Built fastfile in %.2f seconds", Time::GetDuration( startTime ) / 1000.0f );
+    }
+    else
+    {
+        LOG( "Fastfile %s is up to date already!", fastfileName.c_str() );
+    }
+    return false;
+}
+
+
+int main( int argc, char** argv )
+{
+    Logger_Init();
+    Logger_AddLogLocation( "stdout", stdout );
+
+    auto initStartTime = Time::GetTimePoint();
+    g_converterConfigOptions = {};
+    std::string sceneFile;
+    if ( !ParseCommandLineArgs( argc, argv, sceneFile ) )
+    {
+        return 0;
+    }
+    AssetManager::Init();
+    AssetCache::Init();
+    InitConverters();
+    AssetDatabase::Init();
+    LOG( "Converter initialized in %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
+
+    auto enumerateStartTime = Time::GetTimePoint();
+    std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
+    FindAssetsUsedInScene( sceneFile, assetsUsed );
+    LOG( "Scene assets enumerated in %.2f seconds", Time::GetDuration( enumerateStartTime ) / 1000.0f );
+
+    if ( ConvertAssets( assetsUsed ) )
+    {
+        OutputFastfile( sceneFile, assetsUsed );
     }
     
     ShutdownConverters();

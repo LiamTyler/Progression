@@ -311,7 +311,8 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     ShaderPreprocessOutput preproc;
     const std::string* preprocShaderText = nullptr;
 #if USING( COMPILING_CONVERTER )
-    PG_ASSERT( false ); // todo: get cached preproc if available
+    extern const std::string* GetShaderPreproc( const std::string& shaderName );
+    preprocShaderText = GetShaderPreproc( name );
 #endif // #if USING( COMPILING_CONVERTER )
     if ( !preprocShaderText )
     {
@@ -341,6 +342,8 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     memcpy( &resourceLayout, &reflectData.layout, sizeof( ShaderResourceLayout ) );
 
 #if USING( COMPILING_CONVERTER )
+    extern void ReleaseShaderPreproc( const std::string& shaderName );
+    ReleaseShaderPreproc( name );
     savedSpirv = std::move( spirv );
 #else // #if USING( COMPILING_CONVERTER )
     handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );

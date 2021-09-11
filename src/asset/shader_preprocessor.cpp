@@ -159,7 +159,7 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     output.success = false;
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;
-    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_0 );
+    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2 );
     options.SetSourceLanguage( shaderc_source_language_glsl );
     auto includer = std::make_unique< ShaderIncluder >( &output.includedFiles );
     options.SetIncluder( std::move( includer ) );

@@ -1,6 +1,24 @@
 #include "shader_converter.hpp"
 #include "asset/shader_preprocessor.hpp"
 
+static std::unordered_map<std::string, std::string> s_cachedShaderPreproc;
+
+const std::string* GetShaderPreproc( const std::string& shaderName )
+{
+    auto it = s_cachedShaderPreproc.find( shaderName );
+    if ( it == s_cachedShaderPreproc.end() )
+    {
+        return nullptr;
+    }
+    return &it->second;
+}
+
+
+void ReleaseShaderPreproc( const std::string& shaderName )
+{
+    s_cachedShaderPreproc.erase( shaderName );
+}
+
 namespace PG
 {
 
@@ -43,7 +61,6 @@ bool ShaderConverter::ParseInternal( const rapidjson::Value& value, InfoPtr info
 }
 
 
-
 std::string ShaderConverter::GetCacheNameInternal( ConstInfoPtr info )
 {
     std::string cacheName = info->name;
@@ -64,7 +81,6 @@ ConvertDate ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t
         LOG_ERR( "Preprocessing shader asset '%s' for the included files failed", info->name.c_str() );
         return ConvertDate::ERROR;
     }
-    // std::move( preproc.outputShader ); todo: cache shader preproc for compiling later
 
     for ( const auto& file : preproc.includedFiles )
     {
@@ -72,7 +88,13 @@ ConvertDate ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t
     }
 
     bool outOfDate = IsFileOutOfDate( cacheTimestamp, info->filename ) || IsFileOutOfDate( cacheTimestamp, preproc.includedFiles );
-    return outOfDate ? ConvertDate::OUT_OF_DATE : ConvertDate::UP_TO_DATE;
+    if ( outOfDate )
+    {
+        s_cachedShaderPreproc[info->name] = std::move( preproc.outputShader );
+        return ConvertDate::OUT_OF_DATE;
+    }
+
+    return ConvertDate::UP_TO_DATE;
 }
 
 } // namespace PG

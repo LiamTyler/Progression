@@ -58,9 +58,24 @@ bool GfxImageConverter::ParseInternal( const rapidjson::Value& value, InfoPtr in
     #define ABS_PATH( v ) PG_ASSET_DIR + std::string( v.GetString() )
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType = ImageInputType::REGULAR_2D; s.filename = ABS_PATH( v ); } },
-        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType = ImageInputType::FLATTENED_CUBEMAP; s.filename = ABS_PATH( v ); } },
-        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.inputType = ImageInputType::EQUIRECTANGULAR; s.filename = ABS_PATH( v ); } },
+        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s )
+            {
+                s.inputType = ImageInputType::REGULAR_2D;
+                s.filename = ABS_PATH( v );
+            }
+        },
+        { "flattenedCubemapFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s )
+            {
+                s.inputType = ImageInputType::FLATTENED_CUBEMAP;
+                s.filename = ABS_PATH( v );
+            }
+        },
+        { "equirectangularFilename",  []( const rapidjson::Value& v, GfxImageCreateInfo& s )
+            {
+                s.inputType = ImageInputType::EQUIRECTANGULAR;
+                s.filename = ABS_PATH( v );
+            }
+        },
         { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = ABS_PATH( v ); } },
         { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = ABS_PATH( v ); } },
         { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = ABS_PATH( v ); } },
@@ -111,7 +126,10 @@ bool GfxImageConverter::ParseInternal( const rapidjson::Value& value, InfoPtr in
     mapping.ForEachMember( value, *info );
 
     if ( info->semantic == GfxImageSemantic::NUM_IMAGE_SEMANTICS ) PARSE_ERROR( "Must specify a valid image semantic for image '%s'", info->name.c_str() );
-    if ( info->imageType == Gfx::ImageType::NUM_IMAGE_TYPES ) PARSE_ERROR( "Must specify a valid imageType for image '%s'", info->name.c_str() );
+    if ( info->semantic == GfxImageSemantic::ENVIRONMENT_MAP )
+    {
+        info->imageType = Gfx::ImageType::TYPE_CUBEMAP;
+    }
 
     int numFaces = 0;
     for ( int i = 0; i < 6; ++i )

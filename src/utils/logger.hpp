@@ -12,9 +12,9 @@
 
 #else // #if USING( SHIP_BUILD )
 
-#define LOG( ... ) Logger_Log( LogSeverity::DEBUG, __VA_ARGS__ )
-#define LOG_WARN( ... ) Logger_Log( LogSeverity::WARN, __VA_ARGS__ )
-#define LOG_ERR( ... ) Logger_Log( LogSeverity::ERR, __VA_ARGS__ )
+#define LOG( fmt, ... ) Logger_Log( LogSeverity::DEBUG, fmt, __VA_ARGS__ )
+#define LOG_WARN( fmt, ... ) Logger_Log( LogSeverity::WARN, fmt, __VA_ARGS__ )
+#define LOG_ERR( fmt, ... ) Logger_Log( LogSeverity::ERR, fmt, __VA_ARGS__ )
 
 #endif // #else // #if USING( SHIP_BUILD )
 

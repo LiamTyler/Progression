@@ -260,6 +260,28 @@ static void UpdateGlobalAndLightBuffers( Scene* scene )
 }
 
 
+static void UpdateSkyboxAndBackground( Scene* scene )
+{
+    if ( scene->skybox )
+    {
+        if ( skyboxTexture != &scene->skybox->gpuTexture )
+        {
+            skyboxTexture = &scene->skybox->gpuTexture;
+            std::vector< VkDescriptorImageInfo > imgDescriptors;
+            std::vector< VkWriteDescriptorSet > writeDescriptorSets;
+
+            imgDescriptors      = { DescriptorImageInfo( *skyboxTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
+            writeDescriptorSets = { WriteDescriptorSet( skyboxDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
+            r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        }
+    }
+    else
+    {
+        PG_ASSERT( false, "havent handled non-skybox path yet" );
+    }
+}
+
+
 void Render( Scene* scene )
 {
     PG_ASSERT( scene != nullptr );
@@ -274,16 +296,7 @@ void Render( Scene* scene )
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
     UpdateGlobalAndLightBuffers( scene );
-    if ( skyboxTexture != &scene->skybox->gpuTexture )
-    {
-        skyboxTexture = &scene->skybox->gpuTexture;
-        std::vector< VkDescriptorImageInfo > imgDescriptors;
-        std::vector< VkWriteDescriptorSet > writeDescriptorSets;
-
-        imgDescriptors      = { DescriptorImageInfo( *skyboxTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-        writeDescriptorSets = { WriteDescriptorSet( skyboxDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
-        r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
-    }
+    UpdateSkyboxAndBackground( scene );
 
     s_renderGraph.Render( scene, &cmdBuf );
 

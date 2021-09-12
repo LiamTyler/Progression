@@ -99,11 +99,19 @@ public:
             return ConvertDate::ERROR;
         }
 
-        if ( g_converterConfigOptions.force ) return ConvertDate::OUT_OF_DATE;
+        if ( g_converterConfigOptions.force )
+        {
+            AddFastfileDependency( LATEST_TIMESTAMP );
+            return ConvertDate::OUT_OF_DATE;
+        }
 
         time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, GetCacheName( info ) );
+        if ( cachedTimestamp == NO_TIMESTAMP )
+        {
+            AddFastfileDependency( LATEST_TIMESTAMP );
+            return ConvertDate::OUT_OF_DATE;
+        }
         AddFastfileDependency( cachedTimestamp );
-        if ( cachedTimestamp == NO_TIMESTAMP ) return ConvertDate::OUT_OF_DATE;
 
         return IsAssetOutOfDateInternal( info, cachedTimestamp );
     }

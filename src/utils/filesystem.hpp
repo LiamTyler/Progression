@@ -1,6 +1,7 @@
 #pragma once
 
 #include <string>
+#include <filesystem>
 
 std::string BackToForwardSlashes( std::string str );
 

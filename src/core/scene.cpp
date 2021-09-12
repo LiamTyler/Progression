@@ -5,6 +5,7 @@
 #include "core/time.hpp"
 #include "ecs/component_factory.hpp"
 //#include "resource/image.hpp"
+#include "utils/filesystem.hpp"
 #include "utils/json_parsing.hpp"
 #include "utils/logger.hpp"
 #include <algorithm>
@@ -112,8 +113,9 @@ static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
 static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
 {
     PG_ASSERT( v.IsString() );
-    scene->skybox = AssetManager::Get< GfxImage >( v.GetString() );
-    PG_ASSERT( scene->skybox, "Could not find skybox with name '" + std::string( v.GetString() ) + "'" );
+    std::string name = v.GetString();
+    scene->skybox = AssetManager::Get<GfxImage>( name );
+    PG_ASSERT( scene->skybox, "Could not find skybox with name '" + name + "'" );
     return true;
 }
 
@@ -132,12 +134,12 @@ static bool ParseStartupScript( const rapidjson::Value& v, Scene* scene )
 static bool ParseScript( const rapidjson::Value& v, Scene* scene )
 {
     PG_ASSERT( v.IsString() );
-    std::string s = v.GetString();
-    Script* script = AssetManager::Get< Script >( v.GetString() );
-    PG_ASSERT( script );
+    std::string scrName = v.GetString();
+    Script* script = AssetManager::Get<Script>( scrName );
+    PG_ASSERT( script, "No script found with name '" + scrName + "'" );
     if ( scene->numNonEntityScripts == PG_MAX_NON_ENTITY_SCRIPTS )
     {
-        LOG_ERR( "Could not add nonEntityScript '%s' because already reached the script limit %d", s, PG_MAX_NON_ENTITY_SCRIPTS );
+        LOG_ERR( "Could not add nonEntityScript '%s' because already reached the script limit %d", scrName.c_str(), PG_MAX_NON_ENTITY_SCRIPTS );
         return false;
     }
     scene->nonEntityScripts[scene->numNonEntityScripts++] = Lua::ScriptInstance( script );
@@ -169,6 +171,14 @@ Scene* Scene::Load( const std::string& filename )
     SetPrimaryScene( scene );
     Lua::g_LuaState["ECS"] = &scene->registry;
     Lua::g_LuaState["scene"] = scene;
+
+#if !USING( COMPILING_CONVERTER )
+    if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
+    {
+        delete scene;
+        return false;
+    }
+#endif // #if !USING( COMPILING_CONVERTER )
 
     static JSONFunctionMapperBoolCheck< Scene* > mapping(
     {

@@ -33,7 +33,7 @@ static bool ParseAssetFile( const std::string& filename )
                 const std::string assetName = value["name"].GetString();
                 if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )
                 {
-                    LOG_ERR( "Duplicate %s name %s in file %s" );
+                    LOG_ERR( "Duplicate %s name %s in file %s", assetTypeStr.c_str(), assetName.c_str(), filename.c_str() );
                 }
                 else
                 {

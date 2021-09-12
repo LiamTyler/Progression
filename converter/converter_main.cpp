@@ -20,17 +20,18 @@ using namespace PG;
 static void DisplayHelp()
 {
     auto msg =
-      "Usage: converter [options] SCENE_FILE_or_CSV\n"
-      "SCENE_FILE is relative to the project's assets/ folder\n";
+      "Usage: converter [options] SCENE_FILE_OR_CSV\n"
+      "SCENE_FILE is relative to the project's assets/ folder. Can also pass in a specific CSV instead of a regular json scene file\n";
       "Options\n"
-      "  --force                     Don't check asset file dependencies, just reconvert everything\n"
-      "  --help                      Print this message and exit\n";
+      "  --force            Don't check asset file dependencies, just reconvert everything\n"
+      "  --help             Print this message and exit\n";
+      "  --single           Only process this scene, and not any of the dependent scenes. Assumed if CSV is passed in\n";
 
     LOG( "%s", msg );
 }
 
 
-static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile )
+static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile, bool& single )
 {
     if ( argc == 1 )
     {
@@ -42,12 +43,14 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
     {
         { "force",                no_argument,  0, 'f' },
         { "help",                 no_argument,  0, 'h' },
+        { "single",               no_argument,  0, 's' },
         { 0, 0, 0, 0 }
     };
 
+    single = false;
     int option_index = 0;
     int c            = -1;
-    while ( ( c = getopt_long( argc, argv, "fh", long_options, &option_index ) ) != -1 )
+    while ( ( c = getopt_long( argc, argv, "fhs", long_options, &option_index ) ) != -1 )
     {
         switch ( c )
         {
@@ -57,6 +60,9 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
             case 'h':
                 DisplayHelp();
                 return false;
+            case 's':
+                single = true;
+                break;
             default:
                 LOG_ERR( "Invalid option, try 'converter --help' for more information" );
                 return false;
@@ -69,18 +75,84 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
         return false;
     }
     sceneFile = PG_ASSET_DIR + std::string( argv[optind] );
+    single = single || GetFileExtension( sceneFile ) == ".csv";
     return true;
 }
 
 
-void FindAssetsUsedInScene( const std::string& sceneFile, std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
+static std::string StripWhitespace( const std::string& s )
+{
+    size_t start, end;
+    for ( start = 0; start < s.length() && std::isspace( s[start] ); ++start );
+    for ( end = s.length() - 1; end >= 0 && std::isspace( s[end] ); --end );
+
+    return s.substr( start, end - start + 1 );
+}
+
+
+static std::vector<std::string> SplitString( const std::string& str, const std::string delim = "," )
+{
+	if ( str.empty() )
+		return {};
+
+	std::vector<std::string> ret;
+	size_t start_index = 0;
+	size_t index = 0;
+	while ( (index = str.find_first_of(delim, start_index) ) != std::string::npos )
+	{
+		ret.push_back(str.substr(start_index, index - start_index));
+		start_index = index + 1;
+
+		if ( index == str.size() - 1 )
+        {
+			ret.emplace_back();
+        }
+	}
+
+	if ( start_index < str.size() )
+    {
+		ret.push_back( str.substr(start_index) );
+    }
+	return ret;
+}
+
+
+void FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
 {
     std::string ext = GetFileExtension( sceneFile );
     if ( ext == ".csv" )
     {
         std::string line;
         std::ifstream in( sceneFile );
+        int lineIdx = -1;
+        while ( std::getline( in, line ) )
+        {
+            ++lineIdx;
+            line = StripWhitespace( line );
+            if ( line.empty() || (line.length() >= 2 && line[0] == '/' && line[1] == '/' ) )
+                continue;
 
+            const auto vec = SplitString( line );
+            if ( vec.size() != 2 )
+            {
+                LOG_ERR( "Asset CSV %s: Invalid line %d '%s'", sceneFile.c_str(), lineIdx, line.c_str() );
+                continue;
+            }
+            bool found = false;
+            for ( int i = 0; i < NUM_ASSET_TYPES; ++i )
+            {
+                if ( vec[0] == g_converters[i]->assetNameInJsonFile )
+                {
+                    assetsUsed[i].insert( vec[1] );
+                    found = true;
+                    break;
+                }
+            }
+            if ( !found )
+            {
+                LOG_ERR( "Asset CSV %s: No asset type '%s' line %d", sceneFile.c_str(), vec[0].c_str(), lineIdx );
+            }
+        }
     }
     else if ( ext == ".json" )
     {
@@ -146,7 +218,7 @@ void FindAssetsUsedInScene( const std::string& sceneFile, std::unordered_set<std
 }
 
 
-bool ConvertAssets( const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
+bool ConvertAssets( const std::string& sceneName, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
 {
     auto convertStartTime = Time::GetTimePoint();
     ClearAllFastfileDependencies();
@@ -165,11 +237,11 @@ bool ConvertAssets( const std::unordered_set<std::string> (&assetsUsed)[AssetTyp
     double duration = Time::GetDuration( convertStartTime ) / 1000.0f;
     if ( convertErrors )
     {
-        LOG_ERR( "Convert FAILED with %u errors in %.2f seconds", convertErrors, duration );
+        LOG_ERR( "Convert %s FAILED with %u errors in %.2f seconds", sceneName.c_str(), convertErrors, duration );
     }
     else
     {
-        LOG( "Convert SUCCEEDED in %.2f seconds", duration );
+        LOG( "Convert %s succeeded in %.2f seconds", sceneName.c_str(), duration );
     }
 
     return convertErrors == 0;
@@ -178,7 +250,7 @@ bool ConvertAssets( const std::unordered_set<std::string> (&assetsUsed)[AssetTyp
 
 bool OutputFastfile( const std::string& sceneFile, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
 {
-    std::string fastfileName = GetFilenameStem( sceneFile ) + ".ff";
+    std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
     time_t ffTimestamp = GetFileTimestamp( fastfilePath );
     if ( ffTimestamp == NO_TIMESTAMP || ffTimestamp < GetLatestFastfileDependency() )
@@ -196,6 +268,7 @@ bool OutputFastfile( const std::string& sceneFile, const std::unordered_set<std:
         {
             for ( const auto& assetName : assetsUsed[assetTypeIdx] )
             {
+                ff.Write( assetTypeIdx );
                 auto baseInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
                 const std::string cacheName = g_converters[assetTypeIdx]->GetCacheName( baseInfo );
                 size_t numBytes;
@@ -217,18 +290,26 @@ bool OutputFastfile( const std::string& sceneFile, const std::unordered_set<std:
     {
         LOG( "Fastfile %s is up to date already!", fastfileName.c_str() );
     }
-    return false;
+
+    return true;
 }
 
 
 bool ProcessScene( const std::string& sceneFile )
 {
-    auto enumerateStartTime = Time::GetTimePoint();
+    //auto enumerateStartTime = Time::GetTimePoint();
     std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
-    FindAssetsUsedInScene( sceneFile, assetsUsed );
-    LOG( "Assets for scene %s enumerated in %.2f seconds", sceneFile.c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
+    if ( PathExists( sceneFile + ".csv" ) )
+    {
+        FindAssetsUsedInFile( sceneFile + ".csv", assetsUsed );
+    }
+    if ( PathExists( sceneFile + ".json" ) )
+    {
+        FindAssetsUsedInFile( sceneFile + ".json", assetsUsed );
+    }
+    //LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
 
-    bool success = ConvertAssets( assetsUsed );
+    bool success = ConvertAssets( GetRelativeFilename( sceneFile ), assetsUsed );
     success = success && OutputFastfile( sceneFile, assetsUsed );
     return success;
 }
@@ -242,7 +323,8 @@ int main( int argc, char** argv )
     auto initStartTime = Time::GetTimePoint();
     g_converterConfigOptions = {};
     std::string sceneFile;
-    if ( !ParseCommandLineArgs( argc, argv, sceneFile ) )
+    bool singleScene;
+    if ( !ParseCommandLineArgs( argc, argv, sceneFile, singleScene ) )
     {
         return 0;
     }
@@ -252,7 +334,32 @@ int main( int argc, char** argv )
     AssetDatabase::Init();
     LOG( "Converter initialized in %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
 
-    
+    std::vector<std::string> scenesToProcess;
+    scenesToProcess.push_back( GetFilenameMinusExtension( sceneFile ) );
+    if ( !singleScene )
+    {
+        namespace fs = std::filesystem;
+        for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "scenes/required/" ) )
+        {
+            std::string path = entry.path().string();
+            if ( entry.is_regular_file() && GetFileExtension( path ) == ".csv" )
+            {
+                scenesToProcess.push_back( GetFilenameMinusExtension( path ) );
+            }
+        }
+    }
+
+    LOG( "" );
+    for ( size_t i = 0; i < scenesToProcess.size(); ++i )
+    {
+        const auto& scene = scenesToProcess[i];
+        LOG( "Converting %s...", GetRelativeFilename( scene ).c_str() );
+        if ( !ProcessScene( scene ) )
+        {
+            break;
+        }
+        LOG( "" );
+    }
     
     ShutdownConverters();
     Logger_Shutdown();

@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr int PG_FASTFILE_VERSION = 4; // Adding metalness and roughness maps + tints
+constexpr int PG_FASTFILE_VERSION = 5; // different material serialization
 
 // If order is changed, all fastfiles need to be rebuilt
 enum AssetType : unsigned int

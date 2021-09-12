@@ -1,9 +1,11 @@
 #pragma once
 
+#include <limits>
 #include <string>
 #include <vector>
 
 #define NO_TIMESTAMP time_t{ 0 }
+#define LATEST_TIMESTAMP std::numeric_limits<time_t>::max()
 
 time_t GetFileTimestamp( const std::string& file );
 

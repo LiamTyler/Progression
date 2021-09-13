@@ -59,9 +59,9 @@ namespace Gfx
     {
         elements.push_back( { name, ResourceType::TEXTURE, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, glm::vec4( 0 ), false } );
     }
-    void RenderTaskBuilder::AddColorOutput( const std::string& name )   { AddColorOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0, glm::vec4( 0 ) ); }
-    void RenderTaskBuilder::AddDepthOutput( const std::string& name )   { AddDepthOutput( name, PixelFormat::INVALID, 0, 0, 0 ); }
-    void RenderTaskBuilder::AddTextureOutput( const std::string& name ) { AddTextureOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0, glm::vec4( 0 ) ); }
+    void RenderTaskBuilder::AddColorOutput( const std::string& name )   { AddColorOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0 ); }
+    void RenderTaskBuilder::AddDepthOutput( const std::string& name )   { AddDepthOutput( name, PixelFormat::INVALID, 0, 0 ); }
+    void RenderTaskBuilder::AddTextureOutput( const std::string& name ) { AddTextureOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0 ); }
     void RenderTaskBuilder::AddTextureInput( const std::string& name )
     {
         elements.push_back( { name, ResourceType::TEXTURE, ResourceState::READ_ONLY, PixelFormat::INVALID, 0, 0, 0, 0, 0, glm::vec4( 0 ), false } );
@@ -197,19 +197,28 @@ namespace Gfx
 
     struct RG_LogicalOutput
     {
-        bool Mergable( const RG_LogicalOutput& res ) const
+        RG_LogicalOutput( const RG_Element& inElement, uint16_t taskIdx ) :
+            name( inElement.name ), element( inElement ), firstTask( taskIdx ), lastTask( taskIdx ), physicalResourceIndex( USHRT_MAX ), clearedTasks( { taskIdx } )
+        {}
+
+        bool Mergable( const RG_LogicalOutput& res )
         {
             bool overlapForward  = res.lastTask >= firstTask && res.firstTask <= lastTask;
             bool overlapBackward = lastTask >= res.firstTask && firstTask <= res.lastTask;
             if ( overlapForward || overlapBackward ) return false;
             if ( !ElementsMergable( this->element, res.element ) ) return false;
 
-            // not tracking multiple clears right now, so in a merged sequence, only the earliest task can have a clear
-            if ( element.isCleared && res.element.isCleared ) return false;
-            if ( firstTask < res.firstTask && res.element.isCleared ) return false;
-            else if ( res.firstTask < firstTask && element.isCleared ) return false;
+            if ( res.element.isCleared )
+            {
+                clearedTasks.insert( res.firstTask );
+            }
 
             return true;
+        }
+
+        bool ClearsOnTask( uint16_t taskIndex ) const
+        {
+            return clearedTasks.find( taskIndex ) != clearedTasks.end() ;
         }
 
         std::string name;
@@ -217,6 +226,7 @@ namespace Gfx
         uint16_t firstTask;
         uint16_t lastTask;
         uint16_t physicalResourceIndex;
+        std::unordered_set<uint16_t> clearedTasks;
     };
 
 
@@ -264,7 +274,7 @@ namespace Gfx
                     if ( element.format != PixelFormat::INVALID )
                     {
                         outputNameToLogicalMap[element.name] = static_cast< uint16_t >( logicalOutputs.size() );
-                        logicalOutputs.push_back( { element.name, element, taskIndex, taskIndex, USHRT_MAX } );
+                        logicalOutputs.emplace_back( element, taskIndex );
                     }
                     else
                     {
@@ -341,7 +351,7 @@ namespace Gfx
                 if ( element.state == ResourceState::WRITE )
                 {
                     LoadAction loadOp = LoadAction::LOAD;
-                    if ( logicalRes.element.isCleared )
+                    if ( logicalRes.ClearsOnTask( taskIndex ) )
                     {
                         loadOp = LoadAction::CLEAR;
                     }

@@ -82,6 +82,7 @@ ConvertDate ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t
         return ConvertDate::ERROR;
     }
 
+    AddFastfileDependency( info->filename );
     for ( const auto& file : preproc.includedFiles )
     {
         AddFastfileDependency( file );

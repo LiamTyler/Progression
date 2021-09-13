@@ -315,9 +315,10 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
     glm::mat4 VP = scene->camera.GetVP();
+
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& renderer, Transform& transform )
     {
-        const auto& model = renderer.model;
+        const Model* model = renderer.model;
         auto M = transform.GetModelMatrix();
         cmdBuf->PushConstants( 0, sizeof( glm::mat4 ), &M[0][0] );
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
@@ -341,19 +342,20 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
     cmdBuf->BindDescriptorSet( sceneGlobalDescriptorSet, PG_SCENE_GLOBALS_BUFFER_SET );
     cmdBuf->BindDescriptorSet( bindlessTexturesDescriptorSet, PG_BINDLESS_TEXTURE_SET );
     cmdBuf->BindDescriptorSet( lightsDescriptorSet, PG_LIGHTS_SET );
+
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
     {
-        const auto& model = modelRenderer.model;
+        const Model* model = modelRenderer.model;
         auto M = transform.GetModelMatrix();
         auto N = glm::transpose( glm::inverse( M ) );
         GPU::PerObjectData perObjData{ M, N };
         cmdBuf->PushConstants( 0, sizeof( GPU::PerObjectData ), &perObjData );
-
+    
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuTexCoordOffset, 2 );
         cmdBuf->BindIndexBuffer( model->indexBuffer );
-
+    
         for ( size_t i = 0; i < model->meshes.size(); ++i )
         {
             const Mesh& mesh   = modelRenderer.model->meshes[i];
@@ -398,7 +400,7 @@ static bool InitRenderGraph( int width, int height )
     RenderGraphBuilder builder;
 
     task = builder.AddTask( "depth_prepass" );
-    task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1 );
+    task->AddDepthOutput( "depth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     task->SetRenderFunction( RenderFunc_DepthPass );
 
     task = builder.AddTask( "lighting" );

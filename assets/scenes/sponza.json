@@ -1,7 +1,7 @@
 [
     { "Fastfile": { "filename": "sponza" } },
-    { "_Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ] } },
-    { "Camera": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ] } },
+    { "Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ] } },
+    { "_Camera": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ] } },
     { "Script": "cameraController" },
     { "BackgroundColor": [ 0.2, 0.2, 0.2, 1 ] },
     { "Skybox": "kloppenheim" },

@@ -53,40 +53,9 @@ void main()
     
     // reflectance equation
     vec3 Lo = vec3( 0.0 );
-    for(int i = 0; i < 4; ++i) 
-    {
-        PointLight light = pointLights[i];
-        vec3 lightPosition = light.positionAndRadius.xyz;
-        
-        // calculate per-light radiance
-        vec3 L = normalize( lightPosition - worldSpacePos );
-        vec3 H = normalize( V + L );
-        float distance    = length( lightPosition - worldSpacePos );
-        float attenuation = 1.0 / (distance * distance);
-        vec3 radiance     = light.color.rgb * attenuation;
-        
-        // cook-torrance brdf
-        float NdotL = max( 0, dot( N, L ) );
-        float NdotV = max( 0, dot( N, V ) );
-        float VdotH = max( 0, dot( V, H ) );
-        float NdotH = max( 0, dot( N, H ) );
-        float NDF = PBR_D_GGX( NdotH, roughness );
-        float G   = PBR_G_Smith( NdotV, NdotL, roughness );
-        vec3 F    = PBR_FresnelSchlick( VdotH, F0 );
-        
-        vec3 kS = F;
-        vec3 kD = vec3( 1.0 ) - kS;
-        kD *= 1.0 - metalness;
-        
-        vec3 numerator    = NDF * G * F;
-        float denominator = 4.0 * NdotV * NdotL;
-        vec3 specular     = numerator / max( denominator, 0.001 );  
-        
-        // add to outgoing radiance Lo 
-        Lo += (kD * albedo / PI + specular) * radiance * NdotL; 
-    }
 	
-    vec3 ambient = vec3( 0.1 ) * albedo;
+    vec3 ambient = vec3( 0.1 ) * albedo + vec3( 0.0001 * metalness + 0.0001 * roughness );
     vec3 color = ambient + Lo;
     outColor = vec4( color, 1 );
+    outColor = vec4( 1, 0, 1, 1 );
 }

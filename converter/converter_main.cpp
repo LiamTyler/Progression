@@ -117,13 +117,18 @@ static std::vector<std::string> SplitString( const std::string& str, const std::
 }
 
 
-void FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
+bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
 {
     std::string ext = GetFileExtension( sceneFile );
     if ( ext == ".csv" )
     {
         std::string line;
         std::ifstream in( sceneFile );
+        if ( !in )
+        {
+            LOG_ERR( "Could not open %s", sceneFile.c_str() );
+            return false;
+        }
         int lineIdx = -1;
         while ( std::getline( in, line ) )
         {
@@ -151,12 +156,17 @@ void FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
             if ( !found )
             {
                 LOG_ERR( "Asset CSV %s: No asset type '%s' line %d", sceneFile.c_str(), vec[0].c_str(), lineIdx );
+                return false;
             }
         }
     }
     else if ( ext == ".json" )
     {
         Scene* scene = Scene::Load( sceneFile );
+        if ( !scene )
+        {
+            return false;
+        }
 
         for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
         {
@@ -180,7 +190,8 @@ void FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
                 if ( !in )
                 {
                     LOG_ERR( "Could not open model file %s", modelInfo->filename.c_str() );
-                    continue;
+                    delete scene;
+                    return false;
                 }
 
                 std::string matName, tmp;
@@ -200,6 +211,8 @@ void FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
             if ( !info )
             {
                 LOG_ERR( "Material %s not found in database", matName.c_str() );
+                delete scene;
+                return false;
             }
             else
             {
@@ -214,7 +227,10 @@ void FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
     else
     {
         LOG_ERR( "Unknown scene file extension for scene '%s'", sceneFile.c_str() );
+        return false;
     }
+
+    return true;
 }
 
 
@@ -301,11 +317,17 @@ bool ProcessScene( const std::string& sceneFile )
     std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
     if ( PathExists( sceneFile + ".csv" ) )
     {
-        FindAssetsUsedInFile( sceneFile + ".csv", assetsUsed );
+        if ( !FindAssetsUsedInFile( sceneFile + ".csv", assetsUsed ) )
+        {
+            return false;
+        }
     }
     if ( PathExists( sceneFile + ".json" ) )
     {
-        FindAssetsUsedInFile( sceneFile + ".json", assetsUsed );
+        if ( !FindAssetsUsedInFile( sceneFile + ".json", assetsUsed ) )
+        {
+            return false;
+        }
     }
     //LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
 

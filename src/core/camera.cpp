@@ -8,12 +8,12 @@ namespace PG
 
 Camera::Camera()
 {
-    position = glm::vec3( 0 );
-    rotation = glm::vec3( 0 );
-    vFov         = glm::radians( 45.0f );
-    aspectRatio  = 16.0f / 9.0f;
-    nearPlane    = 0.1f;
-    farPlane     = 100.0f;
+    position    = glm::vec3( 0 );
+    rotation    = glm::vec3( 0 );
+    vFov        = glm::radians( 45.0f );
+    aspectRatio = 16.0f / 9.0f;
+    nearPlane   = 0.1f;
+    farPlane    = 100.0f;
     UpdateFrustum();
     UpdateProjectionMatrix();
 }

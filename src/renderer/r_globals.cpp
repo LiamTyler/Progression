@@ -21,7 +21,7 @@ namespace Gfx
 
     Viewport SceneSizedViewport( bool vulkanFlipViewport )
     {
-        Viewport v( static_cast< float >( r_globals.sceneWidth ), static_cast< float >( r_globals.sceneWidth ) );
+        Viewport v( static_cast< float >( r_globals.sceneWidth ), static_cast< float >( r_globals.sceneHeight ) );
         if ( vulkanFlipViewport )
         {
 	        v.y = v.height;

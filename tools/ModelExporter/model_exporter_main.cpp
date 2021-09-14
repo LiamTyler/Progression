@@ -1,6 +1,7 @@
 #include "core/assert.hpp"
 #include "utils/filesystem.hpp"
 #include "utils/logger.hpp"
+#include "core/time.hpp"
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
@@ -12,6 +13,7 @@
 #include <vector>
 
 std::string g_textureSearchDir;
+std::atomic<int> g_warnings;
 
 struct Mesh
 {
@@ -35,8 +37,9 @@ struct ImageInfo
 static void DisplayHelp()
 {
     auto msg =
-        "Usage: modelToPGModel MODEL_DIR [texture_search_dir]"
-        "\tConverts all models found in the MODEL_DIR (not recursive) into .pmodel files\n"
+        "Usage: modelToPGModel PATH [texture_search_dir]"
+        "\tIf PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
+        "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
         "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n";
     std::cout << msg << std::endl;
 }
@@ -169,17 +172,26 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     uint32_t numVertices = 0;
     uint32_t numIndices = 0;
     uint32_t numVerticesWithUVs = 0;
+    std::string stem = GetFilenameStem( filename );
 
     std::vector<std::string> materialNames;
     for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
     {
         std::string matName = scene->mMaterials[i]->GetName().C_Str();
+        if ( matName.empty() )
+        {
+            matName = "default";
+        }
         materialNames.push_back( matName );
     }
 
     for ( size_t i = 0 ; i < meshes.size(); i++ )
     {
         meshes[i].name = scene->mMeshes[i]->mName.C_Str();
+        if ( meshes[i].name.empty() )
+        {
+            meshes[i].name = stem + "_mesh" + std::to_string( i );
+        }
         meshes[i].matIndex = scene->mMeshes[i]->mMaterialIndex;
         PG_ASSERT( meshes[i].matIndex < materialNames.size() );
         meshes[i].numIndices  = scene->mMeshes[i]->mNumFaces * 3;
@@ -213,23 +225,36 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     {
         const aiMesh* paiMesh = scene->mMeshes[meshIdx];
         const aiVector3D Zero3D( 0.0f, 0.0f, 0.0f );
-    
+        uint32_t nanTangents = 0;
+
         for ( uint32_t vIdx = 0; vIdx < paiMesh->mNumVertices ; ++vIdx )
         {
             const aiVector3D* pPos    = &paiMesh->mVertices[vIdx];
             const aiVector3D* pNormal = &paiMesh->mNormals[vIdx];
-            vertices.emplace_back( pPos->x, pPos->y, pPos->z );
-            normals.emplace_back( pNormal->x, pNormal->y, pNormal->z );
+            glm::vec3 pos = { pPos->x, pPos->y, pPos->z };
+            glm::vec3 normal = { pNormal->x, pNormal->y, pNormal->z };
+            PG_ASSERT( !glm::any( glm::isnan( pos ) ) );
+            PG_ASSERT( !glm::any( glm::isnan( normal ) ) );
+            vertices.emplace_back( pos );
+            normals.emplace_back( normal );
     
             if ( paiMesh->HasTextureCoords( 0 ) )
             {
                 const aiVector3D* pTexCoord = &paiMesh->mTextureCoords[0][vIdx];
-                uvs.emplace_back( pTexCoord->x, pTexCoord->y );
+                glm::vec2 uv = { pTexCoord->x, pTexCoord->y };
+                PG_ASSERT( !glm::any( glm::isnan( uv ) ) );
+                uvs.emplace_back( uv );
     
                 const aiVector3D* pTangent = &paiMesh->mTangents[vIdx];
                 glm::vec3 t( pTangent->x, pTangent->y, pTangent->z );
                 const glm::vec3& n = normals[vIdx];
                 t = glm::normalize( t - n * glm::dot( n, t ) ); // does assimp orthogonalize the tangents automatically?
+                if ( glm::any( glm::isnan( t ) ) )
+                {
+                    ++nanTangents;
+                    t = glm::vec3( 0 );
+                }
+
                 tangents.emplace_back( t );
             }
             else if ( anyMeshHasUVs )
@@ -237,6 +262,11 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
                 uvs.emplace_back( 0, 0 );
                 tangents.emplace_back( 0, 0, 0 );
             }
+        }
+        if ( nanTangents > 0 )
+        {
+            LOG_WARN( "%s mesh %s has %u tangents that are NaN. Replacing with zeros", filename.c_str(), meshes[meshIdx].name.c_str(), nanTangents );
+            ++g_warnings;
         }
     
         for ( size_t iIdx = 0; iIdx < paiMesh->mNumFaces; ++iIdx )
@@ -249,14 +279,8 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         }
     }
     
-    LOG( "Model %s", filename.c_str() );
-    LOG( "Meshes: %u", meshes.size() );
-    LOG( "Materials: %u", materialNames.size() );
-    LOG( "Vertices: %u", vertices.size() );
-    LOG( "Normals: %u", normals.size() );
-    LOG( "uvs: %u", uvs.size() );
-    LOG( "tangents: %u", tangents.size() );
-    LOG( "triangles: %u", indices.size() / 3 );
+    //LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u, Normals: %u, uvs: %u, tangents: %u",
+    //    filename.c_str(), meshes.size(), materialNames.size(), indices.size() / 3, vertices.size(), normals.size(), uvs.size(), tangents.size() );
 
     std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodel";
     std::ofstream outFile( outputModelFilename );
@@ -304,11 +328,14 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     std::string modelName = GetFilenameStem( filename );
     for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
     {
-        OutputMaterial( scene->mMaterials[i], scene, modelName, outputJSON );
+        if ( materialNames[i] != "default" )
+        {
+            OutputMaterial( scene->mMaterials[i], scene, modelName, outputJSON );
+        }
     }
 
     std::string relPath = GetPathRelativeToAssetDir( outputModelFilename );
-    outputJSON += "\t{ \"Model\": { \"name\": \"" + modelName + "\", \"filename\": \"" + relPath + "\" } }\n";
+    outputJSON += "\t{ \"Model\": { \"name\": \"" + modelName + "\", \"filename\": \"" + relPath + "\" } },\n";
 
     return true;
 }
@@ -325,35 +352,55 @@ int main( int argc, char* argv[] )
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
 
-    std::string directory = argv[1];
-    g_textureSearchDir = argc > 2 ? argv[2] : directory;
-
-    std::string rel = GetRelativePathToDir( "sponza.pmsodel", PG_ASSET_DIR );
-
+    g_warnings = 0;
     std::unordered_set<std::string> modelExtensions = { ".obj", ".fbx", ".ply", ".gltf", ".stl" };
-    size_t modelsConverted = 0;
-    std::string outputJSON = "[\n";
-    namespace fs = std::filesystem;
-    try
+    std::vector<std::string> filesToProcess;
+    std::string directory;
+    if ( IsDirectory( argv[1] ) )
     {
+        directory = argv[1];
+        g_textureSearchDir = argc > 2 ? argv[2] : directory;
+
+        namespace fs = std::filesystem;
         for ( const auto& entry : fs::directory_iterator( directory ) )
         {
             std::string ext = GetFileExtension( entry.path().string() );
             if ( entry.is_regular_file() && modelExtensions.find( ext ) != modelExtensions.end() )
             {
-                modelsConverted += ConvertModel( entry.path().string(), outputJSON );
+                filesToProcess.push_back( entry.path().string() );
             }
         }
     }
-    catch ( std::filesystem::filesystem_error )
+    else if ( IsFile( argv[1] ) )
     {
-        LOG_ERR( "Cannot find directory %s\n", directory.c_str() );
+        directory = g_textureSearchDir = GetParentPath( argv[1] );
+        filesToProcess.push_back( argv[1] );
+    }
+    else
+    {
+        LOG_ERR( "Path '%s' does not exist!", argv[1] );
         return 0;
     }
 
-    LOG( "Models converted: %u", modelsConverted );
+    auto startTime = PG::Time::GetTimePoint();
+    size_t modelsConverted = 0;
+    std::string outputJSON = "[\n";
+    outputJSON.reserve( 1024 * 1024 );
+    #pragma omp parallel for
+    for ( int i = 0; i < static_cast<int>( filesToProcess.size() ); ++i )
+    {
+        std::string json;
+        json.reserve( 2 * 1024 );
+        modelsConverted += ConvertModel( filesToProcess[i], json );
+        outputJSON += json;
+    }
+
+    LOG( "Models converted: %u in %.2f seconds", modelsConverted, PG::Time::GetDuration( startTime ) / 1000.0f );
+    LOG( "Errors: %u, Warnings: %u", filesToProcess.size() - modelsConverted, g_warnings.load() );
     if ( modelsConverted > 0 )
     {
+        outputJSON[outputJSON.length() - 2] = '\n';
+        outputJSON[outputJSON.length() - 1] = ']';
         std::string pafBaseName = GetDirectoryStem( directory );
         if ( pafBaseName.empty() || pafBaseName[pafBaseName.length() - 1] == '.' )
         {
@@ -362,7 +409,7 @@ int main( int argc, char* argv[] )
         std::string pafFilename = directory + pafBaseName + ".paf";
         LOG( "Saving asset file %s", pafFilename.c_str() );
         std::ofstream out( pafFilename );
-        out << outputJSON << "]";
+        out << outputJSON;
     }
 
     return 0;

@@ -127,7 +127,7 @@ public:
         else if ( status == ConvertDate::ERROR ) return false;
 
         auto info = AssetDatabase::FindAssetInfo<DerivedInfo>( assetType, assetName );
-        LOG( "Converting out of data asset %s %s...", assetNameInJsonFile.c_str(), info->name.c_str() );
+        LOG( "Converting out of date asset %s %s...", assetNameInJsonFile.c_str(), info->name.c_str() );
         DerivedAsset asset;
         if ( !asset.Load( info.get() ) )
         {

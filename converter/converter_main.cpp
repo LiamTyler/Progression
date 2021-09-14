@@ -237,7 +237,6 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
 bool ConvertAssets( const std::string& sceneName, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
 {
     auto convertStartTime = Time::GetTimePoint();
-    ClearAllFastfileDependencies();
     uint32_t convertErrors = 0;
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
@@ -313,6 +312,8 @@ bool OutputFastfile( const std::string& sceneFile, const std::unordered_set<std:
 
 bool ProcessScene( const std::string& sceneFile )
 {
+    ClearAllFastfileDependencies();
+
     //auto enumerateStartTime = Time::GetTimePoint();
     std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
     if ( PathExists( sceneFile + ".csv" ) )
@@ -321,6 +322,7 @@ bool ProcessScene( const std::string& sceneFile )
         {
             return false;
         }
+        AddFastfileDependency( sceneFile + ".csv" );
     }
     if ( PathExists( sceneFile + ".json" ) )
     {
@@ -328,6 +330,7 @@ bool ProcessScene( const std::string& sceneFile )
         {
             return false;
         }
+        AddFastfileDependency( sceneFile + ".json" );
     }
     //LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
 

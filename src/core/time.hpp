@@ -29,7 +29,5 @@ namespace Time
     // Returns the number of milliseconds elapsed since Point
     double GetDuration( const Point& point );
 
-    void RegisterLuaFunctions( lua_State* L );
-
 } // namespace Time
 } // namespace PG

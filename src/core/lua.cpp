@@ -14,6 +14,17 @@ namespace Lua
 {
     sol::state g_LuaState;
 
+    void RegisterTimeFunctions( lua_State* L )
+    {
+        sol::state_view state( L );
+        auto luaTimeNamespace = state["Time"].get_or_create< sol::table >();
+        luaTimeNamespace["dt"] = 0;
+        luaTimeNamespace["Time"] = Time::Time;
+        luaTimeNamespace["GetTimePoint"] = Time::GetTimePoint;
+        luaTimeNamespace["GetDuration"] = Time::GetDuration;
+    }
+
+
     void Init( lua_State* L )
     {
         sol::state_view state( L );
@@ -24,7 +35,7 @@ namespace Lua
         RegisterLuaFunctions_Camera( L );
         ECS::RegisterLuaFunctions( L );
         AssetManager::RegisterLuaFunctions( L );
-        Time::RegisterLuaFunctions( L );
+        RegisterTimeFunctions( L );
 #if !USING( COMPILING_CONVERTER )
         RegisterLuaFunctions_Window( L );
         Input::RegisterLuaFunctions( L );

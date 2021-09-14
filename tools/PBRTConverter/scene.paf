@@ -1,0 +1,3593 @@
+[
+	{ "Image": {
+		"name": "Texture01",
+		"filename": "models/bathroom/textures/rug.tga"
+	} },
+	{ "Image": {
+		"name": "Texture02",
+		"filename": "models/bathroom/textures/rug_mask.tga"
+	} },
+	{ "Image": {
+		"name": "Texture03",
+		"filename": "models/bathroom/textures/wood.tga"
+	} },
+	{ "Image": {
+		"name": "Texture04",
+		"filename": "models/bathroom/textures/floor_tiles.tga"
+	} },
+	{ "Image": {
+		"name": "Texture05",
+		"filename": "models/bathroom/textures/floor_tiles.tga"
+	} },
+	{ "Image": {
+		"name": "Texture06",
+		"filename": "models/bathroom/textures/marble.tga"
+	} },
+	{ "Image": {
+		"name": "Texture07",
+		"filename": "models/bathroom/textures/wood2.tga"
+	} },
+	{ "Image": {
+		"name": "Texture08",
+		"filename": "models/bathroom/textures/picture1.tga"
+	} },
+	{ "Image": {
+		"name": "Texture09",
+		"filename": "models/bathroom/textures/wallpaper-1.tga"
+	} },
+	{ "Image": {
+		"name": "Texture10",
+		"filename": "models/bathroom/textures/wood.tga"
+	} },
+	{ "Image": {
+		"name": "Texture11",
+		"filename": "models/bathroom/textures/wallpaper-2.tga"
+	} },
+	{ "Image": {
+		"name": "Texture12",
+		"filename": "models/bathroom/textures/foam_bump.tga"
+	} },
+	{ "Material": {
+		"name": "Rug",
+		"albedoMap": "Texture01"
+	} },
+	{ "Material": {
+		"name": "Wood",
+		"albedoMap": "Texture03"
+	} },
+	{ "Material": {
+		"name": "Mirror"
+	} },
+	{ "Material": {
+		"name": "StainlessSmooth"
+	} },
+	{ "Material": {
+		"name": "Bathtube",
+		"albedo": [0.612066, 0.612066, 0.612066]
+	} },
+	{ "Material": {
+		"name": "StainlessRough"
+	} },
+	{ "Material": {
+		"name": "Floor",
+		"albedoMap": "Texture05"
+	} },
+	{ "Material": {
+		"name": "Pots",
+		"albedo": [0.00631, 0.00631, 0.00631]
+	} },
+	{ "Material": {
+		"name": "Marble",
+		"albedoMap": "Texture06"
+	} },
+	{ "Material": {
+		"name": "BulbGlass",
+		"albedo": [0.0, 0.0, 0.0]
+	} },
+	{ "Material": {
+		"name": "BlackPlastic",
+		"albedo": [0.00631, 0.00631, 0.00631]
+	} },
+	{ "Material": {
+		"name": "Blinds",
+		"albedo": [0.893289, 0.893289, 0.893289]
+	} },
+	{ "Material": {
+		"name": "WoodFrame",
+		"albedoMap": "Texture07"
+	} },
+	{ "Material": {
+		"name": "Painting3",
+		"albedo": [0.058187, 0.03423, 0.017936]
+	} },
+	{ "Material": {
+		"name": "Painting1",
+		"albedoMap": "Texture08"
+	} },
+	{ "Material": {
+		"name": "Painting4",
+		"albedo": [0.047776, 0.020951, 0.007155]
+	} },
+	{ "Material": {
+		"name": "Light",
+		"albedo": [0.0, 0.0, 0.0]
+	} },
+	{ "Material": {
+		"name": "GreyWall",
+		"albedo": [0.893289, 0.893289, 0.893289]
+	} },
+	{ "Material": {
+		"name": "WhiteWood",
+		"albedo": [0.893289, 0.893289, 0.893289]
+	} },
+	{ "Material": {
+		"name": "Ceiling",
+		"albedo": [0.684615, 0.684615, 0.684615]
+	} },
+	{ "Material": {
+		"name": "Wallpaper",
+		"albedoMap": "Texture09"
+	} },
+	{ "Material": {
+		"name": "Leaves",
+		"albedo": [0.573159, 0.215764, 0.022013]
+	} },
+	{ "Material": {
+		"name": "LeaveStems",
+		"albedo": [0.063815, 0.022013, 0.001202]
+	} },
+	{ "Material": {
+		"name": "Vase",
+		"albedo": [0.612066, 0.612066, 0.612066]
+	} },
+	{ "Material": {
+		"name": "WindowFrame",
+		"albedo": [0.00631, 0.00631, 0.00631]
+	} },
+	{ "Material": {
+		"name": "Paper",
+		"albedo": [0.578596, 0.578596, 0.578596]
+	} },
+	{ "Material": {
+		"name": "WoodDiffuse",
+		"albedoMap": "Texture10"
+	} },
+	{ "Material": {
+		"name": "Painting2",
+		"albedoMap": "Texture11"
+	} },
+	{ "Material": {
+		"name": "MetalPlate"
+	} },
+	{ "Material": {
+		"name": "BlindsString",
+		"albedo": [0.578596, 0.578596, 0.578596]
+	} },
+	{ "Material": {
+		"name": "Gold"
+	} },
+	{ "Material": {
+		"name": "Foam",
+		"albedo": [0.531049, 0.531049, 0.531049]
+	} },
+	{ "Model": {
+		"name": "Mesh381",
+		"filename": "models/bathroom/models/Mesh381.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh252",
+		"filename": "models/bathroom/models/Mesh252.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh238",
+		"filename": "models/bathroom/models/Mesh238.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh633",
+		"filename": "models/bathroom/models/Mesh633.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh235",
+		"filename": "models/bathroom/models/Mesh235.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh351",
+		"filename": "models/bathroom/models/Mesh351.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh233",
+		"filename": "models/bathroom/models/Mesh233.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh688",
+		"filename": "models/bathroom/models/Mesh688.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh444",
+		"filename": "models/bathroom/models/Mesh444.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh101",
+		"filename": "models/bathroom/models/Mesh101.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh151",
+		"filename": "models/bathroom/models/Mesh151.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh308",
+		"filename": "models/bathroom/models/Mesh308.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh327",
+		"filename": "models/bathroom/models/Mesh327.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh341",
+		"filename": "models/bathroom/models/Mesh341.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh290",
+		"filename": "models/bathroom/models/Mesh290.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh080",
+		"filename": "models/bathroom/models/Mesh080.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh227",
+		"filename": "models/bathroom/models/Mesh227.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh309",
+		"filename": "models/bathroom/models/Mesh309.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh199",
+		"filename": "models/bathroom/models/Mesh199.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh342",
+		"filename": "models/bathroom/models/Mesh342.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh317",
+		"filename": "models/bathroom/models/Mesh317.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh726",
+		"filename": "models/bathroom/models/Mesh726.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh540",
+		"filename": "models/bathroom/models/Mesh540.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh276",
+		"filename": "models/bathroom/models/Mesh276.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh349",
+		"filename": "models/bathroom/models/Mesh349.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh254",
+		"filename": "models/bathroom/models/Mesh254.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh229",
+		"filename": "models/bathroom/models/Mesh229.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh359",
+		"filename": "models/bathroom/models/Mesh359.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh166",
+		"filename": "models/bathroom/models/Mesh166.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh369",
+		"filename": "models/bathroom/models/Mesh369.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh372",
+		"filename": "models/bathroom/models/Mesh372.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh793",
+		"filename": "models/bathroom/models/Mesh793.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh378",
+		"filename": "models/bathroom/models/Mesh378.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh380",
+		"filename": "models/bathroom/models/Mesh380.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh363",
+		"filename": "models/bathroom/models/Mesh363.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh046",
+		"filename": "models/bathroom/models/Mesh046.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh118",
+		"filename": "models/bathroom/models/Mesh118.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh345",
+		"filename": "models/bathroom/models/Mesh345.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh251",
+		"filename": "models/bathroom/models/Mesh251.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh219",
+		"filename": "models/bathroom/models/Mesh219.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh589",
+		"filename": "models/bathroom/models/Mesh589.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh659",
+		"filename": "models/bathroom/models/Mesh659.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh344",
+		"filename": "models/bathroom/models/Mesh344.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh602",
+		"filename": "models/bathroom/models/Mesh602.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh367",
+		"filename": "models/bathroom/models/Mesh367.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh206",
+		"filename": "models/bathroom/models/Mesh206.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh031",
+		"filename": "models/bathroom/models/Mesh031.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh515",
+		"filename": "models/bathroom/models/Mesh515.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh377",
+		"filename": "models/bathroom/models/Mesh377.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh205",
+		"filename": "models/bathroom/models/Mesh205.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh424",
+		"filename": "models/bathroom/models/Mesh424.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh425",
+		"filename": "models/bathroom/models/Mesh425.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh474",
+		"filename": "models/bathroom/models/Mesh474.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh209",
+		"filename": "models/bathroom/models/Mesh209.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh203",
+		"filename": "models/bathroom/models/Mesh203.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh263",
+		"filename": "models/bathroom/models/Mesh263.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh405",
+		"filename": "models/bathroom/models/Mesh405.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh253",
+		"filename": "models/bathroom/models/Mesh253.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh197",
+		"filename": "models/bathroom/models/Mesh197.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh052",
+		"filename": "models/bathroom/models/Mesh052.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh629",
+		"filename": "models/bathroom/models/Mesh629.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh268",
+		"filename": "models/bathroom/models/Mesh268.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh195",
+		"filename": "models/bathroom/models/Mesh195.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh295",
+		"filename": "models/bathroom/models/Mesh295.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh434",
+		"filename": "models/bathroom/models/Mesh434.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh193",
+		"filename": "models/bathroom/models/Mesh193.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh357",
+		"filename": "models/bathroom/models/Mesh357.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh136",
+		"filename": "models/bathroom/models/Mesh136.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh450",
+		"filename": "models/bathroom/models/Mesh450.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh269",
+		"filename": "models/bathroom/models/Mesh269.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh592",
+		"filename": "models/bathroom/models/Mesh592.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh192",
+		"filename": "models/bathroom/models/Mesh192.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh191",
+		"filename": "models/bathroom/models/Mesh191.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh331",
+		"filename": "models/bathroom/models/Mesh331.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh297",
+		"filename": "models/bathroom/models/Mesh297.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh343",
+		"filename": "models/bathroom/models/Mesh343.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh304",
+		"filename": "models/bathroom/models/Mesh304.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh815",
+		"filename": "models/bathroom/models/Mesh815.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh293",
+		"filename": "models/bathroom/models/Mesh293.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh282",
+		"filename": "models/bathroom/models/Mesh282.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh226",
+		"filename": "models/bathroom/models/Mesh226.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh189",
+		"filename": "models/bathroom/models/Mesh189.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh463",
+		"filename": "models/bathroom/models/Mesh463.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh709",
+		"filename": "models/bathroom/models/Mesh709.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh361",
+		"filename": "models/bathroom/models/Mesh361.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh247",
+		"filename": "models/bathroom/models/Mesh247.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh236",
+		"filename": "models/bathroom/models/Mesh236.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh595",
+		"filename": "models/bathroom/models/Mesh595.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh301",
+		"filename": "models/bathroom/models/Mesh301.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh386",
+		"filename": "models/bathroom/models/Mesh386.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh387",
+		"filename": "models/bathroom/models/Mesh387.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh324",
+		"filename": "models/bathroom/models/Mesh324.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh299",
+		"filename": "models/bathroom/models/Mesh299.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh126",
+		"filename": "models/bathroom/models/Mesh126.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh763",
+		"filename": "models/bathroom/models/Mesh763.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh217",
+		"filename": "models/bathroom/models/Mesh217.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh390",
+		"filename": "models/bathroom/models/Mesh390.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh244",
+		"filename": "models/bathroom/models/Mesh244.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh392",
+		"filename": "models/bathroom/models/Mesh392.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh393",
+		"filename": "models/bathroom/models/Mesh393.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh336",
+		"filename": "models/bathroom/models/Mesh336.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh218",
+		"filename": "models/bathroom/models/Mesh218.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh401",
+		"filename": "models/bathroom/models/Mesh401.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh577",
+		"filename": "models/bathroom/models/Mesh577.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh364",
+		"filename": "models/bathroom/models/Mesh364.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh259",
+		"filename": "models/bathroom/models/Mesh259.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh409",
+		"filename": "models/bathroom/models/Mesh409.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh414",
+		"filename": "models/bathroom/models/Mesh414.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh320",
+		"filename": "models/bathroom/models/Mesh320.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh816",
+		"filename": "models/bathroom/models/Mesh816.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh224",
+		"filename": "models/bathroom/models/Mesh224.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh723",
+		"filename": "models/bathroom/models/Mesh723.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh210",
+		"filename": "models/bathroom/models/Mesh210.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh036",
+		"filename": "models/bathroom/models/Mesh036.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh419",
+		"filename": "models/bathroom/models/Mesh419.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh421",
+		"filename": "models/bathroom/models/Mesh421.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh699",
+		"filename": "models/bathroom/models/Mesh699.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh404",
+		"filename": "models/bathroom/models/Mesh404.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh590",
+		"filename": "models/bathroom/models/Mesh590.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh608",
+		"filename": "models/bathroom/models/Mesh608.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh427",
+		"filename": "models/bathroom/models/Mesh427.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh430",
+		"filename": "models/bathroom/models/Mesh430.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh111",
+		"filename": "models/bathroom/models/Mesh111.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh412",
+		"filename": "models/bathroom/models/Mesh412.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh432",
+		"filename": "models/bathroom/models/Mesh432.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh439",
+		"filename": "models/bathroom/models/Mesh439.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh440",
+		"filename": "models/bathroom/models/Mesh440.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh433",
+		"filename": "models/bathroom/models/Mesh433.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh575",
+		"filename": "models/bathroom/models/Mesh575.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh473",
+		"filename": "models/bathroom/models/Mesh473.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh447",
+		"filename": "models/bathroom/models/Mesh447.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh064",
+		"filename": "models/bathroom/models/Mesh064.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh137",
+		"filename": "models/bathroom/models/Mesh137.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh220",
+		"filename": "models/bathroom/models/Mesh220.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh354",
+		"filename": "models/bathroom/models/Mesh354.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh415",
+		"filename": "models/bathroom/models/Mesh415.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh438",
+		"filename": "models/bathroom/models/Mesh438.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh250",
+		"filename": "models/bathroom/models/Mesh250.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh853",
+		"filename": "models/bathroom/models/Mesh853.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh454",
+		"filename": "models/bathroom/models/Mesh454.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh033",
+		"filename": "models/bathroom/models/Mesh033.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh456",
+		"filename": "models/bathroom/models/Mesh456.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh458",
+		"filename": "models/bathroom/models/Mesh458.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh394",
+		"filename": "models/bathroom/models/Mesh394.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh200",
+		"filename": "models/bathroom/models/Mesh200.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh462",
+		"filename": "models/bathroom/models/Mesh462.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh841",
+		"filename": "models/bathroom/models/Mesh841.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh330",
+		"filename": "models/bathroom/models/Mesh330.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh464",
+		"filename": "models/bathroom/models/Mesh464.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh468",
+		"filename": "models/bathroom/models/Mesh468.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh728",
+		"filename": "models/bathroom/models/Mesh728.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh820",
+		"filename": "models/bathroom/models/Mesh820.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh472",
+		"filename": "models/bathroom/models/Mesh472.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh242",
+		"filename": "models/bathroom/models/Mesh242.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh504",
+		"filename": "models/bathroom/models/Mesh504.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh476",
+		"filename": "models/bathroom/models/Mesh476.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh053",
+		"filename": "models/bathroom/models/Mesh053.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh484",
+		"filename": "models/bathroom/models/Mesh484.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh311",
+		"filename": "models/bathroom/models/Mesh311.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh485",
+		"filename": "models/bathroom/models/Mesh485.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh232",
+		"filename": "models/bathroom/models/Mesh232.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh162",
+		"filename": "models/bathroom/models/Mesh162.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh365",
+		"filename": "models/bathroom/models/Mesh365.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh489",
+		"filename": "models/bathroom/models/Mesh489.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh264",
+		"filename": "models/bathroom/models/Mesh264.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh582",
+		"filename": "models/bathroom/models/Mesh582.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh491",
+		"filename": "models/bathroom/models/Mesh491.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh493",
+		"filename": "models/bathroom/models/Mesh493.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh167",
+		"filename": "models/bathroom/models/Mesh167.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh461",
+		"filename": "models/bathroom/models/Mesh461.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh437",
+		"filename": "models/bathroom/models/Mesh437.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh285",
+		"filename": "models/bathroom/models/Mesh285.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh497",
+		"filename": "models/bathroom/models/Mesh497.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh465",
+		"filename": "models/bathroom/models/Mesh465.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh410",
+		"filename": "models/bathroom/models/Mesh410.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh667",
+		"filename": "models/bathroom/models/Mesh667.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh370",
+		"filename": "models/bathroom/models/Mesh370.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh068",
+		"filename": "models/bathroom/models/Mesh068.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh211",
+		"filename": "models/bathroom/models/Mesh211.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh411",
+		"filename": "models/bathroom/models/Mesh411.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh294",
+		"filename": "models/bathroom/models/Mesh294.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh321",
+		"filename": "models/bathroom/models/Mesh321.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh507",
+		"filename": "models/bathroom/models/Mesh507.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh514",
+		"filename": "models/bathroom/models/Mesh514.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh179",
+		"filename": "models/bathroom/models/Mesh179.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh516",
+		"filename": "models/bathroom/models/Mesh516.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh358",
+		"filename": "models/bathroom/models/Mesh358.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh606",
+		"filename": "models/bathroom/models/Mesh606.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh183",
+		"filename": "models/bathroom/models/Mesh183.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh180",
+		"filename": "models/bathroom/models/Mesh180.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh501",
+		"filename": "models/bathroom/models/Mesh501.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh178",
+		"filename": "models/bathroom/models/Mesh178.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh355",
+		"filename": "models/bathroom/models/Mesh355.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh176",
+		"filename": "models/bathroom/models/Mesh176.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh175",
+		"filename": "models/bathroom/models/Mesh175.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh174",
+		"filename": "models/bathroom/models/Mesh174.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh460",
+		"filename": "models/bathroom/models/Mesh460.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh172",
+		"filename": "models/bathroom/models/Mesh172.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh284",
+		"filename": "models/bathroom/models/Mesh284.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh420",
+		"filename": "models/bathroom/models/Mesh420.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh266",
+		"filename": "models/bathroom/models/Mesh266.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh124",
+		"filename": "models/bathroom/models/Mesh124.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh170",
+		"filename": "models/bathroom/models/Mesh170.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh744",
+		"filename": "models/bathroom/models/Mesh744.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh455",
+		"filename": "models/bathroom/models/Mesh455.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh249",
+		"filename": "models/bathroom/models/Mesh249.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh169",
+		"filename": "models/bathroom/models/Mesh169.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh429",
+		"filename": "models/bathroom/models/Mesh429.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh204",
+		"filename": "models/bathroom/models/Mesh204.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh448",
+		"filename": "models/bathroom/models/Mesh448.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh332",
+		"filename": "models/bathroom/models/Mesh332.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh313",
+		"filename": "models/bathroom/models/Mesh313.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh165",
+		"filename": "models/bathroom/models/Mesh165.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh642",
+		"filename": "models/bathroom/models/Mesh642.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh100",
+		"filename": "models/bathroom/models/Mesh100.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh267",
+		"filename": "models/bathroom/models/Mesh267.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh164",
+		"filename": "models/bathroom/models/Mesh164.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh163",
+		"filename": "models/bathroom/models/Mesh163.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh469",
+		"filename": "models/bathroom/models/Mesh469.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh146",
+		"filename": "models/bathroom/models/Mesh146.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh337",
+		"filename": "models/bathroom/models/Mesh337.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh161",
+		"filename": "models/bathroom/models/Mesh161.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh160",
+		"filename": "models/bathroom/models/Mesh160.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh154",
+		"filename": "models/bathroom/models/Mesh154.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh318",
+		"filename": "models/bathroom/models/Mesh318.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh152",
+		"filename": "models/bathroom/models/Mesh152.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh442",
+		"filename": "models/bathroom/models/Mesh442.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh481",
+		"filename": "models/bathroom/models/Mesh481.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh045",
+		"filename": "models/bathroom/models/Mesh045.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh500",
+		"filename": "models/bathroom/models/Mesh500.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh148",
+		"filename": "models/bathroom/models/Mesh148.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh145",
+		"filename": "models/bathroom/models/Mesh145.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh107",
+		"filename": "models/bathroom/models/Mesh107.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh142",
+		"filename": "models/bathroom/models/Mesh142.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh079",
+		"filename": "models/bathroom/models/Mesh079.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh721",
+		"filename": "models/bathroom/models/Mesh721.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh724",
+		"filename": "models/bathroom/models/Mesh724.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh129",
+		"filename": "models/bathroom/models/Mesh129.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh128",
+		"filename": "models/bathroom/models/Mesh128.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh486",
+		"filename": "models/bathroom/models/Mesh486.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh123",
+		"filename": "models/bathroom/models/Mesh123.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh201",
+		"filename": "models/bathroom/models/Mesh201.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh093",
+		"filename": "models/bathroom/models/Mesh093.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh799",
+		"filename": "models/bathroom/models/Mesh799.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh121",
+		"filename": "models/bathroom/models/Mesh121.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh119",
+		"filename": "models/bathroom/models/Mesh119.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh553",
+		"filename": "models/bathroom/models/Mesh553.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh431",
+		"filename": "models/bathroom/models/Mesh431.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh373",
+		"filename": "models/bathroom/models/Mesh373.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh490",
+		"filename": "models/bathroom/models/Mesh490.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh114",
+		"filename": "models/bathroom/models/Mesh114.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh185",
+		"filename": "models/bathroom/models/Mesh185.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh325",
+		"filename": "models/bathroom/models/Mesh325.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh216",
+		"filename": "models/bathroom/models/Mesh216.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh112",
+		"filename": "models/bathroom/models/Mesh112.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh049",
+		"filename": "models/bathroom/models/Mesh049.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh085",
+		"filename": "models/bathroom/models/Mesh085.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh374",
+		"filename": "models/bathroom/models/Mesh374.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh138",
+		"filename": "models/bathroom/models/Mesh138.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh159",
+		"filename": "models/bathroom/models/Mesh159.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh110",
+		"filename": "models/bathroom/models/Mesh110.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh551",
+		"filename": "models/bathroom/models/Mesh551.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh449",
+		"filename": "models/bathroom/models/Mesh449.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh215",
+		"filename": "models/bathroom/models/Mesh215.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh399",
+		"filename": "models/bathroom/models/Mesh399.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh196",
+		"filename": "models/bathroom/models/Mesh196.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh134",
+		"filename": "models/bathroom/models/Mesh134.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh248",
+		"filename": "models/bathroom/models/Mesh248.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh466",
+		"filename": "models/bathroom/models/Mesh466.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh271",
+		"filename": "models/bathroom/models/Mesh271.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh106",
+		"filename": "models/bathroom/models/Mesh106.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh104",
+		"filename": "models/bathroom/models/Mesh104.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh495",
+		"filename": "models/bathroom/models/Mesh495.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh347",
+		"filename": "models/bathroom/models/Mesh347.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh102",
+		"filename": "models/bathroom/models/Mesh102.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh208",
+		"filename": "models/bathroom/models/Mesh208.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh243",
+		"filename": "models/bathroom/models/Mesh243.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh622",
+		"filename": "models/bathroom/models/Mesh622.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh673",
+		"filename": "models/bathroom/models/Mesh673.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh801",
+		"filename": "models/bathroom/models/Mesh801.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh231",
+		"filename": "models/bathroom/models/Mesh231.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh099",
+		"filename": "models/bathroom/models/Mesh099.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh258",
+		"filename": "models/bathroom/models/Mesh258.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh322",
+		"filename": "models/bathroom/models/Mesh322.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh260",
+		"filename": "models/bathroom/models/Mesh260.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh092",
+		"filename": "models/bathroom/models/Mesh092.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh090",
+		"filename": "models/bathroom/models/Mesh090.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh087",
+		"filename": "models/bathroom/models/Mesh087.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh832",
+		"filename": "models/bathroom/models/Mesh832.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh720",
+		"filename": "models/bathroom/models/Mesh720.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh400",
+		"filename": "models/bathroom/models/Mesh400.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh082",
+		"filename": "models/bathroom/models/Mesh082.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh181",
+		"filename": "models/bathroom/models/Mesh181.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh529",
+		"filename": "models/bathroom/models/Mesh529.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh078",
+		"filename": "models/bathroom/models/Mesh078.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh117",
+		"filename": "models/bathroom/models/Mesh117.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh509",
+		"filename": "models/bathroom/models/Mesh509.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh255",
+		"filename": "models/bathroom/models/Mesh255.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh077",
+		"filename": "models/bathroom/models/Mesh077.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh225",
+		"filename": "models/bathroom/models/Mesh225.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh122",
+		"filename": "models/bathroom/models/Mesh122.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh303",
+		"filename": "models/bathroom/models/Mesh303.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh656",
+		"filename": "models/bathroom/models/Mesh656.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh482",
+		"filename": "models/bathroom/models/Mesh482.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh687",
+		"filename": "models/bathroom/models/Mesh687.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh083",
+		"filename": "models/bathroom/models/Mesh083.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh483",
+		"filename": "models/bathroom/models/Mesh483.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh075",
+		"filename": "models/bathroom/models/Mesh075.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh073",
+		"filename": "models/bathroom/models/Mesh073.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh646",
+		"filename": "models/bathroom/models/Mesh646.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh116",
+		"filename": "models/bathroom/models/Mesh116.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh156",
+		"filename": "models/bathroom/models/Mesh156.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh705",
+		"filename": "models/bathroom/models/Mesh705.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh506",
+		"filename": "models/bathroom/models/Mesh506.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh237",
+		"filename": "models/bathroom/models/Mesh237.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh071",
+		"filename": "models/bathroom/models/Mesh071.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh823",
+		"filename": "models/bathroom/models/Mesh823.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh069",
+		"filename": "models/bathroom/models/Mesh069.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh418",
+		"filename": "models/bathroom/models/Mesh418.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh329",
+		"filename": "models/bathroom/models/Mesh329.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh065",
+		"filename": "models/bathroom/models/Mesh065.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh240",
+		"filename": "models/bathroom/models/Mesh240.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh188",
+		"filename": "models/bathroom/models/Mesh188.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh738",
+		"filename": "models/bathroom/models/Mesh738.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh063",
+		"filename": "models/bathroom/models/Mesh063.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh280",
+		"filename": "models/bathroom/models/Mesh280.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh062",
+		"filename": "models/bathroom/models/Mesh062.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh061",
+		"filename": "models/bathroom/models/Mesh061.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh141",
+		"filename": "models/bathroom/models/Mesh141.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh060",
+		"filename": "models/bathroom/models/Mesh060.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh849",
+		"filename": "models/bathroom/models/Mesh849.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh144",
+		"filename": "models/bathroom/models/Mesh144.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh312",
+		"filename": "models/bathroom/models/Mesh312.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh305",
+		"filename": "models/bathroom/models/Mesh305.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh133",
+		"filename": "models/bathroom/models/Mesh133.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh067",
+		"filename": "models/bathroom/models/Mesh067.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh479",
+		"filename": "models/bathroom/models/Mesh479.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh730",
+		"filename": "models/bathroom/models/Mesh730.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh648",
+		"filename": "models/bathroom/models/Mesh648.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh207",
+		"filename": "models/bathroom/models/Mesh207.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh499",
+		"filename": "models/bathroom/models/Mesh499.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh057",
+		"filename": "models/bathroom/models/Mesh057.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh452",
+		"filename": "models/bathroom/models/Mesh452.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh487",
+		"filename": "models/bathroom/models/Mesh487.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh055",
+		"filename": "models/bathroom/models/Mesh055.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh155",
+		"filename": "models/bathroom/models/Mesh155.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh139",
+		"filename": "models/bathroom/models/Mesh139.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh054",
+		"filename": "models/bathroom/models/Mesh054.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh413",
+		"filename": "models/bathroom/models/Mesh413.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh222",
+		"filename": "models/bathroom/models/Mesh222.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh095",
+		"filename": "models/bathroom/models/Mesh095.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh127",
+		"filename": "models/bathroom/models/Mesh127.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh310",
+		"filename": "models/bathroom/models/Mesh310.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh830",
+		"filename": "models/bathroom/models/Mesh830.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh278",
+		"filename": "models/bathroom/models/Mesh278.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh422",
+		"filename": "models/bathroom/models/Mesh422.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh669",
+		"filename": "models/bathroom/models/Mesh669.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh048",
+		"filename": "models/bathroom/models/Mesh048.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh214",
+		"filename": "models/bathroom/models/Mesh214.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh089",
+		"filename": "models/bathroom/models/Mesh089.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh212",
+		"filename": "models/bathroom/models/Mesh212.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh086",
+		"filename": "models/bathroom/models/Mesh086.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh047",
+		"filename": "models/bathroom/models/Mesh047.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh459",
+		"filename": "models/bathroom/models/Mesh459.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh292",
+		"filename": "models/bathroom/models/Mesh292.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh043",
+		"filename": "models/bathroom/models/Mesh043.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh070",
+		"filename": "models/bathroom/models/Mesh070.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh279",
+		"filename": "models/bathroom/models/Mesh279.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh042",
+		"filename": "models/bathroom/models/Mesh042.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh040",
+		"filename": "models/bathroom/models/Mesh040.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh423",
+		"filename": "models/bathroom/models/Mesh423.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh619",
+		"filename": "models/bathroom/models/Mesh619.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh503",
+		"filename": "models/bathroom/models/Mesh503.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh202",
+		"filename": "models/bathroom/models/Mesh202.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh694",
+		"filename": "models/bathroom/models/Mesh694.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh108",
+		"filename": "models/bathroom/models/Mesh108.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh616",
+		"filename": "models/bathroom/models/Mesh616.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh035",
+		"filename": "models/bathroom/models/Mesh035.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh113",
+		"filename": "models/bathroom/models/Mesh113.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh034",
+		"filename": "models/bathroom/models/Mesh034.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh428",
+		"filename": "models/bathroom/models/Mesh428.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh105",
+		"filename": "models/bathroom/models/Mesh105.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh652",
+		"filename": "models/bathroom/models/Mesh652.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh528",
+		"filename": "models/bathroom/models/Mesh528.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh477",
+		"filename": "models/bathroom/models/Mesh477.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh296",
+		"filename": "models/bathroom/models/Mesh296.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh288",
+		"filename": "models/bathroom/models/Mesh288.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh030",
+		"filename": "models/bathroom/models/Mesh030.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh028",
+		"filename": "models/bathroom/models/Mesh028.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh389",
+		"filename": "models/bathroom/models/Mesh389.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh027",
+		"filename": "models/bathroom/models/Mesh027.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh150",
+		"filename": "models/bathroom/models/Mesh150.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh051",
+		"filename": "models/bathroom/models/Mesh051.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh025",
+		"filename": "models/bathroom/models/Mesh025.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh024",
+		"filename": "models/bathroom/models/Mesh024.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh754",
+		"filename": "models/bathroom/models/Mesh754.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh356",
+		"filename": "models/bathroom/models/Mesh356.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh022",
+		"filename": "models/bathroom/models/Mesh022.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh518",
+		"filename": "models/bathroom/models/Mesh518.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh519",
+		"filename": "models/bathroom/models/Mesh519.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh520",
+		"filename": "models/bathroom/models/Mesh520.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh710",
+		"filename": "models/bathroom/models/Mesh710.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh522",
+		"filename": "models/bathroom/models/Mesh522.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh526",
+		"filename": "models/bathroom/models/Mesh526.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh527",
+		"filename": "models/bathroom/models/Mesh527.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh319",
+		"filename": "models/bathroom/models/Mesh319.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh532",
+		"filename": "models/bathroom/models/Mesh532.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh533",
+		"filename": "models/bathroom/models/Mesh533.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh508",
+		"filename": "models/bathroom/models/Mesh508.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh534",
+		"filename": "models/bathroom/models/Mesh534.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh536",
+		"filename": "models/bathroom/models/Mesh536.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh538",
+		"filename": "models/bathroom/models/Mesh538.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh467",
+		"filename": "models/bathroom/models/Mesh467.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh541",
+		"filename": "models/bathroom/models/Mesh541.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh543",
+		"filename": "models/bathroom/models/Mesh543.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh352",
+		"filename": "models/bathroom/models/Mesh352.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh512",
+		"filename": "models/bathroom/models/Mesh512.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh545",
+		"filename": "models/bathroom/models/Mesh545.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh023",
+		"filename": "models/bathroom/models/Mesh023.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh539",
+		"filename": "models/bathroom/models/Mesh539.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh029",
+		"filename": "models/bathroom/models/Mesh029.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh547",
+		"filename": "models/bathroom/models/Mesh547.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh544",
+		"filename": "models/bathroom/models/Mesh544.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh376",
+		"filename": "models/bathroom/models/Mesh376.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh548",
+		"filename": "models/bathroom/models/Mesh548.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh362",
+		"filename": "models/bathroom/models/Mesh362.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh475",
+		"filename": "models/bathroom/models/Mesh475.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh157",
+		"filename": "models/bathroom/models/Mesh157.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh549",
+		"filename": "models/bathroom/models/Mesh549.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh554",
+		"filename": "models/bathroom/models/Mesh554.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh517",
+		"filename": "models/bathroom/models/Mesh517.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh555",
+		"filename": "models/bathroom/models/Mesh555.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh125",
+		"filename": "models/bathroom/models/Mesh125.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh109",
+		"filename": "models/bathroom/models/Mesh109.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh239",
+		"filename": "models/bathroom/models/Mesh239.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh076",
+		"filename": "models/bathroom/models/Mesh076.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh556",
+		"filename": "models/bathroom/models/Mesh556.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh557",
+		"filename": "models/bathroom/models/Mesh557.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh634",
+		"filename": "models/bathroom/models/Mesh634.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh559",
+		"filename": "models/bathroom/models/Mesh559.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh561",
+		"filename": "models/bathroom/models/Mesh561.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh562",
+		"filename": "models/bathroom/models/Mesh562.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh088",
+		"filename": "models/bathroom/models/Mesh088.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh395",
+		"filename": "models/bathroom/models/Mesh395.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh563",
+		"filename": "models/bathroom/models/Mesh563.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh565",
+		"filename": "models/bathroom/models/Mesh565.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh568",
+		"filename": "models/bathroom/models/Mesh568.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh569",
+		"filename": "models/bathroom/models/Mesh569.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh072",
+		"filename": "models/bathroom/models/Mesh072.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh571",
+		"filename": "models/bathroom/models/Mesh571.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh572",
+		"filename": "models/bathroom/models/Mesh572.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh573",
+		"filename": "models/bathroom/models/Mesh573.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh574",
+		"filename": "models/bathroom/models/Mesh574.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh576",
+		"filename": "models/bathroom/models/Mesh576.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh182",
+		"filename": "models/bathroom/models/Mesh182.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh579",
+		"filename": "models/bathroom/models/Mesh579.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh581",
+		"filename": "models/bathroom/models/Mesh581.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh059",
+		"filename": "models/bathroom/models/Mesh059.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh283",
+		"filename": "models/bathroom/models/Mesh283.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh446",
+		"filename": "models/bathroom/models/Mesh446.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh570",
+		"filename": "models/bathroom/models/Mesh570.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh583",
+		"filename": "models/bathroom/models/Mesh583.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh586",
+		"filename": "models/bathroom/models/Mesh586.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh591",
+		"filename": "models/bathroom/models/Mesh591.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh593",
+		"filename": "models/bathroom/models/Mesh593.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh594",
+		"filename": "models/bathroom/models/Mesh594.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh348",
+		"filename": "models/bathroom/models/Mesh348.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh597",
+		"filename": "models/bathroom/models/Mesh597.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh601",
+		"filename": "models/bathroom/models/Mesh601.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh605",
+		"filename": "models/bathroom/models/Mesh605.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh607",
+		"filename": "models/bathroom/models/Mesh607.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh186",
+		"filename": "models/bathroom/models/Mesh186.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh115",
+		"filename": "models/bathroom/models/Mesh115.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh609",
+		"filename": "models/bathroom/models/Mesh609.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh610",
+		"filename": "models/bathroom/models/Mesh610.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh612",
+		"filename": "models/bathroom/models/Mesh612.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh558",
+		"filename": "models/bathroom/models/Mesh558.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh050",
+		"filename": "models/bathroom/models/Mesh050.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh190",
+		"filename": "models/bathroom/models/Mesh190.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh614",
+		"filename": "models/bathroom/models/Mesh614.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh850",
+		"filename": "models/bathroom/models/Mesh850.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh812",
+		"filename": "models/bathroom/models/Mesh812.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh617",
+		"filename": "models/bathroom/models/Mesh617.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh470",
+		"filename": "models/bathroom/models/Mesh470.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh618",
+		"filename": "models/bathroom/models/Mesh618.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh620",
+		"filename": "models/bathroom/models/Mesh620.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh621",
+		"filename": "models/bathroom/models/Mesh621.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh158",
+		"filename": "models/bathroom/models/Mesh158.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh623",
+		"filename": "models/bathroom/models/Mesh623.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh492",
+		"filename": "models/bathroom/models/Mesh492.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh435",
+		"filename": "models/bathroom/models/Mesh435.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh624",
+		"filename": "models/bathroom/models/Mesh624.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh625",
+		"filename": "models/bathroom/models/Mesh625.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh135",
+		"filename": "models/bathroom/models/Mesh135.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh627",
+		"filename": "models/bathroom/models/Mesh627.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh657",
+		"filename": "models/bathroom/models/Mesh657.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh306",
+		"filename": "models/bathroom/models/Mesh306.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh782",
+		"filename": "models/bathroom/models/Mesh782.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh628",
+		"filename": "models/bathroom/models/Mesh628.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh834",
+		"filename": "models/bathroom/models/Mesh834.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh631",
+		"filename": "models/bathroom/models/Mesh631.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh326",
+		"filename": "models/bathroom/models/Mesh326.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh245",
+		"filename": "models/bathroom/models/Mesh245.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh636",
+		"filename": "models/bathroom/models/Mesh636.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh505",
+		"filename": "models/bathroom/models/Mesh505.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh791",
+		"filename": "models/bathroom/models/Mesh791.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh637",
+		"filename": "models/bathroom/models/Mesh637.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh391",
+		"filename": "models/bathroom/models/Mesh391.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh638",
+		"filename": "models/bathroom/models/Mesh638.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh639",
+		"filename": "models/bathroom/models/Mesh639.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh265",
+		"filename": "models/bathroom/models/Mesh265.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh230",
+		"filename": "models/bathroom/models/Mesh230.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh748",
+		"filename": "models/bathroom/models/Mesh748.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh228",
+		"filename": "models/bathroom/models/Mesh228.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh168",
+		"filename": "models/bathroom/models/Mesh168.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh766",
+		"filename": "models/bathroom/models/Mesh766.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh478",
+		"filename": "models/bathroom/models/Mesh478.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh643",
+		"filename": "models/bathroom/models/Mesh643.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh647",
+		"filename": "models/bathroom/models/Mesh647.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh261",
+		"filename": "models/bathroom/models/Mesh261.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh796",
+		"filename": "models/bathroom/models/Mesh796.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh768",
+		"filename": "models/bathroom/models/Mesh768.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh649",
+		"filename": "models/bathroom/models/Mesh649.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh651",
+		"filename": "models/bathroom/models/Mesh651.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh789",
+		"filename": "models/bathroom/models/Mesh789.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh653",
+		"filename": "models/bathroom/models/Mesh653.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh655",
+		"filename": "models/bathroom/models/Mesh655.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh658",
+		"filename": "models/bathroom/models/Mesh658.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh660",
+		"filename": "models/bathroom/models/Mesh660.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh234",
+		"filename": "models/bathroom/models/Mesh234.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh314",
+		"filename": "models/bathroom/models/Mesh314.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh661",
+		"filename": "models/bathroom/models/Mesh661.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh177",
+		"filename": "models/bathroom/models/Mesh177.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh626",
+		"filename": "models/bathroom/models/Mesh626.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh131",
+		"filename": "models/bathroom/models/Mesh131.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh662",
+		"filename": "models/bathroom/models/Mesh662.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh494",
+		"filename": "models/bathroom/models/Mesh494.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh396",
+		"filename": "models/bathroom/models/Mesh396.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh663",
+		"filename": "models/bathroom/models/Mesh663.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh081",
+		"filename": "models/bathroom/models/Mesh081.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh032",
+		"filename": "models/bathroom/models/Mesh032.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh664",
+		"filename": "models/bathroom/models/Mesh664.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh560",
+		"filename": "models/bathroom/models/Mesh560.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh665",
+		"filename": "models/bathroom/models/Mesh665.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh416",
+		"filename": "models/bathroom/models/Mesh416.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh471",
+		"filename": "models/bathroom/models/Mesh471.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh281",
+		"filename": "models/bathroom/models/Mesh281.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh674",
+		"filename": "models/bathroom/models/Mesh674.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh666",
+		"filename": "models/bathroom/models/Mesh666.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh670",
+		"filename": "models/bathroom/models/Mesh670.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh671",
+		"filename": "models/bathroom/models/Mesh671.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh672",
+		"filename": "models/bathroom/models/Mesh672.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh675",
+		"filename": "models/bathroom/models/Mesh675.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh397",
+		"filename": "models/bathroom/models/Mesh397.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh511",
+		"filename": "models/bathroom/models/Mesh511.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh388",
+		"filename": "models/bathroom/models/Mesh388.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh676",
+		"filename": "models/bathroom/models/Mesh676.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh678",
+		"filename": "models/bathroom/models/Mesh678.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh453",
+		"filename": "models/bathroom/models/Mesh453.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh198",
+		"filename": "models/bathroom/models/Mesh198.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh598",
+		"filename": "models/bathroom/models/Mesh598.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh513",
+		"filename": "models/bathroom/models/Mesh513.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh679",
+		"filename": "models/bathroom/models/Mesh679.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh680",
+		"filename": "models/bathroom/models/Mesh680.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh681",
+		"filename": "models/bathroom/models/Mesh681.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh718",
+		"filename": "models/bathroom/models/Mesh718.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh701",
+		"filename": "models/bathroom/models/Mesh701.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh683",
+		"filename": "models/bathroom/models/Mesh683.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh340",
+		"filename": "models/bathroom/models/Mesh340.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh241",
+		"filename": "models/bathroom/models/Mesh241.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh256",
+		"filename": "models/bathroom/models/Mesh256.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh684",
+		"filename": "models/bathroom/models/Mesh684.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh221",
+		"filename": "models/bathroom/models/Mesh221.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh689",
+		"filename": "models/bathroom/models/Mesh689.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh690",
+		"filename": "models/bathroom/models/Mesh690.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh691",
+		"filename": "models/bathroom/models/Mesh691.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh692",
+		"filename": "models/bathroom/models/Mesh692.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh350",
+		"filename": "models/bathroom/models/Mesh350.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh530",
+		"filename": "models/bathroom/models/Mesh530.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh693",
+		"filename": "models/bathroom/models/Mesh693.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh368",
+		"filename": "models/bathroom/models/Mesh368.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh496",
+		"filename": "models/bathroom/models/Mesh496.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh686",
+		"filename": "models/bathroom/models/Mesh686.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh546",
+		"filename": "models/bathroom/models/Mesh546.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh406",
+		"filename": "models/bathroom/models/Mesh406.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh695",
+		"filename": "models/bathroom/models/Mesh695.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh379",
+		"filename": "models/bathroom/models/Mesh379.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh382",
+		"filename": "models/bathroom/models/Mesh382.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh074",
+		"filename": "models/bathroom/models/Mesh074.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh696",
+		"filename": "models/bathroom/models/Mesh696.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh697",
+		"filename": "models/bathroom/models/Mesh697.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh700",
+		"filename": "models/bathroom/models/Mesh700.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh613",
+		"filename": "models/bathroom/models/Mesh613.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh702",
+		"filename": "models/bathroom/models/Mesh702.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh644",
+		"filename": "models/bathroom/models/Mesh644.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh704",
+		"filename": "models/bathroom/models/Mesh704.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh677",
+		"filename": "models/bathroom/models/Mesh677.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh706",
+		"filename": "models/bathroom/models/Mesh706.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh707",
+		"filename": "models/bathroom/models/Mesh707.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh708",
+		"filename": "models/bathroom/models/Mesh708.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh525",
+		"filename": "models/bathroom/models/Mesh525.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh603",
+		"filename": "models/bathroom/models/Mesh603.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh566",
+		"filename": "models/bathroom/models/Mesh566.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh058",
+		"filename": "models/bathroom/models/Mesh058.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh091",
+		"filename": "models/bathroom/models/Mesh091.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh366",
+		"filename": "models/bathroom/models/Mesh366.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh712",
+		"filename": "models/bathroom/models/Mesh712.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh587",
+		"filename": "models/bathroom/models/Mesh587.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh426",
+		"filename": "models/bathroom/models/Mesh426.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh714",
+		"filename": "models/bathroom/models/Mesh714.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh140",
+		"filename": "models/bathroom/models/Mesh140.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh147",
+		"filename": "models/bathroom/models/Mesh147.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh713",
+		"filename": "models/bathroom/models/Mesh713.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh143",
+		"filename": "models/bathroom/models/Mesh143.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh716",
+		"filename": "models/bathroom/models/Mesh716.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh149",
+		"filename": "models/bathroom/models/Mesh149.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh719",
+		"filename": "models/bathroom/models/Mesh719.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh722",
+		"filename": "models/bathroom/models/Mesh722.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh725",
+		"filename": "models/bathroom/models/Mesh725.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh727",
+		"filename": "models/bathroom/models/Mesh727.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh731",
+		"filename": "models/bathroom/models/Mesh731.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh632",
+		"filename": "models/bathroom/models/Mesh632.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh103",
+		"filename": "models/bathroom/models/Mesh103.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh732",
+		"filename": "models/bathroom/models/Mesh732.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh550",
+		"filename": "models/bathroom/models/Mesh550.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh746",
+		"filename": "models/bathroom/models/Mesh746.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh761",
+		"filename": "models/bathroom/models/Mesh761.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh316",
+		"filename": "models/bathroom/models/Mesh316.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh443",
+		"filename": "models/bathroom/models/Mesh443.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh735",
+		"filename": "models/bathroom/models/Mesh735.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh715",
+		"filename": "models/bathroom/models/Mesh715.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh084",
+		"filename": "models/bathroom/models/Mesh084.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh026",
+		"filename": "models/bathroom/models/Mesh026.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh277",
+		"filename": "models/bathroom/models/Mesh277.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh703",
+		"filename": "models/bathroom/models/Mesh703.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh403",
+		"filename": "models/bathroom/models/Mesh403.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh153",
+		"filename": "models/bathroom/models/Mesh153.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh041",
+		"filename": "models/bathroom/models/Mesh041.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh736",
+		"filename": "models/bathroom/models/Mesh736.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh535",
+		"filename": "models/bathroom/models/Mesh535.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh737",
+		"filename": "models/bathroom/models/Mesh737.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh510",
+		"filename": "models/bathroom/models/Mesh510.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh739",
+		"filename": "models/bathroom/models/Mesh739.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh480",
+		"filename": "models/bathroom/models/Mesh480.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh096",
+		"filename": "models/bathroom/models/Mesh096.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh274",
+		"filename": "models/bathroom/models/Mesh274.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh654",
+		"filename": "models/bathroom/models/Mesh654.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh740",
+		"filename": "models/bathroom/models/Mesh740.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh682",
+		"filename": "models/bathroom/models/Mesh682.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh741",
+		"filename": "models/bathroom/models/Mesh741.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh742",
+		"filename": "models/bathroom/models/Mesh742.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh743",
+		"filename": "models/bathroom/models/Mesh743.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh747",
+		"filename": "models/bathroom/models/Mesh747.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh750",
+		"filename": "models/bathroom/models/Mesh750.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh751",
+		"filename": "models/bathroom/models/Mesh751.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh752",
+		"filename": "models/bathroom/models/Mesh752.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh745",
+		"filename": "models/bathroom/models/Mesh745.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh334",
+		"filename": "models/bathroom/models/Mesh334.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh753",
+		"filename": "models/bathroom/models/Mesh753.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh044",
+		"filename": "models/bathroom/models/Mesh044.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh711",
+		"filename": "models/bathroom/models/Mesh711.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh273",
+		"filename": "models/bathroom/models/Mesh273.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh398",
+		"filename": "models/bathroom/models/Mesh398.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh650",
+		"filename": "models/bathroom/models/Mesh650.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh756",
+		"filename": "models/bathroom/models/Mesh756.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh488",
+		"filename": "models/bathroom/models/Mesh488.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh640",
+		"filename": "models/bathroom/models/Mesh640.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh384",
+		"filename": "models/bathroom/models/Mesh384.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh758",
+		"filename": "models/bathroom/models/Mesh758.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh759",
+		"filename": "models/bathroom/models/Mesh759.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh760",
+		"filename": "models/bathroom/models/Mesh760.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh762",
+		"filename": "models/bathroom/models/Mesh762.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh764",
+		"filename": "models/bathroom/models/Mesh764.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh596",
+		"filename": "models/bathroom/models/Mesh596.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh767",
+		"filename": "models/bathroom/models/Mesh767.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh611",
+		"filename": "models/bathroom/models/Mesh611.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh769",
+		"filename": "models/bathroom/models/Mesh769.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh323",
+		"filename": "models/bathroom/models/Mesh323.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh770",
+		"filename": "models/bathroom/models/Mesh770.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh771",
+		"filename": "models/bathroom/models/Mesh771.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh772",
+		"filename": "models/bathroom/models/Mesh772.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh773",
+		"filename": "models/bathroom/models/Mesh773.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh775",
+		"filename": "models/bathroom/models/Mesh775.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh580",
+		"filename": "models/bathroom/models/Mesh580.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh037",
+		"filename": "models/bathroom/models/Mesh037.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh776",
+		"filename": "models/bathroom/models/Mesh776.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh777",
+		"filename": "models/bathroom/models/Mesh777.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh779",
+		"filename": "models/bathroom/models/Mesh779.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh781",
+		"filename": "models/bathroom/models/Mesh781.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh784",
+		"filename": "models/bathroom/models/Mesh784.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh289",
+		"filename": "models/bathroom/models/Mesh289.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh585",
+		"filename": "models/bathroom/models/Mesh585.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh729",
+		"filename": "models/bathroom/models/Mesh729.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh328",
+		"filename": "models/bathroom/models/Mesh328.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh785",
+		"filename": "models/bathroom/models/Mesh785.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh786",
+		"filename": "models/bathroom/models/Mesh786.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh270",
+		"filename": "models/bathroom/models/Mesh270.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh788",
+		"filename": "models/bathroom/models/Mesh788.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh790",
+		"filename": "models/bathroom/models/Mesh790.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh552",
+		"filename": "models/bathroom/models/Mesh552.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh275",
+		"filename": "models/bathroom/models/Mesh275.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh780",
+		"filename": "models/bathroom/models/Mesh780.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh039",
+		"filename": "models/bathroom/models/Mesh039.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh335",
+		"filename": "models/bathroom/models/Mesh335.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh523",
+		"filename": "models/bathroom/models/Mesh523.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh792",
+		"filename": "models/bathroom/models/Mesh792.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh778",
+		"filename": "models/bathroom/models/Mesh778.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh794",
+		"filename": "models/bathroom/models/Mesh794.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh795",
+		"filename": "models/bathroom/models/Mesh795.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh797",
+		"filename": "models/bathroom/models/Mesh797.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh846",
+		"filename": "models/bathroom/models/Mesh846.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh800",
+		"filename": "models/bathroom/models/Mesh800.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh802",
+		"filename": "models/bathroom/models/Mesh802.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh272",
+		"filename": "models/bathroom/models/Mesh272.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh734",
+		"filename": "models/bathroom/models/Mesh734.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh803",
+		"filename": "models/bathroom/models/Mesh803.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh804",
+		"filename": "models/bathroom/models/Mesh804.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh806",
+		"filename": "models/bathroom/models/Mesh806.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh765",
+		"filename": "models/bathroom/models/Mesh765.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh807",
+		"filename": "models/bathroom/models/Mesh807.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh808",
+		"filename": "models/bathroom/models/Mesh808.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh809",
+		"filename": "models/bathroom/models/Mesh809.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh056",
+		"filename": "models/bathroom/models/Mesh056.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh307",
+		"filename": "models/bathroom/models/Mesh307.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh749",
+		"filename": "models/bathroom/models/Mesh749.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh564",
+		"filename": "models/bathroom/models/Mesh564.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh338",
+		"filename": "models/bathroom/models/Mesh338.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh811",
+		"filename": "models/bathroom/models/Mesh811.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh615",
+		"filename": "models/bathroom/models/Mesh615.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh685",
+		"filename": "models/bathroom/models/Mesh685.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh813",
+		"filename": "models/bathroom/models/Mesh813.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh291",
+		"filename": "models/bathroom/models/Mesh291.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh814",
+		"filename": "models/bathroom/models/Mesh814.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh173",
+		"filename": "models/bathroom/models/Mesh173.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh223",
+		"filename": "models/bathroom/models/Mesh223.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh817",
+		"filename": "models/bathroom/models/Mesh817.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh120",
+		"filename": "models/bathroom/models/Mesh120.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh818",
+		"filename": "models/bathroom/models/Mesh818.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh733",
+		"filename": "models/bathroom/models/Mesh733.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh298",
+		"filename": "models/bathroom/models/Mesh298.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh819",
+		"filename": "models/bathroom/models/Mesh819.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh821",
+		"filename": "models/bathroom/models/Mesh821.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh066",
+		"filename": "models/bathroom/models/Mesh066.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh531",
+		"filename": "models/bathroom/models/Mesh531.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh822",
+		"filename": "models/bathroom/models/Mesh822.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh194",
+		"filename": "models/bathroom/models/Mesh194.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh824",
+		"filename": "models/bathroom/models/Mesh824.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh698",
+		"filename": "models/bathroom/models/Mesh698.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh339",
+		"filename": "models/bathroom/models/Mesh339.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh825",
+		"filename": "models/bathroom/models/Mesh825.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh826",
+		"filename": "models/bathroom/models/Mesh826.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh097",
+		"filename": "models/bathroom/models/Mesh097.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh407",
+		"filename": "models/bathroom/models/Mesh407.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh827",
+		"filename": "models/bathroom/models/Mesh827.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh098",
+		"filename": "models/bathroom/models/Mesh098.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh828",
+		"filename": "models/bathroom/models/Mesh828.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh286",
+		"filename": "models/bathroom/models/Mesh286.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh831",
+		"filename": "models/bathroom/models/Mesh831.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh833",
+		"filename": "models/bathroom/models/Mesh833.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh502",
+		"filename": "models/bathroom/models/Mesh502.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh668",
+		"filename": "models/bathroom/models/Mesh668.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh645",
+		"filename": "models/bathroom/models/Mesh645.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh783",
+		"filename": "models/bathroom/models/Mesh783.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh835",
+		"filename": "models/bathroom/models/Mesh835.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh521",
+		"filename": "models/bathroom/models/Mesh521.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh838",
+		"filename": "models/bathroom/models/Mesh838.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh717",
+		"filename": "models/bathroom/models/Mesh717.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh524",
+		"filename": "models/bathroom/models/Mesh524.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh787",
+		"filename": "models/bathroom/models/Mesh787.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh836",
+		"filename": "models/bathroom/models/Mesh836.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh257",
+		"filename": "models/bathroom/models/Mesh257.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh171",
+		"filename": "models/bathroom/models/Mesh171.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh353",
+		"filename": "models/bathroom/models/Mesh353.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh839",
+		"filename": "models/bathroom/models/Mesh839.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh346",
+		"filename": "models/bathroom/models/Mesh346.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh840",
+		"filename": "models/bathroom/models/Mesh840.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh315",
+		"filename": "models/bathroom/models/Mesh315.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh130",
+		"filename": "models/bathroom/models/Mesh130.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh578",
+		"filename": "models/bathroom/models/Mesh578.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh842",
+		"filename": "models/bathroom/models/Mesh842.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh287",
+		"filename": "models/bathroom/models/Mesh287.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh436",
+		"filename": "models/bathroom/models/Mesh436.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh187",
+		"filename": "models/bathroom/models/Mesh187.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh383",
+		"filename": "models/bathroom/models/Mesh383.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh371",
+		"filename": "models/bathroom/models/Mesh371.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh246",
+		"filename": "models/bathroom/models/Mesh246.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh457",
+		"filename": "models/bathroom/models/Mesh457.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh843",
+		"filename": "models/bathroom/models/Mesh843.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh588",
+		"filename": "models/bathroom/models/Mesh588.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh132",
+		"filename": "models/bathroom/models/Mesh132.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh441",
+		"filename": "models/bathroom/models/Mesh441.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh635",
+		"filename": "models/bathroom/models/Mesh635.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh844",
+		"filename": "models/bathroom/models/Mesh844.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh845",
+		"filename": "models/bathroom/models/Mesh845.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh805",
+		"filename": "models/bathroom/models/Mesh805.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh810",
+		"filename": "models/bathroom/models/Mesh810.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh641",
+		"filename": "models/bathroom/models/Mesh641.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh630",
+		"filename": "models/bathroom/models/Mesh630.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh847",
+		"filename": "models/bathroom/models/Mesh847.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh755",
+		"filename": "models/bathroom/models/Mesh755.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh360",
+		"filename": "models/bathroom/models/Mesh360.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh848",
+		"filename": "models/bathroom/models/Mesh848.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh584",
+		"filename": "models/bathroom/models/Mesh584.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh599",
+		"filename": "models/bathroom/models/Mesh599.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh184",
+		"filename": "models/bathroom/models/Mesh184.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh600",
+		"filename": "models/bathroom/models/Mesh600.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh851",
+		"filename": "models/bathroom/models/Mesh851.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh757",
+		"filename": "models/bathroom/models/Mesh757.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh852",
+		"filename": "models/bathroom/models/Mesh852.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh262",
+		"filename": "models/bathroom/models/Mesh262.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh333",
+		"filename": "models/bathroom/models/Mesh333.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh854",
+		"filename": "models/bathroom/models/Mesh854.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh021",
+		"filename": "models/bathroom/models/Mesh021.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh020",
+		"filename": "models/bathroom/models/Mesh020.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh445",
+		"filename": "models/bathroom/models/Mesh445.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh019",
+		"filename": "models/bathroom/models/Mesh019.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh498",
+		"filename": "models/bathroom/models/Mesh498.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh537",
+		"filename": "models/bathroom/models/Mesh537.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh451",
+		"filename": "models/bathroom/models/Mesh451.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh829",
+		"filename": "models/bathroom/models/Mesh829.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh094",
+		"filename": "models/bathroom/models/Mesh094.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh018",
+		"filename": "models/bathroom/models/Mesh018.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh017",
+		"filename": "models/bathroom/models/Mesh017.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh774",
+		"filename": "models/bathroom/models/Mesh774.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh213",
+		"filename": "models/bathroom/models/Mesh213.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh016",
+		"filename": "models/bathroom/models/Mesh016.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh015",
+		"filename": "models/bathroom/models/Mesh015.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh417",
+		"filename": "models/bathroom/models/Mesh417.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh014",
+		"filename": "models/bathroom/models/Mesh014.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh385",
+		"filename": "models/bathroom/models/Mesh385.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh013",
+		"filename": "models/bathroom/models/Mesh013.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh798",
+		"filename": "models/bathroom/models/Mesh798.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh012",
+		"filename": "models/bathroom/models/Mesh012.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh837",
+		"filename": "models/bathroom/models/Mesh837.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh402",
+		"filename": "models/bathroom/models/Mesh402.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh604",
+		"filename": "models/bathroom/models/Mesh604.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh011",
+		"filename": "models/bathroom/models/Mesh011.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh567",
+		"filename": "models/bathroom/models/Mesh567.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh010",
+		"filename": "models/bathroom/models/Mesh010.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh038",
+		"filename": "models/bathroom/models/Mesh038.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh300",
+		"filename": "models/bathroom/models/Mesh300.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh009",
+		"filename": "models/bathroom/models/Mesh009.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh302",
+		"filename": "models/bathroom/models/Mesh302.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh008",
+		"filename": "models/bathroom/models/Mesh008.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh007",
+		"filename": "models/bathroom/models/Mesh007.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh006",
+		"filename": "models/bathroom/models/Mesh006.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh005",
+		"filename": "models/bathroom/models/Mesh005.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh004",
+		"filename": "models/bathroom/models/Mesh004.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh003",
+		"filename": "models/bathroom/models/Mesh003.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh542",
+		"filename": "models/bathroom/models/Mesh542.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh375",
+		"filename": "models/bathroom/models/Mesh375.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh408",
+		"filename": "models/bathroom/models/Mesh408.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh002",
+		"filename": "models/bathroom/models/Mesh002.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh001",
+		"filename": "models/bathroom/models/Mesh001.ply"
+	} },
+	{ "Model": {
+		"name": "Mesh000",
+		"filename": "models/bathroom/models/Mesh000.ply"
+	} }
+]

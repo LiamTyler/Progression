@@ -107,6 +107,18 @@ bool PathExists( const std::string& path )
 }
 
 
+bool IsDirectory( const std::string& path )
+{
+    return fs::is_directory( path );
+}
+
+
+bool IsFile( const std::string& path )
+{
+    return fs::is_regular_file( path );
+}
+
+
 bool DirExists( const std::string& dir )
 {
     return fs::is_directory( dir );

@@ -11,6 +11,8 @@ tests/
 .vscode/
 Sponza-master/
 
+__pycache__
+
 # Prerequisites
 *.d
 

@@ -3,6 +3,7 @@
 #include "asset/asset_manager.hpp"
 #include "core/assert.hpp"
 #include "renderer/r_globals.hpp"
+#include "utils/filesystem.hpp"
 #include "utils/logger.hpp"
 #include "utils/serializer.hpp"
 #include "glm/geometric.hpp"
@@ -18,6 +19,11 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     PG_ASSERT( baseInfo );
     const ModelCreateInfo* createInfo = (const ModelCreateInfo*)baseInfo;
     name = createInfo->name;
+    if ( GetFileExtension( createInfo->filename ) != ".pmodel" )
+    {
+        LOG_ERR( "Model::Load only takes .pmodel format" );
+        return false;
+    }
     std::ifstream in( createInfo->filename );
     if ( !in )
     {
@@ -60,7 +66,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     in >> tmp;
 
     uint32_t numPositions;
-    in >> tmp >> numPositions;
+    in >> tmp >> numPositions; PG_ASSERT( numPositions < 100000000 && in.good() );
     positions.resize( numPositions );
     for ( uint32_t i = 0; i < numPositions; ++i )
     {
@@ -68,7 +74,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     uint32_t numNormals;
-    in >> tmp >> numNormals;
+    in >> tmp >> numNormals; PG_ASSERT( numNormals < 100000000 && in.good() );
     normals.resize( numNormals );
     for ( uint32_t i = 0; i < numNormals; ++i )
     {
@@ -77,14 +83,14 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
     uint32_t numTexCoords;
     in >> tmp >> numTexCoords;
-    texCoords.resize( numTexCoords );
+    texCoords.resize( numTexCoords ); PG_ASSERT( numTexCoords < 100000000 && in.good() );
     for ( uint32_t i = 0; i < numTexCoords; ++i )
     {
         in >> texCoords[i].x >> texCoords[i].y;
     }
 
     uint32_t numTangents;
-    in >> tmp >> numTangents;
+    in >> tmp >> numTangents; PG_ASSERT( numTangents < 100000000 && in.good() );
     tangents.resize( numTangents );
     for ( uint32_t i = 0; i < numTangents; ++i )
     {
@@ -92,7 +98,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     uint32_t numTris;
-    in >> tmp >> numTris;
+    in >> tmp >> numTris; PG_ASSERT( numTris < 100000000 && in.good() );
     indices.resize( numTris * 3 );
     for ( uint32_t i = 0; i < numTris; ++i )
     {

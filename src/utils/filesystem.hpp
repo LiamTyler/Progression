@@ -20,6 +20,10 @@ void DeleteRecursive( const std::string& path );
 
 bool PathExists( const std::string& path );
 
+bool IsDirectory( const std::string& path );
+
+bool IsFile( const std::string& path );
+
 std::string GetCWD();
 
 std::string GetAbsolutePath( const std::string& path );

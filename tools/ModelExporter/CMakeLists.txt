@@ -15,6 +15,8 @@ set(SRC
     ${PROGRESSION_DIR}/src/core/assert.hpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/src/core/pixel_formats.hpp
+	${PROGRESSION_DIR}/src/core/time.cpp
+    ${PROGRESSION_DIR}/src/core/time.hpp
     ${PROGRESSION_DIR}/src/utils/filesystem.cpp
     ${PROGRESSION_DIR}/src/utils/filesystem.hpp
     ${PROGRESSION_DIR}/src/utils/logger.cpp
@@ -23,6 +25,7 @@ set(SRC
 
 set(LIBS
     assimp
+	OpenMP::OpenMP_CXX
 )
 
 add_executable(${PROJECT_NAME} ${SRC})

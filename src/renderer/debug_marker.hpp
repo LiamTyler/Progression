@@ -113,9 +113,13 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_NAME( x, y )
 #define PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( s, x )
 
-#define PG_DEBUG_MARKER_BEGIN_REGION( cmdbuf, name, color )
-#define PG_DEBUG_MARKER_END_REGION( cmdbuf )
-#define PG_DEBUG_MARKER_INSERT( cmdbuf, name, color )
+#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color )
+#define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name, color )
+
+#define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color )
+#define PG_DEBUG_MARKER_END_REGION_QUEUE( queue )
+#define PG_DEBUG_MARKER_INSERT_QUEUE( queue, name, color )
 
 #define PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( pool, name )
 #define PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( cmdbuf, name )

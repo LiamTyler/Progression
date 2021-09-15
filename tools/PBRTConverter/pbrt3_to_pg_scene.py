@@ -111,7 +111,7 @@ def ParseLoaderSceneIntoJson( loader, sceneDir ):
             continue
 
         json = {}
-        json["NameComponent"] = modelName
+        json["Metadata"] = { "name": modelName, "isStatic": True }
         json["ModelRenderer"] = { "model": modelName, "material": shape.material }
         combined = { "Entity" : json }
         sceneJson.append( combined )

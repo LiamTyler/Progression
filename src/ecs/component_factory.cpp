@@ -49,7 +49,7 @@ namespace PG
 
     static void ParseTransform( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {
-        Transform& t = registry.emplace< Transform >( e );
+        Transform& t = registry.get_or_emplace< Transform >( e );
         static JSONFunctionMapper< Transform& > mapping(
         {
             { "position", []( const rapidjson::Value& v, Transform& t ) { t.position = ParseVec3( v ); } },
@@ -63,7 +63,11 @@ namespace PG
 
     static void ParseModelRenderer( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
     {   
-        auto& comp = registry.emplace< ModelRenderer >( e );
+        auto& comp = registry.emplace<ModelRenderer>( e );
+        if ( !registry.has<Transform>( e ) )
+        {
+            registry.emplace<Transform>( e );
+        }
         static JSONFunctionMapper< ModelRenderer& > mapping(
         {
             { "model", []( const rapidjson::Value& v, ModelRenderer& comp )

@@ -303,7 +303,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     {
         LOG( "Using device: '%s'", r_globals.physicalDevice.GetName().c_str() );
         auto p = r_globals.physicalDevice.GetProperties();
-        LOG( "Using Vulkan Version: %d.%d.%d", p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
+        LOG( "Using Vulkan Version: %u.%u.%u", p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
     }
 
     r_globals.device = Device::Create( headless );

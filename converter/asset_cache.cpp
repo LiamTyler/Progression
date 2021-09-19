@@ -76,7 +76,7 @@ std::unique_ptr<char[]> GetCachedAssetRaw( AssetType assetType, const std::strin
     Serializer in;
     if ( !in.OpenForRead( path ) )
     {
-        return false;
+        return nullptr;
     }
     numBytes = in.BytesLeft();
     std::unique_ptr<char[]> ret( new char[numBytes] );

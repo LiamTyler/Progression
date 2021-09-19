@@ -122,7 +122,7 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
     m_height = extent.height;
     if ( m_width != preferredWidth || m_height != preferredHeight )
     {
-        LOG_WARN( "Could not create swapchain with dimensions %d x %d. Instead got %d x %d", preferredWidth, preferredHeight, m_width, m_height );
+        LOG_WARN( "Could not create swapchain with dimensions %u x %u. Instead got %u x %u", preferredWidth, preferredHeight, m_width, m_height );
     }
 
     m_numImages = swapChainSupport.capabilities.minImageCount + 1;

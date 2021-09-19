@@ -13,7 +13,7 @@
 #include <vector>
 
 std::string g_textureSearchDir;
-std::atomic<int> g_warnings;
+std::atomic<uint32_t> g_warnings;
 
 struct Mesh
 {
@@ -127,7 +127,7 @@ static bool OutputMaterial( const aiMaterial* assimpMat, const aiScene* scene, c
         }
         else if ( !GetAssimpTexturePath( assimpMat, aiTextureType_DIFFUSE, imagePath ) )
         {
-            LOG_WARN( "Material '%s': can't find diffuse texture, using filename '%s'", imagePath.c_str() );
+            LOG_WARN( "Material '%s': can't find diffuse texture, using filename '%s'", name.c_str(), imagePath.c_str() );
         }
         if ( !imagePath.empty() )
         {
@@ -396,7 +396,7 @@ int main( int argc, char* argv[] )
     }
 
     LOG( "Models converted: %u in %.2f seconds", modelsConverted, PG::Time::GetDuration( startTime ) / 1000.0f );
-    LOG( "Errors: %u, Warnings: %u", filesToProcess.size() - modelsConverted, g_warnings.load() );
+    LOG( "Errors: %zu, Warnings: %u", filesToProcess.size() - modelsConverted, g_warnings.load() );
     if ( modelsConverted > 0 )
     {
         outputJSON[outputJSON.length() - 2] = '\n';

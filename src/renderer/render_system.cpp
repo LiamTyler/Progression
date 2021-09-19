@@ -246,7 +246,7 @@ static void UpdateGlobalAndLightBuffers( Scene* scene )
     static GPU::PointLight cpuPointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
     if ( scene->pointLights.size() > PG_MAX_NUM_GPU_POINT_LIGHTS )
     {
-        LOG_WARN( "Exceeding limit (%d) of GPU point lights (%d). Ignoring any past limit", PG_MAX_NUM_GPU_POINT_LIGHTS, scene->pointLights.size() );
+        LOG_WARN( "Exceeding limit (%d) of GPU point lights (%zu). Ignoring any past limit", PG_MAX_NUM_GPU_POINT_LIGHTS, scene->pointLights.size() );
     }
     uint32_t numPointLights = std::min< uint32_t >( PG_MAX_NUM_GPU_POINT_LIGHTS, static_cast< uint32_t >( scene->pointLights.size() ) );
     for ( uint32_t i = 0; i < numPointLights; ++i )

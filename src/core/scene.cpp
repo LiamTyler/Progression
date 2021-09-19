@@ -176,7 +176,7 @@ Scene* Scene::Load( const std::string& filename )
     if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
     {
         delete scene;
-        return false;
+        return nullptr;
     }
 #endif // #if !USING( COMPILING_CONVERTER )
 

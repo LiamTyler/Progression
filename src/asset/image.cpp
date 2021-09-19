@@ -215,7 +215,7 @@ bool Image2D::Load( Image2DCreateInfo* createInfo )
     }
     else
     {
-        LOG_ERR( "Image filetype '%s'", ext, "' is not supported" );
+        LOG_ERR( "Image filetype '%s' is not supported", ext.c_str() );
         return false;
     }
 
@@ -303,7 +303,7 @@ bool Image2D::Save( const std::string& filename ) const
 
     if ( !saveSuccessful )
     {
-        LOG_ERR( "Could not save image '%'", filename.c_str() );
+        LOG_ERR( "Could not save image '%s'", filename.c_str() );
     }
 
     return true;

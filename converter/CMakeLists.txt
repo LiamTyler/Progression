@@ -1,7 +1,7 @@
+cmake_minimum_required(VERSION 3.0)
 project(Converter LANGUAGES CXX C)
 
-include(set_postfix)
-include(set_compile_options_default)
+include(helpful_functions)
 
 set(
 	SRC

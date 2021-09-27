@@ -1,3 +1,13 @@
+macro(SET_BIN_AND_LIB_DIRS binDir libDir)
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${binDir})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${libDir})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${libDir})
+
+    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${binDir})
+    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${libDir})
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${libDir})
+endmacro()
+
 function(COPY_FILE_IF_DIFFERENT src dst)
 	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src} ${dst})
 endfunction()

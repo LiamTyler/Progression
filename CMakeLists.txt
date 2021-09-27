@@ -18,31 +18,36 @@ endif()
 find_package(Vulkan REQUIRED)
 find_package(OpenMP REQUIRED)
 
+set(PROGRESSION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
 file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
 
 include(helpful_functions)
+
+set(EXT_DIR ${CMAKE_SOURCE_DIR}/code/external)
 #----------------------------ASSIMP--------------------------------------------
-CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release)
+CONFIG_TIME_COMPILE(${EXT_DIR}/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/bin/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/lib/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
 
 #------------------------------LZ4---------------------------------------------
-CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/lz4 ${CMAKE_BINARY_DIR}/ext/lz4 Release)
+CONFIG_TIME_COMPILE(${EXT_DIR}/lz4 ${CMAKE_BINARY_DIR}/ext/lz4 Release)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/lz4/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib lz4)
 
 #------------------------------GLFW--------------------------------------------
-CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release)
+CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
 
 #-------------------------------LUA--------------------------------------------
-CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/lua ${CMAKE_BINARY_DIR}/ext/lua Release)
+CONFIG_TIME_COMPILE(${EXT_DIR}/lua ${CMAKE_BINARY_DIR}/ext/lua Release)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/lua/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib lua)
 
+#-------------------------------IMAGELIB--------------------------------------------
+CONFIG_TIME_COMPILE(${EXT_DIR}/ImageLib ${CMAKE_BINARY_DIR}/ext/ImageLib Release)
+COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib ImageLib)
+COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib tiff)
 
-if(NOT PROGRESSION_DIR)
-    set(PROGRESSION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-endif()
 
 set_property(
     DIRECTORY
@@ -53,8 +58,8 @@ set_property(
     $<$<CONFIG:Ship>:CMAKE_DEFINE_SHIP_BUILD>
 )
 
-configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DIR}/src/core/platform_defines.hpp)
+configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DIR}/code/shared/platform_defines.hpp)
 
-add_subdirectory(engine)
-add_subdirectory(converter)
-add_subdirectory(tools)
+add_subdirectory(code/projects/engine)
+#add_subdirectory(code/projects/converter)
+#add_subdirectory(code/projects/model_exporter)

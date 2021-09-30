@@ -16,11 +16,15 @@ find_package(OpenMP REQUIRED)
 
 SET_BIN_AND_LIB_DIRS(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
 
-CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/bc7enc_rdo ${CMAKE_BINARY_DIR}/ext/bc7enc Release)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/bc7enc ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib bc7enc)
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/bc7enc.lib)
+	CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/bc7enc_rdo ${CMAKE_BINARY_DIR}/ext/bc7enc Release)
+	COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/bc7enc ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib bc7enc)
+endif()
 
-CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/libtiff ${CMAKE_BINARY_DIR}/ext/libtiff Release)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/libtiff/libtiff/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib tiff)
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/tiff.lib)
+	CONFIG_TIME_COMPILE(${CMAKE_SOURCE_DIR}/ext/libtiff ${CMAKE_BINARY_DIR}/ext/libtiff Release)
+	COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/libtiff/libtiff/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib tiff)
+endif()
 
 set(
 	SRC
@@ -70,7 +74,7 @@ add_library(${PROJECT_NAME} ${SRC_ALL})
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 
-target_include_directories(${PROJECT_NAME} PRIVATE
+target_include_directories(${PROJECT_NAME} PUBLIC
     ${ROOT_DIR}/code/
     ${ROOT_DIR}/code/external/
     ${CMAKE_CURRENT_SOURCE_DIR}/include/
@@ -80,10 +84,6 @@ target_include_directories(${PROJECT_NAME} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/ext/compressonator/
     ${CMAKE_CURRENT_SOURCE_DIR}/ext/compressonator/cmp_core/source/
 )
-target_link_directories(${PROJECT_NAME} PRIVATE
-	${CMAKE_BINARY_DIR}/lib/
-)
-target_link_libraries(${PROJECT_NAME} PRIVATE
-	OpenMP::OpenMP_CXX tiff
-)
+target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib/)
+target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX tiff)
 

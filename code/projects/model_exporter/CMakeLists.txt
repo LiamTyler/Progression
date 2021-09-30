@@ -16,7 +16,7 @@ set(SRC
     ${PROGRESSION_DIR}/code/shared/logger.hpp
 )
 
-set(LIBS assimp-vc142-mt OpenMP::OpenMP_CXX)
+set(LIBS ${ASSIMP_LIBS} OpenMP::OpenMP_CXX)
 
 add_executable(${PROJECT_NAME} ${SRC})
 SET_TARGET_POSTFIX(${PROJECT_NAME})

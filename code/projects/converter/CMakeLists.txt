@@ -98,8 +98,9 @@ set(
     ${CODE_DIR}/external/getopt/getopt.h
 )
 
-set(ALL_FILES ${SRC} ${EXTERNALS})
+set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
+set_source_files_properties(${IMAGELIB_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 add_executable(Converter ${ALL_FILES})
 
 target_include_directories(Converter PUBLIC

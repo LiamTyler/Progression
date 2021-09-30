@@ -148,8 +148,9 @@ set(
     ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
 )
 
-set(ALL_FILES ${SRC} ${EXTERNALS})
+set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
+set_source_files_properties(${IMAGELIB_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES

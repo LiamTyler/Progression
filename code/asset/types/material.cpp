@@ -1,7 +1,7 @@
 #include "asset/types/material.hpp"
-#include "shared/assert.hpp"
 #include "asset/asset_manager.hpp"
 #include "asset/types/gfx_image.hpp"
+#include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 

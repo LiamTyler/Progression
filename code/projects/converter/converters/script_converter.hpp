@@ -1,9 +1,8 @@
 #pragma once
 
-#include "base_asset_converter.hpp"
-#include "asset/types/gfx_image.hpp"
-#include "shared/json_parsing.hpp"
 #include "asset/types/script.hpp"
+#include "base_asset_converter.hpp"
+#include "shared/json_parsing.hpp"
 
 namespace PG
 {

@@ -1,11 +1,11 @@
 #include "renderer/r_texture_manager.hpp"
-#include "shared/assert.hpp"
 #include "renderer/graphics_api/sampler.hpp"
 #include "renderer/graphics_api/texture.hpp"
 #include "renderer/render_system.hpp"
 #include "renderer/r_globals.hpp"
-#include "shaders/c_shared/defines.h"
 #include "renderer/vulkan.hpp"
+#include "shaders/c_shared/defines.h"
+#include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include <bitset>
 #include <deque>

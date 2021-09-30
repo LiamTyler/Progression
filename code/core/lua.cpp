@@ -1,10 +1,10 @@
 #include "asset/asset_manager.hpp"
 #include "core/camera.hpp"
-#include "ecs/ecs.hpp"
 #include "core/input.hpp"
 #include "core/scene.hpp"
 #include "core/time.hpp"
 #include "core/window.hpp"
+#include "ecs/ecs.hpp"
 #include "shared/math.hpp"
 
 namespace PG

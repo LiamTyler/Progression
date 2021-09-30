@@ -90,7 +90,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converter_main.cpp
 )
 
-
 set(
 	EXTERNALS
     ${CODE_DIR}/external/memory_map/MemoryMapped.h
@@ -99,42 +98,18 @@ set(
     ${CODE_DIR}/external/getopt/getopt.h
 )
 
-set(
-	ALL_FILES
-	${SRC}
-	${EXTERNALS}
-)
+set(ALL_FILES ${SRC} ${EXTERNALS})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
+add_executable(Converter ${ALL_FILES})
 
-if(UNIX AND NOT APPLE)
-    set(SHADERC_LIB shaderc_combined)
-    set(SPIRVCROSS_LIB spirv-cross-core)
-elseif(MSVC)
-    set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
-    set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
-endif()
-
-include_directories(
+target_include_directories(Converter PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/
 	${CMAKE_CURRENT_SOURCE_DIR}/converters/
-    ${CODE_DIR}/
-    ${CODE_DIR}/external/
-    ${CODE_DIR}/external/glfw/include
-    ${CODE_DIR}/external/ImageLib/ext/
-    ${CODE_DIR}/external/ImageLib/src/
-    ${CODE_DIR}/external/lua/
-    ${PROGRESSION_DIR}/assets/
-    ${PROGRESSION_DIR}/assets/shaders/
-	${Vulkan_INCLUDE_DIR}
+    ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES} ${Vulkan_INCLUDE_DIR}
 )
 
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
-
-add_executable(Converter ${ALL_FILES})
 SET_TARGET_POSTFIX(Converter)
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(Converter)
-target_link_libraries(Converter
-	OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES}
-	lua lz4 ImageLib tiff
-)
 target_compile_definitions(Converter PUBLIC CMAKE_DEFINE_COMPILING_CONVERTER)
+target_link_libraries(Converter PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)

@@ -1,13 +1,13 @@
 #include "ecs/component_factory.hpp"
 #include "asset/asset_manager.hpp"
-#include "components/transform.hpp"
 #include "components/entity_metadata.hpp"
 #include "components/model_renderer.hpp"
-#include "shared/assert.hpp"
+#include "components/transform.hpp"
 #include "ecs/ecs.hpp"
+#include "entt/entt.hpp"
+#include "shared/assert.hpp"
 #include "shared/json_parsing.hpp"
 #include <unordered_map>
-#include "entt/entt.hpp"
 
 namespace PG
 {

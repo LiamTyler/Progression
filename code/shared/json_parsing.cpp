@@ -1,8 +1,8 @@
 #include "shared/json_parsing.hpp"
-#include "shared/logger.hpp"
-#include "rapidjson/error/error.h"
 #include "rapidjson/error/en.h"
+#include "rapidjson/error/error.h"
 #include "rapidjson/filereadstream.h"
+#include "shared/logger.hpp"
 #include <vector>
 
 bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )

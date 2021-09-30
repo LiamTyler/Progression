@@ -1,14 +1,14 @@
 #pragma once
 
-#include "asset/asset_versions.hpp"
 #include "asset/types/base_asset.hpp"
-#include "asset_file_database.hpp"
+#include "asset/asset_versions.hpp"
 #include "asset_cache.hpp"
+#include "asset_file_database.hpp"
 #include "shared/assert.hpp"
-#include "shared/logger.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/file_dependency.hpp"
 #include "shared/json_parsing.hpp"
+#include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 
 #define PARSE_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); return false; }

@@ -1,8 +1,8 @@
 #include "asset_file_database.hpp"
 #include "converters.hpp"
-#include "shared/platform_defines.hpp"
 #include "core/time.hpp"
 #include "shared/filesystem.hpp"
+#include "shared/platform_defines.hpp"
 #include <unordered_map>
 #include <filesystem>
 

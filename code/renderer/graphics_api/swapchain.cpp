@@ -1,7 +1,7 @@
 #include "renderer/graphics_api/swapchain.hpp"
-#include "shared/assert.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/vulkan.hpp"
+#include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include <vector>
 

@@ -1,7 +1,7 @@
 #include "renderer/graphics_api/buffer.hpp"
+#include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/core_defines.hpp"
-#include "renderer/r_globals.hpp"
 #include <string.h>
 
 namespace PG

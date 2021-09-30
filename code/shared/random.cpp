@@ -1,5 +1,4 @@
 #include "shared/random.hpp"
-
 #include <stdlib.h>
 #include <time.h>
 

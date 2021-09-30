@@ -1,9 +1,7 @@
 #pragma once
 
-#include "shared/platform_defines.hpp"
 #include "asset/types/script.hpp"
 #include "shared/logger.hpp"
-
 
 #if USING( DEBUG_BUILD )
 #define SOL_ALL_SAFETIES_ON 1

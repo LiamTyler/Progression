@@ -1,10 +1,10 @@
 #include "ecs/ecs.hpp"
-#include "shared/assert.hpp"
-#include "core/scene.hpp"
 #include "core/lua.hpp"
+#include "core/scene.hpp"
 #include "components/entity_metadata.hpp"
-#include "components/transform.hpp"
 #include "components/model_renderer.hpp"
+#include "components/transform.hpp"
+#include "shared/assert.hpp"
 
 namespace PG
 {

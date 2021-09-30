@@ -1,7 +1,7 @@
 #pragma once
 
-#include "glm/vec3.hpp"
 #include "glm/trigonometric.hpp"
+#include "glm/vec3.hpp"
 
 namespace PG
 {

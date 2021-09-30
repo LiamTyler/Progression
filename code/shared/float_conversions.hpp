@@ -1,8 +1,8 @@
 #pragma once
 
-#include <algorithm>
-#include "glm/vec4.hpp"
 #include "glm/fwd.hpp"
+#include "glm/vec4.hpp"
+#include <algorithm>
 
 using float16 = uint16_t;
 constexpr uint16_t FP16_ZERO = 0x0000;

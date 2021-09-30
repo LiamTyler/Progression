@@ -23,9 +23,4 @@ SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} ${LIBS})
 target_link_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib)
-target_include_directories(${PROJECT_NAME} PRIVATE
-    ${PROGRESSION_DIR}/code/
-    ${PROGRESSION_DIR}/code/external/
-    ${PROGRESSION_DIR}/code/external/assimp/include
-	${CMAKE_BINARY_DIR}/ext/assimp/include
-)
+target_include_directories(${PROJECT_NAME} PRIVATE ${COMMON_INCLUDE_DIRS} ${ASSIMP_INCLUDES})

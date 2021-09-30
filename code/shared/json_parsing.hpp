@@ -1,9 +1,9 @@
 #pragma once
 
+#include "glm/glm.hpp"
 #include "rapidjson/document.h"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
-#include "glm/glm.hpp"
 #include <functional>
 #include <string>
 #include <unordered_map>

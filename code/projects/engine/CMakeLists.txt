@@ -149,29 +149,7 @@ set(
 )
 
 set(ALL_FILES ${SRC} ${EXTERNALS})
-
-if(UNIX AND NOT APPLE)
-    set(SHADERC_LIB shaderc_combined)
-    set(SPIRVCROSS_LIB spirv-cross-core)
-elseif(MSVC)
-    set(SHADERC_LIB ${Vulkan_INCLUDE_DIR}/../Lib/shaderc_combined.lib)
-    set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
-endif()
-
-include_directories(
-    ${CODE_DIR}/
-    ${CODE_DIR}/external/
-    ${CODE_DIR}/external/glfw/include
-    ${CODE_DIR}/external/ImageLib/ext/
-    ${CODE_DIR}/external/ImageLib/src/
-    ${CODE_DIR}/external/lua/
-    ${PROGRESSION_DIR}/assets/
-    ${PROGRESSION_DIR}/assets/shaders/
-	${Vulkan_INCLUDE_DIR}
-)
-
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
-
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES
@@ -179,8 +157,10 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	RELEASE_POSTFIX _r
 	SHIP_POSTFIX _s
 )
-target_link_libraries(${PROJECT_NAME} PRIVATE
-	OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES}
-	lua lz4 glfw3dll ImageLib tiff
+target_include_directories(${PROJECT_NAME} PUBLIC
+    ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES} ${Vulkan_INCLUDE_DIR}
+    ${PROGRESSION_DIR}/assets/
+    ${PROGRESSION_DIR}/assets/shaders/
 )
-target_link_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib)
+target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} ${GLFW_LIBS} lua lz4)
+target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)

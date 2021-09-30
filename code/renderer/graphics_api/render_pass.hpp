@@ -1,8 +1,8 @@
 #pragma once
 
+#include "glm/vec4.hpp"
 #include "renderer/graphics_api/texture.hpp"
 #include "renderer/vulkan.hpp"
-#include "glm/vec4.hpp"
 #include <array>
 
 namespace PG

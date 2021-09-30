@@ -1,8 +1,8 @@
 #pragma once
 
-#include <vulkan/vulkan.h>
 #include "shared/assert.hpp"
 #include "shared/platform_defines.hpp"
+#include <vulkan/vulkan.h>
 
 #if USING( SHIP_BUILD )
 #define VK_CHECK_RESULT( f ) f

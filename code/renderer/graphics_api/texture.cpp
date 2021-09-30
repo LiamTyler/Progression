@@ -1,7 +1,7 @@
 #include "renderer/graphics_api/texture.hpp"
-#include "shared/assert.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "renderer/r_texture_manager.hpp"
+#include "shared/assert.hpp"
 #include <algorithm>
 #include <cmath>
 

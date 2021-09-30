@@ -16,35 +16,18 @@ configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DI
 
 SET_BIN_AND_LIB_DIRS(${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib)
 
-set(EXT_DIR ${CMAKE_SOURCE_DIR}/code/external)
-#----------------------------ASSIMP--------------------------------------------
-CONFIG_TIME_COMPILE(${EXT_DIR}/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/bin/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/lib/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
-
-#------------------------------LZ4---------------------------------------------
-CONFIG_TIME_COMPILE(${EXT_DIR}/lz4 ${CMAKE_BINARY_DIR}/ext/lz4 Release)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/lz4/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib lz4)
-
-#------------------------------GLFW--------------------------------------------
-CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
-
-#-------------------------------LUA--------------------------------------------
-CONFIG_TIME_COMPILE(${EXT_DIR}/lua ${CMAKE_BINARY_DIR}/ext/lua Release)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/lua/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib lua)
-
-#-------------------------------IMAGELIB--------------------------------------------
-CONFIG_TIME_COMPILE_DEBUG_AND_RELEASE(${EXT_DIR}/ImageLib ${CMAKE_BINARY_DIR}/ext/ImageLib)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib *)
-
-
 set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS
     $<$<CONFIG:Debug>:CMAKE_DEFINE_DEBUG_BUILD>
     $<$<CONFIG:Release>:CMAKE_DEFINE_RELEASE_BUILD>
     $<$<CONFIG:Ship>:CMAKE_DEFINE_SHIP_BUILD>
 )
 
+set(COMMON_INCLUDE_DIRS
+	${PROGRESSION_DIR}/code/
+    ${PROGRESSION_DIR}/code/external/
+)
+
+add_subdirectory(code/external)
 add_subdirectory(code/projects/engine)
 add_subdirectory(code/projects/converter)
 add_subdirectory(code/projects/model_exporter)

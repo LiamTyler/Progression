@@ -1,8 +1,8 @@
 #include "renderer/graphics_api/gpu_profiling.hpp"
-#include "shared/assert.hpp"
 #include "core/time.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
+#include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include <algorithm>
 #include <fstream>

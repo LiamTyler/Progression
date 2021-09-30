@@ -1,7 +1,7 @@
 ﻿#include "renderer/r_init.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
+#include "core/window.hpp" // must come after pg_to_vulkan_types.hpp for some reason
 #include "renderer/r_globals.hpp"
-#include "core/window.hpp"
 #include "shared/logger.hpp"
 #include <cstring>
 

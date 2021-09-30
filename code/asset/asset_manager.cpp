@@ -5,8 +5,8 @@
 #include "asset/types/model.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
-#include "shared/assert.hpp"
 #include "core/lua.hpp"
+#include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include <unordered_map>

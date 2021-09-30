@@ -1,10 +1,10 @@
 #include "logger.hpp"
-#include "assert.hpp"
+#include "shared/assert.hpp"
+#include "shared/platform_defines.hpp"
 #include <cstring>
 #include <mutex>
 #include <stdarg.h>
 #include <stdio.h>
-#include "platform_defines.hpp"
 
 #if USING( WINDOWS_PROGRAM )
 #define WIN32_LEAN_AND_MEAN

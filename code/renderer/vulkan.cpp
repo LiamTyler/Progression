@@ -1,6 +1,6 @@
 #include "renderer/vulkan.hpp"
-#include "shared/assert.hpp"
 #include "renderer/r_globals.hpp"
+#include "shared/assert.hpp"
 
 namespace PG
 {

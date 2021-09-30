@@ -1,9 +1,10 @@
 #pragma once
 
-#include "shaders/c_shared/defines.h"
-#include "renderer/vulkan.hpp"
 #include "core/pixel_formats.hpp"
+#include "renderer/vulkan.hpp"
 #include <string>
+
+#define PG_INVALID_TEXTURE_INDEX 65535 // keep in sync with c_shared/defines.h
 
 namespace PG
 {
@@ -79,7 +80,6 @@ namespace Gfx
         VkDevice m_device       = VK_NULL_HANDLE;
         Sampler* m_sampler      = nullptr;
         uint16_t m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
-
     };
 
 } // namespace Gfx

@@ -1,6 +1,6 @@
 #include "core/camera.hpp"
 #include "core/lua.hpp"
-#include "shared/math.hpp"
+#include "shared/math.hpp" // before matrix_transform for #define GLM_FORCE_DEPTH_ZERO_TO_ONE
 #include "glm/gtc/matrix_transform.hpp"
 
 namespace PG

@@ -1,8 +1,8 @@
 #include "asset_cache.hpp"
-#include "utils/filesystem.hpp"
-#include "core/platform_defines.hpp"
-#include "utils/file_dependency.hpp"
-#include "utils/serializer.hpp"
+#include "shared/filesystem.hpp"
+#include "shared/platform_defines.hpp"
+#include "shared/file_dependency.hpp"
+#include "shared/serializer.hpp"
 
 #define ROOT_DIR std::string( PG_ASSET_DIR "cache/" )
 

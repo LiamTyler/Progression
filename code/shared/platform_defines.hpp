@@ -7,9 +7,9 @@
 
 #include "core_defines.hpp"
 
-#define PG_ROOT_DIR "C:/Users/Liam Tyler/Documents/Progression/"
-#define PG_ASSET_DIR "C:/Users/Liam Tyler/Documents/Progression/assets/"
-#define PG_BIN_DIR "C:/Users/Liam Tyler/Documents/Progression/build/bin/"
+#define PG_ROOT_DIR "C:/Users/ltyler/Documents/Progression/"
+#define PG_ASSET_DIR "C:/Users/ltyler/Documents/Progression/assets/"
+#define PG_BIN_DIR "C:/Users/ltyler/Documents/Progression/build/bin/"
 
 #define LINUX_PROGRAM   NOT_IN_USE
 #define WINDOWS_PROGRAM IN_USE

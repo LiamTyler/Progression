@@ -1,14 +1,13 @@
 #include "asset/types/gfx_image.hpp"
-#include "asset/image.hpp"
-#include "shared/assert.hpp"
+#include "glm/glm.hpp"
+#include "image.hpp"
 #include "renderer/r_globals.hpp"
+#include "shared/assert.hpp"
 #include "shared/color_spaces.hpp"
 #include "shared/float_conversions.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
-#include "glm/glm.hpp"
 #include "stb/stb_image_resize.h"
-
 #include <algorithm>
 
 namespace PG
@@ -274,8 +273,8 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
     Image2DCreateInfo srcImgCreateInfo;
     srcImgCreateInfo.filename = createInfo.filename;
     srcImgCreateInfo.flipVertically = createInfo.flipVertically;
-    Image2D srcImg;
-    if ( !srcImg.Load( &srcImgCreateInfo ) )
+    ImageF32 srcImg;
+    if ( !srcImg.Load( srcImgCreateInfo ) )
     {
         return false;
     }

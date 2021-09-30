@@ -4,12 +4,12 @@
 #include "asset/types/base_asset.hpp"
 #include "asset_file_database.hpp"
 #include "asset_cache.hpp"
-#include "core/assert.hpp"
-#include "utils/logger.hpp"
-#include "utils/filesystem.hpp"
-#include "utils/file_dependency.hpp"
-#include "utils/json_parsing.hpp"
-#include "utils/serializer.hpp"
+#include "shared/assert.hpp"
+#include "shared/logger.hpp"
+#include "shared/filesystem.hpp"
+#include "shared/file_dependency.hpp"
+#include "shared/json_parsing.hpp"
+#include "shared/serializer.hpp"
 
 #define PARSE_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); return false; }
 

@@ -2,28 +2,19 @@ cmake_minimum_required (VERSION 3.7.2) # For FindVulkan module
 
 Project(Progression)
 list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
+include(helpful_functions)
 
-set(LINUX_PROGRAM   "NOT_IN_USE")
-set(WINDOWS_PROGRAM "NOT_IN_USE")
-set(APPLE_PROGRAM   "NOT_IN_USE")
-
-if(UNIX AND NOT APPLE)
-    set(LINUX_PROGRAM   "IN_USE")
-elseif(WIN32)
-    set(WINDOWS_PROGRAM "IN_USE")
-elseif(APPLE)
-    set(APPLE_PROGRAM   "IN_USE")
-endif()
-
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+set_property(GLOBAL PROPERTY PREDEFINED_TARGETS_FOLDER "CMakePredefinedTargets")
+set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
+SET_PLATFORM_DEFINES()
 find_package(Vulkan REQUIRED)
 find_package(OpenMP REQUIRED)
 
 set(PROGRESSION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DIR}/code/shared/platform_defines.hpp)
 
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
-file(MAKE_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
-
-include(helpful_functions)
+SET_BIN_AND_LIB_DIRS(${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib)
 
 set(EXT_DIR ${CMAKE_SOURCE_DIR}/code/external)
 #----------------------------ASSIMP--------------------------------------------
@@ -44,22 +35,16 @@ CONFIG_TIME_COMPILE(${EXT_DIR}/lua ${CMAKE_BINARY_DIR}/ext/lua Release)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/lua/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib lua)
 
 #-------------------------------IMAGELIB--------------------------------------------
-CONFIG_TIME_COMPILE(${EXT_DIR}/ImageLib ${CMAKE_BINARY_DIR}/ext/ImageLib Release)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib ImageLib)
-COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib tiff)
+CONFIG_TIME_COMPILE_DEBUG_AND_RELEASE(${EXT_DIR}/ImageLib ${CMAKE_BINARY_DIR}/ext/ImageLib)
+COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib *)
 
 
-set_property(
-    DIRECTORY
-    PROPERTY
-    COMPILE_DEFINITIONS
+set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS
     $<$<CONFIG:Debug>:CMAKE_DEFINE_DEBUG_BUILD>
     $<$<CONFIG:Release>:CMAKE_DEFINE_RELEASE_BUILD>
     $<$<CONFIG:Ship>:CMAKE_DEFINE_SHIP_BUILD>
 )
 
-configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DIR}/code/shared/platform_defines.hpp)
-
 add_subdirectory(code/projects/engine)
-#add_subdirectory(code/projects/converter)
-#add_subdirectory(code/projects/model_exporter)
+add_subdirectory(code/projects/converter)
+add_subdirectory(code/projects/model_exporter)

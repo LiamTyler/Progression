@@ -1,7 +1,7 @@
 #include "gfx_image_converter.hpp"
-#include "asset/image.hpp"
+#include "image.hpp"
 #include "asset/types/gfx_image.hpp"
-#include "utils/hash.hpp"
+#include "shared/hash.hpp"
 
 
 namespace PG

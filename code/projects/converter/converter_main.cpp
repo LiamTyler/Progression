@@ -2,16 +2,15 @@
 #include "asset/asset_manager.hpp"
 #include "asset_file_database.hpp"
 #include "converters.hpp"
-#include "core/assert.hpp"
+#include "shared/assert.hpp"
 #include "core/scene.hpp"
 #include "core/time.hpp"
 #include "getopt/getopt.h"
-#include "utils/cpu_profile.hpp"
-#include "utils/filesystem.hpp"
-#include "utils/file_dependency.hpp"
-#include "utils/logger.hpp"
-#include "utils/json_parsing.hpp"
-#include "utils/serializer.hpp"
+#include "shared/filesystem.hpp"
+#include "shared/file_dependency.hpp"
+#include "shared/logger.hpp"
+#include "shared/json_parsing.hpp"
+#include "shared/serializer.hpp"
 #include <algorithm>
 #include <unordered_set>
 

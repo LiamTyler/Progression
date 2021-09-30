@@ -4,6 +4,7 @@
 #include "glm/vec4.hpp"
 #include "glm/fwd.hpp"
 
+using float16 = uint16_t;
 constexpr uint16_t FP16_ZERO = 0x0000;
 constexpr uint16_t FP16_ONE = 0x3C00;
 
@@ -83,6 +84,11 @@ inline uint16_t Float32ToFloat16( float f32 )
     return o.u;
 }
 
+inline glm::u16vec4 Float32ToFloat16( glm::vec4 v )
+{
+    return { Float32ToFloat16( v.x ), Float32ToFloat16( v.y), Float32ToFloat16( v.z ), Float32ToFloat16( v.w ) };
+}
+
 
 inline float Float16ToFloat32( uint16_t f16 )
 {
@@ -111,6 +117,12 @@ inline float Float16ToFloat32( uint16_t f16 )
     return o.f;
 }
 
+inline glm::vec4 Float16ToFloat32( glm::u16vec4 v )
+{
+    return { Float16ToFloat32( v.x ), Float16ToFloat32( v.y), Float16ToFloat32( v.z ), Float16ToFloat32( v.w ) };
+}
+
+
 inline uint8_t UNormFloatToByte( float x )
 {
     return static_cast<uint8_t>( 255.0f * x + 0.5f );
@@ -120,6 +132,7 @@ inline glm::u8vec4 UNormFloatToByte( glm::vec4 v )
 {
     return { UNormFloatToByte( v.x ), UNormFloatToByte( v.y), UNormFloatToByte( v.z ), v.w };
 }
+
 
 inline float UNormByteToFloat( uint8_t x )
 {

@@ -2,7 +2,7 @@
 
 #include "base_asset_converter.hpp"
 #include "asset/types/gfx_image.hpp"
-#include "utils/json_parsing.hpp"
+#include "shared/json_parsing.hpp"
 #include "asset/types/script.hpp"
 
 namespace PG

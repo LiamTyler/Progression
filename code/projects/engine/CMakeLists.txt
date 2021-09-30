@@ -1,11 +1,8 @@
 project(Engine LANGUAGES CXX C)
 
-set(CMAKE_CXX_STANDARD 20)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(helpful_functions)
 
 set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Ship")
-
 SET_BIN_AND_LIB_DIRS(${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/lib)
@@ -126,7 +123,6 @@ set(
     
     ${CODE_DIR}/shared/bitops.hpp
     ${CODE_DIR}/shared/core_defines.hpp
-    ${CODE_DIR}/shared/cpu_profile.hpp
     ${CODE_DIR}/shared/file_dependency.cpp
     ${CODE_DIR}/shared/file_dependency.hpp
     ${CODE_DIR}/shared/filesystem.cpp
@@ -162,18 +158,15 @@ elseif(MSVC)
     set(SPIRVCROSS_LIB ${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib)
 endif()
 
-set(LIBS lua lz4 OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES})
-
 include_directories(
     ${CODE_DIR}/
     ${CODE_DIR}/external/
     ${CODE_DIR}/external/glfw/include
     ${CODE_DIR}/external/ImageLib/ext/
-    ${CODE_DIR}/external/ImageLib/include/
+    ${CODE_DIR}/external/ImageLib/src/
     ${CODE_DIR}/external/lua/
     ${PROGRESSION_DIR}/assets/
     ${PROGRESSION_DIR}/assets/shaders/
-    ${CODE_DIR}/ext/lua
 	${Vulkan_INCLUDE_DIR}
 )
 
@@ -187,6 +180,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	SHIP_POSTFIX _s
 )
 target_link_libraries(${PROJECT_NAME} PRIVATE
-	${LIBS} glfw3dll ImageLib tiff
+	OpenMP::OpenMP_CXX ${SHADERC_LIB} ${SPIRVCROSS_LIB} ${Vulkan_LIBRARIES}
+	lua lz4 glfw3dll ImageLib tiff
 )
 target_link_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib)

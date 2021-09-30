@@ -1,7 +1,7 @@
 #include "base_asset_converter.hpp"
 #include "material_converter.hpp"
 #include "asset/types/material.hpp"
-#include "utils/hash.hpp"
+#include "shared/hash.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "glm/gtx/hash.hpp"
 

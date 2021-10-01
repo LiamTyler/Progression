@@ -61,6 +61,14 @@ namespace Gfx
             indexingFeatures.runtimeDescriptorArray = VK_TRUE;
             createInfo.pNext = &indexingFeatures;
         }
+        VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2 = {};
+        if ( features.nullDescriptors )
+        {
+            vkFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+            vkFeatures2.pNext = &indexingFeatures;
+            vkFeatures2.nullDescriptor = true;
+            createInfo.pNext = &vkFeatures2;
+        }
         
         std::vector< const char* > extensions;
         if ( !headless )
@@ -296,6 +304,12 @@ namespace Gfx
     void Device::UpdateDescriptorSets( uint32_t count, const VkWriteDescriptorSet* writes ) const
     {
         vkUpdateDescriptorSets( m_handle, count, writes, 0, nullptr );
+    }
+
+
+    void Device::UpdateDescriptorSet( const VkWriteDescriptorSet& writes ) const
+    {
+        vkUpdateDescriptorSets( m_handle, 1, &writes, 0, nullptr );
     }
 
 

@@ -36,6 +36,12 @@ struct PointLight
     VEC4 color;
 };
 
+struct SkyboxData
+{
+	VEC3 tint;
+	UINT hasTexture;
+};
+
 #ifndef PG_SHADER_CODE
 } // namespace GPU
 #endif // #ifndef PG_SHADER_CODE

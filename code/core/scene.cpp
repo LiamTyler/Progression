@@ -97,7 +97,7 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 
 static bool ParseBackgroundColor( const rapidjson::Value& v, Scene* scene )
 {
-    scene->backgroundColor = ParseVec4( v );
+    scene->backgroundColor = ParseVec3( v );
     return true;
 }
 

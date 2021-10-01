@@ -48,6 +48,7 @@ endif()
 # much more likely to be edited than the other projects, so always recompile
 CONFIG_TIME_COMPILE_DEBUG_AND_RELEASE(${EXT_DIR}/ImageLib ${CMAKE_BINARY_DIR}/ext/ImageLib)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib *)
+COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/bin ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib *)
 set(IMAGELIB_INCLUDES
     ${PROGRESSION_DIR}/code/external/ImageLib/ext/
     ${PROGRESSION_DIR}/code/external/ImageLib/src/

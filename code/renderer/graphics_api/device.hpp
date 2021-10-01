@@ -29,6 +29,7 @@ namespace Gfx
         DescriptorPool NewDescriptorPool( int numPoolSizes, VkDescriptorPoolSize* poolSizes, uint32_t maxSets = 1, const std::string& name = "" ) const;
         bool RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uint32_t* stagesForBindings ) const;
         void UpdateDescriptorSets( uint32_t count, const VkWriteDescriptorSet* writes ) const;
+        void UpdateDescriptorSet( const VkWriteDescriptorSet& write ) const;
         Buffer NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
         Buffer NewBuffer( size_t length, void* data, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
         Texture NewTexture( const TextureDescriptor& desc, const std::string& name = "" ) const;

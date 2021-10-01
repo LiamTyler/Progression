@@ -37,7 +37,7 @@ Buffer s_cubeIndexBuffer;
 
 DescriptorSet bindlessTexturesDescriptorSet;
 DescriptorSet skyboxDescriptorSet;
-Texture* skyboxTexture;
+Texture* s_skyboxTexture;
 
 RenderGraph s_renderGraph;
 
@@ -175,21 +175,25 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 
         postProcessDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[0] );
         imgDescriptors      = { DescriptorImageInfo( s_renderGraph.GetPhysicalResource( "litOutput" )->texture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-        writeDescriptorSets = { WriteDescriptorSet( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
+        writeDescriptorSets = { WriteDescriptorSet_Image( postProcessDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
         r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     
         sceneGlobalDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_BUFFER_SET] );
         bufferDescriptors   = { DescriptorBufferInfo( sceneGlobals ) };
-        writeDescriptorSets = { WriteDescriptorSet( sceneGlobalDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
+        writeDescriptorSets = { WriteDescriptorSet_Buffer( sceneGlobalDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
         r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
         lightsDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_LIGHTS_SET] );
         bufferDescriptors   = { DescriptorBufferInfo( s_gpuPointLights ) };
-        writeDescriptorSets = { WriteDescriptorSet( lightsDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
+        writeDescriptorSets = { WriteDescriptorSet_Buffer( lightsDescriptorSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
         r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
         bindlessTexturesDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_BINDLESS_TEXTURE_SET] );
         skyboxDescriptorSet = r_globals.descriptorPool.NewDescriptorSet( skyboxPipeline.GetResourceLayout()->sets[0] );
+        imgDescriptors      = { DescriptorImageInfoNull() };
+        writeDescriptorSets = { WriteDescriptorSet_Image( skyboxDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ) };
+        r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        s_skyboxTexture = nullptr;
     }
 
     return true;
@@ -264,20 +268,25 @@ static void UpdateSkyboxAndBackground( Scene* scene )
 {
     if ( scene->skybox )
     {
-        if ( skyboxTexture != &scene->skybox->gpuTexture )
+        if ( s_skyboxTexture != &scene->skybox->gpuTexture )
         {
-            skyboxTexture = &scene->skybox->gpuTexture;
+            s_skyboxTexture = &scene->skybox->gpuTexture;
             std::vector< VkDescriptorImageInfo > imgDescriptors;
             std::vector< VkWriteDescriptorSet > writeDescriptorSets;
 
-            imgDescriptors      = { DescriptorImageInfo( *skyboxTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-            writeDescriptorSets = { WriteDescriptorSet( skyboxDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
+            imgDescriptors      = { DescriptorImageInfo( *s_skyboxTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
+            writeDescriptorSets = { WriteDescriptorSet_Image( skyboxDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
             r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
         }
     }
     else
     {
-        PG_ASSERT( false, "havent handled non-skybox path yet" );
+        if ( s_skyboxTexture )
+        {
+            VkDescriptorImageInfo nullImg = DescriptorImageInfoNull();
+            r_globals.device.UpdateDescriptorSet( WriteDescriptorSet_Image( skyboxDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &nullImg ) );
+        }
+        s_skyboxTexture = nullptr;
     }
 }
 
@@ -380,6 +389,10 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
     cmdBuf->BindIndexBuffer( s_cubeIndexBuffer, IndexType::UNSIGNED_SHORT );
     glm::mat4 cubeVP = scene->camera.GetP() * glm::mat4( glm::mat3( scene->camera.GetV() ) );
     cmdBuf->PushConstants( 0, sizeof( cubeVP ), &cubeVP );
+    GPU::SkyboxData data;
+    data.hasTexture = s_skyboxTexture != nullptr;
+    data.tint = scene->backgroundColor;
+    cmdBuf->PushConstants( 64, sizeof( data ), &data );
     cmdBuf->DrawIndexed( 0, 36 );
 }
 

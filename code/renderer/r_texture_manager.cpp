@@ -98,7 +98,7 @@ namespace TextureManager
             s_imageInfos[i].imageView   = s_slotsAddedSinceLastUpdate[i].second.view;
             s_imageInfos[i].sampler     = s_slotsAddedSinceLastUpdate[i].second.sampler;
 
-            s_setWrites[i] = WriteDescriptorSet( textureDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &s_imageInfos[i], 1, static_cast< uint32_t >( s_slotsAddedSinceLastUpdate[i].first ) );
+            s_setWrites[i] = WriteDescriptorSet_Image( textureDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &s_imageInfos[i], 1, static_cast< uint32_t >( s_slotsAddedSinceLastUpdate[i].first ) );
         }
 
         r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( s_setWrites.size() ), s_setWrites.data() );

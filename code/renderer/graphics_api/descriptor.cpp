@@ -22,7 +22,7 @@ namespace Gfx
     }
 
 
-    VkWriteDescriptorSet WriteDescriptorSet( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorBufferInfo* bufferInfo, uint32_t descriptorCount, uint32_t arrayElement )
+    VkWriteDescriptorSet WriteDescriptorSet_Buffer( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorBufferInfo* bufferInfo, uint32_t descriptorCount, uint32_t arrayElement )
     {
 		VkWriteDescriptorSet writeDescriptorSet {};
 		writeDescriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -37,7 +37,7 @@ namespace Gfx
 	}
 
 
-    VkWriteDescriptorSet WriteDescriptorSet( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorImageInfo* imageInfo, uint32_t descriptorCount, uint32_t arrayElement )
+    VkWriteDescriptorSet WriteDescriptorSet_Image( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorImageInfo* imageInfo, uint32_t descriptorCount, uint32_t arrayElement )
     {
 		VkWriteDescriptorSet writeDescriptorSet {};
 		writeDescriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
@@ -52,9 +52,20 @@ namespace Gfx
 	}
 
 
+    VkDescriptorImageInfo DescriptorImageInfoNull( VkImageLayout imageLayout )
+    {
+        VkDescriptorImageInfo imageInfo;
+        imageInfo.imageLayout = imageLayout;
+        imageInfo.sampler     = GetSampler( "nearest_clamped_nearest" )->GetHandle(); // has to be valid handle, but doesnt really matter which
+        imageInfo.imageView   = VK_NULL_HANDLE;
+
+        return imageInfo;
+    }
+
+
     VkDescriptorImageInfo DescriptorImageInfo( const Gfx::Texture& tex, VkImageLayout imageLayout )
     {
-        VkDescriptorImageInfo imageInfo = {};
+        VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = imageLayout;
         imageInfo.sampler     = tex.GetSampler()->GetHandle();
         imageInfo.imageView   = tex.GetView();

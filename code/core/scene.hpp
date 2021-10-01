@@ -25,7 +25,7 @@ namespace PG
         void Update();
 
         Camera camera;
-        glm::vec4 backgroundColor = glm::vec4( 0, 0, 0, 1 );
+        glm::vec3 backgroundColor = glm::vec3( 0, 0, 0 );
         glm::vec3 ambientColor    = glm::vec3( .1f );
         DirectionalLight directionalLight;
         std::vector< PointLight > pointLights;

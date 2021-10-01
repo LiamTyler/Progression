@@ -2,8 +2,8 @@
     { "Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ] } },
     { "_Camera": { "position": [ 0, 0, 4 ], "rotation": [ 0, 0, 0 ] } },
     { "Script": "cameraController" },
-    { "BackgroundColor": [ 0.2, 0.2, 0.2, 1 ] },
-    { "Skybox": "kloppenheim" },
+    { "BackgroundColor": [ 0.7, 1.4, 2.35 ] },
+    { "_Skybox": "kloppenheim" },
     { "AmbientColor": [ 0.8, 0.8, 0.8 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0.5, -1.5, -1 ] } },
     { "Entity": {

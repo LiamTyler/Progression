@@ -165,7 +165,7 @@ static int RatePhysicalDevice( const PhysicalDevice& dev, bool headless )
     }
 
     const auto& features = dev.GetFeatures();
-    if ( !features.anisotropy || !features.bindless )
+    if ( !features.anisotropy || !features.bindless || !features.nullDescriptors )
     {
         return 0;
     }
@@ -201,21 +201,24 @@ static PhysicalDeviceFeatures GetDeviceFeatures( VkPhysicalDevice physicalDevice
 {
     VkPhysicalDeviceFeatures vkFeatures;
     vkGetPhysicalDeviceFeatures( physicalDevice, &vkFeatures );
+
     VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
     indexingFeatures.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
     indexingFeatures.pNext = nullptr;
 
+    VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2 = {};
+    vkFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
+    vkFeatures2.pNext = &indexingFeatures;
+
     VkPhysicalDeviceFeatures2 deviceFeatures{};
     deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    deviceFeatures.pNext = &indexingFeatures;
+    deviceFeatures.pNext = &vkFeatures2;
     vkGetPhysicalDeviceFeatures2( physicalDevice, &deviceFeatures );
     
     PhysicalDeviceFeatures f = {};
     f.anisotropy = vkFeatures.samplerAnisotropy == VK_TRUE;
-    if ( indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray )
-    {
-	    f.bindless = true;
-    }
+    f.bindless = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
+    f.nullDescriptors = vkFeatures2.nullDescriptor;
 
     return f;
 }

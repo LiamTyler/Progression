@@ -24,6 +24,7 @@ struct PhysicalDeviceFeatures
 {
     bool anisotropy = false;
     bool bindless = false;
+    bool nullDescriptors = false;
 };
 
 class PhysicalDevice

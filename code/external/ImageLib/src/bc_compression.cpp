@@ -149,13 +149,13 @@ bool Compress_RGBASingleMip_To_BC( uint8_t* srcMip, int width, int height, const
         else ispc::bc7e_compress_block_params_init_slowest( &params, true );
         
         // bc7e wants an array of 4x4 blocks, at least 32-64 at a time if possible
-        std::vector<glm::u8vec4[16]> blocks( totalBlocks );
+        std::vector<glm::u8vec4> blocks( totalBlocks * 16 );
         #pragma omp parallel for
         for ( int by = 0; by < blocksY; ++by )
 	    {
 		    for ( int bx = 0; bx < blocksX; ++bx )
 		    {
-                image.GetBlockClamped( bx, by, &blocks[by*blocksX + bx][0] );
+                image.GetBlockClamped( bx, by, &blocks[16 * (by*blocksX + bx)] );
             }
         }
         
@@ -166,7 +166,7 @@ bool Compress_RGBASingleMip_To_BC( uint8_t* srcMip, int width, int height, const
 	    {
             uint64_t* dstBlock = reinterpret_cast<uint64_t*>( compressedOutput + chunk * blocksPerChunk * bytesPerBlock );
             uint32_t numBlocks = std::min( blocksPerChunk, totalBlocks - chunk * blocksPerChunk );
-            uint32_t* srcBlock = reinterpret_cast<uint32_t*>( &blocks[chunk * blocksPerChunk][0][0] );
+            uint32_t* srcBlock = reinterpret_cast<uint32_t*>( &blocks[16 * (chunk * blocksPerChunk)] );
             ispc::bc7e_compress_blocks( numBlocks, dstBlock, srcBlock, &params );
         }
     }

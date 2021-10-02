@@ -1,4 +1,3 @@
-set(WINDOWS_SDK_VERSION 10.0.18362.0)
 project(Engine LANGUAGES CXX C)
 
 include(helpful_functions)

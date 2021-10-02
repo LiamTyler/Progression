@@ -233,17 +233,28 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
 }
 
 
-bool ConvertAssets( const std::string& sceneName, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
+bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
 {
     auto convertStartTime = Time::GetTimePoint();
     uint32_t convertErrors = 0;
+    outOfDateAssets = 0;
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
         for ( const auto& assetName : assetsUsed[assetTypeIdx] )
         {
-            if ( !g_converters[assetTypeIdx]->Convert( assetName ) )
+            AssetStatus status = g_converters[assetTypeIdx]->IsAssetOutOfDate( assetName );
+            if ( status == AssetStatus::ERROR )
             {
-                convertErrors += 1;
+                ++convertErrors;
+                continue;
+            }
+            else if ( status == AssetStatus::OUT_OF_DATE )
+            {
+                ++outOfDateAssets;
+                if ( !g_converters[assetTypeIdx]->Convert( assetName ) )
+                {
+                    convertErrors += 1;
+                }
             }
         }
     }
@@ -262,7 +273,7 @@ bool ConvertAssets( const std::string& sceneName, const std::unordered_set<std::
 }
 
 
-bool OutputFastfile( const std::string& sceneFile, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
+bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAssets, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
 {
     std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
@@ -302,6 +313,7 @@ bool OutputFastfile( const std::string& sceneFile, const std::unordered_set<std:
     }
     else
     {
+        PG_ASSERT( outOfDateAssets == 0 );
         LOG( "Fastfile %s is up to date already!", fastfileName.c_str() );
     }
 
@@ -333,8 +345,9 @@ bool ProcessScene( const std::string& sceneFile )
     }
     //LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
 
-    bool success = ConvertAssets( GetRelativeFilename( sceneFile ), assetsUsed );
-    success = success && OutputFastfile( sceneFile, assetsUsed );
+    uint32_t outOfDateAssets;
+    bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets, assetsUsed );
+    success = success && OutputFastfile( sceneFile, outOfDateAssets, assetsUsed );
     return success;
 }
 

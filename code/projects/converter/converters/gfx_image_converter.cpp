@@ -171,18 +171,18 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstInfoPtr info )
 }
 
 
-ConvertDate GfxImageConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
+AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
 {
     AddFastfileDependency( info->filename );
     for ( const auto& faceFilename : info->faceFilenames )
     {
         if ( IsFileOutOfDate( cacheTimestamp, faceFilename ) )
         {
-            return ConvertDate::OUT_OF_DATE;
+            return AssetStatus::OUT_OF_DATE;
         }
     }
     
-    return IsFileOutOfDate( cacheTimestamp, info->filename ) ? ConvertDate::OUT_OF_DATE : ConvertDate::UP_TO_DATE;
+    return IsFileOutOfDate( cacheTimestamp, info->filename ) ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;
 }
 
 } // namespace PG

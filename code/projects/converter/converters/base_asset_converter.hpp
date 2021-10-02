@@ -21,7 +21,7 @@ struct ConverterConfigOptions
     bool force = false;
 };
 
-enum class ConvertDate : uint8_t
+enum class AssetStatus : uint8_t
 {
     OUT_OF_DATE,
     UP_TO_DATE,
@@ -30,13 +30,10 @@ enum class ConvertDate : uint8_t
 
 extern ConverterConfigOptions g_converterConfigOptions;
 
-// IsAssetOutOfDate will take care of all the individual input files for each asset, but
-// AddFastfileDependency needs to be called on each converted .ffi file
 void AddFastfileDependency( const std::string& file );
 void AddFastfileDependency( time_t timestamp );
 void ClearAllFastfileDependencies();
 time_t GetLatestFastfileDependency();
-void FilenameSlashesToUnderscores( std::string& str );
 
 
 class BaseAssetConverter
@@ -53,7 +50,7 @@ public:
 
     virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, ConstBaseInfoPtr parent ) = 0;
     virtual std::string GetCacheName( ConstBaseInfoPtr baseInfo ) = 0;
-    virtual ConvertDate IsAssetOutOfDate( const std::string& assetName ) = 0;
+    virtual AssetStatus IsAssetOutOfDate( const std::string& assetName ) = 0;
     virtual bool Convert( const std::string& assetName ) = 0;
 };
 
@@ -90,26 +87,26 @@ public:
         return GetCacheNameInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
     }
 
-    virtual ConvertDate IsAssetOutOfDate( const std::string& assetName ) override
+    virtual AssetStatus IsAssetOutOfDate( const std::string& assetName ) override
     {
         auto info = AssetDatabase::FindAssetInfo<DerivedInfo>( assetType, assetName );
         if ( !info )
         {
             LOG_ERR( "Scene requires asset %s of type %s, but no valid entry found in the database.", assetName.c_str(), assetNameInJsonFile.c_str() );
-            return ConvertDate::ERROR;
+            return AssetStatus::ERROR;
         }
 
         if ( g_converterConfigOptions.force )
         {
             AddFastfileDependency( LATEST_TIMESTAMP );
-            return ConvertDate::OUT_OF_DATE;
+            return AssetStatus::OUT_OF_DATE;
         }
 
         time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, GetCacheName( info ) );
         if ( cachedTimestamp == NO_TIMESTAMP )
         {
             AddFastfileDependency( LATEST_TIMESTAMP );
-            return ConvertDate::OUT_OF_DATE;
+            return AssetStatus::OUT_OF_DATE;
         }
         AddFastfileDependency( cachedTimestamp );
 
@@ -118,14 +115,6 @@ public:
 
     virtual bool Convert( const std::string& assetName ) override
     {
-        ConvertDate status = IsAssetOutOfDate( assetName );
-        if ( status == ConvertDate::UP_TO_DATE )
-        {
-            //LOG( "Asset %s is up to date", assetName.c_str() );
-            return true;
-        }
-        else if ( status == ConvertDate::ERROR ) return false;
-
         auto info = AssetDatabase::FindAssetInfo<DerivedInfo>( assetType, assetName );
         LOG( "Converting out of date asset %s %s...", assetNameInJsonFile.c_str(), info->name.c_str() );
         DerivedAsset asset;
@@ -147,7 +136,7 @@ public:
 protected:
     virtual bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) = 0;
     virtual std::string GetCacheNameInternal( ConstInfoPtr info ) = 0;
-    virtual ConvertDate IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) = 0;
+    virtual AssetStatus IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) = 0;
 };
 
 } // namespace PG

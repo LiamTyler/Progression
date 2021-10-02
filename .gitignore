@@ -10,6 +10,7 @@ tests/
 *.spv
 .vscode/
 Sponza-master/
+code/external/ImageLib/ext/bc7enc_rdo/bc7e_ispc*
 
 __pycache__
 

@@ -10,11 +10,11 @@ platform:
   - x64
 configuration:
   - Debug
-  - Ship
+  - Release
   
 environment:
   VULKAN_SDK: c:\VulkanSDK\1.2.162.1
-  PG_IS_CI_BUILD: 1 
+  PG_IS_APPVEYOR_BUILD: 1 
 
 install:
   - curl -O --silent https://sdk.lunarg.com/sdk/download/1.2.162.1/windows/vulkan_sdk.exe
@@ -26,7 +26,7 @@ build:
   
 build_script:
   - mkdir build && cd build
-  - cmake -G "Visual Studio 16 2019" -Ax64 ..
+  - cmake -DWINDOWS_SYSTEM_VERSION=10.0.18362.0 -G "Visual Studio 16 2019" -Ax64 ..
   - cmake --build . --config %CONFIGURATION%
 
 notifications:

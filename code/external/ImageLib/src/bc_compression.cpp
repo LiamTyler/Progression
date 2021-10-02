@@ -96,7 +96,7 @@ bool Compress_RGBASingleMip_To_BC( uint8_t* srcMip, int width, int height, const
 		    for ( int bx = 0; bx < blocksX; ++bx )
 		    {
                 glm::u8vec4 src[16];
-                image.GetBlockClamped( bx, by, src );
+                image.GetBlockClamped( bx, by, &src[0] );
                 uint8_t* dst = compressedOutput + bytesPerBlock * (by * blocksX + bx);
                 switch ( bcNumber )
                 {
@@ -132,7 +132,7 @@ bool Compress_RGBASingleMip_To_BC( uint8_t* srcMip, int width, int height, const
 		    for ( int bx = 0; bx < blocksX; ++bx )
 		    {
                 glm::u16vec4 blockSrc[16];
-                image.GetBlockClamped( bx, by, blockSrc );
+                image.GetBlockClamped( bx, by, &blockSrc[0] );
                 uint8_t* blockDst = compressedOutput + bytesPerBlock * (by * blocksX + bx);
                 CompressBlockBC6( (uint16_t*)blockSrc, 16, blockDst, options );
             }
@@ -155,7 +155,7 @@ bool Compress_RGBASingleMip_To_BC( uint8_t* srcMip, int width, int height, const
 	    {
 		    for ( int bx = 0; bx < blocksX; ++bx )
 		    {
-                image.GetBlockClamped( bx, by, blocks[by*blocksX + bx] );
+                image.GetBlockClamped( bx, by, &blocks[by*blocksX + bx][0] );
             }
         }
         

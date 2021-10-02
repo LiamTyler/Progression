@@ -56,14 +56,26 @@ endfunction()
 function(CONFIG_TIME_COMPILE source_dir build_dir CONFIG)
     file(MAKE_DIRECTORY ${build_dir})
 	if(WIN32)
-		execute_process(
-			COMMAND ${CMAKE_COMMAND} ${source_dir}
-			WORKING_DIRECTORY ${build_dir}
-		)
-		execute_process(
-			COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIG}
-			WORKING_DIRECTORY ${build_dir}
-		)
+		# Appveyor defaults to the windows sdk 10.0.17763.0, which doesnt work with the /Zc:preprocessor flag
+		if (PG_IS_APPVEYOR_BUILD)
+			execute_process(
+				COMMAND ${CMAKE_COMMAND} -DWINDOWS_SYSTEM_VERSION=10.0.18362.0 -G "Visual Studio 16 2019" -Ax64 ${source_dir}
+				WORKING_DIRECTORY ${build_dir}
+			)
+			execute_process(
+				COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIG}
+				WORKING_DIRECTORY ${build_dir}
+			)
+		else()
+			execute_process(
+				COMMAND ${CMAKE_COMMAND} -G "Visual Studio 16 2019" -Ax64 ${source_dir}
+				WORKING_DIRECTORY ${build_dir}
+			)
+			execute_process(
+				COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIG}
+				WORKING_DIRECTORY ${build_dir}
+			)
+		endif()
 	else()
 		execute_process(
 			COMMAND ${CMAKE_COMMAND} -DCMAKE_BUILD_TYPE=${CONFIG} ${source_dir}

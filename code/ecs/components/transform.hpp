@@ -9,6 +9,7 @@ namespace PG
 struct Transform
 {
     Transform() = default;
+    Transform( glm::vec3 inPosition, glm::vec3 inRotation, glm::vec3 inScale );
 
     glm::mat4 GetModelMatrix() const;
 

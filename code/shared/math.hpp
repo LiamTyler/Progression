@@ -38,3 +38,25 @@ inline std::ostream& operator<<( std::ostream& out, const glm::mat4& v )
 {
     return out << v[0] << "\n" << v[1] << "\n" << v[2] << "\n" << v[3];
 }
+
+inline float AbsDot( const glm::vec3& v1, const glm::vec3& v2 )
+{
+    return glm::abs( glm::dot( v1, v2 ) );
+}
+
+struct Ray
+{
+    Ray() = default;
+    Ray( const glm::vec3& pos, const glm::vec3& dir );
+
+    glm::vec3 Evaluate( float t ) const;
+
+    glm::vec3 position;
+    glm::vec3 direction;
+};
+
+struct Interaction
+{
+    glm::vec3 p;
+    glm::vec3 n;
+};

@@ -4,6 +4,11 @@
 namespace PG
 {
 
+Transform::Transform( glm::vec3 inPosition, glm::vec3 inRotation, glm::vec3 inScale )
+    : position( inPosition ), rotation( inRotation ), scale( inScale )
+{
+}
+
 glm::mat4 Transform::GetModelMatrix() const
 {
     glm::mat4 model( 1 );

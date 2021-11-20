@@ -31,6 +31,7 @@ public:
     float aspectRatio;
     float nearPlane;
     float farPlane;
+    float exposure;
 
 protected:
     glm::mat4 m_viewMatrix;

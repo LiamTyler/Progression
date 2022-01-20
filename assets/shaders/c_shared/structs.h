@@ -1,7 +1,7 @@
 #include "c_shared/defines.h"
 
 #ifndef PG_SHADER_CODE
-namespace GPU
+namespace GpuData
 {
 #endif // #ifndef PG_SHADER_CODE
 
@@ -43,7 +43,7 @@ struct SkyboxData
 };
 
 #ifndef PG_SHADER_CODE
-} // namespace GPU
+} // namespace GpuData
 #endif // #ifndef PG_SHADER_CODE
 
 #define PG_SCENE_GLOBALS_BUFFER_SET 0

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "image.hpp"
-#include "offline_scene.hpp"
+#include "pt_scene.hpp"
 
 namespace PT
 {

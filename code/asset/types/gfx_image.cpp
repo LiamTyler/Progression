@@ -20,9 +20,9 @@ void GfxImage::Free()
         free( pixels );
         pixels = nullptr;
     }
-#if !USING( COMPILING_CONVERTER )
+#if USING( GPU_DATA )
     gpuTexture.Free();
-#endif // #if !USING( COMPILING_CONVERTER )
+#endif // #if USING( GPU )
 }
 
 
@@ -51,9 +51,7 @@ unsigned char* GfxImage::GetPixels( uint32_t face, uint32_t mip, uint32_t depthL
 
 void GfxImage::UploadToGpu()
 {
-#if USING( COMPILING_CONVERTER )
-    PG_ASSERT( false, "Render system not available in converter" );
-#else // #if USING( COMPILING_CONVERTER )
+#if USING( GPU_DATA )
     using namespace Gfx;
     PG_ASSERT( pixels );
     
@@ -77,8 +75,7 @@ void GfxImage::UploadToGpu()
     PG_ASSERT( gpuTexture );
     free( pixels );
     pixels = nullptr;
-
-#endif // #else // #if USING( COMPILING_CONVERTER )
+#endif // #if USING( GPU )
 }
 
 

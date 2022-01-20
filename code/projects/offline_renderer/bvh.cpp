@@ -203,9 +203,9 @@ static int FlattenBVHBuild( LinearBVHNode* linearRoot, BVHBuildNode* buildNode, 
     return currentSlot;
 }
 
-void BVH::Build( std::vector< std::shared_ptr< Shape > >& listOfShapes )
+void BVH::Build( std::vector< Shape* >& listOfShapes )
 {
-    shapes = std::move( listOfShapes );
+    //shapes = std::move( listOfShapes );
 
     assert( shapes.size() > 0 );
     std::vector< BVHBuildShapeInfo > buildShapes( shapes.size() );

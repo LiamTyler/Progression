@@ -14,9 +14,9 @@ struct lua_State;
 namespace PG::AssetManager
 {
 
-#if USING( COMPILING_CONVERTER )
+#if USING( CONVERTER )
     extern std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::NUM_ASSET_TYPES];
-#endif // #if USING( COMPILING_CONVERTER )
+#endif // #if USING( CONVERTER )
 
 struct GetAssetTypeIDHelper
 {
@@ -48,26 +48,8 @@ template < typename T >
 T* Get( const std::string& name )
 {
     static_assert( std::is_base_of<BaseAsset, T>::value && !std::is_same<BaseAsset, T>::value, "Resource manager only manages classes derived from 'Resource'" );
-
-    // in the converter just want to get a list of asset names that are used while parsing the scene
-#if USING( COMPILING_CONVERTER )
-    auto asset = Get( GetAssetTypeID<T>::ID(), name );
-    if ( !asset )
-    {
-        auto newAsset = new T;
-        newAsset->name = name;
-        AssetType typeIdx = (AssetType)GetAssetTypeID<T>::ID();
-        g_resourceMaps[typeIdx][name] = newAsset;
-        return newAsset;
-    }
-    else
-    {
-        return static_cast<T*>( asset );
-    }
-#else // #if USING( COMPILING_CONVERTER )
     BaseAsset* asset = Get( GetAssetTypeID<T>::ID(), name );
     return static_cast<T*>( asset );
-#endif // #else // #if USING( COMPILING_CONVERTER )
 }
 
 } // namesapce PG::AssetManager

@@ -127,9 +127,9 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 
     // BUFFERS + IMAGES
     {
-        sceneGlobals = r_globals.device.NewBuffer( sizeof( GPU::SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
+        sceneGlobals = r_globals.device.NewBuffer( sizeof( GpuData::SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "scene globals ubo" );
         sceneGlobals.Map();
-        s_gpuPointLights = r_globals.device.NewBuffer( PG_MAX_NUM_GPU_POINT_LIGHTS * sizeof( GPU::PointLight ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "point lights ubo" );
+        s_gpuPointLights = r_globals.device.NewBuffer( PG_MAX_NUM_GPU_POINT_LIGHTS * sizeof( GpuData::PointLight ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "point lights ubo" );
         s_gpuPointLights.Map();
 
         glm::vec3 verts[] =
@@ -221,9 +221,9 @@ void Shutdown()
 }
 
 
-GPU::MaterialData CPUMaterialToGPU( Material* material )
+GpuData::MaterialData CPUMaterialToGPU( Material* material )
 {
-    GPU::MaterialData gpuMaterial;
+    GpuData::MaterialData gpuMaterial;
     gpuMaterial.albedoTint = glm::vec4( material->albedoTint, 1 );
     gpuMaterial.metalnessTint = material->metalnessTint;
     gpuMaterial.roughnessTint = material->roughnessTint;
@@ -237,17 +237,17 @@ GPU::MaterialData CPUMaterialToGPU( Material* material )
 
 static void UpdateGlobalAndLightBuffers( Scene* scene )
 {
-    GPU::SceneGlobals globalData;
+    GpuData::SceneGlobals globalData;
     globalData.V      = scene->camera.GetV();
     globalData.P      = scene->camera.GetP();
     globalData.VP     = scene->camera.GetVP();
     globalData.invVP  = glm::inverse( scene->camera.GetVP() );
     globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
 
-    memcpy( sceneGlobals.MappedPtr(), &globalData, sizeof( GPU::SceneGlobals ) );
+    memcpy( sceneGlobals.MappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );
     sceneGlobals.FlushCpuWrites();
 
-    static GPU::PointLight cpuPointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
+    static GpuData::PointLight cpuPointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
     if ( scene->pointLights.size() > PG_MAX_NUM_GPU_POINT_LIGHTS )
     {
         LOG_WARN( "Exceeding limit (%d) of GPU point lights (%zu). Ignoring any past limit", PG_MAX_NUM_GPU_POINT_LIGHTS, scene->pointLights.size() );
@@ -259,7 +259,7 @@ static void UpdateGlobalAndLightBuffers( Scene* scene )
         cpuPointLights[i].positionAndRadius = glm::vec4( light.position, light.radius );
         cpuPointLights[i].color = glm::vec4( light.intensity * light.color, 0 );
     }
-    memcpy( s_gpuPointLights.MappedPtr(), cpuPointLights, numPointLights * sizeof( GPU::PointLight ) );
+    memcpy( s_gpuPointLights.MappedPtr(), cpuPointLights, numPointLights * sizeof( GpuData::PointLight ) );
     s_gpuPointLights.FlushCpuWrites();
 }
 
@@ -328,7 +328,7 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& renderer, Transform& transform )
     {
         const Model* model = renderer.model;
-        auto M = transform.GetModelMatrix();
+        auto M = transform.Matrix();
         cmdBuf->PushConstants( 0, sizeof( glm::mat4 ), &M[0][0] );
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
         cmdBuf->BindIndexBuffer(  model->indexBuffer );
@@ -355,10 +355,10 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
     {
         const Model* model = modelRenderer.model;
-        auto M = transform.GetModelMatrix();
+        auto M = transform.Matrix();
         auto N = glm::transpose( glm::inverse( M ) );
-        GPU::PerObjectData perObjData{ M, N };
-        cmdBuf->PushConstants( 0, sizeof( GPU::PerObjectData ), &perObjData );
+        GpuData::PerObjectData perObjData{ M, N };
+        cmdBuf->PushConstants( 0, sizeof( GpuData::PerObjectData ), &perObjData );
     
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
@@ -369,7 +369,7 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
         {
             const Mesh& mesh   = modelRenderer.model->meshes[i];
             Material* material = modelRenderer.materials[i];
-            GPU::MaterialData gpuMaterial = CPUMaterialToGPU( material );
+            GpuData::MaterialData gpuMaterial = CPUMaterialToGPU( material );
             cmdBuf->PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
             PG_DEBUG_MARKER_INSERT_CMDBUF( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
             cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
@@ -389,7 +389,7 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
     cmdBuf->BindIndexBuffer( s_cubeIndexBuffer, IndexType::UNSIGNED_SHORT );
     glm::mat4 cubeVP = scene->camera.GetP() * glm::mat4( glm::mat3( scene->camera.GetV() ) );
     cmdBuf->PushConstants( 0, sizeof( cubeVP ), &cubeVP );
-    GPU::SkyboxData data;
+    GpuData::SkyboxData data;
     data.hasTexture = s_skyboxTexture != nullptr;
     data.tint = scene->backgroundColor;
     cmdBuf->PushConstants( 64, sizeof( data ), &data );

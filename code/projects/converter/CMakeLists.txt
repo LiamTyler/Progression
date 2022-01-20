@@ -18,9 +18,25 @@ set(
     ${CODE_DIR}/asset/types/script.hpp
     ${CODE_DIR}/asset/types/shader.cpp
     ${CODE_DIR}/asset/types/shader.hpp
+    ${CODE_DIR}/asset/parsing/base_asset_parse.cpp
+    ${CODE_DIR}/asset/parsing/base_asset_parse.hpp
+    ${CODE_DIR}/asset/parsing/gfx_image_parse.cpp
+    ${CODE_DIR}/asset/parsing/gfx_image_parse.hpp
+    ${CODE_DIR}/asset/parsing/material_parse.cpp
+    ${CODE_DIR}/asset/parsing/material_parse.hpp
+    ${CODE_DIR}/asset/parsing/model_parse.cpp
+    ${CODE_DIR}/asset/parsing/model_parse.hpp
+    ${CODE_DIR}/asset/parsing/script_parse.cpp
+    ${CODE_DIR}/asset/parsing/script_parse.hpp
+    ${CODE_DIR}/asset/parsing/shader_parse.cpp
+    ${CODE_DIR}/asset/parsing/shader_parse.hpp
     ${CODE_DIR}/asset/asset_manager.cpp
     ${CODE_DIR}/asset/asset_manager.hpp
     ${CODE_DIR}/asset/asset_versions.hpp
+    ${CODE_DIR}/asset/asset_cache.cpp
+    ${CODE_DIR}/asset/asset_cache.hpp
+    ${CODE_DIR}/asset/asset_file_database.cpp
+    ${CODE_DIR}/asset/asset_file_database.hpp
     ${CODE_DIR}/asset/shader_preprocessor.cpp
     ${CODE_DIR}/asset/shader_preprocessor.hpp
     
@@ -31,6 +47,8 @@ set(
     ${CODE_DIR}/core/feature_defines.hpp
     ${CODE_DIR}/core/frustum.cpp
     ${CODE_DIR}/core/frustum.hpp
+    ${CODE_DIR}/core/init.cpp
+    ${CODE_DIR}/core/init.hpp
     ${CODE_DIR}/core/input_types.hpp
     ${CODE_DIR}/core/lights.hpp
     ${CODE_DIR}/core/lua.cpp
@@ -62,6 +80,7 @@ set(
     ${CODE_DIR}/shared/json_parsing.hpp
     ${CODE_DIR}/shared/logger.cpp
     ${CODE_DIR}/shared/logger.hpp
+    ${CODE_DIR}/shared/math.cpp
     ${CODE_DIR}/shared/math.hpp
     ${CODE_DIR}/shared/noncopyable.hpp
     ${CODE_DIR}/shared/random.cpp
@@ -81,10 +100,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/asset_cache.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/asset_cache.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/asset_file_database.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/asset_file_database.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter_main.cpp
@@ -111,6 +126,6 @@ target_include_directories(Converter PUBLIC
 
 SET_TARGET_POSTFIX(Converter)
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(Converter)
-target_compile_definitions(Converter PUBLIC CMAKE_DEFINE_COMPILING_CONVERTER)
+target_compile_definitions(Converter PUBLIC CMAKE_DEFINE_CONVERTER)
 target_link_libraries(Converter PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)

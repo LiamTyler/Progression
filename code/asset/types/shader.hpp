@@ -49,9 +49,9 @@ struct Shader : public BaseAsset
     VkShaderModule handle = VK_NULL_HANDLE;
     ShaderResourceLayout resourceLayout;
 
-#if USING( COMPILING_CONVERTER )
+#if USING( CONVERTER )
     std::vector< uint32_t > savedSpirv;
-#endif // #if USING( COMPILING_CONVERTER )
+#endif // #if USING( CONVERTER )
 };
 
 } // namespace PG

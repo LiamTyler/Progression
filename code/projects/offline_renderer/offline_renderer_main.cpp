@@ -1,16 +1,21 @@
-#include "shared/logger.hpp"
+#include "core/init.hpp"
 #include "path_tracer.hpp"
-//#include "resource/resource_manager.hpp"
-
+#include "pt_scene.hpp"
 #include <filesystem>
 
 using namespace PT;
+using namespace PG;
 namespace fs = std::filesystem;
 
 int main( int argc, char** argv )
 {
-    Logger_Init();
-    Logger_AddLogLocation( "stdout", stdout );
+    EngineInitInfo engineInitConfig;
+    engineInitConfig.offlineRenderer = true;
+	if ( !EngineInitialize( engineInitConfig ) )
+    {
+        LOG_ERR( "Failed to initialize the engine" );
+        return 1;
+    }
 
     if ( argc != 2 )
     {
@@ -46,7 +51,6 @@ int main( int argc, char** argv )
         }
     }
 
-    Logger_Shutdown();
-
+    EngineShutdown();
     return 0;
 }

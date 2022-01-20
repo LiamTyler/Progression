@@ -1,11 +1,13 @@
 #include "asset/asset_manager.hpp"
 #include "core/camera.hpp"
-#include "core/input.hpp"
 #include "core/scene.hpp"
 #include "core/time.hpp"
-#include "core/window.hpp"
 #include "ecs/ecs.hpp"
 #include "shared/math.hpp"
+#if USING( GAME )
+#include "core/input.hpp"
+#include "core/window.hpp"
+#endif // #if USING( GAME )
 
 namespace PG
 {
@@ -91,21 +93,26 @@ namespace Lua
     }
 
 
-    void Init( lua_State* L )
+    void Init()
     {
-        sol::state_view state( L );
-        state.open_libraries( sol::lib::base, sol::lib::math );
+        g_LuaState.open_libraries( sol::lib::base, sol::lib::math );
 
-        RegisterLuaFunctions_Math( L );
-        RegisterLuaFunctions_Scene( L );
-        RegisterLuaFunctions_Camera( L );
-        ECS::RegisterLuaFunctions( L );
-        AssetManager::RegisterLuaFunctions( L );
-        RegisterTimeFunctions( L );
-#if !USING( COMPILING_CONVERTER )
-        RegisterLuaFunctions_Window( L );
-        Input::RegisterLuaFunctions( L );
-#endif // #if !USING( COMPILING_CONVERTER )
+        RegisterLuaFunctions_Math( g_LuaState );
+        RegisterLuaFunctions_Scene( g_LuaState );
+        RegisterLuaFunctions_Camera( g_LuaState );
+        ECS::RegisterLuaFunctions( g_LuaState );
+        AssetManager::RegisterLuaFunctions( g_LuaState );
+        RegisterTimeFunctions( g_LuaState );
+#if USING( GAME )
+        RegisterLuaFunctions_Window( g_LuaState );
+        Input::RegisterLuaFunctions( g_LuaState );
+#endif // #if USING( GAME )
+    }
+
+
+    void Shutdown()
+    {
+        g_LuaState = {};
     }
 
 

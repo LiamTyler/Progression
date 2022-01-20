@@ -1,6 +1,4 @@
 #include "base_asset_converter.hpp"
-#include "asset_file_database.hpp"
-#include "asset_cache.hpp"
 
 namespace PG
 {

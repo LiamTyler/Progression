@@ -38,7 +38,7 @@ namespace ECS
         transform_type["position"] = &Transform::position;
         transform_type["rotation"] = &Transform::rotation;
         transform_type["scale"]    = &Transform::scale;
-        transform_type["GetModelMatrix"] = &Transform::GetModelMatrix;
+        transform_type["Matrix"]   = &Transform::Matrix;
 
         REGISTER_COMPONENT_WITH_ECS( state, ModelRenderer );
         sol::usertype< ModelRenderer > modelRenderer_type = state.new_usertype< ModelRenderer >( "ModelRenderer" );

@@ -1,9 +1,9 @@
 #pragma once
 
+#include "asset/pt_material.hpp"
 #include "core/bounding_box.hpp"
 #include "intersection_tests.hpp"
-#include "lights.hpp"
-//#include "resource/material.hpp"
+#include "pt_lights.hpp"
 #include "ecs/components/transform.hpp"
 #include <memory>
 
@@ -56,8 +56,8 @@ struct Sphere : public Shape
 
 struct Triangle : public Shape
 {
-    std::shared_ptr< MeshInstance > mesh;
-    uint32_t i0, i1, i2;
+    uint32_t meshIndex;
+    uint32_t firstVertIndex;
 
     Material* GetMaterial() const override;
     float Area() const override;

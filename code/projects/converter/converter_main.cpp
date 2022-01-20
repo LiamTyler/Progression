@@ -1,7 +1,8 @@
 #include "asset/asset_manager.hpp"
+#include "asset/asset_file_database.hpp"
 #include "asset/asset_versions.hpp"
-#include "asset_file_database.hpp"
 #include "converters.hpp"
+#include "core/init.hpp"
 #include "core/scene.hpp"
 #include "core/time.hpp"
 #include "getopt/getopt.h"
@@ -145,7 +146,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
             bool found = false;
             for ( int i = 0; i < NUM_ASSET_TYPES; ++i )
             {
-                if ( vec[0] == g_converters[i]->assetNameInJsonFile )
+                if ( vec[0] == g_assetNames[i] )
                 {
                     assetsUsed[i].insert( vec[1] );
                     found = true;
@@ -354,10 +355,8 @@ bool ProcessScene( const std::string& sceneFile )
 
 int main( int argc, char** argv )
 {
-    Logger_Init();
-    Logger_AddLogLocation( "stdout", stdout );
-
     auto initStartTime = Time::GetTimePoint();
+	EngineInitialize();
     g_converterConfigOptions = {};
     std::string sceneFile;
     bool singleScene;
@@ -365,7 +364,6 @@ int main( int argc, char** argv )
     {
         return 0;
     }
-    AssetManager::Init();
     AssetCache::Init();
     InitConverters();
     AssetDatabase::Init();
@@ -399,6 +397,6 @@ int main( int argc, char** argv )
     }
     
     ShutdownConverters();
-    Logger_Shutdown();
+    EngineShutdown();
     return 0;
 }

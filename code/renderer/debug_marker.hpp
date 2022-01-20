@@ -60,7 +60,7 @@ namespace DebugMarker
 } // namespace Gfx
 } // namespace PG
 
-#if !USING( SHIP_BUILD ) && !USING( COMPILING_CONVERTER )
+#if !USING( SHIP_BUILD ) && USING( GPU_DATA )
 
 #define PG_DEBUG_MARKER_NAME( x, y ) ( std::string( x ) + y )
 #define PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( s, x ) if ( !s.empty() ) { x; }
@@ -108,7 +108,7 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )          PG::Gfx::DebugMarker::SetDescriptorPoolName( PG::Gfx::r_globals.device.GetHandle(), pool.GetHandle(), PG_DEBUG_MARKER_NAME( "Descriptor Pool: ", name ) )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )         PG::Gfx::DebugMarker::SetQueryPoolName( PG::Gfx::r_globals.device.GetHandle(), pool, PG_DEBUG_MARKER_NAME( "Query Pool: ", name ) )
 
-#else // #if !USING( SHIP_BUILD ) && !USING( COMPILING_CONVERTER )
+#else // #if !USING( SHIP_BUILD ) && USING( GPU_DATA )
 
 #define PG_DEBUG_MARKER_NAME( x, y )
 #define PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( s, x )
@@ -145,4 +145,4 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )
 
-#endif // #else // #if !USING( SHIP_BUILD ) && !USING( COMPILING_CONVERTER )
+#endif // #else // #if !USING( SHIP_BUILD ) && USING( GPU_DATA )

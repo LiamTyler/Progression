@@ -124,10 +124,10 @@ glm::vec3 Li( const Ray& ray, Scene* scene )
         hitData.position += EPSILON * hitData.normal;
 
         // emitted light of current surface
-        if ( bounce == 0 && glm::dot( hitData.wo, hitData.normal ) > 0 )
-        {
-            L += pathThroughput * hitData.material->Ke;
-        }
+        //if ( bounce == 0 && glm::dot( hitData.wo, hitData.normal ) > 0 )
+        //{
+        //    L += pathThroughput * hitData.material->Ke;
+        //}
 
         BRDF brdf = hitData.material->ComputeBRDF( &hitData ); 
 
@@ -190,7 +190,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
                 totalColor              += Li( ray, scene );
             }
 
-            renderedImage.SetPixel( row, col, glm::vec4( totalColor / (float)samplesPerPixel, 1.0f );
+            renderedImage.SetPixel( row, col, glm::vec4( totalColor / (float)samplesPerPixel, 1.0f ) );
         }
 
         int rowsCompleted = ++renderProgress;

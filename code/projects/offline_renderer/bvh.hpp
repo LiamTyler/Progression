@@ -28,7 +28,7 @@ public:
     BVH() = default;
     ~BVH();
 
-    void Build( std::vector< std::shared_ptr< Shape > >& shapes );
+    void Build( std::vector< Shape* >& shapes );
     bool Intersect( const Ray& ray, IntersectionData* hitData ) const;
     bool Occluded( const Ray& ray, float tMax = FLT_MAX ) const;
     PG::AABB GetAABB() const;

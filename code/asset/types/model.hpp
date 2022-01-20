@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
+#include "shared/platform_defines.hpp"
 #include "renderer/graphics_api/buffer.hpp"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
@@ -45,12 +46,14 @@ struct Model : public BaseAsset
     std::vector<Mesh> meshes;
     std::vector<Material*> originalMaterials;
 
+#if USING( GPU_DATA )
     Gfx::Buffer vertexBuffer;
     Gfx::Buffer indexBuffer;
     size_t gpuPositionOffset;
     size_t gpuNormalOffset;
     size_t gpuTexCoordOffset;
     size_t gpuTangentOffset;
+#endif // #if USING( GPU_DATA )
 };
 
 } // namespace PG

@@ -26,6 +26,7 @@ static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
         { "aspectRatio", []( const rapidjson::Value& v, Camera& camera ) { camera.aspectRatio = ParseNumber< float >( v ); } },
         { "nearPlane",   []( const rapidjson::Value& v, Camera& camera ) { camera.nearPlane   = ParseNumber< float >( v ); } },
         { "farPlane",    []( const rapidjson::Value& v, Camera& camera ) { camera.farPlane    = ParseNumber< float >( v ); } },
+        { "exposure",    []( const rapidjson::Value& v, Camera& camera ) { camera.exposure    = ParseNumber< float >( v ); } },
     });
 
     mapping.ForEachMember( v, camera );
@@ -171,13 +172,13 @@ Scene* Scene::Load( const std::string& filename )
     Lua::g_LuaState["ECS"] = &scene->registry;
     Lua::g_LuaState["scene"] = scene;
 
-#if !USING( COMPILING_CONVERTER )
+#if USING( GAME )
     if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
     {
         delete scene;
         return nullptr;
     }
-#endif // #if !USING( COMPILING_CONVERTER )
+#endif // #if USING( GAME )
 
     static JSONFunctionMapperBoolCheck< Scene* > mapping(
     {

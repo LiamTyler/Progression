@@ -205,7 +205,7 @@ void Model::RecalculateNormals()
 
 void Model::UploadToGPU()
 {
-#if !USING( COMPILING_CONVERTER )
+#if USING( GPU_DATA )
     if ( vertexBuffer )
     {
         vertexBuffer.Free();
@@ -248,7 +248,7 @@ void Model::UploadToGPU()
     free( tmpMem );
 
     FreeCPU();
-#endif // #if !USING( COMPILING_CONVERTER )
+#endif // #if USING( GPU_DATA )
 }
 
 
@@ -270,7 +270,7 @@ void Model::FreeCPU()
 
 void Model::FreeGPU()
 {
-#if !USING( COMPILING_CONVERTER )
+#if USING( GPU_DATA )
     if ( vertexBuffer )
     {
         vertexBuffer.Free();
@@ -279,7 +279,7 @@ void Model::FreeGPU()
     {
         indexBuffer.Free();
     }
-#endif // #if !USING( COMPILING_CONVERTER )
+#endif // #if USING( GPU_DATA )
 }
 
 

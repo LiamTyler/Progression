@@ -28,7 +28,8 @@ namespace Lua
 {
     extern sol::state g_LuaState;
 
-    void Init( lua_State* L );
+    void Init();
+    void Shutdown();
 
     void RunScriptNow( const std::string& script );
 

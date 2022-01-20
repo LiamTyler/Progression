@@ -1,5 +1,5 @@
-#include "lights.hpp"
-#include "scene.hpp"
+#include "pt_lights.hpp"
+#include "pt_scene.hpp"
 #include "shapes.hpp"
 
 namespace PT

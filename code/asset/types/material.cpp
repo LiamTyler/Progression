@@ -3,6 +3,7 @@
 #include "asset/types/gfx_image.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
+#include "shared/random.hpp"
 #include "shared/serializer.hpp"
 
 namespace PG

@@ -9,7 +9,7 @@ Transform::Transform( glm::vec3 inPosition, glm::vec3 inRotation, glm::vec3 inSc
 {
 }
 
-glm::mat4 Transform::GetModelMatrix() const
+glm::mat4 Transform::Matrix() const
 {
     glm::mat4 model( 1 );
     model = glm::translate( model, position );
@@ -19,6 +19,29 @@ glm::mat4 Transform::GetModelMatrix() const
     model = glm::scale( model, scale );
 
     return model;
+}
+
+
+glm::vec3 Transform::TransformPoint( glm::vec3 p ) const
+{
+    return glm::vec3( Matrix() * glm::vec4( p, 1 ) );
+}
+
+
+glm::vec3 Transform::TransformVector( glm::vec3 v ) const
+{
+    return glm::vec3( Matrix() * glm::vec4( v, 0 ) );
+}
+
+
+Ray Transform::operator*( const Ray& ray ) const
+{
+    glm::mat4 matrix = Matrix();
+    Ray ret;
+    ret.direction = glm::vec3( matrix * glm::vec4( ray.direction, 0 ) );
+    ret.position  = glm::vec3( matrix * glm::vec4( ray.position, 1 ) );
+
+    return ret;
 }
 
 } // namespace PG

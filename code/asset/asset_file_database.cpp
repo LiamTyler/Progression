@@ -1,10 +1,9 @@
 #include "asset_file_database.hpp"
-#include "converters.hpp"
+#include "asset/parsing/base_asset_parse.hpp"
 #include "core/time.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/platform_defines.hpp"
 #include <unordered_map>
-#include <filesystem>
 
 
 namespace PG::AssetDatabase
@@ -28,7 +27,7 @@ static bool ParseAssetFile( const std::string& filename )
         const json::Value& value = assetIter->MemberBegin()->value;
         for ( int typeIndex = 0; typeIndex < NUM_ASSET_TYPES; ++typeIndex )
         {
-            if ( assetTypeStr == g_converters[typeIndex]->assetNameInJsonFile )
+            if ( assetTypeStr == g_assetNames[typeIndex] )
             {
                 const std::string assetName = value["name"].GetString();
                 if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )
@@ -50,7 +49,7 @@ static bool ParseAssetFile( const std::string& filename )
                             parent = it->second;
                         }
                     }
-                    auto createInfo = g_converters[typeIndex]->Parse( value, parent );
+                    auto createInfo = g_assetParsers[typeIndex]->Parse( value, parent );
                     if ( createInfo )
                     {
                         createInfo->name = assetName;

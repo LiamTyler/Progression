@@ -20,9 +20,6 @@ set(CODE_DIR ${PROGRESSION_DIR}/code)
 set(
 	SRC
     
-    ${CODE_DIR}/projects/engine/engine_init.cpp
-    ${CODE_DIR}/projects/engine/engine_init.hpp
-    
     ${CODE_DIR}/asset/types/base_asset.hpp
     ${CODE_DIR}/asset/types/gfx_image.cpp
     ${CODE_DIR}/asset/types/gfx_image.hpp
@@ -47,6 +44,8 @@ set(
     ${CODE_DIR}/core/feature_defines.hpp
     ${CODE_DIR}/core/frustum.cpp
     ${CODE_DIR}/core/frustum.hpp
+    ${CODE_DIR}/core/init.cpp
+    ${CODE_DIR}/core/init.hpp
     ${CODE_DIR}/core/input.cpp
     ${CODE_DIR}/core/input.hpp
     ${CODE_DIR}/core/input_types.hpp

@@ -157,12 +157,22 @@ BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
 {
     PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = g_resourceMaps[assetTypeID].find( name );
-    if ( it != g_resourceMaps[assetTypeID].end() )
+    if ( it == g_resourceMaps[assetTypeID].end() )
+    {
+#if USING( CONVERTER )
+        // in the converter just want to get a list of asset names that are used while parsing the scene
+        auto newAsset = new BaseAsset;
+        newAsset->name = name;
+        g_resourceMaps[assetTypeID][name] = newAsset;
+        return newAsset;
+#else // #if USING( CONVERTER )
+        return nullptr;
+#endif // #else // #if USING( CONVERTER )
+    }
+    else
     {
         return it->second;
     }
-
-    return nullptr;
 }
 
 } // namesapce PG::AssetManager

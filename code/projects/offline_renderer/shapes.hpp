@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset/pt_material.hpp"
+#include "asset/pt_model.hpp"
 #include "core/bounding_box.hpp"
 #include "intersection_tests.hpp"
 #include "pt_lights.hpp"
@@ -56,7 +57,7 @@ struct Sphere : public Shape
 
 struct Triangle : public Shape
 {
-    uint32_t meshIndex;
+    MeshInstanceHandle meshHandle;
     uint32_t firstVertIndex;
 
     Material* GetMaterial() const override;

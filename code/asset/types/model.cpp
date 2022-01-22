@@ -114,7 +114,6 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool Model::FastfileLoad( Serializer* serializer )
 {
-    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( serializer );
     serializer->Read( name );
     serializer->Read( positions );
@@ -152,7 +151,6 @@ bool Model::FastfileLoad( Serializer* serializer )
 
 bool Model::FastfileSave( Serializer* serializer ) const
 {
-    PG_STATIC_NDEBUG_ASSERT( sizeof( Model ) == 336, "Don't forget to update this function if added/removed members from Model!" );
     PG_ASSERT( serializer );
     PG_ASSERT( meshes.size() == originalMaterials.size() );
 

@@ -34,7 +34,7 @@ public:
     PG::AABB GetAABB() const;
 
     SplitMethod splitMethod = SplitMethod::Middle;
-    std::vector< std::shared_ptr< Shape > > shapes;
+    std::vector< Shape* > shapes;
     LinearBVHNode* nodes = nullptr;
 };
 

@@ -1,11 +1,17 @@
 #include "asset/pt_model.hpp"
+#include "shapes.hpp"
 
 using namespace PG;
 
 namespace PT
 {
 
-    std::vector< MeshInstance > g_meshInstances;
+    std::vector< MeshInstance > g_meshInstances = { MeshInstance() };
+
+    MeshInstance::MeshInstance() : material( MATERIAL_HANDLE_INVALID )
+    {
+    }
+
 
     MeshInstance::MeshInstance( Model* model, uint32_t meshIdx, const Transform& inLocalToWorld, MaterialHandle inMaterial )   
     {
@@ -52,23 +58,27 @@ namespace PT
 
     void EmitTrianglesForAllMeshes( std::vector< Shape* >& shapes, std::vector< Light* >& lights )
     {
-        for ( uint32_t meshIndex = 0; meshIndex < static_cast<uint32_t>( g_meshInstances.size() ); ++meshIndex )
+        size_t newShapes = 0;
+        size_t newLights = 0;
+        for ( MeshInstanceHandle meshHandle = 1; meshHandle < static_cast<MeshInstanceHandle>( g_meshInstances.size() ); ++meshHandle )
         {
-            const MeshInstance& mesh = g_meshInstances[meshIndex];
-            shapes.reserve( shapes.size() + mesh.indices.size() / 3 );
+            const MeshInstance& mesh = g_meshInstances[meshHandle];
+            newShapes += mesh.indices.size() / 3;
             //if ( material->Ke != glm::vec3( 0 ) )
             //{
-            //    lights.reserve( lights.size() + data.indices.size() / 3 );
+            //    newLights += data.indices.size() / 3;
             //}
         }
+        shapes.reserve( shapes.size() + newShapes );
+        lights.reserve( lights.size() + newLights );
 
-        for ( uint32_t meshIndex = 0; meshIndex < static_cast<uint32_t>( g_meshInstances.size() ); ++meshIndex )
+        for ( MeshInstanceHandle meshHandle = 1; meshHandle < static_cast<MeshInstanceHandle>( g_meshInstances.size() ); ++meshHandle )
         {
-            const MeshInstance& mesh = g_meshInstances[meshIndex];
+            const MeshInstance& mesh = g_meshInstances[meshHandle];
             for ( uint32_t face = 0; face < static_cast<uint32_t>( mesh.indices.size() / 3 ); ++face )
             {
                 auto tri            = new Triangle;
-                tri->meshIndex      = meshIndex;
+                tri->meshHandle     = meshHandle;
                 tri->firstVertIndex = 3 * face;
                 shapes.push_back( tri );
                 //if ( data.material->Ke != glm::vec3( 0 ) )
@@ -80,6 +90,12 @@ namespace PT
                 //}
             }
         }
+    }
+
+
+    MeshInstance* GetMeshInstance( MeshInstanceHandle handle )
+    {
+        return &g_meshInstances[handle];
     }
 
 } // namespace PT

@@ -1,7 +1,9 @@
 #include "bvh.hpp"
+#include "shared/assert.hpp"
 #include <algorithm>
 
 using PG::AABB;
+using ShapePtr = PT::Shape*;
 
 namespace PT
 {
@@ -29,11 +31,11 @@ struct BVHBuildShapeInfo
 {
     AABB aabb;
     glm::vec3 centroid;
-    std::shared_ptr< Shape > shape;
+    ShapePtr shape;
 };
 
 static std::unique_ptr< BVHBuildNode > BuildBVHInteral( std::vector< BVHBuildShapeInfo >& buildShapeInfos, int start, int end,
-    std::vector< std::shared_ptr< Shape > >& orderedShapes, uint32_t& totalNodes, BVH::SplitMethod splitMethod )
+    std::vector< ShapePtr >& orderedShapes, uint32_t& totalNodes, BVH::SplitMethod splitMethod )
 {
     auto node = std::make_unique< BVHBuildNode >();
     ++totalNodes;
@@ -45,7 +47,7 @@ static std::unique_ptr< BVHBuildNode > BuildBVHInteral( std::vector< BVHBuildSha
     }
 
     int numShapes = end - start;
-    assert( numShapes > 0 );
+    PG_ASSERT( numShapes > 0 );
     if ( numShapes == 1 )
     {
         node->firstIndex = static_cast< uint32_t >( orderedShapes.size() );
@@ -203,11 +205,11 @@ static int FlattenBVHBuild( LinearBVHNode* linearRoot, BVHBuildNode* buildNode, 
     return currentSlot;
 }
 
-void BVH::Build( std::vector< Shape* >& listOfShapes )
+void BVH::Build( std::vector< ShapePtr >& listOfShapes )
 {
-    //shapes = std::move( listOfShapes );
+    shapes = std::move( listOfShapes );
 
-    assert( shapes.size() > 0 );
+    PG_ASSERT( shapes.size() > 0 );
     std::vector< BVHBuildShapeInfo > buildShapes( shapes.size() );
     for ( size_t i = 0; i < shapes.size(); ++i )
     {
@@ -216,7 +218,7 @@ void BVH::Build( std::vector< Shape* >& listOfShapes )
         buildShapes[i].shape    = shapes[i];
     }
 
-    std::vector< std::shared_ptr< Shape > > orderedShapes;
+    std::vector< ShapePtr > orderedShapes;
     orderedShapes.reserve( shapes.size() );
     uint32_t totalNodes = 0;
     auto buildRootNode = BuildBVHInteral( buildShapes, 0, static_cast< int >( shapes.size() ), orderedShapes, totalNodes, splitMethod );
@@ -225,8 +227,8 @@ void BVH::Build( std::vector< Shape* >& listOfShapes )
     // flatten the bvh
     nodes = new LinearBVHNode[totalNodes];
     uint32_t slot  = 0;
-    FlattenBVHBuild( &nodes[0], buildRootNode.get(), slot );
-    assert( slot == totalNodes );
+    FlattenBVHBuild( nodes, buildRootNode.get(), slot );
+    PG_ASSERT( slot == totalNodes );
 }
 
 bool BVH::Intersect( const Ray& ray, IntersectionData* hitData ) const
@@ -313,7 +315,7 @@ bool BVH::Occluded( const Ray& ray, float tMax ) const
 
 AABB BVH::GetAABB() const
 {
-    assert( nodes );
+    PG_ASSERT( nodes );
     return nodes[0].aabb;
 }
 

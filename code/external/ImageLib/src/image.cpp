@@ -106,10 +106,7 @@ Image2D<T>::Image2D( int w, int h, void* rgba ) : width( w ), height( h )
 template< typename T>
 Image2D<T>::~Image2D()
 {
-    if ( pixels && allocated )
-    {
-        free( pixels );
-    }
+    Free();
 }
 
 
@@ -239,6 +236,52 @@ bool Image2D<T>::Save( const std::string& saveFilename ) const
     }
 
     return ret;
+}
+
+
+template< typename T>
+void Image2D<T>::Free()
+{
+    if ( pixels && allocated )
+    {
+        free( pixels );
+        pixels = nullptr;
+    }
+}
+
+
+template<typename T>
+Image2D<T> Image2D<T>::Resize( int newWidth, int newHeight ) const
+{
+    if constexpr ( std::is_same_v<float, T> )
+    {
+        Image2D dstImg( newWidth, newHeight );
+        if ( !stbir_resize_float( (float*)pixels, width, height, 0, (float*)dstImg.pixels, newWidth, newHeight, 0, 4 ) )
+        {
+            LOG_ERR( "stbir_resize_float failed!" );
+        }
+        return dstImg;
+    }
+    else if constexpr ( std::is_same_v<float16, T> )
+    {
+        ImageF32 srcImg = ConvertImage<float>( *this );
+        ImageF32 dstImg( newWidth, newHeight );
+        if ( !stbir_resize_float( (float*)srcImg.pixels, width, height, 0, (float*)dstImg.pixels, newWidth, newHeight, 0, 4 ) )
+        {
+            LOG_ERR( "stbir_resize_float failed!" );
+        }
+        Image2D img = ConvertImage<T>( dstImg );
+        return img;
+    }
+    else
+    {
+        Image2D dstImg( newWidth, newHeight );
+        if ( !stbir_resize_uint8( (uint8_t*)pixels, width, height, 0, (uint8_t*)dstImg.pixels, newWidth, newHeight, 0, 4 ) )
+        {
+            LOG_ERR( "stbir_resize_uint8 failed!" );
+        }
+        return dstImg;
+    }
 }
 
 

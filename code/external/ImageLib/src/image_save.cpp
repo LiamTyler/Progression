@@ -40,68 +40,84 @@ bool IsValidSave( const std::string& filename, int width, int height, int channe
 
 static bool SaveExr( const std::string& filename, int width, int height, int numChannels, float* pixels )
 {
-    EXRImage image;
-    InitEXRImage( &image );
+    //EXRHeader header;
+    //InitEXRHeader( &header );
+    //header.compression_type = TINYEXR_COMPRESSIONTYPE_ZIP;
+    //
+    //EXRImage image;
+    //InitEXRImage( &image );
+    //
+    //image.num_channels = numChannels;
+    //
+    //std::vector<float> images[4];
+    //images[0].resize( width * height );
+    //images[1].resize( width * height );
+    //images[2].resize( width * height );
+    //if ( numChannels == 4 ) images[3].resize( width * height );
+    //
+    //for ( int i = 0; i < width * height; ++i )
+    //{
+    //    images[0][i] = pixels[4*i+0];
+    //    images[1][i] = pixels[4*i+1];
+    //    images[2][i] = pixels[4*i+2];
+    //    if ( numChannels == 4 ) images[3][i] = pixels[4*i+3];
+    //}
+    //
+    //float* image_ptr[4];
+    //if ( numChannels == 4 )
+    //{
+    //    image_ptr[0] = images[3].data(); // A
+    //    image_ptr[1] = images[2].data(); // B
+    //    image_ptr[2] = images[1].data(); // G
+    //    image_ptr[3] = images[0].data(); // R
+    //}
+    //else
+    //{
+    //    image_ptr[0] = images[2].data(); // B
+    //    image_ptr[1] = images[1].data(); // G
+    //    image_ptr[2] = images[0].data(); // R
+    //}
+    //
+    //image.images = (unsigned char**)image_ptr;
+    //image.width = width;
+    //image.height = height;
+    //
+    //header.num_channels = numChannels;
+    //header.channels = (EXRChannelInfo *)malloc(sizeof(EXRChannelInfo) * header.num_channels); 
+    //// From tinyexr: Must be BGR(A) order, since most of EXR viewers expect this channel order.
+    //// NOTE! Seems like it has to be (A)BGR instead
+    //if ( numChannels == 4 )
+    //{
+    //    header.channels[0].name[0] = 'A'; header.channels[0].name[1] = '\0';
+    //    header.channels[1].name[0] = 'B'; header.channels[1].name[1] = '\0';
+    //    header.channels[2].name[0] = 'G'; header.channels[2].name[1] = '\0';
+    //    header.channels[3].name[0] = 'R'; header.channels[3].name[1] = '\0';
+    //}
+    //
+    //header.pixel_types = (int*)malloc( sizeof( int ) * header.num_channels ); 
+    //header.requested_pixel_types = (int*)malloc( sizeof( int ) * header.num_channels );
+    //for ( int i = 0; i < header.num_channels; i++ )
+    //{
+    //    header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
+    //    header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
+    //}
+    //
+    //const char* err;
+    //int ret = SaveEXRImageToFile( &image, &header, filename.c_str(), &err );
+    //free( header.channels );
+    //free( header.pixel_types );
+    //free( header.requested_pixel_types );
 
-    image.num_channels = numChannels;
-    if ( numChannels != 3 || numChannels != 4 )
+    const char* err;
+    int ret = SaveEXR( pixels, width, height, numChannels, 1, filename.c_str(), &err );
+
+    if ( ret != TINYEXR_SUCCESS )
     {
-        LOG_ERR( "EXR save implementation only handles 3 or 4 channel images. Not saving image '%s'", filename.c_str() );
+        LOG_ERR( "SaveExr error: '%s'", err );
         return false;
     }
 
-    float* images[4];
-    for ( int i = 0; i < image.num_channels; ++i )
-    {
-        images[i] = static_cast< float* >( malloc( width * height * sizeof( float ) ) );
-    }
-
-    for (int i = 0; i < width * height; ++i )
-    {
-        images[0][i] = pixels[numChannels*i + 2];
-        images[1][i] = pixels[numChannels*i + 1];
-        images[2][i] = pixels[numChannels*i + 0];
-        if ( numChannels == 4 ) images[3][i] = pixels[numChannels*i + 3];
-    }
-
-    image.images = reinterpret_cast<unsigned char**>( images );
-    image.width  = width;
-    image.height = height;
-
-    EXRHeader header;
-    InitEXRHeader( &header );
-    header.compression_type = TINYEXR_COMPRESSIONTYPE_PIZ;
-    header.num_channels = image.num_channels;
-    EXRChannelInfo channels[4];
-    header.channels = channels;
-    // Must be BGR(A) order, since most of EXR viewers expect this channel order.
-    strncpy( header.channels[0].name, "B", 255 ); header.channels[0].name[strlen( "B" )] = '\0';
-    strncpy( header.channels[1].name, "G", 255 ); header.channels[1].name[strlen( "G" )] = '\0';
-    strncpy( header.channels[2].name, "R", 255 ); header.channels[2].name[strlen( "R" )] = '\0';
-    if ( numChannels == 4 ) strncpy( header.channels[3].name, "A", 255 ); header.channels[3].name[strlen( "A" )] = '\0';
-
-    int pixel_types[4];
-    int requested_pixel_types[4];
-    header.pixel_types = pixel_types;
-    header.requested_pixel_types = requested_pixel_types;
-    for ( int i = 0; i < header.num_channels; ++i )
-    {
-        header.pixel_types[i] = TINYEXR_PIXELTYPE_FLOAT; // pixel type of input image
-        header.requested_pixel_types[i] = TINYEXR_PIXELTYPE_HALF; // pixel type of output image to be stored in .EXR
-    }
-
-    const char* err = nullptr;
-    bool success = SaveEXRImageToFile( &image, &header, filename.c_str(), &err ) == TINYEXR_SUCCESS;
-    if ( err )
-    {
-        LOG_ERR( "SaveExr error: '%s'", err );
-    }
-    for ( int i = 0; i < image.num_channels; ++i )
-    {
-        free( images[i] );
-    }
-
-    return success;
+    return true;
 }
 
 

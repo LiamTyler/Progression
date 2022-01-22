@@ -1,5 +1,6 @@
 #pragma once
 
+#define GLM_FORCE_SWIZZLE
 #include "glm/glm.hpp"
 #include "shared/float_conversions.hpp"
 #include <string>
@@ -13,6 +14,10 @@ enum class Sampler
 
 struct Image2DCreateInfo
 {
+    Image2DCreateInfo() = default;
+    Image2DCreateInfo( const char* fname ) : filename( fname ) {}
+    Image2DCreateInfo( const std::string& fname ) : filename( fname ) {}
+
     std::string filename;
     bool flipVertically = false;
 };
@@ -33,6 +38,8 @@ public:
 
     bool Load( const Image2DCreateInfo& createInfo );
     bool Save( const std::string& filename ) const;
+    void Free();
+    Image2D Resize( int newWidth, int newHeight ) const;
 
     Pixel GetPixel( int r, int c ) const;
     Pixel GetPixelClamped( int r, int c ) const;
@@ -42,6 +49,7 @@ public:
     void SetPixel( int r, int c, const Pixel& p );
     T* Raw() const { return &pixels[0][0]; }
     void Swizzle( int r, int g, int b, int a );
+    operator bool() const { return pixels != nullptr; }
 
     Pixel Sample( glm::vec2 uv, Sampler sampler = Sampler::BILINEAR ) const;
     Pixel SampleEquirectangular( const glm::vec3& dir, Sampler sampler = Sampler::BILINEAR ) const;

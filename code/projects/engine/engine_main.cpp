@@ -19,34 +19,8 @@ using namespace Gfx;
 
 bool g_paused = false;
 
-template <typename T, size_t current>
-constexpr int AddEmUp( const T& tuple )
-{
-    constexpr size_t tupleSize = std::tuple_size_v<T>;
-    if constexpr ( tupleSize == current )
-    {
-        return 0;
-    }
-    else
-    {
-        return std::get<current>( tuple ) + AddEmUp<T, current + 1>( tuple );
-    }
-}
-
-template <typename T>
-void AddEmUp( const T& tuple )
-{
-    int total = AddEmUp<T, 0>( tuple );
-    printf( "%d", total );
-}
-
-
 int main( int argc, char* argv[] )
 {
-    auto t = std::make_tuple( );
-    AddEmUp( t );
-    
-    /*
     EngineInitInfo engineInitConfig;
 	if ( !EngineInitialize( engineInitConfig ) )
     {
@@ -94,6 +68,6 @@ int main( int argc, char* argv[] )
     delete scene;
 
     EngineShutdown();
-    */
+
     return 0;
 }

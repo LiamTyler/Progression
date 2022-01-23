@@ -136,6 +136,7 @@ static bool ParseScript( const rapidjson::Value& v, Scene* scene )
     PG_ASSERT( v.IsString() );
     std::string scrName = v.GetString();
     Script* script = AssetManager::Get<Script>( scrName );
+#if !USING( CONVERTER )
     PG_ASSERT( script, "No script found with name '" + scrName + "'" );
     if ( scene->numNonEntityScripts == PG_MAX_NON_ENTITY_SCRIPTS )
     {
@@ -143,6 +144,7 @@ static bool ParseScript( const rapidjson::Value& v, Scene* scene )
         return false;
     }
     scene->nonEntityScripts[scene->numNonEntityScripts++] = Lua::ScriptInstance( script );
+#endif // #if !USING( CONVERTER )
     return true;
 }
 

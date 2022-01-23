@@ -48,7 +48,26 @@ template < typename T >
 T* Get( const std::string& name )
 {
     static_assert( std::is_base_of<BaseAsset, T>::value && !std::is_same<BaseAsset, T>::value, "Resource manager only manages classes derived from 'Resource'" );
-    BaseAsset* asset = Get( GetAssetTypeID<T>::ID(), name );
+    BaseAsset* asset;
+#if USING( CONVERTER )
+    uint32_t assetTypeID = GetAssetTypeID<T>::ID();
+    PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
+    auto it = g_resourceMaps[assetTypeID].find( name );
+    if ( it == g_resourceMaps[assetTypeID].end() )
+    {
+        // in the converter just want to get a list of asset names that are used while parsing the scene
+        asset = new T;
+        asset->name = name;
+        g_resourceMaps[assetTypeID][name] = asset;
+    }
+    else
+    {
+        asset = it->second;
+    }
+#else // #if USING( CONVERTER )
+    asset = Get( GetAssetTypeID<T>::ID(), name );
+#endif // #else // #if USING( CONVERTER )
+
     return static_cast<T*>( asset );
 }
 

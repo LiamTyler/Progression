@@ -27,7 +27,7 @@ struct IntersectionData;
 struct Material
 {
     glm::vec3 albedoTint = glm::vec3( 0.0f );
-    TextureHandle albedoTex;
+    TextureHandle albedoTex = TEXTURE_HANDLE_INVALID;
 
     glm::vec3 GetAlbedo( const glm::vec2& texCoords ) const;
     BRDF ComputeBRDF( IntersectionData* surfaceInfo ) const;

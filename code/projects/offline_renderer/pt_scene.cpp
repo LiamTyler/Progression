@@ -58,9 +58,9 @@ static void ParseBaseLight( const rapidjson::Value& value, Light* light )
 {
     struct BaseLightCreateInfo
     {
-        glm::vec3 color;
-        float intensity;
-        int nSamples;
+        glm::vec3 color = glm::vec3( 0 );
+        float intensity = 1.0f;
+        int nSamples = 1;
     };
     static JSONFunctionMapper< BaseLightCreateInfo& > mapping(
     {
@@ -79,7 +79,7 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< DirectionalLight& > mapping(
     {
-        { "direction",  []( const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::vec4( glm::normalize( ParseVec3( v ) ), 0 ); } }
+        { "direction",  []( const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::normalize( ParseVec3( v ) ); } }
     });
 
     auto light = new DirectionalLight;
@@ -211,8 +211,8 @@ void Scene::Start()
         sol::function startFn = script.env["Start"];
         if ( startFn.valid() )
         {
-            //nonEntityScripts[i].env["scene"] = this;
-            CHECK_SOL_FUNCTION_CALL( startFn() );
+            //script.env["scene"] = this;
+            //CHECK_SOL_FUNCTION_CALL( startFn() );
         }
     }
 }
@@ -221,12 +221,12 @@ void Scene::Start()
 bool Scene::Intersect( const Ray& ray, IntersectionData& hitData )
 {
     hitData.t = FLT_MAX;
-    return bvh.Intersect( ray, &hitData );
-    //for ( const auto& shape : bvh.shapes )
-    //{
-    //    shape->Intersect( ray, &hitData );
-    //}
-    //return hitData.t != FLT_MAX;
+    //return bvh.Intersect( ray, &hitData );
+    for ( const auto& shape : bvh.shapes )
+    {
+        shape->Intersect( ray, &hitData );
+    }
+    return hitData.t != FLT_MAX;
 }
 
 

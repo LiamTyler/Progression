@@ -97,9 +97,9 @@ Material* Triangle::GetMaterial() const
 float Triangle::Area() const
 {
     auto mesh = GetMeshInstance( meshHandle );
-    const auto& p0 = mesh->positions[firstVertIndex + 0];
-    const auto& p1 = mesh->positions[firstVertIndex + 1];
-    const auto& p2 = mesh->positions[firstVertIndex + 2];
+    const auto& p0 = mesh->positions[i0];
+    const auto& p1 = mesh->positions[i1];
+    const auto& p2 = mesh->positions[i2];
     return 0.5f * glm::length( glm::cross( p1 - p0, p2 - p0 ) );
 }
 
@@ -110,9 +110,6 @@ SurfaceInfo Triangle::SampleWithRespectToArea() const
     float u = sample.x;
     float v = sample.y;
     auto mesh = GetMeshInstance( meshHandle );
-    auto i0 = firstVertIndex + 0;
-    auto i1 = firstVertIndex + 1;
-    auto i2 = firstVertIndex + 2;
     info.position   = u * mesh->positions[i0] + v * mesh->positions[i1] + ( 1 - u - v ) * mesh->positions[i2];
     info.normal     = glm::normalize( u * mesh->normals[i0] + v * mesh->normals[i1] + ( 1 - u - v ) * mesh->normals[i2] );
     info.pdf        = 1.0f / Area();
@@ -123,9 +120,6 @@ bool Triangle::Intersect( const Ray& ray, IntersectionData* hitData ) const
 {
     float t, u, v;
     auto mesh = GetMeshInstance( meshHandle );
-    auto i0 = firstVertIndex + 0;
-    auto i1 = firstVertIndex + 1;
-    auto i2 = firstVertIndex + 2;
     if ( intersect::RayTriangle( ray.position, ray.direction, mesh->positions[i0], mesh->positions[i1], mesh->positions[i2], t, u, v, hitData->t ) )
     {
         hitData->t         = t;
@@ -145,18 +139,12 @@ bool Triangle::TestIfHit( const Ray& ray, float maxT ) const
 {
     float t, u, v;
     auto mesh = GetMeshInstance( meshHandle );
-    auto i0 = firstVertIndex + 0;
-    auto i1 = firstVertIndex + 1;
-    auto i2 = firstVertIndex + 2;
     return intersect::RayTriangle( ray.position, ray.direction, mesh->positions[i0], mesh->positions[i1], mesh->positions[i2], t, u, v, maxT );
 }
 
 AABB Triangle::WorldSpaceAABB() const
 {
     auto mesh = GetMeshInstance( meshHandle );
-    auto i0 = firstVertIndex + 0;
-    auto i1 = firstVertIndex + 1;
-    auto i2 = firstVertIndex + 2;
     AABB aabb;
     aabb.Encompass( mesh->positions[i0] );
     aabb.Encompass( mesh->positions[i1] );

@@ -1,3 +1,4 @@
 [
-	{ "Model": { "name": "cube", "filename": "models/basic_shapes/cube.pmodel" } }
+	{ "Model": { "name": "cube", "filename": "models/basic_shapes/cube.pmodel" } },
+	{ "Model": { "name": "triangle", "filename": "models/basic_shapes/triangle.pmodel" } }
 ]

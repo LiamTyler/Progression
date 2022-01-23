@@ -279,8 +279,8 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         }
     }
     
-    //LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u, Normals: %u, uvs: %u, tangents: %u",
-    //    filename.c_str(), meshes.size(), materialNames.size(), indices.size() / 3, vertices.size(), normals.size(), uvs.size(), tangents.size() );
+    LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u, Normals: %u, uvs: %u, tangents: %u",
+        filename.c_str(), meshes.size(), materialNames.size(), indices.size() / 3, vertices.size(), normals.size(), uvs.size(), tangents.size() );
 
     std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodel";
     std::ofstream outFile( outputModelFilename );

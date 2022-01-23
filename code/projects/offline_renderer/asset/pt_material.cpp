@@ -76,11 +76,13 @@ MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
     }
 
     Material mat;
-    mat.albedoTint = material->albedoTint;
-    if ( material->albedoMap )
-    {
-        mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );
-    }
+    mat.albedoTint = glm::vec3( 0, 0.5, 0 );
+    mat.albedoTex = TEXTURE_HANDLE_INVALID;
+    //mat.albedoTint = material->albedoTint;
+    //if ( material->albedoMap )
+    //{
+    //    mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );
+    //}
 
     g_materials.emplace_back( mat );
     MaterialHandle handle = static_cast< MaterialHandle >( g_materials.size() - 1 );

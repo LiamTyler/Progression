@@ -160,7 +160,7 @@ glm::vec3 Li( const Ray& ray, Scene* scene )
 void PathTracer::Render( int samplesPerPixelIteration )
 {
     int samplesPerPixel = scene->numSamplesPerPixel[samplesPerPixelIteration];
-    LOG( "Rendering scene with SPP = %d", samplesPerPixel );
+    LOG( "Rendering scene at %d x %d with SPP = %d", renderedImage.width, renderedImage.height, samplesPerPixel );
 
     auto timeStart = Time::GetTimePoint();
     Camera& cam = scene->camera;
@@ -175,7 +175,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
     std::atomic< int > renderProgress( 0 );
     int onePercent = static_cast< int >( std::ceil( renderedImage.height / 100.0f ) );
     
-    #pragma omp parallel for schedule( dynamic )
+    //#pragma omp parallel for schedule( dynamic )
     for ( int row = 0; row < renderedImage.height; ++row )
     {
         for ( int col = 0; col < renderedImage.width; ++col )

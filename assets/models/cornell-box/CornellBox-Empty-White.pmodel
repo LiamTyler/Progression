@@ -1,0 +1,106 @@
+Materials: 1
+0: CornellBox-Empty-White_ floor
+Meshes: 6
+0: floor
+    Mat: 0
+    StartTri: 0
+    StartVert: 0
+    NumTris: 2
+    NumVerts: 4
+1: ceiling
+    Mat: 0
+    StartTri: 2
+    StartVert: 4
+    NumTris: 2
+    NumVerts: 4
+2: backWall
+    Mat: 0
+    StartTri: 4
+    StartVert: 8
+    NumTris: 2
+    NumVerts: 4
+3: rightWall
+    Mat: 0
+    StartTri: 6
+    StartVert: 12
+    NumTris: 2
+    NumVerts: 4
+4: leftWall
+    Mat: 0
+    StartTri: 8
+    StartVert: 16
+    NumTris: 2
+    NumVerts: 4
+5: light
+    Mat: 0
+    StartTri: 10
+    StartVert: 20
+    NumTris: 2
+    NumVerts: 4
+
+ModelData:
+Positions: 24
+-1.01 0 0.99
+1 0 0.99
+1 0 -1.04
+-0.99 0 -1.04
+-1.02 1.99 0.99
+-1.02 1.99 -1.04
+1 1.99 -1.04
+1 1.99 0.99
+-0.99 0 -1.04
+1 0 -1.04
+1 1.99 -1.04
+-1.02 1.99 -1.04
+1 0 -1.04
+1 0 0.99
+1 1.99 0.99
+1 1.99 -1.04
+-1.01 0 0.99
+-0.99 0 -1.04
+-1.02 1.99 -1.04
+-1.02 1.99 0.99
+-0.24 1.98 0.16
+-0.24 1.98 -0.22
+0.23 1.98 -0.22
+0.23 1.98 0.16
+Normals: 24
+0 1 0
+-0 1 0
+0 1 0
+0 1 0
+0 -1 0
+0 -1 0
+0 -1 0
+0 -1 0
+0 -0 1
+0 0 1
+0 -0 1
+0 -0 1
+-1 0 0
+-1 0 0
+-1 0 0
+-1 0 0
+0.999987 0.00502506 0
+0.999838 0.0150729 0.00985061
+0.999987 0.00502506 0
+0.999987 0.00502506 0
+0 -1 0
+0 -1 0
+0 -1 0
+0 -1 0
+TexCoords: 0
+Tangents: 0
+Triangles: 12
+0 1 2
+0 2 3
+0 1 2
+0 2 3
+0 1 2
+0 2 3
+0 1 2
+0 2 3
+0 1 2
+0 2 3
+0 1 2
+0 2 3

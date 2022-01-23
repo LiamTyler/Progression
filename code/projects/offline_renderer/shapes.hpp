@@ -58,7 +58,8 @@ struct Sphere : public Shape
 struct Triangle : public Shape
 {
     MeshInstanceHandle meshHandle;
-    uint32_t firstVertIndex;
+    //uint32_t firstVertIndex;
+    uint32_t i0, i1, i2;
 
     Material* GetMaterial() const override;
     float Area() const override;

@@ -29,9 +29,9 @@ public:
     glm::vec3 backgroundRadiance    = glm::vec3( 0 );
     //std::shared_ptr< Skybox > skybox;
     std::string outputImageFilename = "rendered.png";
-    glm::ivec2 imageResolution      = glm::ivec2( 1280, 720 );
-    int maxDepth                    = 5;
-    std::vector<int> numSamplesPerPixel = { 32 };
+    glm::ivec2 imageResolution      = glm::ivec2( 400, 400 );
+    int maxDepth                    = 1;
+    std::vector<int> numSamplesPerPixel = { 1 };
     BVH bvh;
 
     entt::registry registry;

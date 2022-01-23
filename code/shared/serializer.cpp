@@ -85,8 +85,8 @@ void Serializer::Write( const void* buffer, size_t bytes )
 
 void Serializer::Read( void* buffer, size_t bytes )
 {
-    PG_ASSERT( buffer && currentReadPos );
-    PG_ASSERT( currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size(), "Reading off the end of the file" );
+    PG_ASSERT( !bytes || (buffer && currentReadPos) );
+    PG_ASSERT( !bytes || (currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size()), "Reading off the end of the file" );
     memcpy( buffer, currentReadPos, bytes );
     currentReadPos += bytes;
 }

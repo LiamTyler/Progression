@@ -24,7 +24,7 @@ int main( int argc, char** argv )
     }
 
     Scene scene;
-    if ( !scene.Load( argv[1] ) )
+    if ( !scene.Load( PG_ASSET_DIR + std::string( argv[1] ) ) )
     {
         LOG_ERR( "Could not load scene file '%s'", argv[1] );
         return 0;
@@ -38,7 +38,7 @@ int main( int argc, char** argv )
         pathTracer.Render( sppIteration );
 
         // if there are multiple renderings, tack on the suffix "_[spp]" to the filename"
-        std::string filename = scene.outputImageFilename;
+        std::string filename = PG_ROOT_DIR + scene.outputImageFilename;
         if ( scene.numSamplesPerPixel.size() > 1 )
         {
             auto path = fs::path( filename );

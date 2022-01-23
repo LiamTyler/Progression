@@ -1,5 +1,6 @@
 #include "asset/pt_model.hpp"
 #include "shapes.hpp"
+#include "shared/logger.hpp"
 
 using namespace PG;
 
@@ -49,6 +50,43 @@ namespace PT
 
     void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> materials, const Transform& transform )
     {
+        if ( model->texCoords.empty() )
+        {
+            model->texCoords.resize( model->positions.size(), glm::vec2( 0 ) );
+        }
+
+        if ( model->tangents.empty() )
+        {
+            model->tangents.resize( model->positions.size(), glm::vec3( 0 ) );
+            for ( size_t i = 0; i < model->indices.size(); i += 3 )
+            {
+                const auto i0 = model->indices[i + 0];
+                const auto i1 = model->indices[i + 1];
+                const auto i2 = model->indices[i + 2];
+                glm::vec3 e = model->positions[i1] - model->positions[i0];
+                glm::vec3 t = glm::normalize( e );
+                glm::vec3 n = model->normals[i0];
+
+                if ( model->tangents[i0] == glm::vec3( 0 ) ) model->tangents[i0] = glm::normalize( t - model->normals[i0] * glm::dot( model->normals[i0], t ) );
+                if ( model->tangents[i1] == glm::vec3( 0 ) ) model->tangents[i1] = glm::normalize( t - model->normals[i1] * glm::dot( model->normals[i1], t ) );
+                if ( model->tangents[i2] == glm::vec3( 0 ) ) model->tangents[i2] = glm::normalize( t - model->normals[i2] * glm::dot( model->normals[i2], t ) );
+            }
+
+            for ( size_t i = 0; i < model->tangents.size(); ++i )
+            {
+                glm::vec3& t = model->tangents[i];
+                if ( t == glm::vec3( 0 ) || glm::any( glm::isinf( t ) ) || glm::any( glm::isnan( t ) ) )
+                {
+                    LOG_WARN( "Tangent %zu of model %s is bad, setting manually", i, model->name.c_str() );
+                    t = glm::vec3( 1, 0, 0 );
+                    if ( t == model->normals[i] )
+                    {
+                        t = glm::vec3( 0, 1, 0 );
+                    }
+                }
+            }
+        }
+
         for ( uint32_t i = 0; i < static_cast<uint32_t>( model->meshes.size() ); ++i )
         {
             g_meshInstances.emplace_back( model, i, transform, LoadMaterialFromPGMaterial( materials[i] ) );
@@ -79,7 +117,10 @@ namespace PT
             {
                 auto tri            = new Triangle;
                 tri->meshHandle     = meshHandle;
-                tri->firstVertIndex = 3 * face;
+                tri->i0             = mesh.indices[3*face + 0];
+                tri->i1             = mesh.indices[3*face + 1];
+                tri->i2             = mesh.indices[3*face + 2];
+                //tri->firstVertIndex = 3 * face;
                 shapes.push_back( tri );
                 //if ( data.material->Ke != glm::vec3( 0 ) )
                 //{

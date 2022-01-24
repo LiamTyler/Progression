@@ -19,13 +19,13 @@ Algorithm AlgorithmFromString( const std::string& alg )
         { "REGULAR_2X2_GRID", Algorithm::REGULAR_2X2_GRID },
         { "REGULAR_4X4_GRID", Algorithm::REGULAR_4X4_GRID },
         { "ROTATED_2X2_GRID", Algorithm::ROTATED_2X2_GRID },
-        { "JITTER_5",         Algorithm::JITTER_5 },
+        { "JITTER",           Algorithm::JITTER },
     };
 
     auto it = map.find( alg );
     if ( it == map.end() )
     {
-        LOG( "Antialiasing algorithm '%s' is not a valid option!", alg.c_str() );
+        LOG_WARN( "Antialiasing algorithm '%s' is not a valid option!", alg.c_str() );
         return Algorithm::NONE;
     }
 
@@ -101,7 +101,7 @@ int GetIterations( Algorithm alg )
         4,  // REGULAR_2X2_GRID
         16, // REGULAR_4X4_GRID
         4,  // ROTATED_2X2_GRID
-        5,  // JITTER_5
+        0,  // JITTER
     };
     static_assert( ARRAY_COUNT( iterations ) == static_cast< int >( Algorithm::NUM_ALGORITHM ), "Forgot to update this" );
 
@@ -116,7 +116,7 @@ AAFuncPointer GetAlgorithm( Algorithm alg )
         Regular2x2Grid,  // REGULAR_2X2_GRID
         Regular4x4Grid,  // REGULAR_4X4_GRID
         Rotated2x2Grid,  // ROTATED_2X2_GRID
-        Jitter,          // JITTER_5
+        Jitter,          // JITTER
     };
     static_assert( ARRAY_COUNT( functions ) == static_cast< int >( Algorithm::NUM_ALGORITHM ), "Forgot to update this" );
 

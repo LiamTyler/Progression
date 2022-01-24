@@ -48,7 +48,7 @@ glm::vec3 UniformSampleHemisphere( float u1, float u2 )
 glm::vec3 CosineSampleHemisphere( float u1, float u2 )
 {
     auto d  = ConcentricSampleDisk( u1, u2 );
-    float z = std::sqrt( std::max( 0.f, 1 - d.x*d.x - d.y*d.y) );
+    float z = std::sqrt( std::max( 0.f, 1 - d.x*d.x - d.y*d.y ) );
     return { d.x, d.y, z };
 }
 

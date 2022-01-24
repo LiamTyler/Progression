@@ -1,4 +1,11 @@
 [
+    { "OfflineRenderSettings": {
+        "imageResolution": [ 1280, 720 ],
+        "maxDepth": 5,
+        "outputImageFilename": "sponza.png",
+        "numSamplesPerPixel": [ 1 ],
+        "antialiasMethod": "NONE"
+    }},
     { "Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ] } },
     { "_Camera": { "position": [ 0, 0, 4 ], "rotation": [ 0, 0, 0 ] } },
     { "Script": "cameraController" },

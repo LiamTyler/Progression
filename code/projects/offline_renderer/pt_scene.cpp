@@ -116,6 +116,30 @@ static bool ParseEntity( const rapidjson::Value& v, Scene* scene )
 }
 
 
+static bool ParseOfflineRenderSettings( const rapidjson::Value& v, Scene* scene )
+{
+    static JSONFunctionMapper< RenderSettings& > mapping(
+    {
+        { "imageResolution", []( const rapidjson::Value& v, RenderSettings& s ) { s.imageResolution = ParseVec2<int>( v ); } },
+        { "maxDepth", []( const rapidjson::Value& v, RenderSettings& s ) { s.maxDepth = ParseNumber<int>( v ); } },
+        { "outputImageFilename", []( const rapidjson::Value& v, RenderSettings& s ) { s.outputImageFilename = v.GetString(); } },
+        { "numSamplesPerPixel", []( const rapidjson::Value& v, RenderSettings& s )
+            {
+                s.numSamplesPerPixel.clear();
+                for ( const rapidjson::Value& item : v.GetArray() )
+                {
+                    s.numSamplesPerPixel.push_back( item.GetInt() );
+                }
+            }
+        },
+        { "antialiasMethod", []( const rapidjson::Value& v, RenderSettings& s ) { s.antialiasMethod = AntiAlias::AlgorithmFromString( v.GetString() ); } }
+    });
+
+    mapping.ForEachMember( v, scene->settings );
+    return true;
+}
+
+
 static bool ParseStartupScript( const rapidjson::Value& v, Scene* scene )
 {
     PG_ASSERT( v.IsString() );
@@ -168,14 +192,15 @@ bool Scene::Load( const std::string& filename )
 
     static JSONFunctionMapperBoolCheck< Scene* > mapping(
     {
-        { "BackgroundColor",  ParseBackgroundColor },
-        { "Camera",           ParseCamera },
-        { "Entity",           ParseEntity },
-        { "DirectionalLight", ParseDirectionalLight },
-        { "PointLight",       ParsePointLight },
-        //{ "Skybox",           ParseSkybox },
-        { "StartupScript",    ParseStartupScript },
-        { "Script",           ParseScript },
+        { "BackgroundColor",       ParseBackgroundColor },
+        { "Camera",                ParseCamera },
+        { "Entity",                ParseEntity },
+        { "DirectionalLight",      ParseDirectionalLight },
+        { "PointLight",            ParsePointLight },
+        { "OfflineRenderSettings", ParseOfflineRenderSettings },
+        //{ "Skybox",                ParseSkybox },
+        { "StartupScript",         ParseStartupScript },
+        { "Script",                ParseScript },
     });
 
     Scene* scene = this;

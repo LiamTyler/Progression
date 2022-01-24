@@ -17,8 +17,32 @@ T ParseNumber( const rapidjson::Value& v )
     return v.Get< T >();
 }
 
-glm::vec3 ParseVec3( const rapidjson::Value& v );
-glm::vec4 ParseVec4( const rapidjson::Value& v );
+
+template<typename ComponentType = float>
+glm::vec<2, ComponentType> ParseVec2( const rapidjson::Value& v )
+{
+    PG_ASSERT( v.IsArray() && v.Size() == 2 );
+    auto& GetF = ParseNumber< ComponentType >;
+    return glm::vec<2, ComponentType>( GetF( v[0] ), GetF( v[1] ) );
+}
+
+
+template<typename ComponentType = float>
+glm::vec<3, ComponentType> ParseVec3( const rapidjson::Value& v )
+{
+    PG_ASSERT( v.IsArray() && v.Size() == 3 );
+    auto& GetF = ParseNumber< ComponentType >;
+    return glm::vec<3, ComponentType>( GetF( v[0] ), GetF( v[1] ), GetF( v[2] ) );
+}
+
+
+template<typename ComponentType = float>
+glm::vec<4, ComponentType> ParseVec4( const rapidjson::Value& v )
+{
+    PG_ASSERT( v.IsArray() && v.Size() == 4 );
+    auto& GetF = ParseNumber< ComponentType >;
+    return glm::vec<4, ComponentType>( GetF( v[0] ), GetF( v[1] ), GetF( v[2] ), GetF( v[3] ) );
+}
 
 template < typename ...Args >
 class JSONFunctionMapper

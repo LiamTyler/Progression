@@ -26,8 +26,10 @@ glm::vec3 BRDF::F( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_w
 
 glm::vec3 BRDF::Sample_F( const glm::vec3& worldSpace_wo, glm::vec3& worldSpace_wi, float& pdf ) const
 {
-    glm::vec3 localWi = CosineSampleHemisphere( Random::Rand(), Random::Rand() );
-    worldSpace_wi     = T * localWi.x + B * localWi.y + N * localWi.z;
+    float u = Random::Rand();
+    float v = Random::Rand();
+    glm::vec3 localWi = CosineSampleHemisphere( u, v );
+    worldSpace_wi     = T * localWi.x + B * localWi.y + N * std::max( 0.00001f, localWi.z );
     pdf               = Pdf( worldSpace_wo, worldSpace_wi );
     return F( worldSpace_wo, worldSpace_wi );
 }
@@ -76,9 +78,8 @@ MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
     }
 
     Material mat;
-    mat.albedoTint = glm::vec3( 0, 0.5, 0 );
+    mat.albedoTint = material->albedoTint;
     mat.albedoTex = TEXTURE_HANDLE_INVALID;
-    //mat.albedoTint = material->albedoTint;
     //if ( material->albedoMap )
     //{
     //    mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );

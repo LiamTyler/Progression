@@ -111,7 +111,7 @@ glm::vec3 Li( const Ray& ray, Scene* scene )
     glm::vec3 L              = glm::vec3( 0 );
     glm::vec3 pathThroughput = glm::vec3( 1 );
     
-    for ( int bounce = 0; bounce < scene->maxDepth; ++bounce )
+    for ( int bounce = 0; bounce < scene->settings.maxDepth; ++bounce )
     {
         IntersectionData hitData;
         hitData.wo = -currentRay.direction;
@@ -159,7 +159,12 @@ glm::vec3 Li( const Ray& ray, Scene* scene )
 
 void PathTracer::Render( int samplesPerPixelIteration )
 {
-    int samplesPerPixel = scene->numSamplesPerPixel[samplesPerPixelIteration];
+    int samplesPerPixel = scene->settings.numSamplesPerPixel[samplesPerPixelIteration];
+    // don't use the set samples per pixel for the non-randomized antialiased methods
+    if ( AntiAlias::GetIterations( scene->settings.antialiasMethod ) != 0 )
+    {
+        samplesPerPixel = AntiAlias::GetIterations( scene->settings.antialiasMethod );
+    }
     LOG( "Rendering scene at %d x %d with SPP = %d", renderedImage.width, renderedImage.height, samplesPerPixel );
 
     auto timeStart = Time::GetTimePoint();
@@ -174,8 +179,9 @@ void PathTracer::Render( int samplesPerPixelIteration )
 
     std::atomic< int > renderProgress( 0 );
     int onePercent = static_cast< int >( std::ceil( renderedImage.height / 100.0f ) );
+    auto AAFunc = AntiAlias::GetAlgorithm( scene->settings.antialiasMethod );
     
-    //#pragma omp parallel for schedule( dynamic )
+    #pragma omp parallel for schedule( dynamic )
     for ( int row = 0; row < renderedImage.height; ++row )
     {
         for ( int col = 0; col < renderedImage.width; ++col )
@@ -185,7 +191,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
             glm::vec3 totalColor = glm::vec3( 0 );
             for ( int rayCounter = 0; rayCounter < samplesPerPixel; ++rayCounter )
             {
-                glm::vec3 antiAliasedPos = AntiAlias::Jitter( rayCounter, imagePlanePos, dU, dV );
+                glm::vec3 antiAliasedPos = AAFunc( rayCounter, imagePlanePos, dU, dV );
                 Ray ray                  = Ray( cam.position, glm::normalize( antiAliasedPos - ray.position ) );
                 totalColor              += Li( ray, scene );
             }
@@ -211,7 +217,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
 PathTracer::PathTracer( Scene* inScene )
 {
     scene = inScene;
-    renderedImage = ImageF32( scene->imageResolution.x, scene->imageResolution.y );
+    renderedImage = ImageF32( scene->settings.imageResolution.x, scene->settings.imageResolution.y );
 }
 
 bool PathTracer::SaveImage( const std::string& filename, bool tonemap ) const

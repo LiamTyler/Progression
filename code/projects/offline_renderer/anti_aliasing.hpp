@@ -16,7 +16,7 @@ enum class Algorithm
     REGULAR_2X2_GRID,
     REGULAR_4X4_GRID,
     ROTATED_2X2_GRID,
-    JITTER_5,
+    JITTER,
 
     NUM_ALGORITHM
 };

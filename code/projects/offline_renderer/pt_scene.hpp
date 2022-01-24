@@ -1,5 +1,6 @@
 #pragma once
 
+#include "anti_aliasing.hpp"
 #include "bvh.hpp"
 #include "core/camera.hpp"
 #include "core/lua.hpp"
@@ -10,6 +11,15 @@
 
 namespace PT
 {
+
+struct RenderSettings
+{
+    std::string outputImageFilename = "rendered.png";
+    glm::ivec2 imageResolution      = glm::ivec2( 400, 400 );
+    int maxDepth                    = 1;
+    std::vector<int> numSamplesPerPixel = { 8 };
+    AntiAlias::Algorithm antialiasMethod = AntiAlias::Algorithm::NONE;
+};
 
 class Scene
 {
@@ -23,16 +33,13 @@ public:
     bool Occluded( const Ray& ray, float tMax = FLT_MAX );
     glm::vec3 LEnvironment( const Ray& ray );
     
+    BVH bvh;
     PG::Camera camera;
     std::vector< Shape* > shapes; // invalid after bvh is built. Use bvh.shapes
     std::vector< Light* > lights;
     glm::vec3 backgroundRadiance    = glm::vec3( 0 );
     //std::shared_ptr< Skybox > skybox;
-    std::string outputImageFilename = "rendered.png";
-    glm::ivec2 imageResolution      = glm::ivec2( 400, 400 );
-    int maxDepth                    = 1;
-    std::vector<int> numSamplesPerPixel = { 1 };
-    BVH bvh;
+    RenderSettings settings = {};
 
     entt::registry registry;
     std::vector<PG::Lua::ScriptInstance> nonEntityScripts;

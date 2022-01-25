@@ -185,6 +185,11 @@ bool Scene::Load( const std::string& filename )
     Lua::g_LuaState["ECS"] = &this->registry;
     Lua::g_LuaState["scene"] = this;
 
+    if ( !AssetManager::LoadFastFile( "defaults" ) )
+    {
+        return false;
+    }
+
     if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
     {
         return false;
@@ -246,17 +251,26 @@ void Scene::Start()
 bool Scene::Intersect( const Ray& ray, IntersectionData& hitData )
 {
     hitData.t = FLT_MAX;
-    //return bvh.Intersect( ray, &hitData );
-    for ( const auto& shape : bvh.shapes )
-    {
-        shape->Intersect( ray, &hitData );
-    }
-    return hitData.t != FLT_MAX;
+    //for ( const auto& shape : bvh.shapes )
+    //{
+    //    shape->Intersect( ray, &hitData );
+    //}
+    //return hitData.t != FLT_MAX;
+    return bvh.Intersect( ray, &hitData );
 }
 
 
 bool Scene::Occluded( const Ray& ray, float tMax )
 {
+    //for ( const auto& shape : bvh.shapes )
+    //{
+    //    if ( shape->TestIfHit( ray, tMax ) )
+    //    {
+    //        return true;
+    //    }
+    //}
+    //return false;
+
     return bvh.Occluded( ray, tMax );
 }
 

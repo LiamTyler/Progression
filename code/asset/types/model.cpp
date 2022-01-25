@@ -44,6 +44,11 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     in >> tmp >> numMeshes;
     meshes.resize( numMeshes );
     originalMaterials.resize( numMeshes );
+    if ( materialNames.size() != numMeshes )
+    {
+        materialNames.resize( numMeshes, "default" );
+    }
+
     for ( uint32_t i = 0; i < numMeshes; ++i )
     {
         int materialIdx;

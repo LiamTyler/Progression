@@ -24,10 +24,10 @@ namespace PT
         for ( uint32_t i = 0; i < numVertices; ++i )
         {
             uint32_t startVert = model->meshes[meshIdx].startVertex;
-            positions[i] = localToWorld.TransformPoint( model->positions[startVert +i] );
+            positions[i] = localToWorld.TransformPoint( model->positions[startVert + i] );
             glm::mat4 N = glm::inverse( glm::transpose( localToWorld.Matrix() ) );
-            normals[i] = glm::normalize( glm::vec3( N * glm::vec4( model->normals[startVert +i], 0 ) ) );
-            tangents[i] = glm::normalize( localToWorld.TransformVector( model->positions[startVert +i] ) );
+            normals[i] = glm::normalize( glm::vec3( N * glm::vec4( model->normals[startVert + i], 0 ) ) );
+            tangents[i] = glm::normalize( localToWorld.TransformVector( model->tangents[startVert + i] ) );
         }
         if ( model->texCoords.size() )
         {

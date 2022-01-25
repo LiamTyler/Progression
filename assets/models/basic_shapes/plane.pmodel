@@ -1,0 +1,33 @@
+Materials: 0
+Meshes: 1
+0: Plane
+    Mat: 0
+    StartTri: 0
+    StartVert: 0
+    NumTris: 2
+    NumVerts: 4
+
+ModelData:
+Positions: 4
+-1 0 1
+1 0 1
+1 0 -1
+-1 0 -1
+Normals: 4
+0 1 0
+0 1 0
+0 1 0
+0 1 0
+TexCoords: 4
+0.0001 0.0001
+0.9999 0.0001
+0.9999 0.9999
+0.0001 0.9999
+Tangents: 4
+1 0 0
+1 0 0
+1 0 0
+1 0 0
+Triangles: 2
+0 1 2
+0 2 3

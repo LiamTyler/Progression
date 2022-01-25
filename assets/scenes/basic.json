@@ -7,11 +7,11 @@
         "antialiasMethod": "NONE"
     }},
     { "Camera": { "position": [ 0, 0, 4 ], "rotation": [ 0, 0, 0 ] } },
-    { "BackgroundColor": [ 0.7, 1.4, 2.35 ] },
+    { "BackgroundColor": [ 0,0,0 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {
         "NameComponent": "tri",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "triangle", "material": "green" }
+        "ModelRenderer": { "model": "bunny", "material": "green" }
     }}
 ]

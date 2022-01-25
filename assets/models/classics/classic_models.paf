@@ -1,0 +1,5 @@
+[
+	{ "Model": { "name": "dragon", "filename": "models/classics/dragon.pmodel" } },
+	{ "Model": { "name": "suzanne", "filename": "models/classics/suzanne.pmodel" } },
+	{ "Model": { "name": "bunny", "filename": "models/classics/bunny.pmodel" } }
+]

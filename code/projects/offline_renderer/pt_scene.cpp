@@ -182,8 +182,8 @@ bool Scene::Load( const std::string& filename )
         return false;
     }
 
-    Lua::g_LuaState["ECS"] = &this->registry;
-    Lua::g_LuaState["scene"] = this;
+    Lua::State()["ECS"] = &this->registry;
+    Lua::State()["scene"] = this;
 
     if ( !AssetManager::LoadFastFile( "defaults" ) )
     {
@@ -221,11 +221,11 @@ bool Scene::Load( const std::string& filename )
 
     CreateShapesFromSceneGeo( scene );
 
-    LOG( "Building BVH..." );
+    LOG( "Building BVH for %zu shapes...", shapes.size() );
     auto bvhTime = Time::GetTimePoint();
     bvh.Build( shapes );
     float bvhBuildTime = (float)Time::GetDuration( bvhTime ) / 1000.0f;
-    LOG( "BVH build time: %.2f seconds", bvhBuildTime );
+    LOG( "BVH build time: %.3f seconds", bvhBuildTime );
 
     return true;
 }
@@ -233,8 +233,8 @@ bool Scene::Load( const std::string& filename )
 
 void Scene::Start()
 {
-    Lua::g_LuaState["ECS"] = &registry;
-    Lua::g_LuaState["scene"] = this;
+    Lua::State()["ECS"] = &registry;
+    Lua::State()["scene"] = this;
 
     for ( auto& script : nonEntityScripts )
     {
@@ -270,7 +270,6 @@ bool Scene::Occluded( const Ray& ray, float tMax )
     //    }
     //}
     //return false;
-
     return bvh.Occluded( ray, tMax );
 }
 

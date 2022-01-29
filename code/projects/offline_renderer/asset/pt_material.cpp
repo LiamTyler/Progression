@@ -29,7 +29,8 @@ glm::vec3 BRDF::Sample_F( const glm::vec3& worldSpace_wo, glm::vec3& worldSpace_
     float u = Random::Rand();
     float v = Random::Rand();
     glm::vec3 localWi = CosineSampleHemisphere( u, v );
-    worldSpace_wi     = T * localWi.x + B * localWi.y + N * std::max( 0.00001f, localWi.z );
+    worldSpace_wi     = T * localWi.x + B * localWi.y + N * localWi.z;
+    //worldSpace_wi     = T * localWi.x + B * localWi.y + N * std::max( 0.00001f, localWi.z );
     pdf               = Pdf( worldSpace_wo, worldSpace_wi );
     return F( worldSpace_wo, worldSpace_wi );
 }

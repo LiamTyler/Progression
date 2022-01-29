@@ -26,10 +26,9 @@ namespace PG
 {
 namespace Lua
 {
-    extern sol::state g_LuaState;
-
     void Init();
     void Shutdown();
+    sol::state& State();
 
     void RunScriptNow( const std::string& script );
 

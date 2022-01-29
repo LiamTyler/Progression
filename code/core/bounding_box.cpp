@@ -4,17 +4,20 @@
 namespace PG
 {
 
-AABB::AABB( const glm::vec3& min_, const glm::vec3& max_ ) : min( min_ ), max( max_ ), extent( max_ - min_ ) {}
+AABB::AABB() : min( FLT_MAX ), max( -FLT_MAX ) {}
+
+AABB::AABB( const glm::vec3& _min, const glm::vec3& _max ) : min( _min ), max( _max ) {}
 
 
 glm::vec3 AABB::Center() const
 {
-    return ( max + min ) / 2.0f;
+    return 0.5f * ( max + min );
 }
 
 
 void AABB::Points( glm::vec3* data ) const
 {
+    glm::vec3 extent = max - min;
     data[0] = min;
     data[1] = min + glm::vec3( extent.x, 0, 0 );
     data[2] = min + glm::vec3( extent.x, 0, extent.z );
@@ -43,6 +46,7 @@ int AABB::LongestDimension() const
     }
 }
 
+
 float AABB::SurfaceArea() const
 {
     glm::vec3 d = max - min;
@@ -52,8 +56,8 @@ float AABB::SurfaceArea() const
 
 glm::mat4 AABB::ModelMatrix() const
 {
-    glm::vec3 center = .5f * ( min + max );
-    glm::vec3 scale  = 0.5f * extent;
+    glm::vec3 center = .5f * (min + max);
+    glm::vec3 scale  = 0.5f * (max - min);
     glm::mat4 model = glm::mat4(
         scale.x, 0, 0, 0,
         0, scale.y, 0, 0,
@@ -99,21 +103,16 @@ glm::vec3 AABB::Offset( const glm::vec3& p ) const
 
 void AABB::MoveCenterTo( const glm::vec3& point )
 {
-    min = point - extent / 2.0f;
-    max = point + extent / 2.0f;
+    glm::vec3 halfExtent = 0.5f * (max - min);
+    min = point - halfExtent;
+    max = point + halfExtent;
 }
 
 
 void AABB::Encompass( const AABB& aabb )
 {
-    glm::vec3 points[8];
-    aabb.Points( points );
-    for ( int i = 0; i < 8; ++i )
-    {
-        min = glm::min( min, points[i] );
-        max = glm::max( max, points[i] );
-    }
-    extent = max - min;
+    min = glm::min( min, aabb.min );
+    max = glm::max( max, aabb.max );
 }
 
 
@@ -121,14 +120,13 @@ void AABB::Encompass( const AABB& aabb, const glm::mat4& transform )
 {
     glm::vec3 points[8];
     aabb.Points( points );
-    glm::vec3 halfExt = aabb.extent / 2.0f;
+    glm::vec3 halfExt = 0.5f * (aabb.max - aabb.min);
     for ( int i = 0; i < 8; ++i )
     {
         glm::vec3 tmp = glm::vec3( transform * glm::vec4( points[i] - halfExt, 1 ) ) + halfExt;
         min = glm::min( min, tmp );
         max = glm::max( max, tmp );
     }
-    extent = max - min;
 }
 
 
@@ -136,7 +134,6 @@ void AABB::Encompass( glm::vec3 point )
 {
     min = glm::min( min, point );
     max = glm::max( max, point );
-    extent = max - min;
 }
 
 
@@ -147,7 +144,6 @@ void AABB::Encompass( glm::vec3* points, int numPoints )
         min = glm::min( min, points[i] );
         max = glm::max( max, points[i] );
     }
-    extent = max - min;
 }
 
 

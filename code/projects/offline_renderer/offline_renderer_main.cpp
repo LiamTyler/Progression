@@ -1,12 +1,12 @@
 #include "core/init.hpp"
 #include "path_tracer.hpp"
 #include "pt_scene.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/random.hpp"
 #include <filesystem>
 
 using namespace PT;
 using namespace PG;
-namespace fs = std::filesystem;
 
 int main( int argc, char** argv )
 {
@@ -25,27 +25,25 @@ int main( int argc, char** argv )
         return 0;
     }
 
-    Scene scene;
-    if ( !scene.Load( PG_ASSET_DIR + std::string( argv[1] ) ) )
+    Scene *scene = new Scene;
+    if ( !scene->Load( PG_ASSET_DIR + std::string( argv[1] ) ) )
     {
         LOG_ERR( "Could not load scene file '%s'", argv[1] );
         return 0;
     }
-    static_assert( std::is_same_v<glm::vec3, glm::vec<3,float>> );
 
     // Perform all scene.numSamplesPerPixel.size() of the renderings.
     // Can specify to render the scene multiple times with different numbers of SPP using "SamplesPerPixel": [ 8, 32, etc... ]
-    for ( int sppIteration = 0; sppIteration < (int)scene.settings.numSamplesPerPixel.size(); ++sppIteration )
+    for ( int sppIteration = 0; sppIteration < (int)scene->settings.numSamplesPerPixel.size(); ++sppIteration )
     {
-        PathTracer pathTracer( &scene );
+        PathTracer pathTracer( scene );
         pathTracer.Render( sppIteration );
 
         // if there are multiple renderings, tack on the suffix "_[spp]" to the filename"
-        std::string filename = PG_ROOT_DIR + scene.settings.outputImageFilename;
-        if ( scene.settings.numSamplesPerPixel.size() > 1 )
+        std::string filename = PG_ROOT_DIR + scene->settings.outputImageFilename;
+        if ( scene->settings.numSamplesPerPixel.size() > 1 )
         {
-            auto path = fs::path( filename );
-            filename  = path.stem().string() + "_" + std::to_string( scene.settings.numSamplesPerPixel[sppIteration] ) + path.extension().string();
+            filename  = PG_ROOT_DIR + GetFilenameMinusExtension( filename ) + "_" + std::to_string( scene->settings.numSamplesPerPixel[sppIteration] ) + GetFileExtension( filename );
         }
 
         if ( !pathTracer.SaveImage( filename, true ) )
@@ -54,6 +52,8 @@ int main( int argc, char** argv )
         }
     }
 
+    delete scene;
     EngineShutdown();
+
     return 0;
 }

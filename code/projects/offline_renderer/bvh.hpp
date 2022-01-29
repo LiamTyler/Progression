@@ -33,7 +33,7 @@ public:
     bool Occluded( const Ray& ray, float tMax = FLT_MAX ) const;
     PG::AABB GetAABB() const;
 
-    SplitMethod splitMethod = SplitMethod::Middle;
+    SplitMethod splitMethod = SplitMethod::SAH;
     std::vector< Shape* > shapes;
     LinearBVHNode* nodes = nullptr;
 };

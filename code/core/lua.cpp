@@ -9,11 +9,12 @@
 #include "core/window.hpp"
 #endif // #if USING( GAME )
 
+static sol::state *g_LuaState = nullptr;
+
 namespace PG
 {
 namespace Lua
 {
-    sol::state g_LuaState;
 
     void RegisterTimeFunctions( lua_State* L )
     {
@@ -95,30 +96,40 @@ namespace Lua
 
     void Init()
     {
-        g_LuaState.open_libraries( sol::lib::base, sol::lib::math );
+        PG_ASSERT( !g_LuaState );
+        g_LuaState = new sol::state;
+        g_LuaState->open_libraries( sol::lib::base, sol::lib::math );
 
-        RegisterLuaFunctions_Math( g_LuaState );
-        RegisterLuaFunctions_Scene( g_LuaState );
-        RegisterLuaFunctions_Camera( g_LuaState );
-        ECS::RegisterLuaFunctions( g_LuaState );
-        AssetManager::RegisterLuaFunctions( g_LuaState );
-        RegisterTimeFunctions( g_LuaState );
+        RegisterLuaFunctions_Math( *g_LuaState );
+        RegisterLuaFunctions_Scene( *g_LuaState );
+        RegisterLuaFunctions_Camera( *g_LuaState );
+        ECS::RegisterLuaFunctions( *g_LuaState );
+        AssetManager::RegisterLuaFunctions( *g_LuaState );
+        RegisterTimeFunctions( *g_LuaState );
 #if USING( GAME )
-        RegisterLuaFunctions_Window( g_LuaState );
-        Input::RegisterLuaFunctions( g_LuaState );
+        RegisterLuaFunctions_Window( *g_LuaState );
+        Input::RegisterLuaFunctions( *g_LuaState );
 #endif // #if USING( GAME )
     }
 
 
     void Shutdown()
     {
-        g_LuaState = {};
+        PG_ASSERT( g_LuaState );
+        delete g_LuaState;
+        g_LuaState = nullptr;
+    }
+
+
+    sol::state& State()
+    {
+        return *g_LuaState;
     }
 
 
     void RunScriptNow( const std::string& script )
     {
-        g_LuaState.script( script );
+        g_LuaState->script( script );
     }
 
 
@@ -126,10 +137,10 @@ namespace Lua
     {
         PG_ASSERT( inScriptAsset );
         scriptAsset = inScriptAsset;
-        env = sol::environment( g_LuaState, sol::create, g_LuaState.globals() );
+        env = sol::environment( *g_LuaState, sol::create, g_LuaState->globals() );
         if ( !scriptAsset->scriptText.empty() )
         {
-            g_LuaState.script( scriptAsset->scriptText, env );
+            g_LuaState->script( scriptAsset->scriptText, env );
             updateFunction = env["Update"];
         }
         hasUpdateFunction = updateFunction.valid();

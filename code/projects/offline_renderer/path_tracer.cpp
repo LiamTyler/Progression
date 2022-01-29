@@ -160,11 +160,6 @@ glm::vec3 Li( const Ray& ray, Scene* scene )
 void PathTracer::Render( int samplesPerPixelIteration )
 {
     int samplesPerPixel = scene->settings.numSamplesPerPixel[samplesPerPixelIteration];
-    // don't use the set samples per pixel for the non-randomized antialiased methods
-    if ( AntiAlias::GetIterations( scene->settings.antialiasMethod ) != 0 )
-    {
-        samplesPerPixel = AntiAlias::GetIterations( scene->settings.antialiasMethod );
-    }
     LOG( "Rendering scene at %d x %d with SPP = %d", renderedImage.width, renderedImage.height, samplesPerPixel );
 
     auto timeStart = Time::GetTimePoint();
@@ -230,7 +225,6 @@ bool PathTracer::SaveImage( const std::string& filename, bool tonemap ) const
                 glm::vec3 newColor = pixel;
                 newColor = Uncharted2Tonemap( newColor, scene->camera.exposure );
                 newColor = GammaCorrect( newColor, 2.2f );
-                //newColor = PBRTGammaCorrect( newColor ) + glm::vec3( 1.0f / 512.0f );
                 newColor = glm::clamp( newColor, glm::vec3( 0 ), glm::vec3( 1 ) );
                 pixel = glm::vec4( newColor, 1.0f );
             }

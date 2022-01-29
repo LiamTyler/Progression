@@ -171,8 +171,8 @@ Scene* Scene::Load( const std::string& filename )
 
     Scene* previousPrimaryScene = GetPrimaryScene();
     SetPrimaryScene( scene );
-    Lua::g_LuaState["ECS"] = &scene->registry;
-    Lua::g_LuaState["scene"] = scene;
+    Lua::State()["ECS"] = &scene->registry;
+    Lua::State()["scene"] = scene;
 
 #if USING( GAME )
     if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
@@ -213,8 +213,8 @@ Scene* Scene::Load( const std::string& filename )
 
 void Scene::Start()
 {
-    Lua::g_LuaState["ECS"] = &registry;
-    Lua::g_LuaState["scene"] = this;
+    Lua::State()["ECS"] = &registry;
+    Lua::State()["scene"] = this;
 
     for ( int i = 0; i < numNonEntityScripts; ++i )
     {
@@ -230,9 +230,9 @@ void Scene::Start()
 
 void Scene::Update()
 {
-    Lua::g_LuaState["ECS"] = &registry;
-    Lua::g_LuaState["scene"] = this;
-    auto luaTimeNamespace = Lua::g_LuaState["Time"].get< sol::table >();
+    Lua::State()["ECS"] = &registry;
+    Lua::State()["scene"] = this;
+    auto luaTimeNamespace = Lua::State()["Time"].get< sol::table >();
     luaTimeNamespace["dt"] = Time::DeltaTime();
     for ( int i = 0; i < numNonEntityScripts; ++i )
     {

@@ -8,7 +8,8 @@ namespace PG
 class AABB
 {
 public:
-    AABB( const glm::vec3& min_ = glm::vec3( 0 ), const glm::vec3& max_ = glm::vec3( 0 ) );
+    AABB();
+    AABB( const glm::vec3& _min, const glm::vec3& _max );
     ~AABB() = default;
 
     glm::vec3 Center() const;
@@ -29,7 +30,6 @@ public:
 
     glm::vec3 min;
     glm::vec3 max;
-    glm::vec3 extent;
 };
 
 } // namespace PG

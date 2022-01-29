@@ -3,15 +3,20 @@
         "imageResolution": [ 1280, 720 ],
         "maxDepth": 5,
         "outputImageFilename": "basic.png",
-        "numSamplesPerPixel": [ 1 ],
-        "antialiasMethod": "NONE"
+        "numSamplesPerPixel": [ 1024 ],
+        "antialiasMethod": "JITTER"
     }},
-    { "Camera": { "position": [ 0, 0, 4 ], "rotation": [ 0, 0, 0 ] } },
+    { "Camera": {
+        "position": [ 0, 0, 4 ],
+        "rotation": [ 0, 0, 0 ],
+        "_aspectRatio": 1,
+        "exposure": 6.0
+    }},
     { "BackgroundColor": [ 0,0,0 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {
         "NameComponent": "tri",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "bunny", "material": "green" }
+        "ModelRenderer": { "model": "suzanne", "material": "green" }
     }}
 ]

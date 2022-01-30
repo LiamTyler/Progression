@@ -14,9 +14,9 @@ struct lua_State;
 namespace PG::AssetManager
 {
 
-#if USING( CONVERTER )
+#if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
     extern std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::NUM_ASSET_TYPES];
-#endif // #if USING( CONVERTER )
+#endif // #if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
 
 struct GetAssetTypeIDHelper
 {

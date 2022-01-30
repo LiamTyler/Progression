@@ -132,7 +132,8 @@ static bool ParseOfflineRenderSettings( const rapidjson::Value& v, Scene* scene 
                 }
             }
         },
-        { "antialiasMethod", []( const rapidjson::Value& v, RenderSettings& s ) { s.antialiasMethod = AntiAlias::AlgorithmFromString( v.GetString() ); } }
+        { "antialiasMethod", []( const rapidjson::Value& v, RenderSettings& s ) { s.antialiasMethod = AntiAlias::AlgorithmFromString( v.GetString() ); } },
+        { "tonemapMethod", []( const rapidjson::Value& v, RenderSettings& s ) { s.tonemapMethod = TonemapOperatorFromString( v.GetString() ); } }
     });
 
     mapping.ForEachMember( v, scene->settings );
@@ -218,7 +219,6 @@ bool Scene::Load( const std::string& filename )
     }
 
     Start();
-
     CreateShapesFromSceneGeo( scene );
 
     LOG( "Building BVH for %zu shapes...", shapes.size() );

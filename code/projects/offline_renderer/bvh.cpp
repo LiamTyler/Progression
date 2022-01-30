@@ -205,7 +205,7 @@ static int FlattenBVHBuild( LinearBVHNode* linearRoot, BVHBuildNode* buildNode, 
     return currentSlot;
 }
 
-void BVH::Build( std::vector< ShapePtr >& listOfShapes )
+void BVH::Build( std::vector< ShapePtr >& listOfShapes, SplitMethod splitMethod )
 {
     shapes = std::move( listOfShapes );
 

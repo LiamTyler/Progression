@@ -28,12 +28,11 @@ public:
     BVH() = default;
     ~BVH();
 
-    void Build( std::vector< Shape* >& shapes );
+    void Build( std::vector< Shape* >& shapes, SplitMethod splitMethod = SplitMethod::SAH );
     bool Intersect( const Ray& ray, IntersectionData* hitData ) const;
     bool Occluded( const Ray& ray, float tMax = FLT_MAX ) const;
     PG::AABB GetAABB() const;
 
-    SplitMethod splitMethod = SplitMethod::SAH;
     std::vector< Shape* > shapes;
     LinearBVHNode* nodes = nullptr;
 };

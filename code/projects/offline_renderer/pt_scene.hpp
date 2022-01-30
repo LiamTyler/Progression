@@ -7,6 +7,7 @@
 #include "ecs/ecs.hpp"
 #include "pt_lights.hpp"
 #include "shapes.hpp"
+#include "tonemap.hpp"
 #include <vector>
 
 namespace PT
@@ -14,11 +15,12 @@ namespace PT
 
 struct RenderSettings
 {
-    std::string outputImageFilename = "rendered.png";
-    glm::ivec2 imageResolution      = glm::ivec2( 400, 400 );
-    int maxDepth                    = 1;
-    std::vector<int> numSamplesPerPixel = { 8 };
+    std::string outputImageFilename      = "rendered.png";
+    glm::ivec2 imageResolution           = glm::ivec2( 400, 400 );
+    int maxDepth                         = 1;
+    std::vector<int> numSamplesPerPixel  = { 8 };
     AntiAlias::Algorithm antialiasMethod = AntiAlias::Algorithm::NONE;
+    TonemapOperator tonemapMethod        = TonemapOperator::REINHARD;
 };
 
 class Scene

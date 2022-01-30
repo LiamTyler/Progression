@@ -12,7 +12,7 @@ public:
     PathTracer( Scene* scene );
 
     void Render( int samplesPerPixelIteration = 0 );
-    bool SaveImage( const std::string& filename, bool tonemap ) const;
+    bool SaveImage( const std::string& filename ) const;
 
     Scene* scene;
     ImageF32 renderedImage;

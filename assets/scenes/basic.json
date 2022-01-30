@@ -2,21 +2,22 @@
     { "OfflineRenderSettings": {
         "imageResolution": [ 1280, 720 ],
         "maxDepth": 5,
-        "outputImageFilename": "basic.png",
-        "numSamplesPerPixel": [ 1024 ],
-        "antialiasMethod": "JITTER"
+        "outputImageFilename": "build/basic.png",
+        "numSamplesPerPixel": [ 1 ],
+        "antialiasMethod": "NONE",
+        "tonemapMethod": "NONE"
     }},
     { "Camera": {
         "position": [ 0, 0, 4 ],
         "rotation": [ 0, 0, 0 ],
         "_aspectRatio": 1,
-        "exposure": 6.0
+        "exposure": 1.0
     }},
     { "BackgroundColor": [ 0,0,0 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {
         "NameComponent": "tri",
-        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "suzanne", "material": "green" }
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 90, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "quad", "material": "weathered_brown_planks" }
     }}
 ]

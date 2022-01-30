@@ -4,6 +4,7 @@
 #include "pt_image.hpp"
 #include "sampling.hpp"
 #include "shared/assert.hpp"
+#include "shared/color_spaces.hpp"
 #include "shared/random.hpp"
 #include <algorithm>
 
@@ -45,9 +46,11 @@ float BRDF::Pdf( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_wi 
 glm::vec3 Material::GetAlbedo( const glm::vec2& texCoords ) const
 {
     glm::vec3 color = albedoTint;
-    if ( albedoTex )
+    if ( albedoTex != TEXTURE_HANDLE_INVALID )
     {
-        color *= glm::vec3( GetTex( albedoTex )->Sample( texCoords ) );
+        glm::vec4 sample = glm::vec4( 1.0f/255.0f ) * glm::vec4( GetTex( albedoTex )->Sample( texCoords ) );
+        sample = GammaSRGBToLinear( sample );
+        color *= sample.rgb();
     }
 
     return color;
@@ -81,10 +84,10 @@ MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
     Material mat;
     mat.albedoTint = material->albedoTint;
     mat.albedoTex = TEXTURE_HANDLE_INVALID;
-    //if ( material->albedoMap )
-    //{
-    //    mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );
-    //}
+    if ( material->albedoMap )
+    {
+        mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );
+    }
 
     g_materials.emplace_back( mat );
     MaterialHandle handle = static_cast< MaterialHandle >( g_materials.size() - 1 );

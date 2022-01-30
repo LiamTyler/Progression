@@ -1,35 +1,40 @@
 #include "tonemap.hpp"
+#include "shared/logger.hpp"
+#include <unordered_map>
 
 namespace PT
 {
 
-glm::vec3 GammaCorrect( const glm::vec3& pixel, float gamma )
-{
-    return glm::pow( pixel, glm::vec3( 1.0f ) / glm::vec3( gamma ) );
-}
 
-glm::vec3 PBRTGammaCorrect( const glm::vec3& pixel )
+TonemapOperator TonemapOperatorFromString( const std::string& name )
 {
-    glm::vec3 newPixel;
-    for ( int i = 0; i < 3; ++i )
+    std::unordered_map< std::string, TonemapOperator > map =
     {
-        if ( pixel[i] <= 0.0031308f )
-        {
-            newPixel[i] = 12.92f * pixel[i];
-        }
-        else
-        {
-            newPixel[i] = 1.055f * std::pow( pixel[i], 1.f / 2.4f ) - 0.055f;
-        }
+        { "NONE",       TonemapOperator::NONE },
+        { "REINHARD",   TonemapOperator::REINHARD },
+        { "UNCHARTED2", TonemapOperator::UNCHARTED2 },
+    };
+
+    auto it = map.find( name );
+    if ( it == map.end() )
+    {
+        LOG_WARN( "Tonemap operator '%s' not found, using NONE instead!", name.c_str() );
+        return TonemapOperator::NONE;
     }
-    
-    return newPixel;
+
+    return it->second;
 }
 
-glm::vec3 ReinhardTonemap( const glm::vec3& pixel, float exposure )
+
+glm::vec3 NoTonemap( const glm::vec3& pixel )
 {
-    auto adjustedColor = exposure * pixel;
-    return adjustedColor / ( glm::vec3( 1.0f ) + adjustedColor );
+    return pixel;
+}
+
+
+glm::vec3 ReinhardTonemap( const glm::vec3& pixel )
+{
+    return pixel / ( glm::vec3( 1.0f ) + pixel );
 }
 
 // source: http://filmicworlds.com/blog/filmic-tonemapping-operators/
@@ -44,11 +49,25 @@ static glm::vec3 Uncharted2TonemapHelper( const glm::vec3& x )
     return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
 }
 
-glm::vec3 Uncharted2Tonemap( const glm::vec3& pixel, float exposure )
+glm::vec3 Uncharted2Tonemap( const glm::vec3& pixel )
 {
-    glm::vec3 curr       = Uncharted2TonemapHelper( exposure * pixel );
+    glm::vec3 curr       = Uncharted2TonemapHelper( pixel );
     glm::vec3 whiteScale = 1.0f / Uncharted2TonemapHelper( glm::vec3( 11.2f ) );
     glm::vec3 color      = curr * whiteScale;
     return color;
 }
+
+
+TonemapFunc GetTonemapFunction( TonemapOperator op )
+{
+    static TonemapFunc tonemapFuncs[] =
+    {
+        NoTonemap,
+        ReinhardTonemap,
+        Uncharted2Tonemap,
+    };
+
+    return tonemapFuncs[static_cast<int>( op )];
+}
+
 } // namespace PT

@@ -17,7 +17,6 @@ int main( int argc, char** argv )
         LOG_ERR( "Failed to initialize the engine" );
         return 1;
     }
-    Random::SetSeed( 0 );
 
     if ( argc != 2 )
     {
@@ -46,7 +45,7 @@ int main( int argc, char** argv )
             filename  = PG_ROOT_DIR + GetFilenameMinusExtension( filename ) + "_" + std::to_string( scene->settings.numSamplesPerPixel[sppIteration] ) + GetFileExtension( filename );
         }
 
-        if ( !pathTracer.SaveImage( filename, true ) )
+        if ( !pathTracer.SaveImage( filename ) )
         {
             LOG_ERR( "Could not save image '%s'", filename.c_str() );
         }

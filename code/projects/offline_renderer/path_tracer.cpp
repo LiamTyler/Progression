@@ -4,6 +4,7 @@
 #include "glm/ext.hpp"
 #include "sampling.hpp"
 #include "tonemap.hpp"
+#include "shared/color_spaces.hpp"
 #include "shared/core_defines.hpp"
 #include "shared/logger.hpp"
 #include "shared/random.hpp"
@@ -215,26 +216,25 @@ PathTracer::PathTracer( Scene* inScene )
     renderedImage = ImageF32( scene->settings.imageResolution.x, scene->settings.imageResolution.y );
 }
 
-bool PathTracer::SaveImage( const std::string& filename, bool tonemap ) const
+bool PathTracer::SaveImage( const std::string& filename ) const
 {
-    if ( tonemap )
-    {
-        ImageF32 tonemapped = renderedImage.Clone();
-        tonemapped.ForEachPixel( [this]( glm::vec4& pixel )
-            {
-                glm::vec3 newColor = pixel;
-                newColor = Uncharted2Tonemap( newColor, scene->camera.exposure );
-                newColor = GammaCorrect( newColor, 2.2f );
-                newColor = glm::clamp( newColor, glm::vec3( 0 ), glm::vec3( 1 ) );
-                pixel = glm::vec4( newColor, 1.0f );
-            }
-        );
-        return tonemapped.Save( filename );
-    }
-    else
+    if ( scene->settings.tonemapMethod == TonemapOperator::NONE )
     {
         return renderedImage.Save( filename );
     }
+
+    ImageF32 tonemappedImg = renderedImage.Clone();
+    TonemapFunc tonemapFunc = GetTonemapFunction( scene->settings.tonemapMethod );
+    tonemappedImg.ForEachPixel( [&]( glm::vec4& pixel )
+        {
+            glm::vec3 newColor = scene->camera.exposure * pixel;
+            newColor = tonemapFunc( newColor );
+            newColor = LinearToGammaSRGB( newColor );
+            newColor = glm::clamp( newColor, glm::vec3( 0 ), glm::vec3( 1 ) );
+            pixel = glm::vec4( newColor, 1.0f );
+        }
+    );
+    return tonemappedImg.Save( filename );
 }
 
 } // namespace PT

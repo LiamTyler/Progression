@@ -70,6 +70,7 @@ set(
     ${CODE_DIR}/ecs/components/transform.hpp
     
     ${CODE_DIR}/shared/bitops.hpp
+    ${CODE_DIR}/shared/color_spaces.hpp
     ${CODE_DIR}/shared/core_defines.hpp
     ${CODE_DIR}/shared/file_dependency.cpp
     ${CODE_DIR}/shared/file_dependency.hpp

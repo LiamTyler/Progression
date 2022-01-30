@@ -8,7 +8,7 @@ namespace PG
 
 inline float LinearToGammaSRGB( float x )
 {
-    if ( x <= 0.0031308f )
+    if ( x <= 0.0031308f ) [[unlikely]]
     {
         return 12.92f * x;
     }
@@ -19,21 +19,21 @@ inline float LinearToGammaSRGB( float x )
 }
 
 
+inline glm::vec3 LinearToGammaSRGB( glm::vec3 v )
+{
+    return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ) };  
+}
+
+
 inline glm::vec4 LinearToGammaSRGB( glm::vec4 v )
 {
-    return
-    {
-        LinearToGammaSRGB( v.x ),
-        LinearToGammaSRGB( v.y ),
-        LinearToGammaSRGB( v.z ),
-        v.w
-    };  
+    return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ), v.a };  
 }
 
 
 inline float GammaSRGBToLinear( float x )
 {
-    if ( x <= 0.04045f )
+    if ( x <= 0.04045f ) [[unlikely]]
     {
         return x / 12.92f;
     }
@@ -44,15 +44,15 @@ inline float GammaSRGBToLinear( float x )
 }
 
 
+inline glm::vec3 GammaSRGBToLinear( glm::vec3 v )
+{
+    return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ) };  
+}
+
+
 inline glm::vec4 GammaSRGBToLinear( glm::vec4 v )
 {
-    return
-    {
-        GammaSRGBToLinear( v.x ),
-        GammaSRGBToLinear( v.y ),
-        GammaSRGBToLinear( v.z ),
-        v.w
-    };  
+    return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ), v.w };  
 }
 
 } // namespace PG

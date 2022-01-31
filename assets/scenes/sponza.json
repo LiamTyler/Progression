@@ -3,7 +3,7 @@
         "imageResolution": [ 1280, 720 ],
         "maxDepth": 10,
         "outputImageFilename": "build/sponza.png",
-        "numSamplesPerPixel": [ 8 ],
+        "numSamplesPerPixel": [ 128 ],
         "antialiasMethod": "JITTER"
     }},
     { "Camera": { "position": [ -4, 2, 0 ], "rotation": [ 0, -90, 0 ] } },

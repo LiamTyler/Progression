@@ -9,16 +9,12 @@ using namespace PG;
 namespace PT
 {
 
-std::vector<ImageU8> g_textures = {};
+std::vector<std::shared_ptr<Texture>> g_textures = { nullptr };
 std::unordered_map<std::string, TextureHandle> s_textureNameToHandleMap;
 
 
 TextureHandle LoadTextureFromGfxImage( GfxImage* image )
 {
-    if ( g_textures.empty() )
-    {
-        g_textures.emplace_back();
-    }
     PG_ASSERT( image && image->name.length() > 0 );
     auto it = s_textureNameToHandleMap.find( image->name );
     if ( it != s_textureNameToHandleMap.end() )
@@ -28,29 +24,20 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
 
     int numChannels = NumChannelsInPixelFromat( image->pixelFormat );
     PG_ASSERT( NumBytesPerChannel( image->pixelFormat ) == 1 );
-    ImageU8 newImg( image->width, image->height );
-    for ( int r = 0; r < (int)image->height; ++r )
-    {
-        for ( int c = 0; c < (int)image->width; ++c )
-        {
-            glm::u8vec4 newP( 0, 0, 0, 255 );
-            for ( int i = 0; i < numChannels; ++i )
-            {
-                 newP[i] = image->pixels[numChannels * (r*image->width + c) + i];
-            }
-            newImg.SetPixel( r, c, newP );
-        }
-    }
-    g_textures.emplace_back( std::move( newImg ) );
+    PG_ASSERT( !PixelFormatIsCompressed( image->pixelFormat ) );
+
+    std::shared_ptr<Texture> tex = std::make_shared<Texture2D<uint8_t,4,true,false,false>>( image->width, image->height, (void*)image->pixels );
+
+    g_textures.push_back( tex );
     TextureHandle handle = static_cast<TextureHandle>( g_textures.size() - 1 );
     s_textureNameToHandleMap[image->name] = handle;
     return handle;
 }
 
 
-ImageU8* GetTex( TextureHandle handle )
+Texture* GetTex( TextureHandle handle )
 {
-    return &g_textures[handle];
+    return g_textures[handle].get();
 }
 
 } // namespace PT

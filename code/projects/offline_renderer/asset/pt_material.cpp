@@ -48,8 +48,7 @@ glm::vec3 Material::GetAlbedo( const glm::vec2& texCoords ) const
     glm::vec3 color = albedoTint;
     if ( albedoTex != TEXTURE_HANDLE_INVALID )
     {
-        glm::vec4 sample = glm::vec4( 1.0f/255.0f ) * glm::vec4( GetTex( albedoTex )->Sample( texCoords ) );
-        sample = GammaSRGBToLinear( sample );
+        glm::vec4 sample = GetTex( albedoTex )->Sample( texCoords );
         color *= sample.rgb();
     }
 

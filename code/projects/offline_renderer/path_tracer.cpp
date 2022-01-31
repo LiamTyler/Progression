@@ -19,7 +19,7 @@
 using namespace PG;
 
 namespace PT
-{   
+{
 
 float Fresnel(const glm::vec3& I, const glm::vec3& N, const float &ior )
 {

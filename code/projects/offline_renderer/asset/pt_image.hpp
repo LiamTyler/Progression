@@ -35,6 +35,25 @@ public:
 
     glm::vec4 Fetch( int row, int col ) const
     {
+        if constexpr ( clampU )
+        {
+            col = std::clamp( col, 0, width - 1 );
+        }
+        else
+        {
+            if ( col < 0 ) col += width;
+            else if ( col >= width ) col -= width;
+        }
+        if constexpr ( clampV )
+        {
+            row = std::clamp( row, 0, height - 1 );
+        }
+        else
+        {
+            if ( row < 0 ) row += height;
+            else if ( row >= height ) row -= height;
+        }
+
         int pixelOffset = numChannels * (row * width + col);
         glm::vec4 ret;
         for ( int channel = 0; channel < numChannels; ++channel )
@@ -67,53 +86,29 @@ public:
         if constexpr ( clampV ) uv.y = std::clamp( uv.y, 0.0f, 1.0f );
         else uv.y -= std::floor( uv.y );
 
-        // assuming uv = (0,0) is not the center of the first pixel, but rather the top left corner of it
-        // Ex: if a 2x2 texture is sampled at (0.25, 0.25), then only the first pixel should have any weight during bilinear filtering
-        int col0, col1;
-        float colLerp;
-        float centeredU = width * (uv.x - halfPixelDim.x);
-        if ( centeredU >= 0.0f ) [[likely]]
+        // subtract 0.5 to account for pixel centers
+        uv = uv * glm::vec2( width, height ) - glm::vec2( 0.5f );
+        glm::vec2 start = glm::floor( uv );
+        int col = static_cast<int>( start.x );
+        int row = static_cast<int>( start.y );
+        
+        glm::vec2 d = uv - start;
+        const float w00 = (1.0f - d.x) * (1.0f - d.y);
+		const float w01 = d.x * (1.0f - d.y);
+		const float w10 = (1.0f - d.x) * d.y;
+		const float w11 = d.x * d.y;
+        
+        glm::vec4 p00 = Fetch( row, col );
+        glm::vec4 p01 = Fetch( row, col + 1 );
+        glm::vec4 p10 = Fetch( row + 1, col );
+        glm::vec4 p11 = Fetch( row + 1, col + 1 );
+        
+        glm::vec4 ret;
+        for ( int i = 0; i < numChannels; ++i )
         {
-            col0 = static_cast<int>( centeredU );
-            col1 = col0 + 1;
-            if ( col1 == width ) [[unlikely]]
-                col1 = 0;
-            colLerp = centeredU - col0;
-        }
-        else
-        {
-            col0 = width - 1;
-            col1 = 0;
-            colLerp = 1 + centeredU;
+            ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
         }
 
-        int row0, row1;
-        float rowLerp;
-        float centeredV = height * (uv.y - halfPixelDim.y);
-        if ( centeredV >= 0.0f ) [[likely]]
-        {
-            row0 = static_cast<int>( centeredV );
-            row1 = row0 + 1;
-            if ( row1 == height ) [[unlikely]]
-                row1 = 0;
-            rowLerp = centeredV - row0;
-        }
-        else
-        {
-            row0 = height - 1;
-            row1 = 0;
-            rowLerp = 1 + centeredV;
-        }
-        
-        glm::vec4 p00 = Fetch( row0, col0 );
-        glm::vec4 p01 = Fetch( row0, col1 );
-        glm::vec4 p10 = Fetch( row1, col0 );
-        glm::vec4 p11 = Fetch( row1, col1 );
-
-        glm::vec4 p0 = (1.0f - colLerp) * p00 + colLerp * p01;
-        glm::vec4 p1 = (1.0f - colLerp) * p10 + colLerp * p11;
-        
-        glm::vec4 ret = (1.0f - rowLerp) * p0 + rowLerp * p1;
         if constexpr ( numChannels < 2 ) ret.g = 0.0f;
         if constexpr ( numChannels < 3 ) ret.b = 0.0f;
         if constexpr ( numChannels < 4 ) ret.a = 1.0f;

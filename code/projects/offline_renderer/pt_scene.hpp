@@ -40,7 +40,7 @@ public:
     std::vector< Shape* > shapes; // invalid after bvh is built. Use bvh.shapes
     std::vector< Light* > lights;
     glm::vec3 backgroundRadiance    = glm::vec3( 0 );
-    //std::shared_ptr< Skybox > skybox;
+    TextureHandle skybox;
     RenderSettings settings = {};
 
     entt::registry registry;

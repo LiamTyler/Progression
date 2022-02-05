@@ -141,6 +141,17 @@ static bool ParseOfflineRenderSettings( const rapidjson::Value& v, Scene* scene 
 }
 
 
+static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
+{
+    PG_ASSERT( v.IsString() );
+    std::string name = v.GetString();
+    auto skybox = AssetManager::Get<GfxImage>( name );
+    PG_ASSERT( scene->skybox, "Could not find skybox with name '" + name + "'" );
+    scene->skybox = LoadTextureFromGfxImage( skybox );
+    return true;
+}
+
+
 static bool ParseStartupScript( const rapidjson::Value& v, Scene* scene )
 {
     PG_ASSERT( v.IsString() );
@@ -204,12 +215,13 @@ bool Scene::Load( const std::string& filename )
         { "DirectionalLight",      ParseDirectionalLight },
         { "PointLight",            ParsePointLight },
         { "OfflineRenderSettings", ParseOfflineRenderSettings },
-        //{ "Skybox",                ParseSkybox },
+        { "Skybox",                ParseSkybox },
         { "StartupScript",         ParseStartupScript },
         { "Script",                ParseScript },
     });
 
     Scene* scene = this;
+    scene->skybox = TEXTURE_HANDLE_INVALID;
     for ( rapidjson::Value::ConstValueIterator itr = document.Begin(); itr != document.End(); ++itr )
     {
         if ( !mapping.ForEachMember( *itr, scene ) )
@@ -276,11 +288,14 @@ bool Scene::Occluded( const Ray& ray, float tMax )
 
 glm::vec3 Scene::LEnvironment( const Ray& ray )
 {
-    //if ( skybox )
-    //{
-    //    return glm::vec3( skybox->GetPixel( ray ) );
-    //}
-    return backgroundRadiance;
+    if ( skybox != TEXTURE_HANDLE_INVALID )
+    {
+        return glm::vec3( GetTex( skybox )->SampleDir( ray.direction ) );
+    }
+    else
+    {
+        return backgroundRadiance;
+    }
 }
 
 } // namespace PT

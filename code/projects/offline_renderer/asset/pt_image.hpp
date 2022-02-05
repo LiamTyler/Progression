@@ -1,6 +1,7 @@
 #pragma once
 
 #include "image.hpp"
+#include "shared/assert.hpp"
 #include "shared/color_spaces.hpp"
 #include "shared/float_conversions.hpp"
 #include <vector>
@@ -18,20 +19,21 @@ class Texture
 public:
     virtual ~Texture() {}
     virtual glm::vec4 Sample( glm::vec2 uv ) const = 0;
+    virtual glm::vec4 SampleDir( glm::vec3 dir ) const = 0;
 };
 
-template <typename T, int numChannels, bool sRGB, bool clampU = false, bool clampV = false>
+template <typename T, int NUM_CHANNELS, bool sRGB, bool clampU = false, bool clampV = false>
 class Texture2D : public Texture
 {
 public:
-    static_assert( numChannels >= 1 && numChannels <= 4 );
+    static_assert( NUM_CHANNELS >= 1 && NUM_CHANNELS <= 4 );
+    Texture2D() = default;
     Texture2D( int w, int h, void* data ) : width( w ), height( h )
     {
-        pixels = std::make_shared<T[]>( w * h * numChannels );
+        pixels = std::make_shared<T[]>( w * h * NUM_CHANNELS );
         halfPixelDim = glm::vec2( 0.5f ) / glm::vec2( width, height );
-        memcpy( pixels.get(), data, w * h * numChannels * sizeof( T ) );
+        memcpy( pixels.get(), data, w * h * NUM_CHANNELS * sizeof( T ) );
     }
-
 
     glm::vec4 Fetch( int row, int col ) const
     {
@@ -54,9 +56,9 @@ public:
             else if ( row >= height ) row -= height;
         }
 
-        int pixelOffset = numChannels * (row * width + col);
+        int pixelOffset = NUM_CHANNELS * (row * width + col);
         glm::vec4 ret;
-        for ( int channel = 0; channel < numChannels; ++channel )
+        for ( int channel = 0; channel < NUM_CHANNELS; ++channel )
         {
             if constexpr ( std::is_same_v<T,float> )
             {
@@ -77,7 +79,6 @@ public:
 
         return ret;
     }
-
 
     glm::vec4 Sample( glm::vec2 uv ) const override
     {
@@ -104,21 +105,84 @@ public:
         glm::vec4 p11 = Fetch( row + 1, col + 1 );
         
         glm::vec4 ret;
-        for ( int i = 0; i < numChannels; ++i )
+        for ( int i = 0; i < NUM_CHANNELS; ++i )
         {
             ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
         }
 
-        if constexpr ( numChannels < 2 ) ret.g = 0.0f;
-        if constexpr ( numChannels < 3 ) ret.b = 0.0f;
-        if constexpr ( numChannels < 4 ) ret.a = 1.0f;
+        if constexpr ( NUM_CHANNELS < 2 ) ret.g = 0.0f;
+        if constexpr ( NUM_CHANNELS < 3 ) ret.b = 0.0f;
+        if constexpr ( NUM_CHANNELS < 4 ) ret.a = 1.0f;
 
         return ret;
+    }
+
+    glm::vec4 SampleDir( glm::vec3 dir ) const override
+    {
+        PG_ASSERT( false, "not implemented yet" );
+        return glm::vec4( 0 );
     }
 
     int width;
     int height;
     std::shared_ptr<T[]> pixels;
+private:
+    glm::vec2 halfPixelDim;
+};
+
+
+template <typename T, int NUM_CHANNELS>
+class TextureCubeMap : public Texture
+{
+public:
+    static_assert( NUM_CHANNELS >= 1 && NUM_CHANNELS <= 4 );
+    TextureCubeMap( int w, int h, void* facePixelData[6] ) : width( w ), height( h )
+    {
+        for ( int face = 0; face < 6; ++face )
+        {
+            faces[face] = Texture2D<T,NUM_CHANNELS,false,true,true>( w, h, facePixelData[face] );
+        }
+    }
+
+    glm::vec4 Sample( glm::vec2 uv ) const override
+    {
+        PG_ASSERT( false, "Invalid for cubemaps. Use SampleDir" );
+        return glm::vec4( 0 );
+    }
+
+    // assumes dir (v) is normalized, and that +x = right, +y = up, +z = forward
+    glm::vec4 SampleDir( glm::vec3 v ) const override
+    {
+        glm::vec3 vAbs = abs( v );
+	    float ma;
+	    glm::vec2 uv;
+        int faceIndex;
+	    if ( vAbs.z >= vAbs.x && vAbs.z >= vAbs.y )
+	    {
+		    faceIndex = v.z < 0.0f ? 5 : 4;
+		    ma = 0.5f / vAbs.z;
+		    uv = glm::vec2( v.z < 0.0f ? -v.x : v.x, -v.y );
+	    }
+	    else if ( vAbs.y >= vAbs.x )
+	    {
+		    faceIndex = v.y < 0.0f ? 3 : 2;
+		    ma = 0.5f / vAbs.y;
+		    uv = glm::vec2( v.x, v.y < 0.0f ? -v.z : v.z );
+	    }
+	    else
+	    {
+		    faceIndex = v.x < 0.0 ? 1 : 0;
+		    ma = 0.5f / vAbs.x;
+		    uv = glm::vec2( v.x < 0.0f ? v.z : -v.z, -v.y );
+	    }
+	    uv = uv * ma + glm::vec2( 0.5f );
+
+        return faces[faceIndex].Sample( uv );
+    }
+
+    int width;
+    int height;
+    Texture2D<T,NUM_CHANNELS,false,true,true> faces[6]; // face order: +x,-x,+y,-y,+z,-z
 private:
     glm::vec2 halfPixelDim;
 };

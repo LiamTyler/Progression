@@ -208,8 +208,15 @@ static int FlattenBVHBuild( LinearBVHNode* linearRoot, BVHBuildNode* buildNode, 
 void BVH::Build( std::vector< ShapePtr >& listOfShapes, SplitMethod splitMethod )
 {
     shapes = std::move( listOfShapes );
+    if ( shapes.size() == 0 )
+    {
+        nodes = new LinearBVHNode[1];
+        nodes->aabb.min = glm::vec3( FLT_MAX );
+        nodes->aabb.max = glm::vec3( FLT_MAX );
+        nodes->numShapes = 0;
+        return;
+    }
 
-    PG_ASSERT( shapes.size() > 0 );
     std::vector< BVHBuildShapeInfo > buildShapes( shapes.size() );
     for ( size_t i = 0; i < shapes.size(); ++i )
     {

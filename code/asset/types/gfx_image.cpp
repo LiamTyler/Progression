@@ -28,7 +28,6 @@ void GfxImage::Free()
 
 unsigned char* GfxImage::GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel ) const
 {
-    PG_ASSERT( face == 0, "Multiple faces not supported yet" );
     PG_ASSERT( depthLevel == 0, "Texture arrays not supported yet" );
     PG_ASSERT( !PixelFormatIsCompressed( pixelFormat ), "Compression not supported yet" );
     PG_ASSERT( mip < mipLevels );
@@ -37,7 +36,8 @@ unsigned char* GfxImage::GetPixels( uint32_t face, uint32_t mip, uint32_t depthL
     int w = width;
     int h = height;
     int bytesPerPixel = NumBytesPerPixel( pixelFormat );
-    size_t offset = 0;
+    size_t bytesPerFaceMipChain = CalculateTotalFaceSizeWithMips( width, height, pixelFormat, mipLevels );
+    size_t offset = face * bytesPerFaceMipChain;
     for ( uint32_t mipLevel = 0; mipLevel < mip; ++mipLevel )
     {
         offset += w * h * bytesPerPixel;

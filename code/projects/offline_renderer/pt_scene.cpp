@@ -146,7 +146,8 @@ static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
     PG_ASSERT( v.IsString() );
     std::string name = v.GetString();
     auto skybox = AssetManager::Get<GfxImage>( name );
-    PG_ASSERT( scene->skybox, "Could not find skybox with name '" + name + "'" );
+    scene->skybox = LoadTextureFromGfxImage( skybox );
+    PG_ASSERT( scene->skybox != TEXTURE_HANDLE_INVALID, "Could not find skybox with name '" + name + "'" );
     scene->skybox = LoadTextureFromGfxImage( skybox );
     return true;
 }

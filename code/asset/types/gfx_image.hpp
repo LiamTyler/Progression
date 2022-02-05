@@ -45,7 +45,7 @@ struct GfxImage : public BaseAsset
     uint32_t mipLevels = 0;
     uint32_t numFaces  = 0;
     size_t totalSizeInBytes = 0;
-    unsigned char* pixels = nullptr;
+    unsigned char* pixels = nullptr; // stored face0Mip0,face0Mip1,face0Mip2...face1Mip0,face1Mip1,etc
     PixelFormat pixelFormat;
     Gfx::ImageType imageType;
 

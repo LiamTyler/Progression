@@ -25,10 +25,10 @@ glm::vec3 BRDF::F( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_w
 }
 
 
-glm::vec3 BRDF::Sample_F( const glm::vec3& worldSpace_wo, glm::vec3& worldSpace_wi, float& pdf ) const
+glm::vec3 BRDF::Sample_F( const glm::vec3& worldSpace_wo, glm::vec3& worldSpace_wi, PG::Random::RNG& rng, float& pdf ) const
 {
-    float u = Random::Rand();
-    float v = Random::Rand();
+    float u = rng.UniformFloat();
+    float v = rng.UniformFloat();
     glm::vec3 localWi = CosineSampleHemisphere( u, v );
     worldSpace_wi     = T * localWi.x + B * localWi.y + N * localWi.z;
     //worldSpace_wi     = T * localWi.x + B * localWi.y + N * std::max( 0.00001f, localWi.z );

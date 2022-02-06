@@ -2,8 +2,8 @@
     { "OfflineRenderSettings": {
         "imageResolution": [ 1280, 720 ],
         "maxDepth": 5,
-        "outputImageFilename": "build/basic.png",
-        "numSamplesPerPixel": [ 1 ],
+        "outputImageFilename": "build/basic3.png",
+        "numSamplesPerPixel": [ 32 ],
         "antialiasMethod": "NONE",
         "tonemapMethod": "REINHARD"
     }},
@@ -13,7 +13,7 @@
         "_aspectRatio": 1,
         "exposure": 1.0
     }},
-	{ "_Skybox": "kloppenheim" },
+	{ "Skybox": "kloppenheim" },
     { "BackgroundColor": [ 0,0,0 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {

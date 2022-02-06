@@ -12,7 +12,7 @@
     { "BackgroundColor": [ 0.7, 1.4, 2.35 ] },
     { "Skybox": "kloppenheim" },
     { "AmbientColor": [ 0.8, 0.8, 0.8 ] },
-    { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0.5, -1.5, -1 ] } },
+    { "_DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0.5, -1.5, -1 ] } },
     { "Entity": {
         "NameComponent": "sponza",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 0.01, 0.01, 0.01 ] },

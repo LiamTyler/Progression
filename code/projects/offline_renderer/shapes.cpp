@@ -9,9 +9,9 @@ using namespace PG;
 namespace PT
 {
 
-SurfaceInfo Shape::SampleWithRespectToSolidAngle( const Interaction& it ) const
+SurfaceInfo Shape::SampleWithRespectToSolidAngle( const Interaction& it, PG::Random::RNG& rng ) const
 {
-    SurfaceInfo info = SampleWithRespectToArea();
+    SurfaceInfo info = SampleWithRespectToArea( rng );
     glm::vec3 wi     = info.position - it.p;
     if ( glm::length( wi ) == 0 )
     {
@@ -40,10 +40,10 @@ float Sphere::Area() const
     return 4 * PI * radius * radius;
 }
 
-SurfaceInfo Sphere::SampleWithRespectToArea() const
+SurfaceInfo Sphere::SampleWithRespectToArea( PG::Random::RNG& rng ) const
 {
     SurfaceInfo info;
-    glm::vec3 randNormal = UniformSampleSphere( Random::Rand(), Random::Rand() );
+    glm::vec3 randNormal = UniformSampleSphere( rng.UniformFloat(), rng.UniformFloat() );
     info.position        = position + radius * randNormal;
     info.normal          = randNormal;
     info.pdf             = 1.0f / Area();
@@ -103,10 +103,10 @@ float Triangle::Area() const
     return 0.5f * glm::length( glm::cross( p1 - p0, p2 - p0 ) );
 }
 
-SurfaceInfo Triangle::SampleWithRespectToArea() const
+SurfaceInfo Triangle::SampleWithRespectToArea( PG::Random::RNG& rng ) const
 {
     SurfaceInfo info;
-    glm::vec2 sample = UniformSampleTriangle( Random::Rand(), Random::Rand() );
+    glm::vec2 sample = UniformSampleTriangle( rng.UniformFloat(), rng.UniformFloat() );
     float u = sample.x;
     float v = sample.y;
     auto mesh = GetMeshInstance( meshHandle );

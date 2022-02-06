@@ -32,12 +32,12 @@ Algorithm AlgorithmFromString( const std::string& alg )
     return it->second;
 }
 
-glm::vec3 None( int iteration, const glm::vec3& pixelCenter, const glm::vec3& dU, const glm::vec3& dV )
+glm::vec2 None( int iteration, RNG &rng  )
 {
-    return pixelCenter;
+    return { 0, 0 };
 }
 
-glm::vec3 Regular2x2Grid( int iteration, const glm::vec3& pixelCenter, const glm::vec3& dU, const glm::vec3& dV )
+glm::vec2 Regular2x2Grid( int iteration, RNG &rng )
 {
     static glm::vec2 offsets[] =
     {
@@ -47,10 +47,10 @@ glm::vec3 Regular2x2Grid( int iteration, const glm::vec3& pixelCenter, const glm
         { -0.25,  0.25 },
     };
 
-    return pixelCenter + offsets[iteration].x * dU + offsets[iteration].y * dV;
+    return offsets[iteration % 4];
 }
 
-glm::vec3 Regular4x4Grid( int iteration, const glm::vec3& pixelCenter, const glm::vec3& dU, const glm::vec3& dV )
+glm::vec2 Regular4x4Grid( int iteration, RNG &rng )
 {
     static glm::vec2 offsets[] =
     {
@@ -72,10 +72,10 @@ glm::vec3 Regular4x4Grid( int iteration, const glm::vec3& pixelCenter, const glm
         { 0.375,   0.375 },
     };
 
-    return pixelCenter + offsets[iteration].x * dU + offsets[iteration].y * dV;
+    return offsets[iteration % 16];
 }
 
-glm::vec3 Rotated2x2Grid( int iteration, const glm::vec3& pixelCenter, const glm::vec3& dU, const glm::vec3& dV )
+glm::vec2 Rotated2x2Grid( int iteration, RNG &rng )
 {
     static glm::vec2 offsets[] =
     {
@@ -85,12 +85,12 @@ glm::vec3 Rotated2x2Grid( int iteration, const glm::vec3& pixelCenter, const glm
         { -0.125,  0.375 },
     };
 
-    return pixelCenter + offsets[iteration].x * dU + offsets[iteration].y * dV;
+    return offsets[iteration % 4];
 }
 
-glm::vec3 Jitter( int iteration, const glm::vec3& pixelCenter, const glm::vec3& dU, const glm::vec3& dV )
+glm::vec2 Jitter( int iteration, RNG &rng )
 {
-    return pixelCenter + RandFloat( -0.5f, 0.5f ) * dU + RandFloat( -0.5f, 0.5f ) * dV;
+    return { rng.UniformFloat() - 0.5f, rng.UniformFloat() - 0.5f };
 }
 
 int GetIterations( Algorithm alg )

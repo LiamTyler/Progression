@@ -74,14 +74,14 @@ glm::vec3 Refract(const glm::vec3& I, const glm::vec3& N, const float &ior )
     return k < 0 ? glm::vec3( 0 ) : eta * I + (eta * cosi - sqrtf( k )) * n; 
 } 
 
-glm::vec3 EstimateSingleDirect( Light* light, const IntersectionData& hitData, Scene* scene, const BRDF& brdf )
+glm::vec3 EstimateSingleDirect( Light* light, const IntersectionData& hitData, Scene* scene, Random::RNG& rng, const BRDF& brdf )
 {
     Interaction it{ hitData.position, hitData.normal };
     glm::vec3 wi;
     float lightPdf;
 
     // get incoming radiance, and how likely it was to sample that direction on the light
-    glm::vec3 Li = light->Sample_Li( it, wi, lightPdf, scene );
+    glm::vec3 Li = light->Sample_Li( it, wi, scene, rng, lightPdf );
     if ( lightPdf == 0 )
     {
         return glm::vec3( 0 );
@@ -90,7 +90,7 @@ glm::vec3 EstimateSingleDirect( Light* light, const IntersectionData& hitData, S
     return brdf.F( hitData.wo, wi ) * Li * AbsDot( hitData.normal, wi ) / lightPdf;
 }
 
-glm::vec3 LDirect( const IntersectionData& hitData, Scene* scene, const BRDF& brdf )
+glm::vec3 LDirect( const IntersectionData& hitData, Scene* scene, Random::RNG& rng, const BRDF& brdf )
 {
     glm::vec3 L( 0 );
     for ( const auto& light : scene->lights )
@@ -98,7 +98,7 @@ glm::vec3 LDirect( const IntersectionData& hitData, Scene* scene, const BRDF& br
         glm::vec3 Ld( 0 );
         for ( int i = 0; i < light->nSamples; ++i )
         {
-            Ld += EstimateSingleDirect( light, hitData, scene, brdf );
+            Ld += EstimateSingleDirect( light, hitData, scene, rng, brdf );
         }
         L += Ld / (float)light->nSamples;
     }
@@ -106,7 +106,7 @@ glm::vec3 LDirect( const IntersectionData& hitData, Scene* scene, const BRDF& br
     return L;
 }
 
-glm::vec3 Li( const Ray& ray, Scene* scene )
+glm::vec3 Li( const Ray& ray, Random::RNG& rng, Scene* scene )
 {
     Ray currentRay           = ray;
     glm::vec3 L              = glm::vec3( 0 );
@@ -133,13 +133,13 @@ glm::vec3 Li( const Ray& ray, Scene* scene )
         BRDF brdf = hitData.material->ComputeBRDF( &hitData ); 
 
         // estimate direct
-        glm::vec3 Ld = LDirect( hitData, scene, brdf );
+        glm::vec3 Ld = LDirect( hitData, scene, rng, brdf );
         L += pathThroughput * Ld;
 
         // sample the BRDF to get the next ray's direction (wi)
         float pdf;
         glm::vec3 wi;
-        glm::vec3 F = brdf.Sample_F( hitData.wo, wi, pdf );
+        glm::vec3 F = brdf.Sample_F( hitData.wo, wi, rng, pdf );
 
         if ( pdf == 0.f || F == glm::vec3( 0 ) )
         {
@@ -182,14 +182,16 @@ void PathTracer::Render( int samplesPerPixelIteration )
     {
         for ( int col = 0; col < renderedImage.width; ++col )
         {
+            PG::Random::RNG rng( row * renderedImage.width + col );
             glm::vec3 imagePlanePos = UL + dV * (float)row + dU * (float)col;
 
             glm::vec3 totalColor = glm::vec3( 0 );
             for ( int rayCounter = 0; rayCounter < samplesPerPixel; ++rayCounter )
             {
-                glm::vec3 antiAliasedPos = AAFunc( rayCounter, imagePlanePos, dU, dV );
+                glm::vec2 pixelOffsets = AAFunc( rayCounter, rng );
+                glm::vec3 antiAliasedPos = imagePlanePos + dU * pixelOffsets.x + dV * pixelOffsets.y;
                 Ray ray                  = Ray( cam.position, glm::normalize( antiAliasedPos - ray.position ) );
-                totalColor              += Li( ray, scene );
+                totalColor              += Li( ray, rng, scene );
             }
 
             renderedImage.SetPixel( row, col, glm::vec4( totalColor / (float)samplesPerPixel, 1.0f ) );

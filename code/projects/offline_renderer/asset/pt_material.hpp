@@ -2,6 +2,7 @@
 
 #include "asset/pt_image.hpp"
 #include "shared/math.hpp"
+#include "shared/random.hpp"
 
 namespace PG
 {
@@ -15,7 +16,7 @@ namespace PT
 struct BRDF
 {
     glm::vec3 F( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_wi ) const;
-    glm::vec3 Sample_F( const glm::vec3& worldSpace_wo, glm::vec3& worldSpace_wi, float& pdf ) const;
+    glm::vec3 Sample_F( const glm::vec3& worldSpace_wo, glm::vec3& worldSpace_wi, PG::Random::RNG& rng, float& pdf ) const;
     float Pdf( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_wi ) const;
 
     glm::vec3 Kd;

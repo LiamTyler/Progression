@@ -5,7 +5,7 @@
 namespace PT
 {
 
-glm::vec3 PointLight::Sample_Li( const Interaction& it, glm::vec3& wi, float& pdf, Scene* scene ) const
+glm::vec3 PointLight::Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
 {
     wi  = glm::normalize( position - it.p );
     pdf = 1;
@@ -22,7 +22,7 @@ glm::vec3 PointLight::Sample_Li( const Interaction& it, glm::vec3& wi, float& pd
     return Lemit / (distToLight*distToLight);
 }
 
-glm::vec3 DirectionalLight::Sample_Li( const Interaction& it, glm::vec3& wi, float& pdf, Scene* scene ) const
+glm::vec3 DirectionalLight::Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
 {
     wi  = -direction;
     pdf = 1;
@@ -37,9 +37,9 @@ glm::vec3 DirectionalLight::Sample_Li( const Interaction& it, glm::vec3& wi, flo
     return Lemit;
 }
 
-glm::vec3 AreaLight::Sample_Li( const Interaction& it, glm::vec3& wi, float& pdf, Scene* scene ) const
+glm::vec3 AreaLight::Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
 {
-    SurfaceInfo surfInfo = shape->SampleWithRespectToSolidAngle( it );
+    SurfaceInfo surfInfo = shape->SampleWithRespectToSolidAngle( it, rng );
     wi                   = glm::normalize( surfInfo.position - it.p );
     pdf                  = surfInfo.pdf;
     float distToLight    = glm::length( surfInfo.position - it.p );

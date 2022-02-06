@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shared/math.hpp"
+#include "shared/random.hpp"
 #include <memory>
 
 namespace PT
@@ -23,21 +24,21 @@ struct Light
     glm::vec3 Lemit = glm::vec3( 0 );
     int nSamples    = 1;
 
-    virtual glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, float& pdf, Scene* scene ) const { return glm::vec3( 0 ); }
+    virtual glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const { return glm::vec3( 0 ); }
 };
 
 struct PointLight : public Light
 {
     glm::vec3 position = glm::vec3( 0, 0, 0 );
 
-    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, float& pdf, Scene* scene ) const override;
+    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
 };
 
 struct DirectionalLight : public Light
 {
     glm::vec3 direction = glm::vec3( 0, -1, 0 );
 
-    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, float& pdf, Scene* scene ) const override;
+    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
 };
 
 struct Shape;
@@ -48,7 +49,7 @@ struct AreaLight : public Light
 {
     std::shared_ptr< Shape > shape;
 
-    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, float& pdf, Scene* scene ) const override;
+    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
 };
 
 } // namespace PT

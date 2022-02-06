@@ -29,10 +29,10 @@ struct Shape
 
     // samples shape uniformly. PDF is with respect to the solid angle from a reference point/normal
     // to the sampled shape position
-    SurfaceInfo SampleWithRespectToSolidAngle( const Interaction& it ) const;
+    SurfaceInfo SampleWithRespectToSolidAngle( const Interaction& it, PG::Random::RNG& rng ) const;
 
     // samples the shape uniformly, with respect to the surface area
-    virtual SurfaceInfo SampleWithRespectToArea() const = 0;
+    virtual SurfaceInfo SampleWithRespectToArea( PG::Random::RNG& rng ) const = 0;
     virtual bool Intersect( const Ray& ray, IntersectionData* hitData ) const = 0;
     virtual bool TestIfHit( const Ray& ray, float maxT = FLT_MAX ) const = 0;
     virtual PG::AABB WorldSpaceAABB() const = 0;
@@ -49,7 +49,7 @@ struct Sphere : public Shape
 
     Material* GetMaterial() const override;
     float Area() const override;
-    SurfaceInfo SampleWithRespectToArea() const override;
+    SurfaceInfo SampleWithRespectToArea( PG::Random::RNG& rng ) const override;
     bool Intersect( const Ray& ray, IntersectionData* hitData ) const override;
     bool TestIfHit( const Ray& ray, float maxT = FLT_MAX ) const override;
     PG::AABB WorldSpaceAABB() const override;
@@ -63,7 +63,7 @@ struct Triangle : public Shape
 
     Material* GetMaterial() const override;
     float Area() const override;
-    SurfaceInfo SampleWithRespectToArea() const override;
+    SurfaceInfo SampleWithRespectToArea( PG::Random::RNG& rng ) const override;
     bool Intersect( const Ray& ray, IntersectionData* hitData ) const override;
     bool TestIfHit( const Ray& ray, float maxT = FLT_MAX ) const override;
     PG::AABB WorldSpaceAABB() const override;

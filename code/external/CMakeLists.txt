@@ -44,29 +44,40 @@ if(MSVC)
 	)
 endif()
 
+#-------------------------------BC7ENC--------------------------------------------
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/bc7enc.lib)
+	CONFIG_TIME_COMPILE(${EXT_DIR}/bc7enc_rdo ${CMAKE_BINARY_DIR}/ext/bc7enc Release)
+	COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/bc7enc ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib bc7enc)
+endif()
+
+#-------------------------------LIBTIFF--------------------------------------------
+if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/tiff.lib)
+	CONFIG_TIME_COMPILE(${EXT_DIR}/libtiff ${CMAKE_BINARY_DIR}/ext/libtiff Release)
+	COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/libtiff/libtiff/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib tiff)
+endif()
+
 #-------------------------------IMAGELIB--------------------------------------------
 # much more likely to be edited than the other projects, so always recompile
 CONFIG_TIME_COMPILE_DEBUG_AND_RELEASE(${EXT_DIR}/ImageLib ${CMAKE_BINARY_DIR}/ext/ImageLib)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib *)
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/bin ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib *)
 set(IMAGELIB_INCLUDES
-    ${PROGRESSION_DIR}/code/external/ImageLib/ext/
-    ${PROGRESSION_DIR}/code/external/ImageLib/src/
+    ${EXT_DIR}/ImageLib/
 	PARENT_SCOPE
 )
 set(IMAGELIB_LIBS ImageLib tiff bc7enc PARENT_SCOPE)
 
 set(IMAGELIB_EXT_FILES
-	${EXT_DIR}/ImageLib/src/bc_compression.cpp
-    ${EXT_DIR}/ImageLib/src/bc_compression.hpp
-	${EXT_DIR}/ImageLib/src/bc_decompression.cpp
-    ${EXT_DIR}/ImageLib/src/bc_decompression.hpp
-    ${EXT_DIR}/ImageLib/src/bc7_reference_tables.hpp
-	${EXT_DIR}/ImageLib/src/image.cpp
-    ${EXT_DIR}/ImageLib/src/image.hpp
-	${EXT_DIR}/ImageLib/src/image_load.cpp
-    ${EXT_DIR}/ImageLib/src/image_load.hpp
-	${EXT_DIR}/ImageLib/src/image_save.cpp
-    ${EXT_DIR}/ImageLib/src/image_save.hpp
+	${EXT_DIR}/ImageLib/bc_compression.cpp
+    ${EXT_DIR}/ImageLib/bc_compression.hpp
+	${EXT_DIR}/ImageLib/bc_decompression.cpp
+    ${EXT_DIR}/ImageLib/bc_decompression.hpp
+    ${EXT_DIR}/ImageLib/bc7_reference_tables.hpp
+	${EXT_DIR}/ImageLib/image.cpp
+    ${EXT_DIR}/ImageLib/image.hpp
+	${EXT_DIR}/ImageLib/image_load.cpp
+    ${EXT_DIR}/ImageLib/image_load.hpp
+	${EXT_DIR}/ImageLib/image_save.cpp
+    ${EXT_DIR}/ImageLib/image_save.hpp
 	PARENT_SCOPE
 )

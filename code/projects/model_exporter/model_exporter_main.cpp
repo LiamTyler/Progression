@@ -221,6 +221,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     tangents.reserve( numVertices );
     indices.reserve( numIndices );
     bool anyMeshHasUVs = numVerticesWithUVs > 0;
+
     for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
     {
         const aiMesh* paiMesh = scene->mMeshes[meshIdx];
@@ -247,8 +248,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     
                 const aiVector3D* pTangent = &paiMesh->mTangents[vIdx];
                 glm::vec3 t( pTangent->x, pTangent->y, pTangent->z );
-                const glm::vec3& n = normals[vIdx];
-                t = glm::normalize( t - n * glm::dot( n, t ) ); // does assimp orthogonalize the tangents automatically?
+                t = glm::normalize( t - normal * glm::dot( normal, t ) ); // does assimp orthogonalize the tangents automatically?
                 if ( glm::any( glm::isnan( t ) ) )
                 {
                     ++nanTangents;
@@ -268,7 +268,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
             LOG_WARN( "%s mesh %s has %u tangents that are NaN. Replacing with zeros", filename.c_str(), meshes[meshIdx].name.c_str(), nanTangents );
             ++g_warnings;
         }
-    
+
         for ( size_t iIdx = 0; iIdx < paiMesh->mNumFaces; ++iIdx )
         {
             const aiFace& face = paiMesh->mFaces[iIdx];
@@ -310,17 +310,21 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
 
     outFile << "\nModelData:\n";
 
+    outFile << std::fixed << std::setprecision( 6 );
+    auto PrintVec3 = [&outFile]( glm::vec3 v ) { outFile << v.x << " " << v.y << " " << v.z << "\n"; };
+    auto PrintVec2 = [&outFile]( glm::vec2 v ) { outFile << v.x << " " << v.y << "\n"; };
+
     outFile << "Positions: " << vertices.size() << "\n";
-    for ( size_t i = 0; i < vertices.size(); ++i ) outFile << vertices[i].x << " " << vertices[i].y << " " << vertices[i].z << "\n";
+    for ( size_t i = 0; i < vertices.size(); ++i ) PrintVec3( vertices[i] );
 
     outFile << "Normals: " << normals.size() << "\n";
-    for ( size_t i = 0; i < normals.size(); ++i ) outFile << normals[i].x << " " << normals[i].y << " " << normals[i].z << "\n";
+    for ( size_t i = 0; i < normals.size(); ++i ) PrintVec3( normals[i] );
 
     outFile << "TexCoords: " << uvs.size() << "\n";
-    for ( size_t i = 0; i < uvs.size(); ++i ) outFile << uvs[i].x << " " << uvs[i].y << "\n";
+    for ( size_t i = 0; i < uvs.size(); ++i ) PrintVec2( uvs[i] );
 
     outFile << "Tangents: " << tangents.size() << "\n";
-    for ( size_t i = 0; i < tangents.size(); ++i ) outFile << tangents[i].x << " " << tangents[i].y << " " << tangents[i].z << "\n";
+    for ( size_t i = 0; i < tangents.size(); ++i ) PrintVec3( tangents[i] );
 
     outFile << "Triangles: " << indices.size() / 3 << "\n";
     for ( size_t i = 0; i < indices.size(); i += 3 ) outFile << indices[i+0] << " " << indices[i+1] << " " << indices[i+2] << "\n";
@@ -406,7 +410,7 @@ int main( int argc, char* argv[] )
         {
             pafBaseName = "default";
         }
-        std::string pafFilename = directory + pafBaseName + ".paf";
+        std::string pafFilename = directory + "/" + pafBaseName + ".paf";
         LOG( "Saving asset file %s", pafFilename.c_str() );
         std::ofstream out( pafFilename );
         out << outputJSON;

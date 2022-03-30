@@ -150,6 +150,8 @@ bool Model::FastfileLoad( Serializer* serializer )
 
     UploadToGPU();
 
+    RecalculateNormals();
+
     return true;
 }
 
@@ -193,10 +195,21 @@ void Model::RecalculateNormals()
         const auto i2 = indices[i + 2];
         glm::vec3 e01 = positions[i1] - positions[i0];
         glm::vec3 e02 = positions[i2] - positions[i0];
-        glm::vec3 n = glm::normalize( glm::cross( e01, e02 ) );
-        newNormals[i0] += n;
-        newNormals[i1] += n;
-        newNormals[i2] += n;
+        auto N = glm::cross( e01, e02 );
+        if ( glm::length( N ) <= 0.00001f )
+        {
+            // degenerate tri, just use the existing normals
+            newNormals[i0] += normals[i0];
+            newNormals[i1] += normals[i1];
+            newNormals[i2] += normals[i2];
+        }
+        else
+        {
+            glm::vec3 n = glm::normalize( N );
+            newNormals[i0] += n;
+            newNormals[i1] += n;
+            newNormals[i2] += n;
+        }
     }
 
     for ( size_t i = 0; i < positions.size(); ++i )

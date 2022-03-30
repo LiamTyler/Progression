@@ -276,6 +276,13 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
         return false;
     }
 
+    bool isInputSRGB = createInfo.semantic == GfxImageSemantic::DIFFUSE;
+    // want to filter in linear space. ConvertRGBA32Float_AllMips will bring it back to sRGB
+    if ( isInputSRGB )
+    {
+        srcImg.ForEachPixel( []( glm::vec4& p ) { p = GammaSRGBToLinear( p ); } );
+    }
+
     int w = srcImg.width;
     int h = srcImg.height;
     size_t totalSrcImageSize = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );

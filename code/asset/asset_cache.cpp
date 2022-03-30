@@ -17,7 +17,7 @@ std::string assetCacheFolders[NUM_ASSET_TYPES] =
 
 static std::string GetCachedPath( AssetType assetType, const std::string& assetCacheName )
 {
-    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + ".ffi";
+    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + "_v" + std::to_string( g_assetVersions[assetType] ) + ".ffi";
 }
 
 namespace PG::AssetCache

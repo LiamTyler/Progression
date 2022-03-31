@@ -63,6 +63,10 @@ COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/lib ${CMAKE_BINARY_DIR}/bin ${
 COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/ImageLib/bin ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib *)
 set(IMAGELIB_INCLUDES
     ${EXT_DIR}/ImageLib/
+	${EXT_DIR}/libtiff/libtiff/
+    ${CMAKE_BINARY_DIR}/ext/libtiff/libtiff/
+    ${EXT_DIR}/compressonator/
+    ${EXT_DIR}/compressonator/cmp_core/source/
 	PARENT_SCOPE
 )
 set(IMAGELIB_LIBS ImageLib tiff bc7enc PARENT_SCOPE)

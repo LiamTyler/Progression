@@ -108,41 +108,12 @@ glm::u8vec4* Load2D_U8( const std::string& filename, int& width, int& height )
         TIFF* tiffr = TIFFOpen( filename.c_str(), "r" );
         if ( tiffr )
 		{
-            int numChannels = 0;
-            int numBitsPerChannel = 0;
 			TIFFGetField( tiffr, TIFFTAG_IMAGEWIDTH, &width );
 	        TIFFGetField( tiffr, TIFFTAG_IMAGELENGTH, &height );
-	        TIFFGetField( tiffr, TIFFTAG_SAMPLESPERPIXEL, &numChannels );
-	        TIFFGetField( tiffr, TIFFTAG_BITSPERSAMPLE, &numBitsPerChannel );
-            if ( numBitsPerChannel != 8 && numBitsPerChannel != 16 )
-            {
-                LOG_ERR( "Can't read image with %d bits per channel, image '%s'", numBitsPerChannel, filename.c_str() );
-                return nullptr;
-            }
+
             pixels = static_cast<glm::u8vec4*>( malloc( width * height * 4 ) );
-            int numBytesPerChannel = numBitsPerChannel / 8;
-            if ( numBytesPerChannel == 1 )
-            {
-                loadSuccessful = 1 == TIFFReadRGBAImageOriented( tiffr, width, height, (uint32_t*)pixels, ORIENTATION_TOPLEFT, 0 );
-            }
-            else if ( numBytesPerChannel == 2 )
-            {
-                std::vector< uint16_t > tmpBuffer;
-                tmpBuffer.resize( width * height * numChannels );
-                loadSuccessful = TIFFDecodeStripContigous( tiffr, filename.c_str(), tmpBuffer.data(), width, height, numChannels );
-                if ( loadSuccessful )
-                {
-                    for ( int i = 0; i < width * height; ++i )
-                    {
-                        pixels[i] = glm::u8vec4( 0 );
-                        for ( int channel = 0; channel < numChannels; ++channel )
-                        {
-                            float x = tmpBuffer[numChannels*i + channel] / (float)USHRT_MAX;                            
-                            pixels[i][channel] = UNormFloatToByte( x );
-                        }
-                    }
-                }
-            }
+            loadSuccessful = TIFFReadRGBAImageOriented( tiffr, width, height, (uint32_t*)pixels, ORIENTATION_TOPLEFT, 0 ) == 1;
+            
             TIFFClose( tiffr );
         }
     }
@@ -186,39 +157,26 @@ glm::vec4* Load2D_F32( const std::string& filename, int& width, int& height )
         TIFF* tiffr = TIFFOpen( filename.c_str(), "r" );
         if ( tiffr )
 		{
-            int numChannels = 0;
-            int numBitsPerChannel = 0;
 			TIFFGetField( tiffr, TIFFTAG_IMAGEWIDTH, &width );
 	        TIFFGetField( tiffr, TIFFTAG_IMAGELENGTH, &height );
-	        TIFFGetField( tiffr, TIFFTAG_SAMPLESPERPIXEL, &numChannels );
-	        TIFFGetField( tiffr, TIFFTAG_BITSPERSAMPLE, &numBitsPerChannel );
-            if ( numBitsPerChannel != 8 && numBitsPerChannel != 16 )
-            {
-                LOG_ERR( "Can't read image with %d bits per channel, image '%s'", numBitsPerChannel, filename.c_str() );
-                return nullptr;
-            }
+            // int numChannels = 0;
+            // int numBitsPerChannel = 0;
+	        // TIFFGetField( tiffr, TIFFTAG_SAMPLESPERPIXEL, &numChannels );
+	        // TIFFGetField( tiffr, TIFFTAG_BITSPERSAMPLE, &numBitsPerChannel );
+            // if ( numBitsPerChannel != 8 )
+            // {
+            //     LOG_ERR( "Can't read image with %d bits per channel, image '%s'", numBitsPerChannel, filename.c_str() );
+            //     return nullptr;
+            // }
             pixels = static_cast<glm::vec4*>( malloc( width * height * sizeof( glm::vec4 ) ) );
-            int numBytesPerChannel = numBitsPerChannel / 8;
-            if ( numBytesPerChannel == 1 )
+            std::vector<uint8_t> tmpBuffer( width * height * 4 );
+            loadSuccessful = 1 == TIFFReadRGBAImageOriented( tiffr, width, height, (uint32_t*)tmpBuffer.data(), ORIENTATION_TOPLEFT, 0 );
+            for ( int i = 0; i < width * height; ++i )
             {
-                loadSuccessful = 1 == TIFFReadRGBAImageOriented( tiffr, width, height, (uint32_t*)pixels, ORIENTATION_TOPLEFT, 0 );
-            }
-            else if ( numBytesPerChannel == 2 )
-            {
-                std::vector< uint16_t > tmpBuffer;
-                tmpBuffer.resize( width * height * numChannels );
-                loadSuccessful = TIFFDecodeStripContigous( tiffr, filename.c_str(), tmpBuffer.data(), width, height, numChannels );
-                if ( loadSuccessful )
+                for ( int channel = 0; channel < 4; ++channel )
                 {
-                    for ( int i = 0; i < width * height; ++i )
-                    {
-                        pixels[i] = glm::vec4( 0 );
-                        for ( int channel = 0; channel < numChannels; ++channel )
-                        {
-                            float x = tmpBuffer[numChannels*i + channel] / (float)USHRT_MAX;                            
-                            pixels[i][channel] = x;
-                        }
-                    }
+                    float x = tmpBuffer[4*i + channel] / 255.0f;                            
+                    pixels[i][channel] = x;
                 }
             }
             TIFFClose( tiffr );

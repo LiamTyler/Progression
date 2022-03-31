@@ -188,7 +188,7 @@ void Model::RecalculateNormals()
     newNormals.resize( normals.size(), glm::vec3( 0 ) );
     for ( const Mesh& mesh : meshes )
     {
-        for ( auto i = 0; i < mesh.numIndices; i += 3 )
+        for ( uint32_t i = 0; i < mesh.numIndices; i += 3 )
         {
             const auto i0 = mesh.startVertex + indices[mesh.startIndex + i + 0];
             const auto i1 = mesh.startVertex + indices[mesh.startIndex + i + 1];

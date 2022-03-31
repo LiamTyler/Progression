@@ -16,12 +16,6 @@ bool IsSTBFormat( const std::string& ext )
 }
 
 
-bool IsHDRFormat( const std::string& ext )
-{
-    return ext == ".hdr" || ext == ".exr";
-}
-
-
 bool IsValidSave( const std::string& filename, int width, int height, int channels, void* pixels )
 {
     PG_ASSERT( width != 0 );
@@ -29,12 +23,52 @@ bool IsValidSave( const std::string& filename, int width, int height, int channe
     PG_ASSERT( channels != 0 );
     PG_ASSERT( pixels != nullptr );
     std::string ext = GetFileExtension( filename );
-    if ( ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp" || ext == ".hdr" || ext == ".exr" )
+    if ( ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp" || ext == ".hdr" || ext == ".exr" || ext == ".tif" || ext == ".tiff" )
     {
         return true;
     }
     LOG_ERR( "Unkown file extension for saving image '%s'", filename.c_str() );
     return false;
+}
+
+
+static bool SaveTIFF( const std::string& filename, int width, int height, int numChannels, int bytesPerChannel, void* pixels )
+{
+    TIFF* output = TIFFOpen( filename.c_str(), "w" );
+    if ( !output )
+    {
+        return false;
+    }
+
+    TIFFSetField( output, TIFFTAG_IMAGEWIDTH, width );
+	TIFFSetField( output, TIFFTAG_IMAGELENGTH, height );
+	TIFFSetField( output, TIFFTAG_SAMPLESPERPIXEL, numChannels );
+	TIFFSetField( output, TIFFTAG_BITSPERSAMPLE, bytesPerChannel * 8 );
+    TIFFSetField( output, TIFFTAG_ORIENTATION, ORIENTATION_TOPLEFT );
+    TIFFSetField( output, TIFFTAG_PLANARCONFIG, PLANARCONFIG_CONTIG );
+    TIFFSetField( output, TIFFTAG_ROWSPERSTRIP, 1 );   
+    TIFFSetField( output, TIFFTAG_PHOTOMETRIC, PHOTOMETRIC_RGB );
+    TIFFSetField( output, TIFFTAG_SAMPLEFORMAT, bytesPerChannel == 1 ? SAMPLEFORMAT_UINT : SAMPLEFORMAT_IEEEFP );
+    TIFFSetField( output, TIFFTAG_COMPRESSION, COMPRESSION_LZW );
+    if ( numChannels == 4 )
+    {
+        const uint16_t extras[] = { EXTRASAMPLE_UNASSALPHA };
+        TIFFSetField( output, TIFFTAG_EXTRASAMPLES, 1, extras );
+    }
+
+    char* buf = reinterpret_cast<char*>( pixels );
+    int bytesPerPixel = numChannels * bytesPerChannel;
+	for ( int row = 0; row < height; row++ )
+	{
+		if ( TIFFWriteScanline( output, buf + bytesPerPixel * row * width, row ) < 0 )
+		{
+            TIFFClose( output );
+			return false;
+		}
+	}
+        
+	TIFFClose( output );
+    return true;
 }
 
 
@@ -155,11 +189,15 @@ bool Save2D_U8( const std::string& filename, unsigned char* pixels, int width, i
 
     bool saveSuccessful = false;
     std::string ext = GetFileExtension( filename );
-    if ( !IsHDRFormat( ext ) )
+    if ( ext == ".tif" || ext == ".tiff" )
+    {
+        saveSuccessful = SaveTIFF( filename, width, height, channels, 1, pixels );
+    }
+    else if ( IsSTBFormat( ext ) )
     {
         saveSuccessful = SaveSTBLDR( filename, pixels, width, height, channels );
     }
-    else
+    else if ( ext == ".hdr" || ext == ".exr" )
     {
         float* pixelsF32 = static_cast<float*>( malloc( width * height * channels * sizeof( float ) ) );
         for ( size_t i = 0; i < width * height * channels; ++i )
@@ -213,7 +251,11 @@ bool Save2D_F32( const std::string& filename, float* pixels, int width, int heig
 
     bool saveSuccessful = false;
     std::string ext = GetFileExtension( filename );
-    if ( !IsHDRFormat( ext ) )
+    if ( ext == ".tif" || ext == ".tiff" )
+    {
+        saveSuccessful = SaveTIFF( filename, width, height, channels, 4, pixels );
+    }
+    else if ( IsSTBFormat( ext ) )
     {
         uint8_t* pixelsU8 = static_cast<uint8_t*>( malloc( width * height * channels * sizeof( uint8_t ) ) );
         for ( size_t i = 0; i < width * height * channels; ++i )
@@ -222,16 +264,13 @@ bool Save2D_F32( const std::string& filename, float* pixels, int width, int heig
         }
         saveSuccessful = SaveSTBLDR( filename, pixelsU8, width, height, channels );
     }
-    else
+    else if ( ext == ".hdr" )
     {
-        if ( ext == ".hdr" )
-        {
-            saveSuccessful = 0 != stbi_write_hdr( filename.c_str(), width, height, channels, pixels );
-        }
-        else if ( ext == ".exr" )
-        {
-            saveSuccessful = SaveExr( filename, width, height, channels, pixels );
-        }
+        saveSuccessful = 0 != stbi_write_hdr( filename.c_str(), width, height, channels, pixels );
+    }
+    else if ( ext == ".exr" )
+    {
+        saveSuccessful = SaveExr( filename, width, height, channels, pixels );
     }
 
     if ( !saveSuccessful )

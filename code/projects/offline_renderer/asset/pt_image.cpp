@@ -28,7 +28,7 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     {
         int numChannels = NumChannelsInPixelFromat( image->pixelFormat );
         PG_ASSERT( NumBytesPerChannel( image->pixelFormat ) == 1 );
-        tex = std::make_shared<Texture2D<uint8_t,4,true,false,false>>( image->width, image->height, (void*)image->pixels );
+        tex = std::make_shared<Texture2D<uint8_t,4,true,false,false>>( image->width, image->height, image->mipLevels, (void*)image->pixels );
     }
     else if ( image->imageType == Gfx::ImageType::TYPE_CUBEMAP )
     {
@@ -46,13 +46,13 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
             switch ( bytesPerChannel )
             {
             case 1:
-                tex = std::make_shared<TextureCubeMap<uint8_t,3>>( image->width, image->height, faceData );
+                tex = std::make_shared<TextureCubeMap<uint8_t,3>>( image->width, image->height, image->mipLevels, faceData );
                 break;
             case 2:
-                tex = std::make_shared<TextureCubeMap<float16,3>>( image->width, image->height, faceData );
+                tex = std::make_shared<TextureCubeMap<float16,3>>( image->width, image->height, image->mipLevels, faceData );
                 break;
             case 4:
-                tex = std::make_shared<TextureCubeMap<float,3>>( image->width, image->height, faceData );
+                tex = std::make_shared<TextureCubeMap<float,3>>( image->width, image->height, image->mipLevels, faceData );
                 break;
             }
             break;
@@ -60,13 +60,13 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
             switch ( bytesPerChannel )
             {
             case 1:
-                tex = std::make_shared<TextureCubeMap<uint8_t,4>>( image->width, image->height, faceData );
+                tex = std::make_shared<TextureCubeMap<uint8_t,4>>( image->width, image->height, image->mipLevels, faceData );
                 break;
             case 2:
-                tex = std::make_shared<TextureCubeMap<float16,4>>( image->width, image->height, faceData );
+                tex = std::make_shared<TextureCubeMap<float16,4>>( image->width, image->height, image->mipLevels, faceData );
                 break;
             case 4:
-                tex = std::make_shared<TextureCubeMap<float,4>>( image->width, image->height, faceData );
+                tex = std::make_shared<TextureCubeMap<float,4>>( image->width, image->height, image->mipLevels, faceData );
                 break;
             }
             break;

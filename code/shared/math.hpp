@@ -55,6 +55,15 @@ struct Ray
     glm::vec3 direction;
 };
 
+struct RayDifferential : public Ray
+{
+    RayDifferential( const Ray& ray ) : Ray( ray ), hasDifferentials( false ) {}
+
+    Ray diffX;
+    Ray diffY;
+    bool hasDifferentials;
+};
+
 struct Interaction
 {
     glm::vec3 p;

@@ -106,23 +106,96 @@ glm::vec3 LDirect( const IntersectionData& hitData, Scene* scene, Random::RNG& r
     return L;
 }
 
-glm::vec3 Li( const Ray& ray, Random::RNG& rng, Scene* scene )
+
+bool SolveLinearSystem2x2( const float A[2][2], const float B[2], float& x0, float& x1 )
 {
-    Ray currentRay           = ray;
+    float det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
+    if ( std::abs( det ) < 1e-10f )
+    {
+        return false;
+    }
+
+    x0 = (A[1][1] * B[0] - A[0][1] * B[1]) / det;
+    x1 = (A[0][0] * B[1] - A[1][0] * B[0]) / det;
+    
+    return !std::isnan( x0 ) && !std::isnan( x1 );
+}
+
+void ComputeDifferentials( const RayDifferential& ray, IntersectionData* surf )
+{
+    if ( !ray.hasDifferentials )
+    {
+        surf->du = surf->dv = glm::vec2( 0 );
+        return;
+    }
+
+    constexpr float EPS = 0.000001f;
+    glm::vec3 dpdx( 0 );
+    glm::vec3 dpdy( 0 );
+    const glm::vec3& N = surf->normal;
+    const glm::vec3& P = surf->position;
+
+    float tx = glm::dot( N, ray.diffX.direction );
+    float ty = glm::dot( N, ray.diffY.direction );
+    if ( fabs( tx ) < EPS || fabs( ty ) < EPS )
+    {
+        surf->du = surf->dv = glm::vec2( 0 );
+        return;
+    }
+        
+    float d = glm::dot( surf->normal, surf->position );
+    tx = -(glm::dot( N, ray.diffX.position ) - d) / tx;
+    ty = -(glm::dot( N, ray.diffY.position ) - d) / ty;
+    glm::vec3 px = ray.diffX.Evaluate( tx );
+    glm::vec3 py = ray.diffY.Evaluate( ty );
+    dpdx = px - P;
+    dpdy = py - P;
+
+    // 2 unknowns, 3 equations. Choose 2 dimensions least likely to be degenerate
+    int dim[2];
+    if ( std::abs( N.x ) > std::abs( N.y ) && std::abs( N.x ) > std::abs( N.z ) )
+    {
+        dim[0] = 1;
+        dim[1] = 2;
+    }
+    else if ( std::abs( N.y ) > std::abs( N.z ) )
+    {
+        dim[0] = 0;
+        dim[1] = 2;
+    }
+    else
+    {
+        dim[0] = 0;
+        dim[1] = 1;
+    }
+
+    float A[2][2] = { { surf->dpdu[dim[0]], surf->dpdv[dim[0]] },
+                      { surf->dpdu[dim[1]], surf->dpdv[dim[1]] } };
+    float Bx[2] = { px[dim[0]] - P[dim[0]], px[dim[1]] - P[dim[1]] };
+    float By[2] = { py[dim[0]] - P[dim[0]], py[dim[1]] - P[dim[1]] };
+    if ( !SolveLinearSystem2x2( A, Bx, surf->du.x, surf->dv.x ) || !SolveLinearSystem2x2( A, By, surf->du.y, surf->dv.y ) )
+    {
+        surf->du = surf->dv = glm::vec2( 0 );
+    }
+}
+
+glm::vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
+{
     glm::vec3 L              = glm::vec3( 0 );
     glm::vec3 pathThroughput = glm::vec3( 1 );
     
     for ( int bounce = 0; bounce < scene->settings.maxDepth; ++bounce )
     {
         IntersectionData hitData;
-        hitData.wo = -currentRay.direction;
-        if ( !scene->Intersect( currentRay, hitData ) )
+        hitData.wo = -ray.direction;
+        if ( !scene->Intersect( ray, hitData ) )
         {
-            L += pathThroughput * scene->LEnvironment( currentRay );
+            L += pathThroughput * scene->LEnvironment( ray );
             break;
         }
 
         hitData.position += EPSILON * hitData.normal;
+        ComputeDifferentials( ray, &hitData );
 
         // emitted light of current surface
         //if ( bounce == 0 && glm::dot( hitData.wo, hitData.normal ) > 0 )
@@ -152,7 +225,7 @@ glm::vec3 Li( const Ray& ray, Random::RNG& rng, Scene* scene )
             break;
         }
 
-        currentRay = Ray( hitData.position, wi );
+        ray = Ray( hitData.position, wi );
     }
 
     return L;

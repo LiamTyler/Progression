@@ -16,10 +16,14 @@ struct IntersectionData
     glm::vec3 wo;
     Material* material;
     float t = FLT_MAX;
+
+    glm::vec3 dpdu, dpdv;
+    glm::vec2 du, dv;
 };
 
 namespace intersect
 {
+    bool RayPlaneIntersection( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec3& N, const glm::vec3& pointOnPlane, float& t );
 
     bool RaySphere( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec3& spherePos, float sphereRadius, float& t, float maxT = FLT_MAX );
 

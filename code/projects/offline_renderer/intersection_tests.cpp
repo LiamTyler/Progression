@@ -7,6 +7,19 @@ namespace PT
 namespace intersect
 {
 
+    bool RayPlaneIntersection( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec3& N, const glm::vec3& arbitraryPointOnPlane, float& t )
+    {
+        float denom = glm::dot( N, rayDir );
+        if ( fabs( denom ) < 1e-6 )
+        {
+            return false;
+        }
+
+        float d = glm::dot( N, arbitraryPointOnPlane );
+        t = -(glm::dot( N, rayPos ) - d) / denom;
+        return t > 0;
+    }
+
     bool RaySphere( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec3& spherePos, float radius, float& t, float maxT )
     {
         glm::vec3 OC = rayPos - spherePos;

@@ -18,7 +18,7 @@ class Texture
 {
 public:
     virtual ~Texture() {}
-    virtual glm::vec4 Sample( glm::vec2 uv ) const = 0;
+    virtual glm::vec4 Sample( glm::vec2 uv, glm::vec2 du = glm::vec2( 0 ), glm::vec2 dv = glm::vec2( 0 ) ) const = 0;
     virtual glm::vec4 SampleDir( glm::vec3 dir ) const = 0;
 };
 
@@ -28,15 +28,27 @@ class Texture2D : public Texture
 public:
     static_assert( NUM_CHANNELS >= 1 && NUM_CHANNELS <= 4 );
     Texture2D() = default;
-    Texture2D( int w, int h, void* data ) : width( w ), height( h )
+    Texture2D( int w, int h, int mipCount, void* data )
     {
-        pixels = std::make_shared<T[]>( w * h * NUM_CHANNELS );
-        halfPixelDim = glm::vec2( 0.5f ) / glm::vec2( width, height );
-        memcpy( pixels.get(), data, w * h * NUM_CHANNELS * sizeof( T ) );
+        mips.resize( mipCount );
+        mipResolutions.resize( mipCount );
+        size_t offset = 0;
+        for ( int i = 0; i < mipCount; ++i )
+        {
+            mips[i] = std::make_unique<T[]>( w * h * NUM_CHANNELS );
+            mipResolutions[i] = { w, h };
+            int mipSize = w * h * NUM_CHANNELS * sizeof( T );
+            memcpy( mips[i].get(), reinterpret_cast<char*>( data ) + offset, mipSize );
+            w >>= 1;
+            h >>= 1;
+            offset += mipSize;
+        }
     }
 
-    glm::vec4 Fetch( int row, int col ) const
+    glm::vec4 Fetch( int row, int col, int mipLevel ) const
     {
+        const int width = mipResolutions[mipLevel].x;
+        const int height = mipResolutions[mipLevel].y;
         if constexpr ( clampU )
         {
             col = std::clamp( col, 0, width - 1 );
@@ -62,25 +74,27 @@ public:
         {
             if constexpr ( std::is_same_v<T,float> )
             {
-                ret[channel] = pixels[pixelOffset + channel];
+                ret[channel] = mips[mipLevel][pixelOffset + channel];
             }
             else if constexpr ( std::is_same_v<T,float16> )
             {
-                ret[channel] = Float16ToFloat32( pixels[pixelOffset + channel] );
+                ret[channel] = Float16ToFloat32( mips[mipLevel][pixelOffset + channel] );
             }
             else if constexpr ( std::is_same_v<T,uint8_t> )
             {
-                ret[channel] = UNormByteToFloat( pixels[pixelOffset + channel] );
+                ret[channel] = UNormByteToFloat( mips[mipLevel][pixelOffset + channel] );
             }
+        }
 
-            // don't apply to alpha channel
-            if ( sRGB && channel != 3 ) ret[channel] = PG::GammaSRGBToLinear( ret[channel] );
+        if ( sRGB )
+        {
+            ret = PG::GammaSRGBToLinear( ret );
         }
 
         return ret;
     }
 
-    glm::vec4 Sample( glm::vec2 uv ) const override
+    glm::vec4 Bilerp( glm::vec2 uv, int mipLevel ) const
     {
         if constexpr ( clampU ) uv.x = std::clamp( uv.x, 0.0f, 1.0f );
         else uv.x -= std::floor( uv.x );
@@ -88,7 +102,7 @@ public:
         else uv.y -= std::floor( uv.y );
 
         // subtract 0.5 to account for pixel centers
-        uv = uv * glm::vec2( width, height ) - glm::vec2( 0.5f );
+        uv = uv * glm::vec2( mipResolutions[mipLevel] ) - glm::vec2( 0.5f );
         glm::vec2 start = glm::floor( uv );
         int col = static_cast<int>( start.x );
         int row = static_cast<int>( start.y );
@@ -99,22 +113,35 @@ public:
 		const float w10 = (1.0f - d.x) * d.y;
 		const float w11 = d.x * d.y;
         
-        glm::vec4 p00 = Fetch( row, col );
-        glm::vec4 p01 = Fetch( row, col + 1 );
-        glm::vec4 p10 = Fetch( row + 1, col );
-        glm::vec4 p11 = Fetch( row + 1, col + 1 );
+        glm::vec4 p00 = Fetch( row, col, mipLevel );
+        glm::vec4 p01 = Fetch( row, col + 1, mipLevel );
+        glm::vec4 p10 = Fetch( row + 1, col, mipLevel );
+        glm::vec4 p11 = Fetch( row + 1, col + 1, mipLevel );
         
-        glm::vec4 ret;
+        glm::vec4 ret( 0, 0, 0, 1 );
         for ( int i = 0; i < NUM_CHANNELS; ++i )
         {
             ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
         }
 
-        if constexpr ( NUM_CHANNELS < 2 ) ret.g = 0.0f;
-        if constexpr ( NUM_CHANNELS < 3 ) ret.b = 0.0f;
-        if constexpr ( NUM_CHANNELS < 4 ) ret.a = 1.0f;
-
         return ret;
+    }
+
+    glm::vec4 Sample( glm::vec2 uv, glm::vec2 du = glm::vec2( 0 ), glm::vec2 dv = glm::vec2( 0 ) ) const override
+    {
+        float mipLevel = 0;
+        int mipCount = static_cast<int>( mips.size() );
+        int firstMip = std::min<int>( mipCount - 1, std::max( 0, (int)std::floor( mipLevel ) ) );
+        int nextMip = std::min<int>( mipCount - 1, std::max( 0, firstMip + 1  ) );
+        if ( firstMip == nextMip )
+        {
+            return Bilerp( uv, firstMip );
+        }
+        else
+        {
+            float lerpFactor = mipLevel - firstMip;
+            return (1.0f - lerpFactor) * Bilerp( uv, firstMip ) + lerpFactor * Bilerp( uv, nextMip );
+        }
     }
 
     glm::vec4 SampleDir( glm::vec3 dir ) const override
@@ -123,11 +150,8 @@ public:
         return glm::vec4( 0 );
     }
 
-    int width;
-    int height;
-    std::shared_ptr<T[]> pixels;
-private:
-    glm::vec2 halfPixelDim;
+    std::vector<glm::u16vec2> mipResolutions;
+    std::vector<std::unique_ptr<T[]>> mips;
 };
 
 
@@ -136,15 +160,15 @@ class TextureCubeMap : public Texture
 {
 public:
     static_assert( NUM_CHANNELS >= 1 && NUM_CHANNELS <= 4 );
-    TextureCubeMap( int w, int h, void* facePixelData[6] ) : width( w ), height( h )
+    TextureCubeMap( int w, int h, int mc, void* facePixelData[6] )
     {
         for ( int face = 0; face < 6; ++face )
         {
-            faces[face] = Texture2D<T,NUM_CHANNELS,false,true,true>( w, h, facePixelData[face] );
+            faces[face] = Texture2D<T,NUM_CHANNELS,false,true,true>( w, h, 1, facePixelData[face] );
         }
     }
 
-    glm::vec4 Sample( glm::vec2 uv ) const override
+    glm::vec4 Sample( glm::vec2 uv, glm::vec2 du = glm::vec2( 0 ), glm::vec2 dv = glm::vec2( 0 ) ) const override
     {
         PG_ASSERT( false, "Invalid for cubemaps. Use SampleDir" );
         return glm::vec4( 0 );
@@ -180,8 +204,6 @@ public:
         return faces[faceIndex].Sample( uv );
     }
 
-    int width;
-    int height;
     Texture2D<T,NUM_CHANNELS,false,true,true> faces[6]; // face order: +x,-x,+y,-y,+z,-z
 private:
     glm::vec2 halfPixelDim;

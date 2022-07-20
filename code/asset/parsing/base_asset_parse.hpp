@@ -59,3 +59,26 @@ protected:
 extern const std::shared_ptr<BaseAssetParser> g_assetParsers[NUM_ASSET_TYPES];
 
 } // namespace PG
+
+#define BEGIN_STR_TO_ENUM_MAP( EnumName ) \
+static EnumName EnumName ## _StringToEnum( std::string_view str ) \
+{ \
+    static std::pair<std::string, EnumName> arr[] = \
+    {
+
+#define STR_TO_ENUM_VALUE( EnumName, val ) { #val, EnumName ## :: ## val },
+
+#define END_STR_TO_ENUM_MAP( EnumName, defaultVal ) \
+    }; \
+       \
+    for ( int i = 0; i < ARRAY_COUNT( arr ); ++i ) \
+    { \
+        if ( arr[i].first == str ) \
+        { \
+            return arr[i].second; \
+        } \
+    } \
+      \
+    LOG_WARN( "No " #EnumName " found with name '%s'. Using default '" #defaultVal "' instead.", str.data() ); \
+    return EnumName ## :: ## defaultVal; \
+}

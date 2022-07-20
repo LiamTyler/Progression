@@ -4,38 +4,13 @@ project(OfflineRenderer LANGUAGES CXX C)
 include(helpful_functions)
 #set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 set(CODE_DIR ${PROGRESSION_DIR}/code)
+include(source_files)
 
 set(
 	SRC
-    ${CODE_DIR}/asset/types/base_asset.hpp
-    ${CODE_DIR}/asset/types/gfx_image.cpp
-    ${CODE_DIR}/asset/types/gfx_image.hpp
-    ${CODE_DIR}/asset/types/material.cpp
-    ${CODE_DIR}/asset/types/material.hpp
-    ${CODE_DIR}/asset/types/model.cpp
-    ${CODE_DIR}/asset/types/model.hpp
-    ${CODE_DIR}/asset/types/script.cpp
-    ${CODE_DIR}/asset/types/script.hpp
-    ${CODE_DIR}/asset/types/shader.cpp
-    ${CODE_DIR}/asset/types/shader.hpp
-    ${CODE_DIR}/asset/asset_manager.cpp
-    ${CODE_DIR}/asset/asset_manager.hpp
-    ${CODE_DIR}/asset/asset_versions.hpp
-    ${CODE_DIR}/asset/parsing/base_asset_parse.cpp
-    ${CODE_DIR}/asset/parsing/base_asset_parse.hpp
-    ${CODE_DIR}/asset/parsing/gfx_image_parse.cpp
-    ${CODE_DIR}/asset/parsing/gfx_image_parse.hpp
-    ${CODE_DIR}/asset/parsing/material_parse.cpp
-    ${CODE_DIR}/asset/parsing/material_parse.hpp
-    ${CODE_DIR}/asset/parsing/model_parse.cpp
-    ${CODE_DIR}/asset/parsing/model_parse.hpp
-    ${CODE_DIR}/asset/parsing/script_parse.cpp
-    ${CODE_DIR}/asset/parsing/script_parse.hpp
-    ${CODE_DIR}/asset/parsing/shader_parse.cpp
-    ${CODE_DIR}/asset/parsing/shader_parse.hpp
-    ${CODE_DIR}/asset/asset_manager.cpp
-    ${CODE_DIR}/asset/asset_manager.hpp
-    ${CODE_DIR}/asset/asset_versions.hpp
+    ${ASSET_SRC}
+    ${ASSET_PARSE_SRC}
+    
     ${CODE_DIR}/asset/asset_file_database.cpp
     ${CODE_DIR}/asset/asset_file_database.hpp    
     ${CODE_DIR}/asset/shader_preprocessor.cpp
@@ -60,14 +35,7 @@ set(
     ${CODE_DIR}/core/scene.cpp
     ${CODE_DIR}/core/scene.hpp
     
-    ${CODE_DIR}/ecs/component_factory.cpp
-    ${CODE_DIR}/ecs/component_factory.hpp
-    ${CODE_DIR}/ecs/ecs.cpp
-    ${CODE_DIR}/ecs/ecs.hpp
-    ${CODE_DIR}/ecs/components/entity_metadata.hpp
-    ${CODE_DIR}/ecs/components/model_renderer.hpp
-    ${CODE_DIR}/ecs/components/transform.cpp
-    ${CODE_DIR}/ecs/components/transform.hpp
+    ${ECS_SRC}
     
     ${CODE_DIR}/shared/bitops.hpp
     ${CODE_DIR}/shared/color_spaces.hpp

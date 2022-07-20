@@ -22,22 +22,6 @@ static std::unordered_map< std::string, GfxImageSemantic > s_imageSemanticMap =
 };
 
 
-static std::string ImageSemanticToString( GfxImageSemantic semantic )
-{
-    const char* names[] =
-    {
-        "DIFFUSE",
-        "NORMAL",
-        "METALNESS",
-        "ROUGHNESS",
-        "ENVIRONMENT_MAP",
-    };
-
-    static_assert( ARRAY_COUNT( names ) == static_cast< int >( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) );
-    return names[static_cast< int >( semantic )];
-}
-
-
 static std::unordered_map< std::string, Gfx::ImageType > imageTypeMap =
 {
     { "TYPE_1D",            Gfx::ImageType::TYPE_1D },

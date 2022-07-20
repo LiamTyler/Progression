@@ -10,6 +10,7 @@ enum AssetType : unsigned int
     ASSET_TYPE_SCRIPT,
     ASSET_TYPE_MODEL,
     ASSET_TYPE_SHADER,
+    ASSET_TYPE_TEXTURESET,
 
     NUM_ASSET_TYPES
 };
@@ -22,13 +23,15 @@ inline const unsigned int g_assetVersions[] =
     0, // ASSET_TYPE_SCRIPT
     0, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
+    0, // ASSET_TYPE_TEXTURESET
 };
 
 inline const char* const g_assetNames[] =
 {
-    "Image",    // ASSET_TYPE_GFX_IMAGE
-    "Material", // ASSET_TYPE_MATERIAL
-    "Script",   // ASSET_TYPE_SCRIPT
-    "Model",    // ASSET_TYPE_MODEL
-    "Shader",   // ASSET_TYPE_SHADER
+    "Image",      // ASSET_TYPE_GFX_IMAGE
+    "Material",   // ASSET_TYPE_MATERIAL
+    "Script",     // ASSET_TYPE_SCRIPT
+    "Model",      // ASSET_TYPE_MODEL
+    "Shader",     // ASSET_TYPE_SHADER
+    "Textureset", // ASSET_TYPE_TEXTURESET
 };

@@ -8,11 +8,12 @@
 
 std::string assetCacheFolders[NUM_ASSET_TYPES] =
 {
-    "images/",    // ASSET_TYPE_GFX_IMAGE
-    "materials/", // ASSET_TYPE_MATERIAL
-    "scripts/",   // ASSET_TYPE_SCRIPT
-    "models/",    // ASSET_TYPE_MODEL
-    "shaders/",   // ASSET_TYPE_SHADER
+    "images/",      // ASSET_TYPE_GFX_IMAGE
+    "materials/",   // ASSET_TYPE_MATERIAL
+    "scripts/",     // ASSET_TYPE_SCRIPT
+    "models/",      // ASSET_TYPE_MODEL
+    "shaders/",     // ASSET_TYPE_SHADER
+    "texturesets/", // ASSET_TYPE_TEXTURESET
 };
 
 static std::string GetCachedPath( AssetType assetType, const std::string& assetCacheName )

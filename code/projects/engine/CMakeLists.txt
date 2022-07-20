@@ -16,26 +16,13 @@ elseif(MSVC)
     mark_as_advanced(CMAKE_CXX_FLAGS_SHIP CMAKE_C_FLAGS_SHIP CMAKE_EXE_LINKER_FLAGS_SHIP CMAKE_SHARED_LINKER_FLAGS_SHIP)
 endif()
 
+include(source_files)
+
 set(CODE_DIR ${PROGRESSION_DIR}/code)
 set(
 	SRC
     
-    ${CODE_DIR}/asset/types/base_asset.hpp
-    ${CODE_DIR}/asset/types/gfx_image.cpp
-    ${CODE_DIR}/asset/types/gfx_image.hpp
-    ${CODE_DIR}/asset/types/material.cpp
-    ${CODE_DIR}/asset/types/material.hpp
-    ${CODE_DIR}/asset/types/model.cpp
-    ${CODE_DIR}/asset/types/model.hpp
-    ${CODE_DIR}/asset/types/script.cpp
-    ${CODE_DIR}/asset/types/script.hpp
-    ${CODE_DIR}/asset/types/shader.cpp
-    ${CODE_DIR}/asset/types/shader.hpp
-    ${CODE_DIR}/asset/asset_manager.cpp
-    ${CODE_DIR}/asset/asset_manager.hpp
-    ${CODE_DIR}/asset/asset_versions.hpp
-    ${CODE_DIR}/asset/shader_preprocessor.cpp
-    ${CODE_DIR}/asset/shader_preprocessor.hpp
+    ${ASSET_SRC}
     
     ${CODE_DIR}/core/bounding_box.cpp
     ${CODE_DIR}/core/bounding_box.hpp
@@ -61,14 +48,7 @@ set(
     ${CODE_DIR}/core/window.cpp
     ${CODE_DIR}/core/window.hpp
     
-    ${CODE_DIR}/ecs/component_factory.cpp
-    ${CODE_DIR}/ecs/component_factory.hpp
-    ${CODE_DIR}/ecs/ecs.cpp
-    ${CODE_DIR}/ecs/ecs.hpp
-    ${CODE_DIR}/ecs/components/entity_metadata.hpp
-    ${CODE_DIR}/ecs/components/model_renderer.hpp
-    ${CODE_DIR}/ecs/components/transform.cpp
-    ${CODE_DIR}/ecs/components/transform.hpp
+    ${ECS_SRC}
     
     ${CODE_DIR}/renderer/graphics_api/buffer.cpp
     ${CODE_DIR}/renderer/graphics_api/buffer.hpp

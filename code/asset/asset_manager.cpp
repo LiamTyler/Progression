@@ -5,6 +5,7 @@
 #include "asset/types/model.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
+#include "asset/types/textureset.hpp"
 #include "core/lua.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
@@ -21,17 +22,19 @@ std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::NUM_ASSE
 
 void Init()
 {
-    GetAssetTypeID<GfxImage>::ID(); // AssetType::ASSET_TYPE_GFX_IMAGE
-    GetAssetTypeID<Material>::ID(); // AssetType::ASSET_TYPE_MATERIAL
-    GetAssetTypeID<Script>::ID();   // AssetType::ASSET_TYPE_SCRIPT
-    GetAssetTypeID<Model>::ID();    // AssetType::ASSET_TYPE_MODEL
-    GetAssetTypeID<Shader>::ID();   // AssetType::ASSET_TYPE_SHADER
-    PG_ASSERT( GetAssetTypeID<GfxImage>::ID() == 0, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Material>::ID() == 1, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Script>::ID()   == 2, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Model>::ID()    == 3, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Shader>::ID()   == 4, "This needs to line up with AssetType ordering" );
-    static_assert( NUM_ASSET_TYPES == 5, "Dont forget to add GetAssetTypeID for new assets" );
+    GetAssetTypeID<GfxImage>::ID();     // AssetType::ASSET_TYPE_GFX_IMAGE
+    GetAssetTypeID<Material>::ID();     // AssetType::ASSET_TYPE_MATERIAL
+    GetAssetTypeID<Script>::ID();       // AssetType::ASSET_TYPE_SCRIPT
+    GetAssetTypeID<Model>::ID();        // AssetType::ASSET_TYPE_MODEL
+    GetAssetTypeID<Shader>::ID();       // AssetType::ASSET_TYPE_SHADER
+    GetAssetTypeID<Textureset>::ID();   // AssetType::ASSET_TYPE_SHADER
+    PG_ASSERT( GetAssetTypeID<GfxImage>::ID()   == 0, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Material>::ID()   == 1, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Script>::ID()     == 2, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Model>::ID()      == 3, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Shader>::ID()     == 4, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Textureset>::ID() == 5, "This needs to line up with AssetType ordering" );
+    static_assert( NUM_ASSET_TYPES == 6, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
 
@@ -89,6 +92,7 @@ bool LoadFastFile( const std::string& fname )
             LOAD_FF_CASE( ASSET_TYPE_SCRIPT, Script, "Script" );
             LOAD_FF_CASE( ASSET_TYPE_MODEL, Model, "Model" );
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader, "Shader" );
+            LOAD_FF_CASE( ASSET_TYPE_TEXTURESET, Textureset, "Textureset" );
         default:
             LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
             return false;
@@ -118,12 +122,12 @@ void RegisterLuaFunctions( lua_State* L )
     sol::state_view lua( L );
     sol::table assetManagerNamespace = lua.create_named_table( "AssetManager" );
     
-    assetManagerNamespace["GetGfxImage"] = []( const std::string& name ) { return AssetManager::Get< GfxImage >( name ); };
-    assetManagerNamespace["GetMaterial"] = []( const std::string& name ) { return AssetManager::Get< Material >( name ); };
-    assetManagerNamespace["GetScript"]   = []( const std::string& name ) { return AssetManager::Get< Script >( name ); };
-    assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get< Model >( name ); };
+    assetManagerNamespace["GetGfxImage"] = []( const std::string& name ) { return AssetManager::Get<GfxImage>( name ); };
+    assetManagerNamespace["GetMaterial"] = []( const std::string& name ) { return AssetManager::Get<Material>( name ); };
+    assetManagerNamespace["GetScript"]   = []( const std::string& name ) { return AssetManager::Get<Script>( name ); };
+    assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get<Model>( name ); };
 
-    sol::usertype< Material > mat_type = lua.new_usertype< Material >( "Material" ); //, sol::constructors< Material() >() );
+    sol::usertype<Material> mat_type = lua.new_usertype<Material>( "Material" ); //, sol::constructors<Material()>() );
     mat_type["name"]          = &Material::name;
     mat_type["albedoTint"]    = &Material::albedoTint;
     mat_type["metalnessTint"] = &Material::metalnessTint;
@@ -132,12 +136,12 @@ void RegisterLuaFunctions( lua_State* L )
     mat_type["metalnessMap"]  = &Material::metalnessMap;
     mat_type["roughnessMap"]  = &Material::roughnessMap;
     
-    sol::usertype< Model > model_type = lua.new_usertype< Model >( "Model" );
+    sol::usertype<Model> model_type = lua.new_usertype<Model>( "Model" );
     model_type["name"] = &Model::name;
     model_type["meshes"] = &Model::meshes;
     model_type["originalMaterials"] = &Model::originalMaterials;
 
-    sol::usertype< GfxImage > image_type = lua.new_usertype< GfxImage >( "GfxImage" );
+    sol::usertype<GfxImage> image_type = lua.new_usertype<GfxImage>( "GfxImage" );
     image_type["name"]        = &GfxImage::name;
     image_type["width"]       = &GfxImage::width;
     image_type["height"]      = &GfxImage::height;
@@ -147,7 +151,7 @@ void RegisterLuaFunctions( lua_State* L )
     image_type["pixelFormat"] = &GfxImage::pixelFormat;
     image_type["imageType"]   = &GfxImage::imageType;
 
-    sol::usertype< Script > script_type = lua.new_usertype< Script >( "Script" );
+    sol::usertype<Script> script_type = lua.new_usertype<Script>( "Script" );
     script_type["name"] = &Script::name;
     script_type["scriptText"] = &Script::scriptText;
 }

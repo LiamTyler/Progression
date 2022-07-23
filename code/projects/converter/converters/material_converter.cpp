@@ -14,9 +14,7 @@ std::string MaterialConverter::GetCacheNameInternal( ConstInfoPtr info )
     size_t hash = Hash( info->albedoTint );
     HashCombine( hash, info->metalnessTint );
     HashCombine( hash, info->roughnessTint );
-    HashCombine( hash, info->albedoMapName );
-    HashCombine( hash, info->metalnessMapName );
-    HashCombine( hash, info->roughnessMapName );
+    HashCombine( hash, info->texturesetName );
     cacheName += "_" + std::to_string( hash );
     return cacheName;
 }

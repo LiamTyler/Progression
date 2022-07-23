@@ -31,9 +31,9 @@ static void Color565To888( uint16_t color565, uint32_t& r, uint32_t& g, uint32_t
 }
 
 
-void Decompress_BC1_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+void Decompress_BC1_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
-    BC1Block block = *reinterpret_cast< BC1Block* >( compressedBlock );
+    const BC1Block& block = *reinterpret_cast<const BC1Block*>( compressedBlock );
     uint32_t r0, g0, b0;
     uint32_t r1, g1, b1;
     Color565To888( block.endpoint0, r0, g0, b0 );
@@ -41,7 +41,7 @@ void Decompress_BC1_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[6
 
     uint32_t c0 = 0xFF << 24 | b0 << 16 | g0 << 8 | r0;
     uint32_t c1 = 0xFF << 24 | b1 << 16 | g1 << 8 | r1;
-    uint32_t* decompressed = reinterpret_cast< uint32_t* >( decompressedBlock );
+    uint32_t* decompressed = reinterpret_cast<uint32_t*>( decompressedBlock );
     if ( block.endpoint0 > block.endpoint1 )
     {
         // the +1 is for rounding when doing integer division / 3. Ex: 0 / 3 = 0, 1 / 3 = 0, 2 / 3 = 0, but we want the 2 / 3 to round up to 1
@@ -94,10 +94,10 @@ void Decompress_BC1_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[6
 }
 
 
-void Decompress_BC2_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+void Decompress_BC2_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
     Decompress_BC1_Block( compressedBlock + 8, decompressedBlock );
-    size_t alphaBlock = *reinterpret_cast< size_t* >( compressedBlock );
+    const size_t& alphaBlock = *reinterpret_cast<const size_t*>( compressedBlock );
     for ( int i = 0; i < 16; ++i )
     {
         uint32_t alphaBits = (alphaBlock >> (4 * i)) & 0xF;
@@ -106,7 +106,7 @@ void Decompress_BC2_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[6
 }
 
 
-void Decompress_BC4_Block_UNorm( uint8_t* compressedBlock, uint8_t decompressedBlock[16] )
+void Decompress_BC4_Block_UNorm( const uint8_t* compressedBlock, uint8_t decompressedBlock[16] )
 {
     uint8_t palette[8];
     palette[0] = *compressedBlock;
@@ -116,27 +116,27 @@ void Decompress_BC4_Block_UNorm( uint8_t* compressedBlock, uint8_t decompressedB
     if ( p0 > p1 )
     {
         // the +3 is for rounding, when doing integer division / 7. Similar to BC1
-        palette[2] = static_cast< uint8_t >( (6 * p0 + 1 * p1 + 3) / 7 ); // bit code 010
-        palette[3] = static_cast< uint8_t >( (5 * p0 + 2 * p1 + 3) / 7 ); // bit code 011
-        palette[4] = static_cast< uint8_t >( (4 * p0 + 3 * p1 + 3) / 7 ); // bit code 100
-        palette[5] = static_cast< uint8_t >( (3 * p0 + 4 * p1 + 3) / 7 ); // bit code 101
-        palette[6] = static_cast< uint8_t >( (2 * p0 + 5 * p1 + 3) / 7 ); // bit code 110
-        palette[7] = static_cast< uint8_t >( (1 * p0 + 6 * p1 + 3) / 7 ); // bit code 111
+        palette[2] = static_cast<uint8_t>( (6 * p0 + 1 * p1 + 3) / 7 ); // bit code 010
+        palette[3] = static_cast<uint8_t>( (5 * p0 + 2 * p1 + 3) / 7 ); // bit code 011
+        palette[4] = static_cast<uint8_t>( (4 * p0 + 3 * p1 + 3) / 7 ); // bit code 100
+        palette[5] = static_cast<uint8_t>( (3 * p0 + 4 * p1 + 3) / 7 ); // bit code 101
+        palette[6] = static_cast<uint8_t>( (2 * p0 + 5 * p1 + 3) / 7 ); // bit code 110
+        palette[7] = static_cast<uint8_t>( (1 * p0 + 6 * p1 + 3) / 7 ); // bit code 111
     }
     else
     {
-        palette[2] = static_cast< uint8_t >( (4 * p0 + 1 * p1 + 2) / 5 ); // bit code 010
-        palette[3] = static_cast< uint8_t >( (3 * p0 + 2 * p1 + 2) / 5 ); // bit code 011
-        palette[4] = static_cast< uint8_t >( (2 * p0 + 3 * p1 + 2) / 5 ); // bit code 100
-        palette[5] = static_cast< uint8_t >( (1 * p0 + 4 * p1 + 2) / 5 ); // bit code 101
-        palette[6] = 0;                                                   // bit code 110
-        palette[7] = 255;                                                 // bit code 111
+        palette[2] = static_cast<uint8_t>( (4 * p0 + 1 * p1 + 2) / 5 ); // bit code 010
+        palette[3] = static_cast<uint8_t>( (3 * p0 + 2 * p1 + 2) / 5 ); // bit code 011
+        palette[4] = static_cast<uint8_t>( (2 * p0 + 3 * p1 + 2) / 5 ); // bit code 100
+        palette[5] = static_cast<uint8_t>( (1 * p0 + 4 * p1 + 2) / 5 ); // bit code 101
+        palette[6] = 0;                                                 // bit code 110
+        palette[7] = 255;                                               // bit code 111
     }
     
     compressedBlock += 2;
     for ( int chunk = 0; chunk < 2; ++chunk )
     {
-        uint32_t alpha8 = *reinterpret_cast< uint32_t* >( compressedBlock + 3*chunk );
+        uint32_t alpha8 = *reinterpret_cast<const uint32_t*>( compressedBlock + 3*chunk );
         for ( int i = 0; i < 8; ++i )
         {
             uint32_t index = (alpha8 >> (3 * i)) & 0x7;
@@ -146,7 +146,7 @@ void Decompress_BC4_Block_UNorm( uint8_t* compressedBlock, uint8_t decompressedB
 }
 
 
-void Decompress_BC4_Block_SNorm( int8_t* compressedBlock, int8_t decompressedBlock[16] )
+void Decompress_BC4_Block_SNorm( const int8_t* compressedBlock, int8_t decompressedBlock[16] )
 {
     int8_t palette[8];
     palette[0] = *compressedBlock;
@@ -176,7 +176,7 @@ void Decompress_BC4_Block_SNorm( int8_t* compressedBlock, int8_t decompressedBlo
     compressedBlock += 2;
     for ( int chunk = 0; chunk < 2; ++chunk )
     {
-        uint32_t alpha8 = *reinterpret_cast< uint32_t* >( compressedBlock + 3*chunk );
+        uint32_t alpha8 = *reinterpret_cast<const uint32_t*>( compressedBlock + 3*chunk );
         for ( int i = 0; i < 8; ++i )
         {
             uint32_t index = (alpha8 >> (3 * i)) & 0x7;
@@ -186,9 +186,9 @@ void Decompress_BC4_Block_SNorm( int8_t* compressedBlock, int8_t decompressedBlo
 }
 
 
-void Decompress_BC3_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+void Decompress_BC3_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
-    // TOD: do bc2 + bc3 ignore the endpoint ordering in bc1 for punchthrough alpha?
+    // TODO: do bc2 + bc3 ignore the endpoint ordering in bc1 for punchthrough alpha?
     uint8_t alphaDecompressed[16];
     Decompress_BC4_Block_UNorm( compressedBlock, alphaDecompressed );
     Decompress_BC1_Block( compressedBlock + 8, decompressedBlock );
@@ -199,21 +199,21 @@ void Decompress_BC3_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[6
 }
 
 
-bool Decompress_BC4_Internal( uint8_t* compressedData, int width, int height, bool unorm, ImageU8& decompressedImage )
+/*
+bool Decompress_BC4_Internal( const RawImage2D& compressedImage, bool unorm, RawImage2D& decompressedImage )
 {
-    decompressedImage = ImageU8( width, height );
-
     uint8_t maxVal = unorm ? 255 : 127;
     constexpr int bytesPerBlock = 8;
-    const int numBlocksX = (width + 3) / 4;
-    const int numBlocksY = (height + 3) / 4;
+    const int numBlocksX = compressedImage.BlocksX()
+    const int numBlocksY = compressedImage.BlocksY();
+
     #pragma omp parallel for
     for ( int blockY = 0; blockY < numBlocksY; ++blockY )
     {
         for ( int blockX = 0; blockX < numBlocksX; ++blockX )
         {
             uint8_t decompressedBlock[16];
-            uint8_t* compressedBlock = compressedData + bytesPerBlock * (blockY * numBlocksX + blockX);
+            uint8_t* compressedBlock = compressedImage.Raw() + bytesPerBlock * (blockY * numBlocksX + blockX);
 
             if ( unorm )
             {
@@ -246,13 +246,12 @@ bool Decompress_BC4_Internal( uint8_t* compressedData, int width, int height, bo
 }
 
 
-bool Decompress_BC5_Internal( uint8_t* compressedData, int width, int height, bool unorm, ImageU8& decompressedImage )
+bool Decompress_BC5_Internal( const RawImage2D& compressedImage, bool unorm, RawImage2D& decompressedImage )
 {
-    decompressedImage = ImageU8( width, height );
-
     constexpr int bytesPerBlock = 16;
-    const int numBlocksX = (width + 3) / 4;
-    const int numBlocksY = (height + 3) / 4;
+    const int numBlocksX = compressedImage.BlocksX()
+    const int numBlocksY = compressedImage.BlocksY();
+
     #pragma omp parallel for
     for ( int blockY = 0; blockY < numBlocksY; ++blockY )
     {
@@ -260,7 +259,7 @@ bool Decompress_BC5_Internal( uint8_t* compressedData, int width, int height, bo
         {
             uint8_t decompressedBlockR[16];
             uint8_t decompressedBlockG[16];
-            uint8_t* compressedBlock = compressedData + bytesPerBlock * (blockY * numBlocksX + blockX);
+            uint8_t* compressedBlock = compressedImage.Raw() + bytesPerBlock * (blockY * numBlocksX + blockX);
 
             if ( unorm )
             {
@@ -294,7 +293,7 @@ bool Decompress_BC5_Internal( uint8_t* compressedData, int width, int height, bo
 
     return true;
 }
-
+*/
 
 uint32_t __inline ctz( uint32_t value )
 {
@@ -311,7 +310,7 @@ uint32_t __inline ctz( uint32_t value )
 }
 
 
-uint32_t ExtractBits( uint8_t* base, uint32_t& startIndex, int bitsToExtract )
+uint32_t ExtractBits( const uint8_t* base, uint32_t& startIndex, int bitsToExtract )
 {
     uint32_t result = 0;
     for ( int i = 0; i < bitsToExtract; ++i )
@@ -328,7 +327,7 @@ uint32_t ExtractBits( uint8_t* base, uint32_t& startIndex, int bitsToExtract )
 
 
 // like ExtractBits, except no updating of the startIndex
-uint32_t ExtractBitSegment( uint8_t* base, uint32_t startIndex, int bitsToExtract )
+uint32_t ExtractBitSegment( const uint8_t* base, uint32_t startIndex, int bitsToExtract )
 {
     uint32_t result = 0;
     for ( int i = 0; i < bitsToExtract; ++i )
@@ -420,7 +419,7 @@ bool BC6_GetModeInfo( uint32_t mode, BC6ModeInfo& info )
 }
 
 
-void BC6_ExtractEndpoints( uint32_t mode, uint8_t* compressedBlock, uint16_t endpoints[4][3] )
+void BC6_ExtractEndpoints( uint32_t mode, const uint8_t* compressedBlock, uint16_t endpoints[4][3] )
 {
     switch ( mode )
     {
@@ -657,7 +656,7 @@ void BC6_ExtractEndpoints( uint32_t mode, uint8_t* compressedBlock, uint16_t end
 }
 
 
-void Decompress_BC6_Block( uint8_t* compressedBlock, uint16_t decompressedBlock[48] )
+void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressedBlock[48] )
 {
     uint32_t numModeBits = (*compressedBlock & 0x3) < 2 ? 2 : 5;
     uint32_t currentBitOffset = 0;
@@ -704,7 +703,7 @@ BC7ModeBitCounts s_bc7BitTable[8] =
 };
 
 
-void BC7_ExtractEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], uint8_t* compressedBlock, uint32_t& currentBitOffset )
+void BC7_ExtractEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint8_t* compressedBlock, uint32_t& currentBitOffset )
 {
     const BC7ModeBitCounts& info = s_bc7BitTable[mode];
     uint32_t numColorBits = info.colorBits;
@@ -732,7 +731,7 @@ void BC7_ExtractEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], uint8_t* c
 }
 
 
-void BC7_FullyDecodeEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], uint8_t* compressedBlock, uint32_t& currentBitOffset )
+void BC7_FullyDecodeEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint8_t* compressedBlock, uint32_t& currentBitOffset )
 {
     const BC7ModeBitCounts& info = s_bc7BitTable[mode];
     uint32_t colorPrecisionBits = info.colorBits;
@@ -805,7 +804,7 @@ uint32_t BC7_Interpolate( uint32_t e0, uint32_t e1, uint8_t bitsPerIndex, int in
 }
 
 
-void Decompress_BC7_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+void Decompress_BC7_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
     uint32_t mode = ctz( *compressedBlock );
     if ( mode > 7 )
@@ -936,46 +935,44 @@ void Decompress_BC7_Block( uint8_t* compressedBlock, uint8_t decompressedBlock[6
 
 
 template< int BC_NUMBER >
-bool Decompress_BC_RGBA8_Internal( uint8_t* compressedData, int width, int height, ImageU8& decompressedImage )
+void Decompress_BC_RGBA8_Internal( const RawImage2D& compressedImage, RawImage2D& outputImage )
 {
     static_assert( BC_NUMBER == 1 || BC_NUMBER == 2 || BC_NUMBER == 3 || BC_NUMBER == 7 );
 
-    decompressedImage = ImageU8( width, height );
+    constexpr int bytesPerOutputPixel = 4;
+    const int bytesPerBlock = compressedImage.BytesPerBlock();
+    const int numBlocksX = compressedImage.BlocksX();
+    const int numBlocksY = compressedImage.BlocksY();
 
-    constexpr int bytesPerPixel = 4;
-    constexpr int bytesPerBlock = BC_NUMBER == 1 ? 8 : 16;
-    const int numBlocksX = (width + 3) / 4;
-    const int numBlocksY = (height + 3) / 4;
     #pragma omp parallel for
     for ( int blockY = 0; blockY < numBlocksY; ++blockY )
     {
         for ( int blockX = 0; blockX < numBlocksX; ++blockX )
         {
             uint8_t decompressedBlock[64];
-            uint8_t* compressedBlock = compressedData + bytesPerBlock * (blockY * numBlocksX + blockX);
+            const uint8_t* compressedBlock = compressedImage.Raw<uint8_t>() + bytesPerBlock * (blockY * numBlocksX + blockX);
 
             if constexpr ( BC_NUMBER == 1 )      Decompress_BC1_Block( compressedBlock, decompressedBlock );
             else if constexpr ( BC_NUMBER == 2 ) Decompress_BC2_Block( compressedBlock, decompressedBlock );
             else if constexpr ( BC_NUMBER == 3 ) Decompress_BC3_Block( compressedBlock, decompressedBlock );
             else if constexpr ( BC_NUMBER == 7 ) Decompress_BC7_Block( compressedBlock, decompressedBlock );
 
-            int rowsToCopy = std::min( height - 4*blockY, 4 );
-            int colsToCopy = std::min( width -  4*blockX, 4 );
-            for ( int blockRow = 0; blockRow < rowsToCopy; ++blockRow )
+            uint32_t rowsToCopy = std::min( outputImage.height - 4*blockY, 4u );
+            uint32_t colsToCopy = std::min( outputImage.width -  4*blockX, 4u );
+            for ( uint32_t blockRow = 0; blockRow < rowsToCopy; ++blockRow )
             {
                 int dstRow = 4 * blockY + blockRow;
                 int dstCol = 4 * blockX;
-                int dstIndex = bytesPerPixel * (dstRow * width + dstCol);
-                int srcIndex = bytesPerPixel * 4 * blockRow;
-                memcpy( decompressedImage.Raw() + dstIndex, decompressedBlock + srcIndex, bytesPerPixel * colsToCopy );
+                int dstIndex = bytesPerOutputPixel * (dstRow * compressedImage.width + dstCol);
+                int srcIndex = bytesPerOutputPixel * 4 * blockRow;
+                memcpy( outputImage.Raw() + dstIndex, decompressedBlock + srcIndex, bytesPerOutputPixel * colsToCopy );
             }
         }
     }
-
-    return true;
 }
 
 
+/*
 bool Decompress_BC( CompressionFormat format, uint8_t* compressedData, int width, int height, ImageU8& decompressedImage )
 {
     PG_ASSERT( format != CompressionFormat::INVALID );
@@ -1008,4 +1005,70 @@ bool Decompress_BC( CompressionFormat format, uint8_t* compressedData, int width
     }
 
     return ret;
+}
+*/
+
+RawImage2D Decompress_BC( const RawImage2D& compressedImage )
+{
+    RawImage2D::Format outputFormat;
+    switch ( compressedImage.format )
+    {
+        case RawImage2D::Format::BC1_UNORM:
+        case RawImage2D::Format::BC2_UNORM:
+        case RawImage2D::Format::BC3_UNORM:
+        case RawImage2D::Format::BC7_UNORM:
+            outputFormat = RawImage2D::Format::R8_G8_B8_A8_UNORM;
+            break;
+        case RawImage2D::Format::BC4_UNORM:
+        case RawImage2D::Format::BC4_SNORM:
+            outputFormat = RawImage2D::Format::R8_UNORM;
+            break;
+        case RawImage2D::Format::BC5_UNORM:
+        case RawImage2D::Format::BC5_SNORM:
+            outputFormat = RawImage2D::Format::R8_G8_UNORM;
+            break;
+        case RawImage2D::Format::BC6H_U16F:
+        case RawImage2D::Format::BC6H_S16F:
+            outputFormat = RawImage2D::Format::R16_G16_B16_FLOAT;
+            break;
+        default:
+            return RawImage2D();
+    }
+
+    RawImage2D decompressedImage( compressedImage.width, compressedImage.height, outputFormat );
+    switch ( compressedImage.format )
+    {
+        case RawImage2D::Format::BC1_UNORM:
+            Decompress_BC_RGBA8_Internal<1>( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC2_UNORM:
+            Decompress_BC_RGBA8_Internal<2>( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC3_UNORM:
+            Decompress_BC_RGBA8_Internal<3>( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC4_UNORM:
+            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC4_SNORM:
+            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC5_UNORM:
+            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC5_SNORM:
+            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC6H_U16F:
+            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC6H_S16F:
+            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            break;
+        case RawImage2D::Format::BC7_UNORM:
+            Decompress_BC_RGBA8_Internal<7>( compressedImage, decompressedImage );
+            break;
+    }
+
+    return decompressedImage;
 }

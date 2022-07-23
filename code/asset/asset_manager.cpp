@@ -132,9 +132,7 @@ void RegisterLuaFunctions( lua_State* L )
     mat_type["albedoTint"]    = &Material::albedoTint;
     mat_type["metalnessTint"] = &Material::metalnessTint;
     mat_type["roughnessTint"] = &Material::roughnessTint;
-    mat_type["albedoMap"]     = &Material::albedoMap;
-    mat_type["metalnessMap"]  = &Material::metalnessMap;
-    mat_type["roughnessMap"]  = &Material::roughnessMap;
+    mat_type["textureset"]    = &Material::textureset;
     
     sol::usertype<Model> model_type = lua.new_usertype<Model>( "Model" );
     model_type["name"] = &Model::name;
@@ -154,6 +152,9 @@ void RegisterLuaFunctions( lua_State* L )
     sol::usertype<Script> script_type = lua.new_usertype<Script>( "Script" );
     script_type["name"] = &Script::name;
     script_type["scriptText"] = &Script::scriptText;
+
+    sol::usertype<Textureset> textureset_type = lua.new_usertype<Textureset>( "Textureset" );
+    textureset_type["name"] = &Textureset::name;
 }
 
 

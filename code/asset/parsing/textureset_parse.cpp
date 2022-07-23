@@ -11,32 +11,19 @@ BEGIN_STR_TO_ENUM_MAP( ChannelSelect )
     STR_TO_ENUM_VALUE( ChannelSelect, A )
 END_STR_TO_ENUM_MAP( ChannelSelect, R )
 
-/*
-* struct TexturesetCreateInfo : public BaseAssetCreateInfo
-{
-    std::string albedoMap;
-
-    std::string metalnessMap;
-    ChannelSelect metalnessSourceChannel = ChannelSelect::R;
-    float metalnessScale = 1.0f;
-
-    std::string normalMap;
-    float slopeScale = 1.0f;
-
-    std::string roughnessMap;
-    ChannelSelect roughnessSourceChannel = ChannelSelect::R;
-    bool invertRoughness = false; // if the source map is actually a gloss map
-};
-*/
-
 bool TexturesetParser::ParseInternal( const rapidjson::Value& value, InfoPtr info )
 {
     static JSONFunctionMapper<TexturesetCreateInfo&> mapping(
     {
-        { "name",         []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = v.GetString(); } },
-        { "albedoMap",    []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = v.GetString(); } },
+        { "name", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = v.GetString(); } },
+        { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = v.GetString(); } },
         { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = v.GetString(); } },
         { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = ChannelSelect_StringToEnum( v.GetString() ); } },
+        { "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = v.GetString(); } },
+        { "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<float>( v ); } },
+        { "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = v.GetString(); } },
+        { "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = ChannelSelect_StringToEnum( v.GetString() ); } },
+        { "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = v.GetBool(); } },
     });
     mapping.ForEachMember( value, *info );
 

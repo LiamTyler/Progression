@@ -11,14 +11,12 @@ namespace PG
 struct MaterialCreateInfo : public BaseAssetCreateInfo
 {
     glm::vec3 albedoTint;
-    std::string albedoMapName;
     float metalnessTint;
-    std::string metalnessMapName;
     float roughnessTint;
-    std::string roughnessMapName;
+    std::string texturesetName;
 };
 
-struct GfxImage;
+struct Textureset;
 
 struct Material : public BaseAsset
 {
@@ -30,10 +28,7 @@ struct Material : public BaseAsset
     glm::vec3 albedoTint = glm::vec3( 1.0f );
     float metalnessTint  = 1.0f;
     float roughnessTint  = 1.0f;
-
-    GfxImage* albedoMap = nullptr;
-    GfxImage* metalnessMap = nullptr;
-    GfxImage* roughnessMap = nullptr;
+    Textureset* textureset = nullptr;
 };
 
 } // namespace PG

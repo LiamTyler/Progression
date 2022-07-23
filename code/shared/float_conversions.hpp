@@ -123,7 +123,7 @@ inline glm::vec4 Float16ToFloat32( glm::u16vec4 v )
 }
 
 
-inline uint8_t UNormFloatToByte( float x )
+inline constexpr uint8_t UNormFloatToByte( float x )
 {
     return static_cast<uint8_t>( 255.0f * x + 0.5f );
 }
@@ -134,7 +134,7 @@ inline glm::u8vec4 UNormFloatToByte( glm::vec4 v )
 }
 
 
-inline float UNormByteToFloat( uint8_t x )
+inline constexpr float UNormByteToFloat( uint8_t x )
 {
     return x / 255.0f;
 }
@@ -142,4 +142,15 @@ inline float UNormByteToFloat( uint8_t x )
 inline glm::vec4 UNormByteToFloat( glm::u8vec4 v )
 {
     return { UNormByteToFloat( v.x ), UNormByteToFloat( v.y), UNormByteToFloat( v.z ), v.w };
+}
+
+
+inline constexpr float UNorm16ToFloat( uint16_t x )
+{
+    return float( x ) / 65535.0f;
+}
+
+inline constexpr uint16_t FloatToUNorm16( float x )
+{
+    return static_cast<uint16_t>( 65535.0f * x + 0.5f );
 }

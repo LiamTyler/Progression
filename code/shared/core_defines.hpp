@@ -1,5 +1,7 @@
 #pragma once
 
+#include <type_traits>
+
 /*
  * With a normal #if, accidentally using wrong symbol will not give error, but just get interpreted as 0.
  * With a normal #ifdef, accidentally using the wrong symbol just skips the inteded path with no error.
@@ -42,3 +44,20 @@
 #define _PG_WRAP10( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10 ) WRAPF(_1),WRAPF(_2),WRAPF(_3),WRAPF(_4),WRAPF(_5),WRAPF(_6),WRAPF(_7),WRAPF(_8),WRAPF(_9),WRAPF(_10)
 #define _PG_WRAP11( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11 ) WRAPF(_1),WRAPF(_2),WRAPF(_3),WRAPF(_4),WRAPF(_5),WRAPF(_6),WRAPF(_7),WRAPF(_8),WRAPF(_9),WRAPF(_10),WRAPF(_11)
 #define _PG_WRAP12( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12 ) WRAPF(_1),WRAPF(_2),WRAPF(_3),WRAPF(_4),WRAPF(_5),WRAPF(_6),WRAPF(_7),WRAPF(_8),WRAPF(_9),WRAPF(_10),WRAPF(_11),WRAPF(_12)
+
+template <typename EnumType>
+constexpr std::underlying_type_t<EnumType> Underlying( EnumType val )
+{
+    return static_cast<std::underlying_type_t<EnumType>>( val );
+}
+
+#define PG_DEFINE_ENUM_OPS( T )                                                                                                                  \
+	constexpr inline T operator~( T a ) { return static_cast<T>( ~Underlying( a ) ); }                                                           \
+	constexpr inline T operator|( T a, T b ) { return static_cast<T>( Underlying( a ) | Underlying( b ) ); }									 \
+	constexpr inline T operator&( T a, T b ) { return static_cast<T>( Underlying( a ) & Underlying( b ) ); }									 \
+	constexpr inline T operator^( T a, T b ) { return static_cast<T>( Underlying( a ) ^ Underlying( b ) ); }									 \
+	inline T &operator|=( T &a, T b ) { return reinterpret_cast<T &>( reinterpret_cast<std::underlying_type_t<T> &>( a ) |= Underlying( b ) ); } \
+	inline T &operator&=( T &a, T b ) { return reinterpret_cast<T &>( reinterpret_cast<std::underlying_type_t<T> &>( a ) &= Underlying( b ) ); } \
+	inline T &operator^=( T &a, T b ) { return reinterpret_cast<T &>( reinterpret_cast<std::underlying_type_t<T> &>( a ) ^= Underlying( b ) ); } \
+	constexpr bool IsSet( T a, T b ) { return ( a & b ) == b; }
+

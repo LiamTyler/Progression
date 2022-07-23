@@ -1,4 +1,4 @@
-#include "image_save.hpp"
+#include "image.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/float_conversions.hpp"
@@ -10,6 +10,7 @@
 #include <memory>
 
 
+/*
 bool IsSTBFormat( const std::string& ext )
 {
     return ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp";
@@ -279,4 +280,11 @@ bool Save2D_F32( const std::string& filename, float* pixels, int width, int heig
     }
 
     return true;
+}
+*/
+
+
+bool RawImage2D::Save( const std::string& filename, ImageSaveFlags saveFlags ) const
+{
+    return false;
 }

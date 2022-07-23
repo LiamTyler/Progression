@@ -7,68 +7,33 @@
 #include "shared/logger.hpp"
 
 
-int NumBytesPerCompressedBlock( CompressionFormat format )
+int GetBCNumber( RawImage2D::Format format )
 {
-    PG_ASSERT( static_cast<int>( format ) <= static_cast<int>( CompressionFormat::BC7_SRGB ) && format != CompressionFormat::INVALID );
-    int size[] =
+    int8_t mapping[] =
     {
-        8,  // BC1_UNORM
-        8,  // BC1_SRGB
-        16, // BC2_UNORM
-        16, // BC2_SRGB
-        16, // BC3_UNORM
-        16, // BC3_SRGB
-        8,  // BC4_UNORM
-        8,  // BC4_SNORM
-        16, // BC5_UNORM
-        16, // BC5_SNORM
-        16, // BC6H_UFLOAT
-        16, // BC6H_SFLOAT
-        16, // BC7_UNORM
-        16, // BC7_SRGB
+        1, // BC1_UNORM,
+        2, // BC2_UNORM,
+        3, // BC3_UNORM,
+        4, // BC4_UNORM,
+        4, // BC4_SNORM,
+        5, // BC5_UNORM,
+        5, // BC5_SNORM,
+        6, // BC6H_U16F,
+        6, // BC6H_S16F,
+        7, // BC7_UNORM,
     };
-    return size[static_cast<int>( format ) - static_cast<int>( CompressionFormat::BC1_UNORM )];
+
+    if ( static_cast<uint8_t>( format ) < static_cast<uint8_t>( RawImage2D::Format::BC1_UNORM ) ) return 0;
+
+    return mapping[static_cast<uint8_t>( format ) - static_cast<uint8_t>( RawImage2D::Format::BC1_UNORM )];
 }
 
-
-int GetBCNumber( CompressionFormat format )
-{
-    return 1 + static_cast<int>( format ) / 2;
-}
-
-
-static bool IsValidFormat( CompressionFormat format )
-{
-    if ( static_cast<int>( format ) > static_cast<int>( CompressionFormat::BC7_SRGB ) || format == CompressionFormat::INVALID )
-    {
-        LOG_ERR( "Please specify valid output BC format" );
-    }
-    if ( format == CompressionFormat::BC2_SRGB || format == CompressionFormat::BC2_UNORM )
-    {
-        LOG_ERR( "BC2 compression not supported. BC3 has same memory use and is higher quality, use that instead." );
-        return false;
-    }
-    if ( format == CompressionFormat::BC6H_SFLOAT || format == CompressionFormat::BC6H_UFLOAT )
-    {
-        LOG_ERR( "BC6 not implemented yet!" );
-        return false;
-    }
-
-    return true;
-}
-
-
+/*
 bool Compress_RGBASingleMip_To_BC( uint8_t* srcMip, int width, int height, const BCCompressorSettings& settings, uint8_t* compressedOutput )
 {
-    if ( !srcMip || !IsValidFormat( settings.format ) )
-    {
-        return false;
-    }
-
     const int blocksY = (height + 3) / 4;
     const int blocksX = (width + 3) / 4;
     const int totalBlocks = blocksX * blocksY;
-    const int bytesPerBlock = NumBytesPerCompressedBlock( settings.format );
     const int bcNumber = GetBCNumber( settings.format );
 
     if ( bcNumber <= 5 )
@@ -173,64 +138,56 @@ bool Compress_RGBASingleMip_To_BC( uint8_t* srcMip, int width, int height, const
 
     return true;
 }
+*/
 
-
-bool Compress_RGBASingleMip_To_BC_Alloc( uint8_t* srcMip, int width, int height, const BCCompressorSettings& settings, uint8_t** compressedOutput )
+void Compress_BC1( const RawImage2D& srcImage, const BCCompressorSettings& settings, RawImage2D& outputImg )
 {
-    const int blocksY = (height + 3) / 4;
-    const int blocksX = (width + 3) / 4;
-    const int totalBlocks = blocksX * blocksY;
-    const int bytesPerBlock = NumBytesPerCompressedBlock( settings.format );
-    *compressedOutput = static_cast<uint8_t*>( malloc( totalBlocks * bytesPerBlock ) );
-    return Compress_RGBASingleMip_To_BC( srcMip, width, height, settings, *compressedOutput );
+    const int blocksX = srcImage.BlocksX();
+    const int blocksY = srcImage.BlocksY();
+    const int bytesPerBlock = outputImg.BytesPerBlock();
+
+    rgbcx::init();
+
+    uint32_t qualityLevel = rgbcx::MIN_LEVEL;
+    if ( settings.quality == CompressionQuality::MEDIUM ) qualityLevel = 10;
+    else if ( settings.quality == CompressionQuality::HIGHEST ) qualityLevel = rgbcx::MAX_LEVEL;
+
+    #pragma omp parallel for
+	for ( int by = 0; by < blocksY; ++by )
+	{
+		for ( int bx = 0; bx < blocksX; ++bx )
+		{
+            uint8_t src[64];
+            srcImage.GetBlockClamped8Bit( bx, by, src );
+            uint8_t* dst = &outputImg.data[bytesPerBlock * (by * blocksX + bx)];
+            rgbcx::encode_bc1( qualityLevel, dst, src, true, true );
+        }
+    }
 }
 
-
-bool Compress_RGBAAllMips_To_BC( uint8_t* srcImage, int width, int height, const BCCompressorSettings& settings, uint8_t* compressedOutput )
+RawImage2D CompressToBC( RawImage2D image, const BCCompressorSettings& settings )
 {
-    if ( !srcImage || !IsValidFormat( settings.format ) )
+    RawImage2D compressedImg( image.width, image.height, settings.format );
+
+    bool error = false;
+    switch ( settings.format )
     {
-        return false;
+    case RawImage2D::Format::BC1_UNORM:
+        Compress_BC1( image, settings, compressedImg );
+        break;
+    case RawImage2D::Format::BC2_UNORM:
+        LOG_ERR( "CompressToBC: BC2 is not suppported, please use BC3 instead" );
+        error = true;
+        break;
+    default:
+        LOG_ERR( "CompressToBC: trying to compress to a format (%u) that is not a BC format", (uint32_t) settings.format );
+        error = true;
     }
 
-    int bytesPerPixel = GetBCNumber( settings.format ) == 6 ? 4 : 8;
-    int bytesPerBlock = NumBytesPerCompressedBlock( settings.format );
-    do
+    if ( error )
     {
-        Compress_RGBASingleMip_To_BC( srcImage, width, height, settings, compressedOutput );
-        srcImage += width * height * bytesPerPixel;
-        int blocksY = (height + 3) / 4;
-        int blocksX = (width + 3) / 4;
-        compressedOutput += blocksX * blocksY * bytesPerBlock;
-        width = std::max( 1, width >> 1 );
-        height = std::max( 1, height >> 1 );
-    } while ( width != 1 || height != 1 );
-
-    return true;
-}
-
-
-bool Compress_RGBAAllMips_To_BC_Alloc( uint8_t* srcImage, int width, int height, const BCCompressorSettings& settings, uint8_t** compressedOutput )
-{
-    if ( !srcImage || !IsValidFormat( settings.format ) )
-    {
-        return false;
+        compressedImg.data = nullptr;
     }
 
-    size_t totalSize = 0;
-    int bytesPerBlock = NumBytesPerCompressedBlock( settings.format );
-    int w = width;
-    int h = height;
-    do
-    {
-        int blocksY = (height + 3) / 4;
-        int blocksX = (width + 3) / 4;
-        totalSize += blocksX * blocksY * bytesPerBlock;
-        w = std::max( 1, w >> 1 );
-        h = std::max( 1, h >> 1 );
-    } while ( w != 1 || h != 1 );
-    *compressedOutput = static_cast<uint8_t*>( malloc( totalSize ) );
-    Compress_RGBAAllMips_To_BC( srcImage, width, height, settings, *compressedOutput );
-
-    return true;
+    return compressedImg;
 }

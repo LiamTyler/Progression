@@ -66,7 +66,7 @@ static EnumName EnumName ## _StringToEnum( std::string_view str ) \
     static std::pair<std::string, EnumName> arr[] = \
     {
 
-#define STR_TO_ENUM_VALUE( EnumName, val ) { #val, EnumName ## :: ## val },
+#define STR_TO_ENUM_VALUE( EnumName, val ) { #val, EnumName::val },
 
 #define END_STR_TO_ENUM_MAP( EnumName, defaultVal ) \
     }; \
@@ -80,5 +80,5 @@ static EnumName EnumName ## _StringToEnum( std::string_view str ) \
     } \
       \
     LOG_WARN( "No " #EnumName " found with name '%s'. Using default '" #defaultVal "' instead.", str.data() ); \
-    return EnumName ## :: ## defaultVal; \
+    return EnumName::defaultVal; \
 }

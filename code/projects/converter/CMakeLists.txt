@@ -24,6 +24,8 @@ set(
     ${CODE_DIR}/core/feature_defines.hpp
     ${CODE_DIR}/core/frustum.cpp
     ${CODE_DIR}/core/frustum.hpp
+	${CODE_DIR}/core/image_processing.cpp
+    ${CODE_DIR}/core/image_processing.hpp
     ${CODE_DIR}/core/init.cpp
     ${CODE_DIR}/core/init.hpp
     ${CODE_DIR}/core/input_types.hpp

@@ -216,9 +216,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
             }
             else
             {
-                if ( !info->albedoMapName.empty() ) assetsUsed[ASSET_TYPE_GFX_IMAGE].insert( info->albedoMapName );
-                if ( !info->metalnessMapName.empty() ) assetsUsed[ASSET_TYPE_GFX_IMAGE].insert( info->metalnessMapName );
-                if ( !info->roughnessMapName.empty() ) assetsUsed[ASSET_TYPE_GFX_IMAGE].insert( info->roughnessMapName );
+                if ( !info->texturesetName.empty() ) assetsUsed[ASSET_TYPE_TEXTURESET].insert( info->texturesetName );
             }
         }
 

@@ -185,21 +185,21 @@ bool RawImage2D::Load( const std::string& filename )
         }
 
         int w, h, numChannels;
-        Format startFormat;
+        ImageFormat startFormat;
         uint8_t* pixels;
         if ( ext == ".hdr" )
         {
-            startFormat = Format::R32_FLOAT;
+            startFormat = ImageFormat::R32_FLOAT;
             pixels = (uint8_t*)stbi_loadf( filename.c_str(), &w, &h, &numChannels, 0 );
         }
         else if ( stbi_is_16_bit_from_file( file ) )
         {
-            startFormat = Format::R16_UNORM;
+            startFormat = ImageFormat::R16_UNORM;
             pixels = (uint8_t*)stbi_load_from_file_16( file, &w, &h, &numChannels, 0 );
         }
         else
         {
-            startFormat = Format::R8_UNORM;
+            startFormat = ImageFormat::R8_UNORM;
             pixels = stbi_load_from_file( file, &w, &h, &numChannels, 0 );
         }
         if ( !pixels )
@@ -210,7 +210,7 @@ bool RawImage2D::Load( const std::string& filename )
         data = std::shared_ptr<uint8_t[]>( pixels, []( void* p ) { stbi_image_free( p ); } );
         width = static_cast<uint32_t>( w );
         height = static_cast<uint32_t>( h );
-        format = static_cast<Format>( (int)startFormat + numChannels - 1 );
+        format = static_cast<ImageFormat>( (int)startFormat + numChannels - 1 );
     }
     else if ( ext == ".exr" )
     {
@@ -229,7 +229,7 @@ bool RawImage2D::Load( const std::string& filename )
         data = std::shared_ptr<uint8_t[]>( (uint8_t*)pixels, []( void* p ) { free( p ); } );
         width = static_cast<uint32_t>( w );
         height = static_cast<uint32_t>( h );
-        format = Format::R32_G32_B32_A32_FLOAT;
+        format = ImageFormat::R32_G32_B32_A32_FLOAT;
     }
     else
     {

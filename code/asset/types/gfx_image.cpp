@@ -267,6 +267,7 @@ static void ConvertRGBA32Float_AllMips( unsigned char* outputImage, int width, i
 
 static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
+    /*
     Image2DCreateInfo srcImgCreateInfo;
     srcImgCreateInfo.filename = createInfo.filename;
     srcImgCreateInfo.flipVertically = createInfo.flipVertically;
@@ -301,11 +302,14 @@ static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& crea
     free( pixelsAllMips );
 
     return true;
+    */
+    return false;
 }
 
 
 static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
+    /*
     ImageCubemapCreateInfo srcImgCreateInfo;
     if ( createInfo.inputType == ImageInputType::EQUIRECTANGULAR )
     {
@@ -353,6 +357,8 @@ static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo&
 
 
     return true;
+    */
+    return false;
 }
 
 

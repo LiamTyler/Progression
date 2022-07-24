@@ -52,6 +52,17 @@ struct GfxImage : public BaseAsset
     Gfx::Texture gpuTexture;
 };
 
+enum CubemapFaceIndex
+{
+    CUBEMAP_FACE_BACK   = 0,
+    CUBEMAP_FACE_LEFT   = 1,
+    CUBEMAP_FACE_FRONT  = 2,
+    CUBEMAP_FACE_RIGHT  = 3,
+    CUBEMAP_FACE_TOP    = 4,
+    CUBEMAP_FACE_BOTTOM = 5,
+};
+
+
 struct GfxImageCreateInfo : public BaseAssetCreateInfo
 {
     ImageInputType inputType = ImageInputType::REGULAR_2D;

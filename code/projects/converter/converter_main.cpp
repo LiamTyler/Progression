@@ -14,6 +14,9 @@
 #include "shared/serializer.hpp"
 #include <algorithm>
 #include <unordered_set>
+#include "image.hpp"
+#include "bc_compression.hpp"
+#include "bc_decompression.hpp"
 
 using namespace PG;
 
@@ -353,6 +356,42 @@ bool ProcessScene( const std::string& sceneFile )
 
 int main( int argc, char** argv )
 {
+    EngineInitialize();
+    RawImage2D image;
+    if ( !image.Load( PG_ROOT_DIR "assets/images/macaw.png" ) )
+    {
+        return 1;
+    }
+
+    FloatImage imageFloat = FloatImageFromRawImage2D( image );
+
+    BCCompressorSettings settings;
+    settings.format = ImageFormat::BC1_UNORM;
+    for ( int i = 0; i < 3; ++i )
+    {
+        auto beginTime = Time::GetTimePoint();
+        settings.quality = static_cast<CompressionQuality>( Underlying( CompressionQuality::LOWEST ) + i );
+        RawImage2D compressedImg = CompressToBC( image, settings );
+        double duration = Time::GetDuration( beginTime ) / 1000.0f;
+
+        RawImage2D uncompressedImg = compressedImg.Convert( ImageFormat::R8_G8_B8_UNORM );
+        FloatImage uncompressedImgFloat = FloatImageFromRawImage2D( uncompressedImg );
+
+        double mse = FloatImageMSE( imageFloat, uncompressedImgFloat );
+        double psnr = MSEToPSNR( mse );
+        LOG( "Compressed in %.3f seconds with %f PSNR", duration, psnr );
+
+        if ( !uncompressedImg.Save( PG_ROOT_DIR "macaw_bc1_" + std::to_string( i ) + ".png" ) )
+        {
+            return 2;
+        }
+    }
+
+    return 0;
+
+
+
+
     auto initStartTime = Time::GetTimePoint();
 	EngineInitialize();
     g_converterConfigOptions = {};

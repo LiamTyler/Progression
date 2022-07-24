@@ -70,6 +70,7 @@ set(IMAGELIB_INCLUDES
 	PARENT_SCOPE
 )
 set(IMAGELIB_LIBS ImageLib tiff bc7enc PARENT_SCOPE)
+set(IMAGELIB_LIBS_DEBUG ImageLib_d tiff bc7enc PARENT_SCOPE)
 
 set(IMAGELIB_EXT_FILES
 	${EXT_DIR}/ImageLib/bc_compression.cpp

@@ -57,12 +57,12 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, InfoPtr info 
                 s.filename = ABS_PATH( v );
             }
         },
-        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_LEFT]   = ABS_PATH( v ); } },
-        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_RIGHT]  = ABS_PATH( v ); } },
-        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_FRONT]  = ABS_PATH( v ); } },
-        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BACK]   = ABS_PATH( v ); } },
-        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_TOP]    = ABS_PATH( v ); } },
-        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[FACE_BOTTOM] = ABS_PATH( v ); } },
+        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[CUBEMAP_FACE_LEFT]   = ABS_PATH( v ); } },
+        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[CUBEMAP_FACE_RIGHT]  = ABS_PATH( v ); } },
+        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[CUBEMAP_FACE_FRONT]  = ABS_PATH( v ); } },
+        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[CUBEMAP_FACE_BACK]   = ABS_PATH( v ); } },
+        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[CUBEMAP_FACE_TOP]    = ABS_PATH( v ); } },
+        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.faceFilenames[CUBEMAP_FACE_BOTTOM] = ABS_PATH( v ); } },
         { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
         { "imageType",      []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {

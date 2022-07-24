@@ -286,5 +286,40 @@ bool Save2D_F32( const std::string& filename, float* pixels, int width, int heig
 
 bool RawImage2D::Save( const std::string& filename, ImageSaveFlags saveFlags ) const
 {
-    return false;
+    std::string ext = GetFileExtension( filename );
+    if ( ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp" )
+    {
+        uint32_t numChannels = NumChannels();
+        RawImage2D imgToSave = *this;
+        if ( !IsFormat8BitUnorm( format ) )
+        {
+            imgToSave = Convert( static_cast<ImageFormat>( Underlying( ImageFormat::R8_UNORM ) + numChannels - 1 ) );
+        }
+
+        int ret = 1;
+        switch ( ext[1] )
+        {
+            case 'p':
+                ret = stbi_write_png( filename.c_str(), width, height, numChannels, imgToSave.Raw(), width * numChannels );
+                break;
+            case 'j':
+                ret = stbi_write_jpg( filename.c_str(), width, height, numChannels, imgToSave.Raw(), 95 );
+                break;
+            case 'b':
+                ret = stbi_write_bmp( filename.c_str(), width, height, numChannels, imgToSave.Raw() );
+                break;
+            case 't':
+                ret = stbi_write_tga( filename.c_str(), width, height, numChannels, imgToSave.Raw() );
+                break;
+            default:
+                ret = 0;
+        }
+        return ret != 0;
+    }
+    else
+    {
+        LOG_ERR( "RawImage2D::Save: Unrecognized image extension when saving file '%s'", filename.c_str() );
+    }
+
+    return true;
 }

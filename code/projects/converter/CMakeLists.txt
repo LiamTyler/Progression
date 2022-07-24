@@ -101,5 +101,6 @@ target_include_directories(Converter PUBLIC
 SET_TARGET_POSTFIX(Converter)
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(Converter)
 target_compile_definitions(Converter PUBLIC CMAKE_DEFINE_CONVERTER)
-target_link_libraries(Converter PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4)
+target_link_libraries(Converter PUBLIC debug OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG} lua lz4)
+target_link_libraries(Converter PUBLIC optimized OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)

@@ -1,40 +1,15 @@
 #include "image.hpp"
-#include "image_load.hpp"
-#include "image_save.hpp"
+#include "bc_decompression.hpp"
 #include "shared/assert.hpp"
-#include "shared/filesystem.hpp"
 #include "shared/float_conversions.hpp"
 #include "shared/logger.hpp"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb/stb_image_resize.h"
-#include "tinyexr/tinyexr.h"
-#include <climits>
-#include <memory>
-#include <vector>
+
 
 static glm::u8vec4  DEFAULT_PIXEL_BYTE  = glm::u8vec4( 0, 0, 0, 255 );
 static glm::u16vec4 DEFAULT_PIXEL_SHORT = glm::u16vec4( 0, 0, 0, USHRT_MAX );
 static glm::vec4    DEFAULT_PIXEL_FLOAT = glm::vec4( 0, 0, 0, 1 );
-
-constexpr bool IsFormat8BitUnorm( RawImage2D::Format format )
-{
-    return Underlying( RawImage2D::Format::R8_UNORM ) <= Underlying( format ) && Underlying( format ) <= Underlying( RawImage2D::Format::R8_G8_B8_A8_UNORM );
-}
-
-constexpr bool IsFormat16BitUnorm( RawImage2D::Format format )
-{
-    return Underlying( RawImage2D::Format::R16_UNORM ) <= Underlying( format ) && Underlying( format ) <= Underlying( RawImage2D::Format::R16_G16_B16_A16_UNORM );
-}
-
-constexpr bool IsFormat16BitFloat( RawImage2D::Format format )
-{
-    return Underlying( RawImage2D::Format::R16_FLOAT ) <= Underlying( format ) && Underlying( format ) <= Underlying( RawImage2D::Format::R16_G16_B16_A16_FLOAT );
-}
-
-constexpr bool IsFormat32BitFloat( RawImage2D::Format format )
-{
-    return Underlying( RawImage2D::Format::R32_FLOAT ) <= Underlying( format ) && Underlying( format ) <= Underlying( RawImage2D::Format::R32_G32_B32_A32_FLOAT );
-}
 
 
 uint8_t* RawImage2D::GetCompressedBlock( int blockX, int blockY )
@@ -45,7 +20,7 @@ uint8_t* RawImage2D::GetCompressedBlock( int blockX, int blockY )
 }
 
 
-template <typename T, std::underlying_type_t<RawImage2D::Format> baseFormat>
+template <typename T, std::underlying_type_t<ImageFormat> baseFormat>
 void GetBlockClamped8BitConvert( uint32_t blockX, uint32_t blockY, uint32_t width, uint32_t height, uint32_t numChannels, uint8_t* output, const T* input )
 {
     for ( uint32_t r = 0; r < 4; ++r )
@@ -61,15 +36,15 @@ void GetBlockClamped8BitConvert( uint32_t blockX, uint32_t blockY, uint32_t widt
             {
                 if ( channel < numChannels )
                 {
-                    if constexpr ( baseFormat == Underlying( RawImage2D::Format::R8_UNORM ) )
+                    if constexpr ( baseFormat == Underlying( ImageFormat::R8_UNORM ) )
                     {
                         output[dstOffset + channel] = input[srcOffset + channel];
                     }
-                    else if constexpr ( baseFormat == Underlying( RawImage2D::Format::R16_UNORM ) )
+                    else if constexpr ( baseFormat == Underlying( ImageFormat::R16_UNORM ) )
                     {
                         output[dstOffset + channel] = UNormFloatToByte( UNorm16ToFloat( input[srcOffset + channel] ) );
                     }
-                    else if constexpr ( baseFormat == Underlying( RawImage2D::Format::R16_FLOAT ) )
+                    else if constexpr ( baseFormat == Underlying( ImageFormat::R16_FLOAT ) )
                     {
                         output[dstOffset + channel] = UNormFloatToByte( Float16ToFloat32( input[srcOffset + channel] ) );
                     }
@@ -94,19 +69,19 @@ void RawImage2D::GetBlockClamped8Bit( int blockX, int blockY, uint8_t* output ) 
     uint32_t numChannels = NumChannels();
     if ( IsFormat8BitUnorm( format ) )
     {
-        GetBlockClamped8BitConvert<uint8_t, Underlying( Format::R8_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint8_t>() );
+        GetBlockClamped8BitConvert<uint8_t, Underlying( ImageFormat::R8_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint8_t>() );
     }
     else if ( IsFormat16BitUnorm( format ) )
     {
-        GetBlockClamped8BitConvert<uint16_t, Underlying( Format::R16_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint16_t>() );
+        GetBlockClamped8BitConvert<uint16_t, Underlying( ImageFormat::R16_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint16_t>() );
     }
     else if ( IsFormat16BitFloat( format ) )
     {
-        GetBlockClamped8BitConvert<float16, Underlying( Format::R16_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float16>() );
+        GetBlockClamped8BitConvert<float16, Underlying( ImageFormat::R16_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float16>() );
     }
     else if ( IsFormat32BitFloat( format ) )
     {
-        GetBlockClamped8BitConvert<float, Underlying( Format::R32_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float>() );
+        GetBlockClamped8BitConvert<float, Underlying( ImageFormat::R32_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float>() );
     }
     else
     {
@@ -150,9 +125,26 @@ glm::vec4 RawImage2D::GetPixelAsFloat4( int row, int col ) const
 {
     glm::vec4 pixel = DEFAULT_PIXEL_FLOAT;
     uint32_t numChannels = NumChannels();
-    for ( uint32_t chan = 0; chan < numChannels; ++chan )
+    uint32_t index = numChannels * (row * width + col);
+    if ( IsFormat8BitUnorm( format ) )
     {
-        pixel[chan] = GetPixelAsFloat( row, col, chan );
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = UNormByteToFloat( Raw<uint8_t>()[index + chan] );
+    }
+    else if ( IsFormat16BitUnorm( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = UNorm16ToFloat( Raw<uint16_t>()[index + chan] );
+    }
+    else if ( IsFormat16BitFloat( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = Float16ToFloat32( Raw<float16>()[index + chan] );
+    }
+    else if ( IsFormat32BitFloat( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = Raw<float>()[index + chan];
     }
 
     return pixel;
@@ -184,12 +176,44 @@ void RawImage2D::SetPixelFromFloat( int row, int col, int chan, float x )
 
 void RawImage2D::SetPixelFromFloat4( int row, int col, glm::vec4 pixel )
 {
+    uint32_t numChannels = NumChannels();
+    uint32_t index = numChannels * (row * width + col);
+    if ( IsFormat8BitUnorm( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            Raw<uint8_t>()[index + chan] = UNormFloatToByte( pixel[chan] );
+    }
+    else if ( IsFormat16BitUnorm( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            Raw<uint16_t>()[index + chan] = FloatToUNorm16( pixel[chan] );
+    }
+    else if ( IsFormat16BitFloat( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            Raw<float16>()[index + chan] = Float32ToFloat16( pixel[chan] );
+    }
+    else if ( IsFormat32BitFloat( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            Raw<float>()[index + chan] = pixel[chan];
+    }
 }
 
 
 // TODO: optimize
-RawImage2D RawImage2D::Convert( Format dstFormat ) const
+RawImage2D RawImage2D::Convert( ImageFormat dstFormat ) const
 {
+    if ( IsFormatBCCompressed( format ) )
+    {
+        auto decompressedImg = DecompressBC( *this );
+        if ( decompressedImg.format == dstFormat )
+        {
+            return decompressedImg;
+        }
+        return decompressedImg.Convert( dstFormat );
+    }
+
     RawImage2D outputImg( width, height, dstFormat );
     uint32_t inputChannels = NumChannels();
     uint32_t outputChannels = outputImg.NumChannels();
@@ -199,22 +223,104 @@ RawImage2D RawImage2D::Convert( Format dstFormat ) const
         for ( uint32_t col = 0; col < width; ++col )
         {
             glm::vec4 pixelAsFloat = GetPixelAsFloat4( row, col );
-            
-            {
-                if ( IsFormat8BitUnorm( dstFormat ) )
-                {
-                    for ( uint32_t chan = 0; chan < outputChannels; ++chan )
-                }
-                else if ( IsFormat16BitUnorm( dstFormat ) )
-                {
-                }
-                else if ( IsFormat16BitFloat( dstFormat ) )
-                {
-                }
-                else if ( IsFormat32BitFloat( dstFormat ) ) 
-            }
+            outputImg.SetPixelFromFloat4( row, col, pixelAsFloat );
         }
     }
 
     return outputImg;
+}
+
+
+FloatImage::FloatImage( RawImage2D inputImage )
+{
+    width = inputImage.width;
+    height = inputImage.height;
+    numChannels = inputImage.NumChannels();
+    if ( IsFormat32BitFloat( inputImage.format ) )
+    {
+        data = std::reinterpret_pointer_cast<float[]>( inputImage.data );
+    }
+    else
+    {
+        auto convertedImage = inputImage.Convert( static_cast<ImageFormat>( Underlying( ImageFormat::R32_FLOAT ) + numChannels - 1 ) );
+        data = std::reinterpret_pointer_cast<float[]>( convertedImage.data );
+    }
+}
+
+
+FloatImage FloatImage::Resize( uint32_t newWidth, uint32_t newHeight ) const
+{
+    PG_ASSERT( false, "TODO" );
+    //stbir_resize_float( data.get(), )
+    return {};
+}
+
+
+FloatImage FloatImageFromRawImage2D( const RawImage2D& rawImage )
+{
+    FloatImage floatImage;
+    floatImage.width = rawImage.width;
+    floatImage.height = rawImage.height;
+    floatImage.numChannels = rawImage.NumChannels();
+    if ( IsFormat32BitFloat( rawImage.format ) )
+    {
+        floatImage.data = std::reinterpret_pointer_cast<float[]>( rawImage.data );
+    }
+    else
+    {
+        auto convertedImage = rawImage.Convert( static_cast<ImageFormat>( Underlying( ImageFormat::R32_FLOAT ) + floatImage.numChannels - 1 ) );
+        floatImage.data = std::reinterpret_pointer_cast<float[]>( convertedImage.data );
+    }
+
+    return floatImage;
+}
+
+
+RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat format )
+{
+    RawImage2D rawImage;
+    rawImage.width = floatImage.width;
+    rawImage.height = floatImage.height;
+    rawImage.format = static_cast<ImageFormat>( Underlying( ImageFormat::R32_FLOAT ) + floatImage.numChannels - 1 );
+    rawImage.data = std::reinterpret_pointer_cast<uint8_t[]>( floatImage.data );
+    if ( rawImage.format != format )
+    {
+        rawImage = rawImage.Convert( format );
+    }
+
+    return rawImage;
+}
+
+
+double FloatImageMSE( const FloatImage& img1, const FloatImage& img2 )
+{
+    if ( img1.width != img2.width || img1.height != img2.height || img1.numChannels != img1.numChannels )
+    {
+        LOG_ERR( "Images must be same size and channel count to calculate MSE" );
+        return -1;
+    }
+
+    uint32_t width = img1.width;
+    uint32_t height = img1.height;
+    uint32_t numChannels = img1.numChannels;
+
+    double mse = 0;
+    for ( uint32_t pixelIdx = 0; pixelIdx < width * height; ++pixelIdx )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+        {
+            float x = img1.data[numChannels * pixelIdx + chan];
+            float y = img2.data[numChannels * pixelIdx + chan];
+            mse += (x - y) * (x - y);
+        }
+    }
+
+    mse /= (width * height * numChannels);
+    return mse;
+}
+
+
+double MSEToPSNR( double mse, double maxValue )
+{
+    return 10.0 * log10( maxValue * maxValue / mse );
 }

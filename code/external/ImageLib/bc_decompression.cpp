@@ -1008,64 +1008,45 @@ bool Decompress_BC( CompressionFormat format, uint8_t* compressedData, int width
 }
 */
 
-RawImage2D Decompress_BC( const RawImage2D& compressedImage )
+RawImage2D DecompressBC( const RawImage2D& compressedImage )
 {
-    RawImage2D::Format outputFormat;
-    switch ( compressedImage.format )
+    ImageFormat outputFormat = BCGetFormatAfterDecompression( compressedImage.format );
+    if ( outputFormat == ImageFormat::INVALID )
     {
-        case RawImage2D::Format::BC1_UNORM:
-        case RawImage2D::Format::BC2_UNORM:
-        case RawImage2D::Format::BC3_UNORM:
-        case RawImage2D::Format::BC7_UNORM:
-            outputFormat = RawImage2D::Format::R8_G8_B8_A8_UNORM;
-            break;
-        case RawImage2D::Format::BC4_UNORM:
-        case RawImage2D::Format::BC4_SNORM:
-            outputFormat = RawImage2D::Format::R8_UNORM;
-            break;
-        case RawImage2D::Format::BC5_UNORM:
-        case RawImage2D::Format::BC5_SNORM:
-            outputFormat = RawImage2D::Format::R8_G8_UNORM;
-            break;
-        case RawImage2D::Format::BC6H_U16F:
-        case RawImage2D::Format::BC6H_S16F:
-            outputFormat = RawImage2D::Format::R16_G16_B16_FLOAT;
-            break;
-        default:
-            return RawImage2D();
+        return {};
     }
 
     RawImage2D decompressedImage( compressedImage.width, compressedImage.height, outputFormat );
     switch ( compressedImage.format )
     {
-        case RawImage2D::Format::BC1_UNORM:
+        case ImageFormat::BC1_UNORM:
             Decompress_BC_RGBA8_Internal<1>( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC2_UNORM:
+        case ImageFormat::BC2_UNORM:
             Decompress_BC_RGBA8_Internal<2>( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC3_UNORM:
+        case ImageFormat::BC3_UNORM:
             Decompress_BC_RGBA8_Internal<3>( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC4_UNORM:
+        case ImageFormat::BC4_UNORM:
             //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC4_SNORM:
+        case ImageFormat::BC4_SNORM:
             //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC5_UNORM:
+        case ImageFormat::BC5_UNORM:
             //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC5_SNORM:
+        case ImageFormat::BC5_SNORM:
             //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC6H_U16F:
+        case ImageFormat::BC6H_U16F:
             //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC6H_S16F:
+        case ImageFormat::BC6H_S16F:
             //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
             break;
-        case RawImage2D::Format::BC7_UNORM:
+        case ImageFormat::BC7_UNORM:
             Decompress_BC_RGBA8_Internal<7>( compressedImage, decompressedImage );
             break;
     }

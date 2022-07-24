@@ -7,7 +7,7 @@
 #include "shared/logger.hpp"
 
 
-int GetBCNumber( RawImage2D::Format format )
+int GetBCNumber( ImageFormat format )
 {
     int8_t mapping[] =
     {
@@ -23,9 +23,9 @@ int GetBCNumber( RawImage2D::Format format )
         7, // BC7_UNORM,
     };
 
-    if ( static_cast<uint8_t>( format ) < static_cast<uint8_t>( RawImage2D::Format::BC1_UNORM ) ) return 0;
+    if ( static_cast<uint8_t>( format ) < static_cast<uint8_t>( ImageFormat::BC1_UNORM ) ) return 0;
 
-    return mapping[static_cast<uint8_t>( format ) - static_cast<uint8_t>( RawImage2D::Format::BC1_UNORM )];
+    return mapping[static_cast<uint8_t>( format ) - static_cast<uint8_t>( ImageFormat::BC1_UNORM )];
 }
 
 /*
@@ -172,10 +172,10 @@ RawImage2D CompressToBC( RawImage2D image, const BCCompressorSettings& settings 
     bool error = false;
     switch ( settings.format )
     {
-    case RawImage2D::Format::BC1_UNORM:
+    case ImageFormat::BC1_UNORM:
         Compress_BC1( image, settings, compressedImg );
         break;
-    case RawImage2D::Format::BC2_UNORM:
+    case ImageFormat::BC2_UNORM:
         LOG_ERR( "CompressToBC: BC2 is not suppported, please use BC3 instead" );
         error = true;
         break;

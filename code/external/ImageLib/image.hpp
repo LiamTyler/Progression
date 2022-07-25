@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shared/core_defines.hpp"
+#include "shared/float_conversions.hpp"
 #define GLM_FORCE_SWIZZLE
 #include "glm/glm.hpp"
 #include <memory>
@@ -207,6 +208,7 @@ struct RawImage2D
 
     uint8_t* GetCompressedBlock( int blockX, int blockY );
     void GetBlockClamped8Bit( int blockX, int blockY, uint8_t* output ) const;
+    void GetBlockClamped16F( int blockX, int blockY, float16* output ) const;
 
     uint32_t BitsPerPixel() const { return ::BitsPerPixel( format ); }
     uint32_t NumChannels() const { return ::NumChannels( format ); }
@@ -264,5 +266,5 @@ FloatImage FloatImageFromRawImage2D( const RawImage2D& rawImage );
 // then the returned raw image isn't "new", it just points to the same memory as the float image to avoid an allocation + copy
 RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat format );
 
-double FloatImageMSE( const FloatImage& img1, const FloatImage& img2 );
+double FloatImageMSE( const FloatImage& img1, const FloatImage& img2, uint32_t channelsToCalc = 0b1111 );
 double MSEToPSNR( double mse, double maxValue = 1.0 );

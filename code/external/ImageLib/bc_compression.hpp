@@ -8,6 +8,8 @@ enum class CompressionQuality
     LOWEST,
     MEDIUM,
     HIGHEST,
+
+    COUNT
 };
 
 struct BCCompressorSettings

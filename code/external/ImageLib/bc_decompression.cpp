@@ -1,5 +1,6 @@
 #include "bc_decompression.hpp"
 #include "bc7_reference_tables.hpp"
+#include "compressonator/cmp_core/source/cmp_core.h"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 
@@ -106,7 +107,7 @@ void Decompress_BC2_Block( const uint8_t* compressedBlock, uint8_t decompressedB
 }
 
 
-void Decompress_BC4_Block_UNorm( const uint8_t* compressedBlock, uint8_t decompressedBlock[16] )
+void Decompress_BC4_Block_UNorm( const uint8_t* compressedBlock, uint8_t* decompressedBlock, int stride = 1 )
 {
     uint8_t palette[8];
     palette[0] = *compressedBlock;
@@ -140,13 +141,13 @@ void Decompress_BC4_Block_UNorm( const uint8_t* compressedBlock, uint8_t decompr
         for ( int i = 0; i < 8; ++i )
         {
             uint32_t index = (alpha8 >> (3 * i)) & 0x7;
-            decompressedBlock[8*chunk + i] = palette[index];
+            decompressedBlock[stride * (8*chunk + i)] = palette[index];
         }
     }
 }
 
 
-void Decompress_BC4_Block_SNorm( const int8_t* compressedBlock, int8_t decompressedBlock[16] )
+void Decompress_BC4_Block_SNorm( const int8_t* compressedBlock, int8_t* decompressedBlock, int stride = 1 )
 {
     int8_t palette[8];
     palette[0] = *compressedBlock;
@@ -180,7 +181,7 @@ void Decompress_BC4_Block_SNorm( const int8_t* compressedBlock, int8_t decompres
         for ( int i = 0; i < 8; ++i )
         {
             uint32_t index = (alpha8 >> (3 * i)) & 0x7;
-            decompressedBlock[8*chunk + i] = palette[index];
+            decompressedBlock[stride * (8*chunk + i)] = palette[index];
         }
     }
 }
@@ -199,101 +200,19 @@ void Decompress_BC3_Block( const uint8_t* compressedBlock, uint8_t decompressedB
 }
 
 
-/*
-bool Decompress_BC4_Internal( const RawImage2D& compressedImage, bool unorm, RawImage2D& decompressedImage )
+void Decompress_BC5_Block_UNorm( const uint8_t* compressedBlock, uint8_t decompressedBlock[32] )
 {
-    uint8_t maxVal = unorm ? 255 : 127;
-    constexpr int bytesPerBlock = 8;
-    const int numBlocksX = compressedImage.BlocksX()
-    const int numBlocksY = compressedImage.BlocksY();
-
-    #pragma omp parallel for
-    for ( int blockY = 0; blockY < numBlocksY; ++blockY )
-    {
-        for ( int blockX = 0; blockX < numBlocksX; ++blockX )
-        {
-            uint8_t decompressedBlock[16];
-            uint8_t* compressedBlock = compressedImage.Raw() + bytesPerBlock * (blockY * numBlocksX + blockX);
-
-            if ( unorm )
-            {
-                Decompress_BC4_Block_UNorm( compressedBlock, decompressedBlock );
-            }
-            else
-            {
-                Decompress_BC4_Block_SNorm( (int8_t*)compressedBlock, (int8_t*)decompressedBlock );
-            }
-
-            int rowsToCopy = std::min( height - 4*blockY, 4 );
-            int colsToCopy = std::min( width -  4*blockX, 4 );
-            for ( int blockRow = 0; blockRow < rowsToCopy; ++blockRow )
-            {
-                for ( int blockCol = 0; blockCol < colsToCopy; ++blockCol )
-                {
-                    int dstRow = 4 * blockY + blockRow;
-                    int dstCol = 4 * blockX + blockCol;
-                    int dstIndex = dstRow * width + dstCol;
-                    int srcIndex = 4*blockRow + blockCol;
-
-                    uint8_t val = decompressedBlock[srcIndex];
-                    decompressedImage.pixels[dstIndex] = { val, val, val, maxVal };
-                }
-            }
-        }
-    }
-
-    return true;
+    Decompress_BC4_Block_UNorm( compressedBlock, decompressedBlock, 2 );
+    Decompress_BC4_Block_UNorm( compressedBlock + 16, decompressedBlock + 1, 2 );
 }
 
 
-bool Decompress_BC5_Internal( const RawImage2D& compressedImage, bool unorm, RawImage2D& decompressedImage )
+void Decompress_BC5_Block_SNorm( const int8_t* compressedBlock, int8_t decompressedBlock[32] )
 {
-    constexpr int bytesPerBlock = 16;
-    const int numBlocksX = compressedImage.BlocksX()
-    const int numBlocksY = compressedImage.BlocksY();
-
-    #pragma omp parallel for
-    for ( int blockY = 0; blockY < numBlocksY; ++blockY )
-    {
-        for ( int blockX = 0; blockX < numBlocksX; ++blockX )
-        {
-            uint8_t decompressedBlockR[16];
-            uint8_t decompressedBlockG[16];
-            uint8_t* compressedBlock = compressedImage.Raw() + bytesPerBlock * (blockY * numBlocksX + blockX);
-
-            if ( unorm )
-            {
-                Decompress_BC4_Block_UNorm( compressedBlock, decompressedBlockR );
-                Decompress_BC4_Block_UNorm( compressedBlock + 16, decompressedBlockG );
-            }
-            else
-            {
-                Decompress_BC4_Block_SNorm( (int8_t*)compressedBlock, (int8_t*)decompressedBlockR );
-                Decompress_BC4_Block_SNorm( (int8_t*)compressedBlock + 16, (int8_t*)decompressedBlockG );
-            }
-
-            int rowsToCopy = std::min( height - 4*blockY, 4 );
-            int colsToCopy = std::min( width -  4*blockX, 4 );
-            for ( int blockRow = 0; blockRow < rowsToCopy; ++blockRow )
-            {
-                for ( int blockCol = 0; blockCol < colsToCopy; ++blockCol )
-                {
-                    int dstRow = 4 * blockY + blockRow;
-                    int dstCol = 4 * blockX + blockCol;
-                    int dstIndex = dstRow * width + dstCol;
-                    int srcIndex = 4*blockRow + blockCol;
-
-                    uint8_t r = decompressedBlockR[srcIndex];
-                    uint8_t g = decompressedBlockG[srcIndex];
-                    decompressedImage.pixels[dstIndex] = { r, g, 0, 255 };
-                }
-            }
-        }
-    }
-
-    return true;
+    Decompress_BC4_Block_SNorm( compressedBlock, decompressedBlock, 2 );
+    Decompress_BC4_Block_SNorm( compressedBlock + 16, decompressedBlock + 1, 2 );
 }
-*/
+
 
 uint32_t __inline ctz( uint32_t value )
 {
@@ -656,21 +575,24 @@ void BC6_ExtractEndpoints( uint32_t mode, const uint8_t* compressedBlock, uint16
 }
 
 
-void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressedBlock[48] )
+void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressedBlock[48], bool formatIsSigned )
 {
-    uint32_t numModeBits = (*compressedBlock & 0x3) < 2 ? 2 : 5;
-    uint32_t currentBitOffset = 0;
-    uint32_t mode = ExtractBits( compressedBlock, currentBitOffset, numModeBits );
+    // TODO!
+    //uint32_t numModeBits = (*compressedBlock & 0x3) < 2 ? 2 : 5;
+    //uint32_t currentBitOffset = 0;
+    //uint32_t mode = ExtractBits( compressedBlock, currentBitOffset, numModeBits );
+    //
+    //BC6ModeInfo modeInfo;
+    //if ( !BC6_GetModeInfo( mode, modeInfo ) )
+    //{
+    //    memset( decompressedBlock, 0, sizeof( decompressedBlock ) );
+    //    return;
+    //}
+    //
+    //uint16_t endpoints[4][3];
+    //BC6_ExtractEndpoints( mode, compressedBlock, endpoints );
 
-    BC6ModeInfo modeInfo;
-    if ( !BC6_GetModeInfo( mode, modeInfo ) )
-    {
-        memset( decompressedBlock, 0, sizeof( decompressedBlock ) );
-        return;
-    }
-
-    uint16_t endpoints[4][3];
-    BC6_ExtractEndpoints( mode, compressedBlock, endpoints );
+    DecompressBlockBC6( compressedBlock, decompressedBlock, formatIsSigned );
 }
 
 
@@ -934,12 +856,10 @@ void Decompress_BC7_Block( const uint8_t* compressedBlock, uint8_t decompressedB
 }
 
 
-template< int BC_NUMBER >
-void Decompress_BC_RGBA8_Internal( const RawImage2D& compressedImage, RawImage2D& outputImage )
+template<int FORMAT>
+void Decompress_BC_Internal( const RawImage2D& compressedImage, RawImage2D& outputImage )
 {
-    static_assert( BC_NUMBER == 1 || BC_NUMBER == 2 || BC_NUMBER == 3 || BC_NUMBER == 7 );
-
-    constexpr int bytesPerOutputPixel = 4;
+    const int bytesPerOutputPixel = outputImage.BitsPerPixel() / 8;
     const int bytesPerBlock = compressedImage.BytesPerBlock();
     const int numBlocksX = compressedImage.BlocksX();
     const int numBlocksY = compressedImage.BlocksY();
@@ -949,13 +869,19 @@ void Decompress_BC_RGBA8_Internal( const RawImage2D& compressedImage, RawImage2D
     {
         for ( int blockX = 0; blockX < numBlocksX; ++blockX )
         {
-            uint8_t decompressedBlock[64];
+            uint8_t decompressedBlock[96]; // 16 for bc4, 32 for bc5, 96 for bc6, 64 for everything else
             const uint8_t* compressedBlock = compressedImage.Raw<uint8_t>() + bytesPerBlock * (blockY * numBlocksX + blockX);
 
-            if constexpr ( BC_NUMBER == 1 )      Decompress_BC1_Block( compressedBlock, decompressedBlock );
-            else if constexpr ( BC_NUMBER == 2 ) Decompress_BC2_Block( compressedBlock, decompressedBlock );
-            else if constexpr ( BC_NUMBER == 3 ) Decompress_BC3_Block( compressedBlock, decompressedBlock );
-            else if constexpr ( BC_NUMBER == 7 ) Decompress_BC7_Block( compressedBlock, decompressedBlock );
+            if constexpr      ( FORMAT == Underlying( ImageFormat::BC1_UNORM ) ) Decompress_BC1_Block( compressedBlock, decompressedBlock );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC2_UNORM ) ) Decompress_BC2_Block( compressedBlock, decompressedBlock );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC3_UNORM ) ) Decompress_BC3_Block( compressedBlock, decompressedBlock );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC4_UNORM ) ) Decompress_BC4_Block_UNorm( compressedBlock, decompressedBlock );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC4_SNORM ) ) Decompress_BC4_Block_SNorm( (const int8_t*)compressedBlock, (int8_t*)decompressedBlock );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC5_UNORM ) ) Decompress_BC5_Block_UNorm( compressedBlock, decompressedBlock );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC5_SNORM ) ) Decompress_BC5_Block_SNorm( (const int8_t*)compressedBlock, (int8_t*)decompressedBlock );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC6H_U16F ) ) Decompress_BC6_Block( compressedBlock, (uint16_t*)decompressedBlock, false );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC6H_S16F ) ) Decompress_BC6_Block( compressedBlock, (uint16_t*)decompressedBlock, true );
+            else if constexpr ( FORMAT == Underlying( ImageFormat::BC7_UNORM ) ) Decompress_BC7_Block( compressedBlock, decompressedBlock );
 
             uint32_t rowsToCopy = std::min( outputImage.height - 4*blockY, 4u );
             uint32_t colsToCopy = std::min( outputImage.width -  4*blockX, 4u );
@@ -972,42 +898,6 @@ void Decompress_BC_RGBA8_Internal( const RawImage2D& compressedImage, RawImage2D
 }
 
 
-/*
-bool Decompress_BC( CompressionFormat format, uint8_t* compressedData, int width, int height, ImageU8& decompressedImage )
-{
-    PG_ASSERT( format != CompressionFormat::INVALID );
-    int bcNumber = GetBCNumber( format );
-    bool ret = false;
-    switch ( bcNumber )
-    {
-    case 1:
-        ret = Decompress_BC_RGBA8_Internal< 1 >( compressedData, width, height, decompressedImage );
-        break;
-    case 2:
-        ret = Decompress_BC_RGBA8_Internal< 2 >( compressedData, width, height, decompressedImage );
-        break;
-    case 3:
-        ret = Decompress_BC_RGBA8_Internal< 3 >( compressedData, width, height, decompressedImage );
-        break;
-    case 4:
-        ret = Decompress_BC4_Internal( compressedData, width, height, format == CompressionFormat::BC4_UNORM, decompressedImage );
-        break;
-    case 5:
-        ret = Decompress_BC5_Internal( compressedData, width, height, format == CompressionFormat::BC5_UNORM, decompressedImage );
-        break;
-    case 6:
-        // TODO!
-        //ret = Decompress_BC_Internal< 6 >( compressedData, width, height, decompressedImage );
-        break;
-    case 7:
-        ret = Decompress_BC_RGBA8_Internal< 7 >( compressedData, width, height, decompressedImage );
-        break;
-    }
-
-    return ret;
-}
-*/
-
 RawImage2D DecompressBC( const RawImage2D& compressedImage )
 {
     ImageFormat outputFormat = BCGetFormatAfterDecompression( compressedImage.format );
@@ -1020,34 +910,34 @@ RawImage2D DecompressBC( const RawImage2D& compressedImage )
     switch ( compressedImage.format )
     {
         case ImageFormat::BC1_UNORM:
-            Decompress_BC_RGBA8_Internal<1>( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC1_UNORM )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC2_UNORM:
-            Decompress_BC_RGBA8_Internal<2>( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC2_UNORM )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC3_UNORM:
-            Decompress_BC_RGBA8_Internal<3>( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC3_UNORM )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC4_UNORM:
-            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC4_UNORM )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC4_SNORM:
-            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC4_SNORM )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC5_UNORM:
-            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC5_UNORM )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC5_SNORM:
-            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC5_SNORM )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC6H_U16F:
-            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC6H_U16F )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC6H_S16F:
-            //Decompress_BC_RGBA8_Internal< 1 >( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC6H_S16F )>( compressedImage, decompressedImage );
             break;
         case ImageFormat::BC7_UNORM:
-            Decompress_BC_RGBA8_Internal<7>( compressedImage, decompressedImage );
+            Decompress_BC_Internal<Underlying( ImageFormat::BC7_UNORM )>( compressedImage, decompressedImage );
             break;
     }
 

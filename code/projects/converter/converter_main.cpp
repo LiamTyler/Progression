@@ -366,7 +366,7 @@ int main( int argc, char** argv )
     FloatImage imageFloat = FloatImageFromRawImage2D( image );
 
     BCCompressorSettings settings;
-    settings.format = ImageFormat::BC1_UNORM;
+    settings.format = ImageFormat::BC5_UNORM;
     for ( int i = 0; i < 3; ++i )
     {
         auto beginTime = Time::GetTimePoint();
@@ -377,11 +377,11 @@ int main( int argc, char** argv )
         RawImage2D uncompressedImg = compressedImg.Convert( ImageFormat::R8_G8_B8_UNORM );
         FloatImage uncompressedImgFloat = FloatImageFromRawImage2D( uncompressedImg );
 
-        double mse = FloatImageMSE( imageFloat, uncompressedImgFloat );
+        double mse = FloatImageMSE( imageFloat, uncompressedImgFloat, 0b1100 );
         double psnr = MSEToPSNR( mse );
         LOG( "Compressed in %.3f seconds with %f PSNR", duration, psnr );
 
-        if ( !uncompressedImg.Save( PG_ROOT_DIR "macaw_bc1_" + std::to_string( i ) + ".png" ) )
+        if ( !uncompressedImg.Save( PG_ROOT_DIR "macaw_bc5_" + std::to_string( i ) + ".png" ) )
         {
             return 2;
         }

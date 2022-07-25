@@ -3510,12 +3510,10 @@ static void extract_compressed_endpoints2(AMD_BC6H_Format& bc6h_format) {
 
 }
 
-void  DecompressBC6_Internal(CGU_UINT16 rgbBlock[48], const CGU_UINT8 compressedBlock[16], const BC6H_Encode *BC6HEncode) {
-    if (BC6HEncode) {}
-    CGU_BOOL m_bc6signed = false;
+void DecompressBC6_Internal(CGU_UINT16 rgbBlock[48], const CGU_UINT8 compressedBlock[16], const CGU_BOOL isSigned ) {
     // now determine the mode type and extract the coded endpoints data
     AMD_BC6H_Format bc6h_format = extract_format(compressedBlock);
-    if (!m_bc6signed)
+    if (!isSigned)
         bc6h_format.format = UNSIGNED_F16;
     else
         bc6h_format.format = SIGNED_F16;
@@ -3649,18 +3647,9 @@ int CMP_CDECL CompressBlockBC6(const CGU_UINT16 *srcBlock,
     return CGU_CORE_OK;
 }
 
-int  CMP_CDECL DecompressBlockBC6(const unsigned char cmpBlock[16],
-                                  CGU_UINT16 srcBlock[48],
-                                  const void *options = NULL) {
-    BC6H_Encode *BC6HEncode = (BC6H_Encode *)options;
-    BC6H_Encode BC6HEncodeDefault;
-
-    if (BC6HEncode == NULL) {
-        BC6HEncode = &BC6HEncodeDefault;
-        SetDefaultBC6Options(BC6HEncode);
-    }
-    DecompressBC6_Internal(srcBlock, cmpBlock,BC6HEncode);
-
+int CMP_CDECL DecompressBlockBC6(const unsigned char cmpBlock[16], CGU_UINT16 srcBlock[48], const CGU_BOOL isSigned)
+{
+    DecompressBC6_Internal(srcBlock, cmpBlock, isSigned);
     return CGU_CORE_OK;
 }
 

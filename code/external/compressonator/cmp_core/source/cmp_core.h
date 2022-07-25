@@ -177,6 +177,6 @@ int CMP_CDECL DecompressBlockBC5S(const unsigned char cmpBlock[16],
 // For 3 channel Source  RGB_16, Note srcStride is in unsigned short steps (2 bytes each)
 //========================================================================================
 int CMP_CDECL CompressBlockBC6(const unsigned short *srcBlock, unsigned int srcStrideInShorts, unsigned char cmpBlock[16], const void *options CMP_DEFAULTNULL);
-int CMP_CDECL DecompressBlockBC6(const unsigned char cmpBlock[16], unsigned short srcBlock[48], const void *options CMP_DEFAULTNULL);
+int CMP_CDECL DecompressBlockBC6(const unsigned char cmpBlock[16], unsigned short srcBlock[48], const bool isSigned );
 
 #endif  // CMP_CORE

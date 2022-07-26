@@ -252,9 +252,7 @@ struct FloatImage
         data = std::make_shared<float[]>( width * height * numChannels );
     }
 
-    
-    FloatImage( RawImage2D inputImage );
-
+    bool Load( const std::string& filename );
     FloatImage Resize( uint32_t newWidth, uint32_t newHeight ) const;
 };
 

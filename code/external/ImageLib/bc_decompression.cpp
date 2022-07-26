@@ -203,14 +203,14 @@ void Decompress_BC3_Block( const uint8_t* compressedBlock, uint8_t decompressedB
 void Decompress_BC5_Block_UNorm( const uint8_t* compressedBlock, uint8_t decompressedBlock[32] )
 {
     Decompress_BC4_Block_UNorm( compressedBlock, decompressedBlock, 2 );
-    Decompress_BC4_Block_UNorm( compressedBlock + 16, decompressedBlock + 1, 2 );
+    Decompress_BC4_Block_UNorm( compressedBlock + 8, decompressedBlock + 1, 2 );
 }
 
 
 void Decompress_BC5_Block_SNorm( const int8_t* compressedBlock, int8_t decompressedBlock[32] )
 {
     Decompress_BC4_Block_SNorm( compressedBlock, decompressedBlock, 2 );
-    Decompress_BC4_Block_SNorm( compressedBlock + 16, decompressedBlock + 1, 2 );
+    Decompress_BC4_Block_SNorm( compressedBlock + 8, decompressedBlock + 1, 2 );
 }
 
 

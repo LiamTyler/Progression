@@ -6,11 +6,6 @@
 namespace PG
 {
 
-bool FloatImage::Load( const std::string& filename )
-{
-    return true;
-}
-
 FloatImage CompositeImage( const CompositeImageInput& input )
 {
     PG_ASSERT( input.compositeType == CompositeType::REMAP );

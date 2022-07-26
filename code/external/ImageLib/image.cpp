@@ -301,22 +301,15 @@ RawImage2D RawImage2D::Convert( ImageFormat dstFormat ) const
 }
 
 
-FloatImage::FloatImage( RawImage2D inputImage )
+// TODO: load directly
+bool FloatImage::Load( const std::string& filename )
 {
-    width = inputImage.width;
-    height = inputImage.height;
-    numChannels = inputImage.NumChannels();
-    if ( IsFormat32BitFloat( inputImage.format ) )
-    {
-        data = std::reinterpret_pointer_cast<float[]>( inputImage.data );
-    }
-    else
-    {
-        auto convertedImage = inputImage.Convert( static_cast<ImageFormat>( Underlying( ImageFormat::R32_FLOAT ) + numChannels - 1 ) );
-        data = std::reinterpret_pointer_cast<float[]>( convertedImage.data );
-    }
-}
+    RawImage2D rawImg;
+    if ( !rawImg.Load( filename ) ) return false;
 
+    *this = FloatImageFromRawImage2D( rawImg );
+    return true;
+}
 
 FloatImage FloatImage::Resize( uint32_t newWidth, uint32_t newHeight ) const
 {

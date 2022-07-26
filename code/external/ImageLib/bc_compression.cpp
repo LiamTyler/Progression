@@ -46,7 +46,7 @@ void Compress_BC_12345( const RawImage2D& srcImage, const BCCompressorSettings& 
             else if constexpr ( FORMAT == Underlying( ImageFormat::BC5_UNORM ) || FORMAT == Underlying( ImageFormat::BC5_SNORM ) )
             {
                 if ( isLowQuality ) rgbcx::encode_bc5( dst, src, settings.bc5SourceChannel1, settings.bc5SourceChannel2 );
-                else rgbcx::encode_bc5_hq( dst, src, settings.bc5SourceChannel1, settings.bc5SourceChannel2, 4, bc4Level );
+                rgbcx::encode_bc5_hq( dst, src, settings.bc5SourceChannel1, settings.bc5SourceChannel2, 4, bc4Level );
             }
         }
     }

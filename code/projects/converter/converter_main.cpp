@@ -359,14 +359,21 @@ int main( int argc, char** argv )
     EngineInitialize();
     RawImage2D image;
     if ( !image.Load( PG_ROOT_DIR "assets/images/macaw.png" ) )
+    //if ( !image.Load( PG_ROOT_DIR "IMAGES_NO_SUBMIT/s4_rus_rubble_bricks_01_snow_c.tif" ) )
     {
         return 1;
     }
+    //image.Save( PG_ROOT_DIR "test.png" );
+    //return 0;
 
     FloatImage imageFloat = FloatImageFromRawImage2D( image );
+    for ( int i = 0; i < imageFloat.width * imageFloat.height; ++i )
+    {
+        imageFloat.data[i*imageFloat.numChannels + 2] = 0;
+    }
 
     BCCompressorSettings settings;
-    settings.format = ImageFormat::BC5_UNORM;
+    settings.format = ImageFormat::BC7_UNORM;
     for ( int i = 0; i < 3; ++i )
     {
         auto beginTime = Time::GetTimePoint();
@@ -381,7 +388,7 @@ int main( int argc, char** argv )
         double psnr = MSEToPSNR( mse );
         LOG( "Compressed in %.3f seconds with %f PSNR", duration, psnr );
 
-        if ( !uncompressedImg.Save( PG_ROOT_DIR "macaw_bc5_" + std::to_string( i ) + ".png" ) )
+        if ( !uncompressedImg.Save( PG_ROOT_DIR "macaw_bc7_" + std::to_string( i ) + ".png" ) )
         {
             return 2;
         }

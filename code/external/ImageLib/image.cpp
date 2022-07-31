@@ -313,9 +313,49 @@ bool FloatImage::Load( const std::string& filename )
 
 FloatImage FloatImage::Resize( uint32_t newWidth, uint32_t newHeight ) const
 {
-    PG_ASSERT( false, "TODO" );
-    //stbir_resize_float( data.get(), )
-    return {};
+    if ( width == newWidth && height == newHeight )
+    {
+        return *this;
+    }
+
+    FloatImage outputImage( newWidth, newHeight, numChannels );
+    if ( width == 1 && height == 1 )
+    {
+        float p[4];
+        for ( uint32_t i = 0; i < numChannels; ++i ) p[i] = data[i];
+
+        for ( uint32_t i = 0; i < newWidth * newHeight * numChannels; i += numChannels )
+        {
+            memcpy( &outputImage.data[i], p, numChannels * sizeof( float ) );
+        }
+        return outputImage;
+    }
+
+    if ( !stbir_resize_float( data.get(), width, height, 0, outputImage.data.get(), newWidth, newHeight, 0, numChannels ) )
+    {
+        return {};
+    }
+
+    return outputImage;
+}
+
+
+glm::vec4 FloatImage::GetFloat4( uint32_t pixelIndex ) const
+{
+    glm::vec4 pixel( 0, 0, 0, 1 );
+    pixelIndex *= numChannels;
+    for ( uint32_t chan = 0; chan < numChannels; ++chan )
+    {
+        pixel[chan] = data[pixelIndex + chan];
+    }
+
+    return pixel;
+}
+
+
+glm::vec4 FloatImage::GetFloat4( uint32_t row, uint32_t col ) const
+{
+    return GetFloat4( row * width + col );
 }
 
 

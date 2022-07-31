@@ -50,6 +50,85 @@ bool RawImage2D::Load( const std::string& filename )
         height = static_cast<uint32_t>( h );
         format = static_cast<ImageFormat>( (int)startFormat + numChannels - 1 );
     }
+    else if ( ext == ".tif" || ext == ".tiff" )
+    {
+        //TIFFSetWarningHandler( NULL );
+	    //TIFFSetWarningHandlerExt( NULL );
+	    //TIFFSetErrorHandler( NULL );
+	    //TIFFSetErrorHandlerExt( NULL );
+
+        TIFF* tif = TIFFOpen( filename.c_str(), "rb" );
+        if ( tif )
+		{
+            if ( TIFFIsTiled( tif ) )
+            {
+                LOG_ERR( "Tiled TIF images not currently supported (image '%s')", filename.c_str() );
+                TIFFClose( tif );
+                return false;
+            }
+
+            uint16_t config;
+		    TIFFGetField( tif, TIFFTAG_PLANARCONFIG, &config );
+            if ( config != PLANARCONFIG_CONTIG )
+            {
+                LOG_ERR( "Separate planar TIF images not currently supported (image '%s')", filename.c_str() );
+                TIFFClose( tif );
+                return false;
+            }
+
+            uint16_t numChannels, numBitsPerChannel;
+	        TIFFGetField( tif, TIFFTAG_SAMPLESPERPIXEL, &numChannels );
+	        TIFFGetField( tif, TIFFTAG_BITSPERSAMPLE, &numBitsPerChannel );
+            if ( numBitsPerChannel != 8 && numBitsPerChannel != 16 && numBitsPerChannel != 32 )
+            {
+                LOG_ERR( "%u bit TIF images not currently supported (image '%s')", numBitsPerChannel, filename.c_str() );
+                TIFFClose( tif );
+                return false;
+            }
+
+			TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &width );
+	        TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &height );
+            
+            ImageFormat format = ImageFormat::R8_UNORM;
+            if ( numBitsPerChannel == 16 ) format = ImageFormat::R16_UNORM;
+            else if ( numBitsPerChannel == 32 ) format = ImageFormat::R32_FLOAT;
+            
+            format = static_cast<ImageFormat>( Underlying( format ) + numChannels - 1 );
+            *this = RawImage2D( width, height, format );
+
+            size_t stripSize = TIFFStripSize( tif );
+            uint32_t numStrips = TIFFNumberOfStrips( tif );
+            uint32_t rowsPerStrip;
+            TIFFGetFieldDefaulted( tif, TIFFTAG_ROWSPERSTRIP, &rowsPerStrip );
+            uint8_t* buf = static_cast<uint8_t*>( _TIFFmalloc( stripSize ) );
+
+            uint32_t bytesPerPixel = numChannels * numBitsPerChannel / 8;
+            uint32_t bytesPerRow = width * bytesPerPixel;
+
+            uint32_t totalRowsRead = 0;
+	        for ( uint32_t strip = 0; strip < numStrips; strip++ )
+            {
+		        if ( TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1 ) == -1 )
+                {
+                    LOG_ERR( "TIFFReadEncodedStrip error while processing TIF '%s'", filename.c_str() );
+                    _TIFFfree( buf );
+                    TIFFClose( tif );
+                    return false;
+                }
+
+                for ( uint32_t r = 0; r < rowsPerStrip; ++r )
+                {
+                    if ( totalRowsRead < height )
+                    {
+                        memcpy( Raw() + totalRowsRead * bytesPerRow, buf + r * bytesPerRow, bytesPerRow );
+                        ++totalRowsRead;
+                    }
+                }
+            }
+	        _TIFFfree( buf );
+            TIFFClose( tif );
+        }
+    }
     else if ( ext == ".exr" )
     {
         const char* err = nullptr;

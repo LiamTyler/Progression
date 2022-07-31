@@ -20,6 +20,20 @@ std::string BackToForwardSlashes( std::string str )
 }
 
 
+std::string UnderscorePath( std::string str )
+{
+    for ( size_t i = 0; i < str.length(); ++i )
+    {
+        if ( str[i] == '\\' || str[i] == '/' )
+        {
+            str[i] = '_';
+        }
+    }
+
+    return str;
+}
+
+
 void CreateDirectory( const std::string& dir )
 {
     fs::create_directories( dir );

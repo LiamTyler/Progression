@@ -28,6 +28,9 @@ struct TexturesetCreateInfo : public BaseAssetCreateInfo
     std::string roughnessMap;
     ChannelSelect roughnessSourceChannel = ChannelSelect::R;
     bool invertRoughness = false; // if the source map is actually a gloss map
+
+    std::string GetAlbedoMetalnessImageName() const;
+    std::string GetNormalRoughImageName() const;
 };
 
 struct Textureset : public BaseAsset

@@ -5,6 +5,8 @@
 
 std::string BackToForwardSlashes( std::string str );
 
+std::string UnderscorePath( std::string str );
+
 // parent directory must exist.
 // i.e: for /dir1/dir2, dir1 must be created first, then another call to create dir2
 void CreateDirectory( const std::string& dir );

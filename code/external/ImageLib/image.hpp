@@ -174,6 +174,11 @@ inline uint32_t NumChannels( ImageFormat format )
     return mapping[Underlying( format )];
 }
 
+inline bool IsImageFilenameBuiltin( const std::string& filename )
+{
+    return !filename.empty() && filename[0] == '$';
+}
+
 
 struct RawImage2D
 {
@@ -254,6 +259,9 @@ struct FloatImage
 
     bool Load( const std::string& filename );
     FloatImage Resize( uint32_t newWidth, uint32_t newHeight ) const;
+
+    glm::vec4 GetFloat4( uint32_t pixelIndex ) const;
+    glm::vec4 GetFloat4( uint32_t row, uint32_t col ) const;
 };
 
 // Creates a new image in the float32 version of rawImage. One caveat: if the raw format is already float32,

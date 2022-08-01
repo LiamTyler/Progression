@@ -234,7 +234,7 @@ glm::vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
 void PathTracer::Render( int samplesPerPixelIteration )
 {
     int samplesPerPixel = scene->settings.numSamplesPerPixel[samplesPerPixelIteration];
-    LOG( "Rendering scene at %d x %d with SPP = %d", renderedImage.width, renderedImage.height, samplesPerPixel );
+    LOG( "Rendering scene at %u x %u with SPP = %d", renderedImage.width, renderedImage.height, samplesPerPixel );
 
     auto timeStart = Time::GetTimePoint();
     Camera& cam = scene->camera;
@@ -249,13 +249,16 @@ void PathTracer::Render( int samplesPerPixelIteration )
     std::atomic< int > renderProgress( 0 );
     int onePercent = static_cast< int >( std::ceil( renderedImage.height / 100.0f ) );
     auto AAFunc = AntiAlias::GetAlgorithm( scene->settings.antialiasMethod );
+
+    int width = static_cast<int>( renderedImage.width );
+    int height = static_cast<int>( renderedImage.height );
     
     #pragma omp parallel for schedule( dynamic )
-    for ( int row = 0; row < renderedImage.height; ++row )
+    for ( int row = 0; row < height; ++row )
     {
-        for ( int col = 0; col < renderedImage.width; ++col )
+        for ( int col = 0; col < width; ++col )
         {
-            PG::Random::RNG rng( row * renderedImage.width + col );
+            PG::Random::RNG rng( row * width + col );
             glm::vec3 imagePlanePos = UL + dV * (float)row + dU * (float)col;
 
             glm::vec3 totalColor = glm::vec3( 0 );
@@ -267,7 +270,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
                 totalColor              += Li( ray, rng, scene );
             }
 
-            renderedImage.SetPixel( row, col, glm::vec4( totalColor / (float)samplesPerPixel, 1.0f ) );
+            renderedImage.SetFromFloat4( row, col, glm::vec4( totalColor / (float)samplesPerPixel, 1.0f ) );
         }
 
         int rowsCompleted = ++renderProgress;
@@ -288,7 +291,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
 PathTracer::PathTracer( Scene* inScene )
 {
     scene = inScene;
-    renderedImage = ImageF32( scene->settings.imageResolution.x, scene->settings.imageResolution.y );
+    renderedImage = FloatImage( scene->settings.imageResolution.x, scene->settings.imageResolution.y, 4 );
 }
 
 bool PathTracer::SaveImage( const std::string& filename ) const
@@ -297,18 +300,18 @@ bool PathTracer::SaveImage( const std::string& filename ) const
     {
         return renderedImage.Save( filename );
     }
-
-    ImageF32 tonemappedImg = renderedImage.Clone();
+    
+    FloatImage tonemappedImg = renderedImage.Clone();
     TonemapFunc tonemapFunc = GetTonemapFunction( scene->settings.tonemapMethod );
-    tonemappedImg.ForEachPixel( [&]( glm::vec4& pixel )
-        {
-            glm::vec3 newColor = scene->camera.exposure * pixel;
-            newColor = tonemapFunc( newColor );
-            newColor = LinearToGammaSRGB( newColor );
-            newColor = glm::clamp( newColor, glm::vec3( 0 ), glm::vec3( 1 ) );
-            pixel = glm::vec4( newColor, 1.0f );
-        }
-    );
+    for ( uint32_t pixelIndex = 0; pixelIndex < renderedImage.width * renderedImage.height; ++pixelIndex )
+    {
+        glm::vec3 pixel = renderedImage.GetFloat4( pixelIndex );
+        glm::vec3 newColor = scene->camera.exposure * pixel;
+        newColor = tonemapFunc( newColor );
+        newColor = LinearToGammaSRGB( newColor );
+        newColor = glm::clamp( newColor, glm::vec3( 0 ), glm::vec3( 1 ) );
+        tonemappedImg.SetFromFloat4( pixelIndex, glm::vec4( newColor, 1.0f ) );
+    }
     return tonemappedImg.Save( filename );
 }
 

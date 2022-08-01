@@ -7,6 +7,7 @@
 #include "shared/color_spaces.hpp"
 #include "shared/random.hpp"
 #include <algorithm>
+#include <unordered_map>
 
 using namespace PG;
 
@@ -49,7 +50,7 @@ glm::vec3 Material::GetAlbedo( const glm::vec2& texCoords ) const
     if ( albedoTex != TEXTURE_HANDLE_INVALID )
     {
         glm::vec4 sample = GetTex( albedoTex )->Sample( texCoords );
-        color *= sample.rgb();
+        color *= glm::vec3( sample );
     }
 
     return color;
@@ -83,10 +84,10 @@ MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
     Material mat;
     mat.albedoTint = material->albedoTint;
     mat.albedoTex = TEXTURE_HANDLE_INVALID;
-    if ( material->albedoMap )
-    {
-        mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );
-    }
+    //if ( material->textureset->albedoMetalTex )
+    //{
+    //    mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );
+    //}
 
     g_materials.emplace_back( mat );
     MaterialHandle handle = static_cast< MaterialHandle >( g_materials.size() - 1 );

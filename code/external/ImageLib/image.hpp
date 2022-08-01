@@ -6,6 +6,7 @@
 #include "glm/glm.hpp"
 #include <memory>
 #include <string>
+#include <vector>
 
 enum class ImageSaveFlags : uint32_t
 {
@@ -205,6 +206,8 @@ struct RawImage2D
     // to the default for
     RawImage2D Convert( ImageFormat dstFormat ) const;
 
+    RawImage2D Clone() const;
+
     float GetPixelAsFloat( int row, int col, int chan ) const;
     glm::vec4 GetPixelAsFloat4( int row, int col ) const;
 
@@ -257,11 +260,19 @@ struct FloatImage
         data = std::make_shared<float[]>( width * height * numChannels );
     }
 
+    // Currently just calls RawImage2D::Load, and then FloatImageFromRawImage2D
     bool Load( const std::string& filename );
+
+    // Currently just calls RawImage2DFromFloatImage, and then RawImage2D::Save
+    bool Save( const std::string& filename, ImageSaveFlags saveFlags = ImageSaveFlags::DEFAULT ) const;
+
     FloatImage Resize( uint32_t newWidth, uint32_t newHeight ) const;
+    FloatImage Clone() const;
 
     glm::vec4 GetFloat4( uint32_t pixelIndex ) const;
     glm::vec4 GetFloat4( uint32_t row, uint32_t col ) const;
+    void SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel );
+    void SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& pixel );
 };
 
 // Creates a new image in the float32 version of rawImage. One caveat: if the raw format is already float32,
@@ -272,5 +283,14 @@ FloatImage FloatImageFromRawImage2D( const RawImage2D& rawImage );
 // then the returned raw image isn't "new", it just points to the same memory as the float image to avoid an allocation + copy
 RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat format );
 
+struct MipmapGenerationSettings
+{
+    bool clampU = false;
+    bool clampV = false;
+};
+
+std::vector<FloatImage> GenerateMipmaps( const FloatImage& floatImage, const MipmapGenerationSettings& settings );
+
+uint32_t CalculateNumMips( uint32_t width, uint32_t height );
 double FloatImageMSE( const FloatImage& img1, const FloatImage& img2, uint32_t channelsToCalc = 0b1111 );
 double MSEToPSNR( double mse, double maxValue = 1.0 );

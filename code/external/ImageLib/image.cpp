@@ -301,6 +301,14 @@ RawImage2D RawImage2D::Convert( ImageFormat dstFormat ) const
 }
 
 
+RawImage2D RawImage2D::Clone() const
+{
+    RawImage2D ret( width, height, format );
+    memcpy( ret.data.get(), data.get(), TotalBytes() );
+    return ret;
+}
+
+
 // TODO: load directly
 bool FloatImage::Load( const std::string& filename )
 {
@@ -310,6 +318,15 @@ bool FloatImage::Load( const std::string& filename )
     *this = FloatImageFromRawImage2D( rawImg );
     return true;
 }
+
+
+bool FloatImage::Save( const std::string& filename, ImageSaveFlags saveFlags ) const
+{
+    ImageFormat format = static_cast<ImageFormat>( Underlying( ImageFormat::R32_FLOAT ) + numChannels - 1 );
+    RawImage2D img = RawImage2DFromFloatImage( *this, format );
+    return img.Save( filename, saveFlags );
+}
+
 
 FloatImage FloatImage::Resize( uint32_t newWidth, uint32_t newHeight ) const
 {
@@ -340,6 +357,14 @@ FloatImage FloatImage::Resize( uint32_t newWidth, uint32_t newHeight ) const
 }
 
 
+FloatImage FloatImage::Clone() const
+{
+    FloatImage ret( width, height, numChannels );
+    memcpy( ret.data.get(), data.get(), width * height * numChannels * sizeof( float ) );
+    return ret;
+}
+
+
 glm::vec4 FloatImage::GetFloat4( uint32_t pixelIndex ) const
 {
     glm::vec4 pixel( 0, 0, 0, 1 );
@@ -356,6 +381,22 @@ glm::vec4 FloatImage::GetFloat4( uint32_t pixelIndex ) const
 glm::vec4 FloatImage::GetFloat4( uint32_t row, uint32_t col ) const
 {
     return GetFloat4( row * width + col );
+}
+
+
+void FloatImage::SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel )
+{
+    pixelIndex *= numChannels;
+    for ( uint32_t chan = 0; chan < numChannels; ++chan )
+    {
+        data[pixelIndex + chan] = pixel[chan];
+    }
+}
+
+
+void FloatImage::SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& pixel )
+{
+    SetFromFloat4( row * width + col, pixel );
 }
 
 
@@ -392,6 +433,53 @@ RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat f
     }
 
     return rawImage;
+}
+
+
+std::vector<FloatImage> GenerateMipmaps( const FloatImage& image, const MipmapGenerationSettings& settings )
+{
+    std::vector<FloatImage> mips;
+
+    uint32_t numMips = CalculateNumMips( image.width, image.height );
+    
+    uint32_t w = image.width;
+    uint32_t h = image.height;
+    uint32_t numChannels = image.numChannels;
+    stbir_edge edgeModeU = settings.clampU ? STBIR_EDGE_CLAMP : STBIR_EDGE_WRAP;
+    stbir_edge edgeModeV = settings.clampV ? STBIR_EDGE_CLAMP : STBIR_EDGE_WRAP;
+    for ( uint32_t mipLevel = 0; mipLevel < numMips; ++mipLevel )
+    {
+        FloatImage mip( w, h, image.numChannels );
+        if ( mipLevel == 0 )
+        {
+            memcpy( mip.data.get(), image.data.get(), w * h * image.numChannels * sizeof( float ) );
+        }
+        else
+        {
+            const FloatImage& prevMip = mips[mipLevel - 1];
+            stbir_resize( prevMip.data.get(), prevMip.width, prevMip.height, prevMip.width * numChannels * sizeof( float ),
+                          mip.data.get(), w, h, w * numChannels * sizeof( float ),
+                          STBIR_TYPE_FLOAT, numChannels, STBIR_ALPHA_CHANNEL_NONE, 0, edgeModeU, edgeModeV, STBIR_FILTER_MITCHELL, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
+        }
+
+        mips.push_back( mip );
+        w = std::max( 1u, w >> 1 );
+        h = std::max( 1u, h >> 1 );
+    }
+
+    return mips;
+}
+
+
+uint32_t CalculateNumMips( uint32_t width, uint32_t height )
+{
+    uint32_t largestDim = std::max( width, height );
+    if ( largestDim == 0 )
+    {
+        return 0;
+    }
+
+    return 1 + static_cast< uint32_t >( std::log2f( static_cast< float >( largestDim ) ) );
 }
 
 

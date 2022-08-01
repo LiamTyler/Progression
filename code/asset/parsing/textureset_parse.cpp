@@ -16,6 +16,8 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, InfoPtr inf
     static JSONFunctionMapper<TexturesetCreateInfo&> mapping(
     {
         { "name", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = v.GetString(); } },
+        { "clampU", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampU = v.GetBool(); } },
+        { "clampV", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampV = v.GetBool(); } },
         { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = v.GetString(); } },
         { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = v.GetString(); } },
         { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = ChannelSelect_StringToEnum( v.GetString() ); } },

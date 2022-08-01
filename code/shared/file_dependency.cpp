@@ -4,6 +4,11 @@
 
 time_t GetFileTimestamp( const std::string& file )
 {
+    if ( file.empty() )
+    {
+        return NO_TIMESTAMP;
+    }
+
     struct stat s;
     if ( stat( file.c_str(), &s ) == 0 )
     {

@@ -1,4 +1,5 @@
 #include "asset/types/textureset.hpp"
+#include "asset/asset_manager.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/hash.hpp"
@@ -11,39 +12,64 @@ namespace PG
 
 std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName() const
 {
-    std::string cacheName = albedoMap.empty() ? "$white" : GetFilenameStem( albedoMap );
-    cacheName += "~" + metalnessMap.empty() ? "$default_metalness" : GetFilenameStem( metalnessMap );
-    if ( metalnessScale != 1.0f )   
+    size_t hash = 0;
+    std::string cacheName;
+    if ( albedoMap.empty() )
     {
-        cacheName += "~" + std::to_string( metalnessScale );
+        cacheName += "$white";
     }
-    if ( metalnessSourceChannel != ChannelSelect::R )
+    else
     {
-        cacheName += "~" + std::to_string( Underlying( metalnessSourceChannel ) );
+        HashCombine( hash, albedoMap );
+        cacheName += GetFilenameStem( albedoMap );
     }
+    cacheName += "~";
+
+    if ( metalnessMap.empty() )
+    {
+        cacheName += "$default_metalness";
+    }
+    else
+    {
+        HashCombine( hash, metalnessMap );
+        cacheName += GetFilenameStem( metalnessMap );
+    }
+    HashCombine( hash, metalnessScale );
+    HashCombine( hash, Underlying( metalnessSourceChannel ) );
     
-    return cacheName;
+    return cacheName + "~" + std::to_string( hash );
 }
 
 
 std::string TexturesetCreateInfo::GetNormalRoughImageName() const
 {
-    std::string cacheName = normalMap.empty() ? "$default_normals" : GetFilenameStem( normalMap );
-    if ( slopeScale != 1.0f )   
+    size_t hash = 0;
+    std::string cacheName;
+    if ( normalMap.empty() )
     {
-        cacheName += "~" + std::to_string( slopeScale );
+        cacheName += "$default_normals";
     }
-    cacheName += "~" + roughnessMap.empty() ? "$default_roughness" : GetFilenameStem( roughnessMap );
-    if ( roughnessSourceChannel != ChannelSelect::R )
+    else
     {
-        cacheName += "~" + std::to_string( Underlying( roughnessSourceChannel ) );
+        HashCombine( hash, normalMap );
+        cacheName += GetFilenameStem( normalMap );
     }
-    if ( invertRoughness )
+    cacheName += "~";
+
+    if ( roughnessMap.empty() )
     {
-        cacheName += "~I";
+        cacheName += "$default_roughness";
     }
+    else
+    {
+        HashCombine( hash, roughnessMap );
+        cacheName += GetFilenameStem( roughnessMap );
+    }
+    HashCombine( hash, slopeScale );
+    HashCombine( hash, Underlying( roughnessSourceChannel ) );
+    HashCombine( hash, invertRoughness );
     
-    return cacheName;
+    return cacheName + "~" + std::to_string( hash );
 }
 
 
@@ -53,7 +79,9 @@ bool Textureset::Load( const BaseAssetCreateInfo* baseInfo )
     const TexturesetCreateInfo* createInfo = (const TexturesetCreateInfo*)baseInfo;
     name = createInfo->name;
 
-    return true;
+    LOG_ERR( "Textureset::Load not implemented yet (expected to load already converted images through Fastfiles, not to do any compositing or compressing at runtime" );
+
+    return false;
 }
 
 
@@ -61,6 +89,15 @@ bool Textureset::FastfileLoad( Serializer* serializer )
 {
     PG_ASSERT( serializer );
     serializer->Read( name );
+
+    std::string imageName;
+    serializer->Read( imageName );
+    albedoMetalTex = AssetManager::Get<GfxImage>( imageName );
+    PG_ASSERT( albedoMetalTex, "GfxImage '" + imageName + "' not found for Textureset '" + name + "'s albedoMetalTex" );
+    
+    serializer->Read( imageName );
+    normalRoughTex = AssetManager::Get<GfxImage>( imageName );
+    PG_ASSERT( normalRoughTex, "GfxImage '" + imageName + "' not found for Textureset '" + name + "' normalRoughTex" );
 
     return true;
 }
@@ -70,6 +107,18 @@ bool Textureset::FastfileSave( Serializer* serializer ) const
 {
     PG_ASSERT( serializer );
     serializer->Write( name );
+    if ( !albedoMetalTex )
+    {
+        LOG_ERR( "Textureset asset must have a 'albedoMetalTex'. Required texture" );
+        return false;
+    }
+    if ( !normalRoughTex )
+    {
+        LOG_ERR( "Textureset asset must have a 'normalRoughTex'. Required texture" );
+        return false;
+    }
+    serializer->Write( albedoMetalTex->name );
+    serializer->Write( normalRoughTex->name );
 
     return true;
 }

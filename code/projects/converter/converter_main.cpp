@@ -356,6 +356,7 @@ bool ProcessScene( const std::string& sceneFile )
 
 int main( int argc, char** argv )
 {
+    /*
     EngineInitialize();
     RawImage2D image;
     if ( !image.Load( PG_ROOT_DIR "assets/images/macaw.png" ) )
@@ -395,6 +396,7 @@ int main( int argc, char** argv )
     }
 
     return 0;
+    */
 
 
 

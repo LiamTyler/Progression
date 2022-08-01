@@ -79,192 +79,6 @@ void GfxImage::UploadToGpu()
 }
 
 
-static PixelFormat ChoosePixelFormatFromSemantic( const GfxImageSemantic& semantic )
-{
-    PixelFormat format = PixelFormat::INVALID;
-    switch ( semantic )
-    {
-    case GfxImageSemantic::DIFFUSE:
-        format = PixelFormat::R8_G8_B8_A8_SRGB;
-        break;
-    case GfxImageSemantic::NORMAL:
-        format = PixelFormat::R8_G8_B8_A8_UNORM;
-        break;
-    case GfxImageSemantic::METALNESS:
-    case GfxImageSemantic::ROUGHNESS:
-        format = PixelFormat::R8_UNORM;
-        break;
-    case GfxImageSemantic::ENVIRONMENT_MAP:
-        format = PixelFormat::R16_G16_B16_A16_FLOAT;
-        break;
-    default:
-        LOG_ERR( "Semantic (%d) unknown when deciding final image format", semantic );
-        break;
-    }
-
-    return format;
-}
-
-
-static void NormalizeImage( glm::vec4* pixels, int width, int height )
-{
-    for ( int row = 0; row < height; ++row )
-    {
-        for ( int col = 0; col < width; ++col )
-        {
-            const glm::vec4& pixel = pixels[row * width + col];
-            glm::vec3 normal = pixel;
-            normal = normalize( normal );
-            pixels[row * width + col] = glm::vec4( normal, pixel.a );
-        }
-    }
-}
-
-
-static void GenerateMipmaps_Float32( const glm::vec4* srcPixels, int width, int height, glm::vec4* dstPixels, GfxImageSemantic semantic )
-{
-    PG_ASSERT( srcPixels );
-    PG_ASSERT( width != 0 && height != 0 );
-    int w = width;
-    int h = height;
-    int numMips = CalculateNumMips( width, height );
-    
-    int lastW, lastH;
-    size_t lastOffset;
-    size_t currentOffset = 0;
-    for ( int mipLevel = 0; mipLevel < numMips; ++mipLevel )
-    {
-        if ( mipLevel == 0 )
-        {
-            if ( srcPixels != dstPixels )
-            {
-                memcpy( dstPixels, srcPixels, w * h * sizeof( glm::vec4 ) );
-            }
-        }
-        else
-        {
-            float* currentDstImg = reinterpret_cast< float* >( dstPixels + currentOffset );
-            float* currentSrcImage = reinterpret_cast< float* >( dstPixels + lastOffset );
-            int flags = 0;
-            int alphaChannel = 3;
-            stbir_resize_float_generic( currentSrcImage, lastW, lastH, lastW * sizeof( glm::vec4 ), currentDstImg, w, h, w * sizeof( glm::vec4 ), 4, alphaChannel, flags, STBIR_EDGE_CLAMP, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
-        }
-
-        // renormalize normal maps
-        if ( semantic == GfxImageSemantic::NORMAL )
-        {
-            NormalizeImage( dstPixels + currentOffset, w, h );
-        }
-
-        lastW = w;
-        lastH = h;
-        lastOffset = currentOffset;
-        currentOffset += w * h;
-        w = std::max( 1, w >> 1 );
-        h = std::max( 1, h >> 1 );
-    }
-}
-
-
-static void ConvertRGBA32Float_SingleMip( unsigned char* outputImage, int width, int height, glm::vec4* inputPixels, PixelFormat format )
-{
-    PG_ASSERT( inputPixels );
-    PG_ASSERT( outputImage );
-    PG_ASSERT( format != PixelFormat::INVALID && format != PixelFormat::NUM_PIXEL_FORMATS );
-    PG_ASSERT( !PixelFormatHasDepthFormat( format ) );
-    PG_ASSERT( !PixelFormatIsCompressed( format ), "Compression not supported yet" );
-    
-    int numChannels     = NumChannelsInPixelFromat( format );
-    int bytesPerChannel = NumBytesPerChannel( format );
-    int bytesPerPixel   = NumBytesPerPixel( format );
-    bool isNormalized   = PixelFormatIsNormalized( format );
-    bool isUnsigned     = PixelFormatIsUnsigned( format );
-    bool isSrgb         = PixelFormatIsSrgb( format );
-    bool isFloat        = PixelFormatIsFloat( format );
-    int channelOrder[4];
-    GetRGBAOrder( format, channelOrder );
-
-    for ( int row = 0; row < height; ++row )
-    {
-        for ( int col = 0; col < width; ++col )
-        {
-            glm::vec4 pixel = inputPixels[row * width + col];
-            for ( int channel = 0; channel < numChannels; ++channel )
-            {
-                float x = pixel[channelOrder[channel]];
-                if ( isNormalized )
-                {
-                    x = isUnsigned ? std::clamp( x, 0.0f, 1.0f ) : std::clamp( x, -1.0f, 1.0f );
-                }
-                else if ( !isFloat )
-                {
-                    x = std::roundf( x );
-                }
-                if ( isSrgb )
-                {
-                    x = LinearToGammaSRGB( x );
-                }
-
-                // s8 = 127, u8 = 255, s16 = 32767, u16 = 65535
-                if ( !isFloat && bytesPerChannel != 4 )
-                {
-                    int scale = (1 << (8*bytesPerChannel - !isUnsigned)) - 1;
-                    x *= scale;
-                }
-
-                // pack
-                int outputByteIndex = bytesPerPixel * (row * width + col) + channelOrder[channel]*bytesPerChannel;
-                if ( isFloat )
-                {
-                    if ( bytesPerChannel == 2 )
-                    {
-                        
-                        uint16_t f16 = Float32ToFloat16( x );
-                        *reinterpret_cast< uint16_t* >( outputImage + outputByteIndex ) = f16;
-                    }
-                    else
-                    {
-                        *reinterpret_cast< float* >( outputImage + outputByteIndex ) = x;
-                    }
-                }
-                else
-                {
-                    int64_t value = static_cast< int64_t >( x );
-                    for ( int byte = 0; byte < bytesPerChannel; ++byte )
-                    {
-                        outputImage[outputByteIndex + byte] = reinterpret_cast<unsigned char*>( &value )[byte];
-                    }
-                }
-            }
-        }
-    }
-    
-}
-
-
-static void ConvertRGBA32Float_AllMips( unsigned char* outputImage, int width, int height, int numFaces, int numMips, glm::vec4* inputPixels, PixelFormat format )
-{
-    PG_ASSERT( outputImage && inputPixels );
-    int w = width;
-    int h = height;
-    int bytesPerDstPixel = NumBytesPerPixel( format );
-    
-    glm::vec4* currentSrcImage     = inputPixels;
-    unsigned char* currentDstImage = outputImage;
-    for ( int mipLevel = 0; mipLevel < numMips; ++mipLevel )
-    {
-        for ( int face = 0; face < numFaces; ++face )
-        {
-            ConvertRGBA32Float_SingleMip( currentDstImage, w, h, currentSrcImage, format );
-            currentSrcImage += w * h;
-            currentDstImage += w * h * bytesPerDstPixel;
-        }
-        w = std::max( 1, w >> 1 );
-        h = std::max( 1, h >> 1 );
-    }
-}
-
-
 static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
     /*
@@ -364,6 +178,8 @@ static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo&
 
 bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 {
+    return false;
+    /*
     PG_ASSERT( baseInfo );
     const GfxImageCreateInfo* createInfo = (const GfxImageCreateInfo*)baseInfo;
     name        = createInfo->name;
@@ -392,8 +208,9 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
         LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo->imageType ) );
         success = false;
     }
-
+    
     return success;
+    */
 }
 
 
@@ -440,17 +257,6 @@ bool GfxImage::FastfileSave( Serializer* serializer ) const
     return true;
 }
 
-
-uint32_t CalculateNumMips( uint32_t width, uint32_t height )
-{
-    uint32_t largestDim = std::max( width, height );
-    if ( largestDim == 0 )
-    {
-        return 0;
-    }
-
-    return 1 + static_cast< uint32_t >( std::log2f( static_cast< float >( largestDim ) ) );
-}
 
 
 size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips )

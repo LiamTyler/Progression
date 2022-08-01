@@ -1,4 +1,5 @@
 #include "textureset_converter.hpp"
+#include "asset/asset_cache.hpp"
 #include "core/image_processing.hpp"
 #include "shared/hash.hpp"
 
@@ -11,20 +12,34 @@ bool TexturesetConverter::Convert( const std::string& assetName )
     auto info = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( assetType, assetName );
     LOG( "Converting out of date asset %s %s...", g_assetNames[assetType], info->name.c_str() );
 
-    CompositeImageInput albedoMetalnessInput;
-    albedoMetalnessInput.compositeType = CompositeType::REMAP;
-    albedoMetalnessInput.outputColorSpace = ColorSpace::SRGB;
-    albedoMetalnessInput.sourceImages.resize( 2 );
+    std::string albedoMetalnessName = info->GetAlbedoMetalnessImageName();
+    auto albedoMetalnessTimestamp = AssetCache::GetAssetTimestamp( ASSET_TYPE_GFX_IMAGE, albedoMetalnessName );
+    if ( IsFileOutOfDate( albedoMetalnessTimestamp, albedoMetalnessName ) )
+    {
+        CompositeImageInput albedoMetalnessInput;
+        albedoMetalnessInput.compositeType = CompositeType::REMAP;
+        albedoMetalnessInput.outputColorSpace = ColorSpace::SRGB;
+        albedoMetalnessInput.sourceImages.resize( 2 );
 
-    albedoMetalnessInput.sourceImages[0].filename = info->albedoMap.empty() ? "$white" : info->albedoMap;
-    albedoMetalnessInput.sourceImages[0].colorSpace = ColorSpace::SRGB;
-    albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::R, Channel::R } );
-    albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::G, Channel::G } );
-    albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::B, Channel::B } );
+        albedoMetalnessInput.sourceImages[0].filename = info->albedoMap.empty() ? "$white" : info->albedoMap;
+        albedoMetalnessInput.sourceImages[0].colorSpace = ColorSpace::SRGB;
+        albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::R, Channel::R } );
+        albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::G, Channel::G } );
+        albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::B, Channel::B } );
 
-    albedoMetalnessInput.sourceImages[1].filename = info->metalnessMap.empty() ? "$default_metalness" : info->metalnessMap;
-    albedoMetalnessInput.sourceImages[1].colorSpace = ColorSpace::LINEAR;
-    albedoMetalnessInput.sourceImages[1].remaps.push_back( { Channel::A, Channel::A } );
+        albedoMetalnessInput.sourceImages[1].filename = info->metalnessMap.empty() ? "$default_metalness" : info->metalnessMap;
+        albedoMetalnessInput.sourceImages[1].colorSpace = ColorSpace::LINEAR;
+        albedoMetalnessInput.sourceImages[1].remaps.push_back( { Channel::A, Channel::A } );
+
+        FloatImage result = CompositeImage( albedoMetalnessInput );
+        MipmapGenerationSettings settings;
+        settings.clampU = info->clampU;
+        settings.clampV = info->clampV;
+        std::vector<FloatImage> mips = GenerateMipmaps( result, settings );
+        RawImage2D rawResult = RawImage2DFromFloatImage( result, ImageFormat::BC7_UNORM );
+    }
+
+    
     
 
     Textureset textureset;
@@ -78,8 +93,15 @@ AssetStatus TexturesetConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, ti
         AddFastfileDependency( info->roughnessMap );
         if ( IsFileOutOfDate( cacheTimestamp, info->roughnessMap ) ) return AssetStatus::OUT_OF_DATE;
     }
-    //AddFastfileDependency( info->filename );
-    //return IsFileOutOfDate( cacheTimestamp, info->filename ) ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;
+
+    std::string albedoMetalness = info->GetAlbedoMetalnessImageName();
+    AddFastfileDependency( albedoMetalness );
+    if ( IsFileOutOfDate( cacheTimestamp, albedoMetalness ) ) return AssetStatus::OUT_OF_DATE;
+
+    std::string normalRoughness = info->GetNormalRoughImageName();
+    AddFastfileDependency( normalRoughness );
+    if ( IsFileOutOfDate( cacheTimestamp, normalRoughness ) ) return AssetStatus::OUT_OF_DATE;
+
     return AssetStatus::ERROR;
 }
 

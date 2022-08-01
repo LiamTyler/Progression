@@ -16,15 +16,16 @@ enum class ChannelSelect : uint8_t
 
 struct TexturesetCreateInfo : public BaseAssetCreateInfo
 {
-    std::string albedoMap;
+    bool clampU = false;
+    bool clampV = false;
 
+    std::string albedoMap;
     std::string metalnessMap;
     ChannelSelect metalnessSourceChannel = ChannelSelect::R;
     float metalnessScale = 1.0f;
 
     std::string normalMap;
     float slopeScale = 1.0f;
-
     std::string roughnessMap;
     ChannelSelect roughnessSourceChannel = ChannelSelect::R;
     bool invertRoughness = false; // if the source map is actually a gloss map

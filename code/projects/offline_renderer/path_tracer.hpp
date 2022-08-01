@@ -15,7 +15,7 @@ public:
     bool SaveImage( const std::string& filename ) const;
 
     Scene* scene;
-    ImageF32 renderedImage;
+    FloatImage renderedImage;
 };
 
 } // namespace PT

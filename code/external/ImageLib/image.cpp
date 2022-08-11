@@ -436,6 +436,18 @@ RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat f
 }
 
 
+std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage>& floatImages, ImageFormat format )
+{
+    std::vector<RawImage2D> rawImages( floatImages.size() );
+    for ( size_t i = 0; i < floatImages.size(); ++i )
+    {
+        rawImages[i] = RawImage2DFromFloatImage( floatImages[i] , format);
+    }
+
+    return rawImages;
+}
+
+
 std::vector<FloatImage> GenerateMipmaps( const FloatImage& image, const MipmapGenerationSettings& settings )
 {
     std::vector<FloatImage> mips;

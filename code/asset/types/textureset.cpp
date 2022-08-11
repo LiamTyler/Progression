@@ -10,11 +10,11 @@
 namespace PG
 {
 
-std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName() const
+std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const
 {
     size_t hash = 0;
     std::string cacheName;
-    if ( albedoMap.empty() )
+    if ( !applyAlbedo || albedoMap.empty() )
     {
         cacheName += "$white";
     }
@@ -25,7 +25,7 @@ std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName() const
     }
     cacheName += "~";
 
-    if ( metalnessMap.empty() )
+    if ( !applyMetalness || metalnessMap.empty() )
     {
         cacheName += "$default_metalness";
     }
@@ -41,11 +41,11 @@ std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName() const
 }
 
 
-std::string TexturesetCreateInfo::GetNormalRoughImageName() const
+std::string TexturesetCreateInfo::GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const
 {
     size_t hash = 0;
     std::string cacheName;
-    if ( normalMap.empty() )
+    if ( !applyNormals || normalMap.empty() )
     {
         cacheName += "$default_normals";
     }
@@ -56,7 +56,7 @@ std::string TexturesetCreateInfo::GetNormalRoughImageName() const
     }
     cacheName += "~";
 
-    if ( roughnessMap.empty() )
+    if ( !applyRoughness || roughnessMap.empty() )
     {
         cacheName += "$default_roughness";
     }
@@ -70,57 +70,6 @@ std::string TexturesetCreateInfo::GetNormalRoughImageName() const
     HashCombine( hash, invertRoughness );
     
     return cacheName + "~" + std::to_string( hash );
-}
-
-
-bool Textureset::Load( const BaseAssetCreateInfo* baseInfo )
-{
-    PG_ASSERT( baseInfo );
-    const TexturesetCreateInfo* createInfo = (const TexturesetCreateInfo*)baseInfo;
-    name = createInfo->name;
-
-    LOG_ERR( "Textureset::Load not implemented yet (expected to load already converted images through Fastfiles, not to do any compositing or compressing at runtime" );
-
-    return false;
-}
-
-
-bool Textureset::FastfileLoad( Serializer* serializer )
-{
-    PG_ASSERT( serializer );
-    serializer->Read( name );
-
-    std::string imageName;
-    serializer->Read( imageName );
-    albedoMetalTex = AssetManager::Get<GfxImage>( imageName );
-    PG_ASSERT( albedoMetalTex, "GfxImage '" + imageName + "' not found for Textureset '" + name + "'s albedoMetalTex" );
-    
-    serializer->Read( imageName );
-    normalRoughTex = AssetManager::Get<GfxImage>( imageName );
-    PG_ASSERT( normalRoughTex, "GfxImage '" + imageName + "' not found for Textureset '" + name + "' normalRoughTex" );
-
-    return true;
-}
-
-
-bool Textureset::FastfileSave( Serializer* serializer ) const
-{
-    PG_ASSERT( serializer );
-    serializer->Write( name );
-    if ( !albedoMetalTex )
-    {
-        LOG_ERR( "Textureset asset must have a 'albedoMetalTex'. Required texture" );
-        return false;
-    }
-    if ( !normalRoughTex )
-    {
-        LOG_ERR( "Textureset asset must have a 'normalRoughTex'. Required texture" );
-        return false;
-    }
-    serializer->Write( albedoMetalTex->name );
-    serializer->Write( normalRoughTex->name );
-
-    return true;
 }
 
 } // namespace PG

@@ -3,6 +3,8 @@
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/textureset.hpp"
 #include "shared/assert.hpp"
+#include "shared/filesystem.hpp"
+#include "shared/hash.hpp"
 #include "shared/logger.hpp"
 #include "shared/random.hpp"
 #include "shared/serializer.hpp"
@@ -10,38 +12,21 @@
 namespace PG
 {
 
-bool Material::Load( const BaseAssetCreateInfo* baseInfo )
-{
-    PG_ASSERT( baseInfo );
-    const MaterialCreateInfo* createInfo = (const MaterialCreateInfo*)baseInfo;
-    name = createInfo->name;
-    albedoTint = createInfo->albedoTint;
-    metalnessTint = createInfo->metalnessTint;
-    roughnessTint = createInfo->roughnessTint;
-    if ( createInfo->texturesetName.empty() )
-    {
-        PG_ASSERT( false, "TODO! Add default textureset/images" );
-    }
-    else
-    {
-        textureset = AssetManager::Get<Textureset>( createInfo->texturesetName );
-        PG_ASSERT( textureset, "Textureset '" + createInfo->texturesetName + "' not found for material '" + name + "'" );
-    }
-
-    return true;
-}
-
 
 bool Material::FastfileLoad( Serializer* serializer )
 {
     PG_ASSERT( serializer );
     MaterialCreateInfo createInfo;
-    serializer->Read( createInfo.name );
-    serializer->Read( createInfo.albedoTint );
-    serializer->Read( createInfo.metalnessTint );
-    serializer->Read( createInfo.roughnessTint );
-    serializer->Read( createInfo.texturesetName );
-    return Load( &createInfo );
+    serializer->Read( name );
+    serializer->Read( albedoTint );
+    serializer->Read( metalnessTint );
+    serializer->Read( roughnessTint );
+    std::string imgName;
+    serializer->Read( imgName );
+    albedoMetalnessImage = AssetManager::Get<GfxImage>( imgName );
+    PG_ASSERT( albedoMetalnessImage, "AlbedoMetalness image '" + imgName + "' not found for material '" + name + "'" );
+
+    return true;
 }
 
 
@@ -51,9 +36,8 @@ bool Material::FastfileSave( Serializer* serializer ) const
     serializer->Write( albedoTint );
     serializer->Write( metalnessTint );
     serializer->Write( roughnessTint );
-    std::string texturesetName;
-    if ( textureset ) texturesetName = textureset->name;
-    serializer->Write( texturesetName );
+    std::string imgName = albedoMetalnessImage ? albedoMetalnessImage->name : "";
+    serializer->Write( imgName );
 
     return true;
 }

@@ -14,21 +14,27 @@ struct MaterialCreateInfo : public BaseAssetCreateInfo
     float metalnessTint;
     float roughnessTint;
     std::string texturesetName;
+
+    bool applyAlbedo = true;
+    bool applyMetalness = true;
+    bool applyNormals = true;
+    bool applyRoughness = true;
 };
 
-struct Textureset;
+struct GfxImage;
 
 struct Material : public BaseAsset
 {
     Material() = default;
-    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
 
     glm::vec3 albedoTint = glm::vec3( 1.0f );
     float metalnessTint  = 1.0f;
-    float roughnessTint  = 1.0f;
-    Textureset* textureset = nullptr;
+    GfxImage* albedoMetalnessImage = nullptr;
+
+    float roughnessTint;
+    //GfxImage* normalRoughnessImage = nullptr;
 };
 
 } // namespace PG

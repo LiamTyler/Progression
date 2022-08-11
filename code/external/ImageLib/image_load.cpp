@@ -9,9 +9,47 @@
 #include "tiffio.h"
 #include "tinyexr/tinyexr.h"
 
+static RawImage2D LoadBuiltInImage( const std::string& name )
+{
+    using namespace glm;
+    u8vec4 pixel( 0, 0, 0, 0 );
+    uint8_t numChannels = 4;
+    if ( name == "$white" )
+    {
+        pixel = u8vec4( 255 );
+    }
+    else if ( name == "$black" )
+    {
+        pixel = u8vec4( 0, 0, 0, 255 );
+    }
+    else if ( name == "$default_metalness" )
+    {
+        numChannels = 1;
+        pixel = u8vec4( 11 );
+    }
+    else
+    {
+        LOG( "Image '%s' is not a recognized builtin image name", name.c_str() );
+        return {};
+    }
+
+    RawImage2D img( 1, 1, ImageFormat::R8_G8_B8_A8_UNORM );
+    for ( uint8_t chan = 0; chan < numChannels; ++chan )
+    {
+        img.data[chan] = pixel[chan];
+    }
+    return img;
+}
+
 
 bool RawImage2D::Load( const std::string& filename )
 {
+    if ( IsImageFilenameBuiltin( filename ) )
+    {
+        *this = LoadBuiltInImage( filename );
+        return data != nullptr;
+    }
+
     std::string ext = GetFileExtension( filename );
     if ( ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp" || ext == ".ppm" || ext == ".pbm" || ext == ".hdr" )
     {

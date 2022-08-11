@@ -14,6 +14,7 @@ public:
 protected:
     std::string GetCacheNameInternal( ConstInfoPtr info ) override;
     AssetStatus IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) override;
+    bool Convert( const std::string& assetName ) override;
 };
 
 } // namespace PG

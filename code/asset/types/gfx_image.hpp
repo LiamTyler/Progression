@@ -3,6 +3,7 @@
 #include "asset/types/base_asset.hpp"
 #include "core/pixel_formats.hpp"
 #include "renderer/graphics_api/texture.hpp"
+#include "ImageLib/image.hpp"
 
 class Serializer;
 
@@ -11,10 +12,6 @@ namespace PG
 
 enum class GfxImageSemantic
 {
-    DIFFUSE,
-    NORMAL,
-    METALNESS,
-    ROUGHNESS,
     ENVIRONMENT_MAP,
 
     NUM_IMAGE_SEMANTICS
@@ -68,7 +65,7 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
     ImageInputType inputType = ImageInputType::REGULAR_2D;
     std::string filename;
     std::string faceFilenames[6];
-    GfxImageSemantic semantic  = GfxImageSemantic::DIFFUSE;
+    GfxImageSemantic semantic  = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
     Gfx::ImageType imageType   = Gfx::ImageType::TYPE_2D;
     PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID
     bool flipVertically        = true;
@@ -77,5 +74,8 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
 // if numMuips is unspecified (0), assume all mips are in use
 size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips = 0 );
 size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB );
+
+GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, const std::string& name, bool isSRGB );
 
 } // namespace PG

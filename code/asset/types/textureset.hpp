@@ -1,7 +1,6 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
-#include "asset/types/gfx_image.hpp"
 
 namespace PG
 {
@@ -30,21 +29,8 @@ struct TexturesetCreateInfo : public BaseAssetCreateInfo
     ChannelSelect roughnessSourceChannel = ChannelSelect::R;
     bool invertRoughness = false; // if the source map is actually a gloss map
 
-    std::string GetAlbedoMetalnessImageName() const;
-    std::string GetNormalRoughImageName() const;
-};
-
-struct Textureset : public BaseAsset
-{
-public:
-    Textureset() = default;
-
-    bool Load( const BaseAssetCreateInfo* baseInfo ) override;
-    bool FastfileLoad( Serializer* serializer ) override;
-    bool FastfileSave( Serializer* serializer ) const override;
-
-    GfxImage *albedoMetalTex; // albedo RGB, metal A
-    GfxImage *normalRoughTex; // normal XY, roughness B
+    std::string GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const;
+    std::string GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const;
 };
 
 } // namespace PG

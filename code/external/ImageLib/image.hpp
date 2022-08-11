@@ -282,6 +282,7 @@ FloatImage FloatImageFromRawImage2D( const RawImage2D& rawImage );
 // Creates a new raw image with the specified format. Like FloatImageFromRawImage2D, if "format" is already the same as the float image,
 // then the returned raw image isn't "new", it just points to the same memory as the float image to avoid an allocation + copy
 RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat format );
+std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage>& floatImages, ImageFormat format );
 
 struct MipmapGenerationSettings
 {

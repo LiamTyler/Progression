@@ -14,10 +14,6 @@ static std::unordered_map< std::string, ImageInputType > s_inputTypeMap =
 
 static std::unordered_map< std::string, GfxImageSemantic > s_imageSemanticMap =
 {
-    { "DIFFUSE",         GfxImageSemantic::DIFFUSE },
-    { "NORMAL",          GfxImageSemantic::NORMAL },
-    { "METALNESS",       GfxImageSemantic::METALNESS },
-    { "ROUGHNESS",       GfxImageSemantic::ROUGHNESS },
     { "ENVIRONMENT_MAP", GfxImageSemantic::ENVIRONMENT_MAP },
 };
 

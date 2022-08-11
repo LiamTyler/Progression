@@ -72,8 +72,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/converters/textureset_converter.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/converters/textureset_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter_main.cpp

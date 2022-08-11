@@ -5,7 +5,6 @@
 #include "asset/types/model.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
-#include "asset/types/textureset.hpp"
 #include "core/lua.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
@@ -27,13 +26,11 @@ void Init()
     GetAssetTypeID<Script>::ID();       // AssetType::ASSET_TYPE_SCRIPT
     GetAssetTypeID<Model>::ID();        // AssetType::ASSET_TYPE_MODEL
     GetAssetTypeID<Shader>::ID();       // AssetType::ASSET_TYPE_SHADER
-    GetAssetTypeID<Textureset>::ID();   // AssetType::ASSET_TYPE_SHADER
     PG_ASSERT( GetAssetTypeID<GfxImage>::ID()   == 0, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Material>::ID()   == 1, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Script>::ID()     == 2, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Model>::ID()      == 3, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Shader>::ID()     == 4, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Textureset>::ID() == 5, "This needs to line up with AssetType ordering" );
     static_assert( NUM_ASSET_TYPES == 6, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
@@ -92,7 +89,6 @@ bool LoadFastFile( const std::string& fname )
             LOAD_FF_CASE( ASSET_TYPE_SCRIPT, Script, "Script" );
             LOAD_FF_CASE( ASSET_TYPE_MODEL, Model, "Model" );
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader, "Shader" );
-            LOAD_FF_CASE( ASSET_TYPE_TEXTURESET, Textureset, "Textureset" );
         default:
             LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
             return false;
@@ -128,11 +124,11 @@ void RegisterLuaFunctions( lua_State* L )
     assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get<Model>( name ); };
 
     sol::usertype<Material> mat_type = lua.new_usertype<Material>( "Material" ); //, sol::constructors<Material()>() );
-    mat_type["name"]          = &Material::name;
-    mat_type["albedoTint"]    = &Material::albedoTint;
-    mat_type["metalnessTint"] = &Material::metalnessTint;
-    mat_type["roughnessTint"] = &Material::roughnessTint;
-    mat_type["textureset"]    = &Material::textureset;
+    mat_type["name"]                 = &Material::name;
+    mat_type["albedoTint"]           = &Material::albedoTint;
+    mat_type["metalnessTint"]        = &Material::metalnessTint;
+    mat_type["roughnessTint"]        = &Material::roughnessTint;
+    mat_type["albedoMetalnessImage"] = &Material::albedoMetalnessImage;
     
     sol::usertype<Model> model_type = lua.new_usertype<Model>( "Model" );
     model_type["name"] = &Model::name;
@@ -152,9 +148,6 @@ void RegisterLuaFunctions( lua_State* L )
     sol::usertype<Script> script_type = lua.new_usertype<Script>( "Script" );
     script_type["name"] = &Script::name;
     script_type["scriptText"] = &Script::scriptText;
-
-    sol::usertype<Textureset> textureset_type = lua.new_usertype<Textureset>( "Textureset" );
-    textureset_type["name"] = &Textureset::name;
 }
 
 

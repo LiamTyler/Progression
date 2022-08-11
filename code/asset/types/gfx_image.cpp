@@ -82,40 +82,13 @@ void GfxImage::UploadToGpu()
 static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
 {
     /*
-    Image2DCreateInfo srcImgCreateInfo;
-    srcImgCreateInfo.filename = createInfo.filename;
-    srcImgCreateInfo.flipVertically = createInfo.flipVertically;
-    ImageF32 srcImg;
-    if ( !srcImg.Load( srcImgCreateInfo ) )
-    {
-        return false;
-    }
-
-    bool isInputSRGB = createInfo.semantic == GfxImageSemantic::DIFFUSE;
-    // want to filter in linear space. ConvertRGBA32Float_AllMips will bring it back to sRGB
-    if ( isInputSRGB )
-    {
-        srcImg.ForEachPixel( []( glm::vec4& p ) { p = GammaSRGBToLinear( p ); } );
-    }
-
-    int w = srcImg.width;
-    int h = srcImg.height;
-    size_t totalSrcImageSize = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );
-    glm::vec4* pixelsAllMips = static_cast< glm::vec4* >( malloc( totalSrcImageSize ) );
-    memset( pixelsAllMips, 0, totalSrcImageSize );
-    GenerateMipmaps_Float32( srcImg.pixels, w, h, pixelsAllMips, createInfo.semantic );
-
     gfxImage->width     = w;
     gfxImage->height    = h;
     gfxImage->numFaces  = 1;
     gfxImage->mipLevels = CalculateNumMips( w, h );
     gfxImage->totalSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
     gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
-    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, pixelsAllMips, gfxImage->pixelFormat );
-    
-    free( pixelsAllMips );
 
-    return true;
     */
     return false;
 }
@@ -258,7 +231,6 @@ bool GfxImage::FastfileSave( Serializer* serializer ) const
 }
 
 
-
 size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips )
 {
     PG_ASSERT( width > 0 && height > 0 );
@@ -288,6 +260,103 @@ size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t he
     size_t totalBytes = depth * arrayLayers * CalculateTotalFaceSizeWithMips( width, height, format, mipLevels );
 
     return totalBytes;
+}
+
+
+PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB )
+{
+    static_assert( Underlying( ImageFormat::COUNT ) == 27, "don't forget to update this switch statement" );
+    switch ( imgFormat )
+    {
+    case ImageFormat::R8_UNORM:
+        return isSRGB ? PixelFormat::R8_SRGB : PixelFormat::R8_UNORM;
+    case ImageFormat::R8_G8_UNORM:
+        return isSRGB ? PixelFormat::R8_G8_SRGB : PixelFormat::R8_G8_UNORM;
+    case ImageFormat::R8_G8_B8_UNORM:
+        return isSRGB ? PixelFormat::R8_G8_B8_SRGB : PixelFormat::R8_G8_B8_UNORM;
+    case ImageFormat::R8_G8_B8_A8_UNORM:
+        return isSRGB ? PixelFormat::R8_G8_B8_A8_SRGB : PixelFormat::R8_G8_B8_A8_UNORM;
+
+    case ImageFormat::R16_UNORM:
+        return PixelFormat::R16_UNORM;
+    case ImageFormat::R16_G16_UNORM:
+        return PixelFormat::R16_G16_UNORM;
+    case ImageFormat::R16_G16_B16_UNORM:
+        return PixelFormat::R16_G16_B16_UNORM;
+    case ImageFormat::R16_G16_B16_A16_UNORM:
+        return PixelFormat::R16_G16_B16_A16_UNORM;
+
+    case ImageFormat::R16_FLOAT:
+        return PixelFormat::R16_FLOAT;
+    case ImageFormat::R16_G16_FLOAT:
+        return PixelFormat::R16_G16_FLOAT;
+    case ImageFormat::R16_G16_B16_FLOAT:
+        return PixelFormat::R16_G16_B16_FLOAT;
+    case ImageFormat::R16_G16_B16_A16_FLOAT:
+        return PixelFormat::R16_G16_B16_A16_FLOAT;
+
+    case ImageFormat::R32_FLOAT:
+        return PixelFormat::R32_FLOAT;
+    case ImageFormat::R32_G32_FLOAT:
+        return PixelFormat::R32_G32_FLOAT;
+    case ImageFormat::R32_G32_B32_FLOAT:
+        return PixelFormat::R32_G32_B32_FLOAT;
+    case ImageFormat::R32_G32_B32_A32_FLOAT:
+        return PixelFormat::R32_G32_B32_A32_FLOAT;
+
+    case ImageFormat::BC1_UNORM:
+        return isSRGB ? PixelFormat::BC1_RGB_SRGB : PixelFormat::BC1_RGB_UNORM;
+    case ImageFormat::BC2_UNORM:
+        return isSRGB ? PixelFormat::BC2_SRGB : PixelFormat::BC2_UNORM;
+    case ImageFormat::BC3_UNORM:
+        return isSRGB ? PixelFormat::BC3_SRGB : PixelFormat::BC3_UNORM;
+    case ImageFormat::BC4_UNORM:
+        return PixelFormat::BC4_UNORM;
+    case ImageFormat::BC4_SNORM:
+        return PixelFormat::BC4_SNORM;
+    case ImageFormat::BC5_UNORM:
+        return PixelFormat::BC5_UNORM;
+    case ImageFormat::BC5_SNORM:
+        return PixelFormat::BC5_SNORM;
+    case ImageFormat::BC6H_U16F:
+        return PixelFormat::BC6H_UFLOAT;
+    case ImageFormat::BC6H_S16F:
+        return PixelFormat::BC6H_SFLOAT;
+    case ImageFormat::BC7_UNORM:
+        return isSRGB ? PixelFormat::BC7_SRGB : PixelFormat::BC7_UNORM;
+
+    default:
+        LOG_WARN( "ImageFormatToPixelFormat: Image format %u not recognized", Underlying( imgFormat ) );
+        return PixelFormat::INVALID;
+    }
+}
+
+
+GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, const std::string& name, bool isSRGB )
+{
+    if ( mips.empty() ) return {};
+
+    GfxImage gfxImage;
+    gfxImage.name = name;
+    gfxImage.imageType = Gfx::ImageType::TYPE_2D;
+    gfxImage.width = mips[0].width;
+    gfxImage.height = mips[0].height;
+    gfxImage.depth = 1;
+    gfxImage.numFaces = 1;
+    gfxImage.mipLevels = static_cast<uint32_t>( mips.size() );
+    gfxImage.pixelFormat = ImageFormatToPixelFormat( mips[0].format, isSRGB );
+    gfxImage.totalSizeInBytes = CalculateTotalImageBytes( gfxImage.pixelFormat, gfxImage.width, gfxImage.height, 1, 1, gfxImage.mipLevels );
+    gfxImage.pixels = static_cast<uint8_t*>( malloc( gfxImage.totalSizeInBytes ) );
+
+    uint8_t* currentMip = gfxImage.pixels;
+    for ( uint32_t mipLevel = 0; mipLevel < gfxImage.mipLevels; ++mipLevel )
+    {
+        const RawImage2D& mip = mips[mipLevel];
+        memcpy( currentMip, mip.Raw(), mip.TotalBytes() );
+        currentMip += mip.TotalBytes();
+    }
+
+    return gfxImage;
 }
 
 } // namespace PG

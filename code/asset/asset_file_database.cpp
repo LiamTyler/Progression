@@ -32,7 +32,7 @@ static bool ParseAssetFile( const std::string& filename )
                 const std::string assetName = value["name"].GetString();
                 if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )
                 {
-                    LOG_ERR( "Duplicate %s name %s in file %s", assetTypeStr.c_str(), assetName.c_str(), filename.c_str() );
+                    LOG_WARN( "Duplicate %s name %s in file %s. Ignoring", assetTypeStr.c_str(), assetName.c_str(), filename.c_str() );
                 }
                 else
                 {
@@ -50,11 +50,12 @@ static bool ParseAssetFile( const std::string& filename )
                         }
                     }
                     auto createInfo = g_assetParsers[typeIndex]->Parse( value, parent );
-                    if ( createInfo )
+                    if ( !createInfo )
                     {
-                        createInfo->name = assetName;
-                        s_assetInfos[typeIndex][assetName] = createInfo;
+                        return false;
                     }
+                    createInfo->name = assetName;
+                    s_assetInfos[typeIndex][assetName] = createInfo;
                 }
 
                 break;
@@ -66,7 +67,7 @@ static bool ParseAssetFile( const std::string& filename )
 }
 
 
-void Init()
+bool Init()
 {
     Time::Point startTime = Time::GetTimePoint();
 
@@ -75,11 +76,16 @@ void Init()
     {
         if ( entry.is_regular_file() && GetFileExtension( entry.path().string() ) == ".paf" )
         {
-            ParseAssetFile( entry.path().string() );
+            if ( !ParseAssetFile( entry.path().string() ) )
+            {
+                LOG_ERR( "Failed to initialize asset database" );
+                return false;
+            }
         }
     }
 
     LOG( "Asset Database Initialized in %.2f seconds.", Time::GetDuration( startTime ) / 1000.0f );
+    return true;
 }
 
 

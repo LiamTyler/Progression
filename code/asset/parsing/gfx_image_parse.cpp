@@ -14,6 +14,9 @@ static std::unordered_map< std::string, ImageInputType > s_inputTypeMap =
 
 static std::unordered_map< std::string, GfxImageSemantic > s_imageSemanticMap =
 {
+    { "COLOR", GfxImageSemantic::COLOR },
+    { "GRAY", GfxImageSemantic::GRAY },
+    { "ALBEDO_METALNESS", GfxImageSemantic::ALBEDO_METALNESS },
     { "ENVIRONMENT_MAP", GfxImageSemantic::ENVIRONMENT_MAP },
 };
 

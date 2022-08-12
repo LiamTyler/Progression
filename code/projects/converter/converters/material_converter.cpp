@@ -94,13 +94,13 @@ static bool FindOrConvertAlbedoMetalnessImage( const MaterialCreateInfo* matInfo
         albedoMetalnessInput.outputColorSpace = ColorSpace::SRGB;
         albedoMetalnessInput.sourceImages.resize( 2 );
 
-        albedoMetalnessInput.sourceImages[0].filename = texsetInfo->albedoMap.empty() ? "$white" : texsetInfo->albedoMap;
+        albedoMetalnessInput.sourceImages[0].filename = texsetInfo->albedoMap.empty() ? "$white" : PG_ASSET_DIR + texsetInfo->albedoMap;
         albedoMetalnessInput.sourceImages[0].colorSpace = ColorSpace::SRGB;
         albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::R, Channel::R } );
         albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::G, Channel::G } );
         albedoMetalnessInput.sourceImages[0].remaps.push_back( { Channel::B, Channel::B } );
 
-        albedoMetalnessInput.sourceImages[1].filename = texsetInfo->metalnessMap.empty() ? "$default_metalness" : texsetInfo->metalnessMap;
+        albedoMetalnessInput.sourceImages[1].filename = texsetInfo->metalnessMap.empty() ? "$default_metalness" : PG_ASSET_DIR + texsetInfo->metalnessMap;
         albedoMetalnessInput.sourceImages[1].colorSpace = ColorSpace::LINEAR;
         albedoMetalnessInput.sourceImages[1].remaps.push_back( { Channel::A, Channel::A } );
 

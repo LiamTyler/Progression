@@ -1,11 +1,11 @@
 [
-    { "Image": {
-		"name": "weathered_brown_planks_diffuse",
-		"filename": "materials/weathered_wood/weathered_brown_planks_diffuse.jpg"
+    { "Textureset": {
+		"name": "weathered_brown_planks",
+		"albedoMap": "materials/weathered_wood/weathered_brown_planks_diffuse.jpg"
 	}},
     { "Material": {
         "name": "weathered_brown_planks",
         "albedo": [ 1, 1, 1 ],
-        "albedoMap": "weathered_brown_planks_diffuse"
+        "textureset": "weathered_brown_planks"
     }}
 ]

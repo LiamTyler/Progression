@@ -11,6 +11,6 @@
 	} },
     { "Image": {
 		"name": "macaw",
-		"equirectangularFilename": "images/macaw.png"
+		"filename": "images/macaw.png"
 	} }
 ]

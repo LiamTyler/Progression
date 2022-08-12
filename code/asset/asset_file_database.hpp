@@ -7,7 +7,7 @@
 namespace PG::AssetDatabase
 {
 
-void Init();
+bool Init();
 
 std::shared_ptr<BaseAssetCreateInfo> FindAssetInfo( AssetType type, const std::string& name );
 

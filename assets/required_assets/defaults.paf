@@ -1,3 +1,4 @@
 [
-    { "Material": { "name": "default", "albedo": [ 1, 0.41, 0.71 ] } }
+    { "Material": { "name": "default", "albedo": [ 1, 0.41, 0.71 ] } },
+    { "Textureset": { "name": "default", "albedoMap": "$white" } }
 ]

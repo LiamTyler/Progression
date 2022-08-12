@@ -12,6 +12,9 @@ namespace PG
 
 enum class GfxImageSemantic
 {
+    COLOR,
+    GRAY,
+    ALBEDO_METALNESS,
     ENVIRONMENT_MAP,
 
     NUM_IMAGE_SEMANTICS
@@ -65,7 +68,7 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
     ImageInputType inputType = ImageInputType::REGULAR_2D;
     std::string filename;
     std::string faceFilenames[6];
-    GfxImageSemantic semantic  = GfxImageSemantic::NUM_IMAGE_SEMANTICS;
+    GfxImageSemantic semantic  = GfxImageSemantic::COLOR;
     Gfx::ImageType imageType   = Gfx::ImageType::TYPE_2D;
     PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID
     bool flipVertically        = true;

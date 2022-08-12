@@ -1,59 +1,59 @@
 [
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture01",
-		"filename": "models/bathroom/textures/rug.tga"
+		"albedoMap": "models/bathroom/textures/rug.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture02",
-		"filename": "models/bathroom/textures/rug_mask.tga"
+		"albedoMap": "models/bathroom/textures/rug_mask.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture03",
-		"filename": "models/bathroom/textures/wood.tga"
+		"albedoMap": "models/bathroom/textures/wood.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture04",
-		"filename": "models/bathroom/textures/floor_tiles.tga"
+		"albedoMap": "models/bathroom/textures/floor_tiles.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture05",
-		"filename": "models/bathroom/textures/floor_tiles.tga"
+		"albedoMap": "models/bathroom/textures/floor_tiles.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture06",
-		"filename": "models/bathroom/textures/marble.tga"
+		"albedoMap": "models/bathroom/textures/marble.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture07",
-		"filename": "models/bathroom/textures/wood2.tga"
+		"albedoMap": "models/bathroom/textures/wood2.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture08",
-		"filename": "models/bathroom/textures/picture1.tga"
+		"albedoMap": "models/bathroom/textures/picture1.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture09",
-		"filename": "models/bathroom/textures/wallpaper-1.tga"
+		"albedoMap": "models/bathroom/textures/wallpaper-1.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture10",
-		"filename": "models/bathroom/textures/wood.tga"
+		"albedoMap": "models/bathroom/textures/wood.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture11",
-		"filename": "models/bathroom/textures/wallpaper-2.tga"
+		"albedoMap": "models/bathroom/textures/wallpaper-2.tga"
 	} },
-	{ "Image": {
+	{ "Textureset": {
 		"name": "Texture12",
-		"filename": "models/bathroom/textures/foam_bump.tga"
+		"albedoMap": "models/bathroom/textures/foam_bump.tga"
 	} },
 	{ "Material": {
 		"name": "Rug",
-		"albedoMap": "Texture01"
+		"textureset": "Texture01"
 	} },
 	{ "Material": {
 		"name": "Wood",
-		"albedoMap": "Texture03"
+		"textureset": "Texture03"
 	} },
 	{ "Material": {
 		"name": "Mirror"
@@ -70,7 +70,7 @@
 	} },
 	{ "Material": {
 		"name": "Floor",
-		"albedoMap": "Texture05"
+		"textureset": "Texture05"
 	} },
 	{ "Material": {
 		"name": "Pots",
@@ -78,7 +78,7 @@
 	} },
 	{ "Material": {
 		"name": "Marble",
-		"albedoMap": "Texture06"
+		"textureset": "Texture06"
 	} },
 	{ "Material": {
 		"name": "BulbGlass",
@@ -94,7 +94,7 @@
 	} },
 	{ "Material": {
 		"name": "WoodFrame",
-		"albedoMap": "Texture07"
+		"textureset": "Texture07"
 	} },
 	{ "Material": {
 		"name": "Painting3",
@@ -102,7 +102,7 @@
 	} },
 	{ "Material": {
 		"name": "Painting1",
-		"albedoMap": "Texture08"
+		"textureset": "Texture08"
 	} },
 	{ "Material": {
 		"name": "Painting4",
@@ -126,7 +126,7 @@
 	} },
 	{ "Material": {
 		"name": "Wallpaper",
-		"albedoMap": "Texture09"
+		"textureset": "Texture09"
 	} },
 	{ "Material": {
 		"name": "Leaves",
@@ -150,11 +150,11 @@
 	} },
 	{ "Material": {
 		"name": "WoodDiffuse",
-		"albedoMap": "Texture10"
+		"textureset": "Texture10"
 	} },
 	{ "Material": {
 		"name": "Painting2",
-		"albedoMap": "Texture11"
+		"textureset": "Texture11"
 	} },
 	{ "Material": {
 		"name": "MetalPlate"

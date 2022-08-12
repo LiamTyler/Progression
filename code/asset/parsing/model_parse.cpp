@@ -10,6 +10,13 @@ bool ModelParser::ParseInternal( const rapidjson::Value& value, InfoPtr info )
         { "filename", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
     });
     mapping.ForEachMember( value, *info );
+
+    if ( info->filename.empty() )
+    {
+        LOG_ERR( "Must specify a filename for Model asset '%s'", info->name.c_str() );
+        return false;
+    }
+
     return true;
 }
 

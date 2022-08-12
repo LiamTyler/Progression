@@ -208,21 +208,6 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
             }
         }
 
-        for ( const std::string& matName : assetsUsed[ASSET_TYPE_MATERIAL] )
-        {
-            auto info = std::static_pointer_cast<MaterialCreateInfo>( AssetDatabase::FindAssetInfo( ASSET_TYPE_MATERIAL, matName ) );
-            if ( !info )
-            {
-                LOG_ERR( "Material %s not found in database", matName.c_str() );
-                delete scene;
-                return false;
-            }
-            else
-            {
-                if ( !info->texturesetName.empty() ) assetsUsed[ASSET_TYPE_TEXTURESET].insert( info->texturesetName );
-            }
-        }
-
         delete scene;
     }
     else
@@ -242,6 +227,11 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets, con
     outOfDateAssets = 0;
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
+        if ( !g_converters[assetTypeIdx] )
+        {
+            continue;
+        }
+
         for ( const auto& assetName : assetsUsed[assetTypeIdx] )
         {
             AssetStatus status = g_converters[assetTypeIdx]->IsAssetOutOfDate( assetName );
@@ -293,6 +283,11 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
 
         for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
         {
+            if ( !g_converters[assetTypeIdx] )
+            {
+                continue;
+            }
+
             for ( const auto& assetName : assetsUsed[assetTypeIdx] )
             {
                 ff.Write( assetTypeIdx );
@@ -327,7 +322,8 @@ bool ProcessScene( const std::string& sceneFile )
 {
     ClearAllFastfileDependencies();
 
-    //auto enumerateStartTime = Time::GetTimePoint();
+    bool foundScene = false;
+    auto enumerateStartTime = Time::GetTimePoint();
     std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
     if ( PathExists( sceneFile + ".csv" ) )
     {
@@ -336,6 +332,7 @@ bool ProcessScene( const std::string& sceneFile )
             return false;
         }
         AddFastfileDependency( sceneFile + ".csv" );
+        foundScene = true;
     }
     if ( PathExists( sceneFile + ".json" ) )
     {
@@ -344,8 +341,14 @@ bool ProcessScene( const std::string& sceneFile )
             return false;
         }
         AddFastfileDependency( sceneFile + ".json" );
+        foundScene = true;
     }
-    //LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
+    if ( !foundScene )
+    {
+        LOG_ERR( "No scene file (csv or json) found for path '%s'", sceneFile.c_str() );
+        return false;
+    }
+    LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
 
     uint32_t outOfDateAssets;
     bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets, assetsUsed );
@@ -412,7 +415,10 @@ int main( int argc, char** argv )
     }
     AssetCache::Init();
     InitConverters();
-    AssetDatabase::Init();
+    if ( !AssetDatabase::Init() )
+    {
+        return 0;
+    }
     LOG( "Converter initialized in %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
 
     std::vector<std::string> scenesToProcess;

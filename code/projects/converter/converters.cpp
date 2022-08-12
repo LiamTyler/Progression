@@ -25,7 +25,10 @@ void ShutdownConverters()
 {
     for ( int i = 0; i < NUM_ASSET_TYPES; ++i )
     {
-        g_converters[i].reset();
+        if ( g_converters[i] )
+        {
+            g_converters[i].reset();
+        }
     }
 }
 

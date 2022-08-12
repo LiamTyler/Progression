@@ -226,10 +226,7 @@ GpuData::MaterialData CPUMaterialToGPU( Material* material )
     GpuData::MaterialData gpuMaterial;
     gpuMaterial.albedoTint = glm::vec4( material->albedoTint, 1 );
     gpuMaterial.metalnessTint = material->metalnessTint;
-    gpuMaterial.roughnessTint = material->roughnessTint;
-    gpuMaterial.albedoMapIndex = material->albedoMap ? material->albedoMap->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
-    gpuMaterial.metalnessMapIndex = material->metalnessMap ? material->metalnessMap->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
-    gpuMaterial.roughnessMapIndex = material->roughnessMap ? material->roughnessMap->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMaterial.albedoMetalnessMapIndex = material->albedoMetalnessImage ? material->albedoMetalnessImage->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
 
     return gpuMaterial;
 }

@@ -24,10 +24,7 @@ struct MaterialData
 {
     VEC4 albedoTint;
     float metalnessTint;
-    float roughnessTint;
-    UINT albedoMapIndex;
-    UINT metalnessMapIndex;
-    UINT roughnessMapIndex;
+    UINT albedoMetalnessMapIndex;
 };
 
 struct PointLight

@@ -27,20 +27,8 @@ set(
 set(
     ASSET_PARSE_SRC
     
-    ${CODE_DIR}/asset/parsing/base_asset_parse.cpp
-    ${CODE_DIR}/asset/parsing/base_asset_parse.hpp
-    ${CODE_DIR}/asset/parsing/gfx_image_parse.cpp
-    ${CODE_DIR}/asset/parsing/gfx_image_parse.hpp
-    ${CODE_DIR}/asset/parsing/material_parse.cpp
-    ${CODE_DIR}/asset/parsing/material_parse.hpp
-    ${CODE_DIR}/asset/parsing/model_parse.cpp
-    ${CODE_DIR}/asset/parsing/model_parse.hpp
-    ${CODE_DIR}/asset/parsing/script_parse.cpp
-    ${CODE_DIR}/asset/parsing/script_parse.hpp
-    ${CODE_DIR}/asset/parsing/shader_parse.cpp
-    ${CODE_DIR}/asset/parsing/shader_parse.hpp
-    ${CODE_DIR}/asset/parsing/textureset_parse.cpp
-    ${CODE_DIR}/asset/parsing/textureset_parse.hpp
+    ${CODE_DIR}/asset/parsing/asset_parsers.cpp
+    ${CODE_DIR}/asset/parsing/asset_parsers.hpp
 )
 
 set(

@@ -1,5 +1,6 @@
 #include "asset_file_database.hpp"
-#include "asset/parsing/base_asset_parse.hpp"
+//#include "asset/parsing/base_asset_parse.hpp"
+#include "asset/parsing/asset_parsers.hpp"
 #include "core/time.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/file_dependency.hpp"

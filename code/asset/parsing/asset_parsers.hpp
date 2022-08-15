@@ -1,11 +1,14 @@
 #pragma once
 
 #include "asset/asset_versions.hpp"
-#include "asset/types/base_asset.hpp"
+#include "asset/types/gfx_image.hpp"
+#include "asset/types/material.hpp"
+#include "asset/types/model.hpp"
+#include "asset/types/script.hpp"
+#include "asset/types/shader.hpp"
+#include "asset/types/textureset.hpp"
 #include "shared/json_parsing.hpp"
 #include "shared/logger.hpp"
-
-#define PARSE_ERROR( ... ) { LOG_ERR( __VA_ARGS__ ); return false; }
 
 namespace PG
 {
@@ -52,35 +55,23 @@ protected:
 };
 
 
+#define PG_DECLARE_ASSET_PARSER( AssetName, AssetType, CreateInfo ) \
+    class AssetName##Parser : public BaseAssetParserTemplate<CreateInfo> \
+    { \
+    public: \
+        AssetName##Parser() : BaseAssetParserTemplate( AssetType ) {} \
+    protected: \
+        bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override; \
+    }
+
+
+PG_DECLARE_ASSET_PARSER( GfxImage, ASSET_TYPE_GFX_IMAGE, GfxImageCreateInfo );
+PG_DECLARE_ASSET_PARSER( Material, ASSET_TYPE_MATERIAL, MaterialCreateInfo );
+PG_DECLARE_ASSET_PARSER( Model, ASSET_TYPE_MODEL, ModelCreateInfo );
+PG_DECLARE_ASSET_PARSER( Script, ASSET_TYPE_SCRIPT, ScriptCreateInfo );
+PG_DECLARE_ASSET_PARSER( Shader, ASSET_TYPE_SHADER, ShaderCreateInfo );
+PG_DECLARE_ASSET_PARSER( Textureset, ASSET_TYPE_TEXTURESET, TexturesetCreateInfo );
+
 extern const std::shared_ptr<BaseAssetParser> g_assetParsers[NUM_ASSET_TYPES];
 
 } // namespace PG
-
-#define BEGIN_STR_TO_ENUM_MAP( EnumName ) \
-static EnumName EnumName ## _StringToEnum( std::string_view str ) \
-{ \
-    static std::pair<std::string, EnumName> arr[] = \
-    {
-
-#define BEGIN_STR_TO_ENUM_MAP_SCOPED( EnumName, Namespace ) \
-static Namespace::EnumName EnumName ## _StringToEnum( std::string_view str ) \
-{ \
-    static std::pair<std::string, Namespace::EnumName> arr[] = \
-    {
-
-#define STR_TO_ENUM_VALUE( EnumName, val ) { #val, EnumName::val },
-
-#define END_STR_TO_ENUM_MAP( EnumName, defaultVal ) \
-    }; \
-       \
-    for ( int i = 0; i < ARRAY_COUNT( arr ); ++i ) \
-    { \
-        if ( arr[i].first == str ) \
-        { \
-            return arr[i].second; \
-        } \
-    } \
-      \
-    LOG_WARN( "No " #EnumName " found with name '%s'. Using default '" #defaultVal "' instead.", str.data() ); \
-    return EnumName::defaultVal; \
-}

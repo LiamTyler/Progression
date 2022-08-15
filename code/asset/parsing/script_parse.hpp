@@ -12,7 +12,7 @@ public:
     ScriptParser() : BaseAssetParserTemplate( ASSET_TYPE_SCRIPT ) {}
 
 protected:
-    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override;
 };
 
 } // namespace PG

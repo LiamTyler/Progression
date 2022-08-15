@@ -22,7 +22,7 @@ void ReleaseShaderPreproc( const std::string& shaderName )
 namespace PG
 {
 
-std::string ShaderConverter::GetCacheNameInternal( ConstInfoPtr info )
+std::string ShaderConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
     cacheName += "_" + GetRelativeFilename( info->filename );
@@ -34,7 +34,7 @@ std::string ShaderConverter::GetCacheNameInternal( ConstInfoPtr info )
 }
 
 
-AssetStatus ShaderConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
+AssetStatus ShaderConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
     ShaderPreprocessOutput preproc = PreprocessShader( *info, false );
     if ( !preproc.success )

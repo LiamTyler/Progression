@@ -7,42 +7,36 @@
 namespace PG
 {
 
-std::string GfxImageConverter::GetCacheNameInternal( ConstInfoPtr info )
+std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
-    cacheName += "_" + std::to_string( static_cast< int >( info->semantic ) );
-    cacheName += "_" + std::to_string( static_cast< int >( info->imageType ) );
-    cacheName += "_" + std::to_string( static_cast< int >( info->dstPixelFormat ) );
-    cacheName += "_" + std::to_string( static_cast< int >( info->flipVertically ) );
-    size_t inputFileHash = 0;
-    if ( info->inputType == ImageInputType::INDIVIDUAL_FACES )
+    size_t hash = 0;
+    HashCombine( hash, Underlying( info->semantic ) );
+    HashCombine( hash, Underlying( info->dstPixelFormat ) );
+    HashCombine( hash, Underlying( info->flipVertically ) );
+    for ( int i = 0; i < 6; ++i )
     {
-        for ( int i = 0; i < 6; ++i )
-        {
-            HashCombine( inputFileHash, info->faceFilenames[i] );
-        }
+        if ( !info->filenames[i].empty() ) HashCombine( hash, info->filenames[i] );
     }
-    else
-    {
-        inputFileHash = Hash( info->filename );
-    }
-    cacheName += "_" + std::to_string( inputFileHash );
+    cacheName += "_" + std::to_string( hash );
     return cacheName;
 }
 
 
-AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
+AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
-    AddFastfileDependency( info->filename );
-    for ( const auto& faceFilename : info->faceFilenames )
+    AddFastfileDependency( info->filenames[0] );
+    for ( const std::string& filename : info->filenames )
     {
-        if ( IsFileOutOfDate( cacheTimestamp, faceFilename ) )
+        if ( filename.empty() ) break;
+
+        if ( IsFileOutOfDate( cacheTimestamp, filename ) )
         {
             return AssetStatus::OUT_OF_DATE;
         }
     }
     
-    return IsFileOutOfDate( cacheTimestamp, info->filename ) ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;
+    return AssetStatus::UP_TO_DATE;
 }
 
 } // namespace PG

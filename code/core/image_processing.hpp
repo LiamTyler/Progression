@@ -22,16 +22,6 @@ enum class ColorSpace : uint8_t
     COUNT
 };
 
-enum class Channel : uint8_t
-{
-    R,
-    G,
-    B,
-    A,
-
-    COUNT
-};
-
 struct Remap
 {
     Channel from;

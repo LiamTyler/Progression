@@ -20,16 +20,6 @@ enum class GfxImageSemantic
     NUM_IMAGE_SEMANTICS
 };
 
-enum class ImageInputType
-{
-    REGULAR_2D,
-    EQUIRECTANGULAR,
-    FLATTENED_CUBEMAP,
-    INDIVIDUAL_FACES,
-
-    NUM_IMAGE_INPUT_TYPES
-};
-
 struct GfxImage : public BaseAsset
 {
     bool Load( const BaseAssetCreateInfo* baseInfo ) override;
@@ -65,13 +55,16 @@ enum CubemapFaceIndex
 
 struct GfxImageCreateInfo : public BaseAssetCreateInfo
 {
-    ImageInputType inputType = ImageInputType::REGULAR_2D;
-    std::string filename;
-    std::string faceFilenames[6];
+    std::string filenames[6];
     GfxImageSemantic semantic  = GfxImageSemantic::COLOR;
-    Gfx::ImageType imageType   = Gfx::ImageType::TYPE_2D;
-    PixelFormat dstPixelFormat = PixelFormat::INVALID; // Use src format if this == INVALID
+    PixelFormat dstPixelFormat = PixelFormat::INVALID; // Format automatically chosen if dstPixelFormat == INVALID
     bool flipVertically        = true;
+    bool clampHorizontal       = true;
+    bool clampVertical         = true;
+
+    // for composite maps, like ALBEDO_METALNESS
+    float compositeScales[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Channel compositeSourceChannels[4] = { Channel::COUNT, Channel::COUNT, Channel::COUNT, Channel::COUNT };
 };
 
 // if numMuips is unspecified (0), assume all mips are in use
@@ -79,6 +72,6 @@ size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFor
 size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
 PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB );
 
-GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, const std::string& name, bool isSRGB );
+GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, bool isSRGB );
 
 } // namespace PG

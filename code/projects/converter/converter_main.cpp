@@ -5,6 +5,7 @@
 #include "core/init.hpp"
 #include "core/scene.hpp"
 #include "core/time.hpp"
+#include "ecs/components/model_renderer.hpp"
 #include "getopt/getopt.h"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
@@ -12,11 +13,9 @@
 #include "shared/json_parsing.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
+#include "shared/string.hpp"
 #include <algorithm>
 #include <unordered_set>
-#include "image.hpp"
-#include "bc_compression.hpp"
-#include "bc_decompression.hpp"
 
 using namespace PG;
 
@@ -83,44 +82,7 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile,
 }
 
 
-static std::string StripWhitespace( const std::string& s )
-{
-    size_t start, end;
-    for ( start = 0; start < s.length() && std::isspace( s[start] ); ++start );
-    for ( end = s.length() - 1; end >= 0 && std::isspace( s[end] ); --end );
-
-    return s.substr( start, end - start + 1 );
-}
-
-
-static std::vector<std::string> SplitString( const std::string& str, const std::string delim = "," )
-{
-	if ( str.empty() )
-		return {};
-
-	std::vector<std::string> ret;
-	size_t start_index = 0;
-	size_t index = 0;
-	while ( (index = str.find_first_of(delim, start_index) ) != std::string::npos )
-	{
-		ret.push_back(str.substr(start_index, index - start_index));
-		start_index = index + 1;
-
-		if ( index == str.size() - 1 )
-        {
-			ret.emplace_back();
-        }
-	}
-
-	if ( start_index < str.size() )
-    {
-		ret.push_back( str.substr(start_index) );
-    }
-	return ret;
-}
-
-
-bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES] )
+bool FindAssetsUsedInFile( const std::string& sceneFile )
 {
     std::string ext = GetFileExtension( sceneFile );
     if ( ext == ".csv" )
@@ -147,11 +109,26 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
                 continue;
             }
             bool found = false;
-            for ( int i = 0; i < NUM_ASSET_TYPES; ++i )
+            int assetTypeIdx = 0;
+            std::string assetTypeName = vec[0];
+            std::string assetName = vec[1];
+            for ( ; assetTypeIdx < NUM_ASSET_TYPES; ++assetTypeIdx )
             {
-                if ( vec[0] == g_assetNames[i] )
+                if ( assetTypeName == g_assetNames[assetTypeIdx] )
                 {
-                    assetsUsed[i].insert( vec[1] );
+                    auto createInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
+                    g_converters[assetTypeIdx]->AddGeneratedAssets( createInfo );
+                    AddUsedAsset( (AssetType)assetTypeIdx, createInfo );
+                    if ( assetTypeIdx == ASSET_TYPE_MODEL )
+                    {
+                        auto modelInfo = std::static_pointer_cast<ModelCreateInfo>( createInfo );
+                        std::vector<std::string> materialNames = GetModelMaterialList( modelInfo->filename );
+                        for ( size_t matIdx = 0; matIdx < materialNames.size(); ++matIdx )
+                        {
+                            AddUsedAsset( ASSET_TYPE_MATERIAL, AssetDatabase::FindAssetInfo( ASSET_TYPE_MATERIAL, materialNames[matIdx] ) );
+                        }
+                    }
+
                     found = true;
                     break;
                 }
@@ -171,40 +148,28 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
             return false;
         }
 
+        scene->registry.view<ModelRenderer>().each( [&]( ModelRenderer& component )
+        {
+            if ( component.materials.empty() && component.model->originalMaterials.empty() )
+            {
+                auto info = AssetDatabase::FindAssetInfo<ModelCreateInfo>( ASSET_TYPE_MODEL, component.model->name );
+                std::vector<std::string> materialNames = GetModelMaterialList( info->filename );
+                component.model->originalMaterials.resize( materialNames.size() );
+                for ( size_t matIdx = 0; matIdx < materialNames.size(); ++matIdx )
+                {
+                    component.model->originalMaterials[matIdx] = AssetManager::Get<Material>( materialNames[matIdx] );
+                }
+            }
+        });
+
         for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
         {
-            assetsUsed[assetTypeIdx].reserve( AssetManager::g_resourceMaps[assetTypeIdx].size() );
+            AssetType assetType = (AssetType)assetTypeIdx;
             for ( auto [assetName, _] : AssetManager::g_resourceMaps[assetTypeIdx] )
             {
-                assetsUsed[assetTypeIdx].insert( assetName );
-            }
-        }
-
-        for ( const auto [assetName, _] : AssetManager::g_resourceMaps[ASSET_TYPE_MODEL] )
-        {
-            auto modelInfo = std::static_pointer_cast<ModelCreateInfo>( AssetDatabase::FindAssetInfo( ASSET_TYPE_MODEL, assetName ) );
-            if ( !modelInfo )
-            {
-                LOG_ERR( "Model %s not found in database", assetName.c_str() );
-            }
-            else
-            {
-                std::ifstream in( modelInfo->filename );
-                if ( !in )
-                {
-                    LOG_ERR( "Could not open model file %s", modelInfo->filename.c_str() );
-                    delete scene;
-                    return false;
-                }
-
-                std::string matName, tmp;
-                int numMaterials;
-                in >> tmp >> numMaterials;
-                for ( int i = 0; i < numMaterials; ++i )
-                {
-                    in >> tmp >> matName;
-                    assetsUsed[ASSET_TYPE_MATERIAL].insert( matName );
-                }
+                auto createInfo = AssetDatabase::FindAssetInfo( assetType, assetName );
+                g_converters[assetType]->AddGeneratedAssets( createInfo );
+                AddUsedAsset( assetType, createInfo );
             }
         }
 
@@ -220,21 +185,19 @@ bool FindAssetsUsedInFile( const std::string& sceneFile, std::unordered_set<std:
 }
 
 
-bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
+bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
 {
     auto convertStartTime = Time::GetTimePoint();
     uint32_t convertErrors = 0;
     outOfDateAssets = 0;
+    uint32_t totalAssets = 0;
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
-        if ( !g_converters[assetTypeIdx] )
+        const auto& pendingConvertList = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
+        for ( const std::shared_ptr<BaseAssetCreateInfo>& createInfo : pendingConvertList )
         {
-            continue;
-        }
-
-        for ( const auto& assetName : assetsUsed[assetTypeIdx] )
-        {
-            AssetStatus status = g_converters[assetTypeIdx]->IsAssetOutOfDate( assetName );
+            ++totalAssets;
+            AssetStatus status = g_converters[assetTypeIdx]->IsAssetOutOfDate( createInfo );
             if ( status == AssetStatus::ERROR )
             {
                 ++convertErrors;
@@ -243,7 +206,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets, con
             else if ( status == AssetStatus::OUT_OF_DATE )
             {
                 ++outOfDateAssets;
-                if ( !g_converters[assetTypeIdx]->Convert( assetName ) )
+                if ( !g_converters[assetTypeIdx]->Convert( createInfo ) )
                 {
                     convertErrors += 1;
                 }
@@ -254,18 +217,18 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets, con
     double duration = Time::GetDuration( convertStartTime ) / 1000.0f;
     if ( convertErrors )
     {
-        LOG_ERR( "Convert %s FAILED with %u errors in %.2f seconds", sceneName.c_str(), convertErrors, duration );
+        LOG_ERR( "Convert for '%s' FAILED with %u errors in %.2f seconds", sceneName.c_str(), convertErrors, duration );
     }
     else
     {
-        LOG( "Convert %s succeeded in %.2f seconds", sceneName.c_str(), duration );
+        LOG( "Convert for '%s' succeeded in %.2f seconds, %u / %u assets out of date", sceneName.c_str(), duration, outOfDateAssets, totalAssets );
     }
 
     return convertErrors == 0;
 }
 
 
-bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAssets, const std::unordered_set<std::string> (&assetsUsed)[AssetType::NUM_ASSET_TYPES] )
+bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAssets )
 {
     std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
@@ -283,15 +246,10 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
 
         for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
         {
-            if ( !g_converters[assetTypeIdx] )
-            {
-                continue;
-            }
-
-            for ( const auto& assetName : assetsUsed[assetTypeIdx] )
+            const auto& listOfUsedAssets = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
+            for ( const auto& baseInfo : listOfUsedAssets )
             {
                 ff.Write( assetTypeIdx );
-                auto baseInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
                 const std::string cacheName = g_converters[assetTypeIdx]->GetCacheName( baseInfo );
                 size_t numBytes;
                 auto assetRawBytes = AssetCache::GetCachedAssetRaw( (AssetType)assetTypeIdx, cacheName, numBytes );
@@ -321,13 +279,13 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
 bool ProcessScene( const std::string& sceneFile )
 {
     ClearAllFastfileDependencies();
+    ClearAllUsedAssets();
 
     bool foundScene = false;
     auto enumerateStartTime = Time::GetTimePoint();
-    std::unordered_set<std::string> assetsUsed[AssetType::NUM_ASSET_TYPES];
     if ( PathExists( sceneFile + ".csv" ) )
     {
-        if ( !FindAssetsUsedInFile( sceneFile + ".csv", assetsUsed ) )
+        if ( !FindAssetsUsedInFile( sceneFile + ".csv" ) )
         {
             return false;
         }
@@ -336,7 +294,7 @@ bool ProcessScene( const std::string& sceneFile )
     }
     if ( PathExists( sceneFile + ".json" ) )
     {
-        if ( !FindAssetsUsedInFile( sceneFile + ".json", assetsUsed ) )
+        if ( !FindAssetsUsedInFile( sceneFile + ".json" ) )
         {
             return false;
         }
@@ -351,59 +309,14 @@ bool ProcessScene( const std::string& sceneFile )
     LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
 
     uint32_t outOfDateAssets;
-    bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets, assetsUsed );
-    success = success && OutputFastfile( sceneFile, outOfDateAssets, assetsUsed );
+    bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );
+    success = success && OutputFastfile( sceneFile, outOfDateAssets );
     return success;
 }
 
 
 int main( int argc, char** argv )
 {
-    /*
-    EngineInitialize();
-    RawImage2D image;
-    if ( !image.Load( PG_ROOT_DIR "assets/images/macaw.png" ) )
-    //if ( !image.Load( PG_ROOT_DIR "IMAGES_NO_SUBMIT/s4_rus_rubble_bricks_01_snow_c.tif" ) )
-    {
-        return 1;
-    }
-    //image.Save( PG_ROOT_DIR "test.png" );
-    //return 0;
-
-    FloatImage imageFloat = FloatImageFromRawImage2D( image );
-    for ( int i = 0; i < imageFloat.width * imageFloat.height; ++i )
-    {
-        imageFloat.data[i*imageFloat.numChannels + 2] = 0;
-    }
-
-    BCCompressorSettings settings;
-    settings.format = ImageFormat::BC7_UNORM;
-    for ( int i = 0; i < 3; ++i )
-    {
-        auto beginTime = Time::GetTimePoint();
-        settings.quality = static_cast<CompressionQuality>( Underlying( CompressionQuality::LOWEST ) + i );
-        RawImage2D compressedImg = CompressToBC( image, settings );
-        double duration = Time::GetDuration( beginTime ) / 1000.0f;
-
-        RawImage2D uncompressedImg = compressedImg.Convert( ImageFormat::R8_G8_B8_UNORM );
-        FloatImage uncompressedImgFloat = FloatImageFromRawImage2D( uncompressedImg );
-
-        double mse = FloatImageMSE( imageFloat, uncompressedImgFloat, 0b1100 );
-        double psnr = MSEToPSNR( mse );
-        LOG( "Compressed in %.3f seconds with %f PSNR", duration, psnr );
-
-        if ( !uncompressedImg.Save( PG_ROOT_DIR "macaw_bc7_" + std::to_string( i ) + ".png" ) )
-        {
-            return 2;
-        }
-    }
-
-    return 0;
-    */
-
-
-
-
     auto initStartTime = Time::GetTimePoint();
 	EngineInitialize();
     g_converterConfigOptions = {};

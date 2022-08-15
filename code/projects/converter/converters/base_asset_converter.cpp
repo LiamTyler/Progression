@@ -1,4 +1,5 @@
 #include "base_asset_converter.hpp"
+#include <unordered_set>
 
 namespace PG
 {
@@ -27,6 +28,42 @@ void ClearAllFastfileDependencies()
 time_t GetLatestFastfileDependency()
 {
     return s_latestAssetTimestamp;
+}
+
+
+struct BaseCreateInfoHash
+{
+    size_t operator()( const BaseCreateInfoPtr& ptr ) const { return std::hash<std::string>()( ptr->name ); }
+};
+
+struct BaseCreateInfoCompare
+{
+    size_t operator()( const BaseCreateInfoPtr& p1, const BaseCreateInfoPtr& p2 ) const { return p1->name == p2->name; }
+};
+
+static std::unordered_set<BaseCreateInfoPtr, BaseCreateInfoHash, BaseCreateInfoCompare> s_pendingAssets[AssetType::NUM_ASSET_TYPES];
+
+void ClearAllUsedAssets()
+{
+    for ( uint32_t assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
+    {
+        s_pendingAssets[assetTypeIdx].clear();
+    }
+}
+
+void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo )
+{
+    if ( createInfo == nullptr )
+    {
+        throw std::runtime_error( "Adding null asset for conversion! AssetType: " + std::string( g_assetNames[assetType] ) );
+    }
+
+    s_pendingAssets[assetType].insert( createInfo );
+}
+
+std::vector<BaseCreateInfoPtr> GetUsedAssetsOfType( AssetType assetType )
+{
+    return { s_pendingAssets[assetType].begin(), s_pendingAssets[assetType].end() };
 }
 
 } // namespace PG

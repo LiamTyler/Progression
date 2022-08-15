@@ -56,4 +56,6 @@ struct Model : public BaseAsset
 #endif // #if USING( GPU_DATA )
 };
 
+std::vector<std::string> GetModelMaterialList( const std::string& fullModelPath );
+
 } // namespace PG

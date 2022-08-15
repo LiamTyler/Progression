@@ -11,10 +11,12 @@ class MaterialConverter : public BaseAssetConverterTemplate<Material, MaterialCr
 public:
     MaterialConverter() : BaseAssetConverterTemplate( ASSET_TYPE_MATERIAL ) {}
 
+    virtual void AddGeneratedAssetsInternal( ConstDerivedInfoPtr& baseInfo ) override;
+
 protected:
-    std::string GetCacheNameInternal( ConstInfoPtr info ) override;
-    AssetStatus IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) override;
-    bool Convert( const std::string& assetName ) override;
+    std::string GetCacheNameInternal( ConstDerivedInfoPtr info ) override;
+    AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp ) override;
+    bool ConvertInternal( ConstDerivedInfoPtr& createInfo ) override;
 };
 
 } // namespace PG

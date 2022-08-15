@@ -12,7 +12,7 @@ public:
     MaterialParser() : BaseAssetParserTemplate( ASSET_TYPE_MATERIAL ) {}
 
 protected:
-    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override;
 };
 
 } // namespace PG

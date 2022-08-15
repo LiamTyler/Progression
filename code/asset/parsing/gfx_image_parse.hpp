@@ -12,7 +12,7 @@ public:
     GfxImageParser() : BaseAssetParserTemplate( ASSET_TYPE_GFX_IMAGE ) {}
 
 protected:
-    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override;
 };
 
 } // namespace PG

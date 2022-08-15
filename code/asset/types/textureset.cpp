@@ -10,30 +10,39 @@
 namespace PG
 {
 
+std::string TexturesetCreateInfo::GetAlbedoMap( bool isApplied ) const
+{
+    return isApplied ? albedoMap : "$white";
+}
+
+std::string TexturesetCreateInfo::GetMetalnessMap( bool isApplied ) const
+{
+    return isApplied ? metalnessMap : "$default_metalness";
+}
+
+//std::string TexturesetCreateInfo::GetNormalMap( bool isApplied ) const
+//{
+//    return isApplied ? normalMap : "$default_normalmap";
+//}
+//
+//std::string TexturesetCreateInfo::GetRoughnessMap( bool isApplied ) const
+//{
+//    return isApplied ? roughnessMap : "$default_roughness";
+//}
+
+
 std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const
 {
-    size_t hash = 0;
     std::string cacheName;
-    if ( !applyAlbedo || albedoMap.empty() )
-    {
-        cacheName += "$white";
-    }
-    else
-    {
-        HashCombine( hash, albedoMap );
-        cacheName += GetFilenameStem( albedoMap );
-    }
+    std::string albedo = GetAlbedoMap( applyAlbedo );
+    cacheName += GetFilenameStem( albedo );
     cacheName += "~";
+    std::string metal = GetMetalnessMap( applyMetalness );
+    cacheName += GetFilenameStem( metal );
 
-    if ( !applyMetalness || metalnessMap.empty() )
-    {
-        cacheName += "$default_metalness";
-    }
-    else
-    {
-        HashCombine( hash, metalnessMap );
-        cacheName += GetFilenameStem( metalnessMap );
-    }
+    size_t hash = 0;
+    HashCombine( hash, albedo );
+    HashCombine( hash, metal );
     HashCombine( hash, metalnessScale );
     HashCombine( hash, Underlying( metalnessSourceChannel ) );
     
@@ -41,35 +50,23 @@ std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo,
 }
 
 
-std::string TexturesetCreateInfo::GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const
-{
-    size_t hash = 0;
-    std::string cacheName;
-    if ( !applyNormals || normalMap.empty() )
-    {
-        cacheName += "$default_normals";
-    }
-    else
-    {
-        HashCombine( hash, normalMap );
-        cacheName += GetFilenameStem( normalMap );
-    }
-    cacheName += "~";
-
-    if ( !applyRoughness || roughnessMap.empty() )
-    {
-        cacheName += "$default_roughness";
-    }
-    else
-    {
-        HashCombine( hash, roughnessMap );
-        cacheName += GetFilenameStem( roughnessMap );
-    }
-    HashCombine( hash, slopeScale );
-    HashCombine( hash, Underlying( roughnessSourceChannel ) );
-    HashCombine( hash, invertRoughness );
-    
-    return cacheName + "~" + std::to_string( hash );
-}
+//std::string TexturesetCreateInfo::GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const
+//{
+//    std::string cacheName;
+//    std::string normals = GetAlbedoMap( applyNormals );
+//    cacheName += GetFilenameStem( normals );
+//    cacheName += "~";
+//    std::string roughness = GetMetalnessMap( applyRoughness );
+//    cacheName += GetFilenameStem( roughness );
+//
+//    size_t hash = 0;
+//    HashCombine( hash, normals );
+//    HashCombine( hash, roughness );
+//    HashCombine( hash, roughnessScale );
+//    HashCombine( hash, Underlying( roughnessSourceChannel ) );
+//    HashCombine( hash, invertRoughness );
+//    
+//    return cacheName + "~" + std::to_string( hash );
+//}
 
 } // namespace PG

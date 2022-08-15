@@ -55,3 +55,24 @@ set(
     ${CODE_DIR}/ecs/ecs.cpp
     ${CODE_DIR}/ecs/ecs.hpp
 )
+
+set(
+    PRIMARY_SHARED_SRC
+    
+    ${CODE_DIR}/shared/assert.hpp
+    ${CODE_DIR}/shared/bitops.hpp
+    ${CODE_DIR}/shared/core_defines.hpp
+    ${CODE_DIR}/shared/file_dependency.cpp
+    ${CODE_DIR}/shared/file_dependency.hpp
+    ${CODE_DIR}/shared/filesystem.cpp
+    ${CODE_DIR}/shared/filesystem.hpp
+    ${CODE_DIR}/shared/logger.cpp
+    ${CODE_DIR}/shared/logger.hpp
+    ${CODE_DIR}/shared/math.cpp
+    ${CODE_DIR}/shared/math.hpp
+    ${CODE_DIR}/shared/platform_defines.hpp
+    ${CODE_DIR}/shared/random.cpp
+    ${CODE_DIR}/shared/random.hpp
+    ${CODE_DIR}/shared/string.cpp
+    ${CODE_DIR}/shared/string.hpp
+)

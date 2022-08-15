@@ -1,36 +1,34 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
+#include "asset/types/gfx_image.hpp"
 
 namespace PG
 {
 
-enum class ChannelSelect : uint8_t
-{
-    R = 0,
-    G = 1,
-    B = 2,
-    A = 3,
-};
-
 struct TexturesetCreateInfo : public BaseAssetCreateInfo
 {
-    bool clampU = false;
-    bool clampV = false;
+    bool clampHorizontal = false;
+    bool clampVertical = false;
 
-    std::string albedoMap;
-    std::string metalnessMap;
-    ChannelSelect metalnessSourceChannel = ChannelSelect::R;
+    std::string albedoMap = "$white";
+    std::string metalnessMap = "$default_metalness";
+    Channel metalnessSourceChannel = Channel::R;
     float metalnessScale = 1.0f;
 
-    std::string normalMap;
-    float slopeScale = 1.0f;
-    std::string roughnessMap;
-    ChannelSelect roughnessSourceChannel = ChannelSelect::R;
-    bool invertRoughness = false; // if the source map is actually a gloss map
+    //std::string normalMap = "$default_normalmap";
+    //std::string roughnessMap = "$default_roughness";
+    //Channel roughnessSourceChannel = Channel::R;
+    //bool invertRoughness = false; // if the source map is actually a gloss map
+    //float roughnessScale = 1.0f;
+
+    std::string GetAlbedoMap( bool isApplied ) const;
+    std::string GetMetalnessMap( bool isApplied ) const;
+    //std::string GetNormalMap( bool isApplied ) const;
+    //std::string GetRoughnessMap( bool isApplied ) const;
 
     std::string GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const;
-    std::string GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const;
+    //std::string GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const;
 };
 
 } // namespace PG

@@ -68,6 +68,7 @@ namespace PG
         {
             registry.emplace<Transform>( e );
         }
+
         static JSONFunctionMapper< ModelRenderer& > mapping(
         {
             { "model", []( const rapidjson::Value& v, ModelRenderer& comp )
@@ -81,10 +82,11 @@ namespace PG
             { "material", []( const rapidjson::Value& v, ModelRenderer& comp )
                 {
                     PG_ASSERT( v.IsString(), "Please provide a string of the material's name" );
-                    auto mat = AssetManager::Get< Material >( v.GetString() );
+                    auto mat = AssetManager::Get<Material>( v.GetString() );
                     PG_ASSERT( mat != nullptr, "Material with name '" + std::string( v.GetString() ) + "' not found" );
                     PG_ASSERT( comp.model != nullptr, "Must specify model before assigning materials for it" );
-                    comp.materials.resize( comp.model->meshes.size() );
+                    size_t numMeshes = USING( CONVERTER ) ? 1 : comp.model->meshes.size();
+                    comp.materials.resize( numMeshes );
                     for ( auto& matPtr : comp.materials )
                     {
                         matPtr = mat;

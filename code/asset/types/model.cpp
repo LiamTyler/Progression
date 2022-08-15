@@ -300,4 +300,32 @@ void Model::FreeGPU()
 }
 
 
+std::vector<std::string> GetModelMaterialList( const std::string& fullModelPath )
+{
+    std::vector<std::string> materials;
+    if ( GetFileExtension( fullModelPath ) != ".pmodel" )
+    {
+        LOG_ERR( "Model::Load only takes .pmodel format" );
+        return materials;
+    }
+    std::ifstream in( fullModelPath );
+    if ( !in )
+    {
+        LOG_ERR( "Failed to open .pmodel file '%s'", fullModelPath.c_str() );
+        return materials;
+    }
+
+    std::string tmp;
+    uint32_t numMaterials;
+    in >> tmp >> numMaterials;
+    materials.resize( numMaterials );
+    for ( uint32_t i = 0; i < numMaterials; ++i )
+    {
+        in >> tmp >> materials[i];
+    }
+
+    return materials;
+}
+
+
 } // namespace PG

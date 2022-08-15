@@ -12,8 +12,8 @@ public:
     ModelConverter() : BaseAssetConverterTemplate( ASSET_TYPE_MODEL ) {}
 
 protected:
-    std::string GetCacheNameInternal( ConstInfoPtr info ) override;
-    AssetStatus IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) override;
+    std::string GetCacheNameInternal( ConstDerivedInfoPtr info ) override;
+    AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp ) override;
 };
 
 } // namespace PG

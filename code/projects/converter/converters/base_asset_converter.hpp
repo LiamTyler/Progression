@@ -33,21 +33,24 @@ void AddFastfileDependency( time_t timestamp );
 void ClearAllFastfileDependencies();
 time_t GetLatestFastfileDependency();
 
+using BaseCreateInfoPtr = std::shared_ptr<BaseAssetCreateInfo>;
+using ConstBaseCreateInfoPtr = const std::shared_ptr<const BaseAssetCreateInfo>;
+void ClearAllUsedAssets();
+void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo );
+std::vector<BaseCreateInfoPtr> GetUsedAssetsOfType( AssetType assetType );
 
 class BaseAssetConverter
 {
 public:
-    using BaseInfoPtr = std::shared_ptr<BaseAssetCreateInfo>;
-    using ConstBaseInfoPtr = const std::shared_ptr<const BaseAssetCreateInfo>&;
-
     const AssetType assetType;
 
     BaseAssetConverter( AssetType inAssetType ) : assetType( inAssetType ) {}
     virtual ~BaseAssetConverter() = default;
 
-    virtual std::string GetCacheName( ConstBaseInfoPtr baseInfo ) = 0;
-    virtual AssetStatus IsAssetOutOfDate( const std::string& assetName ) = 0;
-    virtual bool Convert( const std::string& assetName ) = 0;
+    virtual std::string GetCacheName( ConstBaseCreateInfoPtr& baseInfo ) { return ""; }
+    virtual AssetStatus IsAssetOutOfDate( ConstBaseCreateInfoPtr& baseInfo ) { return AssetStatus::UP_TO_DATE; }
+    virtual bool Convert( ConstBaseCreateInfoPtr& baseInfo ) { return true; }
+    virtual void AddGeneratedAssets( ConstBaseCreateInfoPtr& baseInfo ) {}
 };
 
 
@@ -55,33 +58,26 @@ template< typename DerivedAsset, typename DerivedInfo>
 class BaseAssetConverterTemplate : public BaseAssetConverter
 {
 public:
-    using InfoPtr = std::shared_ptr<DerivedInfo>;
-    using ConstInfoPtr = const std::shared_ptr<const DerivedInfo>&;
+    using DerivedInfoPtr = std::shared_ptr<DerivedInfo>;
+    using ConstDerivedInfoPtr = const std::shared_ptr<const DerivedInfo>&;
 
     BaseAssetConverterTemplate( AssetType inAssetType ) : BaseAssetConverter( inAssetType ) {}
     virtual ~BaseAssetConverterTemplate() = default;
 
-    virtual std::string GetCacheName( ConstBaseInfoPtr baseInfo )
+    virtual std::string GetCacheName( ConstBaseCreateInfoPtr& baseInfo )
     {
         return GetCacheNameInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
     }
 
-    virtual AssetStatus IsAssetOutOfDate( const std::string& assetName ) override
+    virtual AssetStatus IsAssetOutOfDate( ConstBaseCreateInfoPtr& baseInfo ) override
     {
-        auto info = AssetDatabase::FindAssetInfo<DerivedInfo>( assetType, assetName );
-        if ( !info )
-        {
-            LOG_ERR( "Scene requires asset %s of type %s, but no valid entry found in the database.", assetName.c_str(), g_assetNames[assetType] );
-            return AssetStatus::ERROR;
-        }
-
         if ( g_converterConfigOptions.force )
         {
             AddFastfileDependency( LATEST_TIMESTAMP );
             return AssetStatus::OUT_OF_DATE;
         }
 
-        time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, GetCacheName( info ) );
+        time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, GetCacheName( baseInfo ) );
         if ( cachedTimestamp == NO_TIMESTAMP )
         {
             AddFastfileDependency( LATEST_TIMESTAMP );
@@ -89,32 +85,42 @@ public:
         }
         AddFastfileDependency( cachedTimestamp );
 
-        return IsAssetOutOfDateInternal( info, cachedTimestamp );
+        return IsAssetOutOfDateInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ), cachedTimestamp );
     }
 
-    virtual bool Convert( const std::string& assetName ) override
+    virtual bool Convert( ConstBaseCreateInfoPtr& baseInfo ) override
     {
-        auto info = AssetDatabase::FindAssetInfo<DerivedInfo>( assetType, assetName );
-        LOG( "Converting out of date asset %s %s...", g_assetNames[assetType], info->name.c_str() );
+        LOG( "Converting out of date asset %s %s...", g_assetNames[assetType], baseInfo->name.c_str() );
+        return ConvertInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
+    }
+
+    virtual void AddGeneratedAssets( ConstBaseCreateInfoPtr& baseInfo ) override
+    {
+        AddGeneratedAssetsInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
+    }
+
+protected:
+    virtual std::string GetCacheNameInternal( ConstDerivedInfoPtr derivedCreateInfo ) = 0;
+    virtual AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr derivedCreateInfo, time_t cacheTimestamp ) = 0;
+    virtual void AddGeneratedAssetsInternal( ConstDerivedInfoPtr& derivedCreateInfo ) {}
+
+    virtual bool ConvertInternal( ConstDerivedInfoPtr& derivedCreateInfo )
+    {
         DerivedAsset asset;
-        if ( !asset.Load( info.get() ) )
+        if ( !asset.Load( derivedCreateInfo.get() ) )
         {
             return false;
         }
 
-        std::string cacheName = GetCacheName( info );
+        std::string cacheName = GetCacheName( derivedCreateInfo );
         if ( !AssetCache::CacheAsset( assetType, cacheName, &asset ) )
         {
-            LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], assetName.c_str(), cacheName.c_str() );
+            LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], derivedCreateInfo->name.c_str(), cacheName.c_str() );
             return false;
         }
 
         return true;
     }
-
-protected:
-    virtual std::string GetCacheNameInternal( ConstInfoPtr info ) = 0;
-    virtual AssetStatus IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) = 0;
 };
 
 } // namespace PG

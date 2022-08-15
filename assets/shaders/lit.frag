@@ -30,10 +30,10 @@ layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 void main()
 {
 	vec3 albedo = material.albedoTint.rgb;
-	if ( material.albedoMapIndex != PG_INVALID_TEXTURE_INDEX )
-	{
-		albedo *= texture( textures[material.albedoMapIndex], texCoords ).rgb;
-	}
+	// if ( material.albedoMapIndex != PG_INVALID_TEXTURE_INDEX )
+	// {
+	// 	albedo *= texture( textures[material.albedoMapIndex], texCoords ).rgb;
+	// }
     ///float metalness = material.metalnessTint;
 	///if ( material.metalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
 	///{

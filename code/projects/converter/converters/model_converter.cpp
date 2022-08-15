@@ -3,7 +3,7 @@
 namespace PG
 {
 
-std::string ModelConverter::GetCacheNameInternal( ConstInfoPtr info )
+std::string ModelConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
     cacheName += "_" + std::to_string( std::hash<std::string>{}( info->filename ) );
@@ -11,7 +11,7 @@ std::string ModelConverter::GetCacheNameInternal( ConstInfoPtr info )
 }
 
 
-AssetStatus ModelConverter::IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp )
+AssetStatus ModelConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
     AddFastfileDependency( info->filename );
     return IsFileOutOfDate( cacheTimestamp, info->filename ) ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;

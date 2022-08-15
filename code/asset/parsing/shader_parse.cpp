@@ -14,7 +14,7 @@ static std::unordered_map< std::string, ShaderStage > shaderStageMap =
     { "compute",                 ShaderStage::COMPUTE },
 };
 
-bool ShaderParser::ParseInternal( const rapidjson::Value& value, InfoPtr info )
+bool ShaderParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ShaderCreateInfo&> mapping(
     {

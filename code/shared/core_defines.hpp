@@ -45,10 +45,18 @@
 #define _PG_WRAP11( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11 ) WRAPF(_1),WRAPF(_2),WRAPF(_3),WRAPF(_4),WRAPF(_5),WRAPF(_6),WRAPF(_7),WRAPF(_8),WRAPF(_9),WRAPF(_10),WRAPF(_11)
 #define _PG_WRAP12( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12 ) WRAPF(_1),WRAPF(_2),WRAPF(_3),WRAPF(_4),WRAPF(_5),WRAPF(_6),WRAPF(_7),WRAPF(_8),WRAPF(_9),WRAPF(_10),WRAPF(_11),WRAPF(_12)
 
-template <typename EnumType>
-constexpr std::underlying_type_t<EnumType> Underlying( EnumType val )
+// https://stackoverflow.com/questions/36568050/sfinae-not-happening-with-stdunderlying-type
+// since std::underlying_type is undefined for non-enums
+template <typename T, bool = std::is_enum<T>::value>
+struct relaxed_underlying_type { using type = typename std::underlying_type<T>::type; };
+
+template <typename T>
+struct relaxed_underlying_type<T, false> { using type = T; };
+
+template <typename T>
+constexpr relaxed_underlying_type<T>::type Underlying( T val )
 {
-    return static_cast<std::underlying_type_t<EnumType>>( val );
+    return static_cast<relaxed_underlying_type<T>::type>( val );
 }
 
 #define PG_DEFINE_ENUM_OPS( T )                                                                                                                  \

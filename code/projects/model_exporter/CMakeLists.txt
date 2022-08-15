@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project(ModelExporter)
 
 include(helpful_functions)
+include(source_files)
 
 set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/model_exporter_main.cpp
@@ -9,12 +10,11 @@ set(SRC
     ${PROGRESSION_DIR}/code/core/pixel_formats.hpp
 	${PROGRESSION_DIR}/code/core/time.cpp
     ${PROGRESSION_DIR}/code/core/time.hpp
-    ${PROGRESSION_DIR}/code/shared/assert.hpp
-    ${PROGRESSION_DIR}/code/shared/filesystem.cpp
-    ${PROGRESSION_DIR}/code/shared/filesystem.hpp
-    ${PROGRESSION_DIR}/code/shared/logger.cpp
-    ${PROGRESSION_DIR}/code/shared/logger.hpp
+    
+    ${PRIMARY_SHARED_SRC}
 )
+
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SRC})
 
 set(LIBS ${ASSIMP_LIBS} OpenMP::OpenMP_CXX)
 

@@ -3,7 +3,7 @@
 namespace PG
 {
 
-bool ModelParser::ParseInternal( const rapidjson::Value& value, InfoPtr info )
+bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ModelCreateInfo&> mapping(
     {

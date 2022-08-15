@@ -17,7 +17,7 @@ void InitConverters()
     g_converters[ASSET_TYPE_SCRIPT] = std::make_shared<ScriptConverter>();
     g_converters[ASSET_TYPE_MODEL] = std::make_shared<ModelConverter>();
     g_converters[ASSET_TYPE_SHADER] = std::make_shared<ShaderConverter>();
-    g_converters[ASSET_TYPE_TEXTURESET] = nullptr;
+    g_converters[ASSET_TYPE_TEXTURESET] = std::make_shared<BaseAssetConverter>( ASSET_TYPE_TEXTURESET ); // pass through, as texturesets aren't actually converted
 }
 
 
@@ -25,10 +25,7 @@ void ShutdownConverters()
 {
     for ( int i = 0; i < NUM_ASSET_TYPES; ++i )
     {
-        if ( g_converters[i] )
-        {
-            g_converters[i].reset();
-        }
+        g_converters[i].reset();
     }
 }
 

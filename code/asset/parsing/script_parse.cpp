@@ -3,7 +3,7 @@
 namespace PG
 {
 
-bool ScriptParser::ParseInternal( const rapidjson::Value& value, InfoPtr info )
+bool ScriptParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ScriptCreateInfo&> mapping(
     {

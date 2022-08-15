@@ -12,7 +12,7 @@ public:
     TexturesetParser() : BaseAssetParserTemplate( ASSET_TYPE_TEXTURESET ) {}
 
 protected:
-    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override;
 };
 
 

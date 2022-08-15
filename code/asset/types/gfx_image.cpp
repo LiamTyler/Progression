@@ -1,13 +1,8 @@
 #include "asset/types/gfx_image.hpp"
-#include "glm/glm.hpp"
-#include "image.hpp"
+#include "core/image_processing.hpp"
 #include "renderer/r_globals.hpp"
-#include "shared/assert.hpp"
-#include "shared/color_spaces.hpp"
-#include "shared/float_conversions.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
-#include "stb/stb_image_resize.h"
 #include <algorithm>
 
 namespace PG
@@ -79,111 +74,62 @@ void GfxImage::UploadToGpu()
 }
 
 
-static bool Load_GfxImage_2D( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
+static std::string GetImageFullPath( const std::string& filename )
 {
-    /*
-    gfxImage->width     = w;
-    gfxImage->height    = h;
-    gfxImage->numFaces  = 1;
-    gfxImage->mipLevels = CalculateNumMips( w, h );
-    gfxImage->totalSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
-    gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
-
-    */
-    return false;
+    return IsImageFilenameBuiltin( filename ) ? filename : PG_ASSET_DIR + filename;
 }
 
 
-static bool Load_GfxImage_Cubemap( GfxImage* gfxImage, const GfxImageCreateInfo& createInfo )
+static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
-    /*
-    ImageCubemapCreateInfo srcImgCreateInfo;
-    if ( createInfo.inputType == ImageInputType::EQUIRECTANGULAR )
-    {
-        srcImgCreateInfo.equirectangularFilename = createInfo.filename;
-    }
-    else if ( createInfo.inputType == ImageInputType::FLATTENED_CUBEMAP )
-    {
-        srcImgCreateInfo.flattenedCubemapFilename = createInfo.filename;
-    }
-    else if ( createInfo.inputType == ImageInputType::INDIVIDUAL_FACES )
-    {
-        for ( int i = 0; i < 6; ++i )
-        {
-            srcImgCreateInfo.faceFilenames[i] = createInfo.faceFilenames[i];
-        }
-    }
-    srcImgCreateInfo.flipVertically = createInfo.flipVertically;
-    ImageCubemap srcImg;
-    if ( !srcImg.Load( &srcImgCreateInfo ) )
+    CompositeImageInput compositeInfo;
+    compositeInfo.compositeType = CompositeType::REMAP;
+    compositeInfo.outputColorSpace = ColorSpace::SRGB;
+    compositeInfo.sourceImages.resize( 2 );
+
+    compositeInfo.sourceImages[0].filename = GetImageFullPath( createInfo->filenames[0] );
+    compositeInfo.sourceImages[0].colorSpace = ColorSpace::SRGB;
+    compositeInfo.sourceImages[0].remaps.push_back( { Channel::R, Channel::R } );
+    compositeInfo.sourceImages[0].remaps.push_back( { Channel::G, Channel::G } );
+    compositeInfo.sourceImages[0].remaps.push_back( { Channel::B, Channel::B } );
+
+    compositeInfo.sourceImages[1].filename = GetImageFullPath( createInfo->filenames[1] );
+    compositeInfo.sourceImages[1].colorSpace = ColorSpace::LINEAR;
+    compositeInfo.sourceImages[1].remaps.push_back( { createInfo->compositeSourceChannels[1], Channel::A } );
+
+    FloatImage composite = CompositeImage( compositeInfo );
+    if ( !composite.data )
     {
         return false;
     }
 
-    int w = srcImg.faces[0].width;
-    int h = srcImg.faces[0].height;
-    size_t mipChainSizeInBytes = CalculateTotalFaceSizeWithMips( w, h, PixelFormat::R32_G32_B32_A32_FLOAT );
-    glm::vec4* pixelsAllMips = static_cast< glm::vec4* >( malloc( 6 * mipChainSizeInBytes ) );
-    int faceOrder[] = { FACE_RIGHT, FACE_LEFT, FACE_TOP, FACE_BOTTOM, FACE_FRONT, FACE_BACK }; // shouldnt the end of this be back then front, not the other way around?
-    for ( int face = 0; face < 6; ++face )
-    {
-        glm::vec4* faceMip0 = pixelsAllMips + face * (mipChainSizeInBytes / sizeof( glm::vec4 ));
-        memcpy( faceMip0, srcImg.faces[faceOrder[face]].pixels, w * h * sizeof( glm::vec4 ) );
-        GenerateMipmaps_Float32( faceMip0, w, h, faceMip0, createInfo.semantic );
-    }
-
-    gfxImage->width     = w;
-    gfxImage->height    = h;
-    gfxImage->mipLevels = CalculateNumMips( w, h );
-    gfxImage->numFaces  = 6;
-    gfxImage->totalSizeInBytes = 6 * CalculateTotalFaceSizeWithMips( w, h, gfxImage->pixelFormat );
-    gfxImage->pixels = static_cast< unsigned char* >( malloc( gfxImage->totalSizeInBytes ) );
-    ConvertRGBA32Float_AllMips( gfxImage->pixels, w, h, gfxImage->numFaces, gfxImage->mipLevels, pixelsAllMips, gfxImage->pixelFormat );
-    
-    free( pixelsAllMips );
-
+    MipmapGenerationSettings settings;
+    settings.clampHorizontal = createInfo->clampHorizontal;
+    settings.clampVertical = createInfo->clampVertical;
+    std::vector<FloatImage> floatMips = GenerateMipmaps( composite, settings );
+    std::vector<RawImage2D> compressedMips = RawImage2DFromFloatImages( floatMips, ImageFormat::BC7_UNORM );
+    *gfxImage = RawImage2DMipsToGfxImage( compressedMips, compositeInfo.outputColorSpace == ColorSpace::SRGB );
 
     return true;
-    */
-    return false;
 }
 
 
 bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 {
-    return false;
-    /*
     PG_ASSERT( baseInfo );
     const GfxImageCreateInfo* createInfo = (const GfxImageCreateInfo*)baseInfo;
-    name        = createInfo->name;
-    imageType   = createInfo->imageType;
-    pixelFormat = createInfo->dstPixelFormat;
-    depth       = 1;
-    mipLevels   = 1;
-    numFaces    = 1;
+    name = createInfo->name;
 
-    if ( createInfo->dstPixelFormat == PixelFormat::INVALID )
+    switch ( createInfo->semantic )
     {
-        pixelFormat = ChoosePixelFormatFromSemantic( createInfo->semantic );
-    }
-
-    bool success;
-    if ( createInfo->imageType == Gfx::ImageType::TYPE_2D )
-    {
-        success = Load_GfxImage_2D( this, *createInfo );
-    }
-    else if ( createInfo->imageType == Gfx::ImageType::TYPE_CUBEMAP )
-    {
-        success = Load_GfxImage_Cubemap( this, *createInfo );
-    }
-    else
-    {
-        LOG_ERR( "GfxImageType '%d' not supported yet", static_cast< int >( createInfo->imageType ) );
-        success = false;
+    case GfxImageSemantic::ALBEDO_METALNESS:
+        return Load_AlbedoMetalness( this, createInfo );
+    default:
+        LOG_ERR( "GfxImage::Load not implemented yet for semantic %d", Underlying( createInfo->semantic ) );
+        return false;
     }
     
-    return success;
-    */
+    return true;
 }
 
 
@@ -235,18 +181,24 @@ size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFor
 {
     PG_ASSERT( width > 0 && height > 0 );
     PG_ASSERT( format != PixelFormat::INVALID );
-    PG_ASSERT( !PixelFormatIsCompressed( format ), "compressed format not supported yet" );
+    bool isCompressed = PixelFormatIsCompressed( format );
     uint32_t w = width;
     uint32_t h = height;
     if ( numMips == 0 )
     {
         numMips = CalculateNumMips( w, h );
     }
-    int bytesPerPixel = NumBytesPerPixel( format );
+
+    uint32_t bytesPerPixel = NumBytesPerPixel( format );
     size_t currentSize = 0;
     for ( uint32_t mipLevel = 0; mipLevel < numMips; ++mipLevel )
     {
-        currentSize += w * h * bytesPerPixel;
+        uint32_t paddedWidth  = isCompressed ? (w + 3) & ~3u : w;
+        uint32_t paddedHeight = isCompressed ? (h + 3) & ~3u : h;
+        uint32_t size = paddedWidth * paddedHeight * bytesPerPixel;
+        if ( isCompressed ) size /= 16;
+        currentSize += size;
+
         w = std::max( 1u, w >> 1 );
         h = std::max( 1u, h >> 1 );
     }
@@ -332,12 +284,11 @@ PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB )
 }
 
 
-GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, const std::string& name, bool isSRGB )
+GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, bool isSRGB )
 {
     if ( mips.empty() ) return {};
 
     GfxImage gfxImage;
-    gfxImage.name = name;
     gfxImage.imageType = Gfx::ImageType::TYPE_2D;
     gfxImage.width = mips[0].width;
     gfxImage.height = mips[0].height;

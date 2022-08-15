@@ -2,14 +2,22 @@
 #include "asset/parsing/base_asset_parse.hpp"
 #include "core/time.hpp"
 #include "shared/filesystem.hpp"
+#include "shared/file_dependency.hpp"
 #include "shared/platform_defines.hpp"
+#include <fstream>
 #include <unordered_map>
 
 
 namespace PG::AssetDatabase
 {
 
-static std::unordered_map< std::string, std::shared_ptr<BaseAssetCreateInfo> > s_assetInfos[AssetType::NUM_ASSET_TYPES];
+//struct AssetInfo
+//{
+//    std::shared_ptr<BaseAssetCreateInfo> createInfo;
+//};
+//static std::unordered_map<std::string, std::shared_ptr<BaseAssetCreateInfo>> s_previousAssetInfo[AssetType::NUM_ASSET_TYPES];
+
+static std::unordered_map<std::string, std::shared_ptr<BaseAssetCreateInfo>> s_assetInfos[AssetType::NUM_ASSET_TYPES];
 
 
 static bool ParseAssetFile( const std::string& filename )
@@ -18,9 +26,10 @@ static bool ParseAssetFile( const std::string& filename )
     json::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
-        LOG_WARN( "Skipping asset file %s", filename.c_str() );
         return false;
     }
+    time_t fileTimestamp = GetFileTimestamp( filename );
+
     for ( json::Value::ConstValueIterator assetIter = document.Begin(); assetIter != document.End(); ++assetIter )
     {
         std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
@@ -36,26 +45,14 @@ static bool ParseAssetFile( const std::string& filename )
                 }
                 else
                 {
-                    std::shared_ptr<BaseAssetCreateInfo> parent = nullptr;
-                    if ( value.HasMember( "parent" ) )
-                    {
-                        auto it = s_assetInfos[typeIndex].find( value["parent"].GetString() );
-                        if ( it == s_assetInfos[typeIndex].end() )
-                        {
-                            LOG_ERR( "Parent %s for asset %s does not exist! Must be declared in same asset file to inherit.", value["parent"].GetString(), assetName.c_str() );
-                        }
-                        else
-                        {
-                            parent = it->second;
-                        }
-                    }
-                    auto createInfo = g_assetParsers[typeIndex]->Parse( value, parent );
-                    if ( !createInfo )
+                    std::shared_ptr<BaseAssetCreateInfo> info;
+                    info = g_assetParsers[typeIndex]->Parse( value );
+                    if ( !info )
                     {
                         return false;
                     }
-                    createInfo->name = assetName;
-                    s_assetInfos[typeIndex][assetName] = createInfo;
+                    info->name = assetName;
+                    s_assetInfos[typeIndex][assetName] = info;
                 }
 
                 break;
@@ -66,20 +63,49 @@ static bool ParseAssetFile( const std::string& filename )
     return true;
 }
 
+/*
+void TryLoadCache()
+{
+    std::ifstream in( PG_ASSET_DIR "cache/paf_cache.bin", std::ios::binary );
+    if ( !in ) return;
+
+    for ( int typeIndex = 0; typeIndex < NUM_ASSET_TYPES; ++typeIndex )
+    {
+        uint32_t numAssets;
+        in >> numAssets;
+        s_previousAssetMetadata[typeIndex].reserve( numAssets );
+
+        AssetMetadata metadata;
+        std::string name;
+        uint32_t strLen;
+        in >> strLen;
+        name.resize( strLen );
+        in.read( &name[0], strLen );
+        in >> metadata.hash;
+        in >> metadata.timestamp;
+
+        s_previousAssetMetadata[typeIndex][name] = metadata;
+    }
+
+}
+*/
 
 bool Init()
 {
     Time::Point startTime = Time::GetTimePoint();
+    //TryLoadCache();
 
-    namespace fs = std::filesystem;
-    for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )
     {
-        if ( entry.is_regular_file() && GetFileExtension( entry.path().string() ) == ".paf" )
+        namespace fs = std::filesystem;
+        for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )
         {
-            if ( !ParseAssetFile( entry.path().string() ) )
+            if ( entry.is_regular_file() && GetFileExtension( entry.path().string() ) == ".paf" )
             {
-                LOG_ERR( "Failed to initialize asset database" );
-                return false;
+                if ( !ParseAssetFile( entry.path().string() ) )
+                {
+                    LOG_ERR( "Failed to initialize asset database" );
+                    return false;
+                }
             }
         }
     }

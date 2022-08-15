@@ -457,8 +457,8 @@ std::vector<FloatImage> GenerateMipmaps( const FloatImage& image, const MipmapGe
     uint32_t w = image.width;
     uint32_t h = image.height;
     uint32_t numChannels = image.numChannels;
-    stbir_edge edgeModeU = settings.clampU ? STBIR_EDGE_CLAMP : STBIR_EDGE_WRAP;
-    stbir_edge edgeModeV = settings.clampV ? STBIR_EDGE_CLAMP : STBIR_EDGE_WRAP;
+    stbir_edge edgeModeU = settings.clampHorizontal ? STBIR_EDGE_CLAMP : STBIR_EDGE_WRAP;
+    stbir_edge edgeModeV = settings.clampVertical ? STBIR_EDGE_CLAMP : STBIR_EDGE_WRAP;
     for ( uint32_t mipLevel = 0; mipLevel < numMips; ++mipLevel )
     {
         FloatImage mip( w, h, image.numChannels );

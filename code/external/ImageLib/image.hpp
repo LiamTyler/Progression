@@ -180,6 +180,15 @@ inline bool IsImageFilenameBuiltin( const std::string& filename )
     return !filename.empty() && filename[0] == '$';
 }
 
+enum class Channel : uint8_t
+{
+    R = 0,
+    G = 1,
+    B = 2,
+    A = 3,
+
+    COUNT = 4
+};
 
 struct RawImage2D
 {
@@ -286,8 +295,8 @@ std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage>
 
 struct MipmapGenerationSettings
 {
-    bool clampU = false;
-    bool clampV = false;
+    bool clampHorizontal = false;
+    bool clampVertical = false;
 };
 
 std::vector<FloatImage> GenerateMipmaps( const FloatImage& floatImage, const MipmapGenerationSettings& settings );

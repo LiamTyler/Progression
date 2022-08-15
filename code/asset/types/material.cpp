@@ -12,7 +12,6 @@
 namespace PG
 {
 
-
 bool Material::FastfileLoad( Serializer* serializer )
 {
     PG_ASSERT( serializer );
@@ -20,7 +19,7 @@ bool Material::FastfileLoad( Serializer* serializer )
     serializer->Read( name );
     serializer->Read( albedoTint );
     serializer->Read( metalnessTint );
-    serializer->Read( roughnessTint );
+    //serializer->Read( roughnessTint );
     std::string imgName;
     serializer->Read( imgName );
     albedoMetalnessImage = AssetManager::Get<GfxImage>( imgName );
@@ -35,7 +34,7 @@ bool Material::FastfileSave( Serializer* serializer ) const
     serializer->Write( name );
     serializer->Write( albedoTint );
     serializer->Write( metalnessTint );
-    serializer->Write( roughnessTint );
+    //serializer->Write( roughnessTint );
     std::string imgName = albedoMetalnessImage ? albedoMetalnessImage->name : "";
     serializer->Write( imgName );
 

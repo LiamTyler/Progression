@@ -178,13 +178,6 @@ consteval FormatCheckError CheckIntegralLength( LengthSpecifier fmtLen, size_t t
     return FormatCheckError::NONE;
 }
 
-// https://stackoverflow.com/questions/36568050/sfinae-not-happening-with-stdunderlying-type
-// since std::underlying_type is undefined for non-enums
-template <typename T, bool = std::is_enum<T>::value>
-struct relaxed_underlying_type { using type = typename std::underlying_type<T>::type; };
-
-template <typename T>
-struct relaxed_underlying_type<T, false> { using type = T; };
 
 template <typename ...Args> requires (sizeof...(Args) == 0)
 consteval FormatCheckError CheckFromat( std::string_view fmt )

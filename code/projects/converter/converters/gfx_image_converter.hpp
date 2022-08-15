@@ -12,8 +12,8 @@ public:
     GfxImageConverter() : BaseAssetConverterTemplate( ASSET_TYPE_GFX_IMAGE ) {}
 
 protected:
-    std::string GetCacheNameInternal( ConstInfoPtr info ) override;
-    AssetStatus IsAssetOutOfDateInternal( ConstInfoPtr info, time_t cacheTimestamp ) override;
+    std::string GetCacheNameInternal( ConstDerivedInfoPtr info ) override;
+    AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp ) override;
 };
 
 } // namespace PG

@@ -6,7 +6,7 @@ namespace PG
 {
 
 
-enum class PixelFormat
+enum class PixelFormat : uint8_t
 {
     INVALID                 = 0,
 
@@ -114,11 +114,11 @@ enum class PixelFormat
     NUM_PIXEL_FORMATS
 };
 
-int NumChannelsInPixelFromat( PixelFormat format );
+uint32_t NumChannelsInPixelFromat( PixelFormat format );
 
-int NumBytesPerPixel( PixelFormat format );
+uint32_t NumBytesPerPixel( PixelFormat format );
 
-int NumBytesPerChannel( PixelFormat format );
+uint32_t NumBytesPerChannel( PixelFormat format );
 
 bool PixelFormatIsNormalized( PixelFormat format );
 

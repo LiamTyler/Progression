@@ -21,7 +21,7 @@ public:
     BaseAssetParser( AssetType inAssetType ) : assetType( inAssetType ) {}
     virtual ~BaseAssetParser() = default;
 
-    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, ConstBaseInfoPtr parent ) = 0;
+    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value ) = 0;
 };
 
 
@@ -29,18 +29,14 @@ template<typename DerivedInfo>
 class BaseAssetParserTemplate : public BaseAssetParser
 {
 public:
-    using InfoPtr = std::shared_ptr<DerivedInfo>;
+    using DerivedInfoPtr = std::shared_ptr<DerivedInfo>;
 
     BaseAssetParserTemplate( AssetType inAssetType ) : BaseAssetParser( inAssetType ) {}
     virtual ~BaseAssetParserTemplate() = default;
 
-    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value, ConstBaseInfoPtr parent ) override
+    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value ) override
     {
         auto info = std::make_shared<DerivedInfo>();
-        if ( parent )
-        {
-            *info = *std::static_pointer_cast<const DerivedInfo>( parent );
-        }
         const std::string assetName = value["name"].GetString();
         info->name = assetName;
 
@@ -52,7 +48,7 @@ public:
     }
 
 protected:
-    virtual bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) = 0;
+    virtual bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) = 0;
 };
 
 
@@ -64,6 +60,12 @@ extern const std::shared_ptr<BaseAssetParser> g_assetParsers[NUM_ASSET_TYPES];
 static EnumName EnumName ## _StringToEnum( std::string_view str ) \
 { \
     static std::pair<std::string, EnumName> arr[] = \
+    {
+
+#define BEGIN_STR_TO_ENUM_MAP_SCOPED( EnumName, Namespace ) \
+static Namespace::EnumName EnumName ## _StringToEnum( std::string_view str ) \
+{ \
+    static std::pair<std::string, Namespace::EnumName> arr[] = \
     {
 
 #define STR_TO_ENUM_VALUE( EnumName, val ) { #val, EnumName::val },

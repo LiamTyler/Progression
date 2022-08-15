@@ -8,9 +8,9 @@ namespace PG
 {
 
 
-int NumChannelsInPixelFromat( PixelFormat format )
+uint32_t NumChannelsInPixelFromat( PixelFormat format )
 {
-    int components[] =
+    uint32_t components[] =
     {
         0,  // INVALID
         1,  // R8_UNORM
@@ -99,16 +99,16 @@ int NumChannelsInPixelFromat( PixelFormat format )
         3,  // BC7_SRGB  (can be RGB or RGBA)
     };
 
-    PG_ASSERT( static_cast< int >( format )   < static_cast< int >( PixelFormat::NUM_PIXEL_FORMATS ) );
-    static_assert( ARRAY_COUNT( components ) == static_cast< int >( PixelFormat::NUM_PIXEL_FORMATS ) );
+    PG_ASSERT( Underlying( format ) < Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
+    static_assert( ARRAY_COUNT( components ) == Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
 
     return components[static_cast< int >( format )];
 }
 
 
-int NumBytesPerPixel( PixelFormat format )
+uint32_t NumBytesPerPixel( PixelFormat format )
 {
-    int size[] =
+    uint32_t size[] =
     {
         0,  // INVALID
 
@@ -215,14 +215,14 @@ int NumBytesPerPixel( PixelFormat format )
         16, // BC7_SRGB
     };
 
-    PG_ASSERT( static_cast< int >( format ) < static_cast< int >( PixelFormat::NUM_PIXEL_FORMATS ) );
-    static_assert( ARRAY_COUNT( size ) == static_cast< int >( PixelFormat::NUM_PIXEL_FORMATS ) );
+    PG_ASSERT( Underlying( format ) < Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
+    static_assert( ARRAY_COUNT( size ) == Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
 
     return size[static_cast< int >( format )];
 }
 
 
-int NumBytesPerChannel( PixelFormat format )
+uint32_t NumBytesPerChannel( PixelFormat format )
 {
     return NumBytesPerPixel( format ) / NumChannelsInPixelFromat( format );
 }
@@ -367,22 +367,22 @@ bool PixelFormatIsFloat( PixelFormat format )
 
 bool PixelFormatHasDepthFormat( PixelFormat format )
 {
-    int f = static_cast< int >( format );
-    return static_cast< int >( PixelFormat::DEPTH_16_UNORM ) <= f && f <= static_cast< int >( PixelFormat::DEPTH_32_FLOAT_STENCIL_8_UINT );
+    auto f = Underlying( format );
+    return Underlying( PixelFormat::DEPTH_16_UNORM ) <= f && f <= Underlying( PixelFormat::DEPTH_32_FLOAT_STENCIL_8_UINT );
 }
 
 
 bool PixelFormatHasStencil( PixelFormat format )
 {
-    int f = static_cast< int >( format );
-    return static_cast< int >( PixelFormat::DEPTH_16_UNORM_STENCIL_8_UINT ) <= f && f <= static_cast< int >( PixelFormat::STENCIL_8_UINT );
+    auto f = Underlying( format );
+    return Underlying( PixelFormat::DEPTH_16_UNORM_STENCIL_8_UINT ) <= f && f <= Underlying( PixelFormat::STENCIL_8_UINT );
 }
 
 
 bool PixelFormatIsCompressed( PixelFormat format )
 {
-    int f = static_cast< int >( format );
-    return static_cast< int >( PixelFormat::BC1_RGB_UNORM ) <= f && f < static_cast< int >( PixelFormat::NUM_PIXEL_FORMATS );
+    auto f = Underlying( format );
+    return Underlying( PixelFormat::BC1_RGB_UNORM ) <= f && f < Underlying( PixelFormat::NUM_PIXEL_FORMATS );
 }
 
 
@@ -501,7 +501,7 @@ std::string PixelFormatName( PixelFormat format )
         "BC7_SRGB",       // BC7_SRGB
     };
 
-    return names[static_cast< int >( format )];
+    return names[Underlying( format )];
 }
 
 

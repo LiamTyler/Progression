@@ -12,7 +12,7 @@ public:
     ShaderParser() : BaseAssetParserTemplate( ASSET_TYPE_SHADER ) {}
 
 protected:
-    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override;
 };
 
 

@@ -12,7 +12,7 @@ public:
     ModelParser() : BaseAssetParserTemplate( ASSET_TYPE_MODEL ) {}
 
 protected:
-    bool ParseInternal( const rapidjson::Value& value, InfoPtr info ) override;
+    bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override;
 };
 
 } // namespace PG

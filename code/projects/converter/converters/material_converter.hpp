@@ -11,7 +11,7 @@ class MaterialConverter : public BaseAssetConverterTemplate<Material, MaterialCr
 public:
     MaterialConverter() : BaseAssetConverterTemplate( ASSET_TYPE_MATERIAL ) {}
 
-    virtual void AddGeneratedAssetsInternal( ConstDerivedInfoPtr& baseInfo ) override;
+    virtual void AddReferencedAssetsInternal( ConstDerivedInfoPtr& baseInfo ) override;
 
 protected:
     std::string GetCacheNameInternal( ConstDerivedInfoPtr info ) override;

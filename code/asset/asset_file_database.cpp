@@ -12,14 +12,7 @@
 namespace PG::AssetDatabase
 {
 
-//struct AssetInfo
-//{
-//    std::shared_ptr<BaseAssetCreateInfo> createInfo;
-//};
-//static std::unordered_map<std::string, std::shared_ptr<BaseAssetCreateInfo>> s_previousAssetInfo[AssetType::NUM_ASSET_TYPES];
-
 static std::unordered_map<std::string, std::shared_ptr<BaseAssetCreateInfo>> s_assetInfos[AssetType::NUM_ASSET_TYPES];
-
 
 static bool ParseAssetFile( const std::string& filename )
 {
@@ -64,49 +57,20 @@ static bool ParseAssetFile( const std::string& filename )
     return true;
 }
 
-/*
-void TryLoadCache()
-{
-    std::ifstream in( PG_ASSET_DIR "cache/paf_cache.bin", std::ios::binary );
-    if ( !in ) return;
-
-    for ( int typeIndex = 0; typeIndex < NUM_ASSET_TYPES; ++typeIndex )
-    {
-        uint32_t numAssets;
-        in >> numAssets;
-        s_previousAssetMetadata[typeIndex].reserve( numAssets );
-
-        AssetMetadata metadata;
-        std::string name;
-        uint32_t strLen;
-        in >> strLen;
-        name.resize( strLen );
-        in.read( &name[0], strLen );
-        in >> metadata.hash;
-        in >> metadata.timestamp;
-
-        s_previousAssetMetadata[typeIndex][name] = metadata;
-    }
-
-}
-*/
 
 bool Init()
 {
     Time::Point startTime = Time::GetTimePoint();
-    //TryLoadCache();
 
+    namespace fs = std::filesystem;
+    for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )
     {
-        namespace fs = std::filesystem;
-        for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )
+        if ( entry.is_regular_file() && GetFileExtension( entry.path().string() ) == ".paf" )
         {
-            if ( entry.is_regular_file() && GetFileExtension( entry.path().string() ) == ".paf" )
+            if ( !ParseAssetFile( entry.path().string() ) )
             {
-                if ( !ParseAssetFile( entry.path().string() ) )
-                {
-                    LOG_ERR( "Failed to initialize asset database" );
-                    return false;
-                }
+                LOG_ERR( "Failed to initialize asset database" );
+                return false;
             }
         }
     }

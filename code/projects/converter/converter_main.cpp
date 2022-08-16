@@ -117,18 +117,8 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                 if ( assetTypeName == g_assetNames[assetTypeIdx] )
                 {
                     auto createInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
-                    g_converters[assetTypeIdx]->AddGeneratedAssets( createInfo );
+                    g_converters[assetTypeIdx]->AddReferencedAssets( createInfo );
                     AddUsedAsset( (AssetType)assetTypeIdx, createInfo );
-                    if ( assetTypeIdx == ASSET_TYPE_MODEL )
-                    {
-                        auto modelInfo = std::static_pointer_cast<ModelCreateInfo>( createInfo );
-                        std::vector<std::string> materialNames = GetModelMaterialList( modelInfo->filename );
-                        for ( size_t matIdx = 0; matIdx < materialNames.size(); ++matIdx )
-                        {
-                            AddUsedAsset( ASSET_TYPE_MATERIAL, AssetDatabase::FindAssetInfo( ASSET_TYPE_MATERIAL, materialNames[matIdx] ) );
-                        }
-                    }
-
                     found = true;
                     break;
                 }
@@ -148,27 +138,13 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             return false;
         }
 
-        scene->registry.view<ModelRenderer>().each( [&]( ModelRenderer& component )
-        {
-            if ( component.materials.empty() && component.model->originalMaterials.empty() )
-            {
-                auto info = AssetDatabase::FindAssetInfo<ModelCreateInfo>( ASSET_TYPE_MODEL, component.model->name );
-                std::vector<std::string> materialNames = GetModelMaterialList( info->filename );
-                component.model->originalMaterials.resize( materialNames.size() );
-                for ( size_t matIdx = 0; matIdx < materialNames.size(); ++matIdx )
-                {
-                    component.model->originalMaterials[matIdx] = AssetManager::Get<Material>( materialNames[matIdx] );
-                }
-            }
-        });
-
         for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
         {
             AssetType assetType = (AssetType)assetTypeIdx;
             for ( auto [assetName, _] : AssetManager::g_resourceMaps[assetTypeIdx] )
             {
                 auto createInfo = AssetDatabase::FindAssetInfo( assetType, assetName );
-                g_converters[assetType]->AddGeneratedAssets( createInfo );
+                g_converters[assetType]->AddReferencedAssets( createInfo );
                 AddUsedAsset( assetType, createInfo );
             }
         }

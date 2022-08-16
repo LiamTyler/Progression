@@ -13,7 +13,7 @@
 namespace PG
 {
 
-void MaterialConverter::AddGeneratedAssetsInternal( ConstDerivedInfoPtr& matInfo )
+void MaterialConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& matInfo )
 {
     std::string texturesetName = matInfo->texturesetName.empty() ? "default" : matInfo->texturesetName;
     auto texturesetInfo = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );

@@ -1,7 +1,20 @@
 #include "model_converter.hpp"
+#include "asset/types/material.hpp"
 
 namespace PG
 {
+
+void ModelConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& modelInfo )
+{
+    auto matCreateInfo = std::make_shared<MaterialCreateInfo>();
+
+    std::vector<std::string> materialNames = GetModelMaterialList( modelInfo->filename );
+    for ( const auto& matName : materialNames )
+    {
+        AddUsedAsset( ASSET_TYPE_MATERIAL, AssetDatabase::FindAssetInfo( ASSET_TYPE_MATERIAL, matName ) );
+    }
+}
+
 
 std::string ModelConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {

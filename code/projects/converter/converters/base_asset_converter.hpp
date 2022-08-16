@@ -50,7 +50,7 @@ public:
     virtual std::string GetCacheName( ConstBaseCreateInfoPtr& baseInfo ) { return ""; }
     virtual AssetStatus IsAssetOutOfDate( ConstBaseCreateInfoPtr& baseInfo ) { return AssetStatus::UP_TO_DATE; }
     virtual bool Convert( ConstBaseCreateInfoPtr& baseInfo ) { return true; }
-    virtual void AddGeneratedAssets( ConstBaseCreateInfoPtr& baseInfo ) {}
+    virtual void AddReferencedAssets( ConstBaseCreateInfoPtr& baseInfo ) {}
 };
 
 
@@ -94,15 +94,15 @@ public:
         return ConvertInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
     }
 
-    virtual void AddGeneratedAssets( ConstBaseCreateInfoPtr& baseInfo ) override
+    virtual void AddReferencedAssets( ConstBaseCreateInfoPtr& baseInfo ) override
     {
-        AddGeneratedAssetsInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
+        AddReferencedAssetsInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
     }
 
 protected:
     virtual std::string GetCacheNameInternal( ConstDerivedInfoPtr derivedCreateInfo ) = 0;
     virtual AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr derivedCreateInfo, time_t cacheTimestamp ) = 0;
-    virtual void AddGeneratedAssetsInternal( ConstDerivedInfoPtr& derivedCreateInfo ) {}
+    virtual void AddReferencedAssetsInternal( ConstDerivedInfoPtr& derivedCreateInfo ) {}
 
     virtual bool ConvertInternal( ConstDerivedInfoPtr& derivedCreateInfo )
     {

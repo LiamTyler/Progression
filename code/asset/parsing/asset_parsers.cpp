@@ -149,9 +149,9 @@ bool ShaderParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr 
 {
     static JSONFunctionMapper<ShaderCreateInfo&> mapping(
     {
-        { "name",        []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.name     = v.GetString(); } },
+        { "name",        []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.name = v.GetString(); } },
         { "filename",    []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.filename = PG_ASSET_DIR "shaders/" + std::string( v.GetString() ); } },
-        { "shaderStage", []( const rapidjson::Value& v, ShaderCreateInfo& s ) { ShaderStage_StringToEnum( v.GetString() ); } },
+        { "shaderStage", []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.shaderStage = ShaderStage_StringToEnum( v.GetString() ); } },
     });
     mapping.ForEachMember( value, *info );
 

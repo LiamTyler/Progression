@@ -324,7 +324,7 @@ int main( int argc, char** argv )
             }
         }
     }
-    //std::swap( scenesToProcess[0], scenesToProcess[scenesToProcess.size() - 1] );
+    std::swap( scenesToProcess[0], scenesToProcess[scenesToProcess.size() - 1] );
 
     LOG( "" );
     for ( size_t i = 0; i < scenesToProcess.size(); ++i )
@@ -337,6 +337,8 @@ int main( int argc, char** argv )
         }
         LOG( "" );
     }
+
+    LOG( "Total time: %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
     
     ShutdownConverters();
     EngineShutdown();

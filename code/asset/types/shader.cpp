@@ -251,7 +251,7 @@ static bool CompilePreprocessedShaderToSPIRV( const ShaderCreateInfo& createInfo
 {
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;
-    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_2 );
+    options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3 );
     options.SetSourceLanguage( shaderc_source_language_glsl );
     // If optimization is used, then spirv-opt gets called, and it actually crashes on windows.
     // Only seems to crash when using the binaries that come with Vulkan while also linking + using the spirv-cross lib.

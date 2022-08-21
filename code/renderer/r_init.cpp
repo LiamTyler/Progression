@@ -76,15 +76,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 
     if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT )
     {
-        LOG_ERR( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_ERR( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
     }
     else if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT )
     {
-        LOG_WARN( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_WARN( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
     }
     else
     {
-        LOG( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
     }
 
     return VK_FALSE;
@@ -127,7 +127,7 @@ static bool CreateInstance()
     appInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
     appInfo.pEngineName        = "Progression";
     appInfo.engineVersion      = VK_MAKE_VERSION( 1, 0, 0 );
-    appInfo.apiVersion         = VK_API_VERSION_1_2;
+    appInfo.apiVersion         = VK_API_VERSION_1_3;
 
     // non-optional struct that specifies which global extension and validation layers to use
     VkInstanceCreateInfo createInfo = {};
@@ -230,7 +230,7 @@ static bool CreateDescriptorPool()
     poolSizes[9]  = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 50 };
     poolSizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 50 };
 
-    r_globals.descriptorPool = r_globals.device.NewDescriptorPool( 11, poolSizes, 1000 );
+    r_globals.descriptorPool = r_globals.device.NewDescriptorPool( 11, poolSizes, true, 1000 );
 
     return r_globals.descriptorPool;
 }

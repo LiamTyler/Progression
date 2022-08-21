@@ -1,4 +1,6 @@
 #include "base_asset_converter.hpp"
+#include "converters.hpp"
+#include "asset/asset_manager.hpp"
 #include <unordered_set>
 
 namespace PG
@@ -48,6 +50,7 @@ void ClearAllUsedAssets()
     for ( uint32_t assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
     {
         s_pendingAssets[assetTypeIdx].clear();
+        AssetManager::g_resourceMaps[assetTypeIdx].clear();
     }
 }
 
@@ -59,6 +62,7 @@ void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo )
     }
 
     s_pendingAssets[assetType].insert( createInfo );
+    g_converters[assetType]->AddReferencedAssets( createInfo );
 }
 
 std::vector<BaseCreateInfoPtr> GetUsedAssetsOfType( AssetType assetType )

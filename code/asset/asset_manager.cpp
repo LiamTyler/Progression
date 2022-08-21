@@ -51,6 +51,7 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType, const c
     }
     else
     {
+        LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)", name, g_assetNames[assetType] );
         asset->Free();
         delete asset;
     }

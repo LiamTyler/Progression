@@ -52,13 +52,15 @@ namespace Gfx
         createInfo.pQueueCreateInfos       = queueCreateInfos.data();
         createInfo.pEnabledFeatures        = &enabledFeatures;
         
-        VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures = {};
+        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = {};
         if ( features.bindless )
         {
-            indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
+            indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
             indexingFeatures.pNext = nullptr;
             indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
             indexingFeatures.runtimeDescriptorArray = VK_TRUE;
+            indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
+            indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
             createInfo.pNext = &indexingFeatures;
         }
         VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2 = {};
@@ -158,7 +160,7 @@ namespace Gfx
     }
 
 
-    DescriptorPool Device::NewDescriptorPool( int numPoolSizes, VkDescriptorPoolSize* poolSizes, uint32_t maxSets, const std::string& name ) const
+    DescriptorPool Device::NewDescriptorPool( int numPoolSizes, VkDescriptorPoolSize* poolSizes, bool bindless, uint32_t maxSets, const std::string& name ) const
     {
         DescriptorPool pool;
         pool.m_device = m_handle;
@@ -168,6 +170,10 @@ namespace Gfx
         poolInfo.poolSizeCount = numPoolSizes;
         poolInfo.pPoolSizes    = poolSizes;
         poolInfo.maxSets       = maxSets;
+        if ( bindless )
+        {
+            poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+        }
 
         VK_CHECK_RESULT( vkCreateDescriptorPool( m_handle, &poolInfo, nullptr, &pool.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) );
@@ -194,7 +200,7 @@ namespace Gfx
             {
 			    continue;
             }
-            stages = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+            stages = VK_SHADER_STAGE_ALL;
 
 		    uint32_t arraySize = layout.arraySizes[i];
             if ( arraySize == UINT32_MAX )
@@ -275,10 +281,11 @@ namespace Gfx
                 }
                 else
                 {
-                    bindFlag                    = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
+                    bindFlag                    = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
                     extendedInfo.pNext          = nullptr;
                     extendedInfo.bindingCount   = 1u;
                     extendedInfo.pBindingFlags  = &bindFlag;
+                    createInfo.flags           |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
                     createInfo.pNext            = &extendedInfo;
                 }
             }
@@ -441,6 +448,7 @@ namespace Gfx
         }
 
         VK_CHECK_RESULT( vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image ) );
+        //vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image );
 
         VkMemoryRequirements memRequirements;
         vkGetImageMemoryRequirements( m_handle, tex.m_image, &memRequirements );
@@ -527,10 +535,6 @@ namespace Gfx
     static PipelineResourceLayout CombineShaderResourceLayouts( Shader* const* shaders, int numShaders )
     {
         PipelineResourceLayout combinedLayout;
-	    // if (program.get_shader(ShaderStage::Vertex))
-		//     layout.attribute_mask = program.get_shader(ShaderStage::Vertex)->get_layout().input_mask;
-	    // if (program.get_shader(ShaderStage::Fragment))
-		//     layout.render_target_mask = program.get_shader(ShaderStage::Fragment)->get_layout().output_mask;
 
 	    for ( int shaderIndex = 0; shaderIndex < numShaders; ++shaderIndex )
 	    {
@@ -561,10 +565,7 @@ namespace Gfx
 
                 if ( activeShaderBinds )
                 {
-                   // combinedLayout.setStages[set] |= stageMask;
-                    auto vert = 1u << static_cast< uint32_t >( ShaderStage::VERTEX );
-                    auto frag = 1u << static_cast< uint32_t >( ShaderStage::FRAGMENT );
-                    combinedLayout.setStages[set] |= vert | frag;
+                    combinedLayout.setStages[set] |= stageMask;
 			        ForEachBit( activeShaderBinds, [&]( uint32_t bit )
                     {
 				        combinedLayout.bindingStages[set][bit] |= stageMask;
@@ -935,6 +936,7 @@ namespace Gfx
 
     void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips ) const
     {
+        PG_ASSERT( tex.GetDepth() == 1 );
         CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
 
@@ -960,18 +962,18 @@ namespace Gfx
                 region.imageSubresource.layerCount     = 1;
                 region.imageExtent.width               = width;
                 region.imageExtent.height              = height;
-                region.imageExtent.depth               = tex.GetDepth();
+                region.imageExtent.depth               = 1;
 
                 bufferCopyRegions.push_back( region );
                 uint32_t size = NumBytesPerPixel( tex.GetPixelFormat() );
                 if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
                 {
-                    PG_ASSERT( false );
-                    // uint32_t roundedWidth  = ( width  + 3 ) & ~3;
-                    // uint32_t roundedHeight = ( height + 3 ) & ~3;
-                    // uint32_t numBlocksX    = roundedWidth  / 4;
-                    // uint32_t numBlocksY    = roundedHeight / 4;
-                    // size                  *= numBlocksX * numBlocksY;
+                    //PG_ASSERT( false );
+                    uint32_t roundedWidth  = ( width  + 3 ) & ~3u;
+                    uint32_t roundedHeight = ( height + 3 ) & ~3u;
+                    uint32_t numBlocksX    = roundedWidth  / 4;
+                    uint32_t numBlocksY    = roundedHeight / 4;
+                    size                  *= numBlocksX * numBlocksY;
                 }
                 else
                 {

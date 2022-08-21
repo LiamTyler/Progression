@@ -1,9 +1,9 @@
 [
-    { "Shader": { "name": "depthVert", "shaderStage" : "vertex", "filename": "depth.vert" } },
-    { "Shader": { "name": "litVert", "shaderStage" : "vertex", "filename": "lit.vert" } },
-    { "Shader": { "name": "litFrag", "shaderStage" : "fragment", "filename": "lit.frag" } },
-    { "Shader": { "name": "postProcessVert", "shaderStage" : "vertex", "filename": "post_process.vert" } },
-    { "Shader": { "name": "postProcessFrag", "shaderStage" : "fragment", "filename": "post_process.frag" } },
-    { "Shader": { "name": "skyboxVert", "shaderStage" : "vertex", "filename": "skybox.vert" } },
-    { "Shader": { "name": "skyboxFrag", "shaderStage" : "fragment", "filename": "skybox.frag" } }
+    { "Shader": { "name": "depthVert", "shaderStage" : "VERTEX", "filename": "depth.vert" } },
+    { "Shader": { "name": "litVert", "shaderStage" : "VERTEX", "filename": "lit.vert" } },
+    { "Shader": { "name": "litFrag", "shaderStage" : "FRAGMENT", "filename": "lit.frag" } },
+    { "Shader": { "name": "postProcessVert", "shaderStage" : "VERTEX", "filename": "post_process.vert" } },
+    { "Shader": { "name": "postProcessFrag", "shaderStage" : "FRAGMENT", "filename": "post_process.frag" } },
+    { "Shader": { "name": "skyboxVert", "shaderStage" : "VERTEX", "filename": "skybox.vert" } },
+    { "Shader": { "name": "skyboxFrag", "shaderStage" : "FRAGMENT", "filename": "skybox.frag" } }
 ]

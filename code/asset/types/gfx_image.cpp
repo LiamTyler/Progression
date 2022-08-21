@@ -118,18 +118,20 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
     const GfxImageCreateInfo* createInfo = (const GfxImageCreateInfo*)baseInfo;
-    name = createInfo->name;
 
+    bool success = false;
     switch ( createInfo->semantic )
     {
     case GfxImageSemantic::ALBEDO_METALNESS:
-        return Load_AlbedoMetalness( this, createInfo );
+        success = Load_AlbedoMetalness( this, createInfo );
+        break;
     default:
         LOG_ERR( "GfxImage::Load not implemented yet for semantic %d", Underlying( createInfo->semantic ) );
         return false;
     }
+    name = createInfo->name;
     
-    return true;
+    return success;
 }
 
 
@@ -139,6 +141,7 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
     
     PG_ASSERT( serializer );
     serializer->Read( name );
+    PG_ASSERT( name != "" );
     serializer->Read( width );
     serializer->Read( height );
     serializer->Read( depth );
@@ -162,6 +165,7 @@ bool GfxImage::FastfileSave( Serializer* serializer ) const
     
     PG_ASSERT( serializer );
     PG_ASSERT( pixels );
+    PG_ASSERT( name != "" );
     serializer->Write( name );
     serializer->Write( width );
     serializer->Write( height );

@@ -21,7 +21,8 @@ struct TexInfo
     VkSampler sampler;
 };
 
-static std::vector< std::pair< uint16_t, TexInfo > > s_slotsAddedSinceLastUpdate;
+static std::bitset< PG_MAX_BINDLESS_TEXTURES > s_pendingSlots;
+static std::vector< std::pair< uint16_t, TexInfo > > s_pendingUpdates;
 
 namespace PG
 {
@@ -31,20 +32,20 @@ namespace TextureManager
 {
     void Init()
     {
+        Shutdown();
         s_setWrites.reserve( 256 );
         s_imageInfos.reserve( 256 );
-        s_slotsAddedSinceLastUpdate.reserve( 256 );
-        s_slotsInUse.reset();
-        s_currentSlot = 0;
-        s_freeSlots.clear();
+        s_imageInfos.reserve( 256 );
+        s_pendingUpdates.reserve( 256 );
     }
 
     void Shutdown()
     {
         s_setWrites.clear();
         s_imageInfos.clear();
-        s_slotsAddedSinceLastUpdate.clear();
+        s_pendingUpdates.clear();
         s_slotsInUse.reset();
+        s_pendingSlots.reset();
         s_currentSlot = 0;
         s_freeSlots.clear();
     }
@@ -64,8 +65,9 @@ namespace TextureManager
         }
         PG_ASSERT( openSlot < PG_MAX_BINDLESS_TEXTURES && !s_slotsInUse[openSlot] );
         s_slotsInUse[openSlot] = true;
+        s_pendingSlots[openSlot] = true;
         TexInfo info = { tex->GetView(), tex->GetSampler()->GetHandle() };
-        s_slotsAddedSinceLastUpdate.emplace_back( openSlot, info );
+        s_pendingUpdates.emplace_back( openSlot, info );
         return openSlot;
     }
 
@@ -74,36 +76,51 @@ namespace TextureManager
         PG_ASSERT( s_slotsInUse[slot] );
         s_slotsInUse[slot] = false;
         s_freeSlots.push_front( slot );
+        if ( s_pendingSlots[slot] )
+        {
+            size_t numPending = s_pendingUpdates.size();
+            for ( size_t i = 0; i < numPending; ++i )
+            {
+                if ( s_pendingUpdates[i].first == slot )
+                {
+                    std::swap( s_pendingUpdates[i], s_pendingUpdates[numPending - 1] );
+                    s_pendingUpdates.pop_back();
+                }
+            }
+            s_pendingSlots[slot] = false;
+        }
     }
 
     void UpdateSampler( Texture* tex )
     {
         PG_ASSERT( tex && tex->GetBindlessArrayIndex() != PG_INVALID_TEXTURE_INDEX && s_slotsInUse[tex->GetBindlessArrayIndex()] );
         TexInfo info = { tex->GetView(), tex->GetSampler()->GetHandle() };
-        s_slotsAddedSinceLastUpdate.emplace_back( tex->GetBindlessArrayIndex(), info );
+        s_pendingUpdates.emplace_back( tex->GetBindlessArrayIndex(), info );
     }
 
     void UpdateDescriptors( const DescriptorSet& textureDescriptorSet )
     {
-        if ( s_slotsAddedSinceLastUpdate.empty() )
+        if ( s_pendingUpdates.empty() )
         {
             return;
         }
 
-        s_setWrites.resize( s_slotsAddedSinceLastUpdate.size(), {} );
-        s_imageInfos.resize( s_slotsAddedSinceLastUpdate.size() );
+        s_setWrites.resize( s_pendingUpdates.size(), {} );
+        s_imageInfos.resize( s_pendingUpdates.size() );
         for ( size_t i = 0; i < s_setWrites.size(); ++i )
         {
             s_imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            s_imageInfos[i].imageView   = s_slotsAddedSinceLastUpdate[i].second.view;
-            s_imageInfos[i].sampler     = s_slotsAddedSinceLastUpdate[i].second.sampler;
+            s_imageInfos[i].imageView   = s_pendingUpdates[i].second.view;
+            s_imageInfos[i].sampler     = s_pendingUpdates[i].second.sampler;
+            uint32_t slot = s_pendingUpdates[i].first;
 
-            s_setWrites[i] = WriteDescriptorSet_Image( textureDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &s_imageInfos[i], 1, static_cast< uint32_t >( s_slotsAddedSinceLastUpdate[i].first ) );
+            s_setWrites[i] = WriteDescriptorSet_Image( textureDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &s_imageInfos[i], 1, slot );
+            s_pendingSlots[slot] = false;
         }
 
         r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( s_setWrites.size() ), s_setWrites.data() );
 
-        s_slotsAddedSinceLastUpdate.clear();
+        s_pendingUpdates.clear();
     }
 
 } // namespace TextureManager

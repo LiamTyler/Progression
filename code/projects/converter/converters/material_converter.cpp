@@ -59,7 +59,6 @@ AssetStatus MaterialConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr mat
 
 bool MaterialConverter::ConvertInternal( ConstDerivedInfoPtr& matInfo )
 {
-    LOG( "Converting out of date asset %s %s...", g_assetNames[assetType], matInfo->name.c_str() );
     std::string texturesetName = matInfo->texturesetName.empty() ? "default" : matInfo->texturesetName;
     auto texturesetInfo = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );
 

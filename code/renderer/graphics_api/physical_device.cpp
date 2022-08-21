@@ -202,7 +202,7 @@ static PhysicalDeviceFeatures GetDeviceFeatures( VkPhysicalDevice physicalDevice
     VkPhysicalDeviceFeatures vkFeatures;
     vkGetPhysicalDeviceFeatures( physicalDevice, &vkFeatures );
 
-    VkPhysicalDeviceDescriptorIndexingFeaturesEXT indexingFeatures{};
+    VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
     indexingFeatures.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
     indexingFeatures.pNext = nullptr;
 
@@ -217,7 +217,10 @@ static PhysicalDeviceFeatures GetDeviceFeatures( VkPhysicalDevice physicalDevice
     
     PhysicalDeviceFeatures f = {};
     f.anisotropy = vkFeatures.samplerAnisotropy == VK_TRUE;
-    f.bindless = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray;
+    f.bindless = indexingFeatures.descriptorBindingPartiallyBound &&
+        indexingFeatures.runtimeDescriptorArray &&
+        indexingFeatures.descriptorBindingSampledImageUpdateAfterBind &&
+        indexingFeatures.shaderSampledImageArrayNonUniformIndexing;
     f.nullDescriptors = vkFeatures2.nullDescriptor;
 
     return f;

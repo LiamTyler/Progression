@@ -274,6 +274,12 @@ void RawImage2D::SetPixelFromFloat4( int row, int col, glm::vec4 pixel )
 // TODO: optimize
 RawImage2D RawImage2D::Convert( ImageFormat dstFormat ) const
 {
+    if ( IsFormatBCCompressed( dstFormat ) )
+    {
+        LOG_ERR( "RawImage2D::Convert does not support compression, only uncompressed -> uncompressed and compressed -> uncompressed. Please use CompressToBC() instead" );
+        return {};
+    }
+
     if ( IsFormatBCCompressed( format ) )
     {
         auto decompressedImg = DecompressBC( *this );
@@ -427,6 +433,10 @@ RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat f
     rawImage.height = floatImage.height;
     rawImage.format = static_cast<ImageFormat>( Underlying( ImageFormat::R32_FLOAT ) + floatImage.numChannels - 1 );
     rawImage.data = std::reinterpret_pointer_cast<uint8_t[]>( floatImage.data );
+    if ( format == ImageFormat::INVALID )
+    {
+        format = rawImage.format;
+    }
     if ( rawImage.format != format )
     {
         rawImage = rawImage.Convert( format );

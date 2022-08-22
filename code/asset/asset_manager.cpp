@@ -36,12 +36,12 @@ void Init()
 
 
 template < typename ActualAssetType >
-bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType, const char* name )
+bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
 {
     ActualAssetType* asset = new ActualAssetType;
     if ( !asset->FastfileLoad( serializer ) )
     {
-        LOG_ERR( "Could not load %s", name );
+        LOG_ERR( "Could not load %s", g_assetNames[assetType] );
         return false;
     }
     auto it = g_resourceMaps[assetType].find( asset->name );
@@ -51,7 +51,7 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType, const c
     }
     else
     {
-        LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)", name, g_assetNames[assetType] );
+        LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)", asset->name.c_str(), g_assetNames[assetType] );
         asset->Free();
         delete asset;
     }
@@ -59,9 +59,9 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType, const c
     return true;
 }
 
-#define LOAD_FF_CASE( ASSET_ENUM, actualAssetType, assetName ) \
+#define LOAD_FF_CASE( ASSET_ENUM, actualAssetType ) \
 case ASSET_ENUM: \
-    if ( !LoadAssetFromFastFile< actualAssetType >( &serializer, assetType, assetName ) ) \
+    if ( !LoadAssetFromFastFile< actualAssetType >( &serializer, assetType ) ) \
     { \
         return false; \
     } \
@@ -85,11 +85,11 @@ bool LoadFastFile( const std::string& fname )
         PG_ASSERT( assetType < AssetType::NUM_ASSET_TYPES );
         switch ( assetType )
         {
-            LOAD_FF_CASE( ASSET_TYPE_GFX_IMAGE, GfxImage, "GfxImage" );
-            LOAD_FF_CASE( ASSET_TYPE_MATERIAL, Material, "Material" );
-            LOAD_FF_CASE( ASSET_TYPE_SCRIPT, Script, "Script" );
-            LOAD_FF_CASE( ASSET_TYPE_MODEL, Model, "Model" );
-            LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader, "Shader" );
+            LOAD_FF_CASE( ASSET_TYPE_GFX_IMAGE, GfxImage );
+            LOAD_FF_CASE( ASSET_TYPE_MATERIAL, Material );
+            LOAD_FF_CASE( ASSET_TYPE_SCRIPT, Script );
+            LOAD_FF_CASE( ASSET_TYPE_MODEL, Model );
+            LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader );
         default:
             LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
             return false;

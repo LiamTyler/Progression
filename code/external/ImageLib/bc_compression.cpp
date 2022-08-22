@@ -122,7 +122,7 @@ void Compress_BC_7( const RawImage2D& srcImage, const BCCompressorSettings& sett
 }
 
 
-RawImage2D CompressToBC( RawImage2D image, const BCCompressorSettings& settings )
+RawImage2D CompressToBC( const RawImage2D& image, const BCCompressorSettings& settings )
 {
     RawImage2D compressedImg( image.width, image.height, settings.format );
 
@@ -169,4 +169,16 @@ RawImage2D CompressToBC( RawImage2D image, const BCCompressorSettings& settings 
     }
 
     return compressedImg;
+}
+
+
+std::vector<RawImage2D> CompressToBC( const std::vector<RawImage2D>& images, const BCCompressorSettings& settings )
+{
+    std::vector<RawImage2D> outputImages( images.size() );
+    for ( size_t i = 0; i < images.size(); ++i )
+    {
+        outputImages[i] = CompressToBC( images[i], settings );
+    }
+
+    return outputImages;
 }

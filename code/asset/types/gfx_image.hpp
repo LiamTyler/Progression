@@ -10,7 +10,7 @@ class Serializer;
 namespace PG
 {
 
-enum class GfxImageSemantic
+enum class GfxImageSemantic : uint8_t
 {
     COLOR,
     GRAY,
@@ -19,6 +19,8 @@ enum class GfxImageSemantic
 
     NUM_IMAGE_SEMANTICS
 };
+
+bool IsSemanticComposite( GfxImageSemantic semantic );
 
 struct GfxImage : public BaseAsset
 {

@@ -18,7 +18,7 @@ enum AssetType : unsigned int
 
 inline const unsigned int g_assetVersions[] =
 {
-    1, // ASSET_TYPE_GFX_IMAGE
+    2, // ASSET_TYPE_GFX_IMAGE
     1, // ASSET_TYPE_MATERIAL
     0, // ASSET_TYPE_SCRIPT
     0, // ASSET_TYPE_MODEL

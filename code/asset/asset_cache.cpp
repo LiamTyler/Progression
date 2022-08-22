@@ -16,9 +16,19 @@ std::string assetCacheFolders[NUM_ASSET_TYPES] =
     "texturesets/", // ASSET_TYPE_TEXTURESET
 };
 
+std::string assetCacheFileExtensions[NUM_ASSET_TYPES] =
+{
+    ".pgi", // ASSET_TYPE_GFX_IMAGE
+    ".ffi", // ASSET_TYPE_MATERIAL
+    ".ffi", // ASSET_TYPE_SCRIPT
+    ".ffi", // ASSET_TYPE_MODEL
+    ".ffi", // ASSET_TYPE_SHADER
+    ".ffi", // ASSET_TYPE_TEXTURESET
+};
+
 static std::string GetCachedPath( AssetType assetType, const std::string& assetCacheName )
 {
-    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + "_v" + std::to_string( g_assetVersions[assetType] ) + ".ffi";
+    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + "_v" + std::to_string( g_assetVersions[assetType] ) + assetCacheFileExtensions[assetType];
 }
 
 namespace PG::AssetCache

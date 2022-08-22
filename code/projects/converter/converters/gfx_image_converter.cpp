@@ -10,15 +10,19 @@ namespace PG
 std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
-    size_t hash = 0;
-    HashCombine( hash, Underlying( info->semantic ) );
-    HashCombine( hash, Underlying( info->dstPixelFormat ) );
-    HashCombine( hash, Underlying( info->flipVertically ) );
-    for ( int i = 0; i < 6; ++i )
+    // composite image names are already a valid cache name. No need to append a 2nd hash
+    if ( !IsSemanticComposite( info->semantic ) )
     {
-        if ( !info->filenames[i].empty() ) HashCombine( hash, info->filenames[i] );
+        size_t hash = 0;
+        HashCombine( hash, Underlying( info->semantic ) );
+        HashCombine( hash, Underlying( info->dstPixelFormat ) );
+        HashCombine( hash, Underlying( info->flipVertically ) );
+        for ( int i = 0; i < 6; ++i )
+        {
+            if ( !info->filenames[i].empty() ) HashCombine( hash, info->filenames[i] );
+        }
+        cacheName += "_" + std::to_string( hash );
     }
-    cacheName += "_" + std::to_string( hash );
     return cacheName;
 }
 

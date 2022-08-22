@@ -55,18 +55,18 @@ FloatImage CompositeImage( const CompositeImageInput& input )
         for ( uint32_t pixelIndex = 0; pixelIndex < width * height; ++pixelIndex )
         {
             glm::vec4 pixel = srcImage.GetFloat4( pixelIndex );
-            if ( convertToLinear )
-            {
-                pixel = PG::GammaSRGBToLinear( pixel );
-            }
-            else if ( convertToSRGB )
-            {
-                pixel = PG::LinearToGammaSRGB( pixel );
-            }
+            
 
             for ( const Remap& remap : input.sourceImages[i].remaps )
             {
-                outputImg.data[outputImg.numChannels * pixelIndex + Underlying( remap.to )] = pixel[Underlying( remap.from )];
+                float x = pixel[Underlying( remap.from )];
+                if ( remap.to != Channel::A )
+                {
+                    float x = pixel[Underlying( remap.from )];
+                    if ( convertToLinear ) x = PG::GammaSRGBToLinear( x );
+                    else if ( convertToSRGB ) x = PG::LinearToGammaSRGB( x );
+                }
+                outputImg.data[outputImg.numChannels * pixelIndex + Underlying( remap.to )] = x;
             }
         }
     }

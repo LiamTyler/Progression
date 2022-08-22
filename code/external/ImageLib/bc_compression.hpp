@@ -1,6 +1,5 @@
 #pragma once
 
-#include <cstdint>
 #include "image.hpp"
 
 enum class CompressionQuality
@@ -21,4 +20,5 @@ struct BCCompressorSettings
     int bc5SourceChannel2 = 1;
 };
 
-RawImage2D CompressToBC( RawImage2D image, const BCCompressorSettings& settings );
+RawImage2D CompressToBC( const RawImage2D& image, const BCCompressorSettings& settings );
+std::vector<RawImage2D> CompressToBC( const std::vector<RawImage2D>& images, const BCCompressorSettings& settings );

@@ -1,12 +1,22 @@
 #include "asset/types/gfx_image.hpp"
 #include "core/image_processing.hpp"
-#include "renderer/r_globals.hpp"
+#include "ImageLib/bc_compression.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include <algorithm>
 
+#if USING( GPU_DATA )
+#include "renderer/r_globals.hpp"
+#endif // #if USING( GPU_DATA )
+
 namespace PG
 {
+
+bool IsSemanticComposite( GfxImageSemantic semantic )
+{
+    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 4 );
+    return semantic == GfxImageSemantic::ALBEDO_METALNESS;
+}
 
 void GfxImage::Free()
 {
@@ -110,8 +120,13 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     MipmapGenerationSettings settings;
     settings.clampHorizontal = createInfo->clampHorizontal;
     settings.clampVertical = createInfo->clampVertical;
-    std::vector<FloatImage> floatMips = GenerateMipmaps( composite, settings );
-    std::vector<RawImage2D> compressedMips = RawImage2DFromFloatImages( floatMips, ImageFormat::BC7_UNORM );
+    std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( GenerateMipmaps( composite, settings ) );
+    rawMipsFloat32[0].Convert( ImageFormat::R8_G8_B8_A8_UNORM ).Save( PG_ROOT_DIR "image.png" );
+    BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM );
+    std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
+    RawImage2D decompressed0 = compressedMips[0].Convert( ImageFormat::R8_G8_B8_A8_UNORM );
+    decompressed0.Save( PG_ROOT_DIR "image2.png" );
+
     *gfxImage = RawImage2DMipsToGfxImage( compressedMips, compositeInfo.outputColorSpace == ColorSpace::SRGB );
 
     return true;
@@ -130,7 +145,7 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
         success = Load_AlbedoMetalness( this, createInfo );
         break;
     default:
-        LOG_ERR( "GfxImage::Load not implemented yet for semantic %d", Underlying( createInfo->semantic ) );
+        LOG_ERR( "GfxImage::Load not implemented yet for semantic %u", Underlying( createInfo->semantic ) );
         return false;
     }
     name = createInfo->name;

@@ -11,7 +11,7 @@ static void DisplayHelp()
 {
     auto msg =
         "Usage: GfxImageViewer PATH"
-        "\tPATH must be a valid path to a gfximage .ffi file\n"
+        "\tPATH must be a valid path to a gfximage .pgi file\n"
         "\tOutputs: will print out the image stats and decompress the image into a [PATH]_f[x]_m[y].png file\n"
         "\t\tfor most formats, except for BC6/float images which will generate EXR image(s)\n"
         "\t\tThe f[x] is the face index, and the m[y] is the mip level\n";

@@ -24,18 +24,22 @@ void GfxImage::Free()
 unsigned char* GfxImage::GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel ) const
 {
     PG_ASSERT( depthLevel == 0, "Texture arrays not supported yet" );
-    PG_ASSERT( !PixelFormatIsCompressed( pixelFormat ), "Compression not supported yet" );
     PG_ASSERT( mip < mipLevels );
     PG_ASSERT( pixels );
 
     int w = width;
     int h = height;
     int bytesPerPixel = NumBytesPerPixel( pixelFormat );
+    bool isCompressed = PixelFormatIsCompressed( pixelFormat );
     size_t bytesPerFaceMipChain = CalculateTotalFaceSizeWithMips( width, height, pixelFormat, mipLevels );
     size_t offset = face * bytesPerFaceMipChain;
     for ( uint32_t mipLevel = 0; mipLevel < mip; ++mipLevel )
     {
-        offset += w * h * bytesPerPixel;
+        uint32_t paddedWidth  = isCompressed ? (w + 3) & ~3u : w;
+        uint32_t paddedHeight = isCompressed ? (h + 3) & ~3u : h;
+        uint32_t size = paddedWidth * paddedHeight * bytesPerPixel;
+        if ( isCompressed ) size /= 16;
+        offset += size;
         w = std::max( 1, w >> 1 );
         h = std::max( 1, h >> 1 );
     }

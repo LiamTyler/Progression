@@ -46,10 +46,20 @@
 #define OFFLINE_RENDERER NOT_IN_USE
 #endif
 
-#if !CMAKE_DEFINE_CONVERTER && !CMAKE_DEFINE_OFFLINE_RENDERER
-    #define GAME IN_USE
+#ifdef CMAKE_DEFINE_GAME
+#define GAME IN_USE
+#else
+#define GAME NOT_IN_USE
+#endif
+
+#ifdef CMAKE_DEFINE_GFXIMAGE_VIEWER
+#define GFXIMAGE_VIEWER IN_USE
+#else
+#define GFXIMAGE_VIEWER NOT_IN_USE
+#endif
+
+#if USING( GAME )
     #define GPU_DATA IN_USE
-#else // #if !CMAKE_DEFINE_CONVERTER && !CMAKE_DEFINE_OFFLINE_RENDERER
-    #define GAME NOT_IN_USE
+#else // #if USING( GAME )
     #define GPU_DATA NOT_IN_USE
-#endif // #else // #if !CMAKE_DEFINE_CONVERTER && !CMAKE_DEFINE_OFFLINE_RENDERER
+#endif // #else // #if USING( GAME )

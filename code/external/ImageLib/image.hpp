@@ -204,6 +204,11 @@ struct RawImage2D
         size_t totalBytes = TotalBytes();
         data = std::make_shared<uint8_t[]>( totalBytes );
     }
+    RawImage2D( uint32_t inWidth, uint32_t inHeight, ImageFormat inFormat, uint8_t* srcData ) : width( inWidth ), height( inHeight ), format( inFormat )
+    {
+        size_t totalBytes = TotalBytes();
+        data = std::shared_ptr<uint8_t[]>( srcData, []( uint8_t* x ) {} );
+    }
 
     bool Load( const std::string& filename );
 

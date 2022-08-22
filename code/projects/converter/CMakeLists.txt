@@ -76,19 +76,18 @@ set(
 set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
 set_source_files_properties(${IMAGELIB_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
-add_executable(Converter ${ALL_FILES})
+add_executable(${PROJECT_NAME} ${ALL_FILES})
 
-target_include_directories(Converter PUBLIC
+target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/
 	${CMAKE_CURRENT_SOURCE_DIR}/converters/
     ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES}
-    ${Vulkan_INCLUDE_DIR} ${Vulkan_INCLUDE_DIR}/spirv_cross/
+    ${Vulkan_INCLUDE_DIR}
 )
-message( "VKINCDIR: ${Vulkan_INCLUDE_DIR}" )
 
-SET_TARGET_POSTFIX(Converter)
-SET_TARGET_COMPILE_OPTIONS_DEFAULT(Converter)
-target_compile_definitions(Converter PUBLIC CMAKE_DEFINE_CONVERTER)
-target_link_libraries(Converter PUBLIC debug OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG} lua lz4)
-target_link_libraries(Converter PUBLIC optimized OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4)
+SET_TARGET_POSTFIX(${PROJECT_NAME})
+SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
+target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER)
+target_link_libraries(${PROJECT_NAME} PUBLIC debug OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG} lua lz4)
+target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)

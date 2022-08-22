@@ -1,6 +1,7 @@
 # TODO
 - [ ] Get albedo + metalness image working for texturesets
 - [ ] Get normal + roughness image working for texturesets
+- [ ] remove 2nd hash number in gfxImage cache composite names
 - [ ] Make asset filenames consistent (all from PG_ASSET_DIR, parses only store relative path. Load() makes absolute path, or detects it at least)
 - [ ] Make sure image clamping vs wraping working correctly
 - [ ] Make model exporter work with texturesets
@@ -10,3 +11,5 @@
 - [ ] If assets are already in required/dependent fastfiles, dont put them in the top level FFs
 - [ ] change profiling to be all in RAM, no file writing. Show min + max + avg
 - [ ] show profiling results in ImGui view
+- [ ] decouple graphics code from all assets (GfxImage) just store a handle, and remove Vulkan dependencies from Projects that dont need it anymore
+- [ ] add TIFF loading and saving

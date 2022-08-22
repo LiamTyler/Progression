@@ -30,5 +30,6 @@ set(COMMON_INCLUDE_DIRS
 add_subdirectory(code/external)
 add_subdirectory(code/projects/engine)
 add_subdirectory(code/projects/converter)
+add_subdirectory(code/projects/gfximage_viewer)
 add_subdirectory(code/projects/model_exporter)
 add_subdirectory(code/projects/offline_renderer)

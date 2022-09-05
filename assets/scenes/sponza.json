@@ -8,7 +8,7 @@
         "tonemapMethod": "UNCHARTED2"
     }},
     { "_Camera": { "position": [ -9, 2, 0 ], "rotation": [ 0, -90, 0 ], "aspectRatio": 1.0 } },
-    { "Camera": { "position": [ 0, 0, 4 ], "rotation": [ 0, 0, 0 ] } },
+    { "Camera": { "position": [ 0, -3, 3 ], "rotation": [ 0, 0, 0 ] } },
     { "Script": "cameraController" },
     { "_BackgroundColor": [ 0.7, 1.4, 2.35 ] },
     { "_Skybox": "kloppenheim" },
@@ -16,7 +16,7 @@
     { "DirectionalLight": { "color": [ 12, 10, 8 ], "direction": [ 0, -6, 0 ] } },
     { "Entity": {
         "NameComponent": "sponza",
-        "Transform": { "position": [ 0, 0, 0 ], "scale": [ 0.01, 0.01, 0.01 ] },
+        "Transform": { "position": [ 0, 0, 0 ], "scale": [ 0.01, 0.01, 0.01 ], "rotation": [ 90, 90, 0 ] },
         "ModelRenderer": { "model": "sponza" }
     }}
 ]

@@ -21,7 +21,7 @@ inline const unsigned int g_assetVersions[] =
     2, // ASSET_TYPE_GFX_IMAGE
     1, // ASSET_TYPE_MATERIAL
     0, // ASSET_TYPE_SCRIPT
-    0, // ASSET_TYPE_MODEL
+    1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
     0, // ASSET_TYPE_TEXTURESET
 };

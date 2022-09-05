@@ -4,7 +4,7 @@ currentSpeed = 3
 regularSpeed = 3
 boostSpeed   = 15
 turnSpeed    = 0.002
-maxAngle     = 85 * 3.14159/180
+maxAngle     = 89 * 3.14159/180
 camera       = nil
 active       = true
 
@@ -23,12 +23,13 @@ function Update()
     if not active then
         return
     end
+	
 
     if Input.GetMouseButtonDown( MouseButton.LEFT ) then
-        velocity.y = 1
+        velocity.z = 1
     end
     if Input.GetMouseButtonDown( MouseButton.RIGHT ) then
-        velocity.y = -1
+        velocity.z = -1
     end
     if Input.GetKeyDown( Key.A ) then
         velocity.x = -1
@@ -37,20 +38,20 @@ function Update()
         velocity.x = 1
     end
     if Input.GetKeyDown( Key.W ) then
-        velocity.z = 1
+        velocity.y = 1
     end
     if Input.GetKeyDown( Key.S ) then
-        velocity.z = -1
+        velocity.y = -1
     end
     if Input.GetKeyDown( Key.LEFT_SHIFT ) then
         currentSpeed = boostSpeed
     end
     
-    if Input.GetMouseButtonUp( MouseButton.LEFT ) and velocity.y == 1 then
-        velocity.y = 0
+    if Input.GetMouseButtonUp( MouseButton.LEFT ) and velocity.z == 1 then
+        velocity.z = 0
     end
-    if Input.GetMouseButtonUp( MouseButton.RIGHT ) and velocity.y == -1 then
-        velocity.y = 0
+    if Input.GetMouseButtonUp( MouseButton.RIGHT ) and velocity.z == -1 then
+        velocity.z = 0
     end
     if Input.GetKeyUp( Key.A ) and velocity.x == -1 then
         velocity.x = 0
@@ -58,11 +59,11 @@ function Update()
     if Input.GetKeyUp( Key.D ) and velocity.x == 1 then
         velocity.x = 0
     end
-    if Input.GetKeyUp( Key.W ) and velocity.z == 1 then
-        velocity.z = 0
+    if Input.GetKeyUp( Key.W ) and velocity.y == 1 then
+        velocity.y = 0
     end
-    if Input.GetKeyUp( Key.S ) and velocity.z == -1 then
-        velocity.z = 0
+    if Input.GetKeyUp( Key.S ) and velocity.y == -1 then
+        velocity.y = 0
     end
     
     if Input.GetKeyUp( Key.LEFT_SHIFT ) then
@@ -70,7 +71,7 @@ function Update()
     end
     
     local dMouse    = -Input:GetMouseChange()
-    local dRotation = vec3.new( dMouse.y, dMouse.x, 0 )
+    local dRotation = vec3.new( dMouse.y, 0, dMouse.x )
 
     camera.rotation   = camera.rotation + vec3.scale( turnSpeed, dRotation )
     camera.rotation.x = math.max( -maxAngle, math.min( maxAngle, camera.rotation.x ) )
@@ -81,6 +82,6 @@ function Update()
     local right = camera:GetRightDir()
     local up = camera:GetUpDir()
     local step = currentSpeed * Time.dt
-    camera.position = camera.position + vec3.scale( velocity.z * step, forward ) + vec3.scale( velocity.x * step, right ) + vec3.scale( velocity.y * step, up )
+    camera.position = camera.position + vec3.scale( velocity.y * step, forward ) + vec3.scale( velocity.x * step, right ) + vec3.scale( velocity.z * step, up )
     camera:UpdateViewMatrix()
 end

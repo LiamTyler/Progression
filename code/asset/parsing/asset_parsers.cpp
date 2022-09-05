@@ -110,6 +110,8 @@ bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr i
     static JSONFunctionMapper<ModelCreateInfo&> mapping(
     {
         { "filename", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "flipTexCoordsVertically", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.flipTexCoordsVertically = v.GetBool(); } },
+        { "recalculateNormals", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.recalculateNormals = v.GetBool(); } },
     });
     mapping.ForEachMember( value, *info );
 

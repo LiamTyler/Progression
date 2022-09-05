@@ -121,11 +121,9 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     settings.clampHorizontal = createInfo->clampHorizontal;
     settings.clampVertical = createInfo->clampVertical;
     std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( GenerateMipmaps( composite, settings ) );
-    rawMipsFloat32[0].Convert( ImageFormat::R8_G8_B8_A8_UNORM ).Save( PG_ROOT_DIR "image.png" );
+    
     BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM );
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
-    RawImage2D decompressed0 = compressedMips[0].Convert( ImageFormat::R8_G8_B8_A8_UNORM );
-    decompressed0.Save( PG_ROOT_DIR "image2.png" );
 
     *gfxImage = RawImage2DMipsToGfxImage( compressedMips, compositeInfo.outputColorSpace == ColorSpace::SRGB );
 

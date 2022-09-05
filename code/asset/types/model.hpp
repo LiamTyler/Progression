@@ -24,6 +24,8 @@ struct Mesh
 struct ModelCreateInfo : public BaseAssetCreateInfo
 {
     std::string filename;
+    bool flipTexCoordsVertically = false;
+    bool recalculateNormals = false;
 };
 
 struct Model : public BaseAsset

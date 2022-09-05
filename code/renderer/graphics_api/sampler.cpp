@@ -76,7 +76,6 @@ namespace Gfx
         samplerDesc.wrapModeU   = WrapMode::CLAMP_TO_EDGE;
         samplerDesc.wrapModeV   = WrapMode::CLAMP_TO_EDGE;
         samplerDesc.wrapModeW   = WrapMode::CLAMP_TO_EDGE;
-        samplerDesc.borderColor = BorderColor::OPAQUE_WHITE_FLOAT;
         AddSampler( samplerDesc );
 
         samplerDesc.name      = "linear_repeat_linear";

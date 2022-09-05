@@ -8,17 +8,18 @@
         "tonemapMethod": "REINHARD"
     }},
     { "Camera": {
-        "position": [ 0, 0, 4 ],
+        "position": [ 0, -5, 0 ],
         "rotation": [ 0, 0, 0 ],
         "_aspectRatio": 1,
         "exposure": 1.0
     }},
-	{ "Skybox": "kloppenheim" },
-    { "BackgroundColor": [ 0,0,0 ] },
+	{ "_Skybox": "kloppenheim" },
+	{ "Script": "cameraController" },
+    { "BackgroundColor": [ 0,0,1 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {
         "NameComponent": "tri",
-        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 90, 0, 0 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "quad", "material": "weathered_brown_planks" }
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "cube", "material": "macaw" }
     }}
 ]

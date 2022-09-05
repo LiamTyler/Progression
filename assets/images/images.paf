@@ -9,8 +9,9 @@
 		"equirectangularFilename": "images/skyboxes/cayley_interior_4k.exr",
 		"semantic": "ENVIRONMENT_MAP"
 	} },
-    { "Image": {
+    { "Textureset": {
 		"name": "macaw",
-		"filename": "images/macaw.png"
-	} }
+		"albedoMap": "images/macaw.png"
+	} },
+	{ "Material": { "name": "macaw", "albedo": [ 1, 1, 1 ], "textureset": "macaw" } }
 ]

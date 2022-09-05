@@ -37,7 +37,7 @@ struct ImageInfo
 static void DisplayHelp()
 {
     auto msg =
-        "Usage: modelToPGModel PATH [texture_search_dir]"
+        "Usage: modelToPGModel PATH [texture_search_dir]\n"
         "\tIf PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
         "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
         "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n";
@@ -178,7 +178,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
     {
         std::string matName = scene->mMaterials[i]->GetName().C_Str();
-        if ( matName.empty() )
+        if ( matName.empty() || matName == "DefaultMaterial" )
         {
             matName = "default";
         }
@@ -405,12 +405,7 @@ int main( int argc, char* argv[] )
     {
         outputJSON[outputJSON.length() - 2] = '\n';
         outputJSON[outputJSON.length() - 1] = ']';
-        std::string pafBaseName = GetDirectoryStem( directory );
-        if ( pafBaseName.empty() || pafBaseName[pafBaseName.length() - 1] == '.' )
-        {
-            pafBaseName = "default";
-        }
-        std::string pafFilename = directory + "/" + pafBaseName + ".paf";
+        std::string pafFilename = directory + "/exported_" + GetFilenameStem( argv[1] ) + ".paf";
         LOG( "Saving asset file %s", pafFilename.c_str() );
         std::ofstream out( pafFilename );
         out << outputJSON;

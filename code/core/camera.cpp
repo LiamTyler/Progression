@@ -31,10 +31,10 @@ void Camera::UpdateFrustum()
 void Camera::UpdateOrientationVectors()
 {
     glm::mat4 rot( 1 );
-    rot         = glm::rotate( rot, rotation.y, glm::vec3( 0, 1, 0 ) );
+    rot         = glm::rotate( rot, rotation.z, glm::vec3( 0, 0, 1 ) );
     rot         = glm::rotate( rot, rotation.x, glm::vec3( 1, 0, 0 ) );
-    m_currDir   = glm::vec3( rot * glm::vec4( 0, 0, -1, 0 ) );
-    m_currUp    = glm::vec3( rot * glm::vec4( 0, 1, 0, 0 ) );
+    m_currDir   = glm::vec3( rot * glm::vec4( 0, 1, 0, 0 ) );
+    m_currUp    = glm::vec3( rot * glm::vec4( 0, 0, 1, 0 ) );
     m_currRight = glm::cross( m_currDir, m_currUp );
 }
 

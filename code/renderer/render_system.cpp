@@ -440,7 +440,7 @@ static bool InitRenderGraph( int width, int height )
         return false;
     }
 
-    s_renderGraph.Print();
+    //s_renderGraph.Print();
     
     return true;
 }

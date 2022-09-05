@@ -92,6 +92,10 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     for ( uint32_t i = 0; i < numTexCoords; ++i )
     {
         in >> texCoords[i].x >> texCoords[i].y;
+        if ( createInfo->flipTexCoordsVertically )
+        {
+            texCoords[i].y = 1.0f - texCoords[i].y;
+        }
     }
 
     uint32_t numTangents;
@@ -110,7 +114,10 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         in >> indices[3*i + 0] >> indices[3*i + 1] >> indices[3*i + 2];
     }
 
-    //model->RecalculateNormals();
+    if ( createInfo->recalculateNormals )
+    {
+        RecalculateNormals();
+    }
     UploadToGPU();
 
     return true;
@@ -136,11 +143,11 @@ bool Model::FastfileLoad( Serializer* serializer )
         serializer->Read( mesh.name );
         std::string matName;
         serializer->Read( matName );
-        originalMaterials[i] = AssetManager::Get< Material >( matName );
+        originalMaterials[i] = AssetManager::Get<Material>( matName );
         if ( !originalMaterials[i] )
         {
             LOG_ERR( "No material found with name '%s', using default material instead.", matName.c_str() );
-            originalMaterials[i] = AssetManager::Get< Material >( "default" );
+            originalMaterials[i] = AssetManager::Get<Material>( "default" );
         }
         serializer->Read( mesh.startIndex );
         serializer->Read( mesh.numIndices );
@@ -232,11 +239,17 @@ void Model::UploadToGPU()
         indexBuffer.Free();
     }
 
+    PG_ASSERT( positions.size() == normals.size() );
+
+    // TODO: allow for variable-attribute meshes. For now, just allocate a zero buffer for texCoords and tangents if they are not specified
+    size_t texCoordCount = texCoords.empty() ? positions.size() : texCoords.size();
+    size_t tangentCount = tangents.empty() ? positions.size() : tangents.size();
+
     size_t totalSize = 0;
     totalSize += positions.size() * sizeof( glm::vec3 );
     totalSize += normals.size() * sizeof( glm::vec3 );
-    totalSize += texCoords.size() * sizeof( glm::vec2 );
-    totalSize += tangents.size() * sizeof( glm::vec3 );
+    totalSize += texCoordCount * sizeof( glm::vec2 );
+    totalSize += tangentCount * sizeof( glm::vec3 );
     if ( totalSize == 0 && indices.size() == 0 )
     {
         return;
@@ -246,19 +259,33 @@ void Model::UploadToGPU()
     size_t offset = 0;
     unsigned char* tmpMem = static_cast< unsigned char* >( malloc( totalSize ) );
     memcpy( tmpMem + offset, positions.data(), positions.size() * sizeof( glm::vec3 ) );
-    offset += static_cast< uint32_t >( positions.size() ) * sizeof( glm::vec3 );
+    offset += positions.size() * sizeof( glm::vec3 );
 
     gpuNormalOffset = offset;
     memcpy( tmpMem + offset, normals.data(), normals.size() * sizeof( glm::vec3 ) );
-    offset += static_cast< uint32_t >( normals.size() ) * sizeof( glm::vec3 );
+    offset += normals.size() * sizeof( glm::vec3 );
 
     gpuTexCoordOffset = offset;
-    memcpy( tmpMem + offset, texCoords.data(), texCoords.size() * sizeof( glm::vec2 ) );
-    offset += static_cast< uint32_t >( texCoords.size() ) * sizeof( glm::vec2 );
+    if ( texCoords.empty() )
+    {
+        memset( tmpMem + offset, 0, texCoordCount * sizeof( glm::vec2 ) );
+    }
+    else
+    {
+        memcpy( tmpMem + offset, texCoords.data(), texCoordCount * sizeof( glm::vec2 ) );
+    }
+    offset += texCoordCount * sizeof( glm::vec2 );
     
     gpuTangentOffset = offset;
-    memcpy( tmpMem + offset, tangents.data(), tangents.size() * sizeof( glm::vec3 ) );
-    offset += static_cast< uint32_t >( tangents.size() ) * sizeof( glm::vec3 );
+    if ( tangents.empty() )
+    {
+        memset( tmpMem + offset, 0, tangentCount * sizeof( glm::vec2 ) );
+    }
+    else
+    {
+        memcpy( tmpMem + offset, tangents.data(), tangentCount * sizeof( glm::vec2 ) );
+    }
+    offset += tangentCount * sizeof( glm::vec3 );
 
     vertexBuffer = Gfx::r_globals.device.NewBuffer( totalSize, tmpMem, Gfx::BUFFER_TYPE_VERTEX, Gfx::MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
     indexBuffer = Gfx::r_globals.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), Gfx::BUFFER_TYPE_INDEX, Gfx::MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );

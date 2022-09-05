@@ -219,5 +219,9 @@
 		"albedo": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "vase_round"
 	} },
-	{ "Model": { "name": "sponza", "filename": "models/sponza/sponza.pmodel" } }
+	{ "Model": {
+		"name": "sponza",
+		"filename": "models/sponza/sponza.pmodel",
+		"flipTexCoordsVertically": true
+	} }
 ]

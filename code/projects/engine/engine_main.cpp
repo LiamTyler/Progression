@@ -12,6 +12,7 @@
 #include "renderer/rendergraph/r_rendergraph.hpp"
 #include "shared/logger.hpp"
 #include "shared/math.hpp"
+#include "glm/ext/matrix_transform.hpp"
 
 
 using namespace PG;
@@ -27,6 +28,12 @@ int main( int argc, char* argv[] )
         LOG_ERR( "Failed to initialize the engine" );
         return 1;
     }
+    glm::mat4 model( 1 );
+    model = glm::rotate( model, 0.0f, glm::vec3( 0, 1, 0 ) );
+    model = glm::rotate( model, 90.f / 180.0f * PI, glm::vec3( 1, 0, 0 ) );
+    model = glm::rotate( model, 0.0f, glm::vec3( 0, 0, 1 ) );
+
+    glm::vec4 pos = model * glm::vec4( 1, 0, 1, 1 );
 
     if ( argc < 2 )
     {

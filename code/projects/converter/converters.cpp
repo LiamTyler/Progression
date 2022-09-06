@@ -8,7 +8,7 @@
 namespace PG
 {
 
-std::shared_ptr<BaseAssetConverter> g_converters[NUM_ASSET_TYPES];
+std::shared_ptr<BaseAssetConverter> g_converters[ASSET_TYPE_COUNT];
 
 void InitConverters()
 {
@@ -23,7 +23,7 @@ void InitConverters()
 
 void ShutdownConverters()
 {
-    for ( int i = 0; i < NUM_ASSET_TYPES; ++i )
+    for ( int i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
         g_converters[i].reset();
     }

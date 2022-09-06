@@ -16,7 +16,7 @@ namespace PG::AssetManager
 {
 
 uint32_t GetAssetTypeIDHelper::IDCounter = 0;
-std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::NUM_ASSET_TYPES];
+std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
 
 
 void Init()
@@ -31,7 +31,7 @@ void Init()
     PG_ASSERT( GetAssetTypeID<Script>::ID()     == 2, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Model>::ID()      == 3, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Shader>::ID()     == 4, "This needs to line up with AssetType ordering" );
-    static_assert( NUM_ASSET_TYPES == 6, "Dont forget to add GetAssetTypeID for new assets" );
+    static_assert( ASSET_TYPE_COUNT == 6, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
 
@@ -82,7 +82,7 @@ bool LoadFastFile( const std::string& fname )
     {
         AssetType assetType;
         serializer.Read( assetType );
-        PG_ASSERT( assetType < AssetType::NUM_ASSET_TYPES );
+        PG_ASSERT( assetType < AssetType::ASSET_TYPE_COUNT );
         switch ( assetType )
         {
             LOAD_FF_CASE( ASSET_TYPE_GFX_IMAGE, GfxImage );
@@ -102,7 +102,7 @@ bool LoadFastFile( const std::string& fname )
 
 void Shutdown()
 {
-    for ( uint32_t i = 0; i < AssetType::NUM_ASSET_TYPES; ++i )
+    for ( uint32_t i = 0; i < AssetType::ASSET_TYPE_COUNT; ++i )
     {
         for ( const auto& it : g_resourceMaps[i] )
         {
@@ -154,7 +154,7 @@ void RegisterLuaFunctions( lua_State* L )
 
 BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
 {
-    PG_ASSERT( assetTypeID < AssetType::NUM_ASSET_TYPES, "Did you forget to update TOTAL_ASSET_TYPES?" );
+    PG_ASSERT( assetTypeID < AssetType::ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = g_resourceMaps[assetTypeID].find( name );
     return it == g_resourceMaps[assetTypeID].end() ? nullptr : it->second;
 }

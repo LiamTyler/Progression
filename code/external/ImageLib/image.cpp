@@ -474,14 +474,16 @@ std::vector<FloatImage> GenerateMipmaps( const FloatImage& image, const MipmapGe
         FloatImage mip( w, h, image.numChannels );
         if ( mipLevel == 0 )
         {
-            memcpy( mip.data.get(), image.data.get(), w * h * image.numChannels * sizeof( float ) );
+            memcpy( mip.data.get(), image.data.get(), w * h * numChannels * sizeof( float ) );
         }
         else
         {
+            // NOTE!!! With STBIR_EDGE_WRAP and STBIR_FILTER_MITCHELL, im seeing artifacts, at least for non-even dimensioned images.
+            // Both the top and right edges have dark lines near them, and some seemingly garbage pixels 
             const FloatImage& prevMip = mips[mipLevel - 1];
             stbir_resize( prevMip.data.get(), prevMip.width, prevMip.height, prevMip.width * numChannels * sizeof( float ),
-                          mip.data.get(), w, h, w * numChannels * sizeof( float ),
-                          STBIR_TYPE_FLOAT, numChannels, STBIR_ALPHA_CHANNEL_NONE, 0, edgeModeU, edgeModeV, STBIR_FILTER_MITCHELL, STBIR_FILTER_MITCHELL, STBIR_COLORSPACE_LINEAR, NULL );
+                          mip.data.get(), w, h, w * numChannels * sizeof( float ), STBIR_TYPE_FLOAT,
+                          numChannels, STBIR_ALPHA_CHANNEL_NONE, 0, edgeModeU, edgeModeV, STBIR_FILTER_BOX, STBIR_FILTER_BOX, STBIR_COLORSPACE_LINEAR, NULL );
         }
 
         mips.push_back( mip );

@@ -22,18 +22,22 @@ using namespace PG;
 static void DisplayHelp()
 {
     auto msg =
-      "Usage: converter [options] SCENE_FILE_OR_CSV\n"
+      "Usage: converter [options] [ASSET_NAME or SCENE_FILE]\n"
       "SCENE_FILE is relative to the project's assets/ folder. Can also pass in a specific CSV instead of a regular json scene file\n";
+      "ASSET_NAME is the name of the asset to be converted. Only applies when using --single, otherwise it's always interpreted as a scene path\n";
       "Options\n"
-      "  --force            Don't check asset file dependencies, just reconvert everything\n"
-      "  --help             Print this message and exit\n";
-      "  --single           Only process this scene, and not any of the dependent scenes. Assumed if CSV is passed in\n";
+      "  --force        Don't check asset file dependencies, just reconvert everything\n"
+      "  --help         Print this message and exit\n";
+      "  --single       Used to process a specific asset (and its referenced assets). Format: type name. Ex: '--single material wood_floor\n";
 
     LOG( "%s", msg );
 }
 
+AssetType s_singleAssetType;
+std::string s_singleAssetName;
 
-static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile, bool& single )
+
+static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile )
 {
     if ( argc == 1 )
     {
@@ -43,13 +47,13 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile,
 
     static struct option long_options[] =
     {
-        { "force",                no_argument,  0, 'f' },
-        { "help",                 no_argument,  0, 'h' },
-        { "single",               no_argument,  0, 's' },
+        { "force",      no_argument,        0, 'f' },
+        { "help",       no_argument,        0, 'h' },
+        { "single",     required_argument,  0, 's' },
         { 0, 0, 0, 0 }
     };
 
-    single = false;
+    s_singleAssetType = ASSET_TYPE_COUNT;
     int option_index = 0;
     int c            = -1;
     while ( ( c = getopt_long( argc, argv, "fhs", long_options, &option_index ) ) != -1 )
@@ -63,7 +67,18 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile,
                 DisplayHelp();
                 return false;
             case 's':
-                single = true;
+                for ( uint32_t i = 0; i < Underlying( ASSET_TYPE_COUNT ); ++i )
+                {
+                    if ( !Stricmp( g_assetNames[i], optarg ) )
+                    {
+                        s_singleAssetType = (AssetType)i;
+                    }
+                }
+                if ( s_singleAssetType == ASSET_TYPE_COUNT )
+                {
+                    LOG_ERR( "No asset type with name '%s'", optarg );
+                    return false;
+                }
                 break;
             default:
                 LOG_ERR( "Invalid option, try 'converter --help' for more information" );
@@ -76,8 +91,15 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile,
         DisplayHelp();
         return false;
     }
-    sceneFile = PG_ASSET_DIR + std::string( argv[optind] );
-    single = single || GetFileExtension( sceneFile ) == ".csv";
+    if ( s_singleAssetType != ASSET_TYPE_COUNT )
+    {
+        s_singleAssetName = argv[optind];
+    }
+    else
+    {
+        sceneFile = PG_ASSET_DIR + std::string( argv[optind] );
+    }
+
     return true;
 }
 
@@ -112,7 +134,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             int assetTypeIdx = 0;
             std::string assetTypeName = vec[0];
             std::string assetName = vec[1];
-            for ( ; assetTypeIdx < NUM_ASSET_TYPES; ++assetTypeIdx )
+            for ( ; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
             {
                 if ( assetTypeName == g_assetNames[assetTypeIdx] )
                 {
@@ -138,7 +160,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             return false;
         }
 
-        for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
+        for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
         {
             AssetType assetType = (AssetType)assetTypeIdx;
             for ( auto [assetName, _] : AssetManager::g_resourceMaps[assetTypeIdx] )
@@ -167,7 +189,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
     uint32_t convertErrors = 0;
     outOfDateAssets = 0;
     uint32_t totalAssets = 0;
-    for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
+    for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
     {
         const auto& pendingConvertList = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
         for ( const std::shared_ptr<BaseAssetCreateInfo>& createInfo : pendingConvertList )
@@ -220,7 +242,7 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
             return false;
         }
 
-        for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
+        for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
         {
             const auto& listOfUsedAssets = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
             for ( const auto& baseInfo : listOfUsedAssets )
@@ -252,7 +274,7 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
 }
 
 
-bool ProcessScene( const std::string& sceneFile )
+bool ProcessSingleScene( const std::string& sceneFile )
 {
     ClearAllFastfileDependencies();
     ClearAllUsedAssets();
@@ -291,14 +313,59 @@ bool ProcessScene( const std::string& sceneFile )
 }
 
 
+void ConvertScenes( const std::string& scene )
+{
+    std::vector<std::string> scenesToProcess;
+    scenesToProcess.push_back( GetFilenameMinusExtension( scene ) );
+
+    namespace fs = std::filesystem;
+    for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "scenes/required/" ) )
+    {
+        std::string path = entry.path().string();
+        if ( entry.is_regular_file() && GetFileExtension( path ) == ".csv" )
+        {
+            scenesToProcess.push_back( GetFilenameMinusExtension( path ) );
+        }
+    }
+    std::swap( scenesToProcess[0], scenesToProcess[scenesToProcess.size() - 1] );
+
+    for ( size_t i = 0; i < scenesToProcess.size(); ++i )
+    {
+        const auto& scene = scenesToProcess[i];
+        LOG( "Converting %s...", GetRelativeFilename( scene ).c_str() );
+        if ( !ProcessSingleScene( scene ) )
+        {
+            break;
+        }
+        LOG( "" );
+    }
+}
+
+
+bool ConvertSingleAsset()
+{
+    auto createInfo = AssetDatabase::FindAssetInfo( s_singleAssetType, s_singleAssetName );
+    if ( !createInfo )
+    {
+        LOG_ERR( "No asset of type '%s' found with name '%s'", g_assetNames[s_singleAssetType], s_singleAssetName.c_str() );
+        return false;
+    }
+
+    g_converters[s_singleAssetType]->AddReferencedAssets( createInfo );
+    AddUsedAsset( s_singleAssetType, createInfo );
+    uint32_t outOfDateAssets;
+    return ConvertAssets( s_singleAssetName, outOfDateAssets );
+}
+
+
 int main( int argc, char** argv )
 {
     auto initStartTime = Time::GetTimePoint();
 	EngineInitialize();
     g_converterConfigOptions = {};
     std::string sceneFile;
-    bool singleScene;
-    if ( !ParseCommandLineArgs( argc, argv, sceneFile, singleScene ) )
+    s_singleAssetName = "";
+    if ( !ParseCommandLineArgs( argc, argv, sceneFile ) )
     {
         return 0;
     }
@@ -308,34 +375,18 @@ int main( int argc, char** argv )
     {
         return 0;
     }
-    LOG( "Converter initialized in %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
+    LOG( "Converter initialized in %.2f seconds\n", Time::GetDuration( initStartTime ) / 1000.0f );
 
-    std::vector<std::string> scenesToProcess;
-    scenesToProcess.push_back( GetFilenameMinusExtension( sceneFile ) );
-    if ( !singleScene )
+    if ( !s_singleAssetName.empty() )
     {
-        namespace fs = std::filesystem;
-        for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "scenes/required/" ) )
+        if ( !ConvertSingleAsset() )
         {
-            std::string path = entry.path().string();
-            if ( entry.is_regular_file() && GetFileExtension( path ) == ".csv" )
-            {
-                scenesToProcess.push_back( GetFilenameMinusExtension( path ) );
-            }
+            LOG_ERR( "Single asset convert failed" );
         }
     }
-    std::swap( scenesToProcess[0], scenesToProcess[scenesToProcess.size() - 1] );
-
-    LOG( "" );
-    for ( size_t i = 0; i < scenesToProcess.size(); ++i )
+    else
     {
-        const auto& scene = scenesToProcess[i];
-        LOG( "Converting %s...", GetRelativeFilename( scene ).c_str() );
-        if ( !ProcessScene( scene ) )
-        {
-            break;
-        }
-        LOG( "" );
+        ConvertScenes( sceneFile );
     }
 
     LOG( "Total time: %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );

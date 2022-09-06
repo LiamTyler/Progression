@@ -1,5 +1,11 @@
 #include "string.hpp"
 
+
+int Stricmp( const char* str1, const char* str2 )
+{
+	return _stricmp( str1, str2 );
+}
+
 std::string StripWhitespace( const std::string& s )
 {
     size_t start, end;

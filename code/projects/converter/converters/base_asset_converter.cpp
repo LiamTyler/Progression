@@ -43,11 +43,11 @@ struct BaseCreateInfoCompare
     size_t operator()( const BaseCreateInfoPtr& p1, const BaseCreateInfoPtr& p2 ) const { return p1->name == p2->name; }
 };
 
-static std::unordered_set<BaseCreateInfoPtr, BaseCreateInfoHash, BaseCreateInfoCompare> s_pendingAssets[AssetType::NUM_ASSET_TYPES];
+static std::unordered_set<BaseCreateInfoPtr, BaseCreateInfoHash, BaseCreateInfoCompare> s_pendingAssets[AssetType::ASSET_TYPE_COUNT];
 
 void ClearAllUsedAssets()
 {
-    for ( uint32_t assetTypeIdx = 0; assetTypeIdx < AssetType::NUM_ASSET_TYPES; ++assetTypeIdx )
+    for ( uint32_t assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
     {
         s_pendingAssets[assetTypeIdx].clear();
         AssetManager::g_resourceMaps[assetTypeIdx].clear();

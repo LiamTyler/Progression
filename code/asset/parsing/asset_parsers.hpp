@@ -72,6 +72,6 @@ PG_DECLARE_ASSET_PARSER( Script, ASSET_TYPE_SCRIPT, ScriptCreateInfo );
 PG_DECLARE_ASSET_PARSER( Shader, ASSET_TYPE_SHADER, ShaderCreateInfo );
 PG_DECLARE_ASSET_PARSER( Textureset, ASSET_TYPE_TEXTURESET, TexturesetCreateInfo );
 
-extern const std::shared_ptr<BaseAssetParser> g_assetParsers[NUM_ASSET_TYPES];
+extern const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT];
 
 } // namespace PG

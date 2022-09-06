@@ -25,7 +25,7 @@ void MaterialConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& matInf
     imageCreateInfo->filenames[0] = texturesetInfo->GetAlbedoMap( matInfo->applyAlbedo );
     imageCreateInfo->filenames[1] = texturesetInfo->GetMetalnessMap( matInfo->applyMetalness );
     imageCreateInfo->clampHorizontal = texturesetInfo->clampHorizontal;
-    imageCreateInfo->clampHorizontal = texturesetInfo->clampVertical;
+    imageCreateInfo->clampVertical = texturesetInfo->clampVertical;
     imageCreateInfo->compositeScales[1] = texturesetInfo->metalnessScale;
     imageCreateInfo->compositeSourceChannels[1] = texturesetInfo->metalnessSourceChannel;
 

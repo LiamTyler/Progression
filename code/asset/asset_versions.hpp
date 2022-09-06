@@ -12,14 +12,14 @@ enum AssetType : unsigned int
     ASSET_TYPE_SHADER,
     ASSET_TYPE_TEXTURESET,
 
-    NUM_ASSET_TYPES
+    ASSET_TYPE_COUNT
 };
 
 
 inline const unsigned int g_assetVersions[] =
 {
-    2, // ASSET_TYPE_GFX_IMAGE
-    1, // ASSET_TYPE_MATERIAL
+    3, // ASSET_TYPE_GFX_IMAGE
+    2, // ASSET_TYPE_MATERIAL
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER

@@ -6,7 +6,7 @@
 
 #define ROOT_DIR std::string( PG_ASSET_DIR "cache/" )
 
-std::string assetCacheFolders[NUM_ASSET_TYPES] =
+std::string assetCacheFolders[ASSET_TYPE_COUNT] =
 {
     "images/",      // ASSET_TYPE_GFX_IMAGE
     "materials/",   // ASSET_TYPE_MATERIAL
@@ -16,7 +16,7 @@ std::string assetCacheFolders[NUM_ASSET_TYPES] =
     "texturesets/", // ASSET_TYPE_TEXTURESET
 };
 
-std::string assetCacheFileExtensions[NUM_ASSET_TYPES] =
+std::string assetCacheFileExtensions[ASSET_TYPE_COUNT] =
 {
     ".pgi", // ASSET_TYPE_GFX_IMAGE
     ".ffi", // ASSET_TYPE_MATERIAL
@@ -37,7 +37,7 @@ namespace PG::AssetCache
 void Init()
 {
     CreateDirectory( ROOT_DIR );
-    for ( int i = 0; i < NUM_ASSET_TYPES; ++i )
+    for ( int i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
         CreateDirectory( ROOT_DIR + assetCacheFolders[i] );
     }

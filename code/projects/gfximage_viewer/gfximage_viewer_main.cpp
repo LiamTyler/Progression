@@ -10,7 +10,7 @@
 static void DisplayHelp()
 {
     auto msg =
-        "Usage: GfxImageViewer PATH"
+        "Usage: GfxImageViewer PATH\n"
         "\tPATH must be a valid path to a gfximage .pgi file\n"
         "\tOutputs: will print out the image stats and decompress the image into a [PATH]_f[x]_m[y].png file\n"
         "\t\tfor most formats, except for BC6/float images which will generate EXR image(s)\n"

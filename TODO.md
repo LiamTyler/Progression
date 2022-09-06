@@ -14,3 +14,6 @@
 - [ ] decouple graphics code from all assets (GfxImage) just store a handle, and remove Vulkan dependencies from Projects that dont need it anymore
 - [ ] add TIFF loading and saving
 - [ ] multithread the converter
+- [ ] switch/add to .pmodel binary format, with binary <-> text tool
+- [ ] add .pmodel -> .obj tool
+- [ ] investigate different mipmap filters

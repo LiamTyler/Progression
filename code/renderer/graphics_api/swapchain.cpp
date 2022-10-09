@@ -8,8 +8,8 @@
 struct SwapChainSupportDetails
 {
     VkSurfaceCapabilitiesKHR capabilities;
-    std::vector< VkSurfaceFormatKHR > formats;
-    std::vector< VkPresentModeKHR > presentModes;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
 };
 
 
@@ -60,7 +60,7 @@ static VkExtent2D ChooseSwapExtent( const VkSurfaceCapabilitiesKHR& capabilities
 }
 
 
-static VkPresentModeKHR ChooseSwapPresentMode( const std::vector< VkPresentModeKHR >& availablePresentModes )
+static VkPresentModeKHR ChooseSwapPresentMode( const std::vector<VkPresentModeKHR>& availablePresentModes )
 {
     VkPresentModeKHR mode = VK_PRESENT_MODE_FIFO_KHR;
 
@@ -80,7 +80,7 @@ static VkPresentModeKHR ChooseSwapPresentMode( const std::vector< VkPresentModeK
 }
 
 
-static VkSurfaceFormatKHR ChooseSwapSurfaceFormat( const std::vector< VkSurfaceFormatKHR >& availableFormats )
+static VkSurfaceFormatKHR ChooseSwapSurfaceFormat( const std::vector<VkSurfaceFormatKHR>& availableFormats )
 {
     PG_ASSERT( availableFormats.size() > 0, "Swap chain has no available formats!" );
     // check if the surface has no preferred format (best case)
@@ -112,9 +112,8 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
 {
     m_device = dev;
     SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport( r_globals.physicalDevice.GetHandle(), r_globals.surface );
-
     VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat( swapChainSupport.formats );
-    VkPresentModeKHR   presentMode   = ChooseSwapPresentMode( swapChainSupport.presentModes );
+    VkPresentModeKHR presentMode = ChooseSwapPresentMode( swapChainSupport.presentModes );
 
     m_imageFormat = surfaceFormat.format;
     VkExtent2D extent = ChooseSwapExtent( swapChainSupport.capabilities, preferredWidth, preferredHeight );
@@ -137,40 +136,22 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
         LOG_ERR( "Swapchain num images is lower than the minimum for this gpu! Increase GFX_MAX_SWAPCHAIN_IMAGES?" );
     }
 
-    VkSwapchainCreateInfoKHR createInfo = {};
-    createInfo.sType                    = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
-    createInfo.surface                  = r_globals.surface;
-    createInfo.minImageCount            = m_numImages;
-    createInfo.imageFormat              = surfaceFormat.format;
-    createInfo.imageColorSpace          = surfaceFormat.colorSpace;
-    createInfo.imageExtent              = extent;
-    createInfo.imageArrayLayers         = 1; // always 1 unless doing VR
-    createInfo.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-    const PhysicalDevice& pDev = r_globals.physicalDevice;
-    uint32_t queueFamilyIndices[] = { pDev.GetGraphicsQueueFamily(), pDev.GetPresentationQueueFamily(), pDev.GetComputeQueueFamily() };
-
-    if ( pDev.GetGraphicsQueueFamily() != pDev.GetPresentationQueueFamily() )
-    {
-        LOG_WARN( "Graphics queue is not the same as the presentation queue! Possible performance drop" );
-        createInfo.imageSharingMode      = VK_SHARING_MODE_CONCURRENT;
-        createInfo.queueFamilyIndexCount = 3;
-        createInfo.pQueueFamilyIndices   = queueFamilyIndices;
-    }
-    else
-    {
-        createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    }
-
+    VkSwapchainCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
+    createInfo.surface          = r_globals.surface;
+    createInfo.minImageCount    = m_numImages;
+    createInfo.imageFormat      = surfaceFormat.format;
+    createInfo.imageColorSpace  = surfaceFormat.colorSpace;
+    createInfo.imageExtent      = extent;
+    createInfo.imageArrayLayers = 1; // always 1 unless doing VR
+    createInfo.imageUsage       = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    createInfo.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
     // can specify transforms to happen (90 rotation, horizontal flip, etc). None used for now
     createInfo.preTransform   = swapChainSupport.capabilities.currentTransform;
     createInfo.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     createInfo.presentMode    = presentMode;
     createInfo.clipped        = VK_TRUE;
-
     // only applies if you have to create a new swap chain (like on window resizing)
     createInfo.oldSwapchain = VK_NULL_HANDLE;
-
     if ( vkCreateSwapchainKHR( m_device, &createInfo, nullptr, &m_handle ) != VK_SUCCESS )
     {
         return false;

@@ -2,6 +2,29 @@
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 
+struct ExtensionHeader  // Helper struct to link extensions together
+{
+    VkStructureType sType;
+    void*           pNext;
+};
+
+void* MakePNextChain( const std::vector<void*>& addresses )
+{
+    if ( addresses.size() == 0 ) return nullptr;
+
+    ExtensionHeader* prev = nullptr;
+    for ( size_t i = 0; i < addresses.size(); ++i )
+    {
+        PG_ASSERT( addresses[i] );
+        ExtensionHeader* next = reinterpret_cast<ExtensionHeader*>( addresses[i] );
+        next->pNext = prev;
+        prev = next;
+    }
+
+    return prev;
+}
+
+
 namespace PG
 {
 namespace Gfx

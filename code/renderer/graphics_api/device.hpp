@@ -3,23 +3,33 @@
 #include "renderer/graphics_api/command_buffer.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/graphics_api/framebuffer.hpp"
+#include "renderer/graphics_api/physical_device.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
-#include "renderer/graphics_api/texture.hpp"
 #include "renderer/graphics_api/sampler.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
+#include "renderer/graphics_api/texture.hpp"
 
 namespace PG
 {
 namespace Gfx
 {
 
+    struct Queue
+    {
+        VkQueue  queue       = VK_NULL_HANDLE;
+        uint32_t familyIndex = ~0u;
+        uint32_t queueIndex  = ~0u;
+
+        operator VkQueue() const { return queue; }
+        operator uint32_t() const { return familyIndex; }
+    };
+
     class Device
     {
     public:
         Device() = default;
 
-        // should only be called once right now, since it also 
-        static Device Create( bool headless = false );
+        bool Create( const PhysicalDevice& physicalDevice, bool headless );
         void Free();
         operator bool() const;
 
@@ -40,25 +50,20 @@ namespace Gfx
         Pipeline NewGraphicsPipeline( const PipelineDescriptor& desc, const std::string& name = "" ) const;
         Pipeline NewComputePipeline( Shader* shader, const std::string& name = "" ) const;
         RenderPass NewRenderPass( const RenderPassDescriptor& desc, const std::string& name = "" ) const;
-        Framebuffer NewFramebuffer( const std::vector< Texture* >& attachments, const RenderPass& renderPass, const std::string& name = "" ) const;
+        Framebuffer NewFramebuffer( const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name = "" ) const;
         Framebuffer NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name = "" ) const;
-        void SubmitRenderCommands( int numBuffers, CommandBuffer* cmdBufs ) const;
-        void SubmitComputeCommand( const CommandBuffer& cmdBuf, Fence* signalOnComplete = nullptr ) const;
-        void SubmitFrame( uint32_t imageIndex ) const;
+        void SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs ) const;
+        void SubmitFrameForPresentation( uint32_t imageIndex ) const;
 
         void Copy( Buffer dst, Buffer src ) const;
         void CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips = true ) const;
 
         VkDevice GetHandle() const;
-        VkQueue GraphicsQueue() const;
-        VkQueue ComputeQueue() const;
-        VkQueue PresentQueue() const;
+        Queue GetQueue() const;
 
     private:
-        VkDevice m_handle        = VK_NULL_HANDLE;
-        VkQueue  m_graphicsQueue = VK_NULL_HANDLE;
-        VkQueue  m_presentQueue  = VK_NULL_HANDLE;
-        VkQueue  m_computeQueue  = VK_NULL_HANDLE;
+        VkDevice m_handle = VK_NULL_HANDLE;
+        Queue m_queue = {};
     };
 
 } // namespace Gfx

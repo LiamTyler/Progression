@@ -25,35 +25,45 @@ struct PhysicalDeviceFeatures
     bool anisotropy = false;
     bool bindless = false;
     bool nullDescriptors = false;
+    bool raytracing = false;
 };
 
 class PhysicalDevice
 {
 public:
+    PhysicalDevice() = default;
+    PhysicalDevice( VkPhysicalDevice vkPhysicalDevice, VkSurfaceKHR surface, bool headless );
 
-    bool Select( bool headless, std::string preferredGpu = "" );
     bool ExtensionSupported( const std::string& extensionName ) const;
+    // compatible devices have a strictly positive score. The higher, the better
+    int RateDevice( bool headless, VkSurfaceKHR surface ) const;
 
     std::string GetName() const;
     VkPhysicalDevice GetHandle() const;
     PhysicalDeviceProperties GetProperties() const;
     PhysicalDeviceFeatures GetFeatures() const;
     VkPhysicalDeviceMemoryProperties GetMemoryProperties() const;
+    uint32_t GetGCTQueueFamily() const;
     uint32_t GetGraphicsQueueFamily() const;
-    uint32_t GetPresentationQueueFamily() const;
     uint32_t GetComputeQueueFamily() const;
+    uint32_t GetTransferQueueFamily() const;
+    int GetRating() const;
 
 private:
     VkPhysicalDevice m_handle;
-    PhysicalDeviceProperties m_Properties;
-    PhysicalDeviceFeatures m_Features;
+    PhysicalDeviceProperties m_properties;
+    PhysicalDeviceFeatures m_features;
     VkPhysicalDeviceMemoryProperties m_memProperties;
+    uint32_t m_GCTQueueFamily; // graphics, compute, and transfer (and present, if not headless)
     uint32_t m_graphicsFamily;
-    uint32_t m_presentFamily;
     uint32_t m_computeFamily;    
-    std::vector< std::string > m_availableExtensions;
-    int score; // only used during device selection
+    uint32_t m_transferFamily;    
+    std::vector<std::string> m_availableExtensions;
+    int m_rating; // only used in SelectBestPhysicalDevice()
 };
+
+std::vector<PhysicalDevice> EnumerateCompatiblePhysicalDevices( VkInstance instance, VkSurfaceKHR surface, bool headless, bool verbose );
+PhysicalDevice SelectBestPhysicalDevice( std::vector<PhysicalDevice>& devices, int deviceOverride = -1 );
 
 } // namespace Gfx
 } // namespace PG

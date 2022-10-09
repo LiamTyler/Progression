@@ -38,8 +38,8 @@ private:
     uint32_t m_height;
     uint32_t m_currentImage;
     uint32_t m_numImages;
-    std::array< VkImage, GFX_MAX_SWAPCHAIN_IMAGES > m_images;
-    std::array< VkImageView, GFX_MAX_SWAPCHAIN_IMAGES > m_imageViews;
+    std::array<VkImage, GFX_MAX_SWAPCHAIN_IMAGES> m_images;
+    std::array<VkImageView, GFX_MAX_SWAPCHAIN_IMAGES> m_imageViews;
 };
 
 } // namespace Gfx

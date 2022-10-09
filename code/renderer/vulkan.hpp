@@ -3,20 +3,23 @@
 #include "shared/assert.hpp"
 #include "shared/platform_defines.hpp"
 #include <vulkan/vulkan.h>
+#include <vector>
 
 #if USING( SHIP_BUILD )
 #define VK_CHECK_RESULT( f ) f
 #else // #if USING( SHIP_BUILD )
 #define VK_CHECK_RESULT( f ) 																\
 {																						    \
-    VkResult res = (f);																	    \
-    if ( res != VK_SUCCESS )																\
+    VkResult vkRes = (f);																	\
+    if ( vkRes != VK_SUCCESS )																\
     {																					    \
-        printf( "Fatal : VkResult is %d in %s at line %d\n", res,  __FILE__, __LINE__ );    \
-        PG_ASSERT( res == VK_SUCCESS );													    \
+        printf( "Fatal : VkResult is %d in %s at line %d\n", vkRes,  __FILE__, __LINE__ );  \
+        PG_ASSERT( vkRes == VK_SUCCESS );													\
     }																					    \
 }
 #endif // #else // #if USING( SHIP_BUILD )
+
+void* MakePNextChain( const std::vector<void*>& addresses );
 
 namespace PG
 {

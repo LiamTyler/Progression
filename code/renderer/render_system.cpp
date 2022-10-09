@@ -308,8 +308,8 @@ void Render( Scene* scene )
 
     PG_PROFILE_GPU_END( cmdBuf, "Frame" );
     cmdBuf.EndRecording();
-    r_globals.device.SubmitRenderCommands( 1, &cmdBuf );
-    r_globals.device.SubmitFrame( r_globals.swapChainImageIndex );
+    r_globals.device.SubmitCommandBuffers( 1, &cmdBuf );
+    r_globals.device.SubmitFrameForPresentation( r_globals.swapChainImageIndex );
     PG_PROFILE_GPU_GET_RESULTS();
 }
 

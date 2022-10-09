@@ -20,91 +20,71 @@ namespace PG
 namespace Gfx
 {
 
-
-    Device Device::Create( bool headless )
+    bool Device::Create( const PhysicalDevice& pDev, bool headless )
     {
-        Device device;
-        const PhysicalDevice& pDev = r_globals.physicalDevice;
-        std::set< uint32_t > uniqueQueueFamilies = { pDev.GetGraphicsQueueFamily(), pDev.GetComputeQueueFamily() };
-        if ( !headless )
-        {
-            uniqueQueueFamilies.insert( pDev.GetPresentationQueueFamily() );
-        }
+        std::set<uint32_t> uniqueQueueFamilies = { pDev.GetGCTQueueFamily() };
 
         float queuePriority = 1.0f;
-        std::vector< VkDeviceQueueCreateInfo > queueCreateInfos;
+        std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
         for ( uint32_t queueFamily : uniqueQueueFamilies )
         {
-            VkDeviceQueueCreateInfo queueCreateInfo = {};
-            queueCreateInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+            VkDeviceQueueCreateInfo queueCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
             queueCreateInfo.queueFamilyIndex        = queueFamily;
             queueCreateInfo.queueCount              = 1;
             queueCreateInfo.pQueuePriorities        = &queuePriority;
             queueCreateInfos.push_back( queueCreateInfo );
         }
 
+        // Since the physical device is only chosen if it is known to support all the features we need, we can simply use vkGetPhysicalDeviceFeatures2()
+        // to fill out the features the device supports (will contain all features we want to enable) and pass that to the device create info
+        VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
+        VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
+        VkPhysicalDeviceFeatures2 deviceFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+
+        deviceFeatures2.pNext = MakePNextChain( { &bufferDeviceAddressFeatures, &rayTracingPipelineFeatures, &accelerationStructureFeatures, &indexingFeatures, &vkFeatures2 } );
+        vkGetPhysicalDeviceFeatures2( pDev.GetHandle(), &deviceFeatures2 );
+#if !USING( DEBUG_BUILD )
+        deviceFeatures2.features.robustBufferAccess = VK_FALSE; // perf hit
+#endif // #if !USING( DEBUG_BUILD )
+
         const auto& features = pDev.GetFeatures();
-        VkPhysicalDeviceFeatures enabledFeatures = {};
-        enabledFeatures.samplerAnisotropy = features.anisotropy;
-        VkDeviceCreateInfo createInfo      = {};
-        createInfo.sType                   = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
-        createInfo.queueCreateInfoCount    = static_cast< uint32_t >( queueCreateInfos.size() );
-        createInfo.pQueueCreateInfos       = queueCreateInfos.data();
-        createInfo.pEnabledFeatures        = &enabledFeatures;
+        VkDeviceCreateInfo createInfo   = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+        createInfo.queueCreateInfoCount = static_cast<uint32_t>( queueCreateInfos.size() );
+        createInfo.pQueueCreateInfos    = queueCreateInfos.data();
+        createInfo.pEnabledFeatures     = nullptr;
+        createInfo.pNext                = &deviceFeatures2;
         
-        VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures = {};
-        if ( features.bindless )
-        {
-            indexingFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES;
-            indexingFeatures.pNext = nullptr;
-            indexingFeatures.descriptorBindingPartiallyBound = VK_TRUE;
-            indexingFeatures.runtimeDescriptorArray = VK_TRUE;
-            indexingFeatures.descriptorBindingSampledImageUpdateAfterBind = VK_TRUE;
-            indexingFeatures.shaderSampledImageArrayNonUniformIndexing = VK_TRUE;
-            createInfo.pNext = &indexingFeatures;
-        }
-        VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2 = {};
-        if ( features.nullDescriptors )
-        {
-            vkFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
-            vkFeatures2.pNext = &indexingFeatures;
-            vkFeatures2.nullDescriptor = true;
-            createInfo.pNext = &vkFeatures2;
-        }
-        
-        std::vector< const char* > extensions;
+        std::vector<const char*> extensions;
         if ( !headless )
         {
             extensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
         }
-        createInfo.enabledExtensionCount   = static_cast< uint32_t >( extensions.size() );
+        createInfo.enabledExtensionCount   = static_cast<uint32_t>( extensions.size() );
         createInfo.ppEnabledExtensionNames = extensions.data();
 
         // Specify device specific validation layers (ignored after v1.1.123?)
+        std::vector<const char*> validationLayers =
+        {
 #if !USING( SHIP_BUILD )
-        std::vector< const char* > validationLayers =
-        {
             "VK_LAYER_KHRONOS_validation"
+#endif // #if !USING( SHIP_BUILD )
         };
-        createInfo.enabledLayerCount   = static_cast< uint32_t >( validationLayers.size() );
+        createInfo.enabledLayerCount   = static_cast<uint32_t>( validationLayers.size() );
         createInfo.ppEnabledLayerNames = validationLayers.data();
-#else // #if !USING( SHIP_BUILD )
-        createInfo.enabledLayerCount   = 0;
-#endif // #else // #if !USING( SHIP_BUILD )
 
-        if ( vkCreateDevice( pDev.GetHandle(), &createInfo, nullptr, &device.m_handle ) != VK_SUCCESS )
+        if ( vkCreateDevice( pDev.GetHandle(), &createInfo, nullptr, &m_handle ) != VK_SUCCESS )
         {
-            return {};
+            return false;
         }
 
-        vkGetDeviceQueue( device.m_handle, pDev.GetGraphicsQueueFamily(),0, &device.m_graphicsQueue );
-        vkGetDeviceQueue( device.m_handle, pDev.GetComputeQueueFamily(), 0, &device.m_computeQueue );
-        if ( !headless )
-        {
-            vkGetDeviceQueue( device.m_handle, pDev.GetPresentationQueueFamily(), 0, &device.m_presentQueue );
-        }
+        m_queue.familyIndex = pDev.GetGCTQueueFamily();
+        m_queue.queueIndex = 0;
+        vkGetDeviceQueue( m_handle, m_queue.familyIndex, m_queue.queueIndex, &m_queue.queue );
 
-        return device;
+        return true;
     }
 
 
@@ -126,14 +106,13 @@ namespace Gfx
         VkCommandBuffer vkCmdBuf      = cmdBuf.GetHandle();
         submitInfo.pCommandBuffers    = &vkCmdBuf;
 
-        VK_CHECK_RESULT( vkQueueSubmit( m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
+        VK_CHECK_RESULT( vkQueueSubmit( m_queue.queue, 1, &submitInfo, VK_NULL_HANDLE ) );
     }
 
 
     void Device::WaitForIdle() const
     {
-        VK_CHECK_RESULT( vkQueueWaitIdle( m_graphicsQueue ) );
-        VK_CHECK_RESULT( vkQueueWaitIdle( m_computeQueue ) );
+        VK_CHECK_RESULT( vkQueueWaitIdle( m_queue.queue ) );
     }
 
 
@@ -142,11 +121,7 @@ namespace Gfx
         VkCommandPoolCreateInfo poolInfo = {};
         poolInfo.sType            = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
         poolInfo.flags            = PGToVulkanCommandPoolCreateFlags( flags );
-        poolInfo.queueFamilyIndex = r_globals.physicalDevice.GetGraphicsQueueFamily();
-        if ( family == CommandPoolQueueFamily::COMPUTE )
-        {
-            poolInfo.queueFamilyIndex = r_globals.physicalDevice.GetComputeQueueFamily();
-        }
+        poolInfo.queueFamilyIndex = m_queue.familyIndex;
 
         CommandPool cmdPool;
         cmdPool.m_device = m_handle;
@@ -186,7 +161,7 @@ namespace Gfx
     {
         layout.m_device = m_handle;
         VkDescriptorSetLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-	    std::vector< VkDescriptorSetLayoutBinding > bindings;
+	    std::vector<VkDescriptorSetLayoutBinding> bindings;
 
         // bindless info
         bool bindless = false;
@@ -289,7 +264,7 @@ namespace Gfx
                     createInfo.pNext            = &extendedInfo;
                 }
             }
-            createInfo.bindingCount = static_cast< uint32_t >( bindings.size() );
+            createInfo.bindingCount = static_cast<uint32_t>( bindings.size() );
             createInfo.pBindings    = bindings.data();
         }
         else
@@ -538,7 +513,7 @@ namespace Gfx
 
 	    for ( int shaderIndex = 0; shaderIndex < numShaders; ++shaderIndex )
 	    {
-		    uint32_t stageMask = 1u << static_cast< uint32_t >( shaders[shaderIndex]->shaderStage );
+		    uint32_t stageMask = 1u << static_cast<uint32_t>( shaders[shaderIndex]->shaderStage );
 		    const ShaderResourceLayout& shaderLayout = shaders[shaderIndex]->resourceLayout;
 		    for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; set++ )
 		    {
@@ -882,7 +857,7 @@ namespace Gfx
     }
 
 
-    Framebuffer Device::NewFramebuffer( const std::vector< Texture* >& attachments, const RenderPass& renderPass, const std::string& name ) const
+    Framebuffer Device::NewFramebuffer( const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name ) const
     {
         PG_ASSERT( 0 < attachments.size() && attachments.size() <= 9 );
         VkImageView frameBufferAttachments[9];
@@ -895,7 +870,7 @@ namespace Gfx
         VkFramebufferCreateInfo framebufferInfo = {};
         framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         framebufferInfo.renderPass      = renderPass.GetHandle();
-        framebufferInfo.attachmentCount = static_cast< uint32_t >( attachments.size() );
+        framebufferInfo.attachmentCount = static_cast<uint32_t>( attachments.size() );
         framebufferInfo.pAttachments    = frameBufferAttachments;
         framebufferInfo.width           = attachments[0]->GetWidth();
         framebufferInfo.height          = attachments[0]->GetHeight();
@@ -940,7 +915,7 @@ namespace Gfx
         CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
 
-        std::vector< VkBufferImageCopy > bufferCopyRegions;
+        std::vector<VkBufferImageCopy> bufferCopyRegions;
 		uint32_t offset = 0;
 
         uint32_t numMips = tex.GetMipLevels();
@@ -991,7 +966,7 @@ namespace Gfx
             buffer.GetHandle(),
             tex.GetHandle(),
             VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-            static_cast< uint32_t >( bufferCopyRegions.size() ),
+            static_cast<uint32_t>( bufferCopyRegions.size() ),
             bufferCopyRegions.data()
         );
 
@@ -1002,7 +977,7 @@ namespace Gfx
     }
 
 
-    void Device::SubmitRenderCommands( int numBuffers, CommandBuffer* cmdBufs ) const
+    void Device::SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs ) const
     {
         PG_ASSERT( 0 <= numBuffers && numBuffers <= 5 );
         VkCommandBuffer vkCmdBufs[5];
@@ -1026,37 +1001,11 @@ namespace Gfx
         submitInfo.signalSemaphoreCount   = 1;
         submitInfo.pSignalSemaphores      = signalSemaphores;
 
-        VK_CHECK_RESULT( vkQueueSubmit( m_graphicsQueue, 1, &submitInfo, VK_NULL_HANDLE ) );
+        VK_CHECK_RESULT( vkQueueSubmit( m_queue.queue, 1, &submitInfo, VK_NULL_HANDLE ) );
     }
 
 
-    void Device::SubmitComputeCommand( const CommandBuffer& cmdBuf, Fence* signalOnCompleteFence ) const
-    {
-        VkCommandBuffer buff = cmdBuf.GetHandle();
-        VkSubmitInfo submitInfo = {};
-        submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-        submitInfo.commandBufferCount     = 1;
-        submitInfo.pCommandBuffers        = &buff;
-
-        VkFence fence = VK_NULL_HANDLE;
-        if ( signalOnCompleteFence )
-        {
-            if ( signalOnCompleteFence->GetHandle() == VK_NULL_HANDLE )
-            {
-                *signalOnCompleteFence = NewFence();
-            }
-            else
-            {
-                signalOnCompleteFence->Reset();
-            }
-            fence = signalOnCompleteFence->GetHandle();
-        }
-
-        VK_CHECK_RESULT( vkQueueSubmit( m_computeQueue, 1, &submitInfo, fence ) );
-    }
-
-
-    void Device::SubmitFrame( uint32_t imageIndex ) const
+    void Device::SubmitFrameForPresentation( uint32_t imageIndex ) const
     {
         VkSemaphore signalSemaphores[] = { r_globals.renderCompleteSemaphore.GetHandle() };
         VkPresentInfoKHR presentInfo   = {};
@@ -1069,16 +1018,14 @@ namespace Gfx
         presentInfo.pSwapchains     = swapChains;
         presentInfo.pImageIndices   = &imageIndex;
 
-        VK_CHECK_RESULT( vkQueuePresentKHR( m_presentQueue, &presentInfo ) );
+        VK_CHECK_RESULT( vkQueuePresentKHR( m_queue.queue, &presentInfo ) );
         r_globals.device.WaitForIdle();
     }
 
     
-    VkDevice Device::GetHandle()    const { return m_handle; }
-    VkQueue Device::GraphicsQueue() const { return m_graphicsQueue; }
-    VkQueue Device::ComputeQueue()  const { return m_computeQueue; }
-    VkQueue Device::PresentQueue()  const { return m_presentQueue; }
-    Device::operator bool()         const { return m_handle != VK_NULL_HANDLE; }
+    VkDevice Device::GetHandle() const { return m_handle; }
+    Queue Device::GetQueue() const { return m_queue; }
+    Device::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 
 
 } // namespace Gfx

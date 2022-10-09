@@ -3,96 +3,60 @@
 #include "shared/logger.hpp"
 #include <algorithm>
 
-#define INVALID_QUEUE_FAMILY ~0u
 
-
-/** \brief Find and select the first avaiable queues for graphics and presentation
-* Queues are where commands get submitted to and are processed asynchronously. Some queues
-* might only be usable for certain operations, like graphics or memory operations.
-*/
-static void FindQueueFamilies( bool headless, VkPhysicalDevice device, VkSurfaceKHR surface, uint32_t& graphicsFamily, uint32_t& presentationFamily, uint32_t& computeFamily )
+static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfaceKHR surface, VkQueueFlags flags )
 {
-    graphicsFamily     = INVALID_QUEUE_FAMILY;
-    presentationFamily = INVALID_QUEUE_FAMILY;
-    computeFamily      = INVALID_QUEUE_FAMILY;
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties( device, &queueFamilyCount, nullptr );
     std::vector< VkQueueFamilyProperties > queueFamilies( queueFamilyCount );
     vkGetPhysicalDeviceQueueFamilyProperties( device, &queueFamilyCount, queueFamilies.data() );
 
-    auto AllQueuesComplete = [&]() { return graphicsFamily != INVALID_QUEUE_FAMILY && presentationFamily != INVALID_QUEUE_FAMILY && computeFamily != INVALID_QUEUE_FAMILY; };
-    for ( uint32_t i = 0; i < static_cast< uint32_t >( queueFamilies.size() ); ++i )
+    // search for dedicated queue first
+    for ( uint32_t i = 0; i < queueFamilyCount; ++i )
     {
-        if ( AllQueuesComplete() )
-        {
-            break;
-        }
-
         if ( queueFamilies[i].queueCount > 0 )
         {
-            if ( queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT )
+            if ( (queueFamilies[i].queueFlags & flags) == flags )
             {
-                if ( headless )
-                {
-                    graphicsFamily = i;
-                }
-                else
+                if ( !headless && (flags & VK_QUEUE_GRAPHICS_BIT) )
                 {
                     VkBool32 presentSupport = false;
                     VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceSupportKHR( device, i, surface, &presentSupport ) );
-
-                    if ( queueFamilies[i].queueCount > 0 && presentSupport )
-                    {
-                        presentationFamily = i;
-                        graphicsFamily = i;
-                    }
+                    if ( presentSupport )
+                        return i;
+                }
+                else
+                {
+                    return i;
                 }
             }
-            // check for dedicated compute queue, separate from the graphics queue
-            else if ( queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT )
-            {
-                computeFamily = i;
-            }
         }
     }
 
-    // if there existed no queuefamily for both graphics and presenting, then look for separate ones
-    if ( !headless && graphicsFamily == ~0u )
+    // if no dedicated queue found, look for any that has at least the requested flags
+    for ( uint32_t i = 0; i < queueFamilyCount; ++i )
     {
-        for ( uint32_t i = 0; i < static_cast< uint32_t >( queueFamilies.size() ); ++i )
+        if ( queueFamilies[i].queueCount > 0 )
         {
-            if ( AllQueuesComplete() )
+            if ( queueFamilies[i].queueFlags & flags )
             {
-                break;
-            }
-
-            if ( queueFamilies[i].queueCount > 0 && queueFamilies[i].queueFlags & VK_QUEUE_GRAPHICS_BIT )
-            {
-                graphicsFamily = i;
-            }
-
-            VkBool32 presentSupport = false;
-            VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceSupportKHR( device, i, surface, &presentSupport ) );
-
-            if ( queueFamilies[i].queueCount > 0 && presentSupport )
-            {
-                presentationFamily = i;
+                if ( !headless && (flags & VK_QUEUE_GRAPHICS_BIT) )
+                {
+                    VkBool32 presentSupport = false;
+                    VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceSupportKHR( device, i, surface, &presentSupport ) );
+                    if ( presentSupport )
+                        return i;
+                }
+                else
+                {
+                    return i;
+                }
             }
         }
     }
 
-    // If no dedicated compute queue exists, grab 
-    if ( computeFamily == INVALID_QUEUE_FAMILY )
-    {
-        for ( uint32_t i = 0; i < static_cast< uint32_t >( queueFamilies.size() ); ++i )
-        {
-            if ( queueFamilies[i].queueCount > 0 && queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT )
-            {
-                computeFamily = i;
-                break;
-            }
-        }
-    }
+    // no family found
+    return ~0u;
 }
 
 
@@ -131,55 +95,6 @@ namespace PG
 namespace Gfx
 {
 
-
-// Return a rating of how good this device is. 0 is incompatible, and the higher the better
-static int RatePhysicalDevice( const PhysicalDevice& dev, bool headless )
-{
-    if ( dev.GetGraphicsQueueFamily() == INVALID_QUEUE_FAMILY || dev.GetComputeQueueFamily() == INVALID_QUEUE_FAMILY )
-    {
-        return 0;
-    }
-
-    if ( !headless && dev.GetPresentationQueueFamily() == INVALID_QUEUE_FAMILY )
-    {
-        return 0;
-    }
-
-    std::vector< const char* > extensions;
-    if ( !headless )
-    {
-        extensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
-    }
-
-    for ( const auto& extension : extensions )
-    {
-        if ( !dev.ExtensionSupported( extension ) )
-        {
-            return 0;
-        }
-    }
-
-    if ( !headless && !HasSwapChainSupport( dev.GetHandle(), r_globals.surface ) )
-    {
-        return 0;
-    }
-
-    const auto& features = dev.GetFeatures();
-    if ( !features.anisotropy || !features.bindless || !features.nullDescriptors )
-    {
-        return 0;
-    }
-
-    int score = 10;
-    if ( dev.GetProperties().isDiscrete )
-    {
-        score += 1000;
-    }
-    
-    return score;
-}
-
-
 static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDevice )
 {
     VkPhysicalDeviceProperties vkProperties;
@@ -199,116 +114,55 @@ static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDe
 
 static PhysicalDeviceFeatures GetDeviceFeatures( VkPhysicalDevice physicalDevice )
 {
-    VkPhysicalDeviceFeatures vkFeatures;
-    vkGetPhysicalDeviceFeatures( physicalDevice, &vkFeatures );
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
+	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+    VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
+    VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
+    VkPhysicalDeviceFeatures2 deviceFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
-    VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{};
-    indexingFeatures.sType	= VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT;
-    indexingFeatures.pNext = nullptr;
-
-    VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2 = {};
-    vkFeatures2.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT;
-    vkFeatures2.pNext = &indexingFeatures;
-
-    VkPhysicalDeviceFeatures2 deviceFeatures{};
-    deviceFeatures.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2;
-    deviceFeatures.pNext = &vkFeatures2;
-    vkGetPhysicalDeviceFeatures2( physicalDevice, &deviceFeatures );
+    deviceFeatures2.pNext = MakePNextChain( { &bufferDeviceAddressFeatures, &rayTracingPipelineFeatures, &accelerationStructureFeatures, &indexingFeatures, &vkFeatures2 } );
+    vkGetPhysicalDeviceFeatures2( physicalDevice, &deviceFeatures2 );
     
     PhysicalDeviceFeatures f = {};
-    f.anisotropy = vkFeatures.samplerAnisotropy == VK_TRUE;
-    f.bindless = indexingFeatures.descriptorBindingPartiallyBound &&
+    f.anisotropy = deviceFeatures2.features.samplerAnisotropy;
+    f.nullDescriptors = vkFeatures2.nullDescriptor;
+    f.bindless =
+        indexingFeatures.descriptorBindingPartiallyBound &&
         indexingFeatures.runtimeDescriptorArray &&
         indexingFeatures.descriptorBindingSampledImageUpdateAfterBind &&
         indexingFeatures.shaderSampledImageArrayNonUniformIndexing;
-    f.nullDescriptors = vkFeatures2.nullDescriptor;
+    f.raytracing =
+        bufferDeviceAddressFeatures.bufferDeviceAddress &&
+        rayTracingPipelineFeatures.rayTracingPipeline &&
+        accelerationStructureFeatures.accelerationStructure;
 
     return f;
 }
 
 
-bool PhysicalDevice::Select( bool headless, std::string preferredGpu )
+PhysicalDevice::PhysicalDevice( VkPhysicalDevice vkPhysicalDevice, VkSurfaceKHR surface, bool headless )
 {
-    uint32_t deviceCount = 0;
-    VK_CHECK_RESULT( vkEnumeratePhysicalDevices( r_globals.instance, &deviceCount, nullptr ) );
-
-    if ( deviceCount == 0 )
-    {
-        return false;
-    }
-
-    std::vector< VkPhysicalDevice > vkDevices( deviceCount );
-    VK_CHECK_RESULT( vkEnumeratePhysicalDevices( r_globals.instance, &deviceCount, vkDevices.data() ) );
-
-    std::vector< PhysicalDevice > devices( deviceCount );
-    bool runningInRenderDoc = false;
-    for ( uint32_t i = 0; i < deviceCount; ++i )
-    {
-        devices[i].m_handle  = vkDevices[i];
-        devices[i].m_Properties = GetDeviceProperties( vkDevices[i] );
-        devices[i].m_Features   = GetDeviceFeatures( vkDevices[i] );
-
-        uint32_t extensionCount;
-        VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( devices[i].m_handle, nullptr, &extensionCount, nullptr ) );
-        std::vector< VkExtensionProperties > availableExtensions( extensionCount );
-        VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( devices[i].m_handle, nullptr, &extensionCount, availableExtensions.data() ) );
-        devices[i].m_availableExtensions.resize( availableExtensions.size() );
-        for ( size_t ext = 0; ext < availableExtensions.size(); ++ext )
-        {
-            devices[i].m_availableExtensions[ext] = availableExtensions[ext].extensionName;
-        }
-
-        FindQueueFamilies( headless, vkDevices[i], r_globals.surface, devices[i].m_graphicsFamily, devices[i].m_presentFamily, devices[i].m_computeFamily );
-        devices[i].score = RatePhysicalDevice( devices[i], headless );
-    }
-
-    for ( uint32_t i = 0; i < deviceCount; ++i )
-    {
-        auto p = devices[i].GetProperties();
-        LOG( "Device %u: '%s', api = %u.%u.%u", i, p.name.c_str(), p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
-    }
-    
-    bool gpuFound = false;
-    if ( preferredGpu != "" )
-    {
-        for ( const auto& device : devices )
-        {
-            if ( device.GetName() == preferredGpu )
-            {
-                *this = device;
-                break;
-            }
-        }
-
-        if ( r_globals.physicalDevice.GetName() != preferredGpu )
-        {
-            LOG_WARN( "GPU '%s' not found. Checking other gpus", preferredGpu.c_str() );
-        }
-        else if ( r_globals.physicalDevice.score <= 0 )
-        {
-            LOG_WARN( "GPU '%s' is not a compatible device for this engine. Checking other gpus", preferredGpu.c_str() );
-        }
-        else
-        {
-            gpuFound = true;
-        }
-    }
-
-    if ( !gpuFound )
-    {
-        std::sort( devices.begin(), devices.end(), []( const auto& lhs, const auto& rhs ) { return lhs.score > rhs.score; } );
-        *this = devices[0];
-    }
-
-    if ( r_globals.physicalDevice.score <= 0 )
-    {
-        m_handle = VK_NULL_HANDLE;
-        return false;
-    }
-
+    m_handle     = vkPhysicalDevice;
+    m_properties = GetDeviceProperties( vkPhysicalDevice );
+    m_features   = GetDeviceFeatures( vkPhysicalDevice );
     vkGetPhysicalDeviceMemoryProperties( m_handle, &m_memProperties );
-    
-    return true;
+    m_GCTQueueFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT );
+    m_graphicsFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_GRAPHICS_BIT );
+    m_computeFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_COMPUTE_BIT );
+    m_transferFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_TRANSFER_BIT );
+
+    uint32_t extensionCount;
+    VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( m_handle, nullptr, &extensionCount, nullptr ) );
+    std::vector<VkExtensionProperties> availableExtensions( extensionCount );
+    VK_CHECK_RESULT( vkEnumerateDeviceExtensionProperties( m_handle, nullptr, &extensionCount, availableExtensions.data() ) );
+    m_availableExtensions.resize( availableExtensions.size() );
+    for ( size_t ext = 0; ext < availableExtensions.size(); ++ext )
+    {
+        m_availableExtensions[ext] = availableExtensions[ext].extensionName;
+    }
+
+    m_rating = RateDevice( headless, surface );
 }
 
 
@@ -318,14 +172,102 @@ bool PhysicalDevice::ExtensionSupported( const std::string& extensionName ) cons
 }
 
 
-std::string PhysicalDevice::GetName() const                                  { return m_Properties.name; }
+int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface ) const
+{
+    if ( m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u )
+        return false;
+
+    std::vector<const char*> requiredExtensions;
+    if ( !headless )
+    {
+        requiredExtensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
+    }
+
+    for ( const auto& extension : requiredExtensions )
+    {
+        if ( !ExtensionSupported( extension ) )
+        {
+            return 0;
+        }
+    }
+
+    if ( !headless && !HasSwapChainSupport( m_handle, surface ) )
+    {
+        return 0;
+    }
+
+    if ( !m_features.anisotropy || !m_features.bindless || !m_features.nullDescriptors || !m_features.raytracing )
+    {
+        return 0;
+    }
+
+    int score = 10;
+    if ( m_properties.isDiscrete )
+    {
+        score += 1000;
+    }
+    
+    return score;
+}
+
+
+std::string PhysicalDevice::GetName() const                                  { return m_properties.name; }
 VkPhysicalDevice PhysicalDevice::GetHandle() const                           { return m_handle; }
-PhysicalDeviceProperties PhysicalDevice::GetProperties() const               { return m_Properties; }
-PhysicalDeviceFeatures PhysicalDevice::GetFeatures() const                   { return m_Features; }
+PhysicalDeviceProperties PhysicalDevice::GetProperties() const               { return m_properties; }
+PhysicalDeviceFeatures PhysicalDevice::GetFeatures() const                   { return m_features; }
 VkPhysicalDeviceMemoryProperties PhysicalDevice::GetMemoryProperties() const { return m_memProperties; }
+uint32_t PhysicalDevice::GetGCTQueueFamily() const                           { return m_GCTQueueFamily; }
 uint32_t PhysicalDevice::GetGraphicsQueueFamily() const                      { return m_graphicsFamily; }
-uint32_t PhysicalDevice::GetPresentationQueueFamily() const                  { return m_presentFamily; }
 uint32_t PhysicalDevice::GetComputeQueueFamily() const                       { return m_computeFamily; }
+uint32_t PhysicalDevice::GetTransferQueueFamily() const                      { return m_transferFamily; }
+int PhysicalDevice::GetRating() const                                        { return m_rating; }
+
+
+std::vector<PhysicalDevice> EnumerateCompatiblePhysicalDevices( VkInstance instance, VkSurfaceKHR surface, bool headless, bool verbose )
+{
+    uint32_t deviceCount = 0;
+    VK_CHECK_RESULT( vkEnumeratePhysicalDevices( instance, &deviceCount, nullptr ) );
+    if ( deviceCount == 0 )
+    {
+        return {};
+    }
+
+    std::vector<VkPhysicalDevice> vkDevices( deviceCount );
+    VK_CHECK_RESULT( vkEnumeratePhysicalDevices( instance, &deviceCount, vkDevices.data() ) );
+
+    std::vector<PhysicalDevice> devices;
+    devices.reserve( deviceCount );
+    for ( uint32_t i = 0; i < deviceCount; ++i )
+    {
+        PhysicalDevice dev( vkDevices[i], surface, headless );
+        if ( dev.GetRating() > 0 )
+        {
+            devices.push_back( dev );
+        }
+
+        if ( verbose )
+        {
+            const auto& properties = dev.GetProperties();
+            LOG( "Device %u: '%s', api = %u.%u.%u. Rating: %d", i, dev.GetProperties().name.c_str(), properties.apiVersionMajor, properties.apiVersionMinor, properties.apiVersionPatch, dev.GetRating() );
+        }
+    }
+
+    return devices;
+}
+
+
+PhysicalDevice SelectBestPhysicalDevice( std::vector<PhysicalDevice>& devices, int deviceOverride )
+{
+    PG_ASSERT( devices.size() > 0 );
+    if ( deviceOverride != -1 )
+    {
+        PG_ASSERT( deviceOverride < devices.size() );
+        return devices[deviceOverride];
+    }
+
+    std::sort( devices.begin(), devices.end(), []( const PhysicalDevice& lhs, const PhysicalDevice& rhs ) { return lhs.GetRating() > rhs.GetRating(); } );
+    return devices[0];
+}
 
 
 } // namespace Gfx

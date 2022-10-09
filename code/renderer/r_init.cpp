@@ -120,9 +120,8 @@ static bool CreateInstance()
     // struct that holds info about our application. Mainly used by some layers / drivers
     // for labeling debug messages, logging, etc. Possible for drivers to run differently
     // depending on the application that is running.
-    VkApplicationInfo appInfo  = {};
-    appInfo.sType              = VK_STRUCTURE_TYPE_APPLICATION_INFO;
-    appInfo.pNext              = nullptr; // pointer to extension information
+    VkApplicationInfo appInfo  = { VK_STRUCTURE_TYPE_APPLICATION_INFO };
+    appInfo.pNext              = nullptr;
     appInfo.pApplicationName   = nullptr;
     appInfo.applicationVersion = VK_MAKE_VERSION( 1, 0, 0 );
     appInfo.pEngineName        = "Progression";
@@ -130,8 +129,7 @@ static bool CreateInstance()
     appInfo.apiVersion         = VK_API_VERSION_1_3;
 
     // non-optional struct that specifies which global extension and validation layers to use
-    VkInstanceCreateInfo createInfo = {};
-    createInfo.sType                = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
+    VkInstanceCreateInfo createInfo = { VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO };
     createInfo.pApplicationInfo     = &appInfo;
 
     // Vulkan by itself doesn't know how to do any platform specifc things, so we do need
@@ -145,20 +143,18 @@ static bool CreateInstance()
     // Also want the debug utils extension so we can print out layer messages
     extensionNames.push_back( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
 #endif // #if !USING( SHIP_BUILD )
-    createInfo.enabledExtensionCount   = static_cast< uint32_t >( extensionNames.size() );
+    createInfo.enabledExtensionCount   = static_cast<uint32_t>( extensionNames.size() );
     createInfo.ppEnabledExtensionNames = extensionNames.data();
 
     std::vector< const char* > validationLayers =
     {
-        "VK_LAYER_KHRONOS_validation"
-    };
-    // Specify global validation layers
 #if !USING( SHIP_BUILD )
-    createInfo.enabledLayerCount   = static_cast< uint32_t >( validationLayers.size() );
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-#else // #if !USING( SHIP_BUILD )
-    createInfo.enabledLayerCount   = 0;
+        "VK_LAYER_KHRONOS_validation"
 #endif // #else // #if !USING( SHIP_BUILD )
+    };
+
+    createInfo.enabledLayerCount   = static_cast<uint32_t>( validationLayers.size() );
+    createInfo.ppEnabledLayerNames = validationLayers.data();
 
     VkResult ret = vkCreateInstance( &createInfo, nullptr, &r_globals.instance );
     if ( ret == VK_ERROR_EXTENSION_NOT_PRESENT )
@@ -185,8 +181,7 @@ static bool CreateInstance()
 
 static bool SetupDebugCallback()
 {
-    VkDebugUtilsMessengerCreateInfoEXT createInfo = {};
-    createInfo.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+    VkDebugUtilsMessengerCreateInfoEXT createInfo = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
     createInfo.messageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
@@ -275,10 +270,9 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         LOG_ERR( "Could not create vulkan instance" );
         return false;
     }
-    DebugMarker::Init( r_globals.instance );
-
 
 #if !USING( SHIP_BUILD )
+    DebugMarker::Init( r_globals.instance );
     if ( !SetupDebugCallback() )
     {
         LOG_ERR( "Could not setup the debug callback" );
@@ -295,19 +289,20 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         }
     }
 
-    if ( !r_globals.physicalDevice.Select( headless ) )
+    std::vector<PhysicalDevice> pDevices = EnumerateCompatiblePhysicalDevices( r_globals.instance, r_globals.surface, headless, false );
+    if ( pDevices.empty() )
     {
-        LOG_ERR( "Could not find any suitable GPU device to use" );
+        LOG_ERR( "No gpu's are valid to use, based on the required extensions and features" );
         return false;
     }
+    else
     {
-        LOG( "Using device: '%s'", r_globals.physicalDevice.GetName().c_str() );
-        auto p = r_globals.physicalDevice.GetProperties();
-        LOG( "Using Vulkan Version: %u.%u.%u", p.apiVersionMajor, p.apiVersionMinor, p.apiVersionPatch );
+        r_globals.physicalDevice = SelectBestPhysicalDevice( pDevices );
+        auto pDevProperties = r_globals.physicalDevice.GetProperties();
+        LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", r_globals.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor, pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
     }
 
-    r_globals.device = Device::Create( headless );
-    if ( !r_globals.device )
+    if ( !r_globals.device.Create( r_globals.physicalDevice, headless ) )
     {
         LOG_ERR( "Could not create logical device" );
         return false;
@@ -316,12 +311,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( r_globals.physicalDevice, r_globals.physicalDevice.GetName() );
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( r_globals.instance, "global" );
     PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( r_globals.device, "default" );
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.GraphicsQueue(), "global graphics" );
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.ComputeQueue(), "global compute" );
-    if ( !headless )
-    {
-        PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.PresentQueue(), "presentation" );
-    }
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.GetQueue().queue, "queue: GCT" );
 
     InitSamplers();
 

@@ -52,6 +52,8 @@ set(
     
     ${ECS_SRC}
     
+    ${CODE_DIR}/renderer/graphics_api/acceleration_structure.cpp
+    ${CODE_DIR}/renderer/graphics_api/acceleration_structure.hpp
     ${CODE_DIR}/renderer/graphics_api/buffer.cpp
     ${CODE_DIR}/renderer/graphics_api/buffer.hpp
     ${CODE_DIR}/renderer/graphics_api/command_buffer.cpp

@@ -86,15 +86,22 @@ namespace Gfx
 
     typedef enum BufferTypeBits
     {
-        BUFFER_TYPE_TRANSFER_SRC  = 1 << 0,
-        BUFFER_TYPE_TRANSFER_DST  = 1 << 1,
-        BUFFER_TYPE_UNIFORM_TEXEL = 1 << 2,
-        BUFFER_TYPE_STORAGE_TEXEL = 1 << 3,
-        BUFFER_TYPE_UNIFORM       = 1 << 4,
-        BUFFER_TYPE_STORAGE       = 1 << 5,
-        BUFFER_TYPE_INDEX         = 1 << 6,
-        BUFFER_TYPE_VERTEX        = 1 << 7,
-        BUFFER_TYPE_INDIRECT      = 1 << 8,
+        BUFFER_TYPE_TRANSFER_SRC   = 1 << 0,
+        BUFFER_TYPE_TRANSFER_DST   = 1 << 1,
+        BUFFER_TYPE_UNIFORM_TEXEL  = 1 << 2,
+        BUFFER_TYPE_STORAGE_TEXEL  = 1 << 3,
+        BUFFER_TYPE_UNIFORM        = 1 << 4,
+        BUFFER_TYPE_STORAGE        = 1 << 5,
+        BUFFER_TYPE_INDEX          = 1 << 6,
+        BUFFER_TYPE_VERTEX         = 1 << 7,
+        BUFFER_TYPE_INDIRECT       = 1 << 8,
+        BUFFER_TYPE_DEVICE_ADDRESS = 0x00020000,
+        BUFFER_TYPE_TRANSFORM_FEEDBACK = 0x00000800,
+        BUFFER_TYPE_TRANSFORM_FEEDBACK_COUNTER = 0x00001000,
+        BUFFER_TYPE_CONDITIONAL_RENDERING = 0x00000200,
+        BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY = 0x00080000,
+        BUFFER_TYPE_ACCELERATION_STRUCTURE_STORAGE = 0x00100000,
+        BUFFER_TYPE_SHADER_BINDING_TABLE = 0x00000400,
     } BufferTypeBits;
 
     typedef uint32_t BufferType;
@@ -120,21 +127,24 @@ namespace Gfx
         void FlushCpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
         void FlushGpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
         void ReadToCpu( void* dst, size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
-        operator bool() const;
-        char* MappedPtr() const;
-        size_t GetLength() const;
-        MemoryType GetMemoryType() const;
-        BufferType GetType() const;
-        VkBuffer GetHandle() const;
-        VkDeviceMemory GetMemoryHandle() const;
+        
+        operator bool() const                    { return m_handle != VK_NULL_HANDLE; }
+        char* MappedPtr() const                  { return static_cast<char*>( m_mappedPtr ); }
+        size_t GetLength() const                 { return m_length; }
+        BufferType GetType() const               { return m_type; }
+        MemoryType GetMemoryType() const         { return m_memoryType; }
+        VkBuffer GetHandle() const               { return m_handle; }
+        VkDeviceMemory GetMemoryHandle() const   { return m_memory; }
+        VkDeviceAddress GetDeviceAddress() const { return m_deviceAddress; }
 
     protected:
         BufferType m_type;
         MemoryType m_memoryType;
         mutable void* m_mappedPtr = nullptr;
-        size_t m_length           = 0; // in bytes
-        VkBuffer m_handle         = VK_NULL_HANDLE;
+        size_t m_length = 0; // in bytes
+        VkBuffer m_handle = VK_NULL_HANDLE;
         VkDeviceMemory m_memory;
+        VkDeviceAddress m_deviceAddress = 0;
         VkDevice m_device;
     };
 

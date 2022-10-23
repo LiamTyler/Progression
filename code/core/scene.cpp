@@ -154,6 +154,7 @@ namespace PG
 
 Scene::~Scene()
 {
+    tlas.Free();
 }
 
 

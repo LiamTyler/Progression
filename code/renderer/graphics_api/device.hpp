@@ -1,5 +1,6 @@
 #pragma once
 
+#include "renderer/graphics_api/acceleration_structure.hpp"
 #include "renderer/graphics_api/command_buffer.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/graphics_api/framebuffer.hpp"
@@ -40,6 +41,7 @@ namespace Gfx
         bool RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uint32_t* stagesForBindings ) const;
         void UpdateDescriptorSets( uint32_t count, const VkWriteDescriptorSet* writes ) const;
         void UpdateDescriptorSet( const VkWriteDescriptorSet& write ) const;
+        AccelerationStructure NewAccelerationStructure( AccelerationStructureType type, size_t size ) const;
         Buffer NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
         Buffer NewBuffer( size_t length, void* data, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
         Texture NewTexture( const TextureDescriptor& desc, const std::string& name = "" ) const;

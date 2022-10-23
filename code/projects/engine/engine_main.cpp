@@ -48,6 +48,7 @@ int main( int argc, char* argv[] )
         EngineShutdown();
         return 1;
     }
+    RenderSystem::CreateTLAS( scene );
 
     Window* window = GetMainWindow();
     window->SetRelativeMouse( true );

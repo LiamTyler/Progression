@@ -19,12 +19,14 @@
 }
 #endif // #else // #if USING( SHIP_BUILD )
 
-void* MakePNextChain( const std::vector<void*>& addresses );
-
 namespace PG
 {
 namespace Gfx
 {
+
+    void LoadVulkanExtensions( VkDevice device );
+
+    void* MakePNextChain( const std::vector<void*>& addresses );
 
     uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties );
 

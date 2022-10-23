@@ -4,6 +4,9 @@
 #include "core/lights.hpp"
 #include "core/lua.hpp"
 #include "ecs/ecs.hpp"
+#if USING( GPU_DATA )
+#include "renderer/graphics_api/acceleration_structure.hpp"
+#endif // #if USING( GPU_DATA )
 #include <string>
 #include <vector>
 
@@ -36,6 +39,10 @@ namespace PG
         // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions
         Lua::ScriptInstance nonEntityScripts[PG_MAX_NON_ENTITY_SCRIPTS];
         uint16_t numNonEntityScripts = 0;
+
+    #if USING( GPU_DATA )
+        Gfx::AccelerationStructure tlas;
+    #endif // #if USING( GPU_DATA )
     };
 
     Scene* GetPrimaryScene();

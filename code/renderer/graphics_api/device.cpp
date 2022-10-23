@@ -57,7 +57,12 @@ namespace Gfx
         createInfo.pEnabledFeatures     = nullptr;
         createInfo.pNext                = &deviceFeatures2;
         
-        std::vector<const char*> extensions;
+        std::vector<const char*> extensions =
+        {
+            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
+        };
         if ( !headless )
         {
             extensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
@@ -322,6 +327,27 @@ namespace Gfx
     }
 
 
+    AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureType type, size_t size ) const
+    {
+        AccelerationStructure accelerationStructure;
+        accelerationStructure.m_device = m_handle;
+        accelerationStructure.m_type = type;
+        accelerationStructure.m_buffer = NewBuffer( size, BUFFER_TYPE_ACCELERATION_STRUCTURE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
+
+	    VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR };
+	    accelerationStructureCreateInfo.buffer = accelerationStructure.m_buffer.GetHandle();
+	    accelerationStructureCreateInfo.size = size;
+	    accelerationStructureCreateInfo.type = PGToVulkanAccelerationStructureType( type );
+	    VK_CHECK_RESULT( vkCreateAccelerationStructureKHR( m_handle, &accelerationStructureCreateInfo, nullptr, &accelerationStructure.m_handle ) );
+
+	    VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR };
+	    accelerationDeviceAddressInfo.accelerationStructure = accelerationStructure.m_handle;
+	    accelerationStructure.m_deviceAddress = vkGetAccelerationStructureDeviceAddressKHR( m_handle, &accelerationDeviceAddressInfo );
+
+        return accelerationStructure;
+    }
+
+
     Buffer Device::NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name ) const
     {
         type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
@@ -331,8 +357,7 @@ namespace Gfx
         buffer.m_memoryType   = memoryType;
         buffer.m_length       = length;
 
-        VkBufferCreateInfo info = {};
-        info.sType       = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+        VkBufferCreateInfo info{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO};
         info.usage       = PGToVulkanBufferType( type );
         info.size        = length;
         info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -341,15 +366,25 @@ namespace Gfx
         VkMemoryRequirements memRequirements;
         vkGetBufferMemoryRequirements( m_handle, buffer.m_handle, &memRequirements );
 
-        VkMemoryAllocateInfo allocInfo = {};
-        allocInfo.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-        allocInfo.allocationSize       = memRequirements.size;
-        VkMemoryPropertyFlags flags    = PGToVulkanMemoryType( memoryType );
-        allocInfo.memoryTypeIndex      = FindMemoryType( memRequirements.memoryTypeBits, flags );
+        VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO };
+		memoryAllocateFlagsInfo.flags = (type & BUFFER_TYPE_DEVICE_ADDRESS) ? VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR : 0;
+
+        VkMemoryPropertyFlags memPropertyFlags = PGToVulkanMemoryType( memoryType );
+        VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+        allocInfo.allocationSize  = memRequirements.size;
+        allocInfo.memoryTypeIndex = FindMemoryType( memRequirements.memoryTypeBits, memPropertyFlags );
+        allocInfo.pNext           = &memoryAllocateFlagsInfo;
         VK_CHECK_RESULT( vkAllocateMemory( m_handle, &allocInfo, nullptr, &buffer.m_memory ) );
 
         VK_CHECK_RESULT( vkBindBufferMemory( m_handle, buffer.m_handle, buffer.m_memory, 0 ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name ) );
+
+        if ( type & BUFFER_TYPE_DEVICE_ADDRESS )
+        {
+            VkBufferDeviceAddressInfo bufferAddressInfo{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
+            bufferAddressInfo.buffer = buffer.m_handle;
+            buffer.m_deviceAddress = vkGetBufferDeviceAddress( m_handle, &bufferAddressInfo );
+        }
 
         return buffer;
     }
@@ -971,8 +1006,8 @@ namespace Gfx
         );
 
         cmdBuf.EndRecording();
-        r_globals.device.Submit( cmdBuf );
-        r_globals.device.WaitForIdle();
+        Submit( cmdBuf );
+        WaitForIdle();
         cmdBuf.Free();
     }
 
@@ -1019,7 +1054,7 @@ namespace Gfx
         presentInfo.pImageIndices   = &imageIndex;
 
         VK_CHECK_RESULT( vkQueuePresentKHR( m_queue.queue, &presentInfo ) );
-        r_globals.device.WaitForIdle();
+        WaitForIdle();
     }
 
     

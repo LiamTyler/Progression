@@ -3,6 +3,7 @@
 #include "asset/types/base_asset.hpp"
 #include "shared/platform_defines.hpp"
 #include "renderer/graphics_api/buffer.hpp"
+#include "renderer/graphics_api/acceleration_structure.hpp"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include <vector>
@@ -35,6 +36,7 @@ struct Model : public BaseAsset
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
     void RecalculateNormals();
+    void CreateBLAS();
     void UploadToGPU();
     void FreeCPU();
     void FreeGPU();
@@ -49,12 +51,14 @@ struct Model : public BaseAsset
     std::vector<Material*> originalMaterials;
 
 #if USING( GPU_DATA )
+    uint32_t numVertices = 0;
     Gfx::Buffer vertexBuffer;
     Gfx::Buffer indexBuffer;
     size_t gpuPositionOffset;
     size_t gpuNormalOffset;
     size_t gpuTexCoordOffset;
     size_t gpuTangentOffset;
+    Gfx::AccelerationStructure blas;
 #endif // #if USING( GPU_DATA )
 };
 

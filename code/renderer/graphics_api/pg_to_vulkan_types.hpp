@@ -475,5 +475,10 @@ namespace Gfx
         return static_cast< VkPipelineStageFlags >( flags );
     }
 
+    constexpr VkAccelerationStructureTypeKHR PGToVulkanAccelerationStructureType( AccelerationStructureType type )
+    {
+        return static_cast< VkAccelerationStructureTypeKHR >( type );
+    }
+
 } // namespace Gfx
 } // namespace PG

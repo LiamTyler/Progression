@@ -307,6 +307,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         LOG_ERR( "Could not create logical device" );
         return false;
     }
+    LoadVulkanExtensions( r_globals.device.GetHandle() );
     
     PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( r_globals.physicalDevice, r_globals.physicalDevice.GetName() );
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( r_globals.instance, "global" );

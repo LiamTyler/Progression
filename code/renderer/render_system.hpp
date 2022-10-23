@@ -14,6 +14,7 @@ namespace RenderSystem
 
     void Shutdown();
 
+    void CreateTLAS( Scene* scene );
     void Render( Scene* scene );
 
 } // namespace RenderSystem

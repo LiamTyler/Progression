@@ -227,23 +227,82 @@ void Model::RecalculateNormals()
 }
 
 
+void Model::CreateBLAS()
+{
+#if USING( GPU_DATA )
+    VkDeviceAddress vertexAddress = vertexBuffer.GetDeviceAddress();
+    VkDeviceAddress indexAddress  = indexBuffer.GetDeviceAddress();
+    uint32_t numTriangles = static_cast<uint32_t>( (indexBuffer.GetLength() / sizeof( uint32_t )) / 3 );
+
+    VkAccelerationStructureGeometryKHR accelerationStructureGeometry{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
+    accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+    accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
+    accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress = vertexAddress;
+    accelerationStructureGeometry.geometry.triangles.maxVertex = numVertices;
+    accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof( glm::vec3 );
+    accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
+    accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress = indexAddress;
+    accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
+    accelerationStructureGeometry.geometry.triangles.transformData.hostAddress = nullptr;
+
+    VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
+	accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+	accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+	accelerationStructureBuildGeometryInfo.geometryCount = 1;
+	accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
+
+    VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
+    vkGetAccelerationStructureBuildSizesKHR( Gfx::r_globals.device.GetHandle(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+        &accelerationStructureBuildGeometryInfo, &numTriangles, &accelerationStructureBuildSizesInfo );
+
+    using namespace Gfx;
+    blas = r_globals.device.NewAccelerationStructure( AccelerationStructureType::BLAS, accelerationStructureBuildSizesInfo.accelerationStructureSize );
+
+    Buffer scratchBuffer = r_globals.device.NewBuffer( accelerationStructureBuildSizesInfo.buildScratchSize, BUFFER_TYPE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
+
+    VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
+    accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    accelerationBuildGeometryInfo.dstAccelerationStructure = blas.GetHandle();
+    accelerationBuildGeometryInfo.geometryCount = 1;
+    accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
+    accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.GetDeviceAddress();
+
+    VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
+    accelerationStructureBuildRangeInfo.primitiveCount = numTriangles;
+    accelerationStructureBuildRangeInfo.primitiveOffset = 0;
+    accelerationStructureBuildRangeInfo.firstVertex = 0;
+    accelerationStructureBuildRangeInfo.transformOffset = 0;
+    std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
+
+    CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time Build AS" );
+    cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+    vkCmdBuildAccelerationStructuresKHR( cmdBuf.GetHandle(), 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data() );
+    cmdBuf.EndRecording();
+    r_globals.device.Submit( cmdBuf );
+    r_globals.device.WaitForIdle();
+    cmdBuf.Free();
+    scratchBuffer.Free();
+#endif // #if USING( GPU_DATA )
+}
+
+
 void Model::UploadToGPU()
 {
 #if USING( GPU_DATA )
-    if ( vertexBuffer )
-    {
-        vertexBuffer.Free();
-    }
-    if ( indexBuffer)
-    {
-        indexBuffer.Free();
-    }
+    FreeGPU();
+    numVertices = static_cast<uint32_t>( positions.size() );
 
     PG_ASSERT( positions.size() == normals.size() );
 
     // TODO: allow for variable-attribute meshes. For now, just allocate a zero buffer for texCoords and tangents if they are not specified
-    size_t texCoordCount = texCoords.empty() ? positions.size() : texCoords.size();
-    size_t tangentCount = tangents.empty() ? positions.size() : tangents.size();
+    PG_ASSERT( tangents.empty() || positions.size() == tangents.size() );
+    PG_ASSERT( texCoords.empty() || positions.size() == texCoords.size() );
+    size_t texCoordCount = positions.size();
+    size_t tangentCount = positions.size();
 
     size_t totalSize = 0;
     totalSize += positions.size() * sizeof( glm::vec3 );
@@ -287,9 +346,12 @@ void Model::UploadToGPU()
     }
     offset += tangentCount * sizeof( glm::vec3 );
 
-    vertexBuffer = Gfx::r_globals.device.NewBuffer( totalSize, tmpMem, Gfx::BUFFER_TYPE_VERTEX, Gfx::MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
-    indexBuffer = Gfx::r_globals.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), Gfx::BUFFER_TYPE_INDEX, Gfx::MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
+    using namespace Gfx;
+    BufferType rayTracingType = BUFFER_TYPE_DEVICE_ADDRESS | BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY | BUFFER_TYPE_STORAGE;
+    vertexBuffer = r_globals.device.NewBuffer( totalSize, tmpMem, rayTracingType | BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
+    indexBuffer = r_globals.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), rayTracingType | BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
     free( tmpMem );
+    CreateBLAS();
 
     FreeCPU();
 #endif // #if USING( GPU_DATA )
@@ -315,6 +377,10 @@ void Model::FreeCPU()
 void Model::FreeGPU()
 {
 #if USING( GPU_DATA )
+    if ( blas )
+    {
+        blas.Free();
+    }
     if ( vertexBuffer )
     {
         vertexBuffer.Free();

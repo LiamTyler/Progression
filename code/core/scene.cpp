@@ -154,7 +154,9 @@ namespace PG
 
 Scene::~Scene()
 {
+#if USING( GPU_DATA )
     tlas.Free();
+#endif // #if USING( GPU_DATA )
 }
 
 

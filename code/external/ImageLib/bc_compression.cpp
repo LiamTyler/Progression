@@ -61,7 +61,7 @@ void Compress_BC_6( const RawImage2D& srcImage, const BCCompressorSettings& sett
 
     void* options = nullptr;
     CreateOptionsBC6( &options );
-    SetQualityBC6( options, (float)settings.quality / (float)CompressionQuality::HIGHEST); // quality is continuous in [0,1], the higher the better
+    SetQualityBC6( options, (float)settings.quality / (float)CompressionQuality::HIGHEST ); // quality is continuous in [0,1], the higher the better
     SetSignedBC6( options, settings.format == ImageFormat::BC6H_S16F );
 
     #pragma omp parallel for

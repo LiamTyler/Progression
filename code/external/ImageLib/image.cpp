@@ -22,7 +22,7 @@ uint8_t* RawImage2D::GetCompressedBlock( int blockX, int blockY )
 
 
 template <typename T, std::underlying_type_t<ImageFormat> baseFormat>
-void GetBlockClamped8BitConvert( uint32_t blockX, uint32_t blockY, uint32_t width, uint32_t height, uint32_t numChannels, uint8_t* output, const T* input )
+void GetBlockClamped8BitConvert( uint32_t blockX, uint32_t blockY, uint32_t width, uint32_t height, uint32_t numChannels, uint8_t* outputRGBA, const T* input )
 {
     for ( uint32_t r = 0; r < 4; ++r )
     {
@@ -39,60 +39,59 @@ void GetBlockClamped8BitConvert( uint32_t blockX, uint32_t blockY, uint32_t widt
                 {
                     if constexpr ( baseFormat == Underlying( ImageFormat::R8_UNORM ) )
                     {
-                        output[dstOffset + channel] = input[srcOffset + channel];
+                        outputRGBA[dstOffset + channel] = input[srcOffset + channel];
                     }
                     else if constexpr ( baseFormat == Underlying( ImageFormat::R16_UNORM ) )
                     {
-                        output[dstOffset + channel] = UNormFloatToByte( UNorm16ToFloat( input[srcOffset + channel] ) );
+                        outputRGBA[dstOffset + channel] = UNormFloatToByte( UNorm16ToFloat( input[srcOffset + channel] ) );
                     }
                     else if constexpr ( baseFormat == Underlying( ImageFormat::R16_FLOAT ) )
                     {
-                        output[dstOffset + channel] = UNormFloatToByte( Float16ToFloat32( input[srcOffset + channel] ) );
+                        outputRGBA[dstOffset + channel] = UNormFloatToByte( Float16ToFloat32( input[srcOffset + channel] ) );
                     }
                     else
                     {
-                        output[dstOffset + channel] = UNormFloatToByte( input[srcOffset + channel] );
+                        outputRGBA[dstOffset + channel] = UNormFloatToByte( input[srcOffset + channel] );
                     }
                 }
                 else
                 {
-                    output[dstOffset + channel] = DEFAULT_PIXEL_BYTE[channel];
+                    outputRGBA[dstOffset + channel] = DEFAULT_PIXEL_BYTE[channel];
                 }
-                
             }
         }
     }
 }
 
 
-void RawImage2D::GetBlockClamped8Bit( int blockX, int blockY, uint8_t* output ) const
+void RawImage2D::GetBlockClamped8Bit( int blockX, int blockY, uint8_t* outputRGBA ) const
 {
     uint32_t numChannels = NumChannels();
     if ( IsFormat8BitUnorm( format ) )
     {
-        GetBlockClamped8BitConvert<uint8_t, Underlying( ImageFormat::R8_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint8_t>() );
+        GetBlockClamped8BitConvert<uint8_t, Underlying( ImageFormat::R8_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGBA, Raw<uint8_t>() );
     }
     else if ( IsFormat16BitUnorm( format ) )
     {
-        GetBlockClamped8BitConvert<uint16_t, Underlying( ImageFormat::R16_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint16_t>() );
+        GetBlockClamped8BitConvert<uint16_t, Underlying( ImageFormat::R16_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGBA, Raw<uint16_t>() );
     }
     else if ( IsFormat16BitFloat( format ) )
     {
-        GetBlockClamped8BitConvert<float16, Underlying( ImageFormat::R16_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float16>() );
+        GetBlockClamped8BitConvert<float16, Underlying( ImageFormat::R16_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGBA, Raw<float16>() );
     }
     else if ( IsFormat32BitFloat( format ) )
     {
-        GetBlockClamped8BitConvert<float, Underlying( ImageFormat::R32_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float>() );
+        GetBlockClamped8BitConvert<float, Underlying( ImageFormat::R32_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGBA, Raw<float>() );
     }
     else
     {
-        memset( output, 0, 64 );
+        memset( outputRGBA, 0, 64 );
     }
 }
 
 
 template <typename T, std::underlying_type_t<ImageFormat> baseFormat>
-void GetBlockClamped16FConvert( uint32_t blockX, uint32_t blockY, uint32_t width, uint32_t height, uint32_t numChannels, float16* output, const T* input )
+void GetBlockClamped16FConvert( uint32_t blockX, uint32_t blockY, uint32_t width, uint32_t height, uint32_t numChannels, float16* outputRGB, const T* input )
 {
     for ( uint32_t r = 0; r < 4; ++r )
     {
@@ -102,60 +101,60 @@ void GetBlockClamped16FConvert( uint32_t blockX, uint32_t blockY, uint32_t width
             uint32_t col = std::min( width - 1, 4 * blockX + c );
 
             uint32_t srcOffset = numChannels * (row * width + col);
-            uint32_t dstOffset = 4 * (r * 4 + c);
+            uint32_t dstOffset = 3 * (r * 4 + c);
             for ( uint32_t channel = 0; channel < 3; ++channel )
             {
                 if ( channel < numChannels )
                 {
                     if constexpr ( baseFormat == Underlying( ImageFormat::R8_UNORM ) )
                     {
-                        output[dstOffset + channel] = Float32ToFloat16( UNormByteToFloat( input[srcOffset + channel] ) );
+                        outputRGB[dstOffset + channel] = Float32ToFloat16( UNormByteToFloat( input[srcOffset + channel] ) );
                     }
                     else if constexpr ( baseFormat == Underlying( ImageFormat::R16_UNORM ) )
                     {
-                        output[dstOffset + channel] = Float32ToFloat16( UNorm16ToFloat( input[srcOffset + channel] ) );
+                        outputRGB[dstOffset + channel] = Float32ToFloat16( UNorm16ToFloat( input[srcOffset + channel] ) );
                     }
                     else if constexpr ( baseFormat == Underlying( ImageFormat::R16_FLOAT ) )
                     {
-                        output[dstOffset + channel] = input[srcOffset + channel];
+                        outputRGB[dstOffset + channel] = input[srcOffset + channel];
                     }
                     else
                     {
-                        output[dstOffset + channel] = Float32ToFloat16( input[srcOffset + channel] );
+                        outputRGB[dstOffset + channel] = Float32ToFloat16( input[srcOffset + channel] );
                     }
                 }
                 else
                 {
-                    output[dstOffset + channel] = DEFAULT_PIXEL_FLOAT16[channel];
+                    outputRGB[dstOffset + channel] = DEFAULT_PIXEL_FLOAT16[channel];
                 }
-                
             }
         }
     }
 }
 
-void RawImage2D::GetBlockClamped16F( int blockX, int blockY, float16* output ) const
+
+void RawImage2D::GetBlockClamped16F( int blockX, int blockY, float16* outputRGB ) const
 {
     uint32_t numChannels = NumChannels();
     if ( IsFormat8BitUnorm( format ) )
     {
-        GetBlockClamped16FConvert<uint8_t, Underlying( ImageFormat::R8_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint8_t>() );
+        GetBlockClamped16FConvert<uint8_t, Underlying( ImageFormat::R8_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGB, Raw<uint8_t>() );
     }
     else if ( IsFormat16BitUnorm( format ) )
     {
-        GetBlockClamped16FConvert<uint16_t, Underlying( ImageFormat::R16_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<uint16_t>() );
+        GetBlockClamped16FConvert<uint16_t, Underlying( ImageFormat::R16_UNORM )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGB, Raw<uint16_t>() );
     }
     else if ( IsFormat16BitFloat( format ) )
     {
-        GetBlockClamped16FConvert<float16, Underlying( ImageFormat::R16_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float16>() );
+        GetBlockClamped16FConvert<float16, Underlying( ImageFormat::R16_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGB, Raw<float16>() );
     }
     else if ( IsFormat32BitFloat( format ) )
     {
-        GetBlockClamped16FConvert<float, Underlying( ImageFormat::R32_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, output, Raw<float>() );
+        GetBlockClamped16FConvert<float, Underlying( ImageFormat::R32_FLOAT )>( (uint32_t)blockX, (uint32_t)blockY, width, height, numChannels, outputRGB, Raw<float>() );
     }
     else
     {
-        memset( output, 0, 64 );
+        memset( outputRGB, 0, 96 );
     }
 }
 

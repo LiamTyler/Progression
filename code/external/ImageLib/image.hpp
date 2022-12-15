@@ -228,8 +228,8 @@ struct RawImage2D
     void SetPixelFromFloat4( int row, int col, glm::vec4 pixel );
 
     uint8_t* GetCompressedBlock( int blockX, int blockY );
-    void GetBlockClamped8Bit( int blockX, int blockY, uint8_t* output ) const;
-    void GetBlockClamped16F( int blockX, int blockY, float16* output ) const;
+    void GetBlockClamped8Bit( int blockX, int blockY, uint8_t* outputRGBA ) const;
+    void GetBlockClamped16F( int blockX, int blockY, float16* outputRGB ) const;
 
     uint32_t BitsPerPixel() const { return ::BitsPerPixel( format ); }
     uint32_t NumChannels() const { return ::NumChannels( format ); }

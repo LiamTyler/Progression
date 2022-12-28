@@ -1,5 +1,5 @@
 #include "image.hpp"
-#include "bc_decompression.hpp"
+#include "bc_compression.hpp"
 #include "shared/assert.hpp"
 #include "shared/float_conversions.hpp"
 #include "shared/logger.hpp"

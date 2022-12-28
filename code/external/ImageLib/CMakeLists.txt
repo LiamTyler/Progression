@@ -21,7 +21,6 @@ set(
 	${CMAKE_CURRENT_SOURCE_DIR}/bc_compression.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bc_compression.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/bc_decompression.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/bc_decompression.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/bc7_reference_tables.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/image.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image.hpp

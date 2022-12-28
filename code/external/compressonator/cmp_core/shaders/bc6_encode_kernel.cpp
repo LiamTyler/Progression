@@ -3019,7 +3019,7 @@ static AMD_BC6H_Format extract_format(const CGU_UINT8 in[COMPRESSED_BLOCK_SIZE])
         bc6h_format.bw = header.getvalue(25,10) |             //11:   bw[9:0]
                          (header.getvalue(60,1) << 10);        //      bw[10]
         bc6h_format.bx = header.getvalue(55,5);               //5:    bx[4:0]
-        bc6h_format.by = header.getvalue(61,4);               //5:    by[3:0]
+        bc6h_format.by = header.getvalue(61,4) |               //5:    by[3:0]
         (header.getvalue(40,1) << 4);         //      by[4]
         bc6h_format.bz = header.getvalue(50,1) |              //5:    bz[0]
                          (header.getvalue(69,1) << 1) |        //      bz[1]

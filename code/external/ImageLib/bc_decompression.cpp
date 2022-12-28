@@ -1,6 +1,6 @@
-#include "bc_decompression.hpp"
+#include "bc_compression.hpp"
 #include "bc7_reference_tables.hpp"
-#include "compressonator/cmp_core/source/cmp_core.h"
+//#include "compressonator/cmp_core/source/cmp_core.h"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 
@@ -229,7 +229,8 @@ uint32_t __inline ctz( uint32_t value )
 }
 
 
-uint32_t ExtractBits( const uint8_t* base, uint32_t& startIndex, int bitsToExtract )
+template <typename T = uint32_t>
+T ExtractBits( const uint8_t* base, uint32_t& startIndex, int bitsToExtract )
 {
     uint32_t result = 0;
     for ( int i = 0; i < bitsToExtract; ++i )
@@ -241,12 +242,13 @@ uint32_t ExtractBits( const uint8_t* base, uint32_t& startIndex, int bitsToExtra
     }
 
     startIndex += bitsToExtract;
-    return result;
+    return static_cast<T>( result );
 }
 
 
 // like ExtractBits, except no updating of the startIndex
-uint32_t ExtractBitSegment( const uint8_t* base, uint32_t startIndex, int bitsToExtract )
+template <typename T = uint32_t>
+T ExtractBitSegment( const uint8_t* base, uint32_t startIndex, int bitsToExtract )
 {
     uint32_t result = 0;
     for ( int i = 0; i < bitsToExtract; ++i )
@@ -257,13 +259,15 @@ uint32_t ExtractBitSegment( const uint8_t* base, uint32_t startIndex, int bitsTo
         result |= (bit << i);
     }
 
-    return result;
+    return static_cast<T>( result );
 }
 
 
 struct BC6ModeInfo
 {
-    uint8_t mode;
+    uint8_t modeIndex;
+    uint8_t modeBits;
+    uint8_t regionCount;
     uint8_t transformedEndpoints;
     uint8_t partitionBits;
     uint8_t endpointBits;
@@ -272,146 +276,118 @@ struct BC6ModeInfo
 
 BC6ModeInfo s_bc6ModeTable[] =
 {
-// MN Tr PB EPB Delta Bits
-// -- -- -- --- ----------
-    { 0 , 1,  5,  10,  {5, 5, 5} },     // 0
-    { 1 , 1,  5,  7 ,  {6, 6, 6} },     // 1
-    { 2 , 1,  5,  11,  {5, 4, 4} },     // 2
-    { 6 , 1,  5,  11,  {4, 5, 4} },     // 3
-    { 10, 1,  5,  11,  {4, 4, 5} },     // 4
-    { 14, 1,  5,  9 ,  {5, 5, 5} },     // 5
-    { 18, 1,  5,  8 ,  {6, 5, 5} },     // 6
-    { 22, 1,  5,  8 ,  {5, 6, 5} },     // 7
-    { 26, 1,  5,  8 ,  {5, 5, 6} },     // 8
-    { 30, 0,  5,  6 ,  {6, 6, 6} },     // 9
-    { 3 , 0,  0,  10,  {10, 10, 10} },  // 10
-    { 7 , 1,  0,  11,  {9, 9, 9} },     // 11
-    { 11, 1,  0,  12,  {8, 8, 8} },     // 12
-    { 15, 1,  0,  16,  {4, 4, 4} }      // 13
+    { 1,  0b00,      2, 1,  5,  10,  {5, 5, 5}     },
+    { 2,  0b01,      2, 1,  5,  7,   {6, 6, 6}     },
+    { 3,  0b00010,   2, 1,  5,  11,  {5, 4, 4}     },
+    { 4,  0b00110,   2, 1,  5,  11,  {4, 5, 4}     },
+    { 5,  0b01010,   2, 1,  5,  11,  {4, 4, 5}     },
+    { 6,  0b01110,   2, 1,  5,  9,   {5, 5, 5}     },
+    { 7,  0b10010,   2, 1,  5,  8,   {6, 5, 5}     },
+    { 8,  0b10110,   2, 1,  5,  8,   {5, 6, 5}     },
+    { 9,  0b11010,   2, 1,  5,  8,   {5, 5, 6}     },
+    { 10, 0b11110,   2, 0,  5,  6,   {6, 6, 6}     },
+    { 11, 0b00011,   1, 0,  0,  10,  {10, 10, 10}  },
+    { 12, 0b00111,   1, 1,  0,  11,  {9, 9, 9}     },
+    { 13, 0b01011,   1, 1,  0,  12,  {8, 8, 8}     },
+    { 14, 0b01111,   1, 1,  0,  16,  {4, 4, 4}     }
 };
 
 
-bool BC6_GetModeInfo( uint32_t mode, BC6ModeInfo& info )
+bool BC6_GetModeInfo( uint32_t modeBits, BC6ModeInfo& info )
 {
-    uint8_t remap[] =
+    for ( int i = 0; i < ARRAY_COUNT( s_bc6ModeTable ); ++i )
     {
-        0,     // 0
-        1,     // 1
-        2,     // 2
-        10,    // 3
-        255,   // 4
-        255,   // 5
-        3,     // 6
-        11,    // 7
-        255,   // 8
-        255,   // 9
-        4,     // 10
-        12,    // 11
-        255,   // 12
-        255,   // 13
-        5,     // 14
-        13,    // 15
-        255,   // 16
-        255,   // 17
-        6,     // 18
-        255,   // 19
-        255,   // 20
-        255,   // 21
-        7,     // 22
-        255,   // 23
-        255,   // 24
-        255,   // 25
-        8,     // 26
-        255,   // 27
-        255,   // 28
-        255,   // 29
-        9,     // 30
-        255,   // 31
-    };
-
-    if ( mode > 31 || remap[mode] == 255 )
-    {
-        return false;
+        if ( modeBits == s_bc6ModeTable[i].modeBits )
+        {
+            info = s_bc6ModeTable[i];
+            return true;
+        }
     }
-    info = s_bc6ModeTable[remap[mode]];
-    return true;
+
+    return false;
 }
 
 
-void BC6_ExtractEndpoints( uint32_t mode, const uint8_t* compressedBlock, uint16_t endpoints[4][3] )
+// https://learn.microsoft.com/en-us/windows/win32/direct3d11/bc6h-format#bc6h-compressed-endpoint-format
+// Microsoft naming to my naming:
+// rw/gw/bw (endpt[0].A[0-2]) = endpoints[0][0-2]
+// rx/gx/bx (endpt[0].B[0-2]) = endpoints[1][0-2]
+// ry/gy/by (endpt[1].A[0-2]) = endpoints[2][0-2]
+// rz/gz/bz (endpt[1].B[0-2]) = endpoints[3][0-2]
+void BC6_ExtractEndpoints( uint32_t modeBits, const uint8_t* compressedBlock, int packedEndpoints[4][3] )
 {
-    switch ( mode )
+    switch ( modeBits )
     {
     // 2 line segment modes
     case 0:
     {
         // 10:5:5:5
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 2, 1 ) << 4);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 3, 1 ) << 4);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 2, 1 ) << 4);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 3, 1 ) << 4);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
             (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) | (ExtractBitSegment( compressedBlock, 76, 1 ) << 3) | (ExtractBitSegment( compressedBlock, 4, 1 ) << 4);
         break;
     }
     case 1:
     {
         // 7:6:6:6
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  7 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 7 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 7 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 6 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 6 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 6 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 6 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 2, 1 ) << 5);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 22, 1 ) << 5);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 6 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 3, 2 ) << 4);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 12, 2 ) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 2) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  7 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 7 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 7 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 6 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 6 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 6 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 6 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 2, 1 ) << 5);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 22, 1 ) << 5);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 6 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 3, 2 ) << 4);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 12, 2 ) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 2) |
             (ExtractBitSegment( compressedBlock, 32, 1 ) << 3) | (ExtractBitSegment( compressedBlock, 34, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 33, 1 ) << 5);
         break;
     }
     case 2:
     {
         // 11:5:4:4
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 10);
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 49, 1 ) << 10);
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 59, 1 ) << 10);
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 4 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 4 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 );
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 );
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 );
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 10);
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 49, 1 ) << 10);
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 59, 1 ) << 10);
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 4 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 4 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 );
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 );
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 );
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
             (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) | (ExtractBitSegment( compressedBlock, 76, 1 ) << 3);
         break;
     }
     case 6:
     {
         // 11:4:5:4
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 39, 1 ) << 10);
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 50, 1 ) << 10);
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 59, 1 ) << 10);
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 4 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 4 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 4 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 75, 1 ) << 4);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 );
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 4 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 69, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 39, 1 ) << 10);
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 50, 1 ) << 10);
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 59, 1 ) << 10);
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 4 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 4 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 4 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 75, 1 ) << 4);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 );
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 4 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 69, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
             (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) | (ExtractBitSegment( compressedBlock, 76, 1 ) << 3);
         break;
     }
@@ -419,108 +395,109 @@ void BC6_ExtractEndpoints( uint32_t mode, const uint8_t* compressedBlock, uint16
     case 10:
     {
         // 11:4:4:5
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 39, 1 ) << 10);
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 49, 1 ) << 10);
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 10);
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 4 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 4 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 );
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 4 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 );
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 69, 2 ) << 1) |
-            (ExtractBitSegment( compressedBlock, 76, 1 ) << 3) | (ExtractBitSegment( compressedBlock, 75, 1 ) << 4);
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 39, 1 ) << 10);
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 49, 1 ) << 10);
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 10);
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 4 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 4 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 4 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 );
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 4 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 );
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 69, 1 ) << 1) |
+            (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) | (ExtractBitSegment( compressedBlock, 76, 1 ) << 3) |
+            (ExtractBitSegment( compressedBlock, 75, 1 ) << 4);
         break;
     }
     case 14:
     {
         // 9:5:5:5
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  9 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 9 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 9 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  9 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 9 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 9 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
             (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) | (ExtractBitSegment( compressedBlock, 76, 1 ) << 3) | (ExtractBitSegment( compressedBlock, 34, 1 ) << 4);
         break;
     }
     case 18:
     {
         // 8:6:5:5
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  8 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 8 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 8 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 6 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 6 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 6 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 13, 1 ) << 4);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  8 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 8 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 8 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 6 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 6 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 6 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 13, 1 ) << 4);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
             (ExtractBitSegment( compressedBlock, 23, 1 ) << 2) | (ExtractBitSegment( compressedBlock, 33, 2 ) << 3);
         break;
     }
     case 22:
     {
         // 8:5:6:5
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  8 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 8 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 8 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 6 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 5);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 33, 1 ) << 5);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 13, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  8 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 8 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 8 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 6 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 5 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 5);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 33, 1 ) << 5);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 13, 1 ) | (ExtractBitSegment( compressedBlock, 60, 1 ) << 1) |
             (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) | (ExtractBitSegment( compressedBlock, 76, 1 ) << 3) | (ExtractBitSegment( compressedBlock, 34, 1 ) << 4);
         break;
     }
     case 26:
     {
         // 8:5:5:6
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  8 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 8 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 8 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 6 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 5);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 13, 1 ) << 1) | (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) |
-            (ExtractBitSegment( compressedBlock, 76, 2 ) << 3) | (ExtractBitSegment( compressedBlock, 34, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 33, 1 ) << 5);
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  8 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 8 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 8 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 5 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 5 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 6 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 5 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 5);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 5 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 40, 1 ) << 4);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 50, 1 ) | (ExtractBitSegment( compressedBlock, 13, 1 ) << 1) | (ExtractBitSegment( compressedBlock, 70, 1 ) << 2) |
+            (ExtractBitSegment( compressedBlock, 76, 1 ) << 3) | (ExtractBitSegment( compressedBlock, 34, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 33, 1 ) << 5);
         break;
     }
     case 30:
     {
         // 6:6:6:6
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  6 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 6 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 6 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 6 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 6 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 6 );
-        endpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 6 );
-        endpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 21, 1 ) << 5);
-        endpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 22, 1 ) << 5);
-        endpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 6 );
-        endpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 11, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 31, 1 ) << 5);
-        endpoints[3][2] = ExtractBitSegment( compressedBlock, 12, 2 ) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 2) |
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  6 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 6 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 6 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 6 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 6 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 6 );
+        packedEndpoints[2][0] = ExtractBitSegment( compressedBlock, 65, 6 );
+        packedEndpoints[2][1] = ExtractBitSegment( compressedBlock, 41, 4 ) | (ExtractBitSegment( compressedBlock, 24, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 21, 1 ) << 5);
+        packedEndpoints[2][2] = ExtractBitSegment( compressedBlock, 61, 4 ) | (ExtractBitSegment( compressedBlock, 14, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 22, 1 ) << 5);
+        packedEndpoints[3][0] = ExtractBitSegment( compressedBlock, 71, 6 );
+        packedEndpoints[3][1] = ExtractBitSegment( compressedBlock, 51, 4 ) | (ExtractBitSegment( compressedBlock, 11, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 31, 1 ) << 5);
+        packedEndpoints[3][2] = ExtractBitSegment( compressedBlock, 12, 2 ) | (ExtractBitSegment( compressedBlock, 23, 1 ) << 2) |
             (ExtractBitSegment( compressedBlock, 32, 2 ) << 3) | (ExtractBitSegment( compressedBlock, 34, 1 ) << 4) | (ExtractBitSegment( compressedBlock, 33, 1 ) << 5);
         break;
     }
@@ -528,45 +505,45 @@ void BC6_ExtractEndpoints( uint32_t mode, const uint8_t* compressedBlock, uint16
     case 3:
     {
         // 10:10
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 );
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 );
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 );
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 10 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 10 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 10 );
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 );
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 );
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 );
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 10 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 10 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 10 );
         break;
     }
     case 7:
     {
         // 11:9
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 )  | (ExtractBitSegment( compressedBlock, 44, 1 ) << 10);
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 54, 1 ) << 10);
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 64, 1 ) << 10);
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 9 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 9 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 9 );
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 )  | (ExtractBitSegment( compressedBlock, 44, 1 ) << 10);
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 54, 1 ) << 10);
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 64, 1 ) << 10);
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 9 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 9 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 9 );
         break;
     }
     case 11:
     {
         // 12:8
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 )  | (ExtractBitSegment( compressedBlock, 43, 1 ) << 10);
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 53, 1 ) << 10);
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 63, 1 ) << 10);
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 8 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 8 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 8 );
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 )  | (ExtractBitSegment( compressedBlock, 43, 1 ) << 10);
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 53, 1 ) << 10);
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 63, 1 ) << 10);
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 8 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 8 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 8 );
         break;
     }
     case 15:
     {
         // 16:4
-        endpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 39, 6 ) << 10);
-        endpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 49, 6 ) << 10);
-        endpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 59, 6 ) << 10);
-        endpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 4 );
-        endpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 4 );
-        endpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 4 );
+        packedEndpoints[0][0] = ExtractBitSegment( compressedBlock, 5,  10 ) | (ExtractBitSegment( compressedBlock, 39, 6 ) << 10);
+        packedEndpoints[0][1] = ExtractBitSegment( compressedBlock, 15, 10 ) | (ExtractBitSegment( compressedBlock, 49, 6 ) << 10);
+        packedEndpoints[0][2] = ExtractBitSegment( compressedBlock, 25, 10 ) | (ExtractBitSegment( compressedBlock, 59, 6 ) << 10);
+        packedEndpoints[1][0] = ExtractBitSegment( compressedBlock, 35, 4 );
+        packedEndpoints[1][1] = ExtractBitSegment( compressedBlock, 45, 4 );
+        packedEndpoints[1][2] = ExtractBitSegment( compressedBlock, 55, 4 );
         break;
     }
     default:
@@ -575,24 +552,236 @@ void BC6_ExtractEndpoints( uint32_t mode, const uint8_t* compressedBlock, uint16
 }
 
 
-void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressedBlock[48], bool formatIsSigned )
+void BC6_ExtractIndices( const uint8_t* compressedBlock, const uint32_t shapeIndex, const int regionCount, uint8_t indices[16] )
 {
-    // TODO!
-    //uint32_t numModeBits = (*compressedBlock & 0x3) < 2 ? 2 : 5;
-    //uint32_t currentBitOffset = 0;
-    //uint32_t mode = ExtractBits( compressedBlock, currentBitOffset, numModeBits );
-    //
-    //BC6ModeInfo modeInfo;
-    //if ( !BC6_GetModeInfo( mode, modeInfo ) )
-    //{
-    //    memset( decompressedBlock, 0, sizeof( decompressedBlock ) );
-    //    return;
-    //}
-    //
-    //uint16_t endpoints[4][3];
-    //BC6_ExtractEndpoints( mode, compressedBlock, endpoints );
+    if ( regionCount == 1 )
+    {
+        uint32_t startbit = 65;
+        indices[0] = ExtractBits<uint8_t>( compressedBlock, startbit, 3 );
+        for ( int i = 1; i < 16; ++i )
+        {
+            indices[i] = ExtractBits<uint8_t>( compressedBlock, startbit, 4 );
+        }
+    }
+    else
+    {
+        uint32_t startbit = 82;
+        indices[0] = ExtractBits<uint8_t>( compressedBlock, startbit, 2 );
+        for ( int i = 1; i < 16; ++i )
+        {
+            uint8_t nBits = anchorTable_2SubsetPartitioning_subset2[shapeIndex] == i ? 2 : 3;
+            indices[i] = ExtractBits<uint8_t>( compressedBlock, startbit, nBits );
+        }
+    }
+}
 
-    DecompressBlockBC6( compressedBlock, decompressedBlock, formatIsSigned );
+
+#define NCHANNELS 3
+#define MASK( n )               ( (1 << (n)) - 1 )
+#define HAS_BIT( x, bit )       ( signed( x ) & (1 << (bit)) )
+#define SIGN_EXTEND( w, tbits ) ( (HAS_BIT( w, tbits - 1 ) ? (~0 << (tbits)) : 0) | signed( w ) )
+
+static void BC6_SignExtendTwoRegion( const BC6ModeInfo &info, const bool isSignedF16, int endpoints[4][3] )
+{
+    for ( int i = 0; i < NCHANNELS; ++i )
+    {
+        if ( isSignedF16 )
+            endpoints[0][i] = SIGN_EXTEND( endpoints[0][i], info.endpointBits );
+
+        if ( info.transformedEndpoints || isSignedF16 )
+        {
+            endpoints[1][i] = SIGN_EXTEND( endpoints[1][i], info.deltaBits[i] );
+            endpoints[2][i] = SIGN_EXTEND( endpoints[2][i], info.deltaBits[i] );
+            endpoints[3][i] = SIGN_EXTEND( endpoints[3][i], info.deltaBits[i] );
+        }
+    }
+}
+
+
+static void BC6_SignExtendOneRegion( const BC6ModeInfo &info, const bool isSignedF16, int endpoints[4][3] )
+{
+    for ( int i = 0; i < NCHANNELS; ++i )
+    {
+        if ( isSignedF16 )
+            endpoints[0][i] = SIGN_EXTEND( endpoints[0][i], info.endpointBits );
+        if ( info.transformedEndpoints || isSignedF16 )
+            endpoints[1][i] = SIGN_EXTEND( endpoints[1][i], info.deltaBits[i] );
+    }
+}
+
+
+static void BC6_TransformEndpointsTwoRegion( const BC6ModeInfo &info, const bool isSignedF16, int endpoints[4][3] )
+{
+    int t;
+    if ( info.transformedEndpoints )
+    {
+        for ( int i = 0; i < NCHANNELS; ++i )
+        {
+            int anchor = endpoints[0][i];
+
+            t = (anchor + endpoints[1][i]) & MASK( info.endpointBits );
+            endpoints[1][i] = isSignedF16 ? SIGN_EXTEND( t, info.endpointBits ) : t;
+            t = (anchor + endpoints[2][i]) & MASK( info.endpointBits );
+            endpoints[2][i] = isSignedF16 ? SIGN_EXTEND( t, info.endpointBits ) : t;
+            t = (anchor + endpoints[3][i]) & MASK( info.endpointBits );
+            endpoints[3][i] = isSignedF16 ? SIGN_EXTEND( t, info.endpointBits ) : t;
+        }
+    }
+}
+
+
+static void BC6_TransformEndpointsOneRegion( const BC6ModeInfo &info, const bool isSignedF16, int endpoints[4][3] )
+{
+    if ( info.transformedEndpoints )
+    {
+        for ( int i = 0; i < NCHANNELS; ++i )
+        {
+            int anchor = endpoints[0][i];
+            int t = (anchor + endpoints[1][i]) & MASK( info.endpointBits );
+            endpoints[1][i] = isSignedF16 ? SIGN_EXTEND( t, info.endpointBits ) : t;
+        }
+    }
+}
+
+
+int BC6_Unquantize( int comp, int uBitsPerComp, bool isSignedF16 )
+{
+    int unq, s = 0;
+    if ( !isSignedF16 )
+    {
+        if ( uBitsPerComp >= 15 )
+            unq = comp;
+        else if( comp == 0 )
+            unq = 0;
+        else if ( comp == ((1 << uBitsPerComp) - 1) )
+            unq = 0xFFFF;
+        else
+            unq = ((comp << 16) + 0x8000) >> uBitsPerComp;
+    }
+    else
+    {
+        if ( uBitsPerComp >= 16 )
+            unq = comp;
+        else
+        {
+            if ( comp < 0 )
+            {
+                s = 1;
+                comp = -comp;
+            }
+
+            if ( comp == 0 )
+                unq = 0;
+            else if ( comp >= ((1 << (uBitsPerComp - 1)) - 1) )
+                unq = 0x7FFF;
+            else
+                unq = ((comp << 15) + 0x4000) >> (uBitsPerComp-1);
+
+            if ( s )
+                unq = -unq;
+        }
+    }
+
+    return unq;
+}
+
+
+uint16_t BC6_FinishUnquantize( int comp, bool isSignedF16 )
+{
+    if ( !isSignedF16 )
+    {
+        comp = (comp * 31) >> 6; // scale the magnitude by 31/64
+        return (uint16_t)comp;
+    }
+    else
+    {
+        comp = (comp < 0) ? -(((-comp) * 31) >> 5) : (comp * 31) >> 5; // scale the magnitude by 31/32
+        int s = 0;
+        if ( comp < 0 )
+        {
+            s = 0x8000;
+            comp = -comp;
+        }
+        return (uint16_t)(s | comp);
+    }
+}
+
+
+void BC6_GeneratePaletteUnquantized( const BC6ModeInfo &info, uint8_t regionIdx, bool isSignedF16, const int endpoints[4][3], uint16_t palette[16][3] )
+{
+    const uint8_t uNumIndices = info.regionCount == 2 ? 8 : 16;
+    int* aWeights;
+    if ( uNumIndices == 8 )
+        aWeights = (int*)indexInterpolationWeights_3Bit;
+    else // uNumIndices == 16
+        aWeights = (int*)indexInterpolationWeights_4Bit;
+
+    for ( int chan = 0; chan < 3; ++chan )
+    {
+        int a = BC6_Unquantize( endpoints[2 * regionIdx + 0][chan], info.endpointBits, isSignedF16 ); 
+        int b = BC6_Unquantize( endpoints[2 * regionIdx + 1][chan], info.endpointBits, isSignedF16 );
+
+        uint8_t baseIdx = 8 * regionIdx;
+        for ( uint8_t idx = 0; idx < uNumIndices; ++idx )
+        {
+            //palette[baseIdx + idx][chan] = BC6_FinishUnquantize( (a * (64 - aWeights[idx]) + b * aWeights[idx] ) >> 6, isSignedF16 );
+            palette[baseIdx + idx][chan] = BC6_FinishUnquantize( (a * (64 - aWeights[idx]) + b * aWeights[idx] + 32) >> 6, isSignedF16 );
+        }
+    }
+}
+
+
+void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressedBlock[48], bool isSignedF16 )
+{
+    uint32_t numModeBits = (*compressedBlock & 0x3) < 2 ? 2 : 5;
+    uint32_t currentBitOffset = 0;
+    uint32_t modeBits = ExtractBits( compressedBlock, currentBitOffset, numModeBits );
+
+    BC6ModeInfo modeInfo;
+    if ( !BC6_GetModeInfo( modeBits, modeInfo ) )
+    {
+        memset( decompressedBlock, 0, sizeof( decompressedBlock ) );
+        return;
+    }
+    
+    int endpoints[4][3];
+    BC6_ExtractEndpoints( modeInfo.modeBits, compressedBlock, endpoints );
+
+    uint32_t shapeIndex = 0; // partition, same thing
+    if ( modeInfo.modeIndex <= 10 )
+    {
+        shapeIndex = ExtractBitSegment( compressedBlock, 77, 5 );
+    }
+
+    uint8_t indices[16];
+    BC6_ExtractIndices( compressedBlock, shapeIndex, modeInfo.regionCount, indices );
+
+    if ( modeInfo.regionCount == 2 )
+    {
+        BC6_SignExtendTwoRegion( modeInfo, isSignedF16, endpoints );
+        BC6_TransformEndpointsTwoRegion( modeInfo, isSignedF16, endpoints );
+    }
+    else
+    {
+        BC6_SignExtendOneRegion( modeInfo, isSignedF16, endpoints );
+        BC6_TransformEndpointsOneRegion( modeInfo, isSignedF16, endpoints );
+    }
+
+    uint16_t palette[16][3];
+    for ( uint8_t regionIdx = 0; regionIdx < modeInfo.regionCount; ++regionIdx )
+    {
+        BC6_GeneratePaletteUnquantized( modeInfo, regionIdx, isSignedF16, endpoints, palette );
+    }
+
+    for ( int i = 0; i < 16; ++i )
+    {
+        int region = modeInfo.regionCount == 1 ? 0 : partitionTable_2Subsets[shapeIndex][i];
+        int paletteIndex = 8 * region + indices[i];
+        for ( int chan = 0; chan < 3; ++chan )
+        {
+            decompressedBlock[3 * i + chan] = palette[paletteIndex][chan];
+        }
+    }
 }
 
 

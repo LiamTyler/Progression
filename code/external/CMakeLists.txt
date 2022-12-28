@@ -76,7 +76,6 @@ set(IMAGELIB_EXT_FILES
 	${EXT_DIR}/ImageLib/bc_compression.cpp
     ${EXT_DIR}/ImageLib/bc_compression.hpp
 	${EXT_DIR}/ImageLib/bc_decompression.cpp
-    ${EXT_DIR}/ImageLib/bc_decompression.hpp
     ${EXT_DIR}/ImageLib/bc7_reference_tables.hpp
 	${EXT_DIR}/ImageLib/image.cpp
     ${EXT_DIR}/ImageLib/image.hpp

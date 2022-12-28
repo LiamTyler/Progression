@@ -62,7 +62,8 @@ void Compress_BC_6( const RawImage2D& srcImage, const BCCompressorSettings& sett
     void* options = nullptr;
     CreateOptionsBC6( &options );
     SetQualityBC6( options, (float)settings.quality / (float)CompressionQuality::HIGHEST ); // quality is continuous in [0,1], the higher the better
-    SetSignedBC6( options, settings.format == ImageFormat::BC6H_S16F );
+    bool isSigned = settings.format == ImageFormat::BC6H_S16F;
+    SetSignedBC6( options, isSigned );
 
     #pragma omp parallel for
 	for ( int by = 0; by < blocksY; ++by )
@@ -71,6 +72,25 @@ void Compress_BC_6( const RawImage2D& srcImage, const BCCompressorSettings& sett
 		{
             float16 blockSrc[48];
             srcImage.GetBlockClamped16F( bx, by, blockSrc );
+
+            // Note1: Compressenator doesn't seem to do any work checks to do any clamping for negative numbers, so do it here
+            // Note2: It's important to not allow for -0.0 with Compressenator's encoder, because it casts the uint16_t directly to a float.
+            // This means that it expects nearby input values to have nearby uint16_t values (at least for unsigned BC6), which is not true for -0.0 and 0.0.
+            // So an easy fix is to just not allow -0.0 (which is 32768 as a uint16_t) in the fp16 input to the BC6 compressor
+            if ( !isSigned )
+            {
+                for ( int i = 0; i < 48; ++i )
+                {
+                    if ( blockSrc[i] & 0x8000 ) blockSrc[i] = 0;
+                }
+            }
+            else
+            {
+                for ( int i = 0; i < 48; ++i )
+                {
+                    if ( blockSrc[i] == 0x8000 ) blockSrc[i] = 0;
+                }
+            }
             uint8_t* blockDst = outputImg.Raw() + bytesPerBlock * (by * blocksX + bx);
             CompressBlockBC6( (uint16_t*)blockSrc, 12, blockDst, options );
         }

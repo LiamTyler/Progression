@@ -183,6 +183,6 @@ uint8_t anchorTable_3SubsetPartitioning_subset3[64] =
     15,15,15,15, 3,15,15, 8,
 };
 
-uint32_t indexInterpolationWeights_2Bit[4]  = { 0, 21, 43, 64 };
-uint32_t indexInterpolationWeights_3Bit[8]  = { 0, 9, 18, 27, 37, 46, 55, 64 };
-uint32_t indexInterpolationWeights_4Bit[16] = { 0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64 };
+int indexInterpolationWeights_2Bit[4]  = { 0, 21, 43, 64 };
+int indexInterpolationWeights_3Bit[8]  = { 0, 9, 18, 27, 37, 46, 55, 64 };
+int indexInterpolationWeights_4Bit[16] = { 0, 4, 9, 13, 17, 21, 26, 30, 34, 38, 43, 47, 51, 55, 60, 64 };

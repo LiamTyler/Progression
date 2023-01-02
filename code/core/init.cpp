@@ -24,6 +24,7 @@ bool EngineInitialize( EngineInitInfo info )
     g_offlineRenderer = info.offlineRenderer;
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
+    Logger_AddLogLocation( "logfile", "log_engine.txt" );
     Lua::Init();
     AssetManager::Init();
 #if USING( GAME )

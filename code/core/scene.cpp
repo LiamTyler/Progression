@@ -15,6 +15,14 @@ using namespace PG;
 
 Scene* s_primaryScene = nullptr;
 
+
+static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
+{
+    scene->ambientColor = ParseVec3( v );
+    return true;
+}
+
+
 static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
 {
     Camera& camera = scene->camera;
@@ -96,26 +104,26 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 }
 
 
-static bool ParseBackgroundColor( const rapidjson::Value& v, Scene* scene )
-{
-    scene->backgroundColor = ParseVec3( v );
-    return true;
-}
-
-
-static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
-{
-    scene->ambientColor = ParseVec3( v );
-    return true;
-}
-
-
 static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
 {
     PG_ASSERT( v.IsString() );
     std::string name = v.GetString();
     scene->skybox = AssetManager::Get<GfxImage>( name );
     PG_ASSERT( scene->skybox, "Could not find skybox with name '" + name + "'" );
+    return true;
+}
+
+
+static bool ParseSkyEVAdjust( const rapidjson::Value& v, Scene* scene )
+{
+    scene->skyEVAdjust = ParseNumber<float>( v );
+    return true;
+}
+
+
+static bool ParseSkyTint( const rapidjson::Value& v, Scene* scene )
+{
+    scene->skyTint = ParseVec3( v );
     return true;
 }
 
@@ -188,13 +196,14 @@ Scene* Scene::Load( const std::string& filename )
     static JSONFunctionMapperBoolCheck< Scene* > mapping(
     {
         { "AmbientColor",     ParseAmbientColor },
-        { "BackgroundColor",  ParseBackgroundColor },
         { "Camera",           ParseCamera },
         { "Entity",           ParseEntity },
         { "DirectionalLight", ParseDirectionalLight },
         { "PointLight",       ParsePointLight },
         { "SpotLight",        ParseSpotLight },
         { "Skybox",           ParseSkybox },
+        { "SkyEVAdjust",      ParseSkyEVAdjust },
+        { "SkyTint",          ParseSkyTint },
         { "StartupScript",    ParseStartupScript },
         { "Script",           ParseScript },
     });

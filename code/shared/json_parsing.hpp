@@ -76,6 +76,12 @@ public:
             {
                 mapping[name]( it->value, std::forward<Args>( args )... );
             }
+#if USING( DEBUG_BUILD )
+            else if ( name != "name" )
+            {
+                LOG_WARN( "JSON mapper does not contain key '%s'", name.c_str() );
+            }
+#endif // #if USING( DEBUG_BUILD )
         }
     }
 

@@ -28,7 +28,8 @@ namespace PG
         void Update();
 
         Camera camera;
-        glm::vec3 backgroundColor = glm::vec3( 0, 0, 0 );
+        glm::vec3 skyTint = glm::vec3( 1, 1, 1 );
+        float skyEVAdjust = 0; // scales sky by pow( 2, skyEVAdjust )
         glm::vec3 ambientColor    = glm::vec3( .1f );
         DirectionalLight directionalLight;
         std::vector< PointLight > pointLights;

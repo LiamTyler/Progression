@@ -1,14 +1,13 @@
 #include "asset/types/model.hpp"
 #include "asset/types/material.hpp"
 #include "asset/asset_manager.hpp"
-#include "shared/assert.hpp"
 #include "renderer/r_globals.hpp"
+#include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include "glm/geometric.hpp"
 #include <cstring>
-#include <sstream>
 
 
 namespace PG
@@ -229,7 +228,7 @@ void Model::RecalculateNormals()
 
 void Model::CreateBLAS()
 {
-#if USING( GPU_DATA )
+#if USING( PG_RTX ) && USING( GPU_DATA )
     VkDeviceAddress vertexAddress = vertexBuffer.GetDeviceAddress();
     VkDeviceAddress indexAddress  = indexBuffer.GetDeviceAddress();
     uint32_t numTriangles = static_cast<uint32_t>( (indexBuffer.GetLength() / sizeof( uint32_t )) / 3 );
@@ -286,7 +285,7 @@ void Model::CreateBLAS()
     r_globals.device.WaitForIdle();
     cmdBuf.Free();
     scratchBuffer.Free();
-#endif // #if USING( GPU_DATA )
+#endif // #if USING( PG_RTX ) && USING( GPU_DATA )
 }
 
 

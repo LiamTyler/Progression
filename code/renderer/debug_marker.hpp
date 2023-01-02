@@ -1,8 +1,8 @@
 #pragma once
 
+#include "core/feature_defines.hpp"
 #include "glm/vec4.hpp"
 #include "renderer/r_globals.hpp"
-#include "shared/platform_defines.hpp"
 #include <string>
 
 namespace PG

@@ -6,16 +6,15 @@
 #include "renderer/rendergraph/r_rendergraph.hpp"
 #include "renderer/r_texture_manager.hpp"
 #include "asset/asset_manager.hpp"
-#include "glm/glm.hpp"
 #include "shaders/c_shared/limits.h"
 #include "shaders/c_shared/structs.h"
 #include "shared/assert.hpp"
+#include "core/feature_defines.hpp"
 #include "core/scene.hpp"
 #include "core/window.hpp"
 #include "ecs/components/model_renderer.hpp"
 #include "ecs/components/transform.hpp"
 #include "shared/logger.hpp"
-#include <unordered_map>
 
 using namespace PG;
 using namespace Gfx;
@@ -223,6 +222,7 @@ void Shutdown()
 
 void CreateTLAS( Scene* scene )
 {
+#if USING( PG_RTX )
     auto view = scene->registry.view<ModelRenderer, Transform>();
     std::vector<VkAccelerationStructureInstanceKHR> instanceTransforms;
     instanceTransforms.reserve( view.size_hint() );
@@ -295,6 +295,7 @@ void CreateTLAS( Scene* scene )
     cmdBuf.Free();
     scratchBuffer.Free();
     instancesBuffer.Free();
+#endif // #if USING( PG_RTX )
 }
 
 
@@ -465,7 +466,8 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
     cmdBuf->PushConstants( 0, sizeof( cubeVP ), &cubeVP );
     GpuData::SkyboxData data;
     data.hasTexture = s_skyboxTexture != nullptr;
-    data.tint = scene->backgroundColor;
+    data.tint = scene->skyTint;
+    data.scale = exp2f( scene->skyEVAdjust );
     cmdBuf->PushConstants( 64, sizeof( data ), &data );
     cmdBuf->DrawIndexed( 0, 36 );
 }

@@ -3,6 +3,8 @@
 
 #ifdef PG_SHADER_CODE
 
+#define PI 3.1415926535f
+
 #define VEC2 vec2
 #define VEC3 vec3
 #define VEC4 vec4

@@ -1,7 +1,7 @@
 #pragma once
 
+#include "core/feature_defines.hpp"
 #include "renderer/graphics_api/command_buffer.hpp"
-#include "shared/platform_defines.hpp"
 #include <string>
 
 namespace PG

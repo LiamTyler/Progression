@@ -178,9 +178,16 @@ int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface ) const
         return false;
 
     std::vector<const char*> requiredExtensions;
+    for ( int i = 0; i < ARRAY_COUNT( REQUIRED_VK_EXTENSIONS ) - 1; ++i )
+    {
+        requiredExtensions.push_back( REQUIRED_VK_EXTENSIONS[i] );
+    }
     if ( !headless )
     {
-        requiredExtensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
+        for ( int i = 0; i < ARRAY_COUNT( REQUIRED_VK_NON_HEADLESS_EXTENSIONS ) - 1; ++i )
+        {
+            requiredExtensions.push_back( REQUIRED_VK_NON_HEADLESS_EXTENSIONS[i] );
+        }
     }
 
     for ( const auto& extension : requiredExtensions )

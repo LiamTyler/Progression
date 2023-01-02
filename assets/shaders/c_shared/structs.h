@@ -38,7 +38,9 @@ struct PointLight
 struct SkyboxData
 {
 	VEC3 tint;
+    float scale;
 	UINT hasTexture;
+    UVEC3 _pad1;
 };
 
 #ifndef PG_SHADER_CODE

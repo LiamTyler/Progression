@@ -1,7 +1,7 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
-#include "shared/platform_defines.hpp"
+#include "core/feature_defines.hpp"
 #include "renderer/graphics_api/buffer.hpp"
 #include "renderer/graphics_api/acceleration_structure.hpp"
 #include "glm/vec2.hpp"

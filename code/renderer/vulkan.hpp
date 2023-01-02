@@ -1,7 +1,7 @@
 #pragma once
 
 #include "shared/assert.hpp"
-#include "shared/platform_defines.hpp"
+#include "core/feature_defines.hpp"
 #include <vulkan/vulkan.h>
 #include <vector>
 
@@ -23,6 +23,22 @@ namespace PG
 {
 namespace Gfx
 {
+
+    static constexpr const char* REQUIRED_VK_EXTENSIONS[] =
+    {
+#if USING( PG_RTX )
+        VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+        VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+        VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
+#endif // #if USING( PG_RTX )
+        NULL
+    };
+
+    static constexpr const char* REQUIRED_VK_NON_HEADLESS_EXTENSIONS[] =
+    {
+        VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+        NULL
+    };
 
     void LoadVulkanExtensions( VkDevice device );
 

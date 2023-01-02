@@ -1,10 +1,10 @@
 #include "asset_file_database.hpp"
 //#include "asset/parsing/base_asset_parse.hpp"
 #include "asset/parsing/asset_parsers.hpp"
+#include "core/feature_defines.hpp"
 #include "core/time.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/file_dependency.hpp"
-#include "shared/platform_defines.hpp"
 #include <fstream>
 #include <unordered_map>
 

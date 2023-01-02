@@ -56,18 +56,18 @@ END_STR_TO_ENUM_MAP( GfxImageSemantic, NUM_IMAGE_SEMANTICS )
 
 bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
-    #define ABS_PATH( v ) PG_ASSET_DIR + std::string( v.GetString() )
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0] = ABS_PATH( v ); } },
-        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_LEFT]   = ABS_PATH( v ); } },
-        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_RIGHT]  = ABS_PATH( v ); } },
-        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_FRONT]  = ABS_PATH( v ); } },
-        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BACK]   = ABS_PATH( v ); } },
-        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_TOP]    = ABS_PATH( v ); } },
-        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BOTTOM] = ABS_PATH( v ); } },
+        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0] = v.GetString(); } },
+        { "equirectangularFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0]  = v.GetString(); } },
+        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_LEFT]   = v.GetString(); } },
+        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_RIGHT]  = v.GetString(); } },
+        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_FRONT]  = v.GetString(); } },
+        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BACK]   = v.GetString(); } },
+        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_TOP]    = v.GetString(); } },
+        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BOTTOM] = v.GetString(); } },
         { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
-        { "semantic",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { GfxImageSemantic_StringToEnum( v.GetString() ); } },
+        { "semantic",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.semantic = GfxImageSemantic_StringToEnum( v.GetString() ); } },
         { "dstFormat", []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
                 i.dstPixelFormat = PixelFormatFromString( v.GetString() );

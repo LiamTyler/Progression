@@ -9,7 +9,7 @@
 #include "shared/assert.hpp"
 #include "shared/bitops.hpp"
 #include "shared/logger.hpp"
-#include "shared/platform_defines.hpp"
+#include "core/feature_defines.hpp"
 #include <algorithm>
 #include <cstring>
 #include <set>
@@ -38,15 +38,22 @@ namespace Gfx
         // Since the physical device is only chosen if it is known to support all the features we need, we can simply use vkGetPhysicalDeviceFeatures2()
         // to fill out the features the device supports (will contain all features we want to enable) and pass that to the device create info
         VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
+#if USING( PG_RTX )
         VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
         VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+#endif // #if USING( PG_RTX )
         VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
         VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
         VkPhysicalDeviceFeatures2 deviceFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
+#if USING( PG_RTX )
         deviceFeatures2.pNext = MakePNextChain( { &bufferDeviceAddressFeatures, &rayTracingPipelineFeatures, &accelerationStructureFeatures, &indexingFeatures, &vkFeatures2 } );
+#else // #if USING( PG_RTX )
+        deviceFeatures2.pNext = MakePNextChain( { &bufferDeviceAddressFeatures, &indexingFeatures, &vkFeatures2 } );
+#endif // #else // #if USING( PG_RTX )
         vkGetPhysicalDeviceFeatures2( pDev.GetHandle(), &deviceFeatures2 );
 #if !USING( DEBUG_BUILD )
+        vkFeatures2.robustBufferAccess2 = VK_FALSE;
         deviceFeatures2.features.robustBufferAccess = VK_FALSE; // perf hit
 #endif // #if !USING( DEBUG_BUILD )
 
@@ -57,15 +64,17 @@ namespace Gfx
         createInfo.pEnabledFeatures     = nullptr;
         createInfo.pNext                = &deviceFeatures2;
         
-        std::vector<const char*> extensions =
+        std::vector<const char*> extensions;
+        for ( int i = 0; i < ARRAY_COUNT( REQUIRED_VK_EXTENSIONS ) - 1; ++i )
         {
-            VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-            VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-            VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME
-        };
+            extensions.push_back( REQUIRED_VK_EXTENSIONS[i] );
+        }
         if ( !headless )
         {
-            extensions.push_back( VK_KHR_SWAPCHAIN_EXTENSION_NAME );
+            for ( int i = 0; i < ARRAY_COUNT( REQUIRED_VK_NON_HEADLESS_EXTENSIONS ) - 1; ++i )
+            {
+                extensions.push_back( REQUIRED_VK_NON_HEADLESS_EXTENSIONS[i] );
+            }
         }
         createInfo.enabledExtensionCount   = static_cast<uint32_t>( extensions.size() );
         createInfo.ppEnabledExtensionNames = extensions.data();
@@ -80,8 +89,13 @@ namespace Gfx
         createInfo.enabledLayerCount   = static_cast<uint32_t>( validationLayers.size() );
         createInfo.ppEnabledLayerNames = validationLayers.data();
 
-        if ( vkCreateDevice( pDev.GetHandle(), &createInfo, nullptr, &m_handle ) != VK_SUCCESS )
+        VkResult res = vkCreateDevice( pDev.GetHandle(), &createInfo, nullptr, &m_handle );
+        if ( res != VK_SUCCESS )
         {
+            if ( res == VK_ERROR_EXTENSION_NOT_PRESENT )
+            {
+                LOG_ERR( "Device could not be created, missing extensions!" );
+            }
             return false;
         }
 

@@ -9,6 +9,8 @@
 #include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
 
+static constexpr CompressionQuality COMPRESSOR_QUALITY = CompressionQuality::MEDIUM;
+
 namespace PG
 {
 
@@ -122,12 +124,62 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     settings.clampVertical = createInfo->clampVertical;
     std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( GenerateMipmaps( composite, settings ) );
     
-    BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM );
+    BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
 
     *gfxImage = RawImage2DMipsToGfxImage( compressedMips, compositeInfo.outputColorSpace == ColorSpace::SRGB );
 
-    return true;
+    return gfxImage->pixels != nullptr;
+}
+
+
+static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo, RawImage2D &img )
+{
+    BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
+    RawImage2D compressed = CompressToBC( img, compressorSettings );
+
+    *gfxImage = RawImage2DMipsToGfxImage( { compressed }, false );
+
+    return gfxImage->pixels != nullptr;
+}
+
+
+static bool Load_EnvironmentMap_CubeMap( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo, RawImage2D (&faces)[6] )
+{
+    return false; // TODO
+}
+
+
+static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    RawImage2D faces[6];
+    int numFaces = 0;
+    for ( int i = 0; i < 6; ++i )
+    {
+        if ( !createInfo->filenames[i].empty() )
+        {
+            if ( !faces[i].Load( GetImageFullPath( createInfo->filenames[i] ) ) )
+            {
+                return false;
+            }
+            ++numFaces;
+        }
+    }
+    
+    if ( numFaces == 1 )
+    {
+        PG_ASSERT( !createInfo->filenames[0].empty(), "Filename must be in first slot, for non-cubemap images" );
+        return Load_EnvironmentMap_EquiRectangular( gfxImage, createInfo, faces[0] );
+    }
+    else if ( numFaces == 6 )
+    {
+        return Load_EnvironmentMap_CubeMap( gfxImage, createInfo, faces );
+    }
+    else
+    {
+        LOG_ERR( "Unrecognized number of faces for environment map: %d. Only 1 (equirectangular) or 6 (cubemap) supported", numFaces );
+        return false;
+    }
 }
 
 
@@ -141,6 +193,9 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
     {
     case GfxImageSemantic::ALBEDO_METALNESS:
         success = Load_AlbedoMetalness( this, createInfo );
+        break;
+    case GfxImageSemantic::ENVIRONMENT_MAP:
+        success = Load_EnvironmentMap( this, createInfo );
         break;
     default:
         LOG_ERR( "GfxImage::Load not implemented yet for semantic %u", Underlying( createInfo->semantic ) );

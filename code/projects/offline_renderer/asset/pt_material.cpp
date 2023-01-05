@@ -84,10 +84,10 @@ MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
     Material mat;
     mat.albedoTint = material->albedoTint;
     mat.albedoTex = TEXTURE_HANDLE_INVALID;
-    //if ( material->textureset->albedoMetalTex )
-    //{
-    //    mat.albedoTex = LoadTextureFromGfxImage( material->albedoMap );
-    //}
+    if ( material->albedoMetalnessImage )
+    {
+        mat.albedoTex = LoadTextureFromGfxImage( material->albedoMetalnessImage );
+    }
 
     g_materials.emplace_back( mat );
     MaterialHandle handle = static_cast< MaterialHandle >( g_materials.size() - 1 );

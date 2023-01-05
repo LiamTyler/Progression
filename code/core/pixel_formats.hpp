@@ -5,7 +5,6 @@
 namespace PG
 {
 
-
 enum class PixelFormat : uint8_t
 {
     INVALID                 = 0,
@@ -125,6 +124,10 @@ bool PixelFormatIsNormalized( PixelFormat format );
 bool PixelFormatIsUnsigned( PixelFormat format );
 
 bool PixelFormatIsSrgb( PixelFormat format );
+
+bool PixelFormatIsFloat16( PixelFormat format );
+
+bool PixelFormatIsFloat32( PixelFormat format );
 
 bool PixelFormatIsFloat( PixelFormat format );
 

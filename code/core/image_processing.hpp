@@ -1,6 +1,7 @@
 #pragma once
 
 #include "image.hpp"
+#include "pixel_formats.hpp"
 #include <vector>
 
 namespace PG
@@ -46,5 +47,7 @@ struct CompositeImageInput
 };
 
 FloatImage CompositeImage( const CompositeImageInput& input );
+
+ImageFormat PixelFormatToImageFormat( PixelFormat pixelFormat );
 
 } // namespace PG

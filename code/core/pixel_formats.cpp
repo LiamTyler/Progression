@@ -10,7 +10,7 @@ namespace PG
 
 uint32_t NumChannelsInPixelFromat( PixelFormat format )
 {
-    uint32_t components[] =
+    uint8_t components[] =
     {
         0,  // INVALID
         1,  // R8_UNORM
@@ -81,8 +81,8 @@ uint32_t NumChannelsInPixelFromat( PixelFormat format )
         2,  // DEPTH_24_UNORM_STENCIL_8_UINT
         2,  // DEPTH_32_FLOAT_STENCIL_8_UINT
         1,  // STENCIL_8_UINT
-        3,  // BC1_RGB_UNORM
-        3,  // BC1_RGB_SRGB
+        4,  // BC1_RGB_UNORM    // Still decompressed as 4 channel, user can interpret as 3 tho
+        4,  // BC1_RGB_SRGB     // Still decompressed as 4 channel, user can interpret as 3 tho
         4,  // BC1_RGBA_UNORM
         4,  // BC1_RGBA_SRGB
         2,  // BC2_UNORM
@@ -108,7 +108,7 @@ uint32_t NumChannelsInPixelFromat( PixelFormat format )
 
 uint32_t NumBytesPerPixel( PixelFormat format )
 {
-    uint32_t size[] =
+    uint8_t size[] =
     {
         0,  // INVALID
 
@@ -345,23 +345,23 @@ bool PixelFormatIsSrgb( PixelFormat format )
 }
 
 
+bool PixelFormatIsFloat16( PixelFormat format )
+{
+    auto f = Underlying( format );
+    return Underlying( PixelFormat::R16_FLOAT ) <= f && f <= Underlying( PixelFormat::R16_G16_B16_A16_FLOAT );
+}
+
+
+bool PixelFormatIsFloat32( PixelFormat format )
+{
+    auto f = Underlying( format );
+    return Underlying( PixelFormat::R32_FLOAT ) <= f && f <= Underlying( PixelFormat::R32_G32_B32_A32_FLOAT );
+}
+
+
 bool PixelFormatIsFloat( PixelFormat format )
 {
-    bool isFloat = false;
-    switch( format )
-    {
-    case PixelFormat::R16_FLOAT:
-    case PixelFormat::R16_G16_FLOAT:
-    case PixelFormat::R16_G16_B16_FLOAT:
-    case PixelFormat::R16_G16_B16_A16_FLOAT:
-    case PixelFormat::R32_FLOAT:
-    case PixelFormat::R32_G32_FLOAT:
-    case PixelFormat::R32_G32_B32_FLOAT:
-    case PixelFormat::R32_G32_B32_A32_FLOAT:
-        isFloat = true;
-    }
-
-    return isFloat;
+    return PixelFormatIsFloat16( format ) || PixelFormatIsFloat32( format );
 }
 
 
@@ -414,7 +414,7 @@ std::string PixelFormatName( PixelFormat format )
 {
     const char* names[] =
     {
-        "INVALID",         // INVALID
+        "INVALID",               // INVALID
         "R8_UNORM",              // R8_UNORM
         "R8_SNORM",              // R8_SNORM
         "R8_UINT",               // R8_UINT

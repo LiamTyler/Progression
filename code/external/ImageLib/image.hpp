@@ -77,7 +77,7 @@ constexpr bool IsFormatBCCompressed( ImageFormat format )
     return Underlying( ImageFormat::BC1_UNORM ) <= Underlying( format ) && Underlying( format ) <= Underlying( ImageFormat::BC7_UNORM );
 }
 
-constexpr ImageFormat BCGetFormatAfterDecompression( ImageFormat format )
+constexpr ImageFormat GetFormatAfterDecompression( ImageFormat format )
 {
     switch ( format )
     {

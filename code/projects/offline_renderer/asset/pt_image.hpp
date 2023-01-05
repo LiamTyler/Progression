@@ -4,6 +4,7 @@
 #include "shared/assert.hpp"
 #include "shared/color_spaces.hpp"
 #include "shared/float_conversions.hpp"
+#include "core/pixel_formats.hpp"
 #include <vector>
 
 namespace PG
@@ -18,26 +19,36 @@ class Texture
 {
 public:
     virtual ~Texture() {}
-    virtual glm::vec4 Sample( glm::vec2 uv, glm::vec2 du = glm::vec2( 0 ), glm::vec2 dv = glm::vec2( 0 ) ) const = 0;
+    virtual glm::vec4 Sample( glm::vec2 uv, float mipLevel = 0 ) const = 0;
     virtual glm::vec4 SampleDir( glm::vec3 dir ) const = 0;
 };
 
-template <typename T, int NUM_CHANNELS, bool sRGB, bool clampU = false, bool clampV = false>
+//template <typename T, int NUM_CHANNELS, bool sRGB>
 class Texture2D : public Texture
 {
 public:
-    static_assert( NUM_CHANNELS >= 1 && NUM_CHANNELS <= 4 );
+    //static_assert( NUM_CHANNELS >= 1 && NUM_CHANNELS <= 4 );
+
     Texture2D() = default;
-    Texture2D( int w, int h, int mipCount, void* data )
+    Texture2D( int w, int h, int mipCount, PG::PixelFormat format, void* data )
     {
+        pixelFormat = format;
+        numChannels = PG::NumChannelsInPixelFromat( format );
+        sRGB = PG::PixelFormatIsSrgb( format );
+        if ( PG::PixelFormatIsFloat16( format ) ) pixelType = PixelType::FP16;
+        else if ( PG::PixelFormatIsFloat32( format ) ) pixelType = PixelType::FP16;
+        else if ( PG::NumBytesPerChannel( format ) == 1 && PG::PixelFormatIsNormalized( format ) && PG::PixelFormatIsUnsigned( format ) ) pixelType = PixelType::UNORM8;
+        else throw std::runtime_error( "Invalid pixel format!" );
+
         mips.resize( mipCount );
         mipResolutions.resize( mipCount );
+        int bytesPerPixel = PG::NumBytesPerPixel( format );
         size_t offset = 0;
         for ( int i = 0; i < mipCount; ++i )
         {
-            mips[i] = std::make_unique<T[]>( w * h * NUM_CHANNELS );
+            int mipSize = w * h * bytesPerPixel;
+            mips[i] = std::make_unique<uint8_t[]>( mipSize );
             mipResolutions[i] = { w, h };
-            int mipSize = w * h * NUM_CHANNELS * sizeof( T );
             memcpy( mips[i].get(), reinterpret_cast<char*>( data ) + offset, mipSize );
             w >>= 1;
             h >>= 1;
@@ -45,11 +56,23 @@ public:
         }
     }
 
+    template <typename T = uint8_t>
+    T* Raw( int mipLevel )
+    {
+        return reinterpret_cast<T*>( mips[mipLevel].get() );
+    }
+
+    template <typename T = uint8_t>
+    const T* Raw( int mipLevel ) const
+    {
+        return reinterpret_cast<const T*>( mips[mipLevel].get() );
+    }
+
     glm::vec4 Fetch( int row, int col, int mipLevel ) const
     {
         const int width = mipResolutions[mipLevel].x;
         const int height = mipResolutions[mipLevel].y;
-        if constexpr ( clampU )
+        if ( clampU )
         {
             col = std::clamp( col, 0, width - 1 );
         }
@@ -58,7 +81,7 @@ public:
             if ( col < 0 ) col += width;
             else if ( col >= width ) col -= width;
         }
-        if constexpr ( clampV )
+        if ( clampV )
         {
             row = std::clamp( row, 0, height - 1 );
         }
@@ -68,21 +91,21 @@ public:
             else if ( row >= height ) row -= height;
         }
 
-        int pixelOffset = NUM_CHANNELS * (row * width + col);
+        int pixelOffset = numChannels * (row * width + col);
         glm::vec4 ret;
-        for ( int channel = 0; channel < NUM_CHANNELS; ++channel )
+        for ( int channel = 0; channel < numChannels; ++channel )
         {
-            if constexpr ( std::is_same_v<T,float> )
+            switch ( pixelType )
             {
-                ret[channel] = mips[mipLevel][pixelOffset + channel];
-            }
-            else if constexpr ( std::is_same_v<T,float16> )
-            {
-                ret[channel] = Float16ToFloat32( mips[mipLevel][pixelOffset + channel] );
-            }
-            else if constexpr ( std::is_same_v<T,uint8_t> )
-            {
-                ret[channel] = UNormByteToFloat( mips[mipLevel][pixelOffset + channel] );
+            case PixelType::UNORM8:
+                ret[channel] = UNormByteToFloat( Raw<uint8_t>( mipLevel )[pixelOffset + channel] );
+                break;
+            case PixelType::FP16:
+                ret[channel] = Float16ToFloat32( Raw<uint16_t>( mipLevel )[pixelOffset + channel] );
+                break;
+            case PixelType::FP32:
+                ret[channel] = Raw<float>( mipLevel )[pixelOffset + channel];
+                break;
             }
         }
 
@@ -96,9 +119,9 @@ public:
 
     glm::vec4 Bilerp( glm::vec2 uv, int mipLevel ) const
     {
-        if constexpr ( clampU ) uv.x = std::clamp( uv.x, 0.0f, 1.0f );
+        if ( clampU ) uv.x = std::clamp( uv.x, 0.0f, 1.0f );
         else uv.x -= std::floor( uv.x );
-        if constexpr ( clampV ) uv.y = std::clamp( uv.y, 0.0f, 1.0f );
+        if ( clampV ) uv.y = std::clamp( uv.y, 0.0f, 1.0f );
         else uv.y -= std::floor( uv.y );
 
         // subtract 0.5 to account for pixel centers
@@ -119,7 +142,7 @@ public:
         glm::vec4 p11 = Fetch( row + 1, col + 1, mipLevel );
         
         glm::vec4 ret( 0, 0, 0, 1 );
-        for ( int i = 0; i < NUM_CHANNELS; ++i )
+        for ( int i = 0; i < numChannels; ++i )
         {
             ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
         }
@@ -127,9 +150,8 @@ public:
         return ret;
     }
 
-    glm::vec4 Sample( glm::vec2 uv, glm::vec2 du = glm::vec2( 0 ), glm::vec2 dv = glm::vec2( 0 ) ) const override
+    glm::vec4 Sample( glm::vec2 uv, float mipLevel = 0 ) const override
     {
-        float mipLevel = 0;
         int mipCount = static_cast<int>( mips.size() );
         int firstMip = std::min<int>( mipCount - 1, std::max( 0, (int)std::floor( mipLevel ) ) );
         int nextMip = std::min<int>( mipCount - 1, std::max( 0, firstMip + 1  ) );
@@ -146,29 +168,45 @@ public:
 
     glm::vec4 SampleDir( glm::vec3 dir ) const override
     {
-        PG_ASSERT( false, "not implemented yet" );
-        return glm::vec4( 0 );
+		float lon = std::atan2( dir.x, dir.y );
+		float lat = std::atan2( dir.z, glm::length( glm::vec2( dir ) ) );
+		glm::vec2 uv = glm::vec2( 0.5 * (lon / PI + 1), lat / PI + 0.5 );
+        return Sample( uv );
     }
 
+    PG::PixelFormat pixelFormat = PG::PixelFormat::INVALID;
+    bool clampU = false;
+    bool clampV = false;
     std::vector<glm::u16vec2> mipResolutions;
-    std::vector<std::unique_ptr<T[]>> mips;
+    std::vector<std::unique_ptr<uint8_t[]>> mips;
+
+    // variables below are just cached, and can be inferred from pixelFormat
+    int numChannels;
+    bool sRGB;
+    enum class PixelType
+    {
+        UNORM8,
+        FP16,
+        FP32
+    };
+    PixelType pixelType;
 };
 
 
-template <typename T, int NUM_CHANNELS>
+//template <typename T, int NUM_CHANNELS>
 class TextureCubeMap : public Texture
 {
 public:
-    static_assert( NUM_CHANNELS >= 1 && NUM_CHANNELS <= 4 );
-    TextureCubeMap( int w, int h, int mc, void* facePixelData[6] )
+
+    TextureCubeMap( int w, int h, int mipLevels, PG::PixelFormat format, void* facePixelData[6] )
     {
         for ( int face = 0; face < 6; ++face )
         {
-            faces[face] = Texture2D<T,NUM_CHANNELS,false,true,true>( w, h, 1, facePixelData[face] );
+            faces[face] = Texture2D( w, h, mipLevels, format, facePixelData[face] );
         }
     }
 
-    glm::vec4 Sample( glm::vec2 uv, glm::vec2 du = glm::vec2( 0 ), glm::vec2 dv = glm::vec2( 0 ) ) const override
+    glm::vec4 Sample( glm::vec2 uv, float mipLevel = 0 ) const override
     {
         PG_ASSERT( false, "Invalid for cubemaps. Use SampleDir" );
         return glm::vec4( 0 );
@@ -204,7 +242,7 @@ public:
         return faces[faceIndex].Sample( uv );
     }
 
-    Texture2D<T,NUM_CHANNELS,false,true,true> faces[6]; // face order: +x,-x,+y,-y,+z,-z
+    Texture2D faces[6]; // face order: +x,-x,+y,-y,+z,-z
 private:
     glm::vec2 halfPixelDim;
 };

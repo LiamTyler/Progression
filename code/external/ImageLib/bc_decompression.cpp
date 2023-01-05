@@ -1089,7 +1089,7 @@ void Decompress_BC_Internal( const RawImage2D& compressedImage, RawImage2D& outp
 
 RawImage2D DecompressBC( const RawImage2D& compressedImage )
 {
-    ImageFormat outputFormat = BCGetFormatAfterDecompression( compressedImage.format );
+    ImageFormat outputFormat = GetFormatAfterDecompression( compressedImage.format );
     if ( outputFormat == ImageFormat::INVALID )
     {
         return {};

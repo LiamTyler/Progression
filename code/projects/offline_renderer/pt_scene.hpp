@@ -39,7 +39,8 @@ public:
     PG::Camera camera;
     std::vector< Shape* > shapes; // invalid after bvh is built. Use bvh.shapes
     std::vector< Light* > lights;
-    glm::vec3 backgroundRadiance    = glm::vec3( 0 );
+    glm::vec3 skyTint = glm::vec3( 1, 1, 1 );
+    float skyEVAdjust = 0; // scales sky by pow( 2, skyEVAdjust )
     TextureHandle skybox;
     RenderSettings settings = {};
 

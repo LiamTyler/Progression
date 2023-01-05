@@ -25,13 +25,6 @@ Scene::~Scene()
     }
 }
 
-static bool ParseBackgroundColor( const rapidjson::Value& v, Scene* scene )
-{
-    scene->backgroundRadiance = ParseVec3( v );
-    return true;
-}
-
-
 static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
 {
     Camera& camera = scene->camera;
@@ -148,7 +141,20 @@ static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
     auto skybox = AssetManager::Get<GfxImage>( name );
     scene->skybox = LoadTextureFromGfxImage( skybox );
     PG_ASSERT( scene->skybox != TEXTURE_HANDLE_INVALID, "Could not find skybox with name '" + name + "'" );
-    scene->skybox = LoadTextureFromGfxImage( skybox );
+    return true;
+}
+
+
+static bool ParseSkyEVAdjust( const rapidjson::Value& v, Scene* scene )
+{
+    scene->skyEVAdjust = ParseNumber<float>( v );
+    return true;
+}
+
+
+static bool ParseSkyTint( const rapidjson::Value& v, Scene* scene )
+{
+    scene->skyTint = ParseVec3( v );
     return true;
 }
 
@@ -210,13 +216,14 @@ bool Scene::Load( const std::string& filename )
 
     static JSONFunctionMapperBoolCheck< Scene* > mapping(
     {
-        { "BackgroundColor",       ParseBackgroundColor },
         { "Camera",                ParseCamera },
         { "Entity",                ParseEntity },
         { "DirectionalLight",      ParseDirectionalLight },
         { "PointLight",            ParsePointLight },
         { "OfflineRenderSettings", ParseOfflineRenderSettings },
         { "Skybox",                ParseSkybox },
+        { "SkyEVAdjust",           ParseSkyEVAdjust },
+        { "SkyTint",               ParseSkyTint },
         { "StartupScript",         ParseStartupScript },
         { "Script",                ParseScript },
     });
@@ -289,14 +296,19 @@ bool Scene::Occluded( const Ray& ray, float tMax )
 
 glm::vec3 Scene::LEnvironment( const Ray& ray )
 {
+    glm::vec3 radiance( 1, 1, 1 );
     if ( skybox != TEXTURE_HANDLE_INVALID )
     {
-        return glm::vec3( GetTex( skybox )->SampleDir( ray.direction ) );
+        radiance = glm::vec3( GetTex( skybox )->SampleDir( ray.direction ) );
     }
     else
     {
-        return backgroundRadiance;
+        radiance = glm::vec3( 1, 1, 1 );
     }
+    radiance *= skyTint;
+    radiance *= std::exp2f( skyEVAdjust );
+
+    return radiance;
 }
 
 } // namespace PT

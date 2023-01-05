@@ -1,6 +1,6 @@
 [
     { "OfflineRenderSettings": {
-        "imageResolution": [ 500, 500 ],
+        "imageResolution": [ 800, 800 ],
         "maxDepth": 5,
         "outputImageFilename": "build/sponza.png",
         "numSamplesPerPixel": [ 16 ],
@@ -10,9 +10,9 @@
     { "_Camera": { "position": [ -9, 2, 0 ], "rotation": [ 0, -90, 0 ], "aspectRatio": 1.0 } },
     { "Camera": { "position": [ 0, -3, 3 ], "rotation": [ 0, 0, 0 ] } },
     { "Script": "cameraController" },
-    { "SkyTint": [ 0.7, 1.4, 2.35 ] },
-    { "SkyEVAdjust": 1.0 },
-    { "Skybox": "kloppenheim" },
+    { "SkyTint": [ 1, 1, 1 ] },
+    { "SkyEVAdjust": 5.0 },
+    { "_Skybox": "kloppenheim" },
     { "_AmbientColor": [ 0.8, 0.8, 0.8 ] },
     { "DirectionalLight": { "color": [ 12, 10, 8 ], "direction": [ 0, -6, 0 ] } },
     { "Entity": {

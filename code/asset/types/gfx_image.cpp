@@ -386,4 +386,40 @@ GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, bool isS
     return gfxImage;
 }
 
+
+GfxImage DecompressGfxImage( const GfxImage &compressedImage )
+{
+    if ( !PixelFormatIsCompressed( compressedImage.pixelFormat ) )
+    {
+        return compressedImage;
+    }
+
+    PG_ASSERT( compressedImage.depth == 1, "TODO: support depth > 1" );
+    ImageFormat compressedImgFormat = PixelFormatToImageFormat( compressedImage.pixelFormat );
+    ImageFormat decompressedImgFormat = GetFormatAfterDecompression( compressedImgFormat );
+    PixelFormat decompressedPixelFormat = ImageFormatToPixelFormat( decompressedImgFormat, PixelFormatIsSrgb( compressedImage.pixelFormat ) );
+
+    GfxImage decompressedImg = compressedImage;
+    decompressedImg.pixelFormat = decompressedPixelFormat;
+    decompressedImg.totalSizeInBytes = CalculateTotalImageBytes( decompressedPixelFormat, compressedImage.width, compressedImage.height, compressedImage.depth, compressedImage.numFaces, compressedImage.mipLevels );
+    decompressedImg.pixels = static_cast<uint8_t*>( malloc( decompressedImg.totalSizeInBytes ) );
+
+    for ( uint32_t face = 0; face < compressedImage.numFaces; ++face )
+    {
+        uint32_t w = compressedImage.width;
+        uint32_t h = compressedImage.height;
+        for ( uint32_t mipLevel = 0; mipLevel < compressedImage.mipLevels; ++mipLevel )
+        {
+            RawImage2D compressedMip( w, h, compressedImgFormat, compressedImage.GetPixels( face, mipLevel ) );
+            RawImage2D decompressedMip = DecompressBC( compressedMip );
+            memcpy( decompressedImg.GetPixels( face, mipLevel ), decompressedMip.Raw(), decompressedMip.TotalBytes() );
+
+            w = std::max( 1u, w >> 1 );
+            h = std::max( 1u, h >> 1 );
+        }
+    }
+    
+    return decompressedImg;
+}
+
 } // namespace PG

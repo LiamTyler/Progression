@@ -267,6 +267,10 @@ void PathTracer::Render( int samplesPerPixelIteration )
                 glm::vec2 pixelOffsets = AAFunc( rayCounter, rng );
                 glm::vec3 antiAliasedPos = imagePlanePos + dU * pixelOffsets.x + dV * pixelOffsets.y;
                 Ray ray                  = Ray( cam.position, glm::normalize( antiAliasedPos - ray.position ) );
+                if ( glm::any( glm::isnan( ray.direction ) ) )
+                {
+                    throw std::runtime_error( "shiit" );
+                }
                 totalColor              += Li( ray, rng, scene );
             }
 

@@ -139,7 +139,7 @@ namespace Gfx
                         if ( it != logicalOutputs.end() )
                         {
                             const std::string& originalTask = tasks[logicalOutputs[name]].name;
-                            LOG_ERR( "Output %s created for a second time in task %s. Initial creation was in task %s. Should only create an output once", name.c_str(), task.name.c_str(), originalTask.c_str() );
+                            LOG_ERR( "Output '%s' created for a second time in task %s. Initial creation was in task %s. Should only create an output once", name.c_str(), task.name.c_str(), originalTask.c_str() );
                             return false;
                         }
                         logicalOutputs[name] = taskIndex;

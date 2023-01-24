@@ -64,6 +64,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
             return false;
         }
     }
+    
     r_globals.sceneWidth = sceneWidth;
     r_globals.sceneHeight = sceneHeight;
 
@@ -203,6 +204,8 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 void Shutdown()
 {
     r_globals.device.WaitForIdle();
+
+    UI::Shutdown();
 
     s_renderGraph.Free();
     depthOnlyPipeline.Free();
@@ -486,11 +489,7 @@ static void RenderFunc_PostProcessPass( RenderTask*  task, Scene* scene, Command
 
 static void RenderFunc_UI2D( RenderTask*  task, Scene* scene, CommandBuffer* cmdBuf )
 {
-    // cmdBuf->BindPipeline( &postProcessPipeline );
-    // cmdBuf->SetViewport( DisplaySizedViewport() );
-    // cmdBuf->SetScissor( DisplaySizedScissor() );
-    // cmdBuf->BindDescriptorSet( postProcessDescriptorSet, 0 );
-    // cmdBuf->Draw( 0, 6 );
+    UI::Render( cmdBuf, &bindlessTexturesDescriptorSet );
 }
 
 
@@ -515,12 +514,12 @@ static bool InitRenderGraph( int width, int height )
     
     task = builder.AddTask( "post_processing" );
     task->AddTextureInput( "litOutput" );
-    task->AddColorOutput( "postProcessOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
+    task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
     task->SetRenderFunction( RenderFunc_PostProcessPass );
 
     task = builder.AddTask( "UI_2D" );
-    task->AddTextureInput( "postProcessOutput" );
-    task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
+    //task->AddTextureInput( "postProcessOutput" );
+    task->AddColorOutput( "finalOutput" );
     task->SetRenderFunction( RenderFunc_UI2D );
 
     builder.SetBackbufferResource( "finalOutput" );

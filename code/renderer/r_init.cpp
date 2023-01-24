@@ -6,6 +6,7 @@
 #include <cstring>
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
+VkDescriptorSetLayout s_emptyDescriptSetLayout;
 
 extern std::vector< const char* > VK_VALIDATION_LAYERS;
 
@@ -13,6 +14,11 @@ namespace PG
 {
 namespace Gfx
 {
+
+VkDescriptorSetLayout GetEmptyDescriptorSetLayout()
+{
+    return s_emptyDescriptSetLayout;
+}
 
 
 static std::vector< std::string > FindMissingValidationLayers( const std::vector< const char* >& layers )
@@ -261,6 +267,18 @@ static bool CreateCommandPoolAndBuffers()
 }
 
 
+static void CreateEmptyDescriptorSet()
+{
+    VkDescriptorSetLayoutCreateInfo emptyLayoutInfo = {};
+    emptyLayoutInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+    emptyLayoutInfo.flags = 0;
+    emptyLayoutInfo.pNext = NULL;
+    emptyLayoutInfo.bindingCount = 0;
+    emptyLayoutInfo.pBindings = NULL;
+    vkCreateDescriptorSetLayout( r_globals.device.GetHandle(), &emptyLayoutInfo, NULL, &s_emptyDescriptSetLayout );
+}
+
+
 bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 {
     r_globals = {};
@@ -323,6 +341,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     }
 
     CreateDescriptorPool();
+    CreateEmptyDescriptorSet();
 
     if ( !Profile::Init() )
     {
@@ -368,6 +387,7 @@ void R_Shutdown()
     {
         r_globals.commandPools[i].Free();
     }
+    vkDestroyDescriptorSetLayout( r_globals.device.GetHandle(), s_emptyDescriptSetLayout, nullptr );
     r_globals.descriptorPool.Free();
     r_globals.device.Free();
 

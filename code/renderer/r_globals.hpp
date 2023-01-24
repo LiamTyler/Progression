@@ -44,6 +44,7 @@ Viewport DisplaySizedViewport( bool vulkanFlipViewport = true );
 Scissor  DisplaySizedScissor();
 Viewport SceneSizedViewport( bool vulkanFlipViewport = true );
 Scissor  SceneSizedScissor();
+VkDescriptorSetLayout GetEmptyDescriptorSetLayout();
 
 extern R_Globals r_globals;
 

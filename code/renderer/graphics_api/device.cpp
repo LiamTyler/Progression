@@ -11,6 +11,7 @@
 #include "shared/logger.hpp"
 #include "core/feature_defines.hpp"
 #include <algorithm>
+#include <bit>
 #include <cstring>
 #include <set>
 
@@ -176,7 +177,7 @@ namespace Gfx
     }
 
 
-    bool Device::RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uint32_t* stagesForBindings ) const
+    bool Device::RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uint32_t stagesForBindings[PG_MAX_NUM_DESCRIPTOR_SETS] ) const
     {
         layout.m_device = m_handle;
         VkDescriptorSetLayoutCreateInfo createInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
@@ -558,7 +559,8 @@ namespace Gfx
 
     static PipelineResourceLayout CombineShaderResourceLayouts( Shader* const* shaders, int numShaders )
     {
-        PipelineResourceLayout combinedLayout;
+        PipelineResourceLayout combinedLayout = {};
+        LOG( "DescriptorSetMask: %u", combinedLayout.descriptorSetMask );
 
 	    for ( int shaderIndex = 0; shaderIndex < numShaders; ++shaderIndex )
 	    {
@@ -670,18 +672,31 @@ namespace Gfx
         p.m_resourceLayout = CombineShaderResourceLayouts( &desc.shaders[0], numShaderStages );
         p.m_isCompute = false;
         auto& layout = p.m_resourceLayout;
-        VkDescriptorSetLayout activeLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
-        uint32_t numActiveSets = 0;
-        ForEachBit( p.m_resourceLayout.descriptorSetMask, [&]( uint32_t set )
+        VkDescriptorSetLayout vkLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
+        uint32_t numSetLayouts = 0;
+        if ( p.m_resourceLayout.descriptorSetMask )
         {
-            RegisterDescriptorSetLayout( layout.sets[set], layout.bindingStages[set] );
-            activeLayouts[numActiveSets++] = layout.sets[set].GetHandle();
-        });
+            uint32_t highestUsedSet = 0;
+            for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; ++set )
+	        {
+                if ( p.m_resourceLayout.descriptorSetMask & (1u << set) )
+                {
+                    RegisterDescriptorSetLayout( layout.sets[set], layout.bindingStages[set] );
+                    vkLayouts[set] = layout.sets[set].GetHandle();
+                    highestUsedSet = set;
+                }
+                else
+                {
+                    vkLayouts[set] = GetEmptyDescriptorSetLayout();
+                }
+            }
+            numSetLayouts = highestUsedSet + 1;
+        }
 
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
         pipelineLayoutCreateInfo.sType          = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-        pipelineLayoutCreateInfo.setLayoutCount = numActiveSets;
-        pipelineLayoutCreateInfo.pSetLayouts    = activeLayouts;
+        pipelineLayoutCreateInfo.setLayoutCount = numSetLayouts;
+        pipelineLayoutCreateInfo.pSetLayouts    = vkLayouts;
         pipelineLayoutCreateInfo.pushConstantRangeCount = 0;
         if ( layout.pushConstantRange.size > 0 )
         {

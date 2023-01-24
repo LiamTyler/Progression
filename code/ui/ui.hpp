@@ -6,6 +6,7 @@ namespace PG::Gfx
 {
     class CommandBuffer;
     class RenderPass;
+    class DescriptorSet;
 }
 
 namespace PG::UI
@@ -20,11 +21,11 @@ namespace PG::UI
 
     struct UIElemenet
     {
-        UIElementFlags flags;
+        UIElementFlags flags = UIElementFlags::VISIBLE;
         glm::vec2 pos; // normalized 0 - 1
         glm::vec2 dimensions; // normalized 0 - 1
         glm::vec4 tint;
-        GfxImage *image;
+        GfxImage *image = nullptr;
     };
 
     using UIElementHandle = uint16_t;
@@ -38,7 +39,7 @@ namespace PG::UI
     UIElemenet* GetElement( UIElementHandle handle );
     void RemoveElement( UIElementHandle handle );
 
-    void Render( Gfx::CommandBuffer* cmdBuf );
+    void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet *bindlessTexturesSet );
 
 } // namespace PG::UI
 

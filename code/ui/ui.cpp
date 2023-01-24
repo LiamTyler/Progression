@@ -21,7 +21,6 @@ namespace PG::UI
     static UIElemenet s_uiElements[MAX_UI_ELEMENTS];
     static uint32_t s_uiElementCount;
     static UIElementHandle s_uiElementFreeSlots[MAX_UI_ELEMENTS];
-
     Gfx::Pipeline uiPipeline;
 
     bool Init( Gfx::RenderPass *uiRenderPass )
@@ -52,6 +51,7 @@ namespace PG::UI
     void Shutdown()
     {
         s_uiElementCount = 0;
+        uiPipeline.Free();
     }
 
 
@@ -81,6 +81,7 @@ namespace PG::UI
 
         ++s_uiElementCount;
         s_uiElements[handle] = element;
+        s_uiElements[handle].flags |= UIElementFlags::ACTIVE;
         return handle;
     }
 
@@ -106,6 +107,7 @@ namespace PG::UI
         return static_cast<uint8_t>( 255.0f * x + 0.5f );
     }
 
+
     static uint32_t Pack4Unorm( float x, float y, float z, float w )
     {
         uint32_t packed = ( UNormToByte( x ) << 0 ) | ( UNormToByte( y ) << 8 ) | ( UNormToByte( z ) << 16 ) | ( UNormToByte( w ) << 24 );
@@ -125,13 +127,13 @@ namespace PG::UI
     }
 
 
-    void Render( Gfx::CommandBuffer* cmdBuf )
+    void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet *bindlessTexturesSet )
     {
         using namespace Gfx;
         cmdBuf->BindPipeline( &uiPipeline );
         cmdBuf->SetViewport( DisplaySizedViewport() );
         cmdBuf->SetScissor( DisplaySizedScissor() );
-        //cmdBuf->BindDescriptorSet( postProcessDescriptorSet, 0 );
+        cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_SET );
         uint32_t elementsProcessed = 0;
         uint32_t elementIndex = 0;
         while ( elementsProcessed < s_uiElementCount )

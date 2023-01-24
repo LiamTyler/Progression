@@ -45,6 +45,13 @@ set(
 )
 
 set(
+    UI_SRC
+    
+    ${CODE_DIR}/ui/ui.cpp
+    ${CODE_DIR}/ui/ui.hpp
+)
+
+set(
     PRIMARY_SHARED_SRC
     
     ${CODE_DIR}/shared/assert.hpp

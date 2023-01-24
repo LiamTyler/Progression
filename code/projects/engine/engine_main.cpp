@@ -20,8 +20,28 @@ using namespace Gfx;
 
 bool g_paused = false;
 
+//struct DecalVolumeIntermediate
+//{
+//	glm::vec3	axis[3];
+//	glm::vec2	uvOffset;
+//	glm::vec4	uvMatrix;
+//	glm::vec4 color;
+//	uint32_t	atlasFrame;
+//	uint32_t	flags;
+//	glm::vec3	featherRcp;
+//	glm::vec2	blendMapAdjust;
+//	uint32_t	materialIndex;
+//	uint32_t	maskIndex;
+//	uint32_t	normalBlendModeOverride;
+//	float   wetnessLocalValue;
+//	bool	wetnessIsDecalStatic;
+//	float	lodCullScale;
+//	uint32_t	scalabilityPriority;
+//};
+
 int main( int argc, char* argv[] )
 {
+    //int a = sizeof( DecalVolumeIntermediate );
     EngineInitInfo engineInitConfig;
 	if ( !EngineInitialize( engineInitConfig ) )
     {

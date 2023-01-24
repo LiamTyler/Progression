@@ -23,6 +23,8 @@ set(
 	SRC
     
     ${ASSET_SRC}
+	${UI_SRC}
+	${ECS_SRC}
     
     ${CODE_DIR}/core/bounding_box.cpp
     ${CODE_DIR}/core/bounding_box.hpp
@@ -49,8 +51,6 @@ set(
     ${CODE_DIR}/core/scene.hpp
     ${CODE_DIR}/core/window.cpp
     ${CODE_DIR}/core/window.hpp
-    
-    ${ECS_SRC}
     
     ${CODE_DIR}/renderer/graphics_api/acceleration_structure.cpp
     ${CODE_DIR}/renderer/graphics_api/acceleration_structure.hpp

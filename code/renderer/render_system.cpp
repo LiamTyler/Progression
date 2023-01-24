@@ -15,6 +15,7 @@
 #include "ecs/components/model_renderer.hpp"
 #include "ecs/components/transform.hpp"
 #include "shared/logger.hpp"
+#include "ui/ui.hpp"
 
 using namespace PG;
 using namespace Gfx;
@@ -119,7 +120,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     pipelineDesc.depthInfo.depthWriteEnabled = false;
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
     pipelineDesc.rasterizerInfo.cullFace = CullFace::BACK;
-    pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 0, bindingDescs, 0, attribDescs );
+    pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 0, nullptr, 0, nullptr );
     pipelineDesc.shaders[0]             = AssetManager::Get< Shader >( "postProcessVert" );
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "postProcessFrag" );
     postProcessPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "PostProcess" );
@@ -195,7 +196,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
         s_skyboxTexture = nullptr;
     }
 
-    return true;
+    return UI::Init( &s_renderGraph.GetRenderTask( "UI_2D" )->renderPass );
 }
 
 
@@ -483,6 +484,16 @@ static void RenderFunc_PostProcessPass( RenderTask*  task, Scene* scene, Command
 }
 
 
+static void RenderFunc_UI2D( RenderTask*  task, Scene* scene, CommandBuffer* cmdBuf )
+{
+    // cmdBuf->BindPipeline( &postProcessPipeline );
+    // cmdBuf->SetViewport( DisplaySizedViewport() );
+    // cmdBuf->SetScissor( DisplaySizedScissor() );
+    // cmdBuf->BindDescriptorSet( postProcessDescriptorSet, 0 );
+    // cmdBuf->Draw( 0, 6 );
+}
+
+
 static bool InitRenderGraph( int width, int height )
 {
     RenderTaskBuilder* task;
@@ -504,8 +515,14 @@ static bool InitRenderGraph( int width, int height )
     
     task = builder.AddTask( "post_processing" );
     task->AddTextureInput( "litOutput" );
-    task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
+    task->AddColorOutput( "postProcessOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
     task->SetRenderFunction( RenderFunc_PostProcessPass );
+
+    task = builder.AddTask( "UI_2D" );
+    task->AddTextureInput( "postProcessOutput" );
+    task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
+    task->SetRenderFunction( RenderFunc_UI2D );
+
     builder.SetBackbufferResource( "finalOutput" );
     
     RenderGraphCompileInfo compileInfo;

@@ -4,7 +4,8 @@
 - Linux build: [![Build Status](https://travis-ci.org/LiamTyler/Progression.svg?branch=master)](https://travis-ci.org/LiamTyler/Progression)
 
 ## Description
-A C++ game engine I have been developing for Linux and Windows. See [here](https://liamtyler.github.io/portfolio/Progression/) for more details.
+A rewrite of a C++ game engine I have been developing for Linux and Windows. See [here](https://liamtyler.github.io/portfolio/Progression/) for more details.
+Note: The older version of this engine can be found here: https://github.com/LiamTyler/Progression-Vulkan-Old. If you go way back in the commits, like to Dec 7th 2018 (80b7b20bfb3d3b499b4236cd65550474ec27f846) the old opengl tiled deferred renderer is there
 
 ## Installing + Building
 This engine requires C++ 2020, and has only been tested on MSVC 2019 and GCC 9

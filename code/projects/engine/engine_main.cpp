@@ -45,10 +45,19 @@ int main( int argc, char* argv[] )
     RenderSystem::CreateTLAS( scene );
 
     UI::UIElemenet element;
-    element.tint = glm::vec4( 1, 1, 1, 1 );
-    element.pos = glm::vec2( 0.25f );
-    element.dimensions = glm::vec2( 0.5f );
+    element.blendMode = UI::ElementBlendMode::OPAQUE;
+    element.tint = glm::vec4( 1, 1, 1, 0.5f );
+    element.pos = glm::vec2( 0.2f, 0.2f );
+    element.dimensions = glm::vec2( 0.2f );
     element.image = AssetManager::Get<GfxImage>( "sponza_curtain_green_diff~$default_metalness~13888677538521616104" );
+    UI::AddElement( element );
+
+    element.blendMode = UI::ElementBlendMode::BLEND;
+    element.pos = glm::vec2( 0.6f, 0.2f );
+    UI::AddElement( element );
+
+    element.blendMode = UI::ElementBlendMode::ADDITIVE;
+    element.pos = glm::vec2( 0.2f, 0.6f );
     UI::AddElement( element );
 
     Window* window = GetMainWindow();

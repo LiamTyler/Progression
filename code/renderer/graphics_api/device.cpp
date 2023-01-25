@@ -560,7 +560,6 @@ namespace Gfx
     static PipelineResourceLayout CombineShaderResourceLayouts( Shader* const* shaders, int numShaders )
     {
         PipelineResourceLayout combinedLayout = {};
-        LOG( "DescriptorSetMask: %u", combinedLayout.descriptorSetMask );
 
 	    for ( int shaderIndex = 0; shaderIndex < numShaders; ++shaderIndex )
 	    {

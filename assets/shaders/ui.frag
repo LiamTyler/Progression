@@ -3,6 +3,7 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 #include "c_shared/structs.h"
+#include "lib/gamma.glsl"
 
 layout( location = 0 ) in vec2 texCoord;
 
@@ -20,7 +21,8 @@ void main()
 	vec4 color = unpackUnorm4x8( element.packedTint );
     if ( element.textureIndex != PG_INVALID_TEXTURE_INDEX )
 	{
-		color *= texture( textures[element.textureIndex], texCoord );
+		color.rgb *= texture( textures[element.textureIndex], texCoord ).rgb;
 	}
-    finalColor = color;
+    finalColor.rgb = LinearToGammaSRGB( color.rgb );
+    finalColor.a = color.a;
 }

@@ -19,9 +19,19 @@ namespace PG::UI
     };
     PG_DEFINE_ENUM_OPS( UIElementFlags );
 
+    enum class ElementBlendMode : uint8_t
+    {
+        OPAQUE = 0,
+        BLEND = 1,
+        ADDITIVE = 2,
+
+        COUNT = 3
+    };
+
     struct UIElemenet
     {
         UIElementFlags flags = UIElementFlags::VISIBLE;
+        ElementBlendMode blendMode = ElementBlendMode::OPAQUE;
         glm::vec2 pos; // normalized 0 - 1
         glm::vec2 dimensions; // normalized 0 - 1
         glm::vec4 tint;

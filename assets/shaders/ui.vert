@@ -24,6 +24,5 @@ void main()
 {
 	vec2 pos = 2 * (positions[gl_VertexIndex] * element.dimensions + element.pos) - vec2( 1 );
     gl_Position = vec4( pos, 0.0, 1.0 );
-    texCoord    = positions[gl_VertexIndex];
-    texCoord.y = 1 - texCoord.y;
+    texCoord = positions[gl_VertexIndex];
 }   

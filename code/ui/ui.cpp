@@ -13,6 +13,22 @@
 #define IF_NOT_SHIP( x ) x
 #endif // #else // #if USING( SHIP_BUILD )
 
+enum : uint32_t
+{
+    PIPELINE_OPAQUE,
+    PIPELINE_BLEND,
+    PIPELINE_ADDITIVE,
+
+    PIPELINE_COUNT
+};
+
+static const std::string s_uiPipelineNames[PIPELINE_COUNT] =
+{
+    "ui2D_opaque",
+    "ui2D_blend",
+    "ui2D_additive",
+};
+
 
 namespace PG::UI
 {
@@ -21,7 +37,7 @@ namespace PG::UI
     static UIElemenet s_uiElements[MAX_UI_ELEMENTS];
     static uint32_t s_uiElementCount;
     static UIElementHandle s_uiElementFreeSlots[MAX_UI_ELEMENTS];
-    Gfx::Pipeline uiPipeline;
+    Gfx::Pipeline s_uiPipelines[PIPELINE_COUNT];
 
     bool Init( Gfx::RenderPass *uiRenderPass )
     {
@@ -42,7 +58,32 @@ namespace PG::UI
         pipelineDesc.vertexDescriptor        = VertexInputDescriptor::Create( 0, nullptr, 0, nullptr );
         pipelineDesc.shaders[0]              = AssetManager::Get<Shader>( "uiVert" );
         pipelineDesc.shaders[1]              = AssetManager::Get<Shader>( "uiFrag" );
-        uiPipeline = r_globals.device.NewGraphicsPipeline( pipelineDesc, "ui2D" );
+        for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
+        {
+            ElementBlendMode blendMode = static_cast<ElementBlendMode>( i );
+            pipelineDesc.colorAttachmentInfos[0].blendingEnabled = blendMode != ElementBlendMode::OPAQUE;
+            if ( blendMode == ElementBlendMode::BLEND )
+            {
+                pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::SRC_ALPHA;
+                pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
+                pipelineDesc.colorAttachmentInfos[0].srcAlphaBlendFactor = BlendFactor::SRC_ALPHA;
+                pipelineDesc.colorAttachmentInfos[0].dstAlphaBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
+                pipelineDesc.colorAttachmentInfos[0].colorBlendEquation = BlendEquation::ADD;
+                pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation = BlendEquation::ADD;
+            }
+            else if ( blendMode == ElementBlendMode::ADDITIVE )
+            {
+                pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::ONE;
+                pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE;
+                pipelineDesc.colorAttachmentInfos[0].srcAlphaBlendFactor = BlendFactor::ONE;
+                pipelineDesc.colorAttachmentInfos[0].dstAlphaBlendFactor = BlendFactor::ONE;
+                pipelineDesc.colorAttachmentInfos[0].colorBlendEquation = BlendEquation::ADD;
+                pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation = BlendEquation::ADD;
+            }
+            s_uiPipelines[i] = r_globals.device.NewGraphicsPipeline( pipelineDesc, s_uiPipelineNames[i] );
+            if ( !s_uiPipelines[i] )
+                return false;
+        }
 
         return true;
     }
@@ -51,7 +92,10 @@ namespace PG::UI
     void Shutdown()
     {
         s_uiElementCount = 0;
-        uiPipeline.Free();
+        for ( int i = 0; i < PIPELINE_COUNT; ++i )
+        {
+            s_uiPipelines[i].Free();
+        }
     }
 
 
@@ -127,12 +171,19 @@ namespace PG::UI
     }
 
 
+    static uint32_t GetPipelineForUIElement( const UIElemenet& element )
+    {
+        return Underlying( element.blendMode );
+    }
+
+
     void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet *bindlessTexturesSet )
     {
         using namespace Gfx;
-        cmdBuf->BindPipeline( &uiPipeline );
-        cmdBuf->SetViewport( DisplaySizedViewport() );
+        cmdBuf->SetViewport( DisplaySizedViewport( false ) );
         cmdBuf->SetScissor( DisplaySizedScissor() );
+        cmdBuf->BindPipeline( &s_uiPipelines[PIPELINE_OPAQUE] );
+        uint32_t lastPipelineIndex = PIPELINE_OPAQUE;
         cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_SET );
         uint32_t elementsProcessed = 0;
         uint32_t elementIndex = 0;
@@ -147,6 +198,12 @@ namespace PG::UI
             if ( !IsSet( e.flags, UIElementFlags::VISIBLE ) )
                 continue;
 
+            uint32_t pipelineIdx = GetPipelineForUIElement( e );
+            if ( pipelineIdx != lastPipelineIndex )
+            {
+                lastPipelineIndex = pipelineIdx;
+                cmdBuf->BindPipeline( &s_uiPipelines[pipelineIdx] );
+            }
             GpuData::UIElementData gpuData = GetGpuDataFromUIElement( e );
             cmdBuf->PushConstants( 0, sizeof( GpuData::UIElementData ), &gpuData );
             cmdBuf->Draw( 0, 6 );

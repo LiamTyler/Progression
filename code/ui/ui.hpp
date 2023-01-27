@@ -28,26 +28,35 @@ namespace PG::UI
         COUNT = 3
     };
 
-    struct UIElemenet
+    using UIElementHandle = uint16_t;
+    static constexpr UIElementHandle UI_NULL_HANDLE = UINT16_MAX;
+
+    struct UIElement
     {
+        UIElementHandle parent;
+        UIElementHandle prevSibling;
+        UIElementHandle nextSibling;
+        UIElementHandle firstChild;
+        UIElementHandle lastChild;
+
         UIElementFlags flags = UIElementFlags::VISIBLE;
         ElementBlendMode blendMode = ElementBlendMode::OPAQUE;
         glm::vec2 pos; // normalized 0 - 1
         glm::vec2 dimensions; // normalized 0 - 1
         glm::vec4 tint;
         GfxImage *image = nullptr;
-    };
 
-    using UIElementHandle = uint16_t;
-    static constexpr UIElementHandle UI_NULL_HANDLE = UINT16_MAX;
+        UIElementHandle Handle() const;
+    };
 
     bool Init( Gfx::RenderPass* renderPass );
     void Shutdown();
     void Clear(); // removes all UI elements
 
-    UIElementHandle AddElement( const UIElemenet &element );
-    UIElemenet* GetElement( UIElementHandle handle );
-    void RemoveElement( UIElementHandle handle );
+    UIElement* CreateElement( UIElementHandle templateElement = UI_NULL_HANDLE );
+    UIElement* CreateChildElement( UIElementHandle parent, UIElementHandle templateElement = UI_NULL_HANDLE );
+    UIElement* GetElement( UIElementHandle handle );
+    void RemoveElement( UIElementHandle handle ); // is recursive
 
     void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet *bindlessTexturesSet );
 

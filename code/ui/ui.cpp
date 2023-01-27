@@ -5,6 +5,7 @@
 #include "shaders/c_shared/structs.h"
 #include "shared/logger.hpp"
 #include "shared/platform_defines.hpp"
+#include <list>
 
 #if USING( SHIP_BUILD )
 #define IF_NOT_SHIP( ... ) do {} while(0)
@@ -34,10 +35,12 @@ namespace PG::UI
 {
 
     static constexpr UIElementHandle MAX_UI_ELEMENTS = 4096;
-    static UIElemenet s_uiElements[MAX_UI_ELEMENTS];
+    static UIElement s_uiElements[MAX_UI_ELEMENTS];
     static uint32_t s_uiElementCount;
     static UIElementHandle s_uiElementFreeSlots[MAX_UI_ELEMENTS];
     Gfx::Pipeline s_uiPipelines[PIPELINE_COUNT];
+    std::list<UIElementHandle> s_rootUiElements; // TODO: do linked list in statically allocated memory
+
 
     bool Init( Gfx::RenderPass *uiRenderPass )
     {
@@ -92,6 +95,7 @@ namespace PG::UI
     void Shutdown()
     {
         s_uiElementCount = 0;
+        s_rootUiElements.clear();
         for ( int i = 0; i < PIPELINE_COUNT; ++i )
         {
             s_uiPipelines[i].Free();
@@ -107,44 +111,220 @@ namespace PG::UI
         }
         s_uiElementCount = 0;
         IF_NOT_SHIP( memset( s_uiElements, 0, sizeof( s_uiElements ) ) );
+        s_rootUiElements.clear();
     }
 
 
-    UIElementHandle AddElement( const UIElemenet &element )
+    UIElementHandle UIElement::Handle() const
     {
-        if ( s_uiElementCount >= MAX_UI_ELEMENTS )
-        {
-            LOG_ERR( "UI::AddElement: Already at the max number of UI elements %u, skipping", s_uiElementCount );
-            return UI_NULL_HANDLE;
-        }
+        return static_cast<UIElementHandle>( this - s_uiElements );
+    }
 
+
+    static bool IsUIElementHandleValid( UIElementHandle handle )
+    {
+        return handle < MAX_UI_ELEMENTS && IsSet( s_uiElements[handle].flags, UIElementFlags::ACTIVE );
+    }
+
+
+    static void AddRootElement( UIElementHandle handle )
+    {
+        s_rootUiElements.push_back( handle );
+    }
+
+
+    static void RemoveRootElement( UIElementHandle handle )
+    {
+        for ( auto it = s_rootUiElements.begin(); it != s_rootUiElements.end(); ++it )
+        {
+            if ( *it == handle )
+            {
+                s_rootUiElements.erase( it );
+                return;
+            }
+        }
+        PG_ASSERT( false, "Trying to remove an element from root list, that isn't actually a root" );
+    }
+
+
+    static UIElement* AllocateAndInitNewElement( UIElementHandle templateElement )
+    {
         UIElementHandle handle = s_uiElementFreeSlots[MAX_UI_ELEMENTS - 1 - s_uiElementCount];
         PG_ASSERT( handle < MAX_UI_ELEMENTS );
         PG_ASSERT( !IsSet( s_uiElements[handle].flags, UIElementFlags::ACTIVE ) );
         IF_NOT_SHIP( s_uiElementFreeSlots[MAX_UI_ELEMENTS - 1 - s_uiElementCount] = UI_NULL_HANDLE );
 
         ++s_uiElementCount;
-        s_uiElements[handle] = element;
-        s_uiElements[handle].flags |= UIElementFlags::ACTIVE;
-        return handle;
+        UIElement* element = &s_uiElements[handle];
+        if ( templateElement != UI_NULL_HANDLE )
+        {
+            PG_ASSERT( IsUIElementHandleValid( templateElement ) );
+            const UIElement *t = GetElement( templateElement );
+            element->flags = t->flags;
+            element->blendMode = t->blendMode;
+            element->pos = t->pos;
+            element->dimensions = t->dimensions;
+            element->tint = t->tint;
+            element->image = t->image;
+        }
+        else
+        {
+            element->flags |= UIElementFlags::ACTIVE;
+            element->flags |= UIElementFlags::VISIBLE;
+        }
+
+        return element;
     }
 
 
-    UIElemenet* GetElement( UIElementHandle handle )
+    UIElement* CreateElement( UIElementHandle templateElement )
     {
-        PG_ASSERT( handle < MAX_UI_ELEMENTS );
+        if ( s_uiElementCount >= MAX_UI_ELEMENTS )
+        {
+            LOG_ERR( "UI::AddElement: Already at the max number of UI elements %u, skipping", s_uiElementCount );
+            return nullptr;
+        }
+        UIElement* element = AllocateAndInitNewElement( templateElement );
+        element->parent = UI_NULL_HANDLE;
+        element->prevSibling = UI_NULL_HANDLE;
+        element->nextSibling = UI_NULL_HANDLE;
+        element->firstChild = UI_NULL_HANDLE;
+        element->lastChild = UI_NULL_HANDLE;
+        AddRootElement( element->Handle() );
+
+        return element;
+    }
+
+
+    // minor optimization, to bypass adding the fresh element to the root element list
+    UIElement* CreateChildElement( UIElementHandle parentHandle, UIElementHandle templateElement )
+    {
+        if ( s_uiElementCount >= MAX_UI_ELEMENTS )
+        {
+            LOG_ERR( "UI::AddElement: Already at the max number of UI elements %u, skipping", s_uiElementCount );
+            return nullptr;
+        }
+        UIElement* parent = GetElement( parentHandle );
+        UIElement* child = AllocateAndInitNewElement( templateElement );
+        UIElementHandle childHandle = child->Handle();
+        child->parent = parentHandle;
+        child->firstChild = UI_NULL_HANDLE;
+        child->lastChild = UI_NULL_HANDLE;
+        child->nextSibling = UI_NULL_HANDLE;
+        if ( parent->firstChild == UI_NULL_HANDLE )
+        {
+            parent->firstChild = childHandle;
+            parent->lastChild = childHandle;
+            child->prevSibling = UI_NULL_HANDLE;
+        }
+        else
+        {
+            UIElementHandle curLastHandle = parent->lastChild;
+            UIElement* curLast = GetElement( curLastHandle );
+            parent->lastChild = childHandle;
+            curLast->nextSibling = childHandle;
+            child->prevSibling = curLastHandle;
+        }
+
+        return child;
+    }
+
+
+    void AddChild( UIElementHandle parentHandle, UIElementHandle childHandle )
+    {
+        UIElement* parent = GetElement( parentHandle );
+        UIElement* child = GetElement( childHandle );
+        PG_ASSERT( child->parent == UI_NULL_HANDLE, "Re-parenting elements is not supported. Can only assign fresh or root elements to a parent" );
+        RemoveRootElement( childHandle );
+        child->parent = parentHandle;
+        if ( parent->firstChild == UI_NULL_HANDLE )
+        {
+            parent->firstChild = childHandle;
+            parent->lastChild = childHandle;
+        }
+        else
+        {
+            UIElementHandle curLastHandle = parent->lastChild;
+            UIElement* curLast = GetElement( curLastHandle );
+            parent->lastChild = childHandle;
+            curLast->nextSibling = childHandle;
+            child->prevSibling = curLastHandle;
+        }
+    }
+
+
+    UIElement* GetElement( UIElementHandle handle )
+    {
+        PG_ASSERT( IsUIElementHandleValid( handle ) );
         return &s_uiElements[handle];
+    }
+
+
+    static void RemoveElementHelper_Free( UIElement* e )
+    {
+        e->flags &= ~UIElementFlags::ACTIVE;
+        s_uiElementFreeSlots[MAX_UI_ELEMENTS - 1 - s_uiElementCount] = e->Handle();
+        --s_uiElementCount;
+    }
+
+
+    static void RemoveElementHelper_IgnoreParent( UIElement* e )
+    {
+        if ( e->prevSibling != UI_NULL_HANDLE )
+        {
+            GetElement( e->prevSibling )->nextSibling = e->nextSibling;
+        }
+        if ( e->nextSibling != UI_NULL_HANDLE )
+        {
+            GetElement( e->nextSibling )->prevSibling = e->prevSibling;
+        }
+
+        for ( UIElementHandle childHandle = e->firstChild; childHandle != UI_NULL_HANDLE; childHandle = e->nextSibling )
+        {
+            RemoveElementHelper_IgnoreParent( GetElement( childHandle ) );
+        }
+
+        RemoveElementHelper_Free( e );
     }
 
 
     void RemoveElement( UIElementHandle handle )
     {
-        PG_ASSERT( s_uiElementCount > 0 );
-        PG_ASSERT( handle < MAX_UI_ELEMENTS );
-        PG_ASSERT( IsSet( s_uiElements[handle].flags, UIElementFlags::ACTIVE ) );
-        s_uiElementFreeSlots[MAX_UI_ELEMENTS - 1 - s_uiElementCount] = handle;
-        --s_uiElementCount;
+        UIElement* e = GetElement( handle );
+        if ( e->prevSibling != UI_NULL_HANDLE )
+        {
+            GetElement( e->prevSibling )->nextSibling = e->nextSibling;
+        }
+        if ( e->nextSibling != UI_NULL_HANDLE )
+        {
+            GetElement( e->nextSibling )->prevSibling = e->prevSibling;
+        }
+
+        if ( e->parent == UI_NULL_HANDLE )
+        {
+            RemoveRootElement( handle );
+        }
+        else
+        {
+            UIElement* parent = GetElement( e->parent );
+            if ( parent->firstChild == handle )
+            {
+                parent->firstChild = e->nextSibling;
+            }
+            if ( parent->lastChild == handle )
+            {
+                parent->lastChild = e->prevSibling;
+            }
+        }
+
+        for ( UIElementHandle childHandle = e->firstChild; childHandle != UI_NULL_HANDLE; childHandle = e->nextSibling )
+        {
+            RemoveElementHelper_IgnoreParent( GetElement( childHandle ) );
+        }
+
+        RemoveElementHelper_Free( e );
     }
+
 
     static uint32_t UNormToByte( float x )
     {
@@ -159,7 +339,7 @@ namespace PG::UI
     }
 
 
-    static GpuData::UIElementData GetGpuDataFromUIElement( const UIElemenet& e )
+    static GpuData::UIElementData GetGpuDataFromUIElement( const UIElement& e )
     {
         GpuData::UIElementData gpuData;
         gpuData.packedTint = Pack4Unorm( e.tint.x, e.tint.y, e.tint.z, e.tint.w );
@@ -171,9 +351,39 @@ namespace PG::UI
     }
 
 
-    static uint32_t GetPipelineForUIElement( const UIElemenet& element )
+    static uint32_t GetPipelineForUIElement( const UIElement& element )
     {
         return Underlying( element.blendMode );
+    }
+
+
+    static void RenderSingleElement( const UIElement& e, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
+    {
+        PG_ASSERT( IsSet( e.flags, UIElementFlags::ACTIVE ) );
+
+        if ( !IsSet( e.flags, UIElementFlags::VISIBLE ) )
+            return;
+        
+        uint32_t pipelineIdx = GetPipelineForUIElement( e );
+        if ( pipelineIdx != lastPipelineIndex )
+        {
+            lastPipelineIndex = pipelineIdx;
+            cmdBuf->BindPipeline( &s_uiPipelines[pipelineIdx] );
+        }
+        GpuData::UIElementData gpuData = GetGpuDataFromUIElement( e );
+        cmdBuf->PushConstants( 0, sizeof( GpuData::UIElementData ), &gpuData );
+        cmdBuf->Draw( 0, 6 );
+    }
+
+
+    static void RenderElementTree( UIElementHandle handle, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
+    {
+        const UIElement& e = *GetElement( handle );
+        RenderSingleElement( e, cmdBuf, lastPipelineIndex );
+        for ( UIElementHandle childHandle = e.firstChild; childHandle != UI_NULL_HANDLE; childHandle = e.nextSibling )
+        {
+            RenderElementTree( childHandle, cmdBuf, lastPipelineIndex );
+        }
     }
 
 
@@ -185,28 +395,10 @@ namespace PG::UI
         cmdBuf->BindPipeline( &s_uiPipelines[PIPELINE_OPAQUE] );
         uint32_t lastPipelineIndex = PIPELINE_OPAQUE;
         cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_SET );
-        uint32_t elementsProcessed = 0;
-        uint32_t elementIndex = 0;
-        while ( elementsProcessed < s_uiElementCount )
+
+        for ( auto it = s_rootUiElements.cbegin(); it != s_rootUiElements.cend(); ++it )
         {
-            PG_ASSERT( elementIndex < MAX_UI_ELEMENTS );
-            const UIElemenet& e = s_uiElements[elementIndex++];
-            if ( !IsSet( e.flags, UIElementFlags::ACTIVE ) )
-                continue;
-
-            ++elementsProcessed;
-            if ( !IsSet( e.flags, UIElementFlags::VISIBLE ) )
-                continue;
-
-            uint32_t pipelineIdx = GetPipelineForUIElement( e );
-            if ( pipelineIdx != lastPipelineIndex )
-            {
-                lastPipelineIndex = pipelineIdx;
-                cmdBuf->BindPipeline( &s_uiPipelines[pipelineIdx] );
-            }
-            GpuData::UIElementData gpuData = GetGpuDataFromUIElement( e );
-            cmdBuf->PushConstants( 0, sizeof( GpuData::UIElementData ), &gpuData );
-            cmdBuf->Draw( 0, 6 );
+            RenderElementTree( *it, cmdBuf, lastPipelineIndex );
         }
     }
 

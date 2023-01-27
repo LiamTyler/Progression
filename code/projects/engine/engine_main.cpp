@@ -44,21 +44,27 @@ int main( int argc, char* argv[] )
     }
     RenderSystem::CreateTLAS( scene );
 
-    UI::UIElemenet element;
-    element.blendMode = UI::ElementBlendMode::OPAQUE;
-    element.tint = glm::vec4( 1, 1, 1, 0.5f );
-    element.pos = glm::vec2( 0.2f, 0.2f );
-    element.dimensions = glm::vec2( 0.2f );
-    element.image = AssetManager::Get<GfxImage>( "sponza_curtain_green_diff~$default_metalness~13888677538521616104" );
-    UI::AddElement( element );
+    UI::UIElement* element = UI::CreateElement();
+    element->blendMode = UI::ElementBlendMode::OPAQUE;
+    element->tint = glm::vec4( 1, 1, 1, 0.5f );
+    element->pos = glm::vec2( 0.2f, 0.2f );
+    element->dimensions = glm::vec2( 0.2f );
+    element->image = AssetManager::Get<GfxImage>( "sponza_curtain_green_diff~$default_metalness~13888677538521616104" );
 
-    element.blendMode = UI::ElementBlendMode::BLEND;
-    element.pos = glm::vec2( 0.6f, 0.2f );
-    UI::AddElement( element );
+    element = UI::CreateElement( element->Handle() );
+    element->blendMode = UI::ElementBlendMode::OPAQUE;
+    element->pos = glm::vec2( 0.3f, 0.2f );
+    element->image = AssetManager::Get<GfxImage>( "sponza_curtain_blue_diff~$default_metalness~4444517744669486484" );
 
-    element.blendMode = UI::ElementBlendMode::ADDITIVE;
-    element.pos = glm::vec2( 0.2f, 0.6f );
-    UI::AddElement( element );
+    element = UI::CreateElement( element->Handle() );
+    element->blendMode = UI::ElementBlendMode::OPAQUE;
+    element->pos = glm::vec2( 0.4f, 0.2f );
+    element->image = AssetManager::Get<GfxImage>( "sponza_curtain_diff~$default_metalness~208185026957753715" );
+
+    element = UI::CreateChildElement( 0, element->Handle() );
+    element->blendMode = UI::ElementBlendMode::OPAQUE;
+    element->pos = glm::vec2( 0.5f, 0.2f );
+    element->image = AssetManager::Get<GfxImage>( "lion~$default_metalness~5063470199971196693" );
 
     Window* window = GetMainWindow();
     window->SetRelativeMouse( true );

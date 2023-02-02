@@ -15,7 +15,7 @@
 #include "ecs/components/model_renderer.hpp"
 #include "ecs/components/transform.hpp"
 #include "shared/logger.hpp"
-#include "ui/ui.hpp"
+#include "ui/ui_system.hpp"
 
 using namespace PG;
 using namespace Gfx;

@@ -7,6 +7,7 @@
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
 #include "asset/types/textureset.hpp"
+#include "asset/types/ui_layout.hpp"
 #include "shared/json_parsing.hpp"
 #include "shared/logger.hpp"
 
@@ -70,6 +71,7 @@ PG_DECLARE_ASSET_PARSER( Material, ASSET_TYPE_MATERIAL, MaterialCreateInfo );
 PG_DECLARE_ASSET_PARSER( Model, ASSET_TYPE_MODEL, ModelCreateInfo );
 PG_DECLARE_ASSET_PARSER( Script, ASSET_TYPE_SCRIPT, ScriptCreateInfo );
 PG_DECLARE_ASSET_PARSER( Shader, ASSET_TYPE_SHADER, ShaderCreateInfo );
+PG_DECLARE_ASSET_PARSER( UILayout, ASSET_TYPE_UI_LAYOUT, UILayoutCreateInfo );
 PG_DECLARE_ASSET_PARSER( Textureset, ASSET_TYPE_TEXTURESET, TexturesetCreateInfo );
 
 extern const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT];

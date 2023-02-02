@@ -1,4 +1,4 @@
-#include "ui/ui.hpp"
+#include "ui/ui_system.hpp"
 #include "asset/asset_manager.hpp"
 #include "renderer/graphics_api.hpp"
 #include "renderer/r_globals.hpp"
@@ -40,6 +40,12 @@ namespace PG::UI
     static UIElementHandle s_uiElementFreeSlots[MAX_UI_ELEMENTS];
     Gfx::Pipeline s_uiPipelines[PIPELINE_COUNT];
     std::list<UIElementHandle> s_rootUiElements; // TODO: do linked list in statically allocated memory
+
+
+    UIElementHandle UIElement::Handle() const
+    {
+        return static_cast<UIElementHandle>( this - s_uiElements );
+    }
 
 
     bool Init( Gfx::RenderPass *uiRenderPass )
@@ -112,12 +118,6 @@ namespace PG::UI
         s_uiElementCount = 0;
         IF_NOT_SHIP( memset( s_uiElements, 0, sizeof( s_uiElements ) ) );
         s_rootUiElements.clear();
-    }
-
-
-    UIElementHandle UIElement::Handle() const
-    {
-        return static_cast<UIElementHandle>( this - s_uiElements );
     }
 
 

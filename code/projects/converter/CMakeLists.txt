@@ -11,7 +11,9 @@ set(
 	SRC
     ${ASSET_SRC}
     ${ASSET_PARSE_SRC}
-    
+    ${CODE_DIR}/ui/ui_element.hpp
+    ${ECS_SRC}
+	
     ${CODE_DIR}/asset/asset_cache.cpp
     ${CODE_DIR}/asset/asset_cache.hpp
     ${CODE_DIR}/asset/asset_file_database.cpp
@@ -38,9 +40,7 @@ set(
     ${CODE_DIR}/core/time.hpp
     ${CODE_DIR}/core/scene.cpp
     ${CODE_DIR}/core/scene.hpp
-    
-    ${ECS_SRC}
-    
+	
     ${PRIMARY_SHARED_SRC}
     ${CODE_DIR}/shared/float_conversions.hpp
     ${CODE_DIR}/shared/json_parsing.cpp
@@ -60,6 +60,8 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/converters/ui_layout_converter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters/ui_layout_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter_main.cpp
@@ -81,13 +83,13 @@ add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/
 	${CMAKE_CURRENT_SOURCE_DIR}/converters/
-    ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES}
+    ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES} ${PUGIXML_INCLUDES}
     ${Vulkan_INCLUDE_DIR}
 )
 
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER)
-target_link_libraries(${PROJECT_NAME} PUBLIC debug OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG} lua lz4)
-target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4)
+target_link_libraries(${PROJECT_NAME} PUBLIC debug OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG} lua lz4 ${PUGIXML_LIBS})
+target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4 ${PUGIXML_LIBS})
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)

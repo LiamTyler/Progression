@@ -85,6 +85,13 @@ set(IMAGELIB_EXT_FILES
     ${EXT_DIR}/ImageLib/image_save.hpp
 	PARENT_SCOPE
 )
+message("IMAGELIB_LIBS: ${IMAGELIB_LIBS}")
 
 #-------------------------------PUGIXML--------------------------------------------
 add_subdirectory(${EXT_DIR}/pugixml-1.13)
+message("PUGIXML_LIBS: ${PUGIXML_LIBS}")
+set(PUGIXML_INCLUDES ${EXT_DIR}/pugixml-1.13/src/)
+set(PUGIXML_LIBS pugixml PARENT_SCOPE)
+message("PUGIXML_INCLUDES: ${PUGIXML_INCLUDES}")
+message("PUGIXML_LIBS: ${PUGIXML_LIBS}")
+set(PUGIXML_LIBS_DEBUG pugixml_d PARENT_SCOPE)

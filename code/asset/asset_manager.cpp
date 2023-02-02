@@ -5,6 +5,7 @@
 #include "asset/types/model.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
+#include "asset/types/ui_layout.hpp"
 #include "core/lua.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
@@ -26,12 +27,14 @@ void Init()
     GetAssetTypeID<Script>::ID();       // AssetType::ASSET_TYPE_SCRIPT
     GetAssetTypeID<Model>::ID();        // AssetType::ASSET_TYPE_MODEL
     GetAssetTypeID<Shader>::ID();       // AssetType::ASSET_TYPE_SHADER
-    PG_ASSERT( GetAssetTypeID<GfxImage>::ID()   == 0, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Material>::ID()   == 1, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Script>::ID()     == 2, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Model>::ID()      == 3, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Shader>::ID()     == 4, "This needs to line up with AssetType ordering" );
-    static_assert( ASSET_TYPE_COUNT == 6, "Dont forget to add GetAssetTypeID for new assets" );
+    GetAssetTypeID<UILayout>::ID();     // AssetType::ASSET_TYPE_UI_LAYOUT
+    PG_ASSERT( GetAssetTypeID<GfxImage>::ID()   == ASSET_TYPE_GFX_IMAGE, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Material>::ID()   == ASSET_TYPE_MATERIAL, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Script>::ID()     == ASSET_TYPE_SCRIPT, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Model>::ID()      == ASSET_TYPE_MODEL, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Shader>::ID()     == ASSET_TYPE_SHADER, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<UILayout>::ID()   == ASSET_TYPE_UI_LAYOUT, "This needs to line up with AssetType ordering" );
+    static_assert( ASSET_TYPE_COUNT == 7, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
 

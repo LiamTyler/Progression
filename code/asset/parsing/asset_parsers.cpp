@@ -3,7 +3,7 @@
 namespace PG
 {
 
-static_assert( ASSET_TYPE_COUNT == 6 );
+static_assert( ASSET_TYPE_COUNT == 7 );
 
 const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] =
 {
@@ -12,6 +12,7 @@ const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] =
     std::make_shared<ScriptParser>(),     // ASSET_TYPE_SCRIPT
     std::make_shared<ModelParser>(),      // ASSET_TYPE_MODEL
     std::make_shared<ShaderParser>(),     // ASSET_TYPE_SHADER
+    std::make_shared<UILayoutParser>(),   // ASSET_TYPE_UI_LAYOUT
     std::make_shared<TexturesetParser>(), // ASSET_TYPE_TEXTURESET
 };
 
@@ -184,6 +185,18 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfo
         //{ "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = v.GetString(); } },
         //{ "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( v.GetString() ); } },
         //{ "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = v.GetBool(); } },
+    });
+    mapping.ForEachMember( value, *info );
+
+    return true;
+}
+
+
+bool UILayoutParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+{
+    static JSONFunctionMapper<UILayoutCreateInfo&> mapping(
+    {
+        { "filename", []( const rapidjson::Value& v, UILayoutCreateInfo& s ) { s.xmlFilename = PG_ASSET_DIR "ui/" + std::string( v.GetString() ); } },
     });
     mapping.ForEachMember( value, *info );
 

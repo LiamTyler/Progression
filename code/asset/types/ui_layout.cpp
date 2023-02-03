@@ -8,6 +8,7 @@
 namespace PG
 {
 
+#if USING( CONVERTER )
 static void ParseUIElement( const pugi::xml_node& element, UIElementCreateInfo& createInfo )
 {
     for ( auto attribIt = element.attributes_begin(); attribIt != element.attributes_end(); ++attribIt )
@@ -27,7 +28,7 @@ static void ParseUIElement( const pugi::xml_node& element, UIElementCreateInfo& 
         }
     }
 }
-
+#endif // #if USING( CONVERTER )
  
 bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
 {
@@ -35,6 +36,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
     const UILayoutCreateInfo* createInfo = (const UILayoutCreateInfo*)baseInfo;
     name = createInfo->name;
 
+#if USING( CONVERTER )
     pugi::xml_document doc;
     pugi::xml_parse_result result = doc.load_file( createInfo->xmlFilename.c_str() );
     if ( !result )
@@ -53,6 +55,9 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     return true;
+#else // #if // #if USING( CONVERTER )
+    return false;
+#endif // #else // #if // #if USING( CONVERTER )
 }
 
 

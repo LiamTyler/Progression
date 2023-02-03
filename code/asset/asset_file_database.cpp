@@ -32,6 +32,11 @@ static bool ParseAssetFile( const std::string& filename )
         {
             if ( assetTypeStr == g_assetNames[typeIndex] )
             {
+                if ( !value.HasMember( "name" ) )
+                {
+                    LOG_ERR( "Asset '%s' in file '%s' needs to have a 'name' entry!", assetTypeStr.c_str(), filename.c_str() );
+                    return false;
+                }
                 const std::string assetName = value["name"].GetString();
                 if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )
                 {

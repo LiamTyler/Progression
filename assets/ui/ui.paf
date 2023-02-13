@@ -1,5 +1,5 @@
 [
     { "Shader": { "name": "uiVert", "shaderStage" : "VERTEX", "filename": "ui.vert" } },
     { "Shader": { "name": "uiFrag", "shaderStage" : "FRAGMENT", "filename": "ui.frag" } },
-	{ "UILayout": { "name": "startup", "filename": "startup.xml" } }
+	{ "Script": { "name": "ui_startup", "filename": "ui/startup.lua" } }
 ]

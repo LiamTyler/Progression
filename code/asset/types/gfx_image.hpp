@@ -16,6 +16,7 @@ enum class GfxImageSemantic : uint8_t
     GRAY,
     ALBEDO_METALNESS,
     ENVIRONMENT_MAP,
+    UI,
 
     NUM_IMAGE_SEMANTICS
 };

@@ -27,7 +27,7 @@ inline const unsigned int g_assetVersions[] =
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
-    0, // ASSET_TYPE_UI_LAYOUT
+    2, // ASSET_TYPE_UI_LAYOUT, "forgot to add serialization functions"
     0, // ASSET_TYPE_TEXTURESET
 };
 

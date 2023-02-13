@@ -7,6 +7,7 @@ namespace PG::UI
 
     enum class UIElementFlags : uint32_t
     {
+        NONE    = 0,
         ACTIVE  = (1u << 0),
         VISIBLE = (1u << 1),
     };

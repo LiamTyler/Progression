@@ -1,6 +1,9 @@
 #include "ui/ui_system.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/lua.hpp"
+#include "shared/core_defines.hpp"
 #include "renderer/graphics_api.hpp"
+#include "renderer/render_system.hpp"
 #include "renderer/r_globals.hpp"
 #include "shaders/c_shared/structs.h"
 #include "shared/logger.hpp"
@@ -37,9 +40,11 @@ namespace PG::UI
     static constexpr UIElementHandle MAX_UI_ELEMENTS = 4096;
     static UIElement s_uiElements[MAX_UI_ELEMENTS];
     static uint32_t s_uiElementCount;
-    static UIElementHandle s_uiElementFreeSlots[MAX_UI_ELEMENTS];
+    static UIElementHandle s_uiNextFreeSlot;
+
     Gfx::Pipeline s_uiPipelines[PIPELINE_COUNT];
     std::list<UIElementHandle> s_rootUiElements; // TODO: do linked list in statically allocated memory
+    static sol::state *s_uiLuaState = nullptr;
 
 
     UIElementHandle UIElement::Handle() const
@@ -48,18 +53,54 @@ namespace PG::UI
     }
 
 
-    bool Init( Gfx::RenderPass *uiRenderPass )
+    enum class UIScriptFlags : uint32_t
     {
-        using namespace Gfx;
+        NONE       = 0,
+        HAS_INIT   = (1u << 0),
+        HAS_UPDATE = (1u << 1),
+    };
+    PG_DEFINE_ENUM_OPS( UIScriptFlags );
 
-        Clear();
+    class UIScript
+    {
+    public:
+        UIScript() = default;
+        UIScript( const std::string& scriptName )
+        {
+            script = AssetManager::Get<Script>( scriptName );
+            PG_ASSERT( script );
+            env = sol::environment( *s_uiLuaState, sol::create, s_uiLuaState->globals() );
+            s_uiLuaState->script( script->scriptText, env );
+        }
+
+        sol::environment env;
+        Script* script = nullptr;
+    };
+
+    std::vector<UIScript*> s_luaScripts;
+
+    static void RegisterLuaFunctions_UI( lua_State* state )
+    {
+        sol::state_view lua( state );
+        lua["Clear"] = Clear;
+        lua["CreateElement"] = CreateElement;
+        lua["CreateChildElement"] = CreateChildElement;
+        lua["GetElement"] = GetElement;
+        lua["RemoveElement"] = RemoveElement;
+        lua["CreateLayout"] = CreateLayout;
+    }
+
+
+    bool Init()
+    {
         if ( !AssetManager::LoadFastFile( "ui_required" ) )
         {
             return false;
         }
 
+        using namespace Gfx;
         PipelineDescriptor pipelineDesc;    
-        pipelineDesc.renderPass = uiRenderPass;
+        pipelineDesc.renderPass = RenderSystem::GetRenderPass( "UI_2D" );
         pipelineDesc.depthInfo.depthTestEnabled  = false;
         pipelineDesc.depthInfo.depthWriteEnabled = false;
         pipelineDesc.rasterizerInfo.winding  = WindingOrder::COUNTER_CLOCKWISE;
@@ -94,6 +135,16 @@ namespace PG::UI
                 return false;
         }
 
+        Clear();
+
+        AssetManager::LoadFastFile( "mkdd" );
+
+        PG_ASSERT( !s_uiLuaState );
+        s_uiLuaState = new sol::state;
+        Lua::SetupStateFunctions( *s_uiLuaState );
+        RegisterLuaFunctions_UI( *s_uiLuaState );
+        AddScript( "ui_startup" );
+
         return true;
     }
 
@@ -102,19 +153,18 @@ namespace PG::UI
     {
         s_uiElementCount = 0;
         s_rootUiElements.clear();
+        Gfx::r_globals.device.WaitForIdle();
         for ( int i = 0; i < PIPELINE_COUNT; ++i )
         {
             s_uiPipelines[i].Free();
         }
+        delete s_uiLuaState;
     }
 
 
     void Clear()
     {
-        for ( UIElementHandle i = 0; i < MAX_UI_ELEMENTS; ++i )
-        {
-            s_uiElementFreeSlots[i] = MAX_UI_ELEMENTS - 1 - i;
-        }
+        s_uiNextFreeSlot = 0;
         s_uiElementCount = 0;
         IF_NOT_SHIP( memset( s_uiElements, 0, sizeof( s_uiElements ) ) );
         s_rootUiElements.clear();
@@ -147,12 +197,27 @@ namespace PG::UI
     }
 
 
-    static UIElement* AllocateAndInitNewElement( UIElementHandle templateElement )
+    static UIElementHandle FindNextFreeSlot( UIElementHandle startSlot )
     {
-        UIElementHandle handle = s_uiElementFreeSlots[MAX_UI_ELEMENTS - 1 - s_uiElementCount];
+        ++startSlot;
+        for ( ; startSlot < MAX_UI_ELEMENTS; ++startSlot )
+        {
+            if ( !IsSet( s_uiElements[startSlot].flags, UIElementFlags::ACTIVE ) )
+            {
+                return startSlot;
+            }
+        }
+
+        return UI_NULL_HANDLE;
+    }
+
+
+    static UIElement* AllocateAndInitNewElement( UIElementHandle templateElement = UI_NULL_HANDLE )
+    {
+        UIElementHandle handle = s_uiNextFreeSlot;
+        s_uiNextFreeSlot = FindNextFreeSlot( s_uiNextFreeSlot );
         PG_ASSERT( handle < MAX_UI_ELEMENTS );
         PG_ASSERT( !IsSet( s_uiElements[handle].flags, UIElementFlags::ACTIVE ) );
-        IF_NOT_SHIP( s_uiElementFreeSlots[MAX_UI_ELEMENTS - 1 - s_uiElementCount] = UI_NULL_HANDLE );
 
         ++s_uiElementCount;
         UIElement* element = &s_uiElements[handle];
@@ -263,7 +328,7 @@ namespace PG::UI
     static void RemoveElementHelper_Free( UIElement* e )
     {
         e->flags &= ~UIElementFlags::ACTIVE;
-        s_uiElementFreeSlots[MAX_UI_ELEMENTS - 1 - s_uiElementCount] = e->Handle();
+        s_uiNextFreeSlot = std::min( s_uiNextFreeSlot, e->Handle() );
         --s_uiElementCount;
     }
 
@@ -326,6 +391,85 @@ namespace PG::UI
     }
 
 
+    static UIElementHandle AllocateContiguousElements( uint32_t numElements )
+    {
+        if ( s_uiElementCount + numElements >= MAX_UI_ELEMENTS )
+        {
+            LOG_ERR( "UI::EnterLayout: Creating this layout would push us over MAX_UI_ELEMENTS limit (%u)", MAX_UI_ELEMENTS );
+            return UI_NULL_HANDLE;
+        }
+
+        uint32_t count = 1;
+        uint32_t startSlot = s_uiNextFreeSlot;
+        while ( count < numElements && (startSlot + count) < MAX_UI_ELEMENTS )
+        {
+            if ( !IsSet( s_uiElements[startSlot + count].flags, UIElementFlags::ACTIVE ) )
+            {
+                ++count;
+            }
+            else
+            {
+                count = 1;
+                startSlot = FindNextFreeSlot( startSlot + count );
+            }
+        }
+        if ( startSlot >= MAX_UI_ELEMENTS || count != numElements )
+        {
+            LOG_ERR( "UI::AllocateContiguousElements: there exists no contiguous region in element buffer of size %u", numElements );
+        }
+
+        return startSlot;
+    }
+
+    
+    static void OffsetHandles( UIElement& e, UIElementHandle offset )
+    {
+        e.parent = e.parent == UI_NULL_HANDLE ? UI_NULL_HANDLE : e.parent + offset;
+        e.prevSibling = e.prevSibling == UI_NULL_HANDLE ? UI_NULL_HANDLE : e.prevSibling + offset;
+        e.nextSibling = e.nextSibling == UI_NULL_HANDLE ? UI_NULL_HANDLE : e.nextSibling + offset;
+        e.firstChild = e.firstChild == UI_NULL_HANDLE ? UI_NULL_HANDLE : e.firstChild + offset;
+        e.lastChild = e.lastChild == UI_NULL_HANDLE ? UI_NULL_HANDLE : e.lastChild + offset;
+    }
+
+
+    void CreateLayout( const std::string& layoutName )
+    {
+        const UILayout* layout = AssetManager::Get<UILayout>( layoutName );
+        PG_ASSERT( layout );
+        UIElementHandle rootElementHandle = AllocateContiguousElements( (uint32_t)layout->createInfos.size() );
+        if ( rootElementHandle == UI_NULL_HANDLE )
+            return;
+
+        AddRootElement( rootElementHandle );
+        OffsetHandles( s_uiElements[rootElementHandle], rootElementHandle );
+
+        for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layout->createInfos.size(); ++localHandle )
+        {
+            UIElement& element = s_uiElements[rootElementHandle + localHandle];
+            const UIElementCreateInfo& createInfo = layout->createInfos[localHandle];
+            element = createInfo.element;
+            element.flags |= UIElementFlags::ACTIVE;
+            OffsetHandles( element, rootElementHandle );
+            if ( !createInfo.imageName.empty() )
+            {
+                element.image = AssetManager::Get<GfxImage>( createInfo.imageName );
+            }
+        }
+    }
+
+
+    void AddScript( const std::string& scriptName )
+    {
+        UIScript* script = new UIScript( scriptName );
+        s_luaScripts.emplace_back( script );
+        sol::function startFunc = script->env["Start"];
+        if ( startFunc.valid() )
+        {
+            CHECK_SOL_FUNCTION_CALL( startFunc() );
+        }
+    }
+
+
     static uint32_t UNormToByte( float x )
     {
         return static_cast<uint8_t>( 255.0f * x + 0.5f );
@@ -357,12 +501,12 @@ namespace PG::UI
     }
 
 
-    static void RenderSingleElement( const UIElement& e, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
+    static bool RenderSingleElement( const UIElement& e, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
     {
         PG_ASSERT( IsSet( e.flags, UIElementFlags::ACTIVE ) );
 
         if ( !IsSet( e.flags, UIElementFlags::VISIBLE ) )
-            return;
+            return false;
         
         uint32_t pipelineIdx = GetPipelineForUIElement( e );
         if ( pipelineIdx != lastPipelineIndex )
@@ -373,16 +517,20 @@ namespace PG::UI
         GpuData::UIElementData gpuData = GetGpuDataFromUIElement( e );
         cmdBuf->PushConstants( 0, sizeof( GpuData::UIElementData ), &gpuData );
         cmdBuf->Draw( 0, 6 );
+
+        return true;
     }
 
 
     static void RenderElementTree( UIElementHandle handle, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
     {
         const UIElement& e = *GetElement( handle );
-        RenderSingleElement( e, cmdBuf, lastPipelineIndex );
-        for ( UIElementHandle childHandle = e.firstChild; childHandle != UI_NULL_HANDLE; childHandle = e.nextSibling )
+        if ( RenderSingleElement( e, cmdBuf, lastPipelineIndex ) )
         {
-            RenderElementTree( childHandle, cmdBuf, lastPipelineIndex );
+            for ( UIElementHandle childHandle = e.firstChild; childHandle != UI_NULL_HANDLE; childHandle = GetElement( childHandle )->nextSibling )
+            {
+                RenderElementTree( childHandle, cmdBuf, lastPipelineIndex );
+            }
         }
     }
 

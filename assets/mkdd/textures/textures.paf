@@ -1,0 +1,27 @@
+[
+    { "Image": {
+        "name": "title_background_1",
+        "filename": "mkdd/textures/title_background_1.png",
+		"semantic": "UI"
+	} },
+    { "Image": {
+        "name": "title_press_start",
+        "filename": "mkdd/textures/title_press_start.png",
+		"semantic": "UI"
+	} },
+    { "Image": {
+        "name": "title_start_game",
+        "filename": "mkdd/textures/title_start_game.png",
+		"semantic": "UI"
+	} },
+    { "Image": {
+        "name": "title_records",
+        "filename": "mkdd/textures/title_records.png",
+		"semantic": "UI"
+	} },
+    { "Image": {
+        "name": "title_options",
+        "filename": "mkdd/textures/title_options.png",
+		"semantic": "UI"
+	} }
+]

@@ -33,16 +33,18 @@ static void DisplayHelp()
     LOG( "%s", msg );
 }
 
-AssetType s_singleAssetType;
-std::string s_singleAssetName;
+static AssetType s_singleAssetType;
+static std::string s_singleAssetName;
+static uint32_t s_outOfDateScenes = 0;
+
+static const std::string SCENE_DIR = PG_ASSET_DIR "scenes/";
 
 
 static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile )
 {
     if ( argc == 1 )
     {
-        DisplayHelp();
-        return 0;
+        return true;
     }
 
     static struct option long_options[] =
@@ -97,7 +99,7 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
     }
     else
     {
-        sceneFile = PG_ASSET_DIR + std::string( argv[optind] );
+        sceneFile = argv[optind];
     }
 
     return true;
@@ -281,22 +283,24 @@ bool ProcessSingleScene( const std::string& sceneFile )
 
     bool foundScene = false;
     auto enumerateStartTime = Time::GetTimePoint();
-    if ( PathExists( sceneFile + ".csv" ) )
+    std::string filename = SCENE_DIR + sceneFile + ".csv";
+    if ( PathExists( filename ) )
     {
-        if ( !FindAssetsUsedInFile( sceneFile + ".csv" ) )
+        if ( !FindAssetsUsedInFile( filename ) )
         {
             return false;
         }
-        AddFastfileDependency( sceneFile + ".csv" );
+        AddFastfileDependency( filename );
         foundScene = true;
     }
-    if ( PathExists( sceneFile + ".json" ) )
+    filename = SCENE_DIR + sceneFile + ".json";
+    if ( PathExists( filename ) )
     {
-        if ( !FindAssetsUsedInFile( sceneFile + ".json" ) )
+        if ( !FindAssetsUsedInFile( filename ) )
         {
             return false;
         }
-        AddFastfileDependency( sceneFile + ".json" );
+        AddFastfileDependency( filename );
         foundScene = true;
     }
     if ( !foundScene )
@@ -309,14 +313,18 @@ bool ProcessSingleScene( const std::string& sceneFile )
     uint32_t outOfDateAssets;
     bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );
     success = success && OutputFastfile( sceneFile, outOfDateAssets );
+    s_outOfDateScenes += outOfDateAssets > 0;
     return success;
 }
 
 
-void ConvertScenes( const std::string& scene )
+bool ConvertScenes( const std::string& scene )
 {
     std::vector<std::string> scenesToProcess;
-    scenesToProcess.push_back( GetFilenameMinusExtension( scene ) );
+    if ( !scene.empty() )
+    {
+        scenesToProcess.push_back( GetFilenameMinusExtension( scene ) );
+    }
 
     namespace fs = std::filesystem;
     for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "scenes/required/" ) )
@@ -324,7 +332,7 @@ void ConvertScenes( const std::string& scene )
         std::string path = entry.path().string();
         if ( entry.is_regular_file() && GetFileExtension( path ) == ".csv" )
         {
-            scenesToProcess.push_back( GetFilenameMinusExtension( path ) );
+            scenesToProcess.push_back( "required/" + GetRelativeFilename( GetFilenameMinusExtension( path ) ) );
         }
     }
     std::swap( scenesToProcess[0], scenesToProcess[scenesToProcess.size() - 1] );
@@ -335,10 +343,12 @@ void ConvertScenes( const std::string& scene )
         LOG( "Converting %s...", GetRelativeFilename( scene ).c_str() );
         if ( !ProcessSingleScene( scene ) )
         {
-            break;
+            return false;
         }
         LOG( "" );
     }
+
+    return true;
 }
 
 
@@ -386,7 +396,13 @@ int main( int argc, char** argv )
     }
     else
     {
-        ConvertScenes( sceneFile );
+        if ( ConvertScenes( sceneFile ) )
+        {
+            if ( s_outOfDateScenes == 0 )
+            {
+                LOG( "All Scenes up to date already!" );
+            }
+        }
     }
 
     LOG( "Total time: %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );

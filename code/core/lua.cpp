@@ -98,17 +98,24 @@ namespace Lua
     {
         PG_ASSERT( !g_LuaState );
         g_LuaState = new sol::state;
-        g_LuaState->open_libraries( sol::lib::base, sol::lib::math );
+        SetupStateFunctions( *g_LuaState );
+    }
 
-        RegisterLuaFunctions_Math( *g_LuaState );
-        RegisterLuaFunctions_Scene( *g_LuaState );
-        RegisterLuaFunctions_Camera( *g_LuaState );
-        ECS::RegisterLuaFunctions( *g_LuaState );
-        AssetManager::RegisterLuaFunctions( *g_LuaState );
-        RegisterTimeFunctions( *g_LuaState );
+    
+    void SetupStateFunctions( lua_State* state )
+    {
+        sol::state_view stateView( state );
+        stateView.open_libraries( sol::lib::base, sol::lib::math );
+
+        RegisterLuaFunctions_Math( state );
+        RegisterLuaFunctions_Scene( state );
+        RegisterLuaFunctions_Camera( state );
+        ECS::RegisterLuaFunctions( state );
+        AssetManager::RegisterLuaFunctions( state );
+        RegisterTimeFunctions( state );
 #if USING( GAME )
-        RegisterLuaFunctions_Window( *g_LuaState );
-        Input::RegisterLuaFunctions( *g_LuaState );
+        RegisterLuaFunctions_Window( state );
+        Input::RegisterLuaFunctions( state );
 #endif // #if USING( GAME )
     }
 

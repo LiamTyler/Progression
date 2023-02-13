@@ -27,6 +27,7 @@ namespace PG
 namespace Lua
 {
     void Init();
+    void SetupStateFunctions( lua_State* state );
     void Shutdown();
     sol::state& State();
 

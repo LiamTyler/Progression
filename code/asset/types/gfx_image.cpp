@@ -16,7 +16,7 @@ namespace PG
 
 bool IsSemanticComposite( GfxImageSemantic semantic )
 {
-    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 4 );
+    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 5 );
     return semantic == GfxImageSemantic::ALBEDO_METALNESS;
 }
 
@@ -144,6 +144,21 @@ static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxIm
 }
 
 
+static bool Load_UI( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    RawImage2D img;
+    if ( !img.Load( GetImageFullPath( createInfo->filenames[0] ) ) )
+        return false;
+
+    BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
+    RawImage2D compressed = CompressToBC( img, compressorSettings );
+
+    *gfxImage = RawImage2DMipsToGfxImage( { compressed }, false );
+
+    return gfxImage->pixels != nullptr;
+}
+
+
 static bool Load_EnvironmentMap_CubeMap( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo, RawImage2D (&faces)[6] )
 {
     return false; // TODO
@@ -196,6 +211,9 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
         break;
     case GfxImageSemantic::ENVIRONMENT_MAP:
         success = Load_EnvironmentMap( this, createInfo );
+        break;
+    case GfxImageSemantic::UI:
+        success = Load_UI( this, createInfo );
         break;
     default:
         LOG_ERR( "GfxImage::Load not implemented yet for semantic %u", Underlying( createInfo->semantic ) );

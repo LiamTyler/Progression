@@ -6,6 +6,7 @@
 #include "core/window.hpp"
 #include "core/input.hpp"
 #include "renderer/render_system.hpp"
+#include "ui/ui_system.hpp"
 #endif // #if USING( GAME )
 #include "shared/logger.hpp"
 #include "shared/random.hpp"
@@ -46,6 +47,13 @@ bool EngineInitialize( EngineInitInfo info )
     }
 #endif // #if USING( GAME )
     Time::Reset();
+#if USING( GAME )
+    if ( !UI::Init() )
+    {
+        LOG_ERR( "Could not initialize UI system" );
+        return false;
+    }
+#endif // #if USING( GAME )
 
     return true;
 }
@@ -53,6 +61,9 @@ bool EngineInitialize( EngineInitInfo info )
 
 void EngineShutdown()
 {
+#if USING( GAME )
+    UI::Shutdown();
+#endif // #if USING( GAME )
     AssetManager::Shutdown();
 #if USING( GAME )
     RenderSystem::Shutdown();

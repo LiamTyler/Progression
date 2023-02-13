@@ -197,16 +197,13 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
         s_skyboxTexture = nullptr;
     }
 
-    return UI::Init( &s_renderGraph.GetRenderTask( "UI_2D" )->renderPass );
+    return true;
 }
 
 
 void Shutdown()
 {
     r_globals.device.WaitForIdle();
-
-    UI::Shutdown();
-
     s_renderGraph.Free();
     depthOnlyPipeline.Free();
     litPipeline.Free();
@@ -303,6 +300,13 @@ void CreateTLAS( Scene* scene )
 }
 
 
+RenderPass* GetRenderPass( const std::string& name )
+{
+    RenderTask *task = s_renderGraph.GetRenderTask( name );
+    return task ? &task->renderPass : nullptr;
+}
+
+
 GpuData::MaterialData CPUMaterialToGPU( Material* material )
 {
     GpuData::MaterialData gpuMaterial;
@@ -370,12 +374,9 @@ static void UpdateSkyboxAndBackground( Scene* scene )
 }
 
 
-void Render( Scene* scene )
+void Render()
 {
-    PG_ASSERT( scene != nullptr );
-
-    Gfx::TextureManager::UpdateDescriptors( bindlessTexturesDescriptorSet );
-
+    TextureManager::UpdateDescriptors( bindlessTexturesDescriptorSet );
     r_globals.swapChainImageIndex = r_globals.swapchain.AcquireNextImage( r_globals.presentCompleteSemaphore );
 
     auto& cmdBuf = r_globals.graphicsCommandBuffer;
@@ -383,8 +384,12 @@ void Render( Scene* scene )
     PG_PROFILE_GPU_RESET( cmdBuf );
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
-    UpdateGlobalAndLightBuffers( scene );
-    UpdateSkyboxAndBackground( scene );
+    Scene* scene = GetPrimaryScene();
+    if ( scene )
+    {
+        UpdateGlobalAndLightBuffers( scene );
+        UpdateSkyboxAndBackground( scene );
+    }
 
     s_renderGraph.Render( scene, &cmdBuf );
 
@@ -398,6 +403,9 @@ void Render( Scene* scene )
 
 static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
+    if ( !scene )
+        return;
+
     cmdBuf->BindPipeline( &depthOnlyPipeline );
     cmdBuf->BindDescriptorSet( sceneGlobalDescriptorSet, PG_SCENE_GLOBALS_BUFFER_SET );
     cmdBuf->SetViewport( SceneSizedViewport() );
@@ -424,6 +432,9 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
 
 static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
+    if ( !scene )
+        return;
+
     cmdBuf->BindPipeline( &litPipeline );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
@@ -459,6 +470,9 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
 
 static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
+    if ( !scene )
+        return;
+
     cmdBuf->BindPipeline( &skyboxPipeline );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
@@ -479,6 +493,9 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
 
 static void RenderFunc_PostProcessPass( RenderTask*  task, Scene* scene, CommandBuffer* cmdBuf )
 {
+    if ( !scene )
+        return;
+
     cmdBuf->BindPipeline( &postProcessPipeline );
     cmdBuf->SetViewport( DisplaySizedViewport() );
     cmdBuf->SetScissor( DisplaySizedScissor() );

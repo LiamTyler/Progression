@@ -93,6 +93,7 @@ bool LoadFastFile( const std::string& fname )
             LOAD_FF_CASE( ASSET_TYPE_SCRIPT, Script );
             LOAD_FF_CASE( ASSET_TYPE_MODEL, Model );
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader );
+            LOAD_FF_CASE( ASSET_TYPE_UI_LAYOUT, UILayout );
         default:
             LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
             return false;

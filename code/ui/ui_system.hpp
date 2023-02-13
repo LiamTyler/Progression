@@ -1,6 +1,7 @@
 #pragma once
 
 #include "ui/ui_element.hpp"
+#include "asset/types/ui_layout.hpp"
 
 namespace PG::Gfx
 {
@@ -11,8 +12,7 @@ namespace PG::Gfx
 
 namespace PG::UI
 {
-
-    bool Init( Gfx::RenderPass* renderPass );
+    bool Init();
     void Shutdown();
     void Clear(); // removes all UI elements
 
@@ -20,6 +20,9 @@ namespace PG::UI
     UIElement* CreateChildElement( UIElementHandle parent, UIElementHandle templateElement = UI_NULL_HANDLE );
     UIElement* GetElement( UIElementHandle handle );
     void RemoveElement( UIElementHandle handle ); // is recursive
+    void CreateLayout( const std::string& layoutName );
+
+    void AddScript( const std::string& scriptName );
 
     void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet *bindlessTexturesSet );
 

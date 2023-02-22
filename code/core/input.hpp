@@ -19,13 +19,18 @@ namespace Input
     // Get[Key/MouseButton]Down returns true the first frame the Key/MouseButton is pressed
     // Get[Key/MouseButton]Up returns true the first frame the Key/MouseButton is released
     // Get[Key/MouseButton]Held returns true all frames the Key/MouseButton is pressed, including the first frame
-
     bool GetKeyDown( Key k );
+    bool AnyKeyDown();
     bool GetKeyUp( Key k );
+    bool AnyKeyUp();
     bool GetKeyHeld( Key k );
+
     bool GetMouseButtonDown( MouseButton b );
+    bool AnyMouseButtonDown();
     bool GetMouseButtonUp( MouseButton b );
+    bool AnyMouseButtonDown();
     bool GetMouseButtonHeld( MouseButton b ); 
+
     glm::vec2 GetMousePosition();
     glm::vec2 GetMouseChange();
     glm::vec2 GetScrollChange();

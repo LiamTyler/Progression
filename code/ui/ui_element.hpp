@@ -7,9 +7,10 @@ namespace PG::UI
 
     enum class UIElementFlags : uint32_t
     {
-        NONE    = 0,
-        ACTIVE  = (1u << 0),
-        VISIBLE = (1u << 1),
+        NONE              = 0,
+        ACTIVE            = (1u << 0),
+        VISIBLE           = (1u << 1),
+        APPLY_TONEMAPPING = (1u << 2),
     };
     PG_DEFINE_ENUM_OPS( UIElementFlags );
 

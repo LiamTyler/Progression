@@ -1,6 +1,6 @@
 #pragma once
 
-#include "asset/types/base_asset.hpp"
+#include "asset/types/script.hpp"
 #include "ui/ui_element.hpp"
 
 namespace PG
@@ -27,6 +27,7 @@ public:
     bool FastfileSave( Serializer* serializer ) const override;
 
     std::vector<UIElementCreateInfo> createInfos;
+    Script* script;
 };
 
 } // namespace PG

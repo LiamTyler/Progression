@@ -1,5 +1,7 @@
 #include "asset/types/ui_layout.hpp"
+#include "asset/asset_manager.hpp"
 #include "shared/assert.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include "pugixml-1.13/src/pugixml.hpp"
@@ -94,6 +96,13 @@ static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vecto
             else
                 createInfos[idx].element.flags &= ~UIElementFlags::VISIBLE;
         }
+        else if ( !strcmp( attrib.name(), "tonemap" ) )
+        {
+            if ( attrib.as_bool() )
+                createInfos[idx].element.flags |= UIElementFlags::APPLY_TONEMAPPING;
+            else
+                createInfos[idx].element.flags &= ~UIElementFlags::APPLY_TONEMAPPING;
+        }
         else if ( !strcmp( attrib.name(), "image" ) )
         {
             createInfos[idx].imageName = val;
@@ -142,7 +151,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
     pugi::xml_parse_result result = doc.load_file( createInfo->xmlFilename.c_str() );
     if ( !result )
     {
-        LOG_ERR( "Could not load UILayout xml file '%s'", createInfo->xmlFilename.c_str() );
+        LOG_ERR( "Could not load UILayout xml file '%s'.\n\tError: %s", createInfo->xmlFilename.c_str(), result.description() );
         return false;
     }
 
@@ -183,6 +192,14 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
         }
     }
 
+    script = nullptr;
+    std::string scriptFName = GetFilenameMinusExtension( createInfo->xmlFilename ) + ".lua";
+    if ( PathExists( scriptFName ) )
+    {
+        script = AssetManager::Get<Script>( createInfo->name );
+        PG_ASSERT( script );
+    }
+
     return true;
 #else // #if // #if USING( CONVERTER )
     return false;
@@ -211,6 +228,10 @@ bool UILayout::FastfileLoad( Serializer* serializer )
         serializer->Read( info.element.tint );
         serializer->Read( info.imageName );
     }
+    std::string scriptName;
+    serializer->Read( scriptName );
+    script = AssetManager::Get<Script>( scriptName );
+    PG_ASSERT( script, "Cannot find Script '" + scriptName + "' for UILayout '" + name + "'" );
 
     return true;
 }
@@ -236,6 +257,9 @@ bool UILayout::FastfileSave( Serializer* serializer ) const
         serializer->Write( info.element.tint );
         serializer->Write( info.imageName );
     }
+
+    std::string scriptName = script ? script->name : "";
+    serializer->Write( scriptName );
 
     return true;
 }

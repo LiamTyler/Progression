@@ -11,6 +11,8 @@ class UILayoutConverter : public BaseAssetConverterTemplate<UILayout, UILayoutCr
 public:
     UILayoutConverter() : BaseAssetConverterTemplate( ASSET_TYPE_UI_LAYOUT ) {}
 
+    virtual void AddReferencedAssetsInternal( ConstDerivedInfoPtr& baseInfo ) override;
+
 protected:
     std::string GetCacheNameInternal( ConstDerivedInfoPtr info ) override;
     AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp ) override;

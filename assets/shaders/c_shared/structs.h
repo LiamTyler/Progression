@@ -45,8 +45,10 @@ struct SkyboxData
 
 struct UIElementData
 {
+    UINT flags;
 	UINT packedTint;
 	UINT textureIndex;
+    UINT _pad;
 	VEC2 pos;
 	VEC2 dimensions;
 };

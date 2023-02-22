@@ -75,3 +75,26 @@ set(
     ${CODE_DIR}/shared/string.cpp
     ${CODE_DIR}/shared/string.hpp
 )
+
+set(SHADER_DIR ${PROGRESSION_DIR}/assets/shaders)
+set(
+    SHADERS
+    
+    ${SHADER_DIR}/depth.vert
+    ${SHADER_DIR}/lit.vert
+    ${SHADER_DIR}/lit.frag
+    ${SHADER_DIR}/post_process.vert
+    ${SHADER_DIR}/post_process.frag
+    ${SHADER_DIR}/skybox.vert
+    ${SHADER_DIR}/skybox.frag
+    ${SHADER_DIR}/ui.vert
+    ${SHADER_DIR}/ui.frag
+    
+    ${SHADER_DIR}/lib/gamma.glsl
+    ${SHADER_DIR}/lib/pbr.glsl
+    ${SHADER_DIR}/lib/tonemap.glsl
+    
+    ${SHADER_DIR}/c_shared/defines.h
+    ${SHADER_DIR}/c_shared/limits.h
+    ${SHADER_DIR}/c_shared/structs.h
+)

@@ -3,10 +3,28 @@
 namespace PG
 {
 
+void UILayoutConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& info )
+{
+    std::string scriptFName = GetFilenameMinusExtension( info->xmlFilename ) + ".lua";
+    if ( PathExists( scriptFName ) )
+    {
+        auto scriptInfo = std::make_shared<ScriptCreateInfo>();
+        scriptInfo->name = info->name;
+        scriptInfo->filename = scriptFName;
+        AddUsedAsset( ASSET_TYPE_SCRIPT, scriptInfo );
+    }
+}
+
 std::string UILayoutConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
     cacheName += "_" + GetFilenameStem( info->xmlFilename );
+    std::string scriptFName = GetFilenameMinusExtension( info->xmlFilename ) + ".lua";
+    if ( PathExists( scriptFName ) )
+    {
+        cacheName += "_scripted";
+    }
+    
     return cacheName;
 }
 
@@ -14,6 +32,16 @@ std::string UILayoutConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 AssetStatus UILayoutConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
     AddFastfileDependency( info->xmlFilename );
+    std::string scriptFName = GetFilenameMinusExtension( info->xmlFilename ) + ".lua";
+    if ( PathExists( scriptFName ) )
+    {
+        AddFastfileDependency( scriptFName );
+        if ( IsFileOutOfDate( cacheTimestamp, scriptFName ) )
+        {
+            return AssetStatus::OUT_OF_DATE;
+        }
+    }
+
     return IsFileOutOfDate( cacheTimestamp, info->xmlFilename ) ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;
 }
 

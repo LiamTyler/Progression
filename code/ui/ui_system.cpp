@@ -1,6 +1,8 @@
 #include "ui/ui_system.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/input.hpp"
 #include "core/lua.hpp"
+#include "core/time.hpp"
 #include "shared/core_defines.hpp"
 #include "renderer/graphics_api.hpp"
 #include "renderer/render_system.hpp"
@@ -10,12 +12,6 @@
 #include "shared/platform_defines.hpp"
 #include <list>
 
-#if USING( SHIP_BUILD )
-#define IF_NOT_SHIP( ... ) do {} while(0)
-#else // #if USING( SHIP_BUILD )
-#include <bitset>
-#define IF_NOT_SHIP( x ) x
-#endif // #else // #if USING( SHIP_BUILD )
 
 enum : uint32_t
 {
@@ -46,38 +42,43 @@ namespace PG::UI
     std::list<UIElementHandle> s_rootUiElements; // TODO: do linked list in statically allocated memory
     static sol::state *s_uiLuaState = nullptr;
 
-
-    UIElementHandle UIElement::Handle() const
-    {
-        return static_cast<UIElementHandle>( this - s_uiElements );
-    }
-
-
-    enum class UIScriptFlags : uint32_t
-    {
-        NONE       = 0,
-        HAS_INIT   = (1u << 0),
-        HAS_UPDATE = (1u << 1),
-    };
-    PG_DEFINE_ENUM_OPS( UIScriptFlags );
-
     class UIScript
     {
     public:
         UIScript() = default;
-        UIScript( const std::string& scriptName )
+
+        UIScript(  Script* s )
         {
-            script = AssetManager::Get<Script>( scriptName );
+            script = s;
             PG_ASSERT( script );
             env = sol::environment( *s_uiLuaState, sol::create, s_uiLuaState->globals() );
             s_uiLuaState->script( script->scriptText, env );
         }
+
+        UIScript( const std::string& scriptName ) : UIScript( AssetManager::Get<Script>( scriptName ) ) {}
 
         sol::environment env;
         Script* script = nullptr;
     };
 
     std::vector<UIScript*> s_luaScripts;
+
+    struct LayoutInfo
+    {
+        std::string name;
+        UIElementHandle rootElementHandle;
+        uint16_t elementCount;
+        UIScript* uiscript;
+    };
+
+    static std::vector<LayoutInfo> s_layouts;
+
+
+    UIElementHandle UIElement::Handle() const
+    {
+        return static_cast<UIElementHandle>( this - s_uiElements );
+    }
+
 
     static void RegisterLuaFunctions_UI( lua_State* state )
     {
@@ -88,6 +89,11 @@ namespace PG::UI
         lua["GetElement"] = GetElement;
         lua["RemoveElement"] = RemoveElement;
         lua["CreateLayout"] = CreateLayout;
+
+        sol::usertype<UIElement> uielement_type = lua.new_usertype<UIElement>( "UIElement" );
+        uielement_type["pos"]        = &UIElement::pos;
+        uielement_type["dimensions"] = &UIElement::dimensions;
+        uielement_type["tint"]       = &UIElement::tint;
     }
 
 
@@ -137,15 +143,18 @@ namespace PG::UI
 
         Clear();
 
-        AssetManager::LoadFastFile( "mkdd" );
-
         PG_ASSERT( !s_uiLuaState );
         s_uiLuaState = new sol::state;
         Lua::SetupStateFunctions( *s_uiLuaState );
         RegisterLuaFunctions_UI( *s_uiLuaState );
-        AddScript( "ui_startup" );
 
         return true;
+    }
+
+
+    void BootMainMenu()
+    {
+        AddScript( "ui_startup" );
     }
 
 
@@ -166,7 +175,6 @@ namespace PG::UI
     {
         s_uiNextFreeSlot = 0;
         s_uiElementCount = 0;
-        IF_NOT_SHIP( memset( s_uiElements, 0, sizeof( s_uiElements ) ) );
         s_rootUiElements.clear();
     }
 
@@ -432,6 +440,26 @@ namespace PG::UI
     }
 
 
+    static uint16_t AddScript( UIScript* script )
+    {
+        uint16_t idx = static_cast<uint16_t>( s_luaScripts.size() );
+        s_luaScripts.emplace_back( script );
+        sol::function startFunc = script->env["Start"];
+        if ( startFunc.valid() )
+        {
+            CHECK_SOL_FUNCTION_CALL( startFunc() );
+        }
+
+        return idx;
+    }
+
+
+    uint16_t AddScript( const std::string& scriptName )
+    {
+        return AddScript( new UIScript( scriptName ) );
+    }
+
+
     void CreateLayout( const std::string& layoutName )
     {
         const UILayout* layout = AssetManager::Get<UILayout>( layoutName );
@@ -455,18 +483,70 @@ namespace PG::UI
                 element.image = AssetManager::Get<GfxImage>( createInfo.imageName );
             }
         }
+
+        LayoutInfo& layoutInfo = s_layouts.emplace_back();
+        layoutInfo.name = layoutName;
+        layoutInfo.rootElementHandle = rootElementHandle;
+        layoutInfo.elementCount = (uint16_t)layout->createInfos.size();
+        if ( layout->script )
+        {
+            layoutInfo.uiscript = new UIScript( layout->script );
+        }
     }
 
 
-    void AddScript( const std::string& scriptName )
+    void RemoveLayout( const std::string& layoutName )
     {
-        UIScript* script = new UIScript( scriptName );
-        s_luaScripts.emplace_back( script );
-        sol::function startFunc = script->env["Start"];
-        if ( startFunc.valid() )
+        PG_ASSERT( false, "todo" );
+    }
+
+
+    static bool ElementContainsPos( const glm::vec2& absolutePos )
+    {
+        return false;
+    }
+
+
+    template <typename Func>
+    void IterateElementTree( const UIElementHandle handle, Func ProcessSingleElementFunc )
+    {
+        const UIElement& e = *GetElement( handle );
+        PG_ASSERT( IsSet( e.flags, UIElementFlags::ACTIVE ) );
+
+        if ( IsSet( e.flags, UIElementFlags::VISIBLE ) )
         {
-            CHECK_SOL_FUNCTION_CALL( startFunc() );
+            ProcessSingleElementFunc( e );
         }
+    }
+
+
+    template <typename Func>
+    void IterateAllElementsInOrder( Func ProcessSingleElementFunc )
+    {
+        for ( auto it = s_rootUiElements.cbegin(); it != s_rootUiElements.cend(); ++it )
+        {
+            IterateElementTree( *it, ProcessSingleElementFunc );
+        }
+    }
+
+
+    void Update()
+    {
+        auto luaTimeNamespace = (*s_uiLuaState)["Time"].get<sol::table>();
+        luaTimeNamespace["dt"] = Time::DeltaTime();
+
+        for ( const auto& script : s_luaScripts )
+        {
+            sol::function func = script->env["Update"];
+            if ( func.valid() )
+            {
+                CHECK_SOL_FUNCTION_CALL( func() );
+            }
+        }
+
+        //IterateAllElementsInOrder( [&]( const UIElement& e )
+        //{
+        //});
     }
 
 
@@ -486,6 +566,7 @@ namespace PG::UI
     static GpuData::UIElementData GetGpuDataFromUIElement( const UIElement& e )
     {
         GpuData::UIElementData gpuData;
+        gpuData.flags = Underlying( e.flags );
         gpuData.packedTint = Pack4Unorm( e.tint.x, e.tint.y, e.tint.z, e.tint.w );
         gpuData.textureIndex = e.image ? e.image->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
         gpuData.pos = e.pos;
@@ -503,8 +584,6 @@ namespace PG::UI
 
     static bool RenderSingleElement( const UIElement& e, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
     {
-        PG_ASSERT( IsSet( e.flags, UIElementFlags::ACTIVE ) );
-
         if ( !IsSet( e.flags, UIElementFlags::VISIBLE ) )
             return false;
         

@@ -58,6 +58,10 @@ static void ScrollCallback( GLFWwindow* window, double xoffset, double yoffset )
     s_scrollOffset += glm::vec2( xoffset, yoffset );
 }
 
+static bool s_anyKeyDown;
+static bool s_anyKeyUp;
+static bool s_anyMouseButtonDown;
+static bool s_anyMouseButtonUp;
 
 namespace PG
 {
@@ -116,9 +120,19 @@ namespace Input
         return s_keyStatus[static_cast< int >( k )] == KEY_PRESSED;
     }
 
+    bool AnyKeyDown()
+    {
+        return s_anyKeyDown;
+    }
+
     bool GetKeyUp( Key k )
     {
         return s_keyStatus[static_cast< int >( k )] == KEY_RELEASED;
+    }
+
+    bool AnyKeyUp()
+    {
+        return s_anyKeyUp;
     }
 
     bool GetKeyHeld( Key k )
@@ -131,9 +145,19 @@ namespace Input
         return s_mouseButtonStatus[static_cast< int >( b )] == KEY_PRESSED;
     }
 
+    bool AnyMouseButtonDown()
+    {
+        return s_anyMouseButtonDown;
+    }
+
     bool GetMouseButtonUp( MouseButton b )
     {
         return s_mouseButtonStatus[static_cast< int >( b )] == KEY_RELEASED;
+    }
+
+    bool AnyMouseButtonUp()
+    {
+        return s_anyMouseButtonUp;
     }
 
     bool GetMouseButtonHeld( MouseButton b )

@@ -1,21 +1,15 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <element
-  pos="0.2 0.2"
-  size="0.2 0.2"
-  tint="1 0 0 0.5"
-  blendMode="opaque">
-  
-  <element
-    pos="0.3 0.2"
-    size="0.2 0.2"
-	tint="0 1 0 0.5"
-	blendMode="opaque"
-  />
-</element>
-
+  pos="0 0"
+  size="1 1"
+  tint="1 1 1 1"
+  blendMode="opaque"
+  image="title_background_1"
+/>
 <element
-  pos="0.2 0.6"
-  size="0.2 0.2"
-  tint="0 0 1 0.5"
+  pos="0.45 0.85"
+  size="0.2 0.1"
+  tint="1 1 1 1"
   blendMode="blend"
+  image="title_press_start"
 />

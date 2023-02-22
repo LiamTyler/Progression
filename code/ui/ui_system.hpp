@@ -13,6 +13,7 @@ namespace PG::Gfx
 namespace PG::UI
 {
     bool Init();
+    void BootMainMenu();
     void Shutdown();
     void Clear(); // removes all UI elements
 
@@ -22,8 +23,9 @@ namespace PG::UI
     void RemoveElement( UIElementHandle handle ); // is recursive
     void CreateLayout( const std::string& layoutName );
 
-    void AddScript( const std::string& scriptName );
+    uint16_t AddScript( const std::string& scriptName );
 
+    void Update();
     void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet *bindlessTexturesSet );
 
 } // namespace PG::UI

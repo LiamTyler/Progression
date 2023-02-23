@@ -92,20 +92,24 @@ static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vecto
         else if ( !strcmp( attrib.name(), "visible" ) )
         {
             if ( attrib.as_bool() )
-                createInfos[idx].element.flags |= UIElementFlags::VISIBLE;
+                createInfos[idx].element.userFlags |= UIElementUserFlags::VISIBLE;
             else
-                createInfos[idx].element.flags &= ~UIElementFlags::VISIBLE;
+                createInfos[idx].element.userFlags &= ~UIElementUserFlags::VISIBLE;
         }
         else if ( !strcmp( attrib.name(), "tonemap" ) )
         {
             if ( attrib.as_bool() )
-                createInfos[idx].element.flags |= UIElementFlags::APPLY_TONEMAPPING;
+                createInfos[idx].element.userFlags |= UIElementUserFlags::APPLY_TONEMAPPING;
             else
-                createInfos[idx].element.flags &= ~UIElementFlags::APPLY_TONEMAPPING;
+                createInfos[idx].element.userFlags &= ~UIElementUserFlags::APPLY_TONEMAPPING;
         }
         else if ( !strcmp( attrib.name(), "image" ) )
         {
             createInfos[idx].imageName = val;
+        }
+        else if ( !strcmp( attrib.name(), "update" ) )
+        {
+            createInfos[idx].updateFuncName = val;
         }
         else
         {
@@ -221,12 +225,14 @@ bool UILayout::FastfileLoad( Serializer* serializer )
         serializer->Read( info.element.nextSibling );
         serializer->Read( info.element.firstChild );
         serializer->Read( info.element.lastChild );
-        serializer->Read( info.element.flags );
+        serializer->Read( info.element.userFlags );
+        serializer->Read( info.element.readOnlyFlags );
         serializer->Read( info.element.blendMode );
         serializer->Read( info.element.pos );
         serializer->Read( info.element.dimensions );
         serializer->Read( info.element.tint );
         serializer->Read( info.imageName );
+        serializer->Read( info.updateFuncName );
     }
     std::string scriptName;
     serializer->Read( scriptName );
@@ -250,12 +256,14 @@ bool UILayout::FastfileSave( Serializer* serializer ) const
         serializer->Write( info.element.nextSibling );
         serializer->Write( info.element.firstChild );
         serializer->Write( info.element.lastChild );
-        serializer->Write( info.element.flags );
+        serializer->Write( info.element.userFlags );
+        serializer->Write( info.element.readOnlyFlags );
         serializer->Write( info.element.blendMode );
         serializer->Write( info.element.pos );
         serializer->Write( info.element.dimensions );
         serializer->Write( info.element.tint );
         serializer->Write( info.imageName );
+        serializer->Write( info.updateFuncName );
     }
 
     std::string scriptName = script ? script->name : "";

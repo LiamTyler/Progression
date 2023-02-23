@@ -14,6 +14,7 @@ struct UILayoutCreateInfo : public BaseAssetCreateInfo
 struct UIElementCreateInfo
 {
     UI::UIElement element;
+    std::string updateFuncName;
     std::string imageName;
 };
 

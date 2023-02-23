@@ -49,6 +49,8 @@ set(
 set(
     UI_SRC
     
+    ${CODE_DIR}/ui/ui_data_structures.cpp
+    ${CODE_DIR}/ui/ui_data_structures.hpp
 	${CODE_DIR}/ui/ui_element.cpp
     ${CODE_DIR}/ui/ui_element.hpp
     ${CODE_DIR}/ui/ui_system.cpp

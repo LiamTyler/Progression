@@ -5,14 +5,21 @@
 namespace PG::UI
 {
 
-    enum class UIElementFlags : uint32_t
+    // read + write flags (settings) that users can adjust about the UIElement at runtime
+    enum class UIElementUserFlags : uint8_t
     {
         NONE              = 0,
-        ACTIVE            = (1u << 0),
-        VISIBLE           = (1u << 1),
-        APPLY_TONEMAPPING = (1u << 2),
+        VISIBLE           = (1u << 0),
+        APPLY_TONEMAPPING = (1u << 1),
     };
-    PG_DEFINE_ENUM_OPS( UIElementFlags );
+    PG_DEFINE_ENUM_OPS( UIElementUserFlags );
+
+    enum class UIElementReadOnlyFlags : uint8_t
+    {
+        NONE              = 0,
+        HAS_UPDATE_FUNC   = (1u << 0),
+    };
+    PG_DEFINE_ENUM_OPS( UIElementReadOnlyFlags );
 
     enum class ElementBlendMode : uint8_t
     {
@@ -34,7 +41,10 @@ namespace PG::UI
         UIElementHandle firstChild;
         UIElementHandle lastChild;
 
-        UIElementFlags flags = UIElementFlags::VISIBLE;
+        uint16_t scriptFunctionIdx;
+
+        UIElementUserFlags userFlags = UIElementUserFlags::VISIBLE;
+        UIElementReadOnlyFlags readOnlyFlags = UIElementReadOnlyFlags::NONE;
         ElementBlendMode blendMode = ElementBlendMode::OPAQUE;
         glm::vec2 pos; // normalized 0 - 1
         glm::vec2 dimensions; // normalized 0 - 1
@@ -43,6 +53,8 @@ namespace PG::UI
 
         UIElementHandle Handle() const;
     };
+
+    constexpr int AAAAAA = sizeof( UIElement );
 
 } // namespace PG::UI
 

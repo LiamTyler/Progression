@@ -23,6 +23,8 @@ bool g_paused = false;
 int main( int argc, char* argv[] )
 {
     EngineInitInfo engineInitConfig;
+    engineInitConfig.windowWidth = 1024;
+    engineInitConfig.windowHeight = 768;
 	if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );
@@ -33,7 +35,7 @@ int main( int argc, char* argv[] )
     UI::BootMainMenu();
 
     Window* window = GetMainWindow();
-    window->SetRelativeMouse( true );
+    //window->SetRelativeMouse( false );
 
     Input::PollEvents();
     Time::Reset();

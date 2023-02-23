@@ -110,6 +110,7 @@ static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vecto
         else if ( !strcmp( attrib.name(), "update" ) )
         {
             createInfos[idx].updateFuncName = val;
+            createInfos[idx].element.scriptFlags |= UIElementScriptFlags::HAS_UPDATE_FUNC;
         }
         else
         {
@@ -226,7 +227,7 @@ bool UILayout::FastfileLoad( Serializer* serializer )
         serializer->Read( info.element.firstChild );
         serializer->Read( info.element.lastChild );
         serializer->Read( info.element.userFlags );
-        serializer->Read( info.element.readOnlyFlags );
+        serializer->Read( info.element.scriptFlags );
         serializer->Read( info.element.blendMode );
         serializer->Read( info.element.pos );
         serializer->Read( info.element.dimensions );
@@ -257,7 +258,7 @@ bool UILayout::FastfileSave( Serializer* serializer ) const
         serializer->Write( info.element.firstChild );
         serializer->Write( info.element.lastChild );
         serializer->Write( info.element.userFlags );
-        serializer->Write( info.element.readOnlyFlags );
+        serializer->Write( info.element.scriptFlags );
         serializer->Write( info.element.blendMode );
         serializer->Write( info.element.pos );
         serializer->Write( info.element.dimensions );

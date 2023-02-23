@@ -36,6 +36,7 @@ namespace PG::UI
 
     static constexpr UIElementHandle MAX_UI_ELEMENTS = 4096;
     static StaticArrayAllocator<UIElement, UIElementHandle, UI_NULL_HANDLE, MAX_UI_ELEMENTS> s_uiElements;
+    static StaticArrayAllocator<UIElementFunctions, uint16_t, UI_NULL_HANDLE, MAX_UI_ELEMENTS> s_uiElementFunctions;
     static Gfx::Pipeline s_uiPipelines[PIPELINE_COUNT];
     static std::list<UIElementHandle> s_rootUiElements; // TODO: do linked list in statically allocated memory
     static sol::state *s_uiLuaState = nullptr;
@@ -146,6 +147,12 @@ namespace PG::UI
         }
         s_layouts.clear();
         s_uiElements.Clear();
+        for ( int i = 0; i < MAX_UI_ELEMENTS; ++i )
+        {
+            if ( s_uiElementFunctions[i].update.valid() )
+                s_uiElementFunctions[i].update = sol::nil;
+        }
+        s_uiElementFunctions.Clear();
         s_rootUiElements.clear();
     }
 
@@ -181,7 +188,7 @@ namespace PG::UI
             PG_ASSERT( IsUIElementHandleValid( templateElement ) );
             const UIElement *t = GetElement( templateElement );
             element->userFlags = t->userFlags;
-            element->readOnlyFlags = t->readOnlyFlags;
+            element->scriptFlags = t->scriptFlags;
             element->blendMode = t->blendMode;
             element->pos = t->pos;
             element->dimensions = t->dimensions;
@@ -192,6 +199,7 @@ namespace PG::UI
         {
             element->userFlags |= UIElementUserFlags::VISIBLE;
         }
+        element->scriptFunctionsIdx = UI_NO_SCRIPT_INDEX;
 
         return handle;
     }
@@ -329,6 +337,10 @@ namespace PG::UI
             RemoveElementHelper_IgnoreParent( GetElement( childHandle ) );
         }
 
+        if ( e->scriptFunctionsIdx != UI_NO_SCRIPT_INDEX )
+        {
+            s_uiElementFunctions.FreeElement( e->scriptFunctionsIdx );
+        }
         s_uiElements.FreeElement( e->Handle() );
     }
     
@@ -373,6 +385,15 @@ namespace PG::UI
         AddRootElement( rootElementHandle );
         OffsetHandles( s_uiElements[rootElementHandle], rootElementHandle );
 
+        LayoutInfo& layoutInfo = s_layouts.emplace_back();
+        layoutInfo.name = layoutName;
+        layoutInfo.rootElementHandle = rootElementHandle;
+        layoutInfo.elementCount = (uint16_t)layout->createInfos.size();
+        if ( layout->script )
+        {
+            layoutInfo.uiscript = new UIScript( s_uiLuaState, layout->script );
+        }
+
         for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layout->createInfos.size(); ++localHandle )
         {
             UIElement& element = s_uiElements[rootElementHandle + localHandle];
@@ -383,15 +404,17 @@ namespace PG::UI
             {
                 element.image = AssetManager::Get<GfxImage>( createInfo.imageName );
             }
-        }
-
-        LayoutInfo& layoutInfo = s_layouts.emplace_back();
-        layoutInfo.name = layoutName;
-        layoutInfo.rootElementHandle = rootElementHandle;
-        layoutInfo.elementCount = (uint16_t)layout->createInfos.size();
-        if ( layout->script )
-        {
-            layoutInfo.uiscript = new UIScript( s_uiLuaState, layout->script );
+            if ( element.scriptFlags != UIElementScriptFlags::NONE )
+            {
+                uint16_t idx = s_uiElementFunctions.AllocOne();
+                element.scriptFunctionsIdx = idx;
+                UIElementFunctions& functions = s_uiElementFunctions[idx];
+                functions.update = layoutInfo.uiscript->env[createInfo.updateFuncName];
+                if ( !functions.update.valid() )
+                {
+                    LOG_ERR( "Script %s does not have update function '%s'", layout->script->name.c_str(), createInfo.updateFuncName.c_str() );
+                }
+            }
         }
     }
 
@@ -414,6 +437,11 @@ namespace PG::UI
         if ( IsSet( e.userFlags, UIElementUserFlags::VISIBLE ) )
         {
             ProcessSingleElementFunc( e );
+
+            for ( UIElementHandle childHandle = e.firstChild; childHandle != UI_NULL_HANDLE; childHandle = GetElement( childHandle )->nextSibling )
+            {
+                IterateElementTree( childHandle, ProcessSingleElementFunc );
+            }
         }
     }
 
@@ -440,9 +468,14 @@ namespace PG::UI
             }
         }
 
-        //IterateAllElementsInOrder( [&]( const UIElement& e )
-        //{
-        //});
+        IterateAllElementsInOrder( [&]( const UIElement& e )
+        {
+            if ( IsSet( e.scriptFlags, UIElementScriptFlags::HAS_UPDATE_FUNC ) )
+            {
+                const auto& funcs = s_uiElementFunctions[e.scriptFunctionsIdx];
+                CHECK_SOL_FUNCTION_CALL( funcs.update() );
+            }
+        });
     }
 
     static uint32_t UNormToByte( float x )

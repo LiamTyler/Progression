@@ -27,7 +27,7 @@ inline const unsigned int g_assetVersions[] =
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
-    4, // ASSET_TYPE_UI_LAYOUT, "add optional update functions for each ui element"
+    5, // ASSET_TYPE_UI_LAYOUT, "add optional update functions for each ui element (try 2)"
     0, // ASSET_TYPE_TEXTURESET
 };
 

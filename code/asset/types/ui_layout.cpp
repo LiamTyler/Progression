@@ -133,7 +133,17 @@ static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vecto
         else if ( !strcmp( attrib.name(), "update" ) )
         {
             createInfos[idx].updateFuncName = val;
-            createInfos[idx].element.scriptFlags |= UIElementScriptFlags::HAS_UPDATE_FUNC;
+            createInfos[idx].element.scriptFlags |= UIElementScriptFlags::UPDATE;
+        }
+        else if ( !strcmp( attrib.name(), "mouseButtonDown" ) )
+        {
+            createInfos[idx].mouseButtonDownFuncName = val;
+            createInfos[idx].element.scriptFlags |= UIElementScriptFlags::MOUSE_BUTTON_DOWN;
+        }
+        else if ( !strcmp( attrib.name(), "mouseButtonUp" ) )
+        {
+            createInfos[idx].mouseButtonUpFuncName = val;
+            createInfos[idx].element.scriptFlags |= UIElementScriptFlags::MOUSE_BUTTON_UP;
         }
         else if ( !strcmp( attrib.name(), "type" ) )
         {
@@ -262,6 +272,8 @@ bool UILayout::FastfileLoad( Serializer* serializer )
         serializer->Read( info.element.tint );
         serializer->Read( info.imageName );
         serializer->Read( info.updateFuncName );
+        serializer->Read( info.mouseButtonDownFuncName );
+        serializer->Read( info.mouseButtonUpFuncName );
     }
     std::string scriptName;
     serializer->Read( scriptName );
@@ -294,6 +306,8 @@ bool UILayout::FastfileSave( Serializer* serializer ) const
         serializer->Write( info.element.tint );
         serializer->Write( info.imageName );
         serializer->Write( info.updateFuncName );
+        serializer->Write( info.mouseButtonDownFuncName );
+        serializer->Write( info.mouseButtonUpFuncName );
     }
 
     std::string scriptName = script ? script->name : "";

@@ -3,6 +3,7 @@
 #include "core/input.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
+#include "core/window.hpp"
 #include "shared/core_defines.hpp"
 #include "renderer/graphics_api.hpp"
 #include "renderer/render_system.hpp"
@@ -63,6 +64,11 @@ namespace PG::UI
         uielement_type["pos"]        = &UIElement::pos;
         uielement_type["dimensions"] = &UIElement::dimensions;
         uielement_type["tint"]       = &UIElement::tint;
+        uielement_type.set_function( "SetVisible", []( UIElement& e, bool b )
+        {
+            if ( b ) e.userFlags |= UIElementUserFlags::VISIBLE;
+            else e.userFlags &= ~UIElementUserFlags::VISIBLE;
+        });
     }
 
     bool Init()
@@ -411,10 +417,30 @@ namespace PG::UI
                 element.scriptFunctionsIdx = idx;
                 UIElementFunctions& functions = s_uiElementFunctions[idx];
                 functions.uiScript = layoutInfo.uiscript;
-                functions.update = layoutInfo.uiscript->env[createInfo.updateFuncName];
-                if ( !functions.update.valid() )
+                
+                if ( !createInfo.updateFuncName.empty() )
                 {
-                    LOG_ERR( "Script %s does not have update function '%s'", layout->script->name.c_str(), createInfo.updateFuncName.c_str() );
+                    functions.update = layoutInfo.uiscript->env[createInfo.updateFuncName];
+                    if ( !functions.update.valid() )
+                    {
+                        LOG_ERR( "Script %s does not have update function '%s'", layout->script->name.c_str(), createInfo.updateFuncName.c_str() );
+                    }
+                }
+                if ( !createInfo.mouseButtonDownFuncName.empty() )
+                {
+                    functions.mouseButtonDown = layoutInfo.uiscript->env[createInfo.mouseButtonDownFuncName];
+                    if ( !functions.mouseButtonDown.valid() )
+                    {
+                        LOG_ERR( "Script %s does not have mouseButtonDown function '%s'", layout->script->name.c_str(), createInfo.mouseButtonDownFuncName.c_str() );
+                    }
+                }
+                if ( !createInfo.mouseButtonUpFuncName.empty() )
+                {
+                    functions.mouseButtonUp = layoutInfo.uiscript->env[createInfo.mouseButtonUpFuncName];
+                    if ( !functions.mouseButtonUp.valid() )
+                    {
+                        LOG_ERR( "Script %s does not have mouseButtonUp function '%s'", layout->script->name.c_str(), createInfo.mouseButtonUpFuncName.c_str() );
+                    }
                 }
             }
         }
@@ -425,9 +451,10 @@ namespace PG::UI
         PG_ASSERT( false, "todo" );
     }
 
-    static bool ElementContainsPos( const glm::vec2& absolutePos )
+    static bool ElementContainsPos( const UIElement& e, const glm::vec2& absolutePos )
     {
-        return false;
+        return e.pos.x <= absolutePos.x && absolutePos.x <= (e.pos.x + e.dimensions.x) &&
+                e.pos.y <= absolutePos.y && absolutePos.y <= (e.pos.y + e.dimensions.y);
     }
 
     template <typename Func>
@@ -478,9 +505,19 @@ namespace PG::UI
             const UIElementFunctions& funcs = s_uiElementFunctions[e.scriptFunctionsIdx];
             funcs.uiScript->env["e"] = &e;
 
-            if ( IsSet( e.scriptFlags, UIElementScriptFlags::HAS_UPDATE_FUNC ) )
+            if ( IsSet( e.scriptFlags, UIElementScriptFlags::UPDATE ) )
             {
                 CHECK_SOL_FUNCTION_CALL( funcs.update() );
+            }
+
+            auto window = GetMainWindow();
+            bool mouseInElement = ElementContainsPos( e, Input::GetMousePosition() / glm::vec2( window->Width(), window->Height() ) );
+            if ( mouseInElement )
+            {
+                if ( Input::AnyMouseButtonDown() && IsSet( e.scriptFlags, UIElementScriptFlags::MOUSE_BUTTON_DOWN ) )
+                    CHECK_SOL_FUNCTION_CALL( funcs.mouseButtonDown() );
+                if ( Input::AnyMouseButtonUp() && IsSet( e.scriptFlags, UIElementScriptFlags::MOUSE_BUTTON_UP ) )
+                    CHECK_SOL_FUNCTION_CALL( funcs.mouseButtonUp() );
             }
         });
     }

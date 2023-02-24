@@ -17,7 +17,11 @@ namespace PG::UI
     enum class UIElementScriptFlags : uint8_t
     {
         NONE              = 0,
-        HAS_UPDATE_FUNC   = (1u << 0),
+        UPDATE            = (1u << 0),
+        MOUSE_ENTER       = (1u << 1),
+        MOUSE_LEAVE       = (1u << 2),
+        MOUSE_BUTTON_DOWN = (1u << 3),
+        MOUSE_BUTTON_UP   = (1u << 4),
     };
     PG_DEFINE_ENUM_OPS( UIElementScriptFlags );
 

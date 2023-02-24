@@ -27,7 +27,6 @@ namespace Lua
     }
 
 
-
     void RegisterLuaFunctions_Math( lua_State* L )
     {
         using namespace glm;
@@ -45,6 +44,7 @@ namespace Lua
         vec2_type.set_function( "dot",          []( const vec2& a, const vec2& b ){ return dot( a, b ); } );
         vec2_type.set_function( "length",       []( const vec2& a ){ return length( a ); } );
         vec2_type.set_function( "normalize",    []( const vec2& a ){ return normalize( a ); } );
+        lua["Vec2Lerp"] = []( const vec2& a, const vec2& b, float t ) { return (1-t) * a + t * b; };
 
         sol::usertype< vec3 > vec3_type = lua.new_usertype< vec3 >( "vec3", sol::constructors< vec3(), vec3( float ), vec3( const vec3& ), vec3( float, float, float ) >() );
         vec3_type["x"] = &vec3::x;
@@ -59,6 +59,7 @@ namespace Lua
         vec3_type.set_function( "dot",          []( const vec3& a, const vec3& b ){ return dot( a, b ); } );
         vec3_type.set_function( "length",       []( const vec3& a ){ return length( a ); } );
         vec3_type.set_function( "normalize",    []( const vec3& a ){ return normalize( a ); } );
+        lua["Vec3Lerp"] = []( const vec3& a, const vec3& b, float t ) { return (1-t) * a + t * b; };
 
         sol::usertype< vec4 > vec4_type = lua.new_usertype< vec4 >( "vec4", sol::constructors< vec4(), vec4( float ), vec4( const vec4& ), vec4( float, float, float, float ) >() );
         vec4_type["x"] = &vec4::x;
@@ -74,7 +75,6 @@ namespace Lua
         vec4_type.set_function( "dot",          []( const vec4& a, const vec4& b ){ return dot( a, b ); } );
         vec4_type.set_function( "length",       []( const vec4& a ){ return length( a ); } );
         vec4_type.set_function( "normalize",    []( const vec4& a ){ return normalize( a ); } );
-
         lua["Vec4Lerp"] = []( const vec4& a, const vec4& b, float t ) { return (1-t) * a + t * b; };
 
         sol::usertype< mat3 > mat3_type = lua.new_usertype< mat3 >( "mat3", sol::constructors< mat3(), mat3( float ), mat3( const mat3& ) >() );

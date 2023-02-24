@@ -28,7 +28,7 @@ namespace Input
     bool GetMouseButtonDown( MouseButton b );
     bool AnyMouseButtonDown();
     bool GetMouseButtonUp( MouseButton b );
-    bool AnyMouseButtonDown();
+    bool AnyMouseButtonUp();
     bool GetMouseButtonHeld( MouseButton b ); 
 
     glm::vec2 GetMousePosition();

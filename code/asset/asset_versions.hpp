@@ -27,11 +27,11 @@ constexpr unsigned int g_assetVersions[] =
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
-    6, // ASSET_TYPE_UI_LAYOUT, "adding UIElementType"
+    7, // ASSET_TYPE_UI_LAYOUT, "mouse button down/up callbacks"
     0, // ASSET_TYPE_TEXTURESET
 };
 
-constexpr uint32_t PG_FASTFILE_VERSION = 7 + ARRAY_SUM( g_assetVersions ); // adding UIElementType
+constexpr uint32_t PG_FASTFILE_VERSION = 7 + ARRAY_SUM( g_assetVersions ); // mouse button down/up callbacks
 
 inline const char* const g_assetNames[] =
 {

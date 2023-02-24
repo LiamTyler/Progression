@@ -15,6 +15,8 @@ struct UIElementCreateInfo
 {
     UI::UIElement element;
     std::string updateFuncName;
+    std::string mouseButtonDownFuncName;
+    std::string mouseButtonUpFuncName;
     std::string imageName;
 };
 

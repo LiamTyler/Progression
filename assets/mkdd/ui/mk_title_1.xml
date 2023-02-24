@@ -14,4 +14,6 @@
   blendMode="blend"
   image="title_press_start"
   update="StartButton_Update"
+  mouseButtonDown="Startbutton_MouseButtonDown"
+  mouseButtonUp="Startbutton_MouseButtonUp"
 />

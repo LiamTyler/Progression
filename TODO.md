@@ -1,4 +1,15 @@
 # TODO
+- [ ] remove layouts
+- [ ] allow for resizing window
+- [ ] ui mouse events lua callbacks
+- [ ] ui keyboard lua callbacks
+- [ ] controller support
+- [ ] allow for fixed aspect ratio
+- [ ] shader include cache
+- [ ] multithread the converter
+- [ ] change profiling to be all in RAM, no file writing. Show min + max + avg
+
+
 - [ ] Get albedo + metalness image working for texturesets
 - [ ] Get normal + roughness image working for texturesets
 - [x] remove 2nd hash number in gfxImage cache composite names
@@ -9,11 +20,9 @@
 - [ ] simplify TransitionImageLayoutImmediate args with defaults
 - [ ] get VS to find spirv/vulkan/shaderc files
 - [ ] If assets are already in required/dependent fastfiles, dont put them in the top level FFs
-- [ ] change profiling to be all in RAM, no file writing. Show min + max + avg
 - [ ] show profiling results in ImGui view
 - [ ] decouple graphics code from all assets (GfxImage) just store a handle, and remove Vulkan dependencies from Projects that dont need it anymore
 - [ ] add TIFF loading and saving
-- [ ] multithread the converter
 - [ ] switch/add to .pmodel binary format, with binary <-> text tool
 - [ ] add .pmodel -> .obj tool
 - [ ] investigate different mipmap filters

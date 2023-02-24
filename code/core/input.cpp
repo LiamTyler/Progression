@@ -17,6 +17,10 @@ enum KeyStatus : uint8_t
 
 static uint8_t s_keyStatus[GLFW_KEY_LAST + 1];
 static uint8_t s_mouseButtonStatus[GLFW_MOUSE_BUTTON_LAST + 1];
+static bool s_anyKeyDown;
+static bool s_anyKeyUp;
+static bool s_anyMouseButtonDown;
+static bool s_anyMouseButtonUp;
 
 static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
 {
@@ -29,10 +33,12 @@ static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, 
     if ( action == GLFW_PRESS )
     {
         s_keyStatus[key] = KEY_PRESSED;
+        s_anyKeyDown = true;
     }
     else if ( action == GLFW_RELEASE )
     {
         s_keyStatus[key] = KEY_RELEASED;
+        s_anyKeyUp = true;
     }
 }
 
@@ -46,10 +52,12 @@ static void MouseButtonCallback( GLFWwindow* window, int button, int action, int
     if ( action == GLFW_PRESS )
     {
         s_mouseButtonStatus[button] = KEY_PRESSED;
+        s_anyMouseButtonDown = true;
     }
     else if ( action == GLFW_RELEASE )
     {
         s_mouseButtonStatus[button] = KEY_RELEASED;
+        s_anyMouseButtonUp = true;
     }
 }
 
@@ -57,11 +65,6 @@ static void ScrollCallback( GLFWwindow* window, double xoffset, double yoffset )
 {
     s_scrollOffset += glm::vec2( xoffset, yoffset );
 }
-
-static bool s_anyKeyDown;
-static bool s_anyKeyUp;
-static bool s_anyMouseButtonDown;
-static bool s_anyMouseButtonUp;
 
 namespace PG
 {
@@ -101,6 +104,10 @@ namespace Input
 
     void PollEvents()
     {
+        s_anyKeyDown = false;
+        s_anyKeyUp = false;
+        s_anyMouseButtonDown = false;
+        s_anyMouseButtonUp = false;
         for ( int i = 0; i < GLFW_KEY_LAST + 1; ++i )
         {
             s_keyStatus[i] += s_keyStatus[i] == KEY_RELEASED || s_keyStatus[i] == KEY_PRESSED;

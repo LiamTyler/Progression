@@ -125,6 +125,10 @@ namespace PG::UI
     {
         UIScript* uiScript;
         sol::function update;
+        sol::function mouseEnter;
+        sol::function mouseLeave;
+        sol::function mouseButtonDown;
+        sol::function mouseButtonUp;
     };
 
 } // namespace PG::UI

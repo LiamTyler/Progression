@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#include "c_shared/structs.h"
+#include "c_shared/ui.h"
 
 vec2 positions[6] = vec2[](
     vec2(0, 0),

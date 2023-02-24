@@ -43,16 +43,6 @@ struct SkyboxData
     UVEC3 _pad1;
 };
 
-struct UIElementData
-{
-    UINT flags;
-	UINT packedTint;
-	UINT textureIndex;
-    UINT _pad;
-	VEC2 pos;
-	VEC2 dimensions;
-};
-
 #ifndef PG_SHADER_CODE
 } // namespace GpuData
 #endif // #ifndef PG_SHADER_CODE

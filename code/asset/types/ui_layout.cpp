@@ -34,7 +34,7 @@ static glm::vec4 ParseVec4( const char* str )
 }
 
 
-static ElementBlendMode ParseBlendMode( const char* str )
+static UIElementBlendMode ParseBlendMode( const char* str )
 {
     static const char* blendStrs[] =
     {
@@ -42,17 +42,40 @@ static ElementBlendMode ParseBlendMode( const char* str )
         "blend",
         "additive",
     };
-    static_assert( ARRAY_COUNT( blendStrs ) == Underlying( ElementBlendMode::COUNT ) );
+    static_assert( ARRAY_COUNT( blendStrs ) == Underlying( UIElementBlendMode::COUNT ) );
+
     for ( int i = 0; i < ARRAY_COUNT( blendStrs ); ++i )
     {
         if ( !strcmp( str, blendStrs[i] ) )
         {
-            return static_cast<ElementBlendMode>( i );
+            return static_cast<UIElementBlendMode>( i );
         }
     }
 
     LOG_ERR( "Unrecognized UIElementBlendMode '%s' in xml layout file, using opaque instead. Is case sensitive", str );
-    return ElementBlendMode::OPAQUE;
+    return UIElementBlendMode::OPAQUE;
+}
+
+
+static UIElementType ParseElementType( const char* str )
+{
+    static const char* strs[] =
+    {
+        "regular",
+        "mkdd_diag_tint",
+    };
+    static_assert( ARRAY_COUNT( strs ) == Underlying( UIElementType::COUNT ) );
+
+    for ( int i = 0; i < ARRAY_COUNT( strs ); ++i )
+    {
+        if ( !strcmp( str, strs[i] ) )
+        {
+            return static_cast<UIElementType>( i );
+        }
+    }
+
+    LOG_ERR( "Unrecognized UIElementType '%s' in xml layout file, using opaque instead. Is case sensitive", str );
+    return UIElementType::DEFAULT;
 }
 
 
@@ -111,6 +134,10 @@ static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vecto
         {
             createInfos[idx].updateFuncName = val;
             createInfos[idx].element.scriptFlags |= UIElementScriptFlags::HAS_UPDATE_FUNC;
+        }
+        else if ( !strcmp( attrib.name(), "type" ) )
+        {
+            createInfos[idx].element.type = ParseElementType( val );
         }
         else
         {
@@ -226,6 +253,7 @@ bool UILayout::FastfileLoad( Serializer* serializer )
         serializer->Read( info.element.nextSibling );
         serializer->Read( info.element.firstChild );
         serializer->Read( info.element.lastChild );
+        serializer->Read( info.element.type );
         serializer->Read( info.element.userFlags );
         serializer->Read( info.element.scriptFlags );
         serializer->Read( info.element.blendMode );
@@ -257,6 +285,7 @@ bool UILayout::FastfileSave( Serializer* serializer ) const
         serializer->Write( info.element.nextSibling );
         serializer->Write( info.element.firstChild );
         serializer->Write( info.element.lastChild );
+        serializer->Write( info.element.type );
         serializer->Write( info.element.userFlags );
         serializer->Write( info.element.scriptFlags );
         serializer->Write( info.element.blendMode );

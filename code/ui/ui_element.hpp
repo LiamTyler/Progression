@@ -21,13 +21,21 @@ namespace PG::UI
     };
     PG_DEFINE_ENUM_OPS( UIElementScriptFlags );
 
-    enum class ElementBlendMode : uint8_t
+    enum class UIElementBlendMode : uint8_t
     {
         OPAQUE = 0,
         BLEND = 1,
         ADDITIVE = 2,
 
         COUNT = 3
+    };
+
+    enum class UIElementType : uint8_t
+    {
+        DEFAULT = 0,
+        MKDD_DIAG_TINT = 1,
+
+        COUNT = 2
     };
 
     using UIElementHandle = uint16_t;
@@ -44,9 +52,10 @@ namespace PG::UI
 
         uint16_t scriptFunctionsIdx;
 
+        UIElementType type = UIElementType::DEFAULT;
         UIElementUserFlags userFlags = UIElementUserFlags::VISIBLE;
         UIElementScriptFlags scriptFlags = UIElementScriptFlags::NONE;
-        ElementBlendMode blendMode = ElementBlendMode::OPAQUE;
+        UIElementBlendMode blendMode = UIElementBlendMode::OPAQUE;
         glm::vec2 pos; // normalized 0 - 1
         glm::vec2 dimensions; // normalized 0 - 1
         glm::vec4 tint;

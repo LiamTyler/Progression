@@ -123,6 +123,7 @@ namespace PG::UI
 
     struct UIElementFunctions
     {
+        UIScript* uiScript;
         sol::function update;
     };
 

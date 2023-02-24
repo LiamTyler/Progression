@@ -11,6 +11,7 @@
 #include "shared/logger.hpp"
 #include "shared/platform_defines.hpp"
 #include "ui/ui_data_structures.hpp"
+#include "c_shared/ui.h"
 #include <list>
 
 
@@ -83,9 +84,9 @@ namespace PG::UI
         pipelineDesc.shaders[1]              = AssetManager::Get<Shader>( "uiFrag" );
         for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
         {
-            ElementBlendMode blendMode = static_cast<ElementBlendMode>( i );
-            pipelineDesc.colorAttachmentInfos[0].blendingEnabled = blendMode != ElementBlendMode::OPAQUE;
-            if ( blendMode == ElementBlendMode::BLEND )
+            UIElementBlendMode blendMode = static_cast<UIElementBlendMode>( i );
+            pipelineDesc.colorAttachmentInfos[0].blendingEnabled = blendMode != UIElementBlendMode::OPAQUE;
+            if ( blendMode == UIElementBlendMode::BLEND )
             {
                 pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::SRC_ALPHA;
                 pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
@@ -94,7 +95,7 @@ namespace PG::UI
                 pipelineDesc.colorAttachmentInfos[0].colorBlendEquation = BlendEquation::ADD;
                 pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation = BlendEquation::ADD;
             }
-            else if ( blendMode == ElementBlendMode::ADDITIVE )
+            else if ( blendMode == UIElementBlendMode::ADDITIVE )
             {
                 pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::ONE;
                 pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE;
@@ -150,7 +151,7 @@ namespace PG::UI
         for ( int i = 0; i < MAX_UI_ELEMENTS; ++i )
         {
             if ( s_uiElementFunctions[i].update.valid() )
-                s_uiElementFunctions[i].update = sol::nil;
+                s_uiElementFunctions[i].update = sol::lua_nil;
         }
         s_uiElementFunctions.Clear();
         s_rootUiElements.clear();
@@ -409,6 +410,7 @@ namespace PG::UI
                 uint16_t idx = s_uiElementFunctions.AllocOne();
                 element.scriptFunctionsIdx = idx;
                 UIElementFunctions& functions = s_uiElementFunctions[idx];
+                functions.uiScript = layoutInfo.uiscript;
                 functions.update = layoutInfo.uiscript->env[createInfo.updateFuncName];
                 if ( !functions.update.valid() )
                 {
@@ -431,7 +433,7 @@ namespace PG::UI
     template <typename Func>
     void IterateElementTree( const UIElementHandle handle, Func ProcessSingleElementFunc )
     {
-        const UIElement& e = *GetElement( handle );
+        UIElement& e = *GetElement( handle );
         PG_ASSERT( s_uiElements.IsSlotInUse( handle ) );
 
         if ( IsSet( e.userFlags, UIElementUserFlags::VISIBLE ) )
@@ -468,11 +470,16 @@ namespace PG::UI
             }
         }
 
-        IterateAllElementsInOrder( [&]( const UIElement& e )
+        IterateAllElementsInOrder( [&]( UIElement& e )
         {
+            if ( e.scriptFlags == UIElementScriptFlags::NONE )
+                return;
+
+            const UIElementFunctions& funcs = s_uiElementFunctions[e.scriptFunctionsIdx];
+            funcs.uiScript->env["e"] = &e;
+
             if ( IsSet( e.scriptFlags, UIElementScriptFlags::HAS_UPDATE_FUNC ) )
             {
-                const auto& funcs = s_uiElementFunctions[e.scriptFunctionsIdx];
                 CHECK_SOL_FUNCTION_CALL( funcs.update() );
             }
         });
@@ -493,17 +500,11 @@ namespace PG::UI
     {
         GpuData::UIElementData gpuData;
         gpuData.flags = Underlying( e.userFlags );
+        gpuData.type = Underlying( e.type );
         gpuData.packedTint = Pack4Unorm( e.tint.x, e.tint.y, e.tint.z, e.tint.w );
         gpuData.textureIndex = e.image ? e.image->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
         gpuData.pos = e.pos;
         gpuData.dimensions = e.dimensions;
-        gpuData._pad = 0;
-        if ( e.image && e.image->name == "title_press_start" )
-        {
-            gpuData._pad = 1;
-        }
-
-        int a = sizeof( sol::function );
 
         return gpuData;
     }
@@ -511,36 +512,6 @@ namespace PG::UI
     static uint32_t GetPipelineForUIElement( const UIElement& element )
     {
         return Underlying( element.blendMode );
-    }
-
-    static bool RenderSingleElement( const UIElement& e, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
-    {
-        if ( !IsSet( e.userFlags, UIElementUserFlags::VISIBLE ) )
-            return false;
-        
-        uint32_t pipelineIdx = GetPipelineForUIElement( e );
-        if ( pipelineIdx != lastPipelineIndex )
-        {
-            lastPipelineIndex = pipelineIdx;
-            cmdBuf->BindPipeline( &s_uiPipelines[pipelineIdx] );
-        }
-        GpuData::UIElementData gpuData = GetGpuDataFromUIElement( e );
-        cmdBuf->PushConstants( 0, sizeof( GpuData::UIElementData ), &gpuData );
-        cmdBuf->Draw( 0, 6 );
-
-        return true;
-    }
-
-    static void RenderElementTree( UIElementHandle handle, Gfx::CommandBuffer* cmdBuf, uint32_t& lastPipelineIndex )
-    {
-        const UIElement& e = *GetElement( handle );
-        if ( RenderSingleElement( e, cmdBuf, lastPipelineIndex ) )
-        {
-            for ( UIElementHandle childHandle = e.firstChild; childHandle != UI_NULL_HANDLE; childHandle = GetElement( childHandle )->nextSibling )
-            {
-                RenderElementTree( childHandle, cmdBuf, lastPipelineIndex );
-            }
-        }
     }
 
     void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet *bindlessTexturesSet )
@@ -552,10 +523,18 @@ namespace PG::UI
         uint32_t lastPipelineIndex = PIPELINE_OPAQUE;
         cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_SET );
 
-        for ( auto it = s_rootUiElements.cbegin(); it != s_rootUiElements.cend(); ++it )
+        IterateAllElementsInOrder( [&]( const UIElement& e )
         {
-            RenderElementTree( *it, cmdBuf, lastPipelineIndex );
-        }
+            uint32_t pipelineIdx = GetPipelineForUIElement( e );
+            if ( pipelineIdx != lastPipelineIndex )
+            {
+                lastPipelineIndex = pipelineIdx;
+                cmdBuf->BindPipeline( &s_uiPipelines[pipelineIdx] );
+            }
+            GpuData::UIElementData gpuData = GetGpuDataFromUIElement( e );
+            cmdBuf->PushConstants( 0, sizeof( GpuData::UIElementData ), &gpuData );
+            cmdBuf->Draw( 0, 6 );
+        });
     }
 
 } // namespace PG::UI

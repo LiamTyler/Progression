@@ -1,6 +1,6 @@
 #pragma once
 
-constexpr int PG_FASTFILE_VERSION = 6; // new asset type: UILayout
+#include "shared/core_defines.hpp"
 
 // If order is changed, all fastfiles need to be rebuilt
 enum AssetType : unsigned int
@@ -20,16 +20,18 @@ enum AssetType : unsigned int
 };
 
 
-inline const unsigned int g_assetVersions[] =
+constexpr unsigned int g_assetVersions[] =
 {
     3, // ASSET_TYPE_GFX_IMAGE
     2, // ASSET_TYPE_MATERIAL
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
-    5, // ASSET_TYPE_UI_LAYOUT, "add optional update functions for each ui element (try 2)"
+    6, // ASSET_TYPE_UI_LAYOUT, "adding UIElementType"
     0, // ASSET_TYPE_TEXTURESET
 };
+
+constexpr uint32_t PG_FASTFILE_VERSION = 7 + ARRAY_SUM( g_assetVersions ); // adding UIElementType
 
 inline const char* const g_assetNames[] =
 {

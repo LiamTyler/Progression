@@ -7,6 +7,7 @@
   image="title_background_1"
 />
 <element
+  type="mkdd_diag_tint"
   pos="0.15 0.72"
   size="0.69 0.15"
   tint="1 1 1 1"

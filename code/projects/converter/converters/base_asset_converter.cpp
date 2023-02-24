@@ -58,6 +58,7 @@ void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo )
 {
     if ( createInfo == nullptr )
     {
+        LOG_ERR( "Adding null asset for conversion! AssetType: %s", g_assetNames[assetType] );
         throw std::runtime_error( "Adding null asset for conversion! AssetType: " + std::string( g_assetNames[assetType] ) );
     }
 

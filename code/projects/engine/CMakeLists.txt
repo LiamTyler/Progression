@@ -101,8 +101,7 @@ set(
 	${CODE_DIR}/renderer/rendergraph/r_rendergraph.cpp
     ${CODE_DIR}/renderer/rendergraph/r_rendergraph.hpp
 	
-	${PROGRESSION_DIR}/assets/shaders/c_shared/structs.h
-	${PROGRESSION_DIR}/assets/shaders/c_shared/defines.h
+	${C_SHARED_SHADERS}
     
     ${PRIMARY_SHARED_SRC}
     ${CODE_DIR}/shared/float_conversions.hpp

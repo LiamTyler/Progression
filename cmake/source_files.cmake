@@ -95,8 +95,13 @@ set(
     ${SHADER_DIR}/lib/gamma.glsl
     ${SHADER_DIR}/lib/pbr.glsl
     ${SHADER_DIR}/lib/tonemap.glsl
+)
+
+set(
+    C_SHARED_SHADERS
     
     ${SHADER_DIR}/c_shared/defines.h
     ${SHADER_DIR}/c_shared/limits.h
     ${SHADER_DIR}/c_shared/structs.h
+    ${SHADER_DIR}/c_shared/ui.h
 )

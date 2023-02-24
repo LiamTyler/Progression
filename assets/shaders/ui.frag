@@ -3,10 +3,8 @@
 #extension GL_EXT_nonuniform_qualifier : enable
 
 #include "c_shared/structs.h"
+#include "c_shared/ui.h"
 #include "lib/gamma.glsl"
-
-// keep in sync with UIElementFlags
-#define UI_FLAG_APPLY_TONEMAPPING (1 << 2)
 
 layout( location = 0 ) in vec2 texCoord;
 layout( location = 1 ) in vec4 vertColor;
@@ -27,42 +25,30 @@ vec3 saturate( const in vec3 v )
 
 void main()
 {
-    if ( element._pad == 0 )
+	vec4 tintColor = unpackUnorm4x8( element.packedTint );
+    vec4 texSample = vec4( 1, 1, 1, 1 );
+    if ( element.textureIndex != PG_INVALID_TEXTURE_INDEX )
+	{
+        texSample = texture( textures[element.textureIndex], texCoord );
+	}
+    
+    if ( element.type == UI_ELEM_TYPE_DEFAULT )
     {
-	    vec4 color = unpackUnorm4x8( element.packedTint );
-        if ( element.textureIndex != PG_INVALID_TEXTURE_INDEX )
-	    {
-		    color.rgba *= texture( textures[element.textureIndex], texCoord );
-	    }
-    
-        finalColor.rgb = color.rgb;
-        finalColor.a = color.a;
-    
-        if ( 0 != (element.flags & UI_FLAG_APPLY_TONEMAPPING) )
-        {
-            finalColor.rgb = LinearToGammaSRGB( finalColor.rgb );
-        }
+        finalColor = tintColor * texSample;
+    }
+    else if ( element.type == UI_ELEM_TYPE_MKDD_DIAG_TINT )
+    {
+        finalColor.rgb = saturate( tintColor.rgb + mix( tintColor.rgb, texSample.rgb, vertColor.rgb ) );
+        finalColor.a = tintColor.a * texSample.a;
     }
     else
     {
-        vec4 tint = vec4( 0, 25, 160, 255 ) / 255.0f;
-        vec4 texSample = vec4( 0, 0, 0, 0 );
-        if ( element.textureIndex != PG_INVALID_TEXTURE_INDEX )
-	    {
-		    texSample = texture( textures[element.textureIndex], texCoord );
-	    }
+        finalColor = vec4( 255, 20, 147, 255 ) / 255.0f;
+        return;
+    }
 
-        //vec4 tevin_a = vec4( tint.rgb, 0 );
-	    //vec4 tevin_b = vec4( textemp.rgb, textemp.a );
-	    //vec4 tevin_c = vec4( vertColor.rgb, tint.a );
-	    //vec4 tevin_d = vec4( tint.rgb, 0 );
-
-        //finalColor.rgb = clamp( tevin_d.rgb + tevin_a.rgb + (tevin_b.rgb - tevin_a.rgb)*tevin_c.rgb), vec3( 0 ), vec3( 1 ) );
-        //finalColor.a = clamp( tevin_d.a + tevin_a.a + (tevin_b.a - tevin_a.a)*tevin_c.a), 0, 1 );
-        //finalColor = tevin_d + mix( tevin_a, texSample, tevin_c );
-        //finalColor = clamp( finalColor, vec4( 0 ), vec4( 1 ) );
-
-        finalColor.rgb = saturate( tint.rgb + mix( tint.rgb, texSample.rgb, vertColor.rgb ) );
-        finalColor.a = tint.a * texSample.a;
+    if ( 0 != (element.flags & UI_FLAG_APPLY_TONEMAPPING) )
+    {
+        finalColor.rgb = LinearToGammaSRGB( finalColor.rgb );
     }
 }

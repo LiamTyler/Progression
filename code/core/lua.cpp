@@ -27,6 +27,7 @@ namespace Lua
     }
 
 
+
     void RegisterLuaFunctions_Math( lua_State* L )
     {
         using namespace glm;
@@ -73,6 +74,8 @@ namespace Lua
         vec4_type.set_function( "dot",          []( const vec4& a, const vec4& b ){ return dot( a, b ); } );
         vec4_type.set_function( "length",       []( const vec4& a ){ return length( a ); } );
         vec4_type.set_function( "normalize",    []( const vec4& a ){ return normalize( a ); } );
+
+        lua["Vec4Lerp"] = []( const vec4& a, const vec4& b, float t ) { return (1-t) * a + t * b; };
 
         sol::usertype< mat3 > mat3_type = lua.new_usertype< mat3 >( "mat3", sol::constructors< mat3(), mat3( float ), mat3( const mat3& ) >() );
         mat3_type.set_function( sol::meta_function::index,          []( const mat3& m, const int index ) { return m[index]; } );

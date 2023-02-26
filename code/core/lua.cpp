@@ -143,6 +143,22 @@ namespace Lua
     }
 
 
+    void RunFunction( sol::environment& env, std::string_view funcName )
+    {
+        env[funcName]();
+    }
+
+
+    void RunFunctionSafeChecks( sol::environment& env, std::string_view funcName )
+    {
+        sol::function func = env[funcName];
+        if ( func.valid() )
+        {
+            CHECK_SOL_FUNCTION_CALL( func() );
+        }
+    }
+
+
     ScriptInstance::ScriptInstance( Script* inScriptAsset )
     {
         PG_ASSERT( inScriptAsset );

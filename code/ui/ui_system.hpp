@@ -20,8 +20,11 @@ namespace PG::UI
     UIElement* CreateElement( UIElementHandle templateElement = UI_NULL_HANDLE );
     UIElement* CreateChildElement( UIElementHandle parent, UIElementHandle templateElement = UI_NULL_HANDLE );
     UIElement* GetElement( UIElementHandle handle );
+    UIElement* GetChildElement( UIElementHandle parentHandle, uint32_t childIdx );
     void RemoveElement( UIElementHandle handle ); // is recursive
+    UIElement* GetLayoutRootElement( const std::string& layoutName );
     void CreateLayout( const std::string& layoutName );
+    
 
     uint16_t AddScript( const std::string& scriptName );
 

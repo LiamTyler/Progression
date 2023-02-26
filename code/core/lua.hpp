@@ -32,6 +32,8 @@ namespace Lua
     sol::state& State();
 
     void RunScriptNow( const std::string& script );
+    void RunFunction( sol::environment& env, std::string_view funcName );
+    void RunFunctionSafeChecks( sol::environment& env, std::string_view funcName );
 
     struct ScriptInstance
     {

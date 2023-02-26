@@ -59,15 +59,25 @@ namespace PG::UI
         lua["GetElement"] = GetElement;
         lua["RemoveElement"] = RemoveElement;
         lua["CreateLayout"] = CreateLayout;
+        lua["GetLayoutRootElement"] = GetLayoutRootElement;
+        lua["GetChildElement"] = GetChildElement;
 
         sol::usertype<UIElement> uielement_type = lua.new_usertype<UIElement>( "UIElement" );
-        uielement_type["pos"]        = &UIElement::pos;
-        uielement_type["dimensions"] = &UIElement::dimensions;
-        uielement_type["tint"]       = &UIElement::tint;
+        uielement_type["parent"]      = &UIElement::parent;
+        uielement_type["prevSibling"] = &UIElement::prevSibling;
+        uielement_type["nextSibling"] = &UIElement::nextSibling;
+        uielement_type["firstChild"]  = &UIElement::firstChild;
+        uielement_type["lastChild"]   = &UIElement::lastChild;
+        uielement_type["pos"]         = &UIElement::pos;
+        uielement_type["dimensions"]  = &UIElement::dimensions;
+        uielement_type["tint"]        = &UIElement::tint;
+        uielement_type.set_function( "Handle", &UIElement::Handle );
         uielement_type.set_function( "SetVisible", []( UIElement& e, bool b )
         {
-            if ( b ) e.userFlags |= UIElementUserFlags::VISIBLE;
-            else e.userFlags &= ~UIElementUserFlags::VISIBLE;
+            if ( b )
+                e.userFlags |= UIElementUserFlags::VISIBLE;
+            else
+                e.userFlags &= ~UIElementUserFlags::VISIBLE;
         });
     }
 
@@ -156,8 +166,12 @@ namespace PG::UI
         s_uiElements.Clear();
         for ( int i = 0; i < MAX_UI_ELEMENTS; ++i )
         {
-            if ( s_uiElementFunctions[i].update.valid() )
-                s_uiElementFunctions[i].update = sol::lua_nil;
+            auto& f = s_uiElementFunctions[i];
+            if ( f.update.valid() ) f.update = sol::lua_nil;
+            if ( f.mouseButtonDown.valid() ) f.mouseButtonDown = sol::lua_nil;
+            if ( f.mouseButtonUp.valid() ) f.mouseButtonUp = sol::lua_nil;
+            if ( f.mouseEnter.valid() ) f.mouseEnter = sol::lua_nil;
+            if ( f.mouseLeave.valid() ) f.mouseLeave = sol::lua_nil;
         }
         s_uiElementFunctions.Clear();
         s_rootUiElements.clear();
@@ -291,6 +305,22 @@ namespace PG::UI
         return &s_uiElements[handle];
     }
 
+    UIElement* GetChildElement( UIElementHandle parentHandle, uint32_t childIdx )
+    {
+        const UIElement& parent = s_uiElements[parentHandle];
+        uint32_t idx = 0;
+        UIElementHandle childHandle = parent.firstChild;
+        for ( ; childHandle != UI_NULL_HANDLE && idx < childIdx; childHandle = GetElement( childHandle )->nextSibling )
+        {
+            ++idx;
+        }
+
+        if ( idx == childIdx && childHandle != UI_NULL_HANDLE )
+            return &s_uiElements[childHandle];
+        
+        return nullptr;
+    }
+
     static void RemoveElementHelper_IgnoreParent( UIElement* e )
     {
         if ( e->prevSibling != UI_NULL_HANDLE )
@@ -350,6 +380,17 @@ namespace PG::UI
         }
         s_uiElements.FreeElement( e->Handle() );
     }
+
+    UIElement* GetLayoutRootElement( const std::string& layoutName )
+    {
+        for ( const auto& layout : s_layouts )
+        {
+            if ( layoutName == layout.name )
+                return GetElement( layout.rootElementHandle );
+        }
+
+        return nullptr;
+    }
     
     static void OffsetHandles( UIElement& e, UIElementHandle offset )
     {
@@ -364,11 +405,7 @@ namespace PG::UI
     {
         uint16_t idx = static_cast<uint16_t>( s_luaScripts.size() );
         s_luaScripts.emplace_back( script );
-        sol::function startFunc = script->env["Start"];
-        if ( startFunc.valid() )
-        {
-            CHECK_SOL_FUNCTION_CALL( startFunc() );
-        }
+        Lua::RunFunctionSafeChecks( script->env, "Start" );
 
         return idx;
     }
@@ -376,6 +413,18 @@ namespace PG::UI
     uint16_t AddScript( const std::string& scriptName )
     {
         return AddScript( new UIScript( s_uiLuaState, scriptName ) );
+    }
+
+    static void GetFunctionRef( const char* funcTypeStr, sol::function& func, const std::string& funcName, UIScript* uiScript, const std::string& scriptName )
+    {
+        if ( !funcName.empty() )
+        {
+            func = uiScript->env[funcName];
+            if ( !func.valid() )
+            {
+                LOG_ERR( "Script %s does not have a %s function '%s'", scriptName.c_str(), funcTypeStr, funcName.c_str() );
+            }
+        }
     }
 
     void CreateLayout( const std::string& layoutName )
@@ -396,10 +445,6 @@ namespace PG::UI
         layoutInfo.name = layoutName;
         layoutInfo.rootElementHandle = rootElementHandle;
         layoutInfo.elementCount = (uint16_t)layout->createInfos.size();
-        if ( layout->script )
-        {
-            layoutInfo.uiscript = new UIScript( s_uiLuaState, layout->script );
-        }
 
         for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layout->createInfos.size(); ++localHandle )
         {
@@ -411,36 +456,29 @@ namespace PG::UI
             {
                 element.image = AssetManager::Get<GfxImage>( createInfo.imageName );
             }
-            if ( element.scriptFlags != UIElementScriptFlags::NONE )
+        }
+
+        // Must run Start function all the elements have been initialized
+        if ( layout->script )
+        {
+            layoutInfo.uiscript = new UIScript( s_uiLuaState, layout->script );
+            Lua::RunFunctionSafeChecks( layoutInfo.uiscript->env, "Start" );
+            const std::string& scriptName = layout->script->name;
+
+            for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layout->createInfos.size(); ++localHandle )
             {
-                uint16_t idx = s_uiElementFunctions.AllocOne();
-                element.scriptFunctionsIdx = idx;
-                UIElementFunctions& functions = s_uiElementFunctions[idx];
-                functions.uiScript = layoutInfo.uiscript;
-                
-                if ( !createInfo.updateFuncName.empty() )
+                UIElement& element = s_uiElements[rootElementHandle + localHandle];
+                const UIElementCreateInfo& createInfo = layout->createInfos[localHandle];
+                if ( element.scriptFlags != UIElementScriptFlags::NONE )
                 {
-                    functions.update = layoutInfo.uiscript->env[createInfo.updateFuncName];
-                    if ( !functions.update.valid() )
-                    {
-                        LOG_ERR( "Script %s does not have update function '%s'", layout->script->name.c_str(), createInfo.updateFuncName.c_str() );
-                    }
-                }
-                if ( !createInfo.mouseButtonDownFuncName.empty() )
-                {
-                    functions.mouseButtonDown = layoutInfo.uiscript->env[createInfo.mouseButtonDownFuncName];
-                    if ( !functions.mouseButtonDown.valid() )
-                    {
-                        LOG_ERR( "Script %s does not have mouseButtonDown function '%s'", layout->script->name.c_str(), createInfo.mouseButtonDownFuncName.c_str() );
-                    }
-                }
-                if ( !createInfo.mouseButtonUpFuncName.empty() )
-                {
-                    functions.mouseButtonUp = layoutInfo.uiscript->env[createInfo.mouseButtonUpFuncName];
-                    if ( !functions.mouseButtonUp.valid() )
-                    {
-                        LOG_ERR( "Script %s does not have mouseButtonUp function '%s'", layout->script->name.c_str(), createInfo.mouseButtonUpFuncName.c_str() );
-                    }
+                    uint16_t idx = s_uiElementFunctions.AllocOne();
+                    element.scriptFunctionsIdx = idx;
+                    UIElementFunctions& functions = s_uiElementFunctions[idx];
+                    functions.uiScript = layoutInfo.uiscript;
+
+                    GetFunctionRef( "update", functions.update, createInfo.updateFuncName, layoutInfo.uiscript, scriptName );
+                    GetFunctionRef( "mouseButtonDown", functions.mouseButtonDown, createInfo.mouseButtonDownFuncName, layoutInfo.uiscript, scriptName );
+                    GetFunctionRef( "mouseButtonUp", functions.mouseButtonUp, createInfo.mouseButtonUpFuncName, layoutInfo.uiscript, scriptName );
                 }
             }
         }
@@ -490,11 +528,7 @@ namespace PG::UI
 
         for ( const auto& script : s_luaScripts )
         {
-            sol::function func = script->env["Update"];
-            if ( func.valid() )
-            {
-                CHECK_SOL_FUNCTION_CALL( func() );
-            }
+            Lua::RunFunctionSafeChecks( script->env, "Update" );
         }
 
         IterateAllElementsInOrder( [&]( UIElement& e )

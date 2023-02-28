@@ -39,7 +39,8 @@ void main()
     else if ( element.type == UI_ELEM_TYPE_MKDD_DIAG_TINT )
     {
         finalColor.rgb = saturate( tintColor.rgb + mix( tintColor.rgb, texSample.rgb, vertColor.rgb ) );
-        finalColor.a = tintColor.a * texSample.a;
+        finalColor.a = tintColor.b * texSample.a;
+        return;     
     }
     else
     {

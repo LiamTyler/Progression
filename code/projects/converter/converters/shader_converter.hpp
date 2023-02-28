@@ -6,6 +6,9 @@
 namespace PG
 {
 
+void InitShaderIncludeCache();
+void CloseShaderIncludeCache();
+
 class ShaderConverter : public BaseAssetConverterTemplate<Shader, ShaderCreateInfo>
 {
 public:

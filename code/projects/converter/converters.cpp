@@ -21,11 +21,14 @@ void InitConverters()
     g_converters[ASSET_TYPE_UI_LAYOUT] = std::make_shared<UILayoutConverter>();
     g_converters[ASSET_TYPE_TEXTURESET] = std::make_shared<BaseAssetConverter>( ASSET_TYPE_TEXTURESET ); // pass through, as texturesets aren't actually converted
     static_assert( ASSET_TYPE_COUNT == 7 );
+
+    InitShaderIncludeCache();
 }
 
 
 void ShutdownConverters()
 {
+    CloseShaderIncludeCache();
     for ( int i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
         g_converters[i].reset();

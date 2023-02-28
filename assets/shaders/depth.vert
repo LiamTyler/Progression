@@ -10,7 +10,7 @@ layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
 
 layout( push_constant ) uniform PushConsts
 {
-	mat4 M;
+    mat4 M;
 };
 
 layout( location = 0 ) in vec3 inPosition;
@@ -18,5 +18,5 @@ layout( location = 0 ) in vec3 inPosition;
 void main()
 {
     vec4 worldSpacePos = M * vec4( inPosition, 1 );
-	gl_Position = globals.VP * worldSpacePos;
+    gl_Position = globals.VP * worldSpacePos;
 }

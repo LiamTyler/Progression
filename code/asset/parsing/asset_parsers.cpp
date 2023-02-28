@@ -46,6 +46,12 @@ static Namespace::EnumName EnumName ## _StringToEnum( std::string_view str ) \
     return EnumName::defaultVal; \
 }
 
+std::string String( const rapidjson::Value& value )
+{
+    PG_ASSERT( value.IsString() );
+    return value.GetString();
+}
+
 
 
 BEGIN_STR_TO_ENUM_MAP( GfxImageSemantic )
@@ -60,19 +66,19 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
 {
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0] = v.GetString(); } },
-        { "equirectangularFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0]  = v.GetString(); } },
-        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_LEFT]   = v.GetString(); } },
-        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_RIGHT]  = v.GetString(); } },
-        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_FRONT]  = v.GetString(); } },
-        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BACK]   = v.GetString(); } },
-        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_TOP]    = v.GetString(); } },
-        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BOTTOM] = v.GetString(); } },
+        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0] = PG_ASSET_DIR + String( v ); } },
+        { "equirectangularFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0]  = PG_ASSET_DIR + String( v ); } },
+        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_LEFT]   = PG_ASSET_DIR + String( v ); } },
+        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_RIGHT]  = PG_ASSET_DIR + String( v ); } },
+        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_FRONT]  = PG_ASSET_DIR + String( v ); } },
+        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BACK]   = PG_ASSET_DIR + String( v ); } },
+        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_TOP]    = PG_ASSET_DIR + String( v ); } },
+        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BOTTOM] = PG_ASSET_DIR + String( v ); } },
         { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = v.GetBool(); } },
-        { "semantic",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.semantic = GfxImageSemantic_StringToEnum( v.GetString() ); } },
+        { "semantic",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.semantic = GfxImageSemantic_StringToEnum( String( v ) ); } },
         { "dstFormat", []( const rapidjson::Value& v, GfxImageCreateInfo& i )
             {
-                i.dstPixelFormat = PixelFormatFromString( v.GetString() );
+                i.dstPixelFormat = PixelFormatFromString( String( v ) );
                 if ( i.dstPixelFormat == PixelFormat::INVALID )
                 {
                     LOG_ERR( "Invalid dstFormat '%s'", v.GetString() );
@@ -95,7 +101,7 @@ bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
     using namespace rapidjson;
     static JSONFunctionMapper< MaterialCreateInfo& > mapping(
     {
-        { "textureset", []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = v.GetString(); } },
+        { "textureset", []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = String( v ); } },
         { "albedo",     []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint     = ParseVec3( v ); } },
         { "metalness",  []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint  = ParseNumber<float>( v ); } },
         //{ "roughness",  []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint  = ParseNumber<float>( v ); } },
@@ -111,7 +117,7 @@ bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr i
 {
     static JSONFunctionMapper<ModelCreateInfo&> mapping(
     {
-        { "filename", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "filename", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = PG_ASSET_DIR + String( v ); } },
         { "flipTexCoordsVertically", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.flipTexCoordsVertically = v.GetBool(); } },
         { "recalculateNormals", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.recalculateNormals = v.GetBool(); } },
     });
@@ -132,7 +138,7 @@ bool ScriptParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr 
 {
     static JSONFunctionMapper<ScriptCreateInfo&> mapping(
     {
-        { "filename", []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.filename = PG_ASSET_DIR + std::string( v.GetString() ); } },
+        { "filename", []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.filename = PG_ASSET_DIR + String( v ); } },
     });
     mapping.ForEachMember( value, *info );
     return true;
@@ -153,9 +159,9 @@ bool ShaderParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr 
 {
     static JSONFunctionMapper<ShaderCreateInfo&> mapping(
     {
-        { "name",        []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.name = v.GetString(); } },
-        { "filename",    []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.filename = PG_ASSET_DIR "shaders/" + std::string( v.GetString() ); } },
-        { "shaderStage", []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.shaderStage = ShaderStage_StringToEnum( v.GetString() ); } },
+        { "name",        []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.name = String( v ); } },
+        { "filename",    []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.filename = PG_ASSET_DIR "shaders/" + String( v ); } },
+        { "shaderStage", []( const rapidjson::Value& v, ShaderCreateInfo& s ) { s.shaderStage = ShaderStage_StringToEnum( String( v ) ); } },
     });
     mapping.ForEachMember( value, *info );
 
@@ -175,16 +181,16 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfo
 {
     static JSONFunctionMapper<TexturesetCreateInfo&> mapping(
     {
-        { "name", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = v.GetString(); } },
+        { "name", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = String( v ); } },
         { "clampHorizontal", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampHorizontal = v.GetBool(); } },
         { "clampVertical", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampVertical = v.GetBool(); } },
-        { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = v.GetString(); } },
-        { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = v.GetString(); } },
-        { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = Channel_StringToEnum( v.GetString() ); } },
-        //{ "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = v.GetString(); } },
+        { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = String( v ); } },
+        { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = String( v ); } },
+        { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
+        //{ "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = String( v ); } },
         //{ "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<float>( v ); } },
-        //{ "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = v.GetString(); } },
-        //{ "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( v.GetString() ); } },
+        //{ "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = String( v ); } },
+        //{ "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
         //{ "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = v.GetBool(); } },
     });
     mapping.ForEachMember( value, *info );
@@ -197,7 +203,7 @@ bool UILayoutParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
 {
     static JSONFunctionMapper<UILayoutCreateInfo&> mapping(
     {
-        { "filename", []( const rapidjson::Value& v, UILayoutCreateInfo& s ) { s.xmlFilename = PG_ASSET_DIR "ui/" + std::string( v.GetString() ); } },
+        { "filename", []( const rapidjson::Value& v, UILayoutCreateInfo& s ) { s.xmlFilename = PG_ASSET_DIR "ui/" + String( v ); } },
     });
     mapping.ForEachMember( value, *info );
 

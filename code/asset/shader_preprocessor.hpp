@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset/types/shader.hpp"
+#include <set>
 
 namespace PG
 {
@@ -9,7 +10,7 @@ struct ShaderPreprocessOutput
 {
     bool success;
     std::string outputShader;
-    std::vector< std::string > includedFiles;
+    std::set<std::string> includedFiles;
 };
 
 ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, bool savePreproc );

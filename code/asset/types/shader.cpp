@@ -314,6 +314,7 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     extern const std::string* GetShaderPreproc( const std::string& shaderName );
     preprocShaderText = GetShaderPreproc( name );
 #endif // #if USING( CONVERTER )
+
     if ( !preprocShaderText )
     {
         preproc = PreprocessShader( *createInfo, true );

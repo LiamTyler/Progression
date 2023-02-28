@@ -32,7 +32,11 @@ AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr inf
     AddFastfileDependency( info->filenames[0] );
     for ( const std::string& filename : info->filenames )
     {
-        if ( filename.empty() ) break;
+        if ( filename.empty() )
+            break;
+
+        if ( IsImageFilenameBuiltin( filename ) )
+            continue;
 
         if ( IsFileOutOfDate( cacheTimestamp, filename ) )
         {

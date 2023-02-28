@@ -1,3 +1,6 @@
+#ifndef _STRUCTS_H_
+#define _STRUCTS_H_
+
 #include "c_shared/defines.h"
 
 #ifndef PG_SHADER_CODE
@@ -37,7 +40,7 @@ struct PointLight
 
 struct SkyboxData
 {
-	VEC3 tint;
+    VEC3 tint;
     float scale;
 	UINT hasTexture;
     UVEC3 _pad1;
@@ -52,3 +55,5 @@ struct SkyboxData
 #define PG_LIGHTS_SET               2
     #define PG_POINT_LIGHTS_BIND_INDEX  0
     #define PG_SPOT_LIGHTS_BIND_INDEX   1
+
+#endif // #ifndef _STRUCTS_H_

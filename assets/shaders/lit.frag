@@ -30,31 +30,31 @@ layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 
 void main()
 {
-	vec3 albedo = material.albedoTint.rgb;
-	if ( material.albedoMetalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
-	{
-		albedo *= texture( textures[material.albedoMetalnessMapIndex], texCoords ).rgb;
-	}
+    vec3 albedo = material.albedoTint.rgb;
+    if ( material.albedoMetalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
+    {
+        albedo *= texture( textures[material.albedoMetalnessMapIndex], texCoords ).rgb;
+    }
     ///float metalness = material.metalnessTint;
-	///if ( material.metalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
-	///{
-	///	metalness *= texture( textures[material.metalnessMapIndex], texCoords ).r;
-	///}
+    ///if ( material.metalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
+    ///{
+    ///	metalness *= texture( textures[material.metalnessMapIndex], texCoords ).r;
+    ///}
     ////float roughness = material.roughnessTint;
-	////if ( material.roughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
-	////{
-	////	roughness *= texture( textures[material.roughnessMapIndex], texCoords ).r;
-	////}
+    ////if ( material.roughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
+    ////{
+    ////	roughness *= texture( textures[material.roughnessMapIndex], texCoords ).r;
+    ////}
     //
     //vec3 N = normalize( worldSpaceNormal );
     //vec3 V = normalize( globals.cameraPos.xyz - worldSpacePos );
-	//
+    //
     //vec3 F0 = vec3( 0.04 ); 
     //F0 = mix( F0, albedo, metalness );
     //
     //// reflectance equation
     //vec3 Lo = vec3( 0.0 );
-	//
+    //
     //vec3 ambient = vec3( 0.1 ) * albedo + vec3( 0.0001 * metalness );  //+ 0.0001 * roughness );
     //vec3 color = ambient + Lo;
     //outColor = vec4( color, 1 );

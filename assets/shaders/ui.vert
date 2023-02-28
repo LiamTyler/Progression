@@ -33,7 +33,7 @@ layout( location = 1 ) out vec4 color;
 
 void main()
 {
-	vec2 pos = 2 * (positions[gl_VertexIndex] * element.dimensions + element.pos) - vec2( 1 );
+    vec2 pos = 2 * (positions[gl_VertexIndex] * element.dimensions + element.pos) - vec2( 1 );
     gl_Position = vec4( pos, 0.0, 1.0 );
     texCoord = positions[gl_VertexIndex];
     color = colors[gl_VertexIndex];

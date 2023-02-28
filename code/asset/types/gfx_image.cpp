@@ -92,7 +92,8 @@ void GfxImage::UploadToGpu()
 
 static std::string GetImageFullPath( const std::string& filename )
 {
-    return IsImageFilenameBuiltin( filename ) ? filename : PG_ASSET_DIR + filename;
+    //return IsImageFilenameBuiltin( filename ) ? filename : PG_ASSET_DIR + filename;
+    return filename;
 }
 
 

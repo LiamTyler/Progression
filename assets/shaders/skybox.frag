@@ -16,22 +16,23 @@ layout( std430, push_constant ) uniform SkyboxDataUniform
 
 void main()
 {
-	if ( drawData.hasTexture != 0 )
-	{
-		// Flip Z because in opengl, +z is forward instead of -z, because it uses a left handed system
-		// https://stackoverflow.com/questions/11685608/convention-of-faces-in-opengl-cubemapping
-		//finalColor = texture( skybox, vec3( UV.xy, -UV.z ) );
-		vec3 dir = normalize( vec3( UV.xy, -UV.z ) );
-		float lon = atan( dir.x, dir.y );
-		float lat = atan( dir.z, length( dir.xy ) );
-		vec2 uv = vec2( 0.5 * (lon / PI + 1), lat / PI + 0.5 );
-		finalColor = texture( skybox, uv );
-	}
-	else
-	{
-		finalColor.rgb = vec3( 1, 1, 1 );
-	}
-	finalColor.rgb *= drawData.tint.rgb;
-	finalColor.rgb *= drawData.scale;
+    if ( drawData.hasTexture != 0 )
+    {
+        // Flip Z because in opengl, +z is forward instead of -z, because it uses a left handed system
+        // https://stackoverflow.com/questions/11685608/convention-of-faces-in-opengl-cubemapping
+        //finalColor = texture( skybox, vec3( UV.xy, -UV.z ) );
+        vec3 dir = normalize( vec3( UV.xy, -UV.z ) );
+        float lon = atan( dir.x, dir.y );
+        float lat = atan( dir.z, length( dir.xy ) );
+        vec2 uv = vec2( 0.5 * (lon / PI + 1), lat / PI + 0.5 );
+        finalColor = texture( skybox, uv );
+    }
+    else
+    {
+        finalColor.rgb = vec3( 1, 1, 1 );
+    }
+
+    finalColor.rgb *= drawData.tint.rgb;
+    finalColor.rgb *= drawData.scale;
     finalColor.a = 1;
 }

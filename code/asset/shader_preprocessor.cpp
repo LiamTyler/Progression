@@ -132,7 +132,6 @@ public:
     {
         output = outputData;
         fileContentPtrs.reserve( 16 );
-        searchDirs[0] = PG_ASSET_DIR "shaders/";
     }
 
     virtual ~ShaderIncluder() = default;
@@ -142,26 +141,20 @@ public:
         shaderc_include_result* result = new shaderc_include_result;
         memset( result, 0, sizeof( shaderc_include_result ) );
 
-        searchDirs[1] = GetParentPath( requesting_source );
-        for ( int i = 0; i < 2; ++i )
+        std::string filename = PG_ASSET_DIR "shaders/" + std::string( requested_source );
+        if ( PathExists( filename ) )
         {
-            const std::string& dir = searchDirs[i];
-            std::string filename = dir + requested_source;
-            if ( PathExists( filename ) )
+            output->includedFilesAbsPath.insert( filename );
+            auto fileContents = GetFileContents( filename );
+            if ( fileContents )
             {
-                output->includedFiles.insert( filename );
-                auto fileContents = GetFileContents( filename );
-                if ( fileContents )
-                {
-                    char* name = static_cast<char*>( malloc( filename.length() + 1 ) );
-                    strcpy( name, filename.c_str() );
-                    result->source_name        = name;
-                    result->source_name_length = filename.length();
-                    result->content            = fileContents->c_str();
-                    result->content_length     = fileContents->size();
-                    fileContentPtrs.push_back( fileContents );
-                }
-                return result;
+                char* name = static_cast<char*>( malloc( filename.length() + 1 ) );
+                strcpy( name, filename.c_str() );
+                result->source_name        = name;
+                result->source_name_length = filename.length();
+                result->content            = fileContents->c_str();
+                result->content_length     = fileContents->size();
+                fileContentPtrs.push_back( fileContents );
             }
         }
 
@@ -179,7 +172,6 @@ public:
     }
     
     ShaderPreprocessOutput *output;
-    std::string searchDirs[2];
     std::vector<std::shared_ptr<std::string>> fileContentPtrs;
 };
 
@@ -207,7 +199,7 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
         options.AddMacroDefinition( symbol, value );
     }
 
-    std::shared_ptr<std::string> fileContents = GetFileContents( createInfo.filename );
+    std::shared_ptr<std::string> fileContents = GetFileContents( GetAbsPath_ShaderFilename( createInfo.filename ) );
     if ( !fileContents )
         return output;
 

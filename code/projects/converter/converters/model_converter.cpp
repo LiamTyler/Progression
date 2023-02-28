@@ -9,7 +9,7 @@ void ModelConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& modelInfo
 {
     auto matCreateInfo = std::make_shared<MaterialCreateInfo>();
 
-    std::vector<std::string> materialNames = GetModelMaterialList( modelInfo->filename );
+    std::vector<std::string> materialNames = GetModelMaterialList( GetAbsPath_ModelFilename( modelInfo->filename ) );
     for ( const auto& matName : materialNames )
     {
         AddUsedAsset( ASSET_TYPE_MATERIAL, AssetDatabase::FindAssetInfo( ASSET_TYPE_MATERIAL, matName ) );
@@ -31,8 +31,9 @@ std::string ModelConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 
 AssetStatus ModelConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
-    AddFastfileDependency( info->filename );
-    return IsFileOutOfDate( cacheTimestamp, info->filename ) ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;
+    const std::string absPath = GetAbsPath_ModelFilename( info->filename );
+    AddFastfileDependency( absPath );
+    return IsFileOutOfDate( cacheTimestamp, absPath ) ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;
 }
 
 } // namespace PG

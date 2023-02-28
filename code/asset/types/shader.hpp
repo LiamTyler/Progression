@@ -29,6 +29,8 @@ struct ShaderCreateInfo : public BaseAssetCreateInfo
     bool generateDebugInfo = false;
 };
 
+std::string GetAbsPath_ShaderFilename( const std::string& filename );
+
 struct ShaderResourceLayout
 {
 	uint32_t inputMask        = 0;

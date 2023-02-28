@@ -10,7 +10,7 @@ struct ShaderPreprocessOutput
 {
     bool success;
     std::string outputShader;
-    std::set<std::string> includedFiles;
+    std::set<std::string> includedFilesAbsPath;
 };
 
 ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, bool savePreproc );

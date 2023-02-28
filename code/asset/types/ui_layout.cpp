@@ -10,6 +10,11 @@
 namespace PG
 {
 
+std::string GetAbsPath_UILayoutFilename( const std::string& filename )
+{
+    return PG_ASSET_DIR + filename;
+}
+
 using namespace UI;
 
 static glm::vec2 ParseVec2( const char* str )
@@ -189,8 +194,9 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
     name = createInfo->name;
 
 #if USING( CONVERTER )
+    const std::string absPath = GetAbsPath_UILayoutFilename( createInfo->xmlFilename );
     pugi::xml_document doc;
-    pugi::xml_parse_result result = doc.load_file( createInfo->xmlFilename.c_str() );
+    pugi::xml_parse_result result = doc.load_file( absPath.c_str() );
     if ( !result )
     {
         LOG_ERR( "Could not load UILayout xml file '%s'.\n\tError: %s", createInfo->xmlFilename.c_str(), result.description() );
@@ -235,7 +241,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     script = nullptr;
-    std::string scriptFName = GetFilenameMinusExtension( createInfo->xmlFilename ) + ".lua";
+    std::string scriptFName = GetFilenameMinusExtension( absPath ) + ".lua";
     if ( PathExists( scriptFName ) )
     {
         script = AssetManager::Get<Script>( createInfo->name );

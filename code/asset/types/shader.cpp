@@ -18,6 +18,11 @@
 namespace PG
 {
 
+std::string GetAbsPath_ShaderFilename( const std::string& filename )
+{
+    return PG_ASSET_DIR "shaders/" + filename;
+}
+
 
 struct ShaderReflectData
 {
@@ -308,25 +313,13 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     name = createInfo->name;
     shaderStage = createInfo->shaderStage;
 
-    ShaderPreprocessOutput preproc;
-    const std::string* preprocShaderText = nullptr;
-#if USING( CONVERTER )
-    extern const std::string* GetShaderPreproc( const std::string& shaderName );
-    preprocShaderText = GetShaderPreproc( name );
-#endif // #if USING( CONVERTER )
-
-    if ( !preprocShaderText )
+    ShaderPreprocessOutput preproc = PreprocessShader( *createInfo, true );
+    if ( !preproc.success )
     {
-        preproc = PreprocessShader( *createInfo, true );
-        if ( !preproc.success )
-        {
-            return false;
-        }
-        preprocShaderText = &preproc.outputShader;
+        return false;
     }
-
     std::vector< uint32_t > spirv;
-    if ( !CompilePreprocessedShaderToSPIRV( *createInfo, *preprocShaderText, spirv ) )
+    if ( !CompilePreprocessedShaderToSPIRV( *createInfo, preproc.outputShader, spirv ) )
     {
         return false;
     }
@@ -343,8 +336,6 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     memcpy( &resourceLayout, &reflectData.layout, sizeof( ShaderResourceLayout ) );
 
 #if USING( CONVERTER )
-    extern void ReleaseShaderPreproc( const std::string& shaderName );
-    ReleaseShaderPreproc( name );
     savedSpirv = std::move( spirv );
 #elif USING( GPU_DATA ) // #if USING( CONVERTER )
     handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );

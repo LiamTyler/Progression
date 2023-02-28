@@ -9,6 +9,7 @@ namespace PG
 
 std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
+    uint32_t numImages = 0;
     std::string cacheName = info->name;
     // composite image names are already a valid cache name. No need to append a 2nd hash
     if ( !IsSemanticComposite( info->semantic ) )
@@ -19,29 +20,41 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
         HashCombine( hash, Underlying( info->flipVertically ) );
         for ( int i = 0; i < 6; ++i )
         {
-            if ( !info->filenames[i].empty() ) HashCombine( hash, info->filenames[i] );
+            if ( info->filenames[i].empty() )
+                continue;
+            HashCombine( hash, info->filenames[i] );
+            ++numImages;
         }
         cacheName += "_" + std::to_string( hash );
     }
+    else
+    {
+        for ( int i = 0; i < 6; ++i )
+        {
+            if ( !info->filenames[i].empty() )
+                 ++numImages;
+        }
+    }
+    PG_ASSERT( numImages > 0, "GfxImage assets must have at least 1 filename specified" );
     return cacheName;
 }
 
 
 AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
-    AddFastfileDependency( info->filenames[0] );
-    for ( const std::string& filename : info->filenames )
+    for ( int i = 0; i < 6; ++i )
     {
+        const std::string& filename = info->filenames[i];
         if ( filename.empty() )
             break;
 
         if ( IsImageFilenameBuiltin( filename ) )
             continue;
 
-        if ( IsFileOutOfDate( cacheTimestamp, filename ) )
-        {
+        const std::string absPath = PG_ASSET_DIR + filename;
+        AddFastfileDependency( absPath );
+        if ( IsFileOutOfDate( cacheTimestamp, absPath ) )
             return AssetStatus::OUT_OF_DATE;
-        }
     }
     
     return AssetStatus::UP_TO_DATE;

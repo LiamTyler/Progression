@@ -1,12 +1,12 @@
 [
 	{ "Image": {
 		"name": "kloppenheim",
-		"equirectangularFilename": "images/skyboxes/kloppenheim_06_8k.exr",
+		"equirectangularFilename": "images/skies/kloppenheim_06_8k.exr",
 		"semantic": "ENVIRONMENT_MAP"
 	} },
     { "Image": {
 		"name": "cayley_interior",
-		"equirectangularFilename": "images/skyboxes/cayley_interior_4k.exr",
+		"equirectangularFilename": "images/skies/cayley_interior_4k.exr",
 		"semantic": "ENVIRONMENT_MAP"
 	} },
     { "Textureset": {

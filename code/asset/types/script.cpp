@@ -7,13 +7,19 @@
 namespace PG
 {
 
+std::string GetAbsPath_ScriptFilename( const std::string& filename )
+{
+    return PG_ASSET_DIR + filename;
+}
+
+
 bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 {
     static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
     PG_ASSERT( baseInfo );
     const ScriptCreateInfo* createInfo = (const ScriptCreateInfo*)baseInfo;
     name = createInfo->name;
-    std::ifstream in( createInfo->filename, std::ios::binary );
+    std::ifstream in( GetAbsPath_ScriptFilename( createInfo->filename ), std::ios::binary );
     if ( !in )
     {
         LOG_ERR( "Could not load script file '%s'", createInfo->filename.c_str() );

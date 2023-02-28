@@ -13,6 +13,11 @@
 namespace PG
 {
 
+std::string GetAbsPath_ModelFilename( const std::string& filename )
+{
+    return PG_ASSET_DIR + filename;
+}
+
 bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
@@ -23,7 +28,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         LOG_ERR( "Model::Load only takes .pmodel format" );
         return false;
     }
-    std::ifstream in( createInfo->filename );
+    std::ifstream in( GetAbsPath_ModelFilename( createInfo->filename ) );
     if ( !in )
     {
         LOG_ERR( "Failed to open .pmodel file '%s'", createInfo->filename.c_str() );

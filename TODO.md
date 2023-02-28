@@ -1,28 +1,45 @@
 # TODO
+
+# Priority 1
 - [ ] remove layouts
-- [ ] allow for resizing window
+- [ ] allow for resizing window/multiple resolutions
 - [ ] ui mouse events lua callbacks
 - [ ] ui keyboard lua callbacks
 - [ ] controller support
 - [ ] allow for fixed aspect ratio
-- [ ] shader include cache
+- [x] shader include cache
 - [ ] multithread the converter
 - [ ] change profiling to be all in RAM, no file writing. Show min + max + avg
+- [x] Make asset filenames consistent (all from PG_ASSET_DIR, parses only store relative path. Load() makes absolute path, or detects it at least)
+- [ ] Switch to dynamic rendering
 
-
-- [ ] Get albedo + metalness image working for texturesets
+## Priority 2
+- [ ] see if spirv optimizer is working again
+- [ ] LZ4 compress converted assets + fastfiles
+- [x] Get albedo + metalness image working for texturesets
 - [ ] Get normal + roughness image working for texturesets
 - [x] remove 2nd hash number in gfxImage cache composite names
-- [ ] Make asset filenames consistent (all from PG_ASSET_DIR, parses only store relative path. Load() makes absolute path, or detects it at least)
-- [ ] Make sure image clamping vs wraping working correctly
 - [ ] Make model exporter work with texturesets
-- [ ] Switch to dynamic rendering
-- [ ] simplify TransitionImageLayoutImmediate args with defaults
-- [ ] get VS to find spirv/vulkan/shaderc files
 - [ ] If assets are already in required/dependent fastfiles, dont put them in the top level FFs
 - [ ] show profiling results in ImGui view
-- [ ] decouple graphics code from all assets (GfxImage) just store a handle, and remove Vulkan dependencies from Projects that dont need it anymore
+- [ ] Get remote console up and running again, and able to send commands
+- [ ] include both debug + non-debug shaders in FF, allow for runtime switching
+- [ ] mychanges for scripts
+- [ ] mychanges for models
+- [ ] mychanges for ui layouts
+- [ ] mychanges for materials 
+- [ ] mychanges for shaders 
+- [ ] mychanges for images/texturesets
+- [ ] don't wait for idle at the end of each frame
+- [ ] don't wait for idle while uploading images. Use barriers/whatever
+
+## Priority 3
 - [ ] add TIFF loading and saving
+- [ ] Make sure image clamping vs wraping working correctly
+- [ ] decouple graphics code from all assets (GfxImage) just store a handle, and remove Vulkan dependencies from Projects that dont need it anymore
 - [ ] switch/add to .pmodel binary format, with binary <-> text tool
 - [ ] add .pmodel -> .obj tool
+- [ ] simplify TransitionImageLayoutImmediate args with defaults
+- [ ] get VS to find spirv/vulkan/shaderc files
 - [ ] investigate different mipmap filters
+

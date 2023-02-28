@@ -11,6 +11,8 @@ struct UILayoutCreateInfo : public BaseAssetCreateInfo
     std::string xmlFilename;
 };
 
+std::string GetAbsPath_UILayoutFilename( const std::string& filename );
+
 struct UIElementCreateInfo
 {
     UI::UIElement element;

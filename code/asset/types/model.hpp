@@ -29,6 +29,8 @@ struct ModelCreateInfo : public BaseAssetCreateInfo
     bool recalculateNormals = false;
 };
 
+std::string GetAbsPath_ModelFilename( const std::string& filename );
+
 struct Model : public BaseAsset
 {
     bool Load( const BaseAssetCreateInfo* baseInfo ) override;

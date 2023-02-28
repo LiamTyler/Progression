@@ -10,6 +10,8 @@ struct ScriptCreateInfo : public BaseAssetCreateInfo
     std::string filename;
 };
 
+std::string GetAbsPath_ScriptFilename( const std::string& filename );
+
 struct Script : public BaseAsset
 {
 public:

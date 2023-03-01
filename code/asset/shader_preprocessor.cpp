@@ -6,8 +6,10 @@
 #include "shared/hash.hpp"
 #include "shared/logger.hpp"
 #include <fstream>
+#include <mutex>
 #include <regex>
 #include <sstream>
+
 
 // Cache that stores shader files in memory once they are read from disk the first time.
 //  Future requests to load from disk will use the cache instead
@@ -101,9 +103,11 @@ static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
 
 #if USING( FILE_CACHE )
 static std::unordered_map<std::string, std::shared_ptr<std::string>> s_fileCache;
+static std::mutex s_fileCacheLock;
 
 std::shared_ptr<std::string> GetFileContents( const std::string& absFilePath )
 {
+    std::scoped_lock lock( s_fileCacheLock );
     if ( s_fileCache.contains( absFilePath ) )
         return s_fileCache[absFilePath];
 

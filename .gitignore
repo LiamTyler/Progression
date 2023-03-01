@@ -1,5 +1,6 @@
 IMAGES_NO_SUBMIT/
 rendered.png
+log_engine.txt
 build*/
 *.swp
 a.out

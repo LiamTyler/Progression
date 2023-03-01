@@ -195,6 +195,8 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
     uint32_t convertErrors = 0;
     outOfDateAssets = 0;
     uint32_t totalAssets = 0;
+    std::vector<std::pair<AssetType, std::shared_ptr<BaseAssetCreateInfo>>> outOfDateAssetList;
+    outOfDateAssetList.reserve( 100 );
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
     {
         const auto& pendingConvertList = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
@@ -210,14 +212,27 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
             else if ( status == AssetStatus::OUT_OF_DATE )
             {
                 ++outOfDateAssets;
-                if ( !g_converters[assetTypeIdx]->Convert( createInfo ) )
-                {
-                    convertErrors += 1;
-                }
+                outOfDateAssetList.emplace_back( (AssetType)assetTypeIdx, createInfo );
             }
         }
     }
 
+    if ( convertErrors )
+        goto handleErrors;
+
+    // relies on outOfDateAssetList not having any duplicates in it
+    #pragma omp parallel for schedule( dynamic )
+    for ( int i = 0; i < (int)outOfDateAssetList.size(); ++i )
+    {
+        uint32_t assetTypeIdx = outOfDateAssetList[i].first;
+        const std::shared_ptr<BaseAssetCreateInfo>& createInfo = outOfDateAssetList[i].second;
+        if ( !g_converters[assetTypeIdx]->Convert( createInfo ) )
+        {
+            convertErrors += 1;
+        }
+    }
+
+handleErrors:
     double duration = Time::GetDuration( convertStartTime ) / 1000.0f;
     if ( convertErrors )
     {

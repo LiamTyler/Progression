@@ -1,17 +1,18 @@
 #include "shader_converter.hpp"
 #include "shared/hash.hpp"
-#include <map>
 
-std::map<std::string, std::vector<std::string>> s_shaderIncludeCache;
-static const char* SHADER_INCLUDE_PATH = PG_ASSET_DIR "cache/shader_includes.txt";
 #define SHADER_INCLUDE_CACHE IN_USE
 
-namespace PG
-{
-
-void InitShaderIncludeCache()
-{
 #if USING( SHADER_INCLUDE_CACHE )
+#include <map>
+#include <mutex>
+
+std::map<std::string, std::vector<std::string>> s_shaderIncludeCache;
+static std::mutex s_shaderIncludeCacheLock;
+static const char* SHADER_INCLUDE_PATH = PG_ASSET_DIR "cache/shader_includes.txt";
+
+void PG::InitShaderIncludeCache()
+{
     std::ifstream in( SHADER_INCLUDE_PATH );
     if ( !in )
         return;
@@ -29,12 +30,10 @@ void InitShaderIncludeCache()
         }
         s_shaderIncludeCache[shaderName] = includes;
     }
-#endif // #if USING( SHADER_INCLUDE_CACHE )
 }
 
-void CloseShaderIncludeCache()
+void PG::CloseShaderIncludeCache()
 {
-#if USING( SHADER_INCLUDE_CACHE )
     std::ofstream out( SHADER_INCLUDE_PATH );
     if ( !out )
     {
@@ -52,24 +51,47 @@ void CloseShaderIncludeCache()
             out << "\t" << relPath << std::endl;
         }
     }
-#endif // #if USING( SHADER_INCLUDE_CACHE )
 }
 
-void AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
+void PG::AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
 {
-#if USING( SHADER_INCLUDE_CACHE )
     std::vector<std::string> dependentFiles;
     dependentFiles.reserve( 1 + preprocOutput.includedFilesAbsPath.size() );
     dependentFiles.push_back( GetAbsPath_ShaderFilename( createInfo->filename ) );
     for ( const auto& file : preprocOutput.includedFilesAbsPath )
         dependentFiles.push_back( file );
 
+    std::scoped_lock lock( s_shaderIncludeCacheLock );
     if ( !s_shaderIncludeCache.contains( cacheName ) )
         s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
     else
         PG_ASSERT( s_shaderIncludeCache[cacheName] == dependentFiles )
-#endif // #if USING( SHADER_INCLUDE_CACHE )
 }
+
+static bool GetIncludeCacheEntry( const std::string& cacheName, std::vector<std::string>& entry )
+{
+    std::scoped_lock lock( s_shaderIncludeCacheLock );
+    if ( s_shaderIncludeCache.contains( cacheName ) )
+    {
+        entry = s_shaderIncludeCache[cacheName];
+        return true;
+    }
+
+    return false;
+}
+
+#else // #if USING( SHADER_INCLUDE_CACHE )
+void PG::InitShaderIncludeCache() {}
+void PG::CloseShaderIncludeCache() {}
+void PG::AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
+{
+    PG_UNUSED( cacheName ); PG_UNUSED( createInfo ); PG_UNUSED( preprocOutput );
+}
+#endif // #else // #if USING( SHADER_INCLUDE_CACHE )
+
+
+namespace PG
+{
 
 std::string ShaderConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
@@ -86,9 +108,9 @@ AssetStatus ShaderConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info,
 {
 #if USING( SHADER_INCLUDE_CACHE )
     std::string cacheName = GetCacheNameInternal( info );
-    if ( s_shaderIncludeCache.contains( cacheName ) )
+    std::vector<std::string> includeList;
+    if ( GetIncludeCacheEntry( cacheName, includeList ) )
     {
-        const auto& includeList = s_shaderIncludeCache[cacheName];
         for ( const std::string& includeFname : includeList )
         {
             AddFastfileDependency( includeFname );
@@ -100,21 +122,10 @@ AssetStatus ShaderConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info,
     }
 #endif // #if USING( SHADER_INCLUDE_CACHE )
 
-//#if USING( SHADER_INCLUDE_CACHE )
-//    if ( !s_shaderIncludeCache.contains( cacheName ) )
-//    {
-//        std::vector<std::string> dependentFiles;
-//        dependentFiles.reserve( 1 + preproc.includedFilesAbsPath.size() );
-//        dependentFiles.push_back( GetAbsPath_ShaderFilename( info->filename ) );
-//        for ( const auto& file : preproc.includedFilesAbsPath )
-//            dependentFiles.push_back( file );
-//
-//        s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
-//    }
-//#endif // #if USING( SHADER_INCLUDE_CACHE )
-
+    // Generating the preproc is relatively expensive, compared to compiling it to spirv actually (currently)
+    // so instead of generating it here, and testing each file for out of out of date and calling
+    // AddFastfileDependency(), just reconvert the asset (which automatically regenerates the fastfile)
     return AssetStatus::OUT_OF_DATE;
-
 }
 
 } // namespace PG

@@ -1,6 +1,6 @@
 # TODO
 
-# Priority 1
+## Priority 1
 - [ ] add functionaility for removing layouts
 - [ ] Add support for running sponza again. Main menu of sorts -> scene selection?
 - [ ] allow for resizing window/multiple resolutions
@@ -9,7 +9,7 @@
 - [ ] controller support
 - [ ] allow for fixed aspect ratio
 - [x] shader include cache
-- [ ] multithread the converter
+- [x] multithread the converter
 - [ ] change profiling to be all in RAM, no file writing. Show min + max + avg
 - [x] Make asset filenames consistent (all from PG_ASSET_DIR, parses only store relative path. Load() makes absolute path, or detects it at least)
 - [ ] Switch to dynamic rendering
@@ -34,6 +34,7 @@
 - [ ] mychanges for images/texturesets
 - [ ] don't wait for idle at the end of each frame
 - [ ] don't wait for idle while uploading images. Use barriers/whatever
+- [ ] add meshoptimizer back in
 
 ## Priority 3
 - [ ] add TIFF loading and saving

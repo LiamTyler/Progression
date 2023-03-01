@@ -10,10 +10,10 @@
 #include "shaderc/shaderc.hpp"
 #include "spirv_cross/spirv_cross.hpp"
 #include "spirv-tools/optimizer.hpp"
-#include <cstring>
 #include <fstream>
-#include <sstream>
-
+#if USING( CONVERTER )
+#include "converters/shader_converter.hpp"
+#endif // #if USING( CONVERTER )
 
 namespace PG
 {
@@ -313,12 +313,13 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     name = createInfo->name;
     shaderStage = createInfo->shaderStage;
 
-    ShaderPreprocessOutput preproc = PreprocessShader( *createInfo, true );
+    ShaderPreprocessOutput preproc = PreprocessShader( *createInfo, false );
     if ( !preproc.success )
     {
         return false;
     }
-    std::vector< uint32_t > spirv;
+
+    std::vector<uint32_t> spirv;
     if ( !CompilePreprocessedShaderToSPIRV( *createInfo, preproc.outputShader, spirv ) )
     {
         return false;
@@ -337,6 +338,7 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
 
 #if USING( CONVERTER )
     savedSpirv = std::move( spirv );
+    AddIncludeCacheEntry( cacheName, createInfo, preproc );
 #elif USING( GPU_DATA ) // #if USING( CONVERTER )
     handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
     if ( handle == VK_NULL_HANDLE )

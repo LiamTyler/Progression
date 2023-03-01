@@ -1,7 +1,8 @@
 # TODO
 
 # Priority 1
-- [ ] remove layouts
+- [ ] add functionaility for removing layouts
+- [ ] Add support for running sponza again. Main menu of sorts -> scene selection?
 - [ ] allow for resizing window/multiple resolutions
 - [ ] ui mouse events lua callbacks
 - [ ] ui keyboard lua callbacks
@@ -24,6 +25,7 @@
 - [ ] show profiling results in ImGui view
 - [ ] Get remote console up and running again, and able to send commands
 - [ ] include both debug + non-debug shaders in FF, allow for runtime switching
+- [ ] fix shader preproc options (allow from command line)
 - [ ] mychanges for scripts
 - [ ] mychanges for models
 - [ ] mychanges for ui layouts
@@ -42,4 +44,4 @@
 - [ ] simplify TransitionImageLayoutImmediate args with defaults
 - [ ] get VS to find spirv/vulkan/shaderc files
 - [ ] investigate different mipmap filters
-
+- [ ] do a pass on the code style consistency

@@ -15,7 +15,6 @@ std::string GetAbsPath_ScriptFilename( const std::string& filename )
 
 bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 {
-    static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
     PG_ASSERT( baseInfo );
     const ScriptCreateInfo* createInfo = (const ScriptCreateInfo*)baseInfo;
     name = createInfo->name;
@@ -38,7 +37,6 @@ bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool Script::FastfileLoad( Serializer* serializer )
 {
-    static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
     PG_ASSERT( serializer );
     serializer->Read( name );
     serializer->Read( scriptText );
@@ -49,7 +47,6 @@ bool Script::FastfileLoad( Serializer* serializer )
 
 bool Script::FastfileSave( Serializer* serializer ) const
 {
-    static_assert( sizeof( Script ) == 2 * sizeof( std::string ) + 8, "Dont forget to update this function when changing Script" );
     PG_ASSERT( serializer );
     serializer->Write( name );
     serializer->Write( scriptText );

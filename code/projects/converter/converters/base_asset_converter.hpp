@@ -107,15 +107,16 @@ protected:
     virtual bool ConvertInternal( ConstDerivedInfoPtr& derivedCreateInfo )
     {
         DerivedAsset asset;
+        const std::string cacheName = GetCacheName( derivedCreateInfo );
+        asset.cacheName = cacheName;
         if ( !asset.Load( derivedCreateInfo.get() ) )
         {
             return false;
         }
 
-        std::string cacheName = GetCacheName( derivedCreateInfo );
         if ( !AssetCache::CacheAsset( assetType, cacheName, &asset ) )
         {
-            LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], derivedCreateInfo->name.c_str(), cacheName.c_str() );
+            LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], derivedCreateInfo->name.c_str(), asset.cacheName.c_str() );
             return false;
         }
 

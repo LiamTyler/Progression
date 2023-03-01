@@ -1,5 +1,6 @@
 #pragma once
 
+#include "shared/platform_defines.hpp"
 #include <string>
 
 class Serializer;
@@ -19,8 +20,8 @@ public:
     BaseAsset( const std::string& inName ) : name( inName ) {}
     virtual ~BaseAsset() = default;
 
-    // If the asset supports runtime loading, then it can override this function and implement it.
-    //
+    // Not pure virtual because assets are not required to support runtime loading (this function) though most do
+    // They can choose to have it handled through the corresponding asset converter class if need be (Material, for example)
     virtual bool Load( const BaseAssetCreateInfo* baseInfo ) { return false; }
     
     virtual bool FastfileLoad( Serializer* serializer ) = 0;
@@ -28,6 +29,10 @@ public:
     virtual void Free() {}
     
     std::string name;
+
+#if USING( CONVERTER )
+    std::string cacheName; // occassionally handy to have access to this during the Load() function, mostly uneeded though
+#endif // #if USING( CONVERTER )
 };
 
 } // namespace PG

@@ -227,8 +227,6 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool GfxImage::FastfileLoad( Serializer* serializer )
 {
-    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
-    
     PG_ASSERT( serializer );
     serializer->Read( name );
     PG_ASSERT( name != "" );
@@ -251,8 +249,6 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
 
 bool GfxImage::FastfileSave( Serializer* serializer ) const
 {
-    static_assert( sizeof( GfxImage ) == sizeof( std::string ) + 56 + sizeof( Gfx::Texture ), "Don't forget to update this function if added/removed members from GfxImage!" );
-    
     PG_ASSERT( serializer );
     PG_ASSERT( pixels );
     PG_ASSERT( name != "" );

@@ -1,5 +1,4 @@
 #include "shader_converter.hpp"
-#include "asset/shader_preprocessor.hpp"
 #include "shared/hash.hpp"
 #include <map>
 
@@ -56,6 +55,22 @@ void CloseShaderIncludeCache()
 #endif // #if USING( SHADER_INCLUDE_CACHE )
 }
 
+void AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
+{
+#if USING( SHADER_INCLUDE_CACHE )
+    std::vector<std::string> dependentFiles;
+    dependentFiles.reserve( 1 + preprocOutput.includedFilesAbsPath.size() );
+    dependentFiles.push_back( GetAbsPath_ShaderFilename( createInfo->filename ) );
+    for ( const auto& file : preprocOutput.includedFilesAbsPath )
+        dependentFiles.push_back( file );
+
+    if ( !s_shaderIncludeCache.contains( cacheName ) )
+        s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
+    else
+        PG_ASSERT( s_shaderIncludeCache[cacheName] == dependentFiles )
+#endif // #if USING( SHADER_INCLUDE_CACHE )
+}
+
 std::string ShaderConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
@@ -78,44 +93,28 @@ AssetStatus ShaderConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info,
         {
             AddFastfileDependency( includeFname );
             if ( IsFileOutOfDate( cacheTimestamp, includeFname ) )
-                goto cacheMiss;
+                return AssetStatus::OUT_OF_DATE;
         }
 
         return AssetStatus::UP_TO_DATE;
     }
-cacheMiss:
-#endif // #if USING( SHADER_INCLUDE_CACHE )
-    
-    const ShaderPreprocessOutput preproc = PreprocessShader( *info, false );
-    if ( !preproc.success )
-    {
-        LOG_ERR( "Preprocessing shader asset '%s' for the included files failed", info->name.c_str() );
-        return AssetStatus::ERROR;
-    }
-
-#if USING( SHADER_INCLUDE_CACHE )
-    if ( !s_shaderIncludeCache.contains( cacheName ) )
-    {
-        std::vector<std::string> dependentFiles;
-        dependentFiles.reserve( 1 + preproc.includedFilesAbsPath.size() );
-        dependentFiles.push_back( GetAbsPath_ShaderFilename( info->filename ) );
-        for ( const auto& file : preproc.includedFilesAbsPath )
-            dependentFiles.push_back( file );
-
-        s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
-    }
 #endif // #if USING( SHADER_INCLUDE_CACHE )
 
-    const std::string absPathFilename = GetAbsPath_ShaderFilename( info->filename );
-    AddFastfileDependency( absPathFilename );
-    bool outOfDate = IsFileOutOfDate( cacheTimestamp, absPathFilename );
-    for ( const auto& file : preproc.includedFilesAbsPath )
-    {
-        AddFastfileDependency( file );
-        outOfDate = outOfDate || IsFileOutOfDate( cacheTimestamp, file );
-    }
+//#if USING( SHADER_INCLUDE_CACHE )
+//    if ( !s_shaderIncludeCache.contains( cacheName ) )
+//    {
+//        std::vector<std::string> dependentFiles;
+//        dependentFiles.reserve( 1 + preproc.includedFilesAbsPath.size() );
+//        dependentFiles.push_back( GetAbsPath_ShaderFilename( info->filename ) );
+//        for ( const auto& file : preproc.includedFilesAbsPath )
+//            dependentFiles.push_back( file );
+//
+//        s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
+//    }
+//#endif // #if USING( SHADER_INCLUDE_CACHE )
 
-    return outOfDate ? AssetStatus::OUT_OF_DATE : AssetStatus::UP_TO_DATE;
+    return AssetStatus::OUT_OF_DATE;
+
 }
 
 } // namespace PG

@@ -1,9 +1,11 @@
 #pragma once
 
 #include "asset/types/script.hpp"
+#include "asset/types/ui_layout.hpp"
 #include "core/lua.hpp"
 #include "ui/ui_element.hpp"
 #include <bitset>
+
 
 namespace PG::UI
 {
@@ -75,6 +77,14 @@ namespace PG::UI
             return startSlot;
         }
 
+        void FreeMultiple( IndexType startElement, uint32_t numElements )
+        {
+            for ( uint32_t i = 0; i < numElements; ++i )
+                slotsInUse[startElement + i] = false;
+            elementCount -= numElements;
+            nextFreeSlot = std::min( nextFreeSlot, startElement );
+        }
+
         IndexType Size() const { return (IndexType)elementCount; }
         bool IsSlotInUse( IndexType idx ) const { return slotsInUse[idx]; }
         T& operator[]( IndexType idx ) { return elements[idx]; }
@@ -115,7 +125,7 @@ namespace PG::UI
 
     struct LayoutInfo
     {
-        std::string name;
+        UILayout* layoutAsset;
         UIElementHandle rootElementHandle;
         uint16_t elementCount;
         UIScript* uiscript;

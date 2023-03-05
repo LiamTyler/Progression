@@ -1,7 +1,7 @@
 # TODO
 
 ## Priority 1
-- [ ] add functionaility for removing layouts
+- [x] add functionaility for removing layouts
 - [ ] Add support for running sponza again. Main menu of sorts -> scene selection?
 - [ ] allow for resizing window/multiple resolutions
 - [ ] ui mouse events lua callbacks

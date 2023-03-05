@@ -1,4 +1,5 @@
 #include "renderer/vulkan.hpp"
+#include "core/feature_defines.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
@@ -101,13 +102,14 @@ namespace Gfx
     #define LOAD_VK_FUNC( funcName ) \
         pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName ); \
         if ( !pfn_##funcName ) { \
-            LOG_ERR( "Failed to load vulkan function 'funcName'. Did you forget to load the extension?" ); \
+            LOG_ERR( "Failed to load vulkan function '" #funcName "'. Did you forget to load the extension?" ); \
         }
 #endif // #else // #if !USING( DEBUG_BUILD )
     
 
 void LoadVulkanExtensions( VkDevice device )
 {
+#if USING( PG_RTX )
 #ifdef VK_KHR_acceleration_structure
     LOAD_VK_FUNC( vkBuildAccelerationStructuresKHR );
     LOAD_VK_FUNC( vkCmdBuildAccelerationStructuresIndirectKHR );
@@ -126,6 +128,7 @@ void LoadVulkanExtensions( VkDevice device )
     LOAD_VK_FUNC( vkGetDeviceAccelerationStructureCompatibilityKHR );
     LOAD_VK_FUNC( vkWriteAccelerationStructuresPropertiesKHR );
 #endif // #ifdef VK_KHR_acceleration_structure
+#endif // #if USING( PG_RTX )
 }
 
 

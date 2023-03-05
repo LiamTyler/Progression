@@ -7,6 +7,7 @@
 #include "core/input.hpp"
 #include "renderer/render_system.hpp"
 #include "ui/ui_system.hpp"
+#include "projects/engine/remote_console_server.hpp"
 #endif // #if USING( GAME )
 #include "shared/logger.hpp"
 #include "shared/random.hpp"
@@ -53,6 +54,7 @@ bool EngineInitialize( EngineInitInfo info )
         LOG_ERR( "Could not initialize UI system" );
         return false;
     }
+    RemoteConsoleServer::Init();
 #endif // #if USING( GAME )
 
     return true;
@@ -62,6 +64,7 @@ bool EngineInitialize( EngineInitInfo info )
 void EngineShutdown()
 {
 #if USING( GAME )
+    RemoteConsoleServer::Shutdown();
     UI::Shutdown();
 #endif // #if USING( GAME )
     AssetManager::Shutdown();

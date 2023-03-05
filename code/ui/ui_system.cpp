@@ -383,9 +383,10 @@ namespace PG::UI
 
     UIElement* GetLayoutRootElement( const std::string& layoutName )
     {
+        UILayout* layoutAsset = AssetManager::Get<UILayout>( layoutName );
         for ( const auto& layout : s_layouts )
         {
-            if ( layoutName == layout.name )
+            if ( layoutAsset == layout.layoutAsset )
                 return GetElement( layout.rootElementHandle );
         }
 
@@ -429,12 +430,17 @@ namespace PG::UI
 
     void CreateLayout( const std::string& layoutName )
     {
-        const UILayout* layout = AssetManager::Get<UILayout>( layoutName );
-        PG_ASSERT( layout );
-        UIElementHandle rootElementHandle = s_uiElements.AllocMultiple( (uint32_t)layout->createInfos.size() );
+        UILayout* layoutAsset = AssetManager::Get<UILayout>( layoutName );
+        if ( !layoutAsset )
+        {
+            LOG_ERR( "CreateLayout: UILayout '%s' not found", layoutName.c_str() );
+            return;
+        }
+
+        UIElementHandle rootElementHandle = s_uiElements.AllocMultiple( (uint32_t)layoutAsset->createInfos.size() );
         if ( rootElementHandle == UI_NULL_HANDLE )
         {
-            LOG_ERR( "UI::CreateLayout: No contiguous region to fit %u elements. Current element count: %u", (uint32_t)layout->createInfos.size(), s_uiElements.Size() );
+            LOG_ERR( "UI::CreateLayout: No contiguous region to fit %u elements. Current element count: %u", (uint32_t)layoutAsset->createInfos.size(), s_uiElements.Size() );
             return;
         }
 
@@ -442,14 +448,14 @@ namespace PG::UI
         OffsetHandles( s_uiElements[rootElementHandle], rootElementHandle );
 
         LayoutInfo& layoutInfo = s_layouts.emplace_back();
-        layoutInfo.name = layoutName;
+        layoutInfo.layoutAsset = layoutAsset;
         layoutInfo.rootElementHandle = rootElementHandle;
-        layoutInfo.elementCount = (uint16_t)layout->createInfos.size();
+        layoutInfo.elementCount = (uint16_t)layoutAsset->createInfos.size();
 
-        for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layout->createInfos.size(); ++localHandle )
+        for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layoutAsset->createInfos.size(); ++localHandle )
         {
             UIElement& element = s_uiElements[rootElementHandle + localHandle];
-            const UIElementCreateInfo& createInfo = layout->createInfos[localHandle];
+            const UIElementCreateInfo& createInfo = layoutAsset->createInfos[localHandle];
             element = createInfo.element;
             OffsetHandles( element, rootElementHandle );
             if ( !createInfo.imageName.empty() )
@@ -459,16 +465,16 @@ namespace PG::UI
         }
 
         // Must run Start function all the elements have been initialized
-        if ( layout->script )
+        if ( layoutAsset->script )
         {
-            layoutInfo.uiscript = new UIScript( s_uiLuaState, layout->script );
+            layoutInfo.uiscript = new UIScript( s_uiLuaState, layoutAsset->script );
             Lua::RunFunctionSafeChecks( layoutInfo.uiscript->env, "Start" );
-            const std::string& scriptName = layout->script->name;
+            const std::string& scriptName = layoutAsset->script->name;
 
-            for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layout->createInfos.size(); ++localHandle )
+            for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layoutAsset->createInfos.size(); ++localHandle )
             {
                 UIElement& element = s_uiElements[rootElementHandle + localHandle];
-                const UIElementCreateInfo& createInfo = layout->createInfos[localHandle];
+                const UIElementCreateInfo& createInfo = layoutAsset->createInfos[localHandle];
                 if ( element.scriptFlags != UIElementScriptFlags::NONE )
                 {
                     uint16_t idx = s_uiElementFunctions.AllocOne();
@@ -484,9 +490,21 @@ namespace PG::UI
         }
     }
 
-    void RemoveLayout( const std::string& layoutName )
+    void RemoveStaticLayout( const std::string& layoutName )
     {
-        PG_ASSERT( false, "todo" );
+        UILayout* layoutAsset = AssetManager::Get<UILayout>( layoutName );
+        for ( size_t layoutIdx = 0; layoutIdx < s_layouts.size(); ++layoutIdx )
+        {
+            const LayoutInfo& layout = s_layouts[layoutIdx];
+            if ( layoutAsset == layout.layoutAsset )
+            {
+                RemoveRootElement( layout.rootElementHandle );
+                s_uiElements.FreeMultiple( layout.rootElementHandle, layout.elementCount );
+                std::swap( s_layouts[layoutIdx], s_layouts[s_layouts.size() - 1] );
+                s_layouts.pop_back();
+                return;
+            }
+        }
     }
 
     static bool ElementContainsPos( const UIElement& e, const glm::vec2& absolutePos )

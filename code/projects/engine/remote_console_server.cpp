@@ -1,7 +1,9 @@
 #include "remote_console_server.hpp"
-#include "utils/logger.hpp"
-#include <thread>
 
+#if USING( REMOTE_CONSOLE )
+
+#include "shared/logger.hpp"
+#include <thread>
 #if USING ( WINDOWS_PROGRAM )
 #define WIN32_LEAN_AND_MEAN
 #include <windows.h>
@@ -20,7 +22,7 @@ static bool s_initialized;
 
 static void ListenForCommands();
 
-namespace PG
+namespace PG::RemoteConsoleServer
 {
 
 
@@ -98,6 +100,7 @@ void Shutdown()
 {
     if ( s_initialized )
     {
+        LOG( "Shutting down remote console" );
         s_serverShouldStop = true;
         if ( s_clientSocket != INVALID_SOCKET )
         {
@@ -116,32 +119,32 @@ void Shutdown()
 }
 
 
-} // namespace PG
+} // namespace PG::RemoteConsoleServer
 
 
 static void ListenForCommands() 
 {
     while ( !s_serverShouldStop )
     {
-        LOG( "Waiting for client..." );
+        LOG( "RemoteConsoleServer: Waiting for client..." );
         s_clientSocket = accept( s_listenSocket, NULL, NULL );
         if ( s_clientSocket == INVALID_SOCKET )
         {
             if ( !s_serverShouldStop )
             {
-                LOG_ERR( "Accept failed with error: %d", WSAGetLastError() );
+                LOG_ERR( "RemoteConsoleServer: Accept failed with error: %d", WSAGetLastError() );
             }
             continue;
         }
-        LOG( "Client connected, waiting for client message" );
+        LOG( "RemoteConsoleServer: client connected" );
 
         // make recv unblock itself every so often to see if the program is trying to shutdown
         timeval timeout;
-        timeout.tv_sec  = 500; // milliseconds
+        timeout.tv_sec  = 200; // milliseconds
         timeout.tv_usec = 0;
         if ( setsockopt( s_clientSocket, SOL_SOCKET, SO_RCVTIMEO, (char*)&timeout, sizeof( timeout ) ) == SOCKET_ERROR )
         {
-            LOG_ERR( "Could not set client socket to be non-blocking!" );
+            LOG_ERR( "RemoteConsoleServer: could not set client socket to be non-blocking!" );
         }
 
         const int recvBufferLen = 1024;
@@ -150,41 +153,42 @@ static void ListenForCommands()
         while ( clientConnected && !s_serverShouldStop )
         {
             int bytesReceived = recv( s_clientSocket, recvBuffer, recvBufferLen, 0 );
-            if ( bytesReceived == -1 )
+
+            if ( bytesReceived > 0 )
+            {
+                recvBuffer[bytesReceived] = '\0';
+                LOG( "RemoteConsoleServer: recieved message '%s'", recvBuffer );
+
+                //std::string sendMsg = "message recieved";
+                //int iSendResult = send( s_clientSocket, sendMsg.c_str(), (int)sendMsg.length() + 1, 0 );
+                //if ( iSendResult == SOCKET_ERROR )
+                //{
+                //    LOG_ERR( "send failed with error: %d", WSAGetLastError() );
+                //    clientConnected = false;
+                //}
+            }
+            else 
             {
                 int err = WSAGetLastError();
                 if ( err == WSAETIMEDOUT || errno == WSAEWOULDBLOCK )
-                {
                     continue;
-                }
-            }
-            if ( bytesReceived > 0 )
-            {
-                LOG( "Server recieved '%s'", recvBuffer );
 
-                std::string sendMsg = "message recieved";
-                int iSendResult = send( s_clientSocket, sendMsg.c_str(), (int)sendMsg.length() + 1, 0 );
-                if ( iSendResult == SOCKET_ERROR )
+                if ( bytesReceived == 0 || err == WSAECONNRESET )
                 {
-                    LOG_ERR( "send failed with error: %d", WSAGetLastError() );
-                    clientConnected = false;
+                    LOG( "RemoteConsoleServer: client closed connection" );
                 }
-            }
-            else if ( bytesReceived == 0 )
-            {
-                LOG( "Client closed connection" );
-                clientConnected = false;
-            }
-            else if ( bytesReceived == -1 )
-            {
-                int err = WSAGetLastError();
-                if ( err != WSAEINTR )
+                else if ( err != WSAEINTR )
                 {
-                    LOG_ERR( "recv failed with error: %d", WSAGetLastError() );
+                    LOG_ERR( "RemoteConsoleServer: recv failed with error: %d. Closing connection", WSAGetLastError() );
                 }
                 clientConnected = false;
             }
         }
+
+        if ( s_serverShouldStop )
+            LOG( "RemoteConsoleServer: closing client socket" );
         closesocket( s_clientSocket );
     }
 }
+
+#endif // #if USING( REMOTE_CONSOLE )

@@ -110,6 +110,8 @@ set(
     ${CODE_DIR}/shared/serializer.cpp
     ${CODE_DIR}/shared/serializer.hpp
 
+    ${CMAKE_CURRENT_SOURCE_DIR}/remote_console_server.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/remote_console_server.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/engine_main.cpp
 )
 

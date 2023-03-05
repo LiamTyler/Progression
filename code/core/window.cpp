@@ -69,6 +69,13 @@ Window::~Window()
 }
 
 
+extern bool g_engineShutdown;
+static void WindowCloseCallback( GLFWwindow* window )
+{
+    g_engineShutdown = true;
+}
+
+
 void Window::Init( const WindowCreateInfo& createInfo )
 {
     m_title   = createInfo.title;
@@ -87,6 +94,7 @@ void Window::Init( const WindowCreateInfo& createInfo )
         exit( EXIT_FAILURE );
     }
 
+    glfwSetWindowCloseCallback( m_window, WindowCloseCallback );
     glfwSetErrorCallback( ErrorCallback );
 
 #if !USING( SHIP_BUILD )

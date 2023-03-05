@@ -1,6 +1,7 @@
 #include "asset/asset_manager.hpp"
 #include "asset/types/model.hpp"
 #include "asset/types/shader.hpp"
+#include "core/console_commands.hpp"
 #include "core/init.hpp"
 #include "core/input.hpp"
 #include "core/scene.hpp"
@@ -43,6 +44,7 @@ int main( int argc, char* argv[] )
     while ( !g_engineShutdown )
     {
         window->StartFrame();
+        ProcessPendingCommands();
         Input::PollEvents();
 
         if ( Input::GetKeyDown( Key::ESC ) )

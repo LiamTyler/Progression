@@ -1,4 +1,5 @@
 #include "remote_console_server.hpp"
+#include "core/console_commands.hpp"
 
 #if USING( REMOTE_CONSOLE )
 
@@ -157,7 +158,8 @@ static void ListenForCommands()
             if ( bytesReceived > 0 )
             {
                 recvBuffer[bytesReceived] = '\0';
-                LOG( "RemoteConsoleServer: recieved message '%s'", recvBuffer );
+                PG::AddCommand( recvBuffer );
+                //LOG( "RemoteConsoleServer: recieved message '%s'", recvBuffer );
 
                 //std::string sendMsg = "message recieved";
                 //int iSendResult = send( s_clientSocket, sendMsg.c_str(), (int)sendMsg.length() + 1, 0 );

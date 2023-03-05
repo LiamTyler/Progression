@@ -30,6 +30,8 @@ set(
     ${CODE_DIR}/core/bounding_box.hpp
     ${CODE_DIR}/core/camera.cpp
     ${CODE_DIR}/core/camera.hpp
+    ${CODE_DIR}/core/console_commands.cpp
+    ${CODE_DIR}/core/console_commands.hpp
     ${CODE_DIR}/core/feature_defines.hpp
     ${CODE_DIR}/core/frustum.cpp
     ${CODE_DIR}/core/frustum.hpp

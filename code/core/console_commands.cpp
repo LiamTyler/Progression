@@ -1,4 +1,5 @@
 #include "core/console_commands.hpp"
+#include "asset/asset_manager.hpp"
 #include "shared/logger.hpp"
 #include "shared/platform_defines.hpp"
 #include "shared/string.hpp"
@@ -13,7 +14,13 @@ std::vector<std::string> s_pendingCommands;
 
 static void Process_loadFF( std::string* args, uint32_t numArgs )
 {
-    LOG( "Process_loadFF" );
+    if ( numArgs != 1 )
+    {
+        LOG_ERR( "The 'loadFF' command expects 1 arg (the name of the fastfile to load" );
+        return;
+    }
+
+    AssetManager::LoadFastFile( args[0] );
 }
 
 
@@ -32,12 +39,13 @@ static RegisteredCommand s_commands[] =
 void ProcessCommand( const std::string& cmdStr )
 {
     std::vector<std::string> subStrs = SplitString( cmdStr, " " );
+    uint32_t numArgs = subStrs.empty() ? 0 : static_cast<uint32_t>( subStrs.size() - 1 );
     const std::string& cmd = subStrs.empty() ? "" : subStrs[0];
     for ( int i = 0; i < ARRAY_COUNT( s_commands ); ++i )
     {
         if ( !strcmp( cmd.c_str(), s_commands[i].name ) )
         {
-            s_commands[i].func( subStrs.data() + 1, subStrs.size() - 1 );
+            s_commands[i].func( subStrs.data() + 1, numArgs );
             return;
         }
     }

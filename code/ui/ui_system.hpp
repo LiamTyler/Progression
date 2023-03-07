@@ -23,10 +23,12 @@ namespace PG::UI
     UIElement* GetChildElement( UIElementHandle parentHandle, uint32_t childIdx );
     void RemoveElement( UIElementHandle handle ); // is recursive
     UIElement* GetLayoutRootElement( const std::string& layoutName );
-    void CreateLayout( const std::string& layoutName );
+    bool CreateLayout( const std::string& layoutName );
+    void RemoveLayout( const std::string& layoutName );
 
-    // deallocates the original layout's elements quickly. Use RemoveElement instead if the layout dynamically changed at all
-    void RemoveStaticLayout( const std::string& layoutName );
+#if USING( ASSET_LIVE_UPDATE )
+    void ReloadLayoutIfInUse( UILayout* oldLayout, UILayout* newLayout );
+#endif // #if USING( ASSET_LIVE_UPDATE )
 
     uint16_t AddScript( const std::string& scriptName );
 

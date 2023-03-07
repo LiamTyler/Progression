@@ -189,7 +189,7 @@ namespace PG::UI
 
     static void RemoveRootElement( UIElementHandle handle )
     {
-        for ( auto it = s_rootUiElements.begin(); it != s_rootUiElements.end(); ++it )
+        for ( auto it = s_rootUiElements.cbegin(); it != s_rootUiElements.cend(); ++it )
         {
             if ( *it == handle )
             {
@@ -197,7 +197,6 @@ namespace PG::UI
                 return;
             }
         }
-        PG_ASSERT( false, "Trying to remove an element from root list, that isn't actually a root" );
     }
 
     static UIElementHandle AllocateAndInitNewElement( UIElementHandle templateElement = UI_NULL_HANDLE )
@@ -323,16 +322,16 @@ namespace PG::UI
 
     static void RemoveElementHelper_IgnoreParent( UIElement* e )
     {
-        if ( e->prevSibling != UI_NULL_HANDLE )
-        {
-            GetElement( e->prevSibling )->nextSibling = e->nextSibling;
-        }
-        if ( e->nextSibling != UI_NULL_HANDLE )
-        {
-            GetElement( e->nextSibling )->prevSibling = e->prevSibling;
-        }
+        //if ( e->prevSibling != UI_NULL_HANDLE )
+        //{
+        //    GetElement( e->prevSibling )->nextSibling = e->nextSibling;
+        //}
+        //if ( e->nextSibling != UI_NULL_HANDLE )
+        //{
+        //    GetElement( e->nextSibling )->prevSibling = e->prevSibling;
+        //}
 
-        for ( UIElementHandle childHandle = e->firstChild; childHandle != UI_NULL_HANDLE; childHandle = e->nextSibling )
+        for ( UIElementHandle childHandle = e->firstChild; childHandle != UI_NULL_HANDLE; s_uiElements[childHandle].nextSibling )
         {
             RemoveElementHelper_IgnoreParent( GetElement( childHandle ) );
         }
@@ -369,7 +368,7 @@ namespace PG::UI
             }
         }
 
-        for ( UIElementHandle childHandle = e->firstChild; childHandle != UI_NULL_HANDLE; childHandle = e->nextSibling )
+        for ( UIElementHandle childHandle = e->firstChild; childHandle != UI_NULL_HANDLE; childHandle = s_uiElements[childHandle].nextSibling )
         {
             RemoveElementHelper_IgnoreParent( GetElement( childHandle ) );
         }
@@ -428,20 +427,13 @@ namespace PG::UI
         }
     }
 
-    void CreateLayout( const std::string& layoutName )
+    static bool CreateLayout( UILayout* layoutAsset )
     {
-        UILayout* layoutAsset = AssetManager::Get<UILayout>( layoutName );
-        if ( !layoutAsset )
-        {
-            LOG_ERR( "CreateLayout: UILayout '%s' not found", layoutName.c_str() );
-            return;
-        }
-
         UIElementHandle rootElementHandle = s_uiElements.AllocMultiple( (uint32_t)layoutAsset->createInfos.size() );
         if ( rootElementHandle == UI_NULL_HANDLE )
         {
             LOG_ERR( "UI::CreateLayout: No contiguous region to fit %u elements. Current element count: %u", (uint32_t)layoutAsset->createInfos.size(), s_uiElements.Size() );
-            return;
+            return false;
         }
 
         AddRootElement( rootElementHandle );
@@ -488,9 +480,23 @@ namespace PG::UI
                 }
             }
         }
+
+        return true;
     }
 
-    void RemoveStaticLayout( const std::string& layoutName )
+    bool CreateLayout( const std::string& layoutName )
+    {
+        UILayout* layoutAsset = AssetManager::Get<UILayout>( layoutName );
+        if ( !layoutAsset )
+        {
+            LOG_ERR( "CreateLayout: UILayout '%s' not found", layoutName.c_str() );
+            return false;
+        }
+
+        return CreateLayout( layoutAsset );
+    }
+
+    void RemoveLayout( const std::string& layoutName )
     {
         UILayout* layoutAsset = AssetManager::Get<UILayout>( layoutName );
         for ( size_t layoutIdx = 0; layoutIdx < s_layouts.size(); ++layoutIdx )
@@ -499,13 +505,48 @@ namespace PG::UI
             if ( layoutAsset == layout.layoutAsset )
             {
                 RemoveRootElement( layout.rootElementHandle );
-                s_uiElements.FreeMultiple( layout.rootElementHandle, layout.elementCount );
+                RemoveElement( layout.rootElementHandle );
+                if ( layout.uiscript )
+                    delete layout.uiscript;
                 std::swap( s_layouts[layoutIdx], s_layouts[s_layouts.size() - 1] );
                 s_layouts.pop_back();
-                return;
+            }
+        }
+        LOG_ERR( "No layout named '%s' currently in use", layoutName.c_str() );
+    }
+
+#if USING( ASSET_LIVE_UPDATE )
+    void ReloadLayoutIfInUse( UILayout* oldLayout, UILayout* newLayout )
+    {
+        for ( size_t oldLayoutIdx = 0; oldLayoutIdx < s_layouts.size(); ++oldLayoutIdx )
+        {
+            if ( oldLayout == s_layouts[oldLayoutIdx].layoutAsset )
+            {
+                if ( !CreateLayout( newLayout ) )
+                    return;
+
+                LayoutInfo& oldLayoutInfo = s_layouts[oldLayoutIdx];
+                LayoutInfo& newLayoutInfo = s_layouts.back();
+                newLayoutInfo.layoutAsset = oldLayout; // because the original pointers are preserved by AssetManager
+                // update the s_rootUiElements entry in place, since this order actually affects draw order
+                for ( auto it = s_rootUiElements.begin(); it != s_rootUiElements.end(); ++it )
+                {
+                    if ( *it == oldLayoutInfo.rootElementHandle )
+                    {
+                        *it = newLayoutInfo.rootElementHandle;
+                        break;
+                    }
+                }
+                s_rootUiElements.pop_back();
+                RemoveElement( oldLayoutInfo.rootElementHandle );
+                if ( oldLayoutInfo.uiscript )
+                    delete oldLayoutInfo.uiscript;
+                std::swap( s_layouts[oldLayoutIdx], s_layouts[s_layouts.size() - 1] );
+                s_layouts.pop_back();
             }
         }
     }
+#endif // #if USING( ASSET_LIVE_UPDATE )
 
     static bool ElementContainsPos( const UIElement& e, const glm::vec2& absolutePos )
     {

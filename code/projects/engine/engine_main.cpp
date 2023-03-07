@@ -45,6 +45,7 @@ int main( int argc, char* argv[] )
     {
         window->StartFrame();
         ProcessPendingCommands();
+        AssetManager::ProcessPendingLiveUpdates();
         Input::PollEvents();
 
         if ( Input::GetKeyDown( Key::ESC ) )

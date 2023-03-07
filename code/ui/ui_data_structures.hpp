@@ -66,6 +66,7 @@ namespace PG::UI
 
             if ( startSlot < MAX_SIZE )
             {
+                elementCount += numElements;
                 for ( uint32_t i = 0; i < numElements; ++i )
                 {
                     slotsInUse[startSlot + i] = true;

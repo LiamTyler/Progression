@@ -39,7 +39,6 @@ int main( int argc, char* argv[] )
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
 
-    // Resolve the server address and port
     struct addrinfo *addr = NULL;
     iResult = getaddrinfo( NULL, "27015", &hints, &addr );
     if ( iResult != 0 )
@@ -57,7 +56,6 @@ int main( int argc, char* argv[] )
         return 0;
     }
 
-    // Connect to server.
     iResult = connect( connectSocket, addr->ai_addr, (int)addr->ai_addrlen );
     freeaddrinfo( addr );
     if ( iResult == SOCKET_ERROR || connectSocket == INVALID_SOCKET )
@@ -67,6 +65,26 @@ int main( int argc, char* argv[] )
     }
 
     LOG( "Connected to game" );
+
+    // pre-created single commands
+    if ( argc > 1 )
+    {
+        std::string cmd = argv[1];
+        for ( int i = 2; i < argc; ++i )
+            cmd += " " + std::string( argv[i] );
+
+        iResult = send( connectSocket, cmd.c_str(), (int)cmd.length(), 0 );
+        if ( iResult == SOCKET_ERROR )
+        {
+            int err = WSAGetLastError();
+            if ( err == WSAECONNRESET )
+                LOG_ERR( "Game was shutdown! Closing remote console" );
+            else
+                LOG_ERR( "Failed to send command to game with error: %d. Closing remote console", WSAGetLastError() );
+        }
+        CLOSE_SOCKET_AND_RETURN;
+    }
+
     while ( true )
     {
         std::string line;

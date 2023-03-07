@@ -10,15 +10,17 @@
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
+#include "ui/ui_system.hpp"
 #include <unordered_map>
-
 
 namespace PG::AssetManager
 {
 
 uint32_t GetAssetTypeIDHelper::IDCounter = 0;
 std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
-
+#if USING( ASSET_LIVE_UPDATE )
+std::vector<BaseAsset*> s_pendingAssetUpdates[AssetType::ASSET_TYPE_COUNT];
+#endif // #if USING( ASSET_LIVE_UPDATE )
 
 void Init()
 {
@@ -38,6 +40,41 @@ void Init()
 }
 
 
+void ProcessPendingLiveUpdates()
+{
+#if USING( ASSET_LIVE_UPDATE )
+    uint32_t numIgnoredAssets = 0;
+    for ( uint32_t assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
+    {
+        for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
+        {
+            // TODO! Support live update for all asset types
+            if ( assetIdx == AssetType::ASSET_TYPE_UI_LAYOUT )
+            {
+                LOG( "Performing live update for asset '%s'", newAssetBase->name.c_str() );
+                UILayout* oldAsset = Get<UILayout>( newAssetBase->name );
+                UILayout* newAsset = (UILayout*)newAssetBase;
+                UI::ReloadLayoutIfInUse( oldAsset, newAsset );
+                oldAsset->Free();
+                *oldAsset = std::move( *newAsset );
+            }
+            else
+            {
+                ++numIgnoredAssets;
+                //LOG_WARN( "Attempting to do a live update for asset '%s' but live updates are not supported yet for asset type %s", asset->name.c_str(), g_assetNames[assetIdx] );
+                newAssetBase->Free();
+                delete newAssetBase;
+            }
+        }
+        s_pendingAssetUpdates[assetIdx].clear();
+    }
+
+    if ( numIgnoredAssets > 0 )
+        LOG_WARN( "Live update failed for %u assets (TODO: implement live update for those types)", numIgnoredAssets );
+#endif // #if USING( ASSET_LIVE_UPDATE )
+}
+
+
 template < typename ActualAssetType >
 bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
 {
@@ -52,12 +89,15 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
     {
         g_resourceMaps[assetType][asset->name] = asset;
     }
+#if USING( ASSET_LIVE_UPDATE )
     else
     {
-        LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)", asset->name.c_str(), g_assetNames[assetType] );
-        asset->Free();
-        delete asset;
+        s_pendingAssetUpdates[assetType].push_back( asset );
+        //LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)", asset->name.c_str(), g_assetNames[assetType] );
+        //asset->Free();
+        //delete asset;
     }
+#endif // #if USING( ASSET_LIVE_UPDATE )
 
     return true;
 }
@@ -73,6 +113,7 @@ case ASSET_ENUM: \
 
 bool LoadFastFile( const std::string& fname )
 {
+    LOG( "Loading fastfile '%s'...", fname.c_str() );
     std::string fullName = PG_ASSET_DIR "cache/fastfiles/" + fname + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     Serializer serializer;
     if ( !serializer.OpenForRead( fullName ) )

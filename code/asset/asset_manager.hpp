@@ -36,6 +36,8 @@ struct GetAssetTypeID : public GetAssetTypeIDHelper
 
 void Init();
 
+void ProcessPendingLiveUpdates();
+
 bool LoadFastFile( const std::string& fname );
 
 void Shutdown();

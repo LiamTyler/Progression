@@ -28,10 +28,11 @@
 - [ ] fix shader preproc options (allow from command line)
 - [ ] mychanges for scripts
 - [ ] mychanges for models
-- [ ] mychanges for ui layouts
+- [x] mychanges for ui layouts
 - [ ] mychanges for materials 
 - [ ] mychanges for shaders 
 - [ ] mychanges for images/texturesets
+- [ ] asset hashes for mychanges
 - [ ] don't wait for idle at the end of each frame
 - [ ] don't wait for idle while uploading images. Use barriers/whatever
 - [ ] add meshoptimizer back in
@@ -46,3 +47,4 @@
 - [ ] get VS to find spirv/vulkan/shaderc files
 - [ ] investigate different mipmap filters
 - [ ] do a pass on the code style consistency
+- [ ] have the game window open at the location it was the last time the game ran

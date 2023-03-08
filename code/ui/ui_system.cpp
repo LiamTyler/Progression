@@ -182,12 +182,12 @@ namespace PG::UI
         return handle < MAX_UI_ELEMENTS && s_uiElements.IsSlotInUse( handle );
     }
 
-    static void AddRootElement( UIElementHandle handle )
+    static void AddElementToRootList( UIElementHandle handle )
     {
         s_rootUiElements.push_back( handle );
     }
 
-    static void RemoveRootElement( UIElementHandle handle )
+    static void RemoveElementFromRootList( UIElementHandle handle )
     {
         for ( auto it = s_rootUiElements.cbegin(); it != s_rootUiElements.cend(); ++it )
         {
@@ -224,6 +224,32 @@ namespace PG::UI
         return handle;
     }
 
+    template <typename Func, bool VISIBILITY_CHECK=true>
+    static void IterateElementTree( const UIElementHandle handle, Func ProcessSingleElementFunc )
+    {
+        UIElement& e = *GetElement( handle );
+        PG_ASSERT( s_uiElements.IsSlotInUse( handle ) );
+
+        if ( !VISIBILITY_CHECK || IsSet( e.userFlags, UIElementUserFlags::VISIBLE ) )
+        {
+            ProcessSingleElementFunc( e );
+
+            for ( UIElementHandle childHandle = e.firstChild; childHandle != UI_NULL_HANDLE; childHandle = GetElement( childHandle )->nextSibling )
+            {
+                IterateElementTree( childHandle, ProcessSingleElementFunc );
+            }
+        }
+    }
+
+    template <typename Func, bool VISIBILITY_CHECK=true>
+    static void IterateAllElementsInOrder( Func ProcessSingleElementFunc )
+    {
+        for ( auto it = s_rootUiElements.cbegin(); it != s_rootUiElements.cend(); ++it )
+        {
+            IterateElementTree<Func, VISIBILITY_CHECK>( *it, ProcessSingleElementFunc );
+        }
+    }
+
     UIElement* CreateElement( UIElementHandle templateElement )
     {
         if ( s_uiElements.Size() >= MAX_UI_ELEMENTS )
@@ -238,7 +264,7 @@ namespace PG::UI
         element->nextSibling = UI_NULL_HANDLE;
         element->firstChild = UI_NULL_HANDLE;
         element->lastChild = UI_NULL_HANDLE;
-        AddRootElement( element->Handle() );
+        AddElementToRootList( element->Handle() );
 
         return element;
     }
@@ -281,7 +307,7 @@ namespace PG::UI
         UIElement* parent = GetElement( parentHandle );
         UIElement* child = GetElement( childHandle );
         PG_ASSERT( child->parent == UI_NULL_HANDLE, "Re-parenting elements is not supported. Can only assign fresh or root elements to a parent" );
-        RemoveRootElement( childHandle );
+        RemoveElementFromRootList( childHandle );
         child->parent = parentHandle;
         if ( parent->firstChild == UI_NULL_HANDLE )
         {
@@ -336,6 +362,8 @@ namespace PG::UI
             RemoveElementHelper_IgnoreParent( GetElement( childHandle ) );
         }
 
+        if ( e->scriptFunctionsIdx != UI_NO_SCRIPT_INDEX )
+            s_uiElementFunctions.FreeElement( e->scriptFunctionsIdx );
         s_uiElements.FreeElement( e->Handle() );
     }
 
@@ -353,7 +381,7 @@ namespace PG::UI
 
         if ( e->parent == UI_NULL_HANDLE )
         {
-            RemoveRootElement( handle );
+            RemoveElementFromRootList( handle );
         }
         else
         {
@@ -417,14 +445,15 @@ namespace PG::UI
 
     static void GetFunctionRef( const char* funcTypeStr, sol::function& func, const std::string& funcName, UIScript* uiScript, const std::string& scriptName )
     {
-        if ( !funcName.empty() )
+        if ( funcName.empty() )
         {
-            func = uiScript->env[funcName];
-            if ( !func.valid() )
-            {
-                LOG_ERR( "Script %s does not have a %s function '%s'", scriptName.c_str(), funcTypeStr, funcName.c_str() );
-            }
+            func = sol::lua_nil;
+            return;
         }
+
+        func = uiScript->env[funcName];
+        if ( !func.valid() )
+            LOG_ERR( "Script %s does not have a %s function '%s'", scriptName.c_str(), funcTypeStr, funcName.c_str() );
     }
 
     static bool CreateLayout( UILayout* layoutAsset )
@@ -436,7 +465,7 @@ namespace PG::UI
             return false;
         }
 
-        AddRootElement( rootElementHandle );
+        AddElementToRootList( rootElementHandle );
         OffsetHandles( s_uiElements[rootElementHandle], rootElementHandle );
 
         LayoutInfo& layoutInfo = s_layouts.emplace_back();
@@ -449,6 +478,7 @@ namespace PG::UI
             UIElement& element = s_uiElements[rootElementHandle + localHandle];
             const UIElementCreateInfo& createInfo = layoutAsset->createInfos[localHandle];
             element = createInfo.element;
+            element.scriptFunctionsIdx = UI_NO_SCRIPT_INDEX;
             OffsetHandles( element, rootElementHandle );
             if ( !createInfo.imageName.empty() )
             {
@@ -504,7 +534,7 @@ namespace PG::UI
             const LayoutInfo& layout = s_layouts[layoutIdx];
             if ( layoutAsset == layout.layoutAsset )
             {
-                RemoveRootElement( layout.rootElementHandle );
+                RemoveElementFromRootList( layout.rootElementHandle );
                 RemoveElement( layout.rootElementHandle );
                 if ( layout.uiscript )
                     delete layout.uiscript;
@@ -516,6 +546,42 @@ namespace PG::UI
     }
 
 #if USING( ASSET_LIVE_UPDATE )
+    void ReloadScriptIfInUse( Script* oldScript, Script* newScript )
+    {
+        for ( auto script : s_luaScripts )
+        {
+            if ( script->script == oldScript )
+            {
+                s_uiLuaState->script( newScript->scriptText, script->env );
+                return;
+            }
+        }
+
+        for ( size_t oldLayoutIdx = 0; oldLayoutIdx < s_layouts.size(); ++oldLayoutIdx )
+        {
+            const auto& layoutInfo = s_layouts[oldLayoutIdx];
+            if ( !layoutInfo.uiscript || oldScript != layoutInfo.uiscript->script )
+                continue;
+
+            const std::string& scriptName = newScript->name;
+            s_uiLuaState->script( newScript->scriptText, layoutInfo.uiscript->env );
+            for ( uint32_t idx = 0; idx < layoutInfo.elementCount; ++idx )
+            {
+                UIElement* e = GetElement( layoutInfo.rootElementHandle + idx );
+                if ( e->scriptFunctionsIdx != UI_NO_SCRIPT_INDEX )
+                {
+                    const UIElementCreateInfo& createInfo = layoutInfo.layoutAsset->createInfos[idx];
+                    auto& functions = s_uiElementFunctions[e->scriptFunctionsIdx];
+                    GetFunctionRef( "update", functions.update, createInfo.updateFuncName, layoutInfo.uiscript, scriptName );
+                    GetFunctionRef( "mouseButtonDown", functions.mouseButtonDown, createInfo.mouseButtonDownFuncName, layoutInfo.uiscript, scriptName );
+                    GetFunctionRef( "mouseButtonUp", functions.mouseButtonUp, createInfo.mouseButtonUpFuncName, layoutInfo.uiscript, scriptName );
+                }
+            }
+
+            return;
+        }
+    }
+
     void ReloadLayoutIfInUse( UILayout* oldLayout, UILayout* newLayout )
     {
         for ( size_t oldLayoutIdx = 0; oldLayoutIdx < s_layouts.size(); ++oldLayoutIdx )
@@ -552,32 +618,6 @@ namespace PG::UI
     {
         return e.pos.x <= absolutePos.x && absolutePos.x <= (e.pos.x + e.dimensions.x) &&
                 e.pos.y <= absolutePos.y && absolutePos.y <= (e.pos.y + e.dimensions.y);
-    }
-
-    template <typename Func>
-    void IterateElementTree( const UIElementHandle handle, Func ProcessSingleElementFunc )
-    {
-        UIElement& e = *GetElement( handle );
-        PG_ASSERT( s_uiElements.IsSlotInUse( handle ) );
-
-        if ( IsSet( e.userFlags, UIElementUserFlags::VISIBLE ) )
-        {
-            ProcessSingleElementFunc( e );
-
-            for ( UIElementHandle childHandle = e.firstChild; childHandle != UI_NULL_HANDLE; childHandle = GetElement( childHandle )->nextSibling )
-            {
-                IterateElementTree( childHandle, ProcessSingleElementFunc );
-            }
-        }
-    }
-
-    template <typename Func>
-    void IterateAllElementsInOrder( Func ProcessSingleElementFunc )
-    {
-        for ( auto it = s_rootUiElements.cbegin(); it != s_rootUiElements.cend(); ++it )
-        {
-            IterateElementTree( *it, ProcessSingleElementFunc );
-        }
     }
 
     void Update()

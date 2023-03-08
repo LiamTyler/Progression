@@ -27,6 +27,7 @@ namespace PG::UI
     void RemoveLayout( const std::string& layoutName );
 
 #if USING( ASSET_LIVE_UPDATE )
+    void ReloadScriptIfInUse( Script* oldScript, Script* newScript );
     void ReloadLayoutIfInUse( UILayout* oldLayout, UILayout* newLayout );
 #endif // #if USING( ASSET_LIVE_UPDATE )
 

@@ -190,6 +190,7 @@ static void ListenForCommands()
         if ( s_serverShouldStop )
             LOG( "RemoteConsoleServer: closing client socket" );
         closesocket( s_clientSocket );
+        s_clientSocket = INVALID_SOCKET;
     }
 }
 

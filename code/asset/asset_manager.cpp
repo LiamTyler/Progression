@@ -39,6 +39,12 @@ void Init()
     static_assert( ASSET_TYPE_COUNT == 7, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
+#if USING( ASSET_LIVE_UPDATE )
+bool LiveUpdatesSupported( AssetType type )
+{
+    return type == AssetType::ASSET_TYPE_SCRIPT || type == AssetType::ASSET_TYPE_UI_LAYOUT;
+}
+#endif // #if USING( ASSET_LIVE_UPDATE )
 
 void ProcessPendingLiveUpdates()
 {
@@ -48,22 +54,30 @@ void ProcessPendingLiveUpdates()
     {
         for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
         {
-            // TODO! Support live update for all asset types
-            if ( assetIdx == AssetType::ASSET_TYPE_UI_LAYOUT )
+            if ( !LiveUpdatesSupported( (AssetType)assetIdx ) )
             {
-                LOG( "Performing live update for asset '%s'", newAssetBase->name.c_str() );
+                ++numIgnoredAssets;
+                newAssetBase->Free();
+                delete newAssetBase;
+                continue;
+            }
+
+            LOG( "Performing live update for asset '%s'", newAssetBase->name.c_str() );
+            if ( assetIdx == AssetType::ASSET_TYPE_SCRIPT )
+            {
+                Script* oldAsset = Get<Script>( newAssetBase->name );
+                Script* newAsset = (Script*)newAssetBase;
+                UI::ReloadScriptIfInUse( oldAsset, newAsset );
+                oldAsset->Free();
+                *oldAsset = std::move( *newAsset );
+            }
+            else if ( assetIdx == AssetType::ASSET_TYPE_UI_LAYOUT )
+            {
                 UILayout* oldAsset = Get<UILayout>( newAssetBase->name );
                 UILayout* newAsset = (UILayout*)newAssetBase;
                 UI::ReloadLayoutIfInUse( oldAsset, newAsset );
                 oldAsset->Free();
                 *oldAsset = std::move( *newAsset );
-            }
-            else
-            {
-                ++numIgnoredAssets;
-                //LOG_WARN( "Attempting to do a live update for asset '%s' but live updates are not supported yet for asset type %s", asset->name.c_str(), g_assetNames[assetIdx] );
-                newAssetBase->Free();
-                delete newAssetBase;
             }
         }
         s_pendingAssetUpdates[assetIdx].clear();

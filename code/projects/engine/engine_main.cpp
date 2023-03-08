@@ -33,6 +33,44 @@ int main( int argc, char* argv[] )
     }
 
     AssetManager::LoadFastFile( "mkdd" );
+
+    if ( false )
+    {
+        sol::state lua;
+        lua.open_libraries( sol::lib::base, sol::lib::math );
+        lua.script( R"(
+        t = 0
+        function Start()
+            t = t + 1
+        end
+
+        Start()
+
+        print( t )
+        )");
+
+        lua["Start"]();
+        LOG( "%d", lua.get<int>( "t" ) );
+
+        lua.script( R"(
+        t = 0
+        function Start()
+            t = t + 2
+        end
+
+        Start()
+
+        print( t )
+        )");
+
+        lua["Start"]();
+        LOG( "%d", lua.get<int>( "t" ) );
+
+
+        EngineShutdown();
+        return 0;
+    }
+
     UI::BootMainMenu();
 
     Window* window = GetMainWindow();

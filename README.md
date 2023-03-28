@@ -11,13 +11,15 @@ This engine requires at least C++ 20, and has only been tested on the following 
 - Ubuntu 22 with GCC 12 and Clang 15
 
 ### Libraries and SDKs
-1. ISPC
-You can find the download for any platform on the ISPC github releases page(https://github.com/ispc/ispc/releases/).
+1. ISPC:
+  You can find the download for any platform on the ISPC github releases [page](https://github.com/ispc/ispc/releases/).
 It needs to be extracted and the ispc executable added to the PATH. If you are unfamiliar with that, directions are below.
-Windows: unzip the folder wherever you would like it installed. Then in the windows search bar type in "environment variables". Open that, then do to "edit environment variables". Click on the PATH variable (there are 2 PATHs, one for the local user and one for the any user on the computer. Use whichever one you want, it doesn't matter). You should see a list of folders that make up the PATH. Click "Add" and paste in the full path to the ispc bin folder (inside the unzipped result).
-Linux: extract the .tar.gz file with `tar -xvf [filename]`. Move that directory to wherever you would like. Now you can either add the bin directory to the PATH variable, or you can just make a symlink for the ispc executable into a directory that is already in the PATH. Ex: `sudo ln -s [path/to/bin/ispc] /usr/local/bin/ispc`
 
-2. Install Vulkan1.3(https://vulkan.lunarg.com/)
+    Windows: unzip the folder wherever you would like it installed. Then in the windows search bar type in "environment variables". Open that, then do to "edit environment variables". Click on the PATH variable (there are 2 PATHs, one for the local user and one for the any user on the computer. Use whichever one you want, it doesn't matter). You should see a list of folders that make up the PATH. Click "Add" and paste in the full path to the ispc bin folder (inside the unzipped result).
+
+    Linux: extract the .tar.gz file with `tar -xvf [filename]`. Move that directory to wherever you would like. Now you can either add the bin directory to the PATH variable, or you can just make a symlink for the ispc executable into a directory that is already in the PATH. Ex: `sudo ln -s [path/to/bin/ispc] /usr/local/bin/ispc`
+
+2. Vulkan 1.3: The download for this can be found [here](https://vulkan.lunarg.com/)
 
 ## Compiling Windows
 From git bash:

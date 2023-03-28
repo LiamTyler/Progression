@@ -230,3 +230,28 @@ std::string GetDirectoryStem( const std::string& path )
     //    ret = path.substr( start, end - start + 1 );
     //}
 }
+
+
+std::vector<std::string> GetFilesInDir( const std::string& path, bool recursive )
+{
+    std::vector<std::string> files;
+    files.reserve( 16 );
+    if ( recursive )
+    {
+        for ( const auto& entry : fs::recursive_directory_iterator( path ) )
+        {
+            if ( entry.is_regular_file() )
+                files.push_back( entry.path().string() );
+        }
+    }
+    else
+    {
+        for ( const auto& entry : fs::directory_iterator( path ) )
+        {
+            if ( entry.is_regular_file() )
+                files.push_back( entry.path().string() );
+        }
+    }
+
+    return files;
+}

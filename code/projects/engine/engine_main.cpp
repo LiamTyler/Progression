@@ -32,7 +32,9 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    AssetManager::LoadFastFile( "mkdd" );
+    UI::BootMainMenu();
+
+    //AssetManager::LoadFastFile( "sponza" );
 
     if ( false )
     {
@@ -71,10 +73,10 @@ int main( int argc, char* argv[] )
         return 0;
     }
 
-    UI::BootMainMenu();
+    
 
     Window* window = GetMainWindow();
-    //window->SetRelativeMouse( false );
+    window->SetRelativeMouse( false );
 
     Input::PollEvents();
     Time::Reset();

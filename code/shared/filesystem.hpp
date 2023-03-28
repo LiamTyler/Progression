@@ -59,3 +59,5 @@ std::string GetRelativePathToDir( const std::string& file, const std::string& re
 // Ex: path = /foo/bar/ -> bar
 // Ex: path = /foo/bar/baz.txt -> bar
 std::string GetDirectoryStem( const std::string& path );
+
+std::vector<std::string> GetFilesInDir( const std::string& path, bool recursive );

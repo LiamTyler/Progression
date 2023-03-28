@@ -73,23 +73,35 @@ set(
     ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
     ${CODE_DIR}/external/getopt/getopt.c
     ${CODE_DIR}/external/getopt/getopt.h
+    ${CODE_DIR}/external/msdfgen/ext/import-font.cpp
+    ${CODE_DIR}/external/msdfgen/ext/import-font.h
 )
 
-set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES})
+set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES} ${MSDFGEN_EXT_FILES})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
-set_source_files_properties(${IMAGELIB_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties(${IMAGELIB_EXT_FILES} ${MSDFGEN_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/
 	${CMAKE_CURRENT_SOURCE_DIR}/converters/
-    ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES} ${PUGIXML_INCLUDES}
+    ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES}
+    ${LUA_INCLUDES} ${PUGIXML_INCLUDES}
+    ${FREETYPE_INCLUDES} ${MSDFGEN_INCLUDES}
     ${Vulkan_INCLUDE_DIR}
 )
 
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER)
-target_link_libraries(${PROJECT_NAME} PUBLIC debug OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG} lua lz4 ${PUGIXML_LIBS})
-target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4 ${PUGIXML_LIBS})
+target_link_libraries(${PROJECT_NAME} PUBLIC debug
+    OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG}
+    lua lz4 ${PUGIXML_LIBS}
+    ${FREETYPE_LIBS} ${MSDFGEN_LIBS}
+)
+target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX
+    ${VULKAN_LIBS} ${IMAGELIB_LIBS}
+    lua lz4 ${PUGIXML_LIBS}
+    ${FREETYPE_LIBS} ${MSDFGEN_LIBS}
+)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)

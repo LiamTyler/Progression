@@ -204,7 +204,7 @@ bool Scene::Load( const std::string& filename )
     Lua::State()["ECS"] = &this->registry;
     Lua::State()["scene"] = this;
 
-    if ( !AssetManager::LoadFastFile( "defaults" ) )
+    if ( !AssetManager::LoadFastFile( "defaults_required" ) )
     {
         return false;
     }

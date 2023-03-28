@@ -456,7 +456,7 @@ namespace PG::UI
             LOG_ERR( "Script %s does not have a %s function '%s'", scriptName.c_str(), funcTypeStr, funcName.c_str() );
     }
 
-    static bool CreateLayout( UILayout* layoutAsset )
+    static bool CreateLayoutFromAsset( UILayout* layoutAsset )
     {
         UIElementHandle rootElementHandle = s_uiElements.AllocMultiple( (uint32_t)layoutAsset->createInfos.size() );
         if ( rootElementHandle == UI_NULL_HANDLE )
@@ -523,7 +523,7 @@ namespace PG::UI
             return false;
         }
 
-        return CreateLayout( layoutAsset );
+        return CreateLayoutFromAsset( layoutAsset );
     }
 
     void RemoveLayout( const std::string& layoutName )
@@ -588,7 +588,7 @@ namespace PG::UI
         {
             if ( oldLayout == s_layouts[oldLayoutIdx].layoutAsset )
             {
-                if ( !CreateLayout( newLayout ) )
+                if ( !CreateLayoutFromAsset( newLayout ) )
                     return;
 
                 LayoutInfo& oldLayoutInfo = s_layouts[oldLayoutIdx];

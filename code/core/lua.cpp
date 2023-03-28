@@ -3,6 +3,7 @@
 #include "core/scene.hpp"
 #include "core/time.hpp"
 #include "ecs/ecs.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/math.hpp"
 #if USING( GAME )
 #include "core/input.hpp"
@@ -16,7 +17,7 @@ namespace PG
 namespace Lua
 {
 
-    void RegisterTimeFunctions( lua_State* L )
+    void RegisterLuaFunctions_Time( lua_State* L )
     {
         sol::state_view state( L );
         auto luaTimeNamespace = state["Time"].get_or_create< sol::table >();
@@ -97,6 +98,14 @@ namespace Lua
     }
 
 
+    void RegisterLuaFunctions_Filesystem( lua_State* L )
+    {
+        sol::state_view lua( L );
+        lua["GetFilesProjectSubdir"] = []( const std::string& relPath, bool recursive ) { return GetFilesInDir( PG_ROOT_DIR + relPath, recursive ); };
+        lua["GetRelativeFilename"] = GetRelativeFilename ;
+    }
+
+
     void Init()
     {
         PG_ASSERT( !g_LuaState );
@@ -108,14 +117,15 @@ namespace Lua
     void SetupStateFunctions( lua_State* state )
     {
         sol::state_view stateView( state );
-        stateView.open_libraries( sol::lib::base, sol::lib::math );
+        stateView.open_libraries( sol::lib::base, sol::lib::math, sol::lib::string );
 
         RegisterLuaFunctions_Math( state );
         RegisterLuaFunctions_Scene( state );
         RegisterLuaFunctions_Camera( state );
         ECS::RegisterLuaFunctions( state );
         AssetManager::RegisterLuaFunctions( state );
-        RegisterTimeFunctions( state );
+        RegisterLuaFunctions_Time( state );
+        RegisterLuaFunctions_Filesystem( state );
 #if USING( GAME )
         RegisterLuaFunctions_Window( state );
         Input::RegisterLuaFunctions( state );

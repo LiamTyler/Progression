@@ -68,7 +68,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     r_globals.sceneWidth = sceneWidth;
     r_globals.sceneHeight = sceneHeight;
 
-    if ( !AssetManager::LoadFastFile( "defaults" ) || !AssetManager::LoadFastFile( "gfx_required" ) )
+    if ( !AssetManager::LoadFastFile( "defaults_required" ) || !AssetManager::LoadFastFile( "gfx_required" ) )
     {
         return false;
     }

@@ -386,6 +386,9 @@ bool ConvertSingleAsset()
     return ConvertAssets( s_singleAssetName, outOfDateAssets );
 }
 
+#include "msdfgen.h"
+#include "ext/import-font.h"
+#include "ft2build.h"
 
 int main( int argc, char** argv )
 {
@@ -405,6 +408,43 @@ int main( int argc, char** argv )
         return 0;
     }
     LOG( "Converter initialized in %.2f seconds\n", Time::GetDuration( initStartTime ) / 1000.0f );
+
+    using namespace msdfgen;
+    FreetypeHandle *ft = initializeFreetype();
+    if (ft) {
+        FontHandle *font = loadFont(ft, PG_ASSET_DIR "fonts/arial.ttf" );
+        if (font) {
+            Shape shape;
+            if (loadGlyph(shape, font, 'A')) {
+                shape.normalize();
+                //                      max. angle
+                edgeColoringSimple(shape, 3.0);
+                //           image width, height
+                Bitmap<float, 4> msdf(32, 32);
+                Bitmap<float, 1> sdf(32, 32);
+                //                     range, scale, translation
+                generateMTSDF(msdf, shape, 4.0, 1.0, Vector2(4.0, 4.0));
+                generateSDF(sdf, shape, 4.0, 1.0, Vector2(4.0, 4.0));
+                FloatImage fImg( msdf.width(), msdf.height(), 3 );
+                for ( uint32_t r = 0; r < fImg.height; ++r )
+                {
+                    for ( uint32_t c = 0; c < fImg.width; ++c )
+                    {
+                        float* p = msdf( c, 31 - r );
+                        float* s = sdf( c, 31 - r );
+                        fImg.SetFromFloat4( r, c, glm::vec4( p[0], p[1], p[2], s[0] ) );
+                    }
+                }
+
+                RawImage2D img = RawImage2DFromFloatImage( fImg, ImageFormat::R8_G8_B8_A8_UNORM );
+                img.Save( PG_ROOT_DIR "test.png" );
+                //savePng(msdf, "output.png");
+            }
+            destroyFont(font);
+        }
+        deinitializeFreetype(ft);
+    }
+    return 0;
 
     if ( !s_singleAssetName.empty() )
     {

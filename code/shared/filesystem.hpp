@@ -2,6 +2,7 @@
 
 #include <filesystem>
 #include <string>
+#include <vector>
 
 std::string BackToForwardSlashes( std::string str );
 

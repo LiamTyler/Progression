@@ -2,6 +2,7 @@
 #include "bc7_reference_tables.hpp"
 //#include "compressonator/cmp_core/source/cmp_core.h"
 #include "shared/assert.hpp"
+#include "shared/bitops.hpp"
 #include "shared/logger.hpp"
 
 struct BC1Block
@@ -32,7 +33,7 @@ static void Color565To888( uint16_t color565, uint32_t& r, uint32_t& g, uint32_t
 }
 
 
-void Decompress_BC1_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+static void Decompress_BC1_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
     const BC1Block& block = *reinterpret_cast<const BC1Block*>( compressedBlock );
     uint32_t r0, g0, b0;
@@ -95,7 +96,7 @@ void Decompress_BC1_Block( const uint8_t* compressedBlock, uint8_t decompressedB
 }
 
 
-void Decompress_BC2_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+static void Decompress_BC2_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
     Decompress_BC1_Block( compressedBlock + 8, decompressedBlock );
     const size_t& alphaBlock = *reinterpret_cast<const size_t*>( compressedBlock );
@@ -107,7 +108,7 @@ void Decompress_BC2_Block( const uint8_t* compressedBlock, uint8_t decompressedB
 }
 
 
-void Decompress_BC4_Block_UNorm( const uint8_t* compressedBlock, uint8_t* decompressedBlock, int stride = 1 )
+static void Decompress_BC4_Block_UNorm( const uint8_t* compressedBlock, uint8_t* decompressedBlock, int stride = 1 )
 {
     uint8_t palette[8];
     palette[0] = *compressedBlock;
@@ -147,7 +148,7 @@ void Decompress_BC4_Block_UNorm( const uint8_t* compressedBlock, uint8_t* decomp
 }
 
 
-void Decompress_BC4_Block_SNorm( const int8_t* compressedBlock, int8_t* decompressedBlock, int stride = 1 )
+static void Decompress_BC4_Block_SNorm( const int8_t* compressedBlock, int8_t* decompressedBlock, int stride = 1 )
 {
     int8_t palette[8];
     palette[0] = *compressedBlock;
@@ -187,7 +188,7 @@ void Decompress_BC4_Block_SNorm( const int8_t* compressedBlock, int8_t* decompre
 }
 
 
-void Decompress_BC3_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+static void Decompress_BC3_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
     // TODO: do bc2 + bc3 ignore the endpoint ordering in bc1 for punchthrough alpha?
     uint8_t alphaDecompressed[16];
@@ -200,32 +201,17 @@ void Decompress_BC3_Block( const uint8_t* compressedBlock, uint8_t decompressedB
 }
 
 
-void Decompress_BC5_Block_UNorm( const uint8_t* compressedBlock, uint8_t decompressedBlock[32] )
+static void Decompress_BC5_Block_UNorm( const uint8_t* compressedBlock, uint8_t decompressedBlock[32] )
 {
     Decompress_BC4_Block_UNorm( compressedBlock, decompressedBlock, 2 );
     Decompress_BC4_Block_UNorm( compressedBlock + 8, decompressedBlock + 1, 2 );
 }
 
 
-void Decompress_BC5_Block_SNorm( const int8_t* compressedBlock, int8_t decompressedBlock[32] )
+static void Decompress_BC5_Block_SNorm( const int8_t* compressedBlock, int8_t decompressedBlock[32] )
 {
     Decompress_BC4_Block_SNorm( compressedBlock, decompressedBlock, 2 );
     Decompress_BC4_Block_SNorm( compressedBlock + 8, decompressedBlock + 1, 2 );
-}
-
-
-uint32_t __inline ctz( uint32_t value )
-{
-    unsigned long trailing_zero = 0;
-
-    if ( _BitScanForward( &trailing_zero, value ) )
-    {
-        return trailing_zero;
-    }
-    else
-    {
-        return 32;
-    }
 }
 
 
@@ -293,7 +279,7 @@ BC6ModeInfo s_bc6ModeTable[] =
 };
 
 
-bool BC6_GetModeInfo( uint32_t modeBits, BC6ModeInfo& info )
+static bool BC6_GetModeInfo( uint32_t modeBits, BC6ModeInfo& info )
 {
     for ( int i = 0; i < ARRAY_COUNT( s_bc6ModeTable ); ++i )
     {
@@ -314,7 +300,7 @@ bool BC6_GetModeInfo( uint32_t modeBits, BC6ModeInfo& info )
 // rx/gx/bx (endpt[0].B[0-2]) = endpoints[1][0-2]
 // ry/gy/by (endpt[1].A[0-2]) = endpoints[2][0-2]
 // rz/gz/bz (endpt[1].B[0-2]) = endpoints[3][0-2]
-void BC6_ExtractEndpoints( uint32_t modeBits, const uint8_t* compressedBlock, int packedEndpoints[4][3] )
+static void BC6_ExtractEndpoints( uint32_t modeBits, const uint8_t* compressedBlock, int packedEndpoints[4][3] )
 {
     switch ( modeBits )
     {
@@ -552,7 +538,7 @@ void BC6_ExtractEndpoints( uint32_t modeBits, const uint8_t* compressedBlock, in
 }
 
 
-void BC6_ExtractIndices( const uint8_t* compressedBlock, const uint32_t shapeIndex, const int regionCount, uint8_t indices[16] )
+static void BC6_ExtractIndices( const uint8_t* compressedBlock, const uint32_t shapeIndex, const int regionCount, uint8_t indices[16] )
 {
     if ( regionCount == 1 )
     {
@@ -644,7 +630,7 @@ static void BC6_TransformEndpointsOneRegion( const BC6ModeInfo &info, const bool
 }
 
 
-int BC6_Unquantize( int comp, int uBitsPerComp, bool isSignedF16 )
+static int BC6_Unquantize( int comp, int uBitsPerComp, bool isSignedF16 )
 {
     int unq, s = 0;
     if ( !isSignedF16 )
@@ -686,7 +672,7 @@ int BC6_Unquantize( int comp, int uBitsPerComp, bool isSignedF16 )
 }
 
 
-uint16_t BC6_FinishUnquantize( int comp, bool isSignedF16 )
+static uint16_t BC6_FinishUnquantize( int comp, bool isSignedF16 )
 {
     if ( !isSignedF16 )
     {
@@ -707,7 +693,7 @@ uint16_t BC6_FinishUnquantize( int comp, bool isSignedF16 )
 }
 
 
-void BC6_GeneratePaletteUnquantized( const BC6ModeInfo &info, uint8_t regionIdx, bool isSignedF16, const int endpoints[4][3], uint16_t palette[16][3] )
+static void BC6_GeneratePaletteUnquantized( const BC6ModeInfo &info, uint8_t regionIdx, bool isSignedF16, const int endpoints[4][3], uint16_t palette[16][3] )
 {
     const uint8_t uNumIndices = info.regionCount == 2 ? 8 : 16;
     int* aWeights;
@@ -731,7 +717,7 @@ void BC6_GeneratePaletteUnquantized( const BC6ModeInfo &info, uint8_t regionIdx,
 }
 
 
-void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressedBlock[48], bool isSignedF16 )
+static void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressedBlock[48], bool isSignedF16 )
 {
     uint32_t numModeBits = (*compressedBlock & 0x3) < 2 ? 2 : 5;
     uint32_t currentBitOffset = 0;
@@ -740,7 +726,7 @@ void Decompress_BC6_Block( const uint8_t* compressedBlock, uint16_t decompressed
     BC6ModeInfo modeInfo;
     if ( !BC6_GetModeInfo( modeBits, modeInfo ) )
     {
-        memset( decompressedBlock, 0, sizeof( decompressedBlock ) );
+        memset( decompressedBlock, 0, 48 * sizeof( uint16_t ) );
         return;
     }
     
@@ -814,7 +800,7 @@ BC7ModeBitCounts s_bc7BitTable[8] =
 };
 
 
-void BC7_ExtractEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint8_t* compressedBlock, uint32_t& currentBitOffset )
+static void BC7_ExtractEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint8_t* compressedBlock, uint32_t& currentBitOffset )
 {
     const BC7ModeBitCounts& info = s_bc7BitTable[mode];
     uint32_t numColorBits = info.colorBits;
@@ -842,7 +828,7 @@ void BC7_ExtractEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint
 }
 
 
-void BC7_FullyDecodeEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint8_t* compressedBlock, uint32_t& currentBitOffset )
+static void BC7_FullyDecodeEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint8_t* compressedBlock, uint32_t& currentBitOffset )
 {
     const BC7ModeBitCounts& info = s_bc7BitTable[mode];
     uint32_t colorPrecisionBits = info.colorBits;
@@ -903,7 +889,7 @@ void BC7_FullyDecodeEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const 
 
 
 // BC7 always does 6 bit interpolation
-uint32_t BC7_Interpolate( uint32_t e0, uint32_t e1, uint8_t bitsPerIndex, int index )
+static uint32_t BC7_Interpolate( uint32_t e0, uint32_t e1, uint8_t bitsPerIndex, int index )
 {
     uint32_t lerpWeight;
     if ( bitsPerIndex == 2 )      lerpWeight = indexInterpolationWeights_2Bit[index];
@@ -915,7 +901,7 @@ uint32_t BC7_Interpolate( uint32_t e0, uint32_t e1, uint8_t bitsPerIndex, int in
 }
 
 
-void Decompress_BC7_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
+static void Decompress_BC7_Block( const uint8_t* compressedBlock, uint8_t decompressedBlock[64] )
 {
     uint32_t mode = ctz( *compressedBlock );
     if ( mode > 7 )

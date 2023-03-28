@@ -203,7 +203,7 @@ consteval FormatCheckError CheckFromat( std::string_view fmt )
 
     // handle flags
     pos = ParseFlags( fmt, pos );
-    if ( pos >= fmt.size() ) FormatCheckError::INVALID_FORMAT_STRING;
+    if ( pos >= fmt.size() ) return FormatCheckError::INVALID_FORMAT_STRING;
 
     // handle width
     if ( fmt[pos] == '*' ) return FormatCheckError::TODO_NOT_IMPLEMENTED_YET;

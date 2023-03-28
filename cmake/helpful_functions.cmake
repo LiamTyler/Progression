@@ -28,12 +28,12 @@ function(COPY_FILE_IF_DIFFERENT src dst)
 	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src} ${dst})
 endfunction()
 
-# Copy each file from source_dir that globs with prefix* into
+# Copy each file from source_dir that globs with *filenameSubstr* into
 # dst_bin_dir if the file extension is contained in the BINARY_EXTENSIONS list
 # dst_lib_dir if the file extension is contained in the LIB_EXTENSIONS list
 # otherwise it is not copied
-function(COPY_BUILD_FILES source_dir dst_bin_dir dst_lib_dir prefix)
-    file(GLOB files "${source_dir}/${prefix}*")
+function(COPY_BUILD_FILES source_dir dst_bin_dir dst_lib_dir filenameSubstr)
+    file(GLOB files "${source_dir}/*${filenameSubstr}*")
     set(BINARY_EXTENSIONS ".exe" ".dll" ".so" "")
     set(LIB_EXTENSIONS ".lib" ".a" ".pdb")
     foreach(f ${files})
@@ -76,7 +76,7 @@ function(CONFIG_TIME_COMPILE source_dir build_dir CONFIG)
 				WORKING_DIRECTORY ${build_dir}
 			)
 		endif()
-	else()
+    else() # LINUX
 		execute_process(
 			COMMAND ${CMAKE_COMMAND} -DPG_BUILD_DIR=${build_dir} -DCMAKE_BUILD_TYPE=${CONFIG} ${source_dir}
 			WORKING_DIRECTORY ${build_dir}

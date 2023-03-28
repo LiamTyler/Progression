@@ -508,7 +508,7 @@ uint32_t CalculateNumMips( uint32_t width, uint32_t height )
 
 double FloatImageMSE( const FloatImage& img1, const FloatImage& img2, uint32_t channelsToCalc )
 {
-    if ( img1.width != img2.width || img1.height != img2.height || img1.numChannels != img1.numChannels )
+    if ( img1.width != img2.width || img1.height != img2.height || img1.numChannels != img2.numChannels )
     {
         LOG_ERR( "Images must be same size and channel count to calculate MSE" );
         return -1;

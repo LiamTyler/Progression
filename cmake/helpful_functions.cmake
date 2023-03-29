@@ -1,13 +1,19 @@
 macro(SET_BIN_AND_LIB_DIRS binDir libDir)
 	file(MAKE_DIRECTORY ${binDir})
 	file(MAKE_DIRECTORY ${libDir})
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${binDir})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${libDir})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${libDir})
+    if (MSVC)
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${binDir})
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${libDir})
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${libDir})
 
-    set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${binDir})
-    set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${libDir})
-    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${libDir})
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${binDir})
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${libDir})
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${libDir})
+    else()
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${binDir})
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${libDir})
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${libDir})
+    endif()
 endmacro()
 
 macro(SET_PLATFORM_DEFINES)
@@ -82,7 +88,7 @@ function(CONFIG_TIME_COMPILE source_dir build_dir CONFIG)
 			WORKING_DIRECTORY ${build_dir}
 		)
 		execute_process(
-			COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIG}
+			COMMAND ${CMAKE_COMMAND} --build . --parallel 6 --config ${CONFIG}
 			WORKING_DIRECTORY ${build_dir}
 		)
 	endif()
@@ -91,6 +97,7 @@ endfunction()
 function(CONFIG_TIME_COMPILE_DEBUG_AND_RELEASE source_dir build_dir)
     if(WIN32)
         CONFIG_TIME_COMPILE(${source_dir} ${build_dir} Debug)
+        # NOTE: does this even work on linux, where the config is specified at cmake time?
         execute_process(
             COMMAND ${CMAKE_COMMAND} --build . --config Release
             WORKING_DIRECTORY ${build_dir}

@@ -1,9 +1,15 @@
 #include "string.hpp"
+#include "shared/platform_defines.hpp"
+#include <strings.h>
 
 
 int Stricmp( const char* str1, const char* str2 )
 {
-	return _stricmp( str1, str2 );
+#if USING( WINDOWS_PROGRAM )
+	return stricmp( str1, str2 );
+#else // #if USING( WINDOWS_PROGRAM )
+    return strcasecmp( str1, str2 );
+#endif // #else // #if USING( WINDOWS_PROGRAM )
 }
 
 std::string StripWhitespace( const std::string& s )

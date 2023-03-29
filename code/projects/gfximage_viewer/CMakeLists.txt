@@ -43,7 +43,7 @@ target_link_libraries(${PROJECT_NAME} PUBLIC ${LIBS}
     debug ${IMAGELIB_LIBS_DEBUG} 
     optimized ${IMAGELIB_LIBS}
 )
-target_link_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib)
+target_link_directories(${PROJECT_NAME} PRIVATE ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)
 target_include_directories(${PROJECT_NAME} PRIVATE
     ${COMMON_INCLUDE_DIRS}
     ${Vulkan_INCLUDE_DIR}

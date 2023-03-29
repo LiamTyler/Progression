@@ -5,6 +5,7 @@
 #include "shared/filesystem.hpp"
 #include "shared/hash.hpp"
 #include "shared/logger.hpp"
+#include <cstring>
 #include <fstream>
 #include <mutex>
 #include <regex>

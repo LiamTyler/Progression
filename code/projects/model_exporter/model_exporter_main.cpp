@@ -6,6 +6,7 @@
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
+#include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <iostream>

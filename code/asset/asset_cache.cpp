@@ -40,7 +40,7 @@ namespace PG::AssetCache
 void Init()
 {
     CreateDirectory( ROOT_DIR );
-    for ( int i = 0; i < ASSET_TYPE_COUNT; ++i )
+    for ( uint32_t i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
         CreateDirectory( ROOT_DIR + assetCacheFolders[i] );
     }

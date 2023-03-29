@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shared/core_defines.hpp"
+#include <cstdint>
 
 // If order is changed, all fastfiles need to be rebuilt
 enum AssetType : unsigned int

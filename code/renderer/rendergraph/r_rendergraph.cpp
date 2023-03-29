@@ -3,6 +3,9 @@
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/logger.hpp"
+#include <climits>
+#include <cstring>
+#include <math.h>
 #include <unordered_map>
 #include <unordered_set>
 

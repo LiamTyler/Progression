@@ -52,7 +52,7 @@ endif()
 if (NOT MSVC)
 	set(GCC_COMPILE_FLAGS "-fno-strict-aliasing -Wall -Wextra")
 	if (NOT BUILD_X64)
-		set(GCC_COMPILE_FLAGS "${GCC_COMPILE_FLAGS} -m32")
+        set(GCC_COMPILE_FLAGS "${GCC_COMPILE_FLAGS} -m32 -fPIE")
 	endif()
 endif()	
 

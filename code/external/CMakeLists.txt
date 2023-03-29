@@ -120,8 +120,16 @@ set(IMAGELIB_INCLUDES
     ${EXT_DIR}/compressonator/cmp_core/source/
 	PARENT_SCOPE
 )
-set(IMAGELIB_LIBS ImageLib tiff bc7enc PARENT_SCOPE)
-set(IMAGELIB_LIBS_DEBUG ImageLib_d tiff bc7enc PARENT_SCOPE)
+# NOTE: need to do this for all libraries libtiff ends up using (so far only zlib on linux?)
+set(ZLIB_LIBS "")
+if(NOT MSVC)
+    find_package(ZLIB)
+    if(ZLIB_FOUND)
+        set(ZLIB_LIBS ${ZLIB_LIBRARIES})
+    endif()
+endif()
+set(IMAGELIB_LIBS ImageLib tiff bc7enc ${ZLIB_LIBS} PARENT_SCOPE)
+set(IMAGELIB_LIBS_DEBUG ImageLib_d tiff bc7enc ${ZLIB_LIBS} PARENT_SCOPE)
 
 set(IMAGELIB_EXT_FILES
 	${EXT_DIR}/ImageLib/bc_compression.cpp

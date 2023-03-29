@@ -104,4 +104,5 @@ target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX
     lua lz4 ${PUGIXML_LIBS}
     ${FREETYPE_LIBS} ${MSDFGEN_LIBS}
 )
-target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)
+target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)
+target_compile_options(${PROJECT_NAME} PUBLIC -fPIE)

@@ -29,7 +29,7 @@ void InitConverters()
 void ShutdownConverters()
 {
     CloseShaderIncludeCache();
-    for ( int i = 0; i < ASSET_TYPE_COUNT; ++i )
+    for ( uint32_t i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
         g_converters[i].reset();
     }

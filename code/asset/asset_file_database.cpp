@@ -28,7 +28,7 @@ static bool ParseAssetFile( const std::string& filename )
     {
         std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
         const json::Value& value = assetIter->MemberBegin()->value;
-        for ( int typeIndex = 0; typeIndex < ASSET_TYPE_COUNT; ++typeIndex )
+        for ( uint32_t typeIndex = 0; typeIndex < ASSET_TYPE_COUNT; ++typeIndex )
         {
             if ( assetTypeStr == g_assetNames[typeIndex] )
             {

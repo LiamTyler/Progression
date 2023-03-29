@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shared/math.hpp"
+#include <cfloat>
 
 namespace PT
 {

@@ -1,5 +1,5 @@
 #include "core/bounding_box.hpp"
-
+#include <cfloat>
 
 namespace PG
 {

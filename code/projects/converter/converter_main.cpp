@@ -23,11 +23,11 @@ static void DisplayHelp()
 {
     auto msg =
       "Usage: converter [options] [ASSET_NAME or SCENE_FILE]\n"
-      "SCENE_FILE is relative to the project's assets/ folder. Can also pass in a specific CSV instead of a regular json scene file\n";
-      "ASSET_NAME is the name of the asset to be converted. Only applies when using --single, otherwise it's always interpreted as a scene path\n";
+      "SCENE_FILE is relative to the project's assets/ folder. Can also pass in a specific CSV instead of a regular json scene file\n"
+      "ASSET_NAME is the name of the asset to be converted. Only applies when using --single, otherwise it's always interpreted as a scene path\n"
       "Options\n"
       "  --force        Don't check asset file dependencies, just reconvert everything\n"
-      "  --help         Print this message and exit\n";
+      "  --help         Print this message and exit\n"
       "  --single       Used to process a specific asset (and its referenced assets). Format: type name. Ex: '--single material wood_floor\n";
 
     LOG( "%s", msg );
@@ -133,7 +133,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                 continue;
             }
             bool found = false;
-            int assetTypeIdx = 0;
+            uint32_t assetTypeIdx = 0;
             std::string assetTypeName = vec[0];
             std::string assetName = vec[1];
             for ( ; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )

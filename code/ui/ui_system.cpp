@@ -144,7 +144,7 @@ namespace PG::UI
     {
         Clear();
         Gfx::r_globals.device.WaitForIdle();
-        for ( int i = 0; i < PIPELINE_COUNT; ++i )
+        for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
         {
             s_uiPipelines[i].Free();
         }

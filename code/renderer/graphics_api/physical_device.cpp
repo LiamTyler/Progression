@@ -268,7 +268,7 @@ PhysicalDevice SelectBestPhysicalDevice( std::vector<PhysicalDevice>& devices, i
     PG_ASSERT( devices.size() > 0 );
     if ( deviceOverride != -1 )
     {
-        PG_ASSERT( deviceOverride < devices.size() );
+        PG_ASSERT( deviceOverride < (int)devices.size() );
         return devices[deviceOverride];
     }
 

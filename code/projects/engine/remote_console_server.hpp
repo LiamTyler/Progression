@@ -2,11 +2,11 @@
 
 #include "shared/platform_defines.hpp"
 
-#if USING( GAME ) && !USING( SHIP_BUILD )
+#if USING( GAME ) && !USING( SHIP_BUILD ) && USING( WINDOWS_PROGRAM )
 #define REMOTE_CONSOLE IN_USE
-#else // #if USING( GAME ) && !USING( SHIP_BUILD )
-#define REMOTE_CONSOLE IN_USE
-#endif // #else // #if USING( GAME ) && !USING( SHIP_BUILD )
+#else // #if USING( GAME ) && !USING( SHIP_BUILD ) && USING( WINDOWS_PROGRAM )
+#define REMOTE_CONSOLE NOT_IN_USE
+#endif // #else // #if USING( GAME ) && !USING( SHIP_BUILD ) && USING( WINDOWS_PROGRAM )
 
 namespace PG::RemoteConsoleServer
 {
@@ -15,8 +15,8 @@ namespace PG::RemoteConsoleServer
 bool Init();
 void Shutdown();
 #else // #if USING( REMOTE_CONSOLE )
-bool Init() { return true; }
-void Shutdown() {}
+inline bool Init() { return true; }
+inline void Shutdown() {}
 #endif // #else // #if USING( REMOTE_CONSOLE )
 
 } // namespace PG::RemoteConsoleServer

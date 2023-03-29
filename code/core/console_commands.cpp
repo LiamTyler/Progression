@@ -67,6 +67,6 @@ void PG::ProcessPendingCommands()
 
 void PG::AddCommand( const std::string& cmd )
 {
-    std::scoped_lock( s_lock );
+    std::scoped_lock lock( s_lock );
     s_pendingCommands.push_back( cmd );
 }

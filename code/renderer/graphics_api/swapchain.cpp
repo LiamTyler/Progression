@@ -97,7 +97,7 @@ static VkSurfaceFormatKHR ChooseSwapSurfaceFormat( const std::vector<VkSurfaceFo
         }
     }
 
-    LOG_WARN( "Format not BGRA8 with SRGB colorspace. Instead format = %d, colorspace = %d", availableFormats[0].format, availableFormats[0].colorSpace );
+    LOG_WARN( "Format not BGRA8 with SRGB colorspace. Instead format = %d, colorspace = %d", (int)availableFormats[0].format, (int)availableFormats[0].colorSpace );
 
     return availableFormats[0];
 }

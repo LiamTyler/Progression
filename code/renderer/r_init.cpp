@@ -310,7 +310,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     std::vector<PhysicalDevice> pDevices = EnumerateCompatiblePhysicalDevices( r_globals.instance, r_globals.surface, headless, false );
     if ( pDevices.empty() )
     {
-        LOG_ERR( "No gpu's are valid to use, based on the required extensions and features" );
+        LOG_ERR( "No gpus are valid to use, based on the required extensions and features" );
         return false;
     }
     else

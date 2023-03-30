@@ -45,11 +45,19 @@ function(COPY_BUILD_FILES source_dir dst_bin_dir dst_lib_dir filenameSubstr)
     foreach(f ${files})
         get_filename_component(ext ${f} EXT)
         get_filename_component(name ${f} NAME)
-        if("${ext}" IN_LIST BINARY_EXTENSIONS)
-            COPY_FILE_IF_DIFFERENT(${f} "${dst_bin_dir}/${name}")
-        elseif("${ext}" IN_LIST LIB_EXTENSIONS)
-			COPY_FILE_IF_DIFFERENT(${f} "${dst_lib_dir}/${name}")
-        endif()
+        foreach(bExt ${BINARY_EXTENSIONS})
+            if("${ext}" MATCHES "${bExt}*")
+                COPY_FILE_IF_DIFFERENT(${f} "${dst_bin_dir}/${name}")
+                break()
+            endif()
+        endforeach()
+
+        foreach(lExt ${LIB_EXTENSIONS})
+            if("${ext}" MATCHES "${lExt}*")
+                COPY_FILE_IF_DIFFERENT(${f} "${dst_lib_dir}/${name}")
+                break()
+            endif()
+        endforeach()
     endforeach()
 endfunction()
 
@@ -88,7 +96,7 @@ function(CONFIG_TIME_COMPILE source_dir build_dir CONFIG)
 			WORKING_DIRECTORY ${build_dir}
 		)
 		execute_process(
-			COMMAND ${CMAKE_COMMAND} --build . --parallel 6 --config ${CONFIG}
+			COMMAND ${CMAKE_COMMAND} --build . --parallel --config ${CONFIG}
 			WORKING_DIRECTORY ${build_dir}
 		)
 	endif()
@@ -97,7 +105,6 @@ endfunction()
 function(CONFIG_TIME_COMPILE_DEBUG_AND_RELEASE source_dir build_dir)
     if(WIN32)
         CONFIG_TIME_COMPILE(${source_dir} ${build_dir} Debug)
-        # NOTE: does this even work on linux, where the config is specified at cmake time?
         execute_process(
             COMMAND ${CMAKE_COMMAND} --build . --config Release
             WORKING_DIRECTORY ${build_dir}

@@ -21,8 +21,8 @@ else()
 endif(BUILD_X64)
 
 if (NOT MSVC)
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fopenmp")
-	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fopenmp")
+	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fopenmp -fPIC")
+	set(CMAKE_C_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -g -fopenmp -fPIC")
 
 	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fopenmp")
 	set(CMAKE_C_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fopenmp")
@@ -39,7 +39,7 @@ set(ISPC_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR})
 if (SUPPORT_BC7E)
 	if (NOT MSVC)
 		add_custom_command(OUTPUT ${ISPC_OUTPUT_DIR}/bc7e.o ${ISPC_OUTPUT_DIR}/bc7e_avx.o ${ISPC_OUTPUT_DIR}/bc7e_sse2.o ${ISPC_OUTPUT_DIR}/bc7e_sse4.o ${ISPC_OUTPUT_DIR}/bc7e_avx2.o
-			COMMAND ispc -g -O2 ${CMAKE_SOURCE_DIR}/bc7e.ispc -o ${ISPC_OUTPUT_DIR}/bc7e.o -h ${CMAKE_SOURCE_DIR}/bc7e_ispc.h --target=sse2,sse4,avx,avx2 --opt=fast-math --opt=disable-assertions
+			COMMAND ispc --pic -g -O2 ${CMAKE_SOURCE_DIR}/bc7e.ispc -o ${ISPC_OUTPUT_DIR}/bc7e.o -h ${CMAKE_SOURCE_DIR}/bc7e_ispc.h --target=sse2,sse4,avx,avx2 --opt=fast-math --opt=disable-assertions
 										 	DEPENDS bc7e.ispc)
 	else()
 		add_custom_command(OUTPUT ${ISPC_OUTPUT_DIR}/bc7e.obj ${ISPC_OUTPUT_DIR}/bc7e_avx.obj ${ISPC_OUTPUT_DIR}/bc7e_sse2.obj ${ISPC_OUTPUT_DIR}/bc7e_sse4.obj ${ISPC_OUTPUT_DIR}/bc7e_avx2.obj
@@ -52,7 +52,7 @@ endif()
 if (NOT MSVC)
 	set(GCC_COMPILE_FLAGS "-fno-strict-aliasing -Wall -Wextra")
 	if (NOT BUILD_X64)
-        set(GCC_COMPILE_FLAGS "${GCC_COMPILE_FLAGS} -m32 -fPIE")
+        set(GCC_COMPILE_FLAGS "${GCC_COMPILE_FLAGS} -m32")
 	endif()
 endif()	
 

@@ -36,7 +36,7 @@ public:
 
     bool ExtensionSupported( const std::string& extensionName ) const;
     // compatible devices have a strictly positive score. The higher, the better
-    int RateDevice( bool headless, VkSurfaceKHR surface ) const;
+    int RateDevice( bool headless, VkSurfaceKHR surface, bool logIfUnsuitable = false ) const;
 
     std::string GetName() const;
     VkPhysicalDevice GetHandle() const;

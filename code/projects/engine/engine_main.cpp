@@ -21,6 +21,8 @@ using namespace Gfx;
 
 bool g_paused = false;
 
+#define LOAD_SCENE_DIRECTLY IN_USE
+
 int main( int argc, char* argv[] )
 {
     EngineInitInfo engineInitConfig;
@@ -32,48 +34,17 @@ int main( int argc, char* argv[] )
         return 1;
     }
 
-    UI::BootMainMenu();
-
-    //AssetManager::LoadFastFile( "sponza" );
-
-    if ( false )
+#if USING( LOAD_SCENE_DIRECTLY )
+    Scene* scene = Scene::Load( PG_ASSET_DIR + std::string( argv[1] ) );
+    if ( !scene )
     {
-        sol::state lua;
-        lua.open_libraries( sol::lib::base, sol::lib::math );
-        lua.script( R"(
-        t = 0
-        function Start()
-            t = t + 1
-        end
-
-        Start()
-
-        print( t )
-        )");
-
-        lua["Start"]();
-        LOG( "%d", lua.get<int>( "t" ) );
-
-        lua.script( R"(
-        t = 0
-        function Start()
-            t = t + 2
-        end
-
-        Start()
-
-        print( t )
-        )");
-
-        lua["Start"]();
-        LOG( "%d", lua.get<int>( "t" ) );
-
-
         EngineShutdown();
-        return 0;
+        return 1;
     }
-
-    
+    SetPrimaryScene( scene );
+#else // #if USING( LOAD_SCENE_DIRECTLY )
+    UI::BootMainMenu();
+#endif // #else // #if USING( LOAD_SCENE_DIRECTLY )
 
     Window* window = GetMainWindow();
     window->SetRelativeMouse( false );
@@ -92,12 +63,20 @@ int main( int argc, char* argv[] )
         {
             g_engineShutdown = true;
         }
+
+        if ( auto primaryScenePtr = GetPrimaryScene() )
+        {
+            primaryScenePtr->Update();
+        }
         UI::Update();
 
         RenderSystem::Render();
 
         window->EndFrame();
     }
+#if USING( LOAD_SCENE_DIRECTLY )
+    delete scene;
+#endif // #if USING( LOAD_SCENE_DIRECTLY )
 
     EngineShutdown();
 

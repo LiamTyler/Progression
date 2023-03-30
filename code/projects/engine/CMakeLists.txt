@@ -140,4 +140,4 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${PROGRESSION_DIR}/assets/shaders/
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} ${GLFW_LIBS} lua lz4)
-target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib)
+target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

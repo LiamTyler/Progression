@@ -171,11 +171,14 @@ bool PhysicalDevice::ExtensionSupported( const std::string& extensionName ) cons
     return std::find( m_availableExtensions.begin(), m_availableExtensions.end(), extensionName ) != m_availableExtensions.end();
 }
 
-
-int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface ) const
+int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface, bool logIfUnsuitable ) const
 {
     if ( m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u )
+    {
+        if ( logIfUnsuitable )
+            LOG_ERR( "\t\tAt least one queue family was invalid" );
         return false;
+    }
 
     std::vector<const char*> requiredExtensions;
     for ( int i = 0; i < ARRAY_COUNT( REQUIRED_VK_EXTENSIONS ) - 1; ++i )
@@ -194,17 +197,28 @@ int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface ) const
     {
         if ( !ExtensionSupported( extension ) )
         {
+            if ( logIfUnsuitable )
+                LOG_ERR( "\t\tDoes not support required extension '%s'", extension );
             return 0;
         }
     }
 
     if ( !headless && !HasSwapChainSupport( m_handle, surface ) )
     {
+        if ( logIfUnsuitable )
+            LOG_ERR( "\t\tNo swapchain support" );
         return 0;
     }
 
     if ( !m_features.anisotropy || !m_features.bindless || !m_features.nullDescriptors || !m_features.raytracing )
     {
+        if ( logIfUnsuitable )
+        {
+            if ( !m_features.anisotropy ) LOG_ERR( "\t\tNo support for anisotropy" );
+            if ( !m_features.bindless ) LOG_ERR( "\t\tNo support for bindless textures" );
+            if ( !m_features.nullDescriptors ) LOG_ERR( "N\t\to support for nullDescriptors" );
+            if ( !m_features.raytracing ) LOG_ERR( "\t\tNo support for raytracing" );
+        }
         return 0;
     }
 
@@ -236,6 +250,7 @@ std::vector<PhysicalDevice> EnumerateCompatiblePhysicalDevices( VkInstance insta
     VK_CHECK_RESULT( vkEnumeratePhysicalDevices( instance, &deviceCount, nullptr ) );
     if ( deviceCount == 0 )
     {
+        LOG_ERR( "No Vulkan physical devices found!" );
         return {};
     }
 
@@ -256,6 +271,20 @@ std::vector<PhysicalDevice> EnumerateCompatiblePhysicalDevices( VkInstance insta
         {
             const auto& properties = dev.GetProperties();
             LOG( "Device %u: '%s', api = %u.%u.%u. Rating: %d", i, dev.GetProperties().name.c_str(), properties.apiVersionMajor, properties.apiVersionMinor, properties.apiVersionPatch, dev.GetRating() );
+            
+        }
+    }
+
+    // If none are suitable, go back and display why they arent suitable
+    if ( devices.empty() )
+    {
+        LOG_ERR( "No Vulkan physical device was suitable! Reasons why:" );
+        for ( uint32_t i = 0; i < deviceCount; ++i )
+        {
+            PhysicalDevice dev( vkDevices[i], surface, headless );
+            const auto& properties = dev.GetProperties();
+            LOG_ERR( "\tDevice %u: '%s', api = %u.%u.%u. Rating: %d", i, dev.GetProperties().name.c_str(), properties.apiVersionMajor, properties.apiVersionMinor, properties.apiVersionPatch, dev.GetRating() );
+            dev.RateDevice( headless, surface, true );
         }
     }
 

@@ -35,7 +35,7 @@ int main( int argc, char* argv[] )
     }
 
 #if USING( LOAD_SCENE_DIRECTLY )
-    Scene* scene = Scene::Load( PG_ASSET_DIR + std::string( argv[1] ) );
+    Scene* scene = Scene::Load( PG_ASSET_DIR "scenes/" + std::string( argv[1] ) + ".json" );
     if ( !scene )
     {
         EngineShutdown();

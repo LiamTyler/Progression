@@ -85,6 +85,7 @@ namespace TextureManager
                 {
                     std::swap( s_pendingUpdates[i], s_pendingUpdates[numPending - 1] );
                     s_pendingUpdates.pop_back();
+                    break;
                 }
             }
             s_pendingSlots[slot] = false;

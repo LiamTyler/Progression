@@ -46,6 +46,26 @@ bool LiveUpdatesSupported( AssetType type )
 }
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
+
+static void ClearPendingLiveUpdates()
+{
+#if USING( ASSET_LIVE_UPDATE )
+    uint32_t numIgnoredAssets = 0;
+    for ( uint32_t assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
+    {
+        for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
+        {
+
+            ++numIgnoredAssets;
+            newAssetBase->Free();
+            delete newAssetBase;
+        }
+        s_pendingAssetUpdates[assetIdx].clear();
+    }
+#endif // #if USING( ASSET_LIVE_UPDATE )
+}
+
+
 void ProcessPendingLiveUpdates()
 {
 #if USING( ASSET_LIVE_UPDATE )
@@ -156,6 +176,25 @@ bool LoadFastFile( const std::string& fname )
     }   
 
     return true;
+}
+
+
+// Since the render system shutsdown before the asset manager, need to free up any remaining gpu resources
+// before/during the render system's shutdown.
+void FreeRemainingGpuResources()
+{
+    ClearPendingLiveUpdates();
+    const AssetType typesWithGpuData[] = { ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER };
+    for ( uint32_t i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
+    {
+        AssetType type = typesWithGpuData[i];
+        for ( const auto& it : g_resourceMaps[type] )
+        {
+            it.second->Free();
+            delete it.second;
+        }
+        g_resourceMaps[type].clear();
+    }
 }
 
 

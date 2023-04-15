@@ -66,9 +66,6 @@ void EngineShutdown()
 #if USING( GAME )
     RemoteConsoleServer::Shutdown();
     UI::Shutdown();
-#endif // #if USING( GAME )
-    AssetManager::Shutdown();
-#if USING( GAME )
     RenderSystem::Shutdown();
     if ( !g_headless )
     {
@@ -76,6 +73,7 @@ void EngineShutdown()
         ShutdownWindowSystem();
     }
 #endif // #if USING( GAME )
+    AssetManager::Shutdown();
     Lua::Shutdown();
     Logger_Shutdown();
 }

@@ -204,6 +204,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 void Shutdown()
 {
     r_globals.device.WaitForIdle();
+    
     s_renderGraph.Free();
     depthOnlyPipeline.Free();
     litPipeline.Free();
@@ -217,6 +218,7 @@ void Shutdown()
     s_cubeIndexBuffer.Free();
     s_cubeVertexBuffer.Free();
 
+    AssetManager::FreeRemainingGpuResources();
     R_Shutdown();
 }
 

@@ -40,6 +40,7 @@ void ProcessPendingLiveUpdates();
 
 bool LoadFastFile( const std::string& fname );
 
+void FreeRemainingGpuResources();
 void Shutdown();
 
 void RegisterLuaFunctions( lua_State* L );

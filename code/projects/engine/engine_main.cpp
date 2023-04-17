@@ -64,6 +64,10 @@ int main( int argc, char* argv[] )
         {
             g_engineShutdown = true;
         }
+        if ( Input::GetKeyDown( Key::F1 ) )
+        {
+            g_engineShutdown = true;
+        }
 
         if ( auto primaryScenePtr = GetPrimaryScene() )
         {

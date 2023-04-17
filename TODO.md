@@ -3,16 +3,16 @@
 ## Priority 1
 - [x] add functionaility for removing layouts
 - [ ] Add support for running sponza again. Main menu of sorts -> scene selection?
-- [ ] allow for resizing window/multiple resolutions
 - [ ] ui mouse events lua callbacks
 - [ ] ui keyboard lua callbacks
-- [ ] controller support
-- [ ] allow for fixed aspect ratio
 - [x] shader include cache
 - [x] multithread the converter
-- [ ] change profiling to be all in RAM, no file writing. Show min + max + avg
+- [x] change profiling to be all in RAM, no file writing. Show min + max + avg
 - [x] Make asset filenames consistent (all from PG_ASSET_DIR, parses only store relative path. Load() makes absolute path, or detects it at least)
 - [ ] Switch to dynamic rendering
+- [ ] add meshoptimizer back in
+- [ ] Get remote console up and running again, and able to send commands (windows and linux)
+- [ ] show profiling results in ImGui view
 
 ## Priority 2
 - [ ] see if spirv optimizer is working again
@@ -22,8 +22,6 @@
 - [x] remove 2nd hash number in gfxImage cache composite names
 - [ ] Make model exporter work with texturesets
 - [ ] If assets are already in required/dependent fastfiles, dont put them in the top level FFs
-- [ ] show profiling results in ImGui view
-- [ ] Get remote console up and running again, and able to send commands
 - [ ] include both debug + non-debug shaders in FF, allow for runtime switching
 - [ ] fix shader preproc options (allow from command line)
 - [ ] mychanges for scripts
@@ -35,7 +33,8 @@
 - [ ] asset hashes for mychanges
 - [ ] don't wait for idle at the end of each frame
 - [ ] don't wait for idle while uploading images. Use barriers/whatever
-- [ ] add meshoptimizer back in
+- [ ] controller support
+- [ ] allow for resizing window/multiple resolutions
 
 ## Priority 3
 - [ ] add TIFF loading and saving
@@ -48,3 +47,4 @@
 - [ ] investigate different mipmap filters
 - [ ] do a pass on the code style consistency
 - [ ] have the game window open at the location it was the last time the game ran
+- [ ] allow for fixed aspect ratio

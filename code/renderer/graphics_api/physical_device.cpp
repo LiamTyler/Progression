@@ -3,6 +3,17 @@
 #include "shared/logger.hpp"
 #include <algorithm>
 
+static bool QueueSupportsTimestamps( VkQueueFamilyProperties q, VkQueueFlags flags )
+{
+#if USING( PG_GPU_PROFILING )
+    if ( flags & VK_QUEUE_GRAPHICS_BIT || flags & VK_QUEUE_COMPUTE_BIT )
+        return q.timestampValidBits > 0;
+    else
+        return true;
+#else // #if USING( PG_GPU_PROFILING )
+    return true;
+#endif // #else // #if USING( PG_GPU_PROFILING )
+}
 
 static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfaceKHR surface, VkQueueFlags flags )
 {
@@ -14,9 +25,10 @@ static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfa
     // search for dedicated queue first
     for ( uint32_t i = 0; i < queueFamilyCount; ++i )
     {
-        if ( queueFamilies[i].queueCount > 0 )
+        const VkQueueFamilyProperties& props = queueFamilies[i];
+        if ( props.queueCount > 0 )
         {
-            if ( (queueFamilies[i].queueFlags & flags) == flags )
+            if ( (props.queueFlags & flags) == flags && QueueSupportsTimestamps( props, flags ) )
             {
                 if ( !headless && (flags & VK_QUEUE_GRAPHICS_BIT) )
                 {
@@ -36,9 +48,10 @@ static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfa
     // if no dedicated queue found, look for any that has at least the requested flags
     for ( uint32_t i = 0; i < queueFamilyCount; ++i )
     {
-        if ( queueFamilies[i].queueCount > 0 )
+        const VkQueueFamilyProperties& props = queueFamilies[i];
+        if ( props.queueCount > 0 )
         {
-            if ( queueFamilies[i].queueFlags & flags )
+            if ( props.queueFlags & flags && QueueSupportsTimestamps( props, flags ) )
             {
                 if ( !headless && (flags & VK_QUEUE_GRAPHICS_BIT) )
                 {
@@ -105,8 +118,7 @@ static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDe
     p.apiVersionMinor = VK_VERSION_MINOR( vkProperties.apiVersion );
     p.apiVersionPatch = VK_VERSION_PATCH( vkProperties.apiVersion );
     p.isDiscrete      = vkProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-    // Vulkan's timestampPeriod is expressed in nanoseconds per clock tick
-    p.timestampFrequency = 1e9 / vkProperties.limits.timestampPeriod;
+    p.nanosecondsPerTick = vkProperties.limits.timestampPeriod;
 
     return p;
 }
@@ -170,6 +182,7 @@ bool PhysicalDevice::ExtensionSupported( const std::string& extensionName ) cons
 {
     return std::find( m_availableExtensions.begin(), m_availableExtensions.end(), extensionName ) != m_availableExtensions.end();
 }
+
 
 int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface, bool logIfUnsuitable ) const
 {

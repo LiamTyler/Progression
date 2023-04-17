@@ -58,6 +58,12 @@ set(
 )
 
 set(
+    DATA_STRUCTURES
+    
+    ${CODE_DIR}/data_structures/circular_array.hpp
+)
+
+set(
     PRIMARY_SHARED_SRC
     
     ${CODE_DIR}/shared/assert.hpp
@@ -76,6 +82,8 @@ set(
     ${CODE_DIR}/shared/random.hpp
     ${CODE_DIR}/shared/string.cpp
     ${CODE_DIR}/shared/string.hpp
+    
+    ${DATA_STRUCTURES}
 )
 
 set(SHADER_DIR ${PROGRESSION_DIR}/assets/shaders)

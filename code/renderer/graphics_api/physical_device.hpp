@@ -13,7 +13,7 @@ namespace Gfx
 struct PhysicalDeviceProperties
 {
     std::string name;
-    double timestampFrequency; // # timestamps per second
+    double nanosecondsPerTick; // # timestamps per second
     uint16_t apiVersionMajor;
     uint16_t apiVersionMinor;
     uint16_t apiVersionPatch;

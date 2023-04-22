@@ -1,4 +1,5 @@
 #include "renderer/render_system.hpp"
+#include "renderer/debug_ui.hpp"
 #include "renderer/graphics_api.hpp"
 #include "renderer/render_system.hpp"
 #include "renderer/r_globals.hpp"
@@ -46,12 +47,15 @@ namespace PG
 namespace RenderSystem
 {
 
+int g_renderDebugVal;
+
 static bool InitRenderGraph( int width, int height );
 
 
 bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 {
     s_window = GetMainWindow();
+    g_renderDebugVal = 0;
 
     if ( headless )
     {
@@ -197,6 +201,9 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
         s_skyboxTexture = nullptr;
     }
 
+    if ( !UIOverlay::Init( s_renderGraph.GetRenderTask( "UI_2D" )->renderPass ) )
+        return false;
+
     return true;
 }
 
@@ -205,6 +212,7 @@ void Shutdown()
 {
     r_globals.device.WaitForIdle();
     
+    UIOverlay::Shutdown();
     s_renderGraph.Free();
     depthOnlyPipeline.Free();
     litPipeline.Free();
@@ -493,7 +501,7 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
 }
 
 
-static void RenderFunc_PostProcessPass( RenderTask*  task, Scene* scene, CommandBuffer* cmdBuf )
+static void RenderFunc_PostProcessPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
     if ( !scene )
         return;
@@ -506,9 +514,12 @@ static void RenderFunc_PostProcessPass( RenderTask*  task, Scene* scene, Command
 }
 
 
-static void RenderFunc_UI2D( RenderTask*  task, Scene* scene, CommandBuffer* cmdBuf )
+static void RenderFunc_UI2D( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
 {
     UI::Render( cmdBuf, &bindlessTexturesDescriptorSet );
+#if USING( PG_DEBUG_UI )
+    UIOverlay::Render( *cmdBuf );
+#endif // #if USING( PG_DEBUG_UI )
 }
 
 
@@ -558,7 +569,6 @@ static bool InitRenderGraph( int width, int height )
     
     return true;
 }
-
 
 } // namespace RenderSystem
 } // namespace PG

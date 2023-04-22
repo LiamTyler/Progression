@@ -56,15 +56,11 @@ int main( int argc, char* argv[] )
     while ( !g_engineShutdown )
     {
         window->StartFrame();
-        ProcessPendingCommands();
+        ProcessPendingConsoleCommands();
         AssetManager::ProcessPendingLiveUpdates();
         Input::PollEvents();
 
         if ( Input::GetKeyDown( Key::ESC ) )
-        {
-            g_engineShutdown = true;
-        }
-        if ( Input::GetKeyDown( Key::F1 ) )
         {
             g_engineShutdown = true;
         }

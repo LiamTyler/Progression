@@ -15,6 +15,8 @@
 
 #if !USING( SHIP_BUILD )
     #define PG_GPU_PROFILING IN_USE
+    #define PG_DEBUG_UI IN_USE
 #else // #if !USING( SHIP_BUILD )
     #define PG_GPU_PROFILING NOT_IN_USE
+    #define PG_DEBUG_UI NOT_IN_USE
 #endif // #else // #if !USING( SHIP_BUILD )

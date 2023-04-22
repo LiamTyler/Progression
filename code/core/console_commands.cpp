@@ -36,7 +36,7 @@ static RegisteredCommand s_commands[] =
 };
 
 
-void ProcessCommand( const std::string& cmdStr )
+static void ProcessCommand( const std::string& cmdStr )
 {
     std::vector<std::string> subStrs = SplitString( cmdStr, " " );
     uint32_t numArgs = subStrs.empty() ? 0 : static_cast<uint32_t>( subStrs.size() - 1 );
@@ -52,7 +52,7 @@ void ProcessCommand( const std::string& cmdStr )
     LOG_ERR( "Unknown console command '%s'", cmdStr.c_str() );
 }
 
-void PG::ProcessPendingCommands()
+void PG::ProcessPendingConsoleCommands()
 {
     s_lock.lock();
     const auto pendingCmds = s_pendingCommands;
@@ -65,7 +65,7 @@ void PG::ProcessPendingCommands()
     }
 }
 
-void PG::AddCommand( const std::string& cmd )
+void PG::AddConsoleCommand( const std::string& cmd )
 {
     std::scoped_lock lock( s_lock );
     s_pendingCommands.push_back( cmd );

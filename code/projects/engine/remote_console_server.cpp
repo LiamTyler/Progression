@@ -158,7 +158,7 @@ static void ListenForCommands()
             if ( bytesReceived > 0 )
             {
                 recvBuffer[bytesReceived] = '\0';
-                PG::AddCommand( recvBuffer );
+                PG::AddConsoleCommand( recvBuffer );
                 //LOG( "RemoteConsoleServer: recieved message '%s'", recvBuffer );
 
                 //std::string sendMsg = "message recieved";

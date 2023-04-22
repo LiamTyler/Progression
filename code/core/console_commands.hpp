@@ -5,7 +5,7 @@
 namespace PG
 {
 
-void ProcessPendingCommands();
-void AddCommand( const std::string& cmd );
+void ProcessPendingConsoleCommands();
+void AddConsoleCommand( const std::string& cmd );
 
 } // namespace PG

@@ -89,6 +89,8 @@ set(
     
     ${CODE_DIR}/renderer/debug_marker.cpp
     ${CODE_DIR}/renderer/debug_marker.hpp
+    ${CODE_DIR}/renderer/debug_ui.cpp
+    ${CODE_DIR}/renderer/debug_ui.hpp
     ${CODE_DIR}/renderer/graphics_api.hpp
     ${CODE_DIR}/renderer/render_system.cpp
     ${CODE_DIR}/renderer/render_system.hpp
@@ -121,6 +123,17 @@ set(
 	EXTERNALS
     ${CODE_DIR}/external/memory_map/MemoryMapped.h
     ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
+    
+    ${CODE_DIR}/external/imgui/imgui.h
+    ${CODE_DIR}/external/imgui/imgui.cpp
+    ${CODE_DIR}/external/imgui/imgui_demo.cpp
+    ${CODE_DIR}/external/imgui/imgui_draw.cpp
+    ${CODE_DIR}/external/imgui/imgui_tables.cpp
+    ${CODE_DIR}/external/imgui/imgui_widgets.cpp
+    ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
+    ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.h
+    ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
+    ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.h
 )
 
 set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES} ${SHADERS})
@@ -138,6 +151,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES} ${Vulkan_INCLUDE_DIR}
     ${PROGRESSION_DIR}/assets/
     ${PROGRESSION_DIR}/assets/shaders/
+    ${CODE_DIR}/external/imgui/
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} ${GLFW_LIBS} lua lz4)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

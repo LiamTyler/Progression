@@ -1,0 +1,214 @@
+#include "renderer/debug_ui.hpp"
+
+#if USING( PG_DEBUG_UI )
+#include "core/input.hpp"
+#include "core/time.hpp"
+#include "core/window.hpp"
+#include "imgui/backends/imgui_impl_glfw.h"
+#include "imgui/backends/imgui_impl_vulkan.h"
+#include "renderer/r_globals.hpp"
+#include "renderer/vulkan.hpp"
+#include "shared/logger.hpp"
+
+/**
+    Note: Largely taken from Sasha Willem's vulkan imgui code:
+    https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanUIOverlay.cpp
+*/
+
+namespace PG::Gfx::UIOverlay
+{
+
+static bool s_visible;
+static bool s_updated;
+static std::unordered_map< std::string, std::function< void() > > s_drawFunctions;
+
+static void CheckVkResult( VkResult err )
+{
+    if ( err == VK_SUCCESS )
+        return;
+
+    LOG_ERR( "ImGui: VkResult = %d\n", err );
+    if ( err < 0 )
+        abort();
+}
+
+bool Init( const RenderPass& renderPass )
+{
+    s_visible = true;
+    s_updated = false;
+
+	IMGUI_CHECKVERSION();
+    ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO(); (void)io;
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+
+    // Setup Dear ImGui style
+    ImGui::StyleColorsDark();
+    //ImGui::StyleColorsLight();
+
+    // Setup Platform/Renderer backends
+    ImGui_ImplGlfw_InitForVulkan( GetMainWindow()->GetGLFWHandle(), true );
+    ImGui_ImplVulkan_InitInfo init_info = {};
+    init_info.Instance = r_globals.instance;
+    init_info.PhysicalDevice = r_globals.physicalDevice.GetHandle();
+    init_info.Device = r_globals.device.GetHandle();
+    init_info.QueueFamily = r_globals.physicalDevice.GetGraphicsQueueFamily();
+    init_info.Queue = r_globals.device.GetQueue();
+    init_info.PipelineCache = VK_NULL_HANDLE;
+    init_info.DescriptorPool = r_globals.descriptorPool.GetHandle();
+    init_info.Subpass = 0;
+    init_info.MinImageCount = 2; // ?
+    init_info.ImageCount = r_globals.swapchain.GetNumImages(); // ?
+    init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
+    init_info.Allocator = nullptr;
+    init_info.CheckVkResultFn = CheckVkResult;
+    ImGui_ImplVulkan_Init( &init_info, renderPass.GetHandle() );
+
+    {
+        Gfx::CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time upload ImGui fonts" );
+        cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+        ImGui_ImplVulkan_CreateFontsTexture( cmdBuf.GetHandle() );
+        cmdBuf.EndRecording();
+        r_globals.device.Submit( cmdBuf );
+        r_globals.device.WaitForIdle();
+        cmdBuf.Free();
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+
+    return true;
+}
+
+void Shutdown()
+{
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
+}
+
+void AddDrawFunction( const std::string& name, const std::function< void() >& func )
+{
+    s_drawFunctions[name] = func;
+}
+
+void RemoveDrawFunction( const std::string& name )
+{
+    s_drawFunctions.erase( name );
+}
+    
+void Render( CommandBuffer& cmdBuf )
+{
+    if ( !s_visible )
+    {
+        return;
+    }
+
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+
+    ImGui::ShowDemoWindow();
+
+    ImGui::Render();
+    ImDrawData* draw_data = ImGui::GetDrawData();
+    ImGui_ImplVulkan_RenderDrawData( draw_data, cmdBuf.GetHandle() );
+}
+
+bool CapturingMouse()
+{
+    return s_visible && ImGui::GetIO().WantCaptureMouse;	
+}
+
+bool Header( const char* caption )
+{
+    return ImGui::CollapsingHeader( caption, ImGuiTreeNodeFlags_DefaultOpen );
+}
+
+bool CheckBox( const char *caption, bool *value )
+{
+	bool res = ImGui::Checkbox( caption, value );
+	if ( res )s_updated = true;
+	return res;
+}
+
+bool CheckBox( const char *caption, int *value )
+{
+	bool val = ( *value == 1 );
+	bool res = ImGui::Checkbox( caption, &val );
+	*value = val;
+	if ( res ) s_updated = true;
+	return res;
+}
+
+bool InputFloat( const char *caption, float *value, float step )
+{
+	bool res = ImGui::InputFloat( caption, value, step, step * 10.0f );
+	if ( res ) s_updated = true;
+	return res;
+}
+
+bool SliderFloat( const char* caption, float* value, float min, float max )
+{
+	bool res = ImGui::SliderFloat( caption, value, min, max );
+	if ( res ) s_updated = true;
+	return res;
+}
+
+bool SliderInt(const char* caption, int* value, int min, int max )
+{
+	bool res = ImGui::SliderInt( caption, value, min, max );
+	if ( res ) s_updated = true;
+	return res;
+}
+
+bool ComboBox( const char *caption, int *itemIndex, const std::vector<std::string>& items )
+{
+	if ( items.empty() )
+    {
+		return false;
+	}
+	std::vector<const char*> charItems;
+	charItems.reserve( items.size() );
+	for ( size_t i = 0; i < items.size(); i++)
+    {
+		charItems.push_back( items[i].c_str() );
+	}
+	uint32_t itemCount = static_cast<uint32_t>( charItems.size() );
+	bool res = ImGui::Combo( caption, itemIndex, &charItems[0], itemCount, itemCount );
+	if ( res ) s_updated = true;
+	return res;
+}
+
+bool Button( const char *caption )
+{
+	bool res = ImGui::Button( caption );
+	if ( res ) s_updated = true;
+	return res;
+}
+
+void Text( const char *formatstr, ... )
+{
+	va_list args;
+	va_start( args, formatstr );
+	ImGui::TextV( formatstr, args );
+	va_end( args );
+}
+
+bool Visible()
+{
+    return s_visible;
+}
+
+void SetVisible( bool b )
+{
+    s_visible = b;
+}
+
+bool Updated()
+{
+    return s_updated;
+}
+
+} // namespace PG::Gfx::UIOverlay
+
+#endif // #if USING( PG_DEBUG_UI )

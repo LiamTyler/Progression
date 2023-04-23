@@ -17,7 +17,7 @@ namespace Gfx
 
     void RenderPassDescriptor::AddColorAttachment( PixelFormat format, LoadAction loadAction, StoreAction storeAction, const glm::vec4& clearColor, ImageLayout initialLayout, ImageLayout finalLayout )
     {
-        PG_ASSERT( numColorAttachments < MAX_COLOR_ATTACHMENTS, "Can't add more than " + std::to_string( MAX_COLOR_ATTACHMENTS ) + " color attachments" );
+        PG_ASSERT( numColorAttachments < MAX_COLOR_ATTACHMENTS, "Can't add more than %u color attachments", MAX_COLOR_ATTACHMENTS );
         colorAttachmentDescriptors[numColorAttachments].format        = format;
         colorAttachmentDescriptors[numColorAttachments].loadAction    = loadAction;
         colorAttachmentDescriptors[numColorAttachments].storeAction   = storeAction;
@@ -73,7 +73,7 @@ namespace Gfx
         case ImageLayout::PRESENT_SRC_KHR:
             return "PRESENT_SRC_KHR";
         default:
-            PG_ASSERT( false, "Invalid image layout '" + std::to_string( (int)layout ) + "'" );
+            PG_ASSERT( false, "Invalid image layout %d", Underlying( layout ) );
         }
     }
 

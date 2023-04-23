@@ -4,44 +4,78 @@
 #include <cstdio>
 #include <cstdlib>
 
-
-#define _PG_ASSERT_NO_MSG( x )                                                           \
-if ( !( x ) )                                                                            \
-{                                                                                        \
-    printf( "Failed assertion: (%s) at line %d in file %s.\n", #x, __LINE__, __FILE__ ); \
-    fflush( stdout );                                                                    \
-    abort();                                                                             \
-}
-
-#define _PG_ASSERT_WITH_MSG( x, msg )                                                                                   \
-if ( !( x ) )                                                                                                           \
-{                                                                                                                       \
-    printf( "Failed assertion: (%s) at line %d in file %s: %s\n", #x, __LINE__, __FILE__, std::string( msg ).c_str() ); \
-    fflush( stdout );                                                                                                   \
-    abort();                                                                                                            \
-}
-
-#define _PG_GET_ASSERT_MACRO( _1, _2, NAME, ... ) NAME
-
 #if !USING( SHIP_BUILD )
-#include <string>
 
-#if !USING( WINDOWS_PROGRAM )
-#define PG_ASSERT( ... ) _PG_GET_ASSERT_MACRO( __VA_ARGS__, _PG_ASSERT_WITH_MSG, _PG_ASSERT_NO_MSG )( __VA_ARGS__ )
-#else // #if !USING( WINDOWS_PROGRAM )
-#define _PG_EXPAND( x ) x
-#define PG_ASSERT( ... ) _PG_EXPAND( _PG_GET_ASSERT_MACRO( __VA_ARGS__, _PG_ASSERT_WITH_MSG, _PG_ASSERT_NO_MSG )( __VA_ARGS__ ) )
-#endif // #else // #if !USING( WINDOWS_PROGRAM )
+#define PG_ASSERT( ... ) _PG_VA_SELECT( _PG_ASSERT, __VA_ARGS__ )
+
+#define _PG_ASSERT_START( X ) \
+if ( !( X ) ) \
+{ \
+    printf( "Failed assertion: (%s) at line %d in file %s\n", #X, __LINE__, __FILE__ ); \
+
+#define _PG_ASSERT_END() fflush( stdout ); abort(); }
+
+#define _PG_ASSERT1( X ) \
+    _PG_ASSERT_START( X ) \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT2( X, MSG ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message: " MSG "\n" ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT3( X, FMT, A1 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT4( X, FMT, A1, A2 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT5( X, FMT, A1, A2, A3 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT6( X, FMT, A1, A2, A3, A4 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3, A4 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT7( X, FMT, A1, A2, A3, A4, A5 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT8( X, FMT, A1, A2, A3, A4, A5, A6 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT9( X, FMT, A1, A2, A3, A4, A5, A6, A7 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT10( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT11( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8, A9 ); \
+    _PG_ASSERT_END()
+
+#define _PG_ASSERT12( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 ) \
+    _PG_ASSERT_START( X ) \
+    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 ); \
+    _PG_ASSERT_END()
 
 #else // #if !USING( SHIP_BUILD )
 
 #define PG_ASSERT( ... ) do {} while ( 0 )
 
 #endif // #else // #if !USING( SHIP_BUILD )
-
-// Some things, like std::vector/string can have slightly different sizes in debug vs release mode
-#if !USING( DEBUG_BUILD )
-#define PG_STATIC_NDEBUG_ASSERT( test, msg ) static_assert( test, msg )
-#else // #if !USING( DEBUG_BUILD )
-#define PG_STATIC_NDEBUG_ASSERT( test, msg ) do {} while ( 0 )
-#endif // #else // #if !USING( DEBUG_BUILD )

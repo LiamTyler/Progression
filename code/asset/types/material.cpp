@@ -23,7 +23,7 @@ bool Material::FastfileLoad( Serializer* serializer )
     std::string imgName;
     serializer->Read( imgName );
     albedoMetalnessImage = AssetManager::Get<GfxImage>( imgName );
-    PG_ASSERT( albedoMetalnessImage, "AlbedoMetalness image '" + imgName + "' not found for material '" + name + "'" );
+    PG_ASSERT( albedoMetalnessImage, "AlbedoMetalness image '%s' not found for material '%s'", imgName.c_str(), name.c_str() );
 
     return true;
 }

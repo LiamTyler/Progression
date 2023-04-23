@@ -23,7 +23,7 @@ namespace PG
                     PG_ASSERT( v.IsString() );
                     std::string name = v.GetString();
                     PG_ASSERT( !name.empty() );
-                    PG_ASSERT( ECS::GetEntityByName( reg, name ) == entt::null, "ECS already contains entity with name '" + name + "'" );
+                    PG_ASSERT( ECS::GetEntityByName( reg, name ) == entt::null, "ECS already contains entity with name '%s'", name.c_str() );
                     d.name = name;
                 }
             },
@@ -32,7 +32,7 @@ namespace PG
                     PG_ASSERT( v.IsString() );
                     std::string parentName = v.GetString();
                     d.parent = ECS::GetEntityByName( reg, parentName );
-                    PG_ASSERT( d.parent != entt::null, "No entity found with name '" + parentName + "'" );
+                    PG_ASSERT( d.parent != entt::null, "No entity found with name '%s'", parentName.c_str() );
                 }
             },
             { "isStatic", []( const rapidjson::Value& v, entt::registry& reg, EntityMetaData& d )
@@ -75,7 +75,7 @@ namespace PG
                 {
                     PG_ASSERT( v.IsString(), "Please provide a string of the model's name" );
                     comp.model = AssetManager::Get< Model >( v.GetString() );
-                    PG_ASSERT( comp.model != nullptr, "Model with name '" + std::string( v.GetString() ) + "' not found" );
+                    PG_ASSERT( comp.model != nullptr, "Model with name '%s' not found", v.GetString() );
                     comp.materials = comp.model->originalMaterials;
                 }
             },
@@ -83,7 +83,7 @@ namespace PG
                 {
                     PG_ASSERT( v.IsString(), "Please provide a string of the material's name" );
                     auto mat = AssetManager::Get<Material>( v.GetString() );
-                    PG_ASSERT( mat != nullptr, "Material with name '" + std::string( v.GetString() ) + "' not found" );
+                    PG_ASSERT( mat != nullptr, "Material with name '%s' not found", v.GetString() );
                     PG_ASSERT( comp.model != nullptr, "Must specify model before assigning materials for it" );
                     comp.materials.resize( comp.model->meshes.size() );
                     for ( auto& matPtr : comp.materials )

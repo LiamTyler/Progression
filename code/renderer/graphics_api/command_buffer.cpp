@@ -252,7 +252,7 @@ namespace Gfx
             break;
 		default:
 			// Other source layouts aren't handled (yet)
-            PG_ASSERT( false, "TransitionImageLayout: unknown oldLayout " + std::to_string( vkOldLayout ) );
+            PG_ASSERT( false, "TransitionImageLayout: unknown oldLayout %d", vkOldLayout );
 			break;
 		}
 
@@ -294,7 +294,7 @@ namespace Gfx
             break;
 		default:
 			// Other source layouts aren't handled (yet)
-            PG_ASSERT( false, "TransitionImageLayout: unknown newLayout " + std::to_string( vkNewLayout ) );
+            PG_ASSERT( false, "TransitionImageLayout: unknown newLayout %d", vkNewLayout );
 			break;
 		}
 

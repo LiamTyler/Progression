@@ -8,9 +8,10 @@
  * With a normal #ifdef, accidentally using the wrong symbol just skips the inteded path with no error.
  * This will helps catch those instances, since using the wrong symbol will give a divide by zero compile error.
  */
-#define IN_USE 9
-#define NOT_IN_USE ( -9 )
-#define USING( x ) ( 9 / ( x ) == 1 )
+#define IN_USE &&
+#define NOT_IN_USE &&!
+#define USING( x ) ( 1 x 1 )
+#define USE_IF( x ) && ( (x) ? 1 : 0 ) &&
 
 #define ARRAY_COUNT( array ) ( static_cast< int >( sizeof( array ) / sizeof( array[0] ) ) )
 #define PG_UNUSED( x ) (void) ( x );

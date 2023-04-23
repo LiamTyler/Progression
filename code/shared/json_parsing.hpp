@@ -55,7 +55,7 @@ public:
 
     FunctionType& operator[]( const std::string& name )
     {
-        PG_ASSERT( mapping.find( name ) != mapping.end(), name + " not found in mapping" );
+        PG_ASSERT( mapping.find( name ) != mapping.end(), "Key '%s' not found in mapping", name.c_str() );
         return mapping[name];
     }
 
@@ -99,7 +99,7 @@ public:
 
     function_type& operator[]( const std::string& name )
     {
-        PG_ASSERT( mapping.find( name ) != mapping.end(), name + " not found in mapping" );
+        PG_ASSERT( mapping.find( name ) != mapping.end(), "Key '%s' not found in mapping", name.c_str() );
         return mapping[name];
     }
 

@@ -79,7 +79,7 @@ static const char* PGShaderStageToDefine( PG::ShaderStage stage )
     };
     
     int index = static_cast< int >( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index '" + std::to_string( index ) + "' not in range" );
+    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
     return shaderStageToDefine[index];
 }
 
@@ -97,7 +97,7 @@ static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
     };
     
     int index = static_cast< int >( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index '" + std::to_string( index ) + "' not in range" );
+    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
     return convert[index];
 }
 

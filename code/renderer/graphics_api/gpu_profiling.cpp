@@ -130,7 +130,7 @@ namespace PG::Gfx::Profile
         //uint32_t numTimestampsAvailable = 0;
         for ( const auto& [ name, qRecord ] : s_nameToQueryRecordMap )
         {
-            PG_ASSERT( qRecord.endIndex != 0, "Forgot to call StartTimestamp for timestamp '" + name + "'" );
+            PG_ASSERT( qRecord.endIndex != 0, "Forgot to call StartTimestamp for timestamp '%s'", name.c_str() );
             const QueryResult& startRes = s_cpuQueries[qRecord.startIndex];
             const QueryResult& endRes = s_cpuQueries[qRecord.endIndex];
             //numTimestampsAvailable += startRes.available != 0;
@@ -184,7 +184,7 @@ namespace PG::Gfx::Profile
         if ( s_waitingForResults )
             return;
 
-        PG_ASSERT( s_nameToQueryRecordMap.find( name ) != s_nameToQueryRecordMap.end(), "Forgot to call StartTimestamp for timestamp '" + name + "'" );
+        PG_ASSERT( s_nameToQueryRecordMap.find( name ) != s_nameToQueryRecordMap.end(), "Forgot to call StartTimestamp for timestamp '%s'", name.c_str() );
         uint32_t vkQueryVal = s_timestampsWritten;
         s_nameToQueryRecordMap[name].endIndex = s_timestampsWritten;
         ++s_timestampsWritten;

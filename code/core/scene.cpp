@@ -109,7 +109,7 @@ static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
     PG_ASSERT( v.IsString() );
     std::string name = v.GetString();
     scene->skybox = AssetManager::Get<GfxImage>( name );
-    PG_ASSERT( scene->skybox, "Could not find skybox with name '" + name + "'" );
+    PG_ASSERT( scene->skybox, "Could not find skybox with name '%s'", name.c_str() );
     return true;
 }
 
@@ -145,7 +145,7 @@ static bool ParseScript( const rapidjson::Value& v, Scene* scene )
     std::string scrName = v.GetString();
     Script* script = AssetManager::Get<Script>( scrName );
 #if !USING( CONVERTER )
-    PG_ASSERT( script, "No script found with name '" + scrName + "'" );
+    PG_ASSERT( script, "No script found with name '%s'", scrName.c_str() );
     if ( scene->numNonEntityScripts == PG_MAX_NON_ENTITY_SCRIPTS )
     {
         LOG_ERR( "Could not add nonEntityScript '%s' because already reached the script limit %d", scrName.c_str(), PG_MAX_NON_ENTITY_SCRIPTS );

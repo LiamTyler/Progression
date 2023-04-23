@@ -9,6 +9,7 @@ namespace PG::Gfx::Profile
 
     bool Init();
     void Shutdown();
+    void DrawResultsOnScreen();
 
     void Reset( const CommandBuffer& cmdbuf );
     void GetResults();

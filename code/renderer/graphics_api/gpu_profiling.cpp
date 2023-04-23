@@ -19,6 +19,7 @@ namespace PG::Gfx::Profile
 #include "core/time.hpp"
 #include "data_structures/circular_array.hpp"
 #include "renderer/debug_marker.hpp"
+#include "renderer/debug_ui.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
@@ -103,6 +104,39 @@ namespace PG::Gfx::Profile
             const ProfileRecord& record = s_profileRecords[recordIdx];
             LOG( "\t%s: avg = %.3f, min = %.3f, max = %.3f", record.name.c_str(), record.avg, record.min, record.max );
         }
+    }
+
+    void DrawResultsOnScreen()
+    {
+#if USING( PG_DEBUG_UI )
+        ImGui::SetNextWindowPos( { 5, 5 }, ImGuiCond_FirstUseEver );
+        ImGui::Begin( "Profiling Stats" );
+        
+        if ( ImGui::BeginTable( "RenderPass Times", 4, ImGuiTableFlags_Borders ) )
+        {
+            ImGui::TableSetupColumn("Render Pass");
+            ImGui::TableSetupColumn("Avg (ms)");
+            ImGui::TableSetupColumn("Min (ms)");
+            ImGui::TableSetupColumn("Max (ms)");
+            ImGui::TableHeadersRow();
+
+            for ( uint16_t recordIdx = 0; recordIdx < s_numProfileRecords; ++recordIdx )
+            {
+                ImGui::TableNextRow();
+                const ProfileRecord& record = s_profileRecords[recordIdx];
+                ImGui::TableSetColumnIndex( 0 );
+                ImGui::Text( "%s", record.name.c_str() );
+                ImGui::TableSetColumnIndex( 1 );
+                ImGui::Text( "%.3f", record.avg );
+                ImGui::TableSetColumnIndex( 2 );
+                ImGui::Text( "%.3f", record.min );
+                ImGui::TableSetColumnIndex( 3 );
+                ImGui::Text( "%.3f", record.max );
+            }
+            ImGui::EndTable();
+        }
+        ImGui::End();
+#endif // #if USING( PG_DEBUG_UI )
     }
 
     void Reset( const CommandBuffer& cmdbuf )

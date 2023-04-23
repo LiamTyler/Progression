@@ -394,6 +394,10 @@ void Render()
     PG_PROFILE_GPU_RESET( cmdBuf );
     PG_PROFILE_GPU_START( cmdBuf, "Frame" );
 
+#if USING( PG_DEBUG_UI )
+    UIOverlay::BeginFrame();
+#endif // #if USING( PG_DEBUG_UI )
+
     Scene* scene = GetPrimaryScene();
     if ( scene )
     {
@@ -402,6 +406,10 @@ void Render()
     }
 
     s_renderGraph.Render( scene, &cmdBuf );
+
+#if USING( PG_DEBUG_UI )
+    UIOverlay::EndFrame();
+#endif // #if USING( PG_DEBUG_UI )
 
     PG_PROFILE_GPU_END( cmdBuf, "Frame" );
     cmdBuf.EndRecording();
@@ -518,6 +526,7 @@ static void RenderFunc_UI2D( RenderTask* task, Scene* scene, CommandBuffer* cmdB
 {
     UI::Render( cmdBuf, &bindlessTexturesDescriptorSet );
 #if USING( PG_DEBUG_UI )
+    UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( *cmdBuf );
 #endif // #if USING( PG_DEBUG_UI )
 }

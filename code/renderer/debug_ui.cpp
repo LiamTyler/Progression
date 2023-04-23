@@ -1,6 +1,7 @@
 #include "renderer/debug_ui.hpp"
 
 #if USING( PG_DEBUG_UI )
+#include "core/dvars.hpp"
 #include "core/input.hpp"
 #include "core/time.hpp"
 #include "core/window.hpp"
@@ -10,17 +11,17 @@
 #include "renderer/vulkan.hpp"
 #include "shared/logger.hpp"
 
-/**
-    Note: Largely taken from Sasha Willem's vulkan imgui code:
-    https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanUIOverlay.cpp
-*/
-
 namespace PG::Gfx::UIOverlay
 {
 
-static bool s_visible;
+static Dvar dvarDebugUI(
+    "r_debugUI",
+    true,
+    "Controls whether to allow any 2D debug UI elements (those that use ImGUI) to be drawn"
+);
+
 static bool s_updated;
-static std::unordered_map< std::string, std::function< void() > > s_drawFunctions;
+static std::vector<std::function<void()>> s_drawFunctions;
 
 static void CheckVkResult( VkResult err )
 {
@@ -34,8 +35,8 @@ static void CheckVkResult( VkResult err )
 
 bool Init( const RenderPass& renderPass )
 {
-    s_visible = true;
     s_updated = false;
+    s_drawFunctions.reserve( 64 );
 
 	IMGUI_CHECKVERSION();
     ImGui::CreateContext();
@@ -65,6 +66,7 @@ bool Init( const RenderPass& renderPass )
     init_info.CheckVkResultFn = CheckVkResult;
     ImGui_ImplVulkan_Init( &init_info, renderPass.GetHandle() );
 
+    // Upload pending fonts (currently just the default)
     {
         Gfx::CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time upload ImGui fonts" );
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
@@ -84,28 +86,32 @@ void Shutdown()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+    s_drawFunctions.clear();
+    s_drawFunctions.shrink_to_fit();
 }
 
-void AddDrawFunction( const std::string& name, const std::function< void() >& func )
+void AddDrawFunction( const std::function<void()>& func )
 {
-    s_drawFunctions[name] = func;
+    s_drawFunctions.push_back( func );
 }
 
-void RemoveDrawFunction( const std::string& name )
+void BeginFrame()
 {
-    s_drawFunctions.erase( name );
-}
-    
-void Render( CommandBuffer& cmdBuf )
-{
-    if ( !s_visible )
-    {
-        return;
-    }
-
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
+}
+
+void Render( CommandBuffer& cmdBuf )
+{
+    if ( !dvarDebugUI.GetBool() )
+        return;
+
+    for ( const auto& drawFunc : s_drawFunctions )
+    {
+        drawFunc();
+    }
+    s_drawFunctions.clear();
 
     ImGui::ShowDemoWindow();
 
@@ -114,9 +120,14 @@ void Render( CommandBuffer& cmdBuf )
     ImGui_ImplVulkan_RenderDrawData( draw_data, cmdBuf.GetHandle() );
 }
 
+void EndFrame()
+{
+    ImGui::EndFrame();
+}
+
 bool CapturingMouse()
 {
-    return s_visible && ImGui::GetIO().WantCaptureMouse;	
+    return dvarDebugUI.GetBool() && ImGui::GetIO().WantCaptureMouse;	
 }
 
 bool Header( const char* caption )
@@ -127,7 +138,7 @@ bool Header( const char* caption )
 bool CheckBox( const char *caption, bool *value )
 {
 	bool res = ImGui::Checkbox( caption, value );
-	if ( res )s_updated = true;
+	if ( res ) s_updated = true;
 	return res;
 }
 
@@ -192,16 +203,6 @@ void Text( const char *formatstr, ... )
 	va_start( args, formatstr );
 	ImGui::TextV( formatstr, args );
 	va_end( args );
-}
-
-bool Visible()
-{
-    return s_visible;
-}
-
-void SetVisible( bool b )
-{
-    s_visible = b;
 }
 
 bool Updated()

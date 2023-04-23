@@ -13,10 +13,11 @@ namespace PG::Gfx::UIOverlay
     bool Init( const RenderPass& renderPass );
     void Shutdown();
 
+    void BeginFrame();
     void Render( CommandBuffer& cmdBuf );
-    
-    void AddDrawFunction( const std::string& name, const std::function<void()>& func );
-    void RemoveDrawFunction( const std::string& name );
+    void EndFrame();
+
+    void AddDrawFunction( const std::function<void()>& func );
     bool CapturingMouse(); // true if cursor is ontop of UI element
 
     bool Header( const char* caption );
@@ -29,8 +30,6 @@ namespace PG::Gfx::UIOverlay
 	bool Button( const char* caption );
 	void Text( const char* formatstr, ... );
 
-    bool Visible();
-    void SetVisible( bool b );
     bool Updated();
 
 } // namespace PG::Gfx::UIOverlay

@@ -12,7 +12,7 @@
 - [ ] Switch to dynamic rendering
 - [ ] add meshoptimizer back in
 - [ ] Get remote console up and running again, and able to send commands (windows and linux)
-- [ ] show profiling results in ImGui view
+- [x] show profiling results in ImGui view
 
 ## Priority 2
 - [ ] see if spirv optimizer is working again

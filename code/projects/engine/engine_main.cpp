@@ -2,6 +2,7 @@
 #include "asset/types/model.hpp"
 #include "asset/types/shader.hpp"
 #include "core/console_commands.hpp"
+#include "core/dvars.hpp"
 #include "core/init.hpp"
 #include "core/input.hpp"
 #include "core/scene.hpp"
@@ -63,6 +64,11 @@ int main( int argc, char* argv[] )
         if ( Input::GetKeyDown( Key::ESC ) )
         {
             g_engineShutdown = true;
+        }
+        if ( Input::GetKeyDown( Key::F1 ) )
+        {
+            static Dvar* debugUIDvar = GetDvar( "r_debugUI" );
+            debugUIDvar->Set( !debugUIDvar->GetBool() );
         }
 
         if ( auto primaryScenePtr = GetPrimaryScene() )

@@ -17,6 +17,5 @@ namespace RenderSystem
     void CreateTLAS( Scene* scene );
     ::PG::Gfx::RenderPass* GetRenderPass( const std::string& name );
 
-    extern int g_renderDebugVal;
 } // namespace RenderSystem
 } // namespace PG

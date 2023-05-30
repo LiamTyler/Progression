@@ -51,16 +51,16 @@ bool Init( const RenderPass& renderPass )
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan( GetMainWindow()->GetGLFWHandle(), true );
     ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.Instance = r_globals.instance;
-    init_info.PhysicalDevice = r_globals.physicalDevice.GetHandle();
-    init_info.Device = r_globals.device.GetHandle();
-    init_info.QueueFamily = r_globals.physicalDevice.GetGraphicsQueueFamily();
-    init_info.Queue = r_globals.device.GetQueue();
+    init_info.Instance = rg.instance;
+    init_info.PhysicalDevice = rg.physicalDevice.GetHandle();
+    init_info.Device = rg.device.GetHandle();
+    init_info.QueueFamily = rg.physicalDevice.GetGraphicsQueueFamily();
+    init_info.Queue = rg.device.GetQueue();
     init_info.PipelineCache = VK_NULL_HANDLE;
-    init_info.DescriptorPool = r_globals.descriptorPool.GetHandle();
+    init_info.DescriptorPool = rg.descriptorPool.GetHandle();
     init_info.Subpass = 0;
     init_info.MinImageCount = 2; // ?
-    init_info.ImageCount = r_globals.swapchain.GetNumImages(); // ?
+    init_info.ImageCount = rg.swapchain.GetNumImages(); // ?
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     init_info.Allocator = nullptr;
     init_info.CheckVkResultFn = CheckVkResult;
@@ -68,12 +68,12 @@ bool Init( const RenderPass& renderPass )
 
     // Upload pending fonts (currently just the default)
     {
-        Gfx::CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time upload ImGui fonts" );
+        Gfx::CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time upload ImGui fonts" );
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
         ImGui_ImplVulkan_CreateFontsTexture( cmdBuf.GetHandle() );
         cmdBuf.EndRecording();
-        r_globals.device.Submit( cmdBuf );
-        r_globals.device.WaitForIdle();
+        rg.device.Submit( cmdBuf );
+        rg.device.WaitForIdle();
         cmdBuf.Free();
         ImGui_ImplVulkan_DestroyFontUploadObjects();
     }

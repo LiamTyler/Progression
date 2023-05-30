@@ -45,27 +45,8 @@ namespace Gfx
     Sampler* Texture::GetSampler() const { return m_sampler; }
     Texture::operator bool() const { return m_image != VK_NULL_HANDLE; }
 
-    size_t Texture::GetTotalBytes() const
-    {
-        return m_desc.TotalSizeInBytes();
-    }
-
-
-    void Texture::SetSampler( Sampler* sampler )
-    {
-        PG_ASSERT( sampler );
-        m_sampler = sampler;
-        PG_ASSERT( m_image == VK_NULL_HANDLE, "Changing sampler after image creation not supported yet" );
-        if ( m_bindlessArrayIndex != PG_INVALID_TEXTURE_INDEX )
-        {
-            TextureManager::UpdateSampler( this );
-        }
-    }
-
-    size_t TextureDescriptor::TotalSizeInBytes() const
-    {
-        return CalculateTotalImageBytes( format, width, height, depth, arrayLayers, mipLevels );
-    }
+    size_t Texture::GetTotalBytes() const { return m_desc.TotalSizeInBytes(); }
+    size_t TextureDescriptor::TotalSizeInBytes() const { return CalculateTotalImageBytes( format, width, height, depth, arrayLayers, mipLevels ); }
 
 } // namespace Gfx
 } // namespace PG

@@ -5,7 +5,7 @@
 #include <array>
 #include <string>
 
-#define GFX_MAX_SWAPCHAIN_IMAGES 5
+#define GFX_MAX_SWAPCHAIN_IMAGES 3
 
 namespace PG
 {

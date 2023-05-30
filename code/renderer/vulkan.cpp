@@ -157,7 +157,7 @@ void* MakePNextChain( const std::vector<void*>& addresses )
 
 uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )
 {
-    auto memProperties = r_globals.physicalDevice.GetMemoryProperties();
+    auto memProperties = rg.physicalDevice.GetMemoryProperties();
     for ( uint32_t i = 0; i < memProperties.memoryTypeCount; ++i )
     {
         if ( ( typeFilter & ( 1 << i ) ) && ( memProperties.memoryTypes[i].propertyFlags & properties ) == properties )
@@ -174,7 +174,7 @@ uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )
 
 void TransitionImageLayoutImmediate( VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, uint32_t layers )
 {
-    CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time TransitionImageLayout" );
+    CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time TransitionImageLayout" );
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
 
     VkImageMemoryBarrier barrier = {};
@@ -216,8 +216,8 @@ void TransitionImageLayoutImmediate( VkImage image, VkFormat format, VkImageLayo
     cmdBuf.PipelineImageBarrier( srcStage, dstStage, barrier );
 
     cmdBuf.EndRecording();
-    r_globals.device.Submit( cmdBuf );
-    r_globals.device.WaitForIdle();
+    rg.device.Submit( cmdBuf );
+    rg.device.WaitForIdle();
     cmdBuf.Free();
 }
 
@@ -225,7 +225,7 @@ void TransitionImageLayoutImmediate( VkImage image, VkFormat format, VkImageLayo
 bool FormatSupported( VkFormat format, VkFormatFeatureFlags requestedSupport )
 {
     VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties( r_globals.physicalDevice.GetHandle(), format, &props );
+    vkGetPhysicalDeviceFormatProperties( rg.physicalDevice.GetHandle(), format, &props );
     return ( props.optimalTilingFeatures & requestedSupport ) == requestedSupport;
 }
 
@@ -255,7 +255,7 @@ VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags 
     viewCreateInfo.subresourceRange.layerCount     = layers;
 
     VkImageView view;
-    VK_CHECK_RESULT( vkCreateImageView( r_globals.device.GetHandle(), &viewCreateInfo, nullptr, &view ) );
+    VK_CHECK_RESULT( vkCreateImageView( rg.device.GetHandle(), &viewCreateInfo, nullptr, &view ) );
 
     return view;
 }

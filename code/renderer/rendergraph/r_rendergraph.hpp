@@ -3,6 +3,7 @@
 #include "core/pixel_formats.hpp"
 #include "glm/vec4.hpp"
 #include "renderer/graphics_api/framebuffer.hpp"
+#include "renderer/r_globals.hpp"
 #include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/texture.hpp"
 #include <functional>
@@ -112,8 +113,8 @@ struct RenderTask
 {
     std::string name;
 
-    RenderPass renderPass;
-    Framebuffer framebuffer;
+    RenderPass renderPasses[MAX_FRAMES_IN_FLIGHT];
+    Framebuffer framebuffers[MAX_FRAMES_IN_FLIGHT];
     RenderFunction renderFunction;
     RG_TaskRenderTargets renderTargets;
 };
@@ -175,10 +176,11 @@ public:
     void Free();
     void Print() const;
     void Render( Scene* scene, CommandBuffer* cmdBuf );
-    RG_PhysicalResource* GetPhysicalResource( uint16_t idx );
-    RG_PhysicalResource* GetPhysicalResource( const std::string& logicalName );
-    RG_PhysicalResource* GetBackBufferResource();
+    RG_PhysicalResource* GetPhysicalResource( uint16_t idx, uint8_t frameInFlight );
+    RG_PhysicalResource* GetPhysicalResource( const std::string& logicalName, uint8_t frameInFlight );
+    RG_PhysicalResource* GetBackBufferResource( uint8_t frameInFlight );
     RenderTask* GetRenderTask( const std::string& name );
+    RenderPass* GetRenderPass( const std::string& name, int frame = 0 );
 
     struct Statistics
     {
@@ -189,16 +191,16 @@ public:
     Statistics GetStats() const;
 
     static constexpr uint16_t MAX_TASKS = 64;
-    static constexpr uint16_t MAX_PHYSICAL_RESOURCES = 256;
+    static constexpr uint16_t MAX_PHYSICAL_RESOURCES_PER_FRAME = 256;
 
 private:
-
+    uint8_t frameInFlight = 0;
     uint16_t numRenderTasks;
     RenderTask renderTasks[MAX_TASKS];
     std::unordered_map<std::string, uint16_t> taskNameToIndexMap;
 
     uint16_t numPhysicalResources;
-    RG_PhysicalResource physicalResources[MAX_PHYSICAL_RESOURCES];
+    RG_PhysicalResource physicalResources[MAX_PHYSICAL_RESOURCES_PER_FRAME][MAX_FRAMES_IN_FLIGHT];
     std::unordered_map<std::string, uint16_t> resourceNameToIndexMap;
     std::string backBufferName;
 

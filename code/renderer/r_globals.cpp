@@ -5,11 +5,11 @@ namespace PG
 namespace Gfx
 {
 
-    R_Globals r_globals;
+    R_Globals rg;
 
     Viewport DisplaySizedViewport( bool vulkanFlipViewport )
     {
-        Viewport v( static_cast< float >( r_globals.swapchain.GetWidth() ), static_cast< float >( r_globals.swapchain.GetHeight() ) );
+        Viewport v( static_cast< float >( rg.swapchain.GetWidth() ), static_cast< float >( rg.swapchain.GetHeight() ) );
         if ( vulkanFlipViewport )
         {
 	        v.y = v.height;
@@ -21,7 +21,7 @@ namespace Gfx
 
     Viewport SceneSizedViewport( bool vulkanFlipViewport )
     {
-        Viewport v( static_cast< float >( r_globals.sceneWidth ), static_cast< float >( r_globals.sceneHeight ) );
+        Viewport v( static_cast< float >( rg.sceneWidth ), static_cast< float >( rg.sceneHeight ) );
         if ( vulkanFlipViewport )
         {
 	        v.y = v.height;
@@ -33,13 +33,13 @@ namespace Gfx
 
     Scissor DisplaySizedScissor()
     {
-        return Scissor( r_globals.swapchain.GetWidth(), r_globals.swapchain.GetHeight() );
+        return Scissor( rg.swapchain.GetWidth(), rg.swapchain.GetHeight() );
     }
 
 
     Scissor SceneSizedScissor()
     {
-        return Scissor( r_globals.sceneWidth, r_globals.sceneHeight );
+        return Scissor( rg.sceneWidth, rg.sceneHeight );
     }
 
 } // namespace Gfx

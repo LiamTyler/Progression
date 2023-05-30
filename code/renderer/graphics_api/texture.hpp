@@ -66,9 +66,7 @@ namespace Gfx
         VkDeviceMemory GetMemoryHandle() const;
         uint16_t GetBindlessArrayIndex() const;
         size_t GetTotalBytes() const;
-
         Sampler* GetSampler() const;
-        void SetSampler( Sampler* sampler );
 
         operator bool() const;
 

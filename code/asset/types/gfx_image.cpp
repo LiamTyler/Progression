@@ -82,7 +82,7 @@ void GfxImage::UploadToGpu()
     desc.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     desc.addToBindlessArray = imageType == ImageType::TYPE_2D;
 
-    gpuTexture = r_globals.device.NewTextureFromBuffer( desc, pixels, name );
+    gpuTexture = rg.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );
     free( pixels );
     pixels = nullptr;

@@ -10,19 +10,26 @@
 #include <bitset>
 #include <deque>
 
+struct PendingFree
+{
+    uint16_t slot;
+    uint8_t pendingFor; // how many frames this has been pending
+};
+
 static uint16_t s_currentSlot;
-static std::bitset< PG_MAX_BINDLESS_TEXTURES > s_slotsInUse;
-static std::deque< uint16_t > s_freeSlots;
-static std::vector< VkWriteDescriptorSet > s_setWrites;
-static std::vector< VkDescriptorImageInfo > s_imageInfos;
+static std::bitset<PG_MAX_BINDLESS_TEXTURES> s_slotsInUse;
+static std::vector<uint16_t> s_freeSlots;
+static std::vector<PendingFree> s_pendingFrees;
+static std::vector<VkWriteDescriptorSet> s_setWrites;
+static std::vector<VkDescriptorImageInfo> s_imageInfos;
 struct TexInfo
 {
     VkImageView view;
     VkSampler sampler;
 };
 
-static std::bitset< PG_MAX_BINDLESS_TEXTURES > s_pendingSlots;
-static std::vector< std::pair< uint16_t, TexInfo > > s_pendingUpdates;
+static std::bitset<PG_MAX_BINDLESS_TEXTURES> s_pendingAddBitset;
+static std::vector<std::pair<uint16_t, TexInfo>> s_pendingAdds;
 
 namespace PG
 {
@@ -36,18 +43,20 @@ namespace TextureManager
         s_setWrites.reserve( 256 );
         s_imageInfos.reserve( 256 );
         s_imageInfos.reserve( 256 );
-        s_pendingUpdates.reserve( 256 );
+        s_pendingAdds.reserve( 256 );
+        s_freeSlots.reserve( 256 );
     }
 
     void Shutdown()
     {
         s_setWrites.clear();
         s_imageInfos.clear();
-        s_pendingUpdates.clear();
+        s_pendingAdds.clear();
         s_slotsInUse.reset();
-        s_pendingSlots.reset();
+        s_pendingAddBitset.reset();
         s_currentSlot = 0;
         s_freeSlots.clear();
+        s_pendingFrees.clear();
     }
 
     uint16_t GetOpenSlot( Texture* tex )
@@ -56,6 +65,7 @@ namespace TextureManager
         if ( s_freeSlots.empty() )
         {
             openSlot = s_currentSlot;
+            PG_ASSERT( s_currentSlot < USHRT_MAX );
             ++s_currentSlot;
         }
         else
@@ -65,9 +75,9 @@ namespace TextureManager
         }
         PG_ASSERT( openSlot < PG_MAX_BINDLESS_TEXTURES && !s_slotsInUse[openSlot] );
         s_slotsInUse[openSlot] = true;
-        s_pendingSlots[openSlot] = true;
+        s_pendingAddBitset[openSlot] = true;
         TexInfo info = { tex->GetView(), tex->GetSampler()->GetHandle() };
-        s_pendingUpdates.emplace_back( openSlot, info );
+        s_pendingAdds.emplace_back( openSlot, info );
         return openSlot;
     }
 
@@ -75,53 +85,75 @@ namespace TextureManager
     {
         PG_ASSERT( s_slotsInUse[slot] );
         s_slotsInUse[slot] = false;
-        s_freeSlots.push_front( slot );
-        if ( s_pendingSlots[slot] )
+        if ( s_pendingAddBitset[slot] )
         {
-            size_t numPending = s_pendingUpdates.size();
+            size_t numPending = s_pendingAdds.size();
             for ( size_t i = 0; i < numPending; ++i )
             {
-                if ( s_pendingUpdates[i].first == slot )
+                if ( s_pendingAdds[i].first == slot )
                 {
-                    std::swap( s_pendingUpdates[i], s_pendingUpdates[numPending - 1] );
-                    s_pendingUpdates.pop_back();
+                    std::swap( s_pendingAdds[i], s_pendingAdds[numPending - 1] );
+                    s_pendingAdds.pop_back();
                     break;
                 }
             }
-            s_pendingSlots[slot] = false;
+            s_freeSlots.push_back( slot );
+            s_pendingAddBitset[slot] = false;
+        }
+        else
+        {
+            s_pendingFrees.push_back( { slot, 0 } );
         }
     }
 
-    void UpdateSampler( Texture* tex )
+    // With multiple frames in flight at once, we can't actually free a slot until we know it's no longer being used,
+    // so we wait until that many frames have gone by
+    static void ProcessPendingFrees()
     {
-        PG_ASSERT( tex && tex->GetBindlessArrayIndex() != PG_INVALID_TEXTURE_INDEX && s_slotsInUse[tex->GetBindlessArrayIndex()] );
-        TexInfo info = { tex->GetView(), tex->GetSampler()->GetHandle() };
-        s_pendingUpdates.emplace_back( tex->GetBindlessArrayIndex(), info );
+        if ( s_pendingFrees.empty() )
+            return;
+
+        size_t slotsToFree = 0;
+        while ( slotsToFree < s_pendingFrees.size() && s_pendingFrees[slotsToFree].pendingFor < MAX_FRAMES_IN_FLIGHT )
+            ++slotsToFree;
+
+        if ( slotsToFree == 0 )
+            return;
+
+        for ( size_t i = 0; i < slotsToFree; ++i )
+        {
+            s_freeSlots.push_back( s_pendingFrees[i].slot );
+        }
+        s_pendingFrees.erase( s_pendingFrees.begin(), s_pendingFrees.begin() + slotsToFree );
+
+        for ( size_t i = 0; i < s_pendingFrees.size(); ++i )
+        {
+            ++s_pendingFrees[i].pendingFor;
+        }
     }
 
     void UpdateDescriptors( const DescriptorSet& textureDescriptorSet )
     {
-        if ( s_pendingUpdates.empty() )
+        ProcessPendingFrees();
+
+        if ( !s_pendingAdds.empty() )
         {
-            return;
+            s_setWrites.resize( s_pendingAdds.size(), {} );
+            s_imageInfos.resize( s_pendingAdds.size() );
+            for ( size_t i = 0; i < s_setWrites.size(); ++i )
+            {
+                s_imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+                s_imageInfos[i].imageView   = s_pendingAdds[i].second.view;
+                s_imageInfos[i].sampler     = s_pendingAdds[i].second.sampler;
+                uint32_t slot = s_pendingAdds[i].first;
+
+                s_setWrites[i] = WriteDescriptorSet_Image( textureDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &s_imageInfos[i], 1, slot );
+                s_pendingAddBitset[slot] = false;
+            }
+
+            rg.device.UpdateDescriptorSets( static_cast< uint32_t >( s_setWrites.size() ), s_setWrites.data() );
+            s_pendingAdds.clear();
         }
-
-        s_setWrites.resize( s_pendingUpdates.size(), {} );
-        s_imageInfos.resize( s_pendingUpdates.size() );
-        for ( size_t i = 0; i < s_setWrites.size(); ++i )
-        {
-            s_imageInfos[i].imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-            s_imageInfos[i].imageView   = s_pendingUpdates[i].second.view;
-            s_imageInfos[i].sampler     = s_pendingUpdates[i].second.sampler;
-            uint32_t slot = s_pendingUpdates[i].first;
-
-            s_setWrites[i] = WriteDescriptorSet_Image( textureDescriptorSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &s_imageInfos[i], 1, slot );
-            s_pendingSlots[slot] = false;
-        }
-
-        r_globals.device.UpdateDescriptorSets( static_cast< uint32_t >( s_setWrites.size() ), s_setWrites.data() );
-
-        s_pendingUpdates.clear();
     }
 
 } // namespace TextureManager

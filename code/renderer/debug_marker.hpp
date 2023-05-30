@@ -65,48 +65,48 @@ namespace DebugMarker
 #define PG_DEBUG_MARKER_NAME( x, y ) ( std::string( x ) + y )
 #define PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( s, x ) if ( !s.empty() ) { x; }
 
-#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color ) PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
-#define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )                PG::Gfx::DebugMarker::EndRegion_CmdBuf( cmdbuf.GetHandle() );
-#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name, color )	   PG::Gfx::DebugMarker::Insert_CmdBuf( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color ) PG::Gfx::DebugMarker::BeginRegion_CmdBuf( (cmdbuf).GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+#define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )                PG::Gfx::DebugMarker::EndRegion_CmdBuf( (cmdbuf).GetHandle() );
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name, color )	   PG::Gfx::DebugMarker::Insert_CmdBuf( (cmdbuf).GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
 
-#define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color ) PG::Gfx::DebugMarker::BeginRegion_Queue( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
-#define PG_DEBUG_MARKER_END_REGION_QUEUE( queue )                PG::Gfx::DebugMarker::EndRegion_Queue( cmdbuf.GetHandle() );
-#define PG_DEBUG_MARKER_INSERT_QUEUE( queue, name, color )	   PG::Gfx::DebugMarker::Insert_Queue( cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+#define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color ) PG::Gfx::DebugMarker::BeginRegion_Queue( (cmdbuf).GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
+#define PG_DEBUG_MARKER_END_REGION_QUEUE( queue )                PG::Gfx::DebugMarker::EndRegion_Queue( (cmdbuf).GetHandle() );
+#define PG_DEBUG_MARKER_INSERT_QUEUE( queue, name, color )	   PG::Gfx::DebugMarker::Insert_Queue( (cmdbuf).GetHandle(), PG_DEBUG_MARKER_NAME( "", name ), color );
 
 #define PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name ) \
-    PG::Gfx::DebugMarker::SetBufferName( PG::Gfx::r_globals.device.GetHandle(), (buffer).GetHandle(), PG_DEBUG_MARKER_NAME( "Buffer: ", name ) ); \
-    PG::Gfx::DebugMarker::SetDeviceMemoryName( PG::Gfx::r_globals.device.GetHandle(), (buffer).GetMemoryHandle(), PG_DEBUG_MARKER_NAME( "Memory: buffer ", name ) )
+    PG::Gfx::DebugMarker::SetBufferName( PG::Gfx::rg.device.GetHandle(), (buffer).GetHandle(), PG_DEBUG_MARKER_NAME( "Buf: ", name ) ); \
+    PG::Gfx::DebugMarker::SetDeviceMemoryName( PG::Gfx::rg.device.GetHandle(), (buffer).GetMemoryHandle(), PG_DEBUG_MARKER_NAME( "Memory: buf ", name ) )
 
 #define PG_DEBUG_MARKER_SET_IMAGE_NAME( image, name ) \
-    PG::Gfx::DebugMarker::SetImageName( PG::Gfx::r_globals.device.GetHandle(), image.GetHandle(), PG_DEBUG_MARKER_NAME( "Image: ", name ) ); \
-    PG::Gfx::DebugMarker::SetImageViewName( PG::Gfx::r_globals.device.GetHandle(), image.GetView(), PG_DEBUG_MARKER_NAME( "Image View: ", name ) ); \
-    PG::Gfx::DebugMarker::SetDeviceMemoryName( PG::Gfx::r_globals.device.GetHandle(), image.GetMemoryHandle(), PG_DEBUG_MARKER_NAME( "Memory: image ", name ) )
+    PG::Gfx::DebugMarker::SetImageName( PG::Gfx::rg.device.GetHandle(), image.GetHandle(), PG_DEBUG_MARKER_NAME( "Img: ", name ) ); \
+    PG::Gfx::DebugMarker::SetImageViewName( PG::Gfx::rg.device.GetHandle(), image.GetView(), PG_DEBUG_MARKER_NAME( "ImgView: ", name ) ); \
+    PG::Gfx::DebugMarker::SetDeviceMemoryName( PG::Gfx::rg.device.GetHandle(), image.GetMemoryHandle(), PG_DEBUG_MARKER_NAME( "Memory: img ", name ) )
 
 #define PG_DEBUG_MARKER_SET_PIPELINE_NAME( pipeline, name ) \
-    PG::Gfx::DebugMarker::SetPipelineName( PG::Gfx::r_globals.device.GetHandle(), pipeline.GetHandle(), PG_DEBUG_MARKER_NAME( "Pipeline: ", name ) ); \
-    PG::Gfx::DebugMarker::SetPipelineLayoutName( PG::Gfx::r_globals.device.GetHandle(), pipeline.GetLayoutHandle(), PG_DEBUG_MARKER_NAME( "PipelineLayout: ", name ) )
+    PG::Gfx::DebugMarker::SetPipelineName( PG::Gfx::rg.device.GetHandle(), pipeline.GetHandle(), PG_DEBUG_MARKER_NAME( "Pipeline: ", name ) ); \
+    PG::Gfx::DebugMarker::SetPipelineLayoutName( PG::Gfx::rg.device.GetHandle(), pipeline.GetLayoutHandle(), PG_DEBUG_MARKER_NAME( "PipelineLayout: ", name ) )
 
-#define PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( pool, name )       PG::Gfx::DebugMarker::SetCommandPoolName( PG::Gfx::r_globals.device.GetHandle(), pool.GetHandle(), PG_DEBUG_MARKER_NAME( "Command Pool: ", name ) )
+#define PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( pool, name )       PG::Gfx::DebugMarker::SetCommandPoolName( PG::Gfx::rg.device.GetHandle(), pool.GetHandle(), PG_DEBUG_MARKER_NAME( "CmdPool: ", name ) )
 // Todo: seems like setting the command buffer name has has no effect in renderdoc
-#define PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( cmdbuf, name )   PG::Gfx::DebugMarker::SetCommandBufferName( PG::Gfx::r_globals.device.GetHandle(), cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "Command Buffer: ", name ) )
-#define PG_DEBUG_MARKER_SET_QUEUE_NAME( queue, name )             PG::Gfx::DebugMarker::SetQueueName( PG::Gfx::r_globals.device.GetHandle(), queue, PG_DEBUG_MARKER_NAME( "Queue: ", name ) )
-#define PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( view, name )         PG::Gfx::DebugMarker::SetImageViewName( PG::Gfx::r_globals.device.GetHandle(), view, PG_DEBUG_MARKER_NAME( "Image View: ", name ) )
-#define PG_DEBUG_MARKER_SET_IMAGE_ONLY_NAME( img, name )          PG::Gfx::DebugMarker::SetImageName( PG::Gfx::r_globals.device.GetHandle(), img, PG_DEBUG_MARKER_NAME( "Image: ", name ) )
-#define PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, name )         PG::Gfx::DebugMarker::SetSamplerName( PG::Gfx::r_globals.device.GetHandle(), sampler.GetHandle(), PG_DEBUG_MARKER_NAME( "Sampler: ", name ) )
-#define PG_DEBUG_MARKER_SET_MEMORY_NAME( memory, name )           PG::Gfx::DebugMarker::SetDeviceMemoryName( PG::Gfx::r_globals.device.GetHandle(), memory, PG_DEBUG_MARKER_NAME( "Memory: ", name ) )
-#define PG_DEBUG_MARKER_SET_SHADER_NAME( shaderPtr, name )	      PG::Gfx::DebugMarker::SetShaderModuleName( PG::Gfx::r_globals.device.GetHandle(), shaderPtr->handle, PG_DEBUG_MARKER_NAME( "Shader: ", name ) )
-#define PG_DEBUG_MARKER_SET_RENDER_PASS_NAME( pass, name )        PG::Gfx::DebugMarker::SetRenderPassName( PG::Gfx::r_globals.device.GetHandle(), pass.GetHandle(), PG_DEBUG_MARKER_NAME( "RenderPass: ", name ) )
-#define PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( framebuffer, name ) PG::Gfx::DebugMarker::SetFramebufferName( PG::Gfx::r_globals.device.GetHandle(), framebuffer.GetHandle(), PG_DEBUG_MARKER_NAME( "Framebuffer: ", name ) )
-#define PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( layout, name )  PG::Gfx::DebugMarker::SetDescriptorSetLayoutName( PG::Gfx::r_globals.device.GetHandle(), layout.GetHandle(), PG_DEBUG_MARKER_NAME( "Descriptor Set Layout: ", name ) )
-#define PG_DEBUG_MARKER_SET_DESC_SET_NAME( set, name )            PG::Gfx::DebugMarker::SetDescriptorSetName( PG::Gfx::r_globals.device.GetHandle(), set.GetHandle(), PG_DEBUG_MARKER_NAME( "Descriptor Set: ", name ) )
-#define PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( semaphore, name )     PG::Gfx::DebugMarker::SetSemaphoreName( PG::Gfx::r_globals.device.GetHandle(), semaphore.GetHandle(), PG_DEBUG_MARKER_NAME( "Semaphore: ", name ) )
-#define PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name )             PG::Gfx::DebugMarker::SetFenceName( PG::Gfx::r_globals.device.GetHandle(), fence.GetHandle(), PG_DEBUG_MARKER_NAME( "Fence: ", name ) )
-#define PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( swapchain, name )     PG::Gfx::DebugMarker::SetSwapChainName( PG::Gfx::r_globals.device.GetHandle(), swapchain, PG_DEBUG_MARKER_NAME( "Swapchain: ", name ) )
-#define PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( pDev, name )    PG::Gfx::DebugMarker::SetPhysicalDeviceName( PG::Gfx::r_globals.device.GetHandle(), pDev.GetHandle(), PG_DEBUG_MARKER_NAME( "Physical Device: ", name ) )
+#define PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( cmdbuf, name )   PG::Gfx::DebugMarker::SetCommandBufferName( PG::Gfx::rg.device.GetHandle(), cmdbuf.GetHandle(), PG_DEBUG_MARKER_NAME( "CmdBuf: ", name ) )
+#define PG_DEBUG_MARKER_SET_QUEUE_NAME( queue, name )             PG::Gfx::DebugMarker::SetQueueName( PG::Gfx::rg.device.GetHandle(), queue, PG_DEBUG_MARKER_NAME( "Queue: ", name ) )
+#define PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( view, name )         PG::Gfx::DebugMarker::SetImageViewName( PG::Gfx::rg.device.GetHandle(), view, PG_DEBUG_MARKER_NAME( "Img View: ", name ) )
+#define PG_DEBUG_MARKER_SET_IMAGE_ONLY_NAME( img, name )          PG::Gfx::DebugMarker::SetImageName( PG::Gfx::rg.device.GetHandle(), img, PG_DEBUG_MARKER_NAME( "Img: ", name ) )
+#define PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, name )         PG::Gfx::DebugMarker::SetSamplerName( PG::Gfx::rg.device.GetHandle(), sampler.GetHandle(), PG_DEBUG_MARKER_NAME( "Sampler: ", name ) )
+#define PG_DEBUG_MARKER_SET_MEMORY_NAME( memory, name )           PG::Gfx::DebugMarker::SetDeviceMemoryName( PG::Gfx::rg.device.GetHandle(), memory, PG_DEBUG_MARKER_NAME( "Memory: ", name ) )
+#define PG_DEBUG_MARKER_SET_SHADER_NAME( shaderPtr, name )	      PG::Gfx::DebugMarker::SetShaderModuleName( PG::Gfx::rg.device.GetHandle(), shaderPtr->handle, PG_DEBUG_MARKER_NAME( "Shader: ", name ) )
+#define PG_DEBUG_MARKER_SET_RENDER_PASS_NAME( pass, name )        PG::Gfx::DebugMarker::SetRenderPassName( PG::Gfx::rg.device.GetHandle(), pass.GetHandle(), PG_DEBUG_MARKER_NAME( "RenderPass: ", name ) )
+#define PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( framebuffer, name ) PG::Gfx::DebugMarker::SetFramebufferName( PG::Gfx::rg.device.GetHandle(), framebuffer.GetHandle(), PG_DEBUG_MARKER_NAME( "Framebuf: ", name ) )
+#define PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( layout, name )  PG::Gfx::DebugMarker::SetDescriptorSetLayoutName( PG::Gfx::rg.device.GetHandle(), layout.GetHandle(), PG_DEBUG_MARKER_NAME( "DescSetLayout: ", name ) )
+#define PG_DEBUG_MARKER_SET_DESC_SET_NAME( set, name )            PG::Gfx::DebugMarker::SetDescriptorSetName( PG::Gfx::rg.device.GetHandle(), set.GetHandle(), PG_DEBUG_MARKER_NAME( "DescSet: ", name ) )
+#define PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( semaphore, name )     PG::Gfx::DebugMarker::SetSemaphoreName( PG::Gfx::rg.device.GetHandle(), semaphore.GetHandle(), PG_DEBUG_MARKER_NAME( "Semaphore: ", name ) )
+#define PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name )             PG::Gfx::DebugMarker::SetFenceName( PG::Gfx::rg.device.GetHandle(), fence.GetHandle(), PG_DEBUG_MARKER_NAME( "Fence: ", name ) )
+#define PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( swapchain, name )     PG::Gfx::DebugMarker::SetSwapChainName( PG::Gfx::rg.device.GetHandle(), swapchain, PG_DEBUG_MARKER_NAME( "Swapchain: ", name ) )
+#define PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( pDev, name )    PG::Gfx::DebugMarker::SetPhysicalDeviceName( PG::Gfx::rg.device.GetHandle(), pDev.GetHandle(), PG_DEBUG_MARKER_NAME( "PhysDevice: ", name ) )
 #define PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( dev, name )      PG::Gfx::DebugMarker::SetLogicalDeviceName( dev.GetHandle(), PG_DEBUG_MARKER_NAME( "Device: ", name ) )
-#define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name )       // Causes a crash for some reason :/ PG::Gfx::DebugMarker::SetInstanceName( PG::Gfx::r_globals.device.GetHandle(), instance, PG_DEBUG_MARKER_NAME( "Instance: ", name ) )
-#define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )          PG::Gfx::DebugMarker::SetDescriptorPoolName( PG::Gfx::r_globals.device.GetHandle(), pool.GetHandle(), PG_DEBUG_MARKER_NAME( "Descriptor Pool: ", name ) )
-#define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )         PG::Gfx::DebugMarker::SetQueryPoolName( PG::Gfx::r_globals.device.GetHandle(), pool, PG_DEBUG_MARKER_NAME( "Query Pool: ", name ) )
+#define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name )       // Causes a crash for some reason :/ PG::Gfx::DebugMarker::SetInstanceName( PG::Gfx::rg.device.GetHandle(), instance, PG_DEBUG_MARKER_NAME( "Instance: ", name ) )
+#define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )          PG::Gfx::DebugMarker::SetDescriptorPoolName( PG::Gfx::rg.device.GetHandle(), pool.GetHandle(), PG_DEBUG_MARKER_NAME( "DescPool: ", name ) )
+#define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )         PG::Gfx::DebugMarker::SetQueryPoolName( PG::Gfx::rg.device.GetHandle(), pool, PG_DEBUG_MARKER_NAME( "QueryPool: ", name ) )
 
 #else // #if !USING( SHIP_BUILD ) && USING( GPU_DATA )
 

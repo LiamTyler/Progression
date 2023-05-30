@@ -19,10 +19,10 @@ layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
 };
 
 layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures[];
-layout( std140, set = PG_LIGHTS_SET, binding = PG_POINT_LIGHTS_BIND_INDEX ) uniform PointLights
-{
-    PointLight pointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
-};
+//layout( std140, set = PG_LIGHTS_SET, binding = PG_POINT_LIGHTS_BIND_INDEX ) uniform PointLights
+//{
+//    PointLight pointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
+//};
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
     layout( offset = 128 ) MaterialData material;

@@ -333,13 +333,14 @@ namespace Gfx
             uint16_t lastReadTask = USHRT_MAX;
             uint8_t lastAttachmentIndex = 255;
         };
-        ResourceStateTrackingInfo resourceTrackingInfo[MAX_PHYSICAL_RESOURCES] = {};
+        ResourceStateTrackingInfo resourceTrackingInfo[MAX_PHYSICAL_RESOURCES_PER_FRAME] = {};
 
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
             RenderTask& renderTask = renderTasks[taskIndex];
             RenderTaskBuilder& buildTask = builder.tasks[taskIndex];
-            RenderPassDescriptor& renderPassDesc = renderTask.renderPass.desc;
+            // only fill out the 1st renderpass, we will copy it over to successive renderpasses (for frames in flight) later
+            RenderPassDescriptor& renderPassDesc = renderTask.renderPasses[0].desc;
 
             renderTask.name = std::move( buildTask.name );
             renderTask.renderFunction = buildTask.renderFunction;
@@ -387,7 +388,7 @@ namespace Gfx
                     // if the most recent state was a write, then we need to fixup the last task to change the final layout to READ, for the current task
                     if ( trackingInfo.lastReadTask < trackingInfo.lastWriteTask || (trackingInfo.lastReadTask == USHRT_MAX && trackingInfo.lastWriteTask != USHRT_MAX) )
                     {
-                        RenderPassDescriptor& lastDesc = renderTasks[trackingInfo.lastWriteTask].renderPass.desc;
+                        RenderPassDescriptor& lastDesc = renderTasks[trackingInfo.lastWriteTask].renderPasses[0].desc;
                         if ( logicalRes.element.type == ResourceType::DEPTH_ATTACH )
                         {
                             lastDesc.depthAttachmentDescriptor.finalLayout = ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL;
@@ -406,21 +407,16 @@ namespace Gfx
         }
 
         // HACK!
-        //renderTasks[numRenderTasks - 1].renderPass.desc.colorAttachmentDescriptors[0].format = VulkanToPGPixelFormat( r_globals.swapchain.GetFormat() );
+        //renderTasks[numRenderTasks - 1].renderPass.desc.colorAttachmentDescriptors[0].format = VulkanToPGPixelFormat( rg.swapchain.GetFormat() );
         //renderTasks[numRenderTasks - 1].renderPass.desc.colorAttachmentDescriptors[0].finalLayout = ImageLayout::PRESENT_SRC_KHR;
 
         // 4. Create the gpu resources. RenderPasses, Textures
         {
             bool error = false;
             numPhysicalResources = static_cast<uint16_t>( mergedLogicalOutputs.size() );
-            for ( uint16_t i = 0; i < numPhysicalResources && !error; ++i )
+            for ( uint16_t resIdx = 0; resIdx < numPhysicalResources && !error; ++resIdx )
             {
-                RG_PhysicalResource& pRes = physicalResources[i];
-                const RG_LogicalOutput& lRes = mergedLogicalOutputs[i];
-                pRes.name = lRes.name;
-                pRes.firstTask = lRes.firstTask;
-                pRes.lastTask = lRes.lastTask;
-
+                const RG_LogicalOutput& lRes = mergedLogicalOutputs[resIdx];
                 PG_ASSERT( lRes.element.type != ResourceType::BUFFER );
 
                 TextureDescriptor texDesc;
@@ -441,49 +437,59 @@ namespace Gfx
                 {
                     texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
                 }
-            
-                pRes.texture = r_globals.device.NewTexture( texDesc, pRes.name );
-                error = !pRes.texture;
 
-                stats.memUsedMB += pRes.texture.GetTotalBytes() / (1024.0f * 1024.0f);
-                stats.numTextures++;
+                for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
+                {
+                    RG_PhysicalResource& pRes = physicalResources[resIdx][frameInFlight];
+                    pRes.name = lRes.name;
+                    pRes.firstTask = lRes.firstTask;
+                    pRes.lastTask = lRes.lastTask;
+                    pRes.texture = rg.device.NewTexture( texDesc, pRes.name );
+                    error = !pRes.texture;
+
+                    stats.memUsedMB += pRes.texture.GetTotalBytes() / (1024.0f * 1024.0f);
+                    stats.numTextures++;
+                }
             }
 
             for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks && !error; ++taskIdx )
             {
                 RenderTask& task = renderTasks[taskIdx];
-                task.renderPass = r_globals.device.NewRenderPass( task.renderPass.desc, task.name );
-
-                VkImageView attachments[9];
-                uint32_t width = UINT32_MAX;
-                uint32_t height = UINT32_MAX;
-                for ( uint8_t attachIdx = 0; attachIdx < task.renderTargets.numColorAttachments; ++attachIdx )
+                for ( int frameIdx = 0; frameIdx < MAX_FRAMES_IN_FLIGHT; ++frameIdx )
                 {
-                    const Texture& tex = physicalResources[task.renderTargets.colorAttachments[attachIdx]].texture;
-                    attachments[attachIdx] = tex.GetView();
-                    width = tex.GetWidth();
-                    height = tex.GetHeight();
-                }
-                uint32_t numAttach = task.renderTargets.numColorAttachments;
-                if ( task.renderTargets.depthAttach != USHRT_MAX )
-                {
-                    const Texture& tex = physicalResources[task.renderTargets.depthAttach].texture;
-                    attachments[numAttach++] = tex.GetView();
-                    width = tex.GetWidth();
-                    height = tex.GetHeight();
-                }
+                    task.renderPasses[frameIdx] = rg.device.NewRenderPass( task.renderPasses[0].desc, task.name );
 
-                VkFramebufferCreateInfo framebufferInfo = {};
-                framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-                framebufferInfo.renderPass      = task.renderPass.GetHandle();
-                framebufferInfo.attachmentCount = numAttach;
-                framebufferInfo.pAttachments    = attachments;
-                framebufferInfo.width           = width;
-                framebufferInfo.height          = height;
-                framebufferInfo.layers          = 1;
-                task.framebuffer = r_globals.device.NewFramebuffer( framebufferInfo, task.name );
+                    VkImageView attachments[9];
+                    uint32_t width = UINT32_MAX;
+                    uint32_t height = UINT32_MAX;
+                    for ( uint8_t attachIdx = 0; attachIdx < task.renderTargets.numColorAttachments; ++attachIdx )
+                    {
+                        const Texture& tex = physicalResources[task.renderTargets.colorAttachments[attachIdx]][frameIdx].texture;
+                        attachments[attachIdx] = tex.GetView();
+                        width = tex.GetWidth();
+                        height = tex.GetHeight();
+                    }
+                    uint32_t numAttach = task.renderTargets.numColorAttachments;
+                    if ( task.renderTargets.depthAttach != USHRT_MAX )
+                    {
+                        const Texture& tex = physicalResources[task.renderTargets.depthAttach][frameIdx].texture;
+                        attachments[numAttach++] = tex.GetView();
+                        width = tex.GetWidth();
+                        height = tex.GetHeight();
+                    }
+
+                    VkFramebufferCreateInfo framebufferInfo = {};
+                    framebufferInfo.sType           = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+                    framebufferInfo.renderPass      = task.renderPasses[frameIdx].GetHandle();
+                    framebufferInfo.attachmentCount = numAttach;
+                    framebufferInfo.pAttachments    = attachments;
+                    framebufferInfo.width           = width;
+                    framebufferInfo.height          = height;
+                    framebufferInfo.layers          = 1;
+                    task.framebuffers[frameIdx] = rg.device.NewFramebuffer( framebufferInfo, task.name );
                 
-                error = !task.renderPass || !task.framebuffer;
+                    error = !task.renderPasses[frameIdx] || !task.framebuffers[frameIdx];
+                }
             }
         }
 
@@ -493,23 +499,26 @@ namespace Gfx
 
     void RenderGraph::Free()
     {
-        for ( uint16_t i = 0; i < numPhysicalResources; ++i )
+        for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
         {
-            if ( physicalResources[i].texture )
+            for ( uint16_t i = 0; i < numPhysicalResources; ++i )
             {
-                physicalResources[i].texture.Free();
+                if ( physicalResources[i][frameInFlight].texture )
+                {
+                    physicalResources[i][frameInFlight].texture.Free();
+                }
             }
-        }
 
-        for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
-        {
-            if ( renderTasks[taskIdx].renderPass )
+            for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
             {
-                renderTasks[taskIdx].renderPass.Free();
-            }
-            if ( renderTasks[taskIdx].framebuffer )
-            {
-                renderTasks[taskIdx].framebuffer.Free();
+                if ( renderTasks[taskIdx].renderPasses[frameInFlight] )
+                {
+                    renderTasks[taskIdx].renderPasses[frameInFlight].Free();
+                }
+                if ( renderTasks[taskIdx].framebuffers[frameInFlight] )
+                {
+                    renderTasks[taskIdx].framebuffers[frameInFlight].Free();
+                }
             }
         }
     }
@@ -521,7 +530,7 @@ namespace Gfx
         LOG( "Physical Resources: %u", numPhysicalResources );
         for ( uint16_t i = 0; i < numPhysicalResources; ++i )
         {
-            const auto& res = physicalResources[i];
+            const auto& res = physicalResources[i][0];
             LOG( "\tPhysical resource[%u]: '%s'", i, res.name.c_str() );
             LOG( "\t\tUsed in tasks: %u - %u (%s - %s)", res.firstTask, res.lastTask, renderTasks[res.firstTask].name.c_str(), renderTasks[res.lastTask].name.c_str() );
             const auto& tex = res.texture;
@@ -536,17 +545,17 @@ namespace Gfx
             LOG( "Task[%u]: %s", taskIdx, task.name.c_str() );
 
             uint8_t numColor = 0;
-            for ( uint8_t i = 0; i < task.renderPass.desc.numColorAttachments; ++i )
+            for ( uint8_t i = 0; i < task.renderPasses[0].desc.numColorAttachments; ++i )
             {
-                LOG( "\tColorAttachment[%u]: %s", i, physicalResources[task.renderTargets.colorAttachments[i]].name.c_str() );
+                LOG( "\tColorAttachment[%u]: %s", i, physicalResources[task.renderTargets.colorAttachments[i]][0].name.c_str() );
 
-                const auto& attach = task.renderPass.desc.colorAttachmentDescriptors[numColor];
+                const auto& attach = task.renderPasses[0].desc.colorAttachmentDescriptors[numColor];
                 LOG( "\t\tImageLayout: %s -> %s", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
             }
-            if ( task.renderPass.desc.numDepthAttachments != 0 )
+            if ( task.renderPasses[0].desc.numDepthAttachments != 0 )
             {
-                LOG( "\tDepthAttachment: %s", physicalResources[task.renderTargets.depthAttach].name.c_str() );
-                const auto& attach = task.renderPass.desc.depthAttachmentDescriptor;
+                LOG( "\tDepthAttachment: %s", physicalResources[task.renderTargets.depthAttach][0].name.c_str() );
+                const auto& attach = task.renderPasses[0].desc.depthAttachmentDescriptor;
                 LOG( "\t\tImageLayout: %s -> %s", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
             }
         }
@@ -559,17 +568,17 @@ namespace Gfx
         {
             RenderTask* task = &renderTasks[i];
 
-            PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( (*cmdBuf), task->name, DebugMarker::GetNextRegionColor() );
-            PG_PROFILE_GPU_START( (*cmdBuf), task->name );
-            cmdBuf->BeginRenderPass( &task->renderPass, task->framebuffer );
+            PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( *cmdBuf, task->name, DebugMarker::GetNextRegionColor() );
+            PG_PROFILE_GPU_START( *cmdBuf, task->name );
+            cmdBuf->BeginRenderPass( &task->renderPasses[frameInFlight], task->framebuffers[frameInFlight] );
             task->renderFunction( task, scene, cmdBuf );
             cmdBuf->EndRenderPass();
-            PG_PROFILE_GPU_END( (*cmdBuf), task->name );
-            PG_DEBUG_MARKER_END_REGION_CMDBUF( (*cmdBuf) );
+            PG_PROFILE_GPU_END( *cmdBuf, task->name );
+            PG_DEBUG_MARKER_END_REGION_CMDBUF( *cmdBuf );
         }
 
-        PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( (*cmdBuf), "Blit " + GetBackBufferResource()->name + " to swapchain", DebugMarker::GetNextRegionColor() );
-        const Texture& srcTex = GetBackBufferResource()->texture;
+        PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( *cmdBuf, "Blit " + GetBackBufferResource( frameInFlight )->name + " to swapchain", DebugMarker::GetNextRegionColor() );
+        const Texture& srcTex = GetBackBufferResource( frameInFlight )->texture;
         VkImageBlit region;
         memset( &region, 0, sizeof( VkImageBlit ) );
         region.srcSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
@@ -577,35 +586,37 @@ namespace Gfx
         region.srcOffsets[1].y = srcTex.GetHeight();
         region.srcOffsets[1].z = 1;
         region.dstSubresource = { VK_IMAGE_ASPECT_COLOR_BIT, 0, 0, 1 };
-        region.dstOffsets[1].x = r_globals.swapchain.GetWidth();
-        region.dstOffsets[1].y = r_globals.swapchain.GetHeight();
+        region.dstOffsets[1].x = rg.swapchain.GetWidth();
+        region.dstOffsets[1].y = rg.swapchain.GetHeight();
         region.dstOffsets[1].z = 1;
 
-        VkImage swapImg = r_globals.swapchain.GetImage( r_globals.swapChainImageIndex );
+        VkImage swapImg = rg.swapchain.GetImage( rg.swapChainImageIndex );
         cmdBuf->TransitionImageLayout( srcTex.GetHandle(), VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::COLOR_ATTACHMENT_OPTIMAL, ImageLayout::TRANSFER_SRC_OPTIMAL, PipelineStageFlags::COLOR_ATTACHMENT_OUTPUT_BIT, PipelineStageFlags::TRANSFER_BIT );
         cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST_OPTIMAL, PipelineStageFlags::TOP_OF_PIPE_BIT, PipelineStageFlags::TRANSFER_BIT );
         cmdBuf->BlitImage( srcTex.GetHandle(), ImageLayout::TRANSFER_SRC_OPTIMAL, swapImg, ImageLayout::TRANSFER_DST_OPTIMAL, region );
         cmdBuf->TransitionImageLayout( swapImg, VK_IMAGE_ASPECT_COLOR_BIT, ImageLayout::TRANSFER_DST_OPTIMAL, ImageLayout::PRESENT_SRC_KHR, PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags::ALL_COMMANDS_BIT );
         PG_DEBUG_MARKER_END_REGION_CMDBUF( (*cmdBuf) );
+
+        frameInFlight = (frameInFlight + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
 
-    RG_PhysicalResource* RenderGraph::GetPhysicalResource( uint16_t idx )
+    RG_PhysicalResource* RenderGraph::GetPhysicalResource( uint16_t idx, uint8_t frameInFlight )
     {
-        return &physicalResources[idx];
+        return &physicalResources[idx][frameInFlight];
     }
 
 
-    RG_PhysicalResource* RenderGraph::GetPhysicalResource( const std::string& logicalName )
+    RG_PhysicalResource* RenderGraph::GetPhysicalResource( const std::string& logicalName, uint8_t frameInFlight )
     {
         auto it = resourceNameToIndexMap.find( logicalName );
-        return it == resourceNameToIndexMap.end() ? nullptr : &physicalResources[it->second];
+        return it == resourceNameToIndexMap.end() ? nullptr : &physicalResources[it->second][frameInFlight];
     }
 
 
-    RG_PhysicalResource* RenderGraph::GetBackBufferResource()
+    RG_PhysicalResource* RenderGraph::GetBackBufferResource( uint8_t frameInFlight )
     {
-        return GetPhysicalResource( backBufferName );
+        return GetPhysicalResource( backBufferName, frameInFlight );
     }
 
 
@@ -613,6 +624,13 @@ namespace Gfx
     {
         auto it = taskNameToIndexMap.find( name );
         return it == taskNameToIndexMap.end() ? nullptr : &renderTasks[it->second];
+    }
+
+
+    RenderPass* RenderGraph::GetRenderPass( const std::string& name, int frame )
+    {
+        auto it = taskNameToIndexMap.find( name );
+        return it == taskNameToIndexMap.end() ? nullptr : &renderTasks[it->second].renderPasses[frame];
     }
 
 

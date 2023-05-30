@@ -120,7 +120,7 @@ namespace PG::UI
                 pipelineDesc.colorAttachmentInfos[0].colorBlendEquation = BlendEquation::ADD;
                 pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation = BlendEquation::ADD;
             }
-            s_uiPipelines[i] = r_globals.device.NewGraphicsPipeline( pipelineDesc, s_uiPipelineNames[i] );
+            s_uiPipelines[i] = rg.device.NewGraphicsPipeline( pipelineDesc, s_uiPipelineNames[i] );
             if ( !s_uiPipelines[i] )
                 return false;
         }
@@ -143,7 +143,7 @@ namespace PG::UI
     void Shutdown()
     {
         Clear();
-        Gfx::r_globals.device.WaitForIdle();
+        Gfx::rg.device.WaitForIdle();
         for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
         {
             s_uiPipelines[i].Free();

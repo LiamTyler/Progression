@@ -15,6 +15,7 @@
 - [x] show profiling results in ImGui view
 
 ## Priority 2
+- [ ] separate out the sky init + rendering code into something like r_sky.cpp
 - [ ] see if spirv optimizer is working again
 - [ ] LZ4 compress converted assets + fastfiles
 - [x] Get albedo + metalness image working for texturesets
@@ -31,7 +32,7 @@
 - [ ] mychanges for shaders 
 - [ ] mychanges for images/texturesets
 - [ ] asset hashes for mychanges
-- [ ] don't wait for idle at the end of each frame
+- [x] don't wait for idle at the end of each frame
 - [ ] don't wait for idle while uploading images. Use barriers/whatever
 - [ ] controller support
 - [ ] allow for resizing window/multiple resolutions

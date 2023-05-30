@@ -293,7 +293,7 @@ static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBy
     vkShaderInfo.sType    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     vkShaderInfo.codeSize = sizeInBytes;
     vkShaderInfo.pCode    = spirv;
-    VkResult ret = vkCreateShaderModule( PG::Gfx::r_globals.device.GetHandle(), &vkShaderInfo, nullptr, &module );
+    VkResult ret = vkCreateShaderModule( PG::Gfx::rg.device.GetHandle(), &vkShaderInfo, nullptr, &module );
     if ( ret != VK_SUCCESS )
     {
         LOG_ERR( "Could not create shader module from spirv" );
@@ -396,7 +396,7 @@ bool Shader::FastfileSave( Serializer* serializer ) const
 void Shader::Free()
 {
 #if USING( GPU_DATA )
-    vkDestroyShaderModule( PG::Gfx::r_globals.device.GetHandle(), handle, nullptr );
+    vkDestroyShaderModule( PG::Gfx::rg.device.GetHandle(), handle, nullptr );
 #endif // #if USING( GPU_DATA )
 }
 

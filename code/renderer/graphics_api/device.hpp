@@ -7,6 +7,7 @@
 #include "renderer/graphics_api/physical_device.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
 #include "renderer/graphics_api/sampler.hpp"
+#include "renderer/graphics_api/swapchain.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
 #include "renderer/graphics_api/texture.hpp"
 
@@ -54,8 +55,8 @@ namespace Gfx
         RenderPass NewRenderPass( const RenderPassDescriptor& desc, const std::string& name = "" ) const;
         Framebuffer NewFramebuffer( const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name = "" ) const;
         Framebuffer NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name = "" ) const;
-        void SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs ) const;
-        void SubmitFrameForPresentation( uint32_t imageIndex ) const;
+        void SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs, const Semaphore& swapImgSem, const Semaphore& renderCompleteSem, const Fence* finishedFence = nullptr ) const;
+        void SubmitFrameForPresentation( const SwapChain& swapChain, uint32_t swapImageIndex, const Semaphore& waitSemaphore ) const;
 
         void Copy( Buffer dst, Buffer src ) const;
         void CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips = true ) const;

@@ -258,13 +258,13 @@ void Model::CreateBLAS()
 	accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
 
     VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
-    vkGetAccelerationStructureBuildSizesKHR( Gfx::r_globals.device.GetHandle(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+    vkGetAccelerationStructureBuildSizesKHR( Gfx::rg.device.GetHandle(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &accelerationStructureBuildGeometryInfo, &numTriangles, &accelerationStructureBuildSizesInfo );
 
     using namespace Gfx;
-    blas = r_globals.device.NewAccelerationStructure( AccelerationStructureType::BLAS, accelerationStructureBuildSizesInfo.accelerationStructureSize );
+    blas = rg.device.NewAccelerationStructure( AccelerationStructureType::BLAS, accelerationStructureBuildSizesInfo.accelerationStructureSize );
 
-    Buffer scratchBuffer = r_globals.device.NewBuffer( accelerationStructureBuildSizesInfo.buildScratchSize, BUFFER_TYPE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
+    Buffer scratchBuffer = rg.device.NewBuffer( accelerationStructureBuildSizesInfo.buildScratchSize, BUFFER_TYPE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
 
     VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
     accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
@@ -282,12 +282,12 @@ void Model::CreateBLAS()
     accelerationStructureBuildRangeInfo.transformOffset = 0;
     std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
 
-    CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time Build AS" );
+    CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time Build AS" );
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
     vkCmdBuildAccelerationStructuresKHR( cmdBuf.GetHandle(), 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data() );
     cmdBuf.EndRecording();
-    r_globals.device.Submit( cmdBuf );
-    r_globals.device.WaitForIdle();
+    rg.device.Submit( cmdBuf );
+    rg.device.WaitForIdle();
     cmdBuf.Free();
     scratchBuffer.Free();
 #endif // #if USING( PG_RTX ) && USING( GPU_DATA )
@@ -352,8 +352,8 @@ void Model::UploadToGPU()
 
     using namespace Gfx;
     BufferType rayTracingType = BUFFER_TYPE_DEVICE_ADDRESS | BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY | BUFFER_TYPE_STORAGE;
-    vertexBuffer = r_globals.device.NewBuffer( totalSize, tmpMem, rayTracingType | BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
-    indexBuffer = r_globals.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), rayTracingType | BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
+    vertexBuffer = rg.device.NewBuffer( totalSize, tmpMem, rayTracingType | BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
+    indexBuffer = rg.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), rayTracingType | BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
     free( tmpMem );
     CreateBLAS();
 

@@ -99,10 +99,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 
 static bool CreateDebugUtilsMessengerEXT( const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo, const VkAllocationCallbacks* pAllocator )
 {
-    auto func = ( PFN_vkCreateDebugUtilsMessengerEXT ) vkGetInstanceProcAddr( r_globals.instance, "vkCreateDebugUtilsMessengerEXT" );
+    auto func = ( PFN_vkCreateDebugUtilsMessengerEXT ) vkGetInstanceProcAddr( rg.instance, "vkCreateDebugUtilsMessengerEXT" );
     if ( func != nullptr )
     {
-        return func( r_globals.instance, pCreateInfo, pAllocator, &s_debugMessenger ) == VK_SUCCESS;
+        return func( rg.instance, pCreateInfo, pAllocator, &s_debugMessenger ) == VK_SUCCESS;
     }
     else
     {
@@ -113,10 +113,10 @@ static bool CreateDebugUtilsMessengerEXT( const VkDebugUtilsMessengerCreateInfoE
 
 static void DestroyDebugUtilsMessengerEXT( const VkAllocationCallbacks* pAllocator = nullptr )
 {
-    auto func = ( PFN_vkDestroyDebugUtilsMessengerEXT ) vkGetInstanceProcAddr( r_globals.instance, "vkDestroyDebugUtilsMessengerEXT" );
+    auto func = ( PFN_vkDestroyDebugUtilsMessengerEXT ) vkGetInstanceProcAddr( rg.instance, "vkDestroyDebugUtilsMessengerEXT" );
     if ( func != nullptr )
     {
-        func( r_globals.instance, s_debugMessenger, pAllocator );
+        func( rg.instance, s_debugMessenger, pAllocator );
     }
 }
 
@@ -162,7 +162,7 @@ static bool CreateInstance()
     createInfo.enabledLayerCount   = static_cast<uint32_t>( validationLayers.size() );
     createInfo.ppEnabledLayerNames = validationLayers.data();
 
-    VkResult ret = vkCreateInstance( &createInfo, nullptr, &r_globals.instance );
+    VkResult ret = vkCreateInstance( &createInfo, nullptr, &rg.instance );
     if ( ret == VK_ERROR_EXTENSION_NOT_PRESENT )
     {
         LOG_ERR( "Could not find all of the instance extensions" );
@@ -206,16 +206,6 @@ static bool SetupDebugCallback()
 }
 
 
-static bool CreateSynchronizationObjects()
-{
-    r_globals.presentCompleteSemaphore = r_globals.device.NewSemaphore( "present complete" );
-    r_globals.renderCompleteSemaphore  = r_globals.device.NewSemaphore( "render complete" );
-    r_globals.computeFence             = r_globals.device.NewFence( true, "compute" );
-
-    return true;
-}
-
-
 static bool CreateDescriptorPool()
 {
     VkDescriptorPoolSize poolSizes[11] = {};
@@ -231,36 +221,44 @@ static bool CreateDescriptorPool()
     poolSizes[9]  = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 50 };
     poolSizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 50 };
 
-    r_globals.descriptorPool = r_globals.device.NewDescriptorPool( 11, poolSizes, true, 1000 );
+    rg.descriptorPool = rg.device.NewDescriptorPool( 11, poolSizes, true, 1000 );
 
-    return r_globals.descriptorPool;
+    return rg.descriptorPool;
 }
 
 
 static bool CreateSurface()
 {
-    return glfwCreateWindowSurface( r_globals.instance, GetMainWindow()->GetGLFWHandle(), nullptr, &r_globals.surface ) == VK_SUCCESS;
+    return glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetGLFWHandle(), nullptr, &rg.surface ) == VK_SUCCESS;
 }
 
 
-static bool CreateCommandPoolAndBuffers()
+static bool CreateCommandPools()
 {
-    r_globals.commandPools[GFX_CMD_POOL_GRAPHICS]  = r_globals.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, CommandPoolQueueFamily::GRAPHICS, "global graphics" );
-    r_globals.commandPools[GFX_CMD_POOL_COMPUTE]   = r_globals.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, CommandPoolQueueFamily::COMPUTE, "global compute" );
-    r_globals.commandPools[GFX_CMD_POOL_TRANSIENT] = r_globals.device.NewCommandPool( COMMAND_POOL_TRANSIENT, CommandPoolQueueFamily::GRAPHICS, "global graphics transient" );
+    rg.commandPools[GFX_CMD_POOL_GRAPHICS]  = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, CommandPoolQueueFamily::GRAPHICS, "global graphics" );
+    rg.commandPools[GFX_CMD_POOL_TRANSIENT] = rg.device.NewCommandPool( COMMAND_POOL_TRANSIENT, CommandPoolQueueFamily::GRAPHICS, "global transient" );
     for ( int i = 0; i < GFX_CMD_POOL_TOTAL; ++i )
     {
-        if ( !r_globals.commandPools[i] )
-        {
-            return false;
-        }
+        if ( !rg.commandPools[i] ) return false;
     }
 
-    r_globals.computeCommandBuffer = r_globals.commandPools[GFX_CMD_POOL_COMPUTE].NewCommandBuffer( "global compute" );
-    r_globals.graphicsCommandBuffer = r_globals.commandPools[GFX_CMD_POOL_GRAPHICS].NewCommandBuffer( "global graphics" );
-    if ( !r_globals.computeCommandBuffer || !r_globals.graphicsCommandBuffer )
+    return true;
+}
+
+
+static bool CreatePerFrameData()
+{
+    for ( int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
     {
-        return false;
+        FrameData& data = rg.frameData[i];
+        std::string idxStr = std::to_string( i );
+        data.graphicsCmdBuf = rg.commandPools[GFX_CMD_POOL_GRAPHICS].NewCommandBuffer( "graphics" + idxStr );
+        data.inFlightFence = rg.device.NewFence( true, "inFlight" + idxStr );
+        data.renderCompleteSemaphore = rg.device.NewSemaphore( "renderComplete" + idxStr );
+        data.swapchainImgAvailableSemaphore = rg.device.NewSemaphore( "swapImgAvailable" + idxStr );
+
+        if ( !data.graphicsCmdBuf || !data.inFlightFence || !data.renderCompleteSemaphore || !data.swapchainImgAvailableSemaphore )
+            return false;
     }
 
     return true;
@@ -275,14 +273,14 @@ static void CreateEmptyDescriptorSet()
     emptyLayoutInfo.pNext = NULL;
     emptyLayoutInfo.bindingCount = 0;
     emptyLayoutInfo.pBindings = NULL;
-    vkCreateDescriptorSetLayout( r_globals.device.GetHandle(), &emptyLayoutInfo, NULL, &s_emptyDescriptSetLayout );
+    vkCreateDescriptorSetLayout( rg.device.GetHandle(), &emptyLayoutInfo, NULL, &s_emptyDescriptSetLayout );
 }
 
 
 bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 {
-    r_globals = {};
-    r_globals.headless = headless;
+    rg = {};
+    rg.headless = headless;
     if ( !CreateInstance() )
     {
         LOG_ERR( "Could not create vulkan instance" );
@@ -290,7 +288,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     }
 
 #if !USING( SHIP_BUILD )
-    DebugMarker::Init( r_globals.instance );
+    DebugMarker::Init( rg.instance );
     if ( !SetupDebugCallback() )
     {
         LOG_ERR( "Could not setup the debug callback" );
@@ -307,7 +305,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         }
     }
 
-    std::vector<PhysicalDevice> pDevices = EnumerateCompatiblePhysicalDevices( r_globals.instance, r_globals.surface, headless, false );
+    std::vector<PhysicalDevice> pDevices = EnumerateCompatiblePhysicalDevices( rg.instance, rg.surface, headless, false );
     if ( pDevices.empty() )
     {
         LOG_ERR( "No gpus are valid to use, based on the required extensions and features" );
@@ -315,28 +313,34 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     }
     else
     {
-        r_globals.physicalDevice = SelectBestPhysicalDevice( pDevices );
-        auto pDevProperties = r_globals.physicalDevice.GetProperties();
-        LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", r_globals.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor, pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
+        rg.physicalDevice = SelectBestPhysicalDevice( pDevices );
+        auto pDevProperties = rg.physicalDevice.GetProperties();
+        LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", rg.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor, pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
     }
 
-    if ( !r_globals.device.Create( r_globals.physicalDevice, headless ) )
+    if ( !rg.device.Create( rg.physicalDevice, headless ) )
     {
         LOG_ERR( "Could not create logical device" );
         return false;
     }
-    LoadVulkanExtensions( r_globals.device.GetHandle() );
+    LoadVulkanExtensions( rg.device.GetHandle() );
     
-    PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( r_globals.physicalDevice, r_globals.physicalDevice.GetName() );
-    PG_DEBUG_MARKER_SET_INSTANCE_NAME( r_globals.instance, "global" );
-    PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( r_globals.device, "default" );
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( r_globals.device.GetQueue().queue, "queue: GCT" );
+    PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( rg.physicalDevice, rg.physicalDevice.GetName() );
+    PG_DEBUG_MARKER_SET_INSTANCE_NAME( rg.instance, "global" );
+    PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( rg.device, "default" );
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( rg.device.GetQueue().queue, "queue: GCT" );
 
     InitSamplers();
 
-    if ( !CreateCommandPoolAndBuffers() )
+    if ( !CreateCommandPools() )
     {
-        LOG_ERR( "Could not create commandPool and commandBuffers" );
+        LOG_ERR( "Could not create commandPools" );
+        return false;
+    }
+
+    if ( !CreatePerFrameData() )
+    {
+        LOG_ERR( "CreatePerFrameData failed" );
         return false;
     }
 
@@ -354,15 +358,9 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         return true;
     }
 
-    if ( !r_globals.swapchain.Create( r_globals.device.GetHandle(), displayWidth, displayHeight ) )
+    if ( !rg.swapchain.Create( rg.device.GetHandle(), displayWidth, displayHeight ) )
     {
         LOG_ERR( "Could not create swap chain" );
-        return false;
-    }
-
-    if ( !CreateSynchronizationObjects() )
-    {
-        LOG_ERR( "Could not create synchronization objects" );
         return false;
     }
 
@@ -372,27 +370,36 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 
 void R_Shutdown()
 {
-    if ( !r_globals.headless )
+    if ( !rg.headless )
     {
-        r_globals.presentCompleteSemaphore.Free();
-        r_globals.renderCompleteSemaphore.Free();
-        r_globals.computeFence.Free();
-        r_globals.swapchain.Free();
+        for ( int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
+        {
+            rg.frameData[i].inFlightFence.Free();
+            rg.frameData[i].swapchainImgAvailableSemaphore.Free();
+            rg.frameData[i].renderCompleteSemaphore.Free();
+        }
+        
+        rg.swapchain.Free();
         FreeSamplers();
-        vkDestroySurfaceKHR( r_globals.instance, r_globals.surface, nullptr );
+        vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
+    }
+
+    for ( int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
+    {
+        rg.frameData[i].graphicsCmdBuf.Free();
     }
 
     Profile::Shutdown();
     for ( int i = 0; i < GFX_CMD_POOL_TOTAL; ++i )
     {
-        r_globals.commandPools[i].Free();
+        rg.commandPools[i].Free();
     }
-    vkDestroyDescriptorSetLayout( r_globals.device.GetHandle(), s_emptyDescriptSetLayout, nullptr );
-    r_globals.descriptorPool.Free();
-    r_globals.device.Free();
+    vkDestroyDescriptorSetLayout( rg.device.GetHandle(), s_emptyDescriptSetLayout, nullptr );
+    rg.descriptorPool.Free();
+    rg.device.Free();
 
     DestroyDebugUtilsMessengerEXT();
-    vkDestroyInstance( r_globals.instance, nullptr );
+    vkDestroyInstance( rg.instance, nullptr );
 }
 
 

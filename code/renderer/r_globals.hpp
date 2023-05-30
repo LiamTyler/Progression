@@ -1,6 +1,7 @@
 #pragma once
 
 #include "graphics_api/device.hpp"
+#include "graphics_api/descriptor.hpp"
 #include "graphics_api/framebuffer.hpp"
 #include "graphics_api/swapchain.hpp"
 #include "graphics_api/physical_device.hpp"
@@ -13,10 +14,25 @@ namespace Gfx
 enum : unsigned char
 {
     GFX_CMD_POOL_GRAPHICS,
-    GFX_CMD_POOL_COMPUTE,
     GFX_CMD_POOL_TRANSIENT,
 
     GFX_CMD_POOL_TOTAL
+};
+
+#define MAX_FRAMES_IN_FLIGHT 2
+
+struct FrameData
+{
+    Buffer sceneConstantBuffer;
+    DescriptorSet sceneConstantDescSet;
+    DescriptorSet skyboxDescSet;
+    DescriptorSet postProcessDescSet;
+    
+
+    CommandBuffer graphicsCmdBuf;
+    Fence inFlightFence;
+    Semaphore swapchainImgAvailableSemaphore;
+    Semaphore renderCompleteSemaphore;
 };
 
 struct R_Globals
@@ -30,11 +46,8 @@ struct R_Globals
     Framebuffer swapchainFramebuffers[GFX_MAX_SWAPCHAIN_IMAGES];
     CommandPool commandPools[GFX_CMD_POOL_TOTAL];
     DescriptorPool descriptorPool;
-    CommandBuffer graphicsCommandBuffer;
-    CommandBuffer computeCommandBuffer;
-    Semaphore presentCompleteSemaphore;
-    Semaphore renderCompleteSemaphore;
-    Fence computeFence;
+    FrameData frameData[MAX_FRAMES_IN_FLIGHT];
+    uint32_t currentFrame;
     bool headless;
     uint32_t sceneWidth;
     uint32_t sceneHeight;
@@ -46,7 +59,7 @@ Viewport SceneSizedViewport( bool vulkanFlipViewport = true );
 Scissor  SceneSizedScissor();
 VkDescriptorSetLayout GetEmptyDescriptorSetLayout();
 
-extern R_Globals r_globals;
+extern R_Globals rg;
 
 } // namespace Gfx
 } // namespace PG

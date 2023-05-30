@@ -19,7 +19,7 @@ namespace Gfx
         }
         else
         {
-            s_samplers[desc.name] = r_globals.device.NewSampler( desc );
+            s_samplers[desc.name] = rg.device.NewSampler( desc );
             return &s_samplers[desc.name];
         }
     }

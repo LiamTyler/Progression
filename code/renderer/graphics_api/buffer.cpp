@@ -88,11 +88,11 @@ namespace Gfx
         {
             PG_ASSERT( false, "implement me" );
             // Read back to host visible buffer first, then copy to host
-            // Device& device = r_globals.device;
+            // Device& device = rg.device;
             // 
             // Buffer hostVisibleBuffer = device.NewBuffer( size, BUFFER_TYPE_TRANSFER_DST, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
             // 
-            // CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
+            // CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
             // cmdBuf.CopyBuffer( hostVisibleBuffer, *this, size, 0, offset );
             // 
 			// // Barrier to ensure that buffer copy is finished before host reading from it

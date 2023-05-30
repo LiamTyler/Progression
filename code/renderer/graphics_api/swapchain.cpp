@@ -111,7 +111,7 @@ namespace Gfx
 bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferredHeight )
 {
     m_device = dev;
-    SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport( r_globals.physicalDevice.GetHandle(), r_globals.surface );
+    SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport( rg.physicalDevice.GetHandle(), rg.surface );
     VkSurfaceFormatKHR surfaceFormat = ChooseSwapSurfaceFormat( swapChainSupport.formats );
     VkPresentModeKHR presentMode = ChooseSwapPresentMode( swapChainSupport.presentModes );
 
@@ -137,7 +137,7 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
     }
 
     VkSwapchainCreateInfoKHR createInfo{ VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR };
-    createInfo.surface          = r_globals.surface;
+    createInfo.surface          = rg.surface;
     createInfo.minImageCount    = m_numImages;
     createInfo.imageFormat      = surfaceFormat.format;
     createInfo.imageColorSpace  = surfaceFormat.colorSpace;

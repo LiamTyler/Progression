@@ -268,7 +268,7 @@ namespace Gfx
 	    {
             if ( bindless )
             {
-                PG_ASSERT( r_globals.physicalDevice.GetFeatures().bindless, "Current device doesn't support bindless descriptors!" );
+                PG_ASSERT( rg.physicalDevice.GetFeatures().bindless, "Current device doesn't support bindless descriptors!" );
                 if ( bindings.size() != 1 )
                 {
                     LOG_ERR( "Using bindless, but binding count != 1" );
@@ -959,7 +959,7 @@ namespace Gfx
 
     void Device::Copy( Buffer dst, Buffer src ) const
     {
-        CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
+        CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
 
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
         cmdBuf.CopyBuffer( dst, src );
@@ -975,7 +975,7 @@ namespace Gfx
     void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips ) const
     {
         PG_ASSERT( tex.GetDepth() == 1 );
-        CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
+        CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
         cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
 
         std::vector<VkBufferImageCopy> bufferCopyRegions;
@@ -1040,7 +1040,7 @@ namespace Gfx
     }
 
 
-    void Device::SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs ) const
+    void Device::SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs, const Semaphore& swapImgSem, const Semaphore& renderCompleteSem, const Fence* finishedFence ) const
     {
         PG_ASSERT( 0 <= numBuffers && numBuffers <= 5 );
         VkCommandBuffer vkCmdBufs[5];
@@ -1052,37 +1052,40 @@ namespace Gfx
         VkSubmitInfo submitInfo = {};
         submitInfo.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
 
-        VkSemaphore waitSemaphores[]      = { r_globals.presentCompleteSemaphore.GetHandle() };
-        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT };
+        VkSemaphore vkSemaphores[]      = { swapImgSem.GetHandle() };
+        // Can be VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, but then we need a way to make sure
+        // that the image layout transition happens *after* the swapchain actually acquires the image.
+        // Can use VkSubpassDependency to do this
+        VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT };
         submitInfo.waitSemaphoreCount     = 1;
-        submitInfo.pWaitSemaphores        = waitSemaphores;
+        submitInfo.pWaitSemaphores        = vkSemaphores;
         submitInfo.pWaitDstStageMask      = waitStages;
         submitInfo.commandBufferCount     = numBuffers;
         submitInfo.pCommandBuffers        = vkCmdBufs;
-
-        VkSemaphore signalSemaphores[]    = { r_globals.renderCompleteSemaphore.GetHandle() };
+        
+        VkSemaphore signalSemaphores[]    = { renderCompleteSem.GetHandle() };
         submitInfo.signalSemaphoreCount   = 1;
         submitInfo.pSignalSemaphores      = signalSemaphores;
-
-        VK_CHECK_RESULT( vkQueueSubmit( m_queue.queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+        
+        VkFence vkFence = finishedFence ? finishedFence->GetHandle() : VK_NULL_HANDLE;
+        VK_CHECK_RESULT( vkQueueSubmit( m_queue.queue, 1, &submitInfo, vkFence ) );
     }
 
 
-    void Device::SubmitFrameForPresentation( uint32_t imageIndex ) const
+    void Device::SubmitFrameForPresentation( const SwapChain& swapChain, uint32_t swapImageIndex, const Semaphore& rdyForPresentSem ) const
     {
-        VkSemaphore signalSemaphores[] = { r_globals.renderCompleteSemaphore.GetHandle() };
+        VkSemaphore vkSemaphores[] = { rdyForPresentSem.GetHandle() };
         VkPresentInfoKHR presentInfo   = {};
         presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
         presentInfo.waitSemaphoreCount = 1;
-        presentInfo.pWaitSemaphores    = signalSemaphores;
+        presentInfo.pWaitSemaphores    = vkSemaphores;
 
-        VkSwapchainKHR swapChains[] = { r_globals.swapchain.GetHandle() };
+        VkSwapchainKHR vkSwapChains[] = { swapChain.GetHandle() };
         presentInfo.swapchainCount  = 1;
-        presentInfo.pSwapchains     = swapChains;
-        presentInfo.pImageIndices   = &imageIndex;
+        presentInfo.pSwapchains     = vkSwapChains;
+        presentInfo.pImageIndices   = &swapImageIndex;
 
         VK_CHECK_RESULT( vkQueuePresentKHR( m_queue.queue, &presentInfo ) );
-        WaitForIdle();
     }
 
     

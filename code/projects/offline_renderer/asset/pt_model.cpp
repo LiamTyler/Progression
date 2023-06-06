@@ -54,22 +54,33 @@ namespace PT
         {
             model->texCoords.resize( model->positions.size(), glm::vec2( 0 ) );
         }
+        else if ( model->tangents.empty() )
+        {
+            LOG_WARN( "Model had texture coordinates, but no tangents. This should have generated tangents earlier, "
+                "in the converter. Using an arbitrary tangent space instead" );
+        }
 
         if ( model->tangents.empty() )
         {
             model->tangents.resize( model->positions.size(), glm::vec3( 0 ) );
-            for ( size_t i = 0; i < model->indices.size(); i += 3 )
+            for ( const Mesh& mesh : model->meshes )
             {
-                const auto i0 = model->indices[i + 0];
-                const auto i1 = model->indices[i + 1];
-                const auto i2 = model->indices[i + 2];
-                glm::vec3 e = model->positions[i1] - model->positions[i0];
-                glm::vec3 t = glm::normalize( e );
-                glm::vec3 n = model->normals[i0];
+                for ( uint32_t i = 0; i < mesh.numIndices; i += 3 )
+                {
+                    const auto i0 = mesh.startVertex + model->indices[mesh.startIndex + i + 0];
+                    const auto i1 = mesh.startVertex + model->indices[mesh.startIndex + i + 1];
+                    const auto i2 = mesh.startVertex + model->indices[mesh.startIndex + i + 2];
+                    glm::vec3 e = model->positions[i1] - model->positions[i0];
+                    glm::vec3 t = glm::normalize( e );
+                    glm::vec3 n = model->normals[i0];
 
-                if ( model->tangents[i0] == glm::vec3( 0 ) ) model->tangents[i0] = glm::normalize( t - model->normals[i0] * glm::dot( model->normals[i0], t ) );
-                if ( model->tangents[i1] == glm::vec3( 0 ) ) model->tangents[i1] = glm::normalize( t - model->normals[i1] * glm::dot( model->normals[i1], t ) );
-                if ( model->tangents[i2] == glm::vec3( 0 ) ) model->tangents[i2] = glm::normalize( t - model->normals[i2] * glm::dot( model->normals[i2], t ) );
+                    if ( model->tangents[i0] == glm::vec3( 0 ) )
+                        model->tangents[i0] = glm::normalize( t - model->normals[i0] * glm::dot( model->normals[i0], t ) );
+                    if ( model->tangents[i1] == glm::vec3( 0 ) )
+                        model->tangents[i1] = glm::normalize( t - model->normals[i1] * glm::dot( model->normals[i1], t ) );
+                    if ( model->tangents[i2] == glm::vec3( 0 ) )
+                        model->tangents[i2] = glm::normalize( t - model->normals[i2] * glm::dot( model->normals[i2], t ) );
+                }
             }
 
             for ( size_t i = 0; i < model->tangents.size(); ++i )

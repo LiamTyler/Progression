@@ -24,10 +24,11 @@ int main( int argc, char** argv )
         return 0;
     }
 
+    std::string sceneName = argc > 1 ? argv[1] : "";
     Scene *scene = new Scene;
-    if ( !scene->Load( PG_ASSET_DIR + std::string( argv[1] ) ) )
+    if ( !scene->Load( PG_ASSET_DIR "scenes/" + sceneName + ".json" ) )
     {
-        LOG_ERR( "Could not load scene file '%s'", argv[1] );
+        LOG_ERR( "Could not load scene file '%s'", sceneName.c_str() );
         return 0;
     }
 
@@ -45,9 +46,9 @@ int main( int argc, char** argv )
             filename  = PG_ROOT_DIR + GetFilenameMinusExtension( filename ) + "_" + std::to_string( scene->settings.numSamplesPerPixel[sppIteration] ) + GetFileExtension( filename );
         }
 
-        if ( !pathTracer.SaveImage( filename ) )
+        if ( pathTracer.SaveImage( filename ) )
         {
-            LOG_ERR( "Could not save image '%s'", filename.c_str() );
+            LOG( "Saved path traced image: %s", filename.c_str() );
         }
     }
 

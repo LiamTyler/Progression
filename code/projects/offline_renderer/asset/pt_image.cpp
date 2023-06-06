@@ -34,8 +34,8 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     if ( image->imageType == Gfx::ImageType::TYPE_2D )
     {
         tex = std::make_shared<Texture2D>( image->width, image->height, image->mipLevels, image->pixelFormat, (void*)image->pixels );
-        RawImage2D img( image->width, image->height, PixelFormatToImageFormat( image->pixelFormat ), std::static_pointer_cast<Texture2D>( tex )->Raw( 0 ) );
-        img.Save( PG_ROOT_DIR + image->name + (PixelFormatIsFloat( image->pixelFormat ) ? ".exr" : ".png") );
+        //RawImage2D img( image->width, image->height, PixelFormatToImageFormat( image->pixelFormat ), std::static_pointer_cast<Texture2D>( tex )->Raw( 0 ) );
+        //img.Save( PG_ROOT_DIR + image->name + (PixelFormatIsFloat( image->pixelFormat ) ? ".exr" : ".png") );
     }
     else if ( image->imageType == Gfx::ImageType::TYPE_CUBEMAP )
     {

@@ -361,10 +361,12 @@ int main( int argc, char* argv[] )
     std::unordered_set<std::string> modelExtensions = { ".obj", ".fbx", ".ply", ".gltf", ".stl" };
     std::vector<std::string> filesToProcess;
     std::string directory;
+    std::string outputPrefix;
     if ( IsDirectory( argv[1] ) )
     {
         directory = argv[1];
         g_textureSearchDir = argc > 2 ? argv[2] : directory;
+        outputPrefix = GetDirectoryStem( directory );
 
         namespace fs = std::filesystem;
         for ( const auto& entry : fs::directory_iterator( directory ) )
@@ -379,12 +381,18 @@ int main( int argc, char* argv[] )
     else if ( IsFile( argv[1] ) )
     {
         directory = g_textureSearchDir = GetParentPath( argv[1] );
+        outputPrefix = GetFilenameStem( argv[1] );
         filesToProcess.push_back( argv[1] );
     }
     else
     {
         LOG_ERR( "Path '%s' does not exist!", argv[1] );
         return 0;
+    }
+    PG_ASSERT( directory.length() );
+    if ( directory[directory.length() - 1] != '/' && directory[directory.length() - 1] != '\\' )
+    {
+        directory += '/';
     }
 
     auto startTime = PG::Time::GetTimePoint();
@@ -406,7 +414,7 @@ int main( int argc, char* argv[] )
     {
         outputJSON[outputJSON.length() - 2] = '\n';
         outputJSON[outputJSON.length() - 1] = ']';
-        std::string pafFilename = directory + "/exported_" + GetFilenameStem( argv[1] ) + ".paf";
+        std::string pafFilename = directory + "exported_" + outputPrefix + ".paf";
         LOG( "Saving asset file %s", pafFilename.c_str() );
         std::ofstream out( pafFilename );
         out << outputJSON;

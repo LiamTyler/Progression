@@ -11,7 +11,14 @@ set(SRC
 	${PROGRESSION_DIR}/code/core/time.cpp
     ${PROGRESSION_DIR}/code/core/time.hpp
     
+    ${CODE_DIR}/asset/asset_file_database.cpp
+    ${CODE_DIR}/asset/asset_file_database.hpp
+    ${CODE_DIR}/asset/parsing/asset_parsers.cpp
+    ${CODE_DIR}/asset/parsing/asset_parsers.hpp
+    
     ${PRIMARY_SHARED_SRC}
+    ${CODE_DIR}/shared/json_parsing.cpp
+    ${CODE_DIR}/shared/json_parsing.hpp
 )
 
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SRC})

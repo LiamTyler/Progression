@@ -1,17 +1,23 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
+#include "asset/asset_file_database.hpp"
+#include "asset/types/textureset.hpp"
 #include "core/time.hpp"
 #include "glm/glm.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
+#include "shared/hash.hpp"
 #include "shared/logger.hpp"
+#include "shared/string.hpp"
 #include <atomic>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <unordered_set>
 #include <vector>
+
+using namespace PG;
 
 std::string g_textureSearchDir;
 std::atomic<uint32_t> g_warnings;
@@ -34,23 +40,69 @@ struct ImageInfo
     std::string type;
 };
 
+std::unordered_set<std::string> g_addedTexturesetNames;
+std::unordered_set<std::string> g_addedMaterialNames;
+std::unordered_set<std::string> g_addedModelNames;
 
-static void DisplayHelp()
+
+bool HaveCreated( AssetType assetType, const std::string& name )
 {
-    auto msg =
-        "Usage: modelToPGModel PATH [texture_search_dir]\n"
-        "\tIf PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
-        "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
-        "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n";
-    std::cout << msg << std::endl;
+    if ( assetType == ASSET_TYPE_TEXTURESET ) return g_addedTexturesetNames.contains( name );
+    else if ( assetType == ASSET_TYPE_MATERIAL ) return g_addedMaterialNames.contains( name );
+    else if ( assetType == ASSET_TYPE_MODEL ) return g_addedModelNames.contains( name );
+
+    return false;
+}
+
+void AddCreatedName( AssetType assetType, const std::string& name )
+{
+    if ( assetType == ASSET_TYPE_TEXTURESET ) g_addedTexturesetNames.insert( name );
+    else if ( assetType == ASSET_TYPE_MATERIAL ) g_addedMaterialNames.insert( name );
+    else if ( assetType == ASSET_TYPE_MODEL ) g_addedModelNames.insert( name );
+}
+
+std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
+{
+    std::string finalName = name;
+    int postFix = 0;
+    while ( AssetDatabase::FindAssetInfo( assetType, finalName ) || HaveCreated( assetType, finalName ) )
+    {
+        ++postFix;
+        finalName = name + "_" + std::to_string( postFix );
+    }
+
+    if ( postFix != 0 )
+        LOG_WARN( "%s already exist with name '%s'. Renaming to '%s'", g_assetNames[assetType], name.c_str(), finalName.c_str() );
+    AddCreatedName( assetType, finalName );
+
+    return finalName;
 }
 
 
-static std::string TrimWhiteSpace( const std::string& s )
+static std::string Vec3ToJSON( const glm::vec3& v )
 {
-    size_t start = s.find_first_not_of( " \t" );
-    size_t end   = s.find_last_not_of( " \t" );
-    return s.substr( start, end - start + 1 );
+    return "[" + std::to_string( v.r ) + ", " + std::to_string( v.g ) + ", " + std::to_string( v.b ) + " ]";
+}
+
+template <typename T, typename = typename std::enable_if<std::is_arithmetic_v<T>, T>::type>
+static void AddJSON( std::vector<std::string>& settings, const std::string& key, T val )
+{
+    settings.push_back( "\"" + key + "\": " + std::to_string( val ) );
+}
+
+static void AddJSON( std::vector<std::string>& settings, const std::string& key, bool val )
+{
+    settings.push_back( "\"" + key + "\": " + (val ? "true" : "false") );
+}
+
+static void AddJSON( std::vector<std::string>& settings, const std::string& key, const glm::vec3& val )
+{
+    settings.push_back( "\"" + key + "\": " + Vec3ToJSON( val ) );
+}
+
+static void AddJSON( std::vector<std::string>& settings, const std::string& key, const std::string& val )
+{
+    settings.push_back( "\"" + key + "\": \"" + val + "\"" );
 }
 
 
@@ -65,14 +117,13 @@ static std::string GetPathRelativeToAssetDir( const std::string& path )
     return relPath;
 }
 
-
-bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, std::string& pathToTex )
+static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, std::string& pathToTex )
 {
     aiString path;
     namespace fs = std::filesystem;
     if ( assimpMat->GetTexture( texType, 0, &path, NULL, NULL, NULL, NULL, NULL ) == AI_SUCCESS )
     {
-        std::string name = TrimWhiteSpace( path.data );
+        std::string name = StripWhitespace( path.data );
         pathToTex = name;
 
         std::string fullPath;
@@ -95,60 +146,210 @@ bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, s
     }
     else
     {
-        LOG_ERR( "Could not get texture of type: '%s'", TextureTypeToString( texType ) );
+        LOG_ERR( "Could not get texture of type: '%s'", aiTextureTypeToString( texType ) );
         return false;
     }
 
     return true;
 }
 
-
-static bool OutputMaterial( const aiMaterial* assimpMat, const aiScene* scene, const std::string& modelName, std::string& outputJSON )
+static std::optional<std::string> GetAssimpTexture( const aiMaterial* assimpMat, aiTextureType texType, const std::string& texTypeStr, const std::string& matName )
 {
-    std::string name;
-    glm::vec3 albedo = glm::vec3( 0 );
-    std::string albedoMapName;
-
-    aiString assimpMatName;
-    aiColor3D color;
-
-    assimpMat->Get( AI_MATKEY_NAME, assimpMatName );
-    name = assimpMatName.C_Str();
-
-    color = aiColor3D( 0.f, 0.f, 0.f );
-    assimpMat->Get( AI_MATKEY_COLOR_DIFFUSE, color );
-    albedo = { color.r, color.g, color.b };
-
-    if ( assimpMat->GetTextureCount( aiTextureType_DIFFUSE ) > 0 )
+    std::string imagePath;
+    if ( assimpMat->GetTextureCount( texType ) > 0 )
     {
-        std::string imagePath;
-        if ( assimpMat->GetTextureCount( aiTextureType_DIFFUSE ) > 1 )
+        if ( assimpMat->GetTextureCount( texType ) > 1 )
         {
-            LOG_WARN( "Material '%s' has more than 1 diffuse texture", name.c_str() );
+            LOG_WARN( "Material '%s' has more than 1 %s texture", matName.c_str(), texTypeStr.c_str() );
         }
-        else if ( !GetAssimpTexturePath( assimpMat, aiTextureType_DIFFUSE, imagePath ) )
+        else if ( !GetAssimpTexturePath( assimpMat, texType, imagePath ) )
         {
-            LOG_WARN( "Material '%s': can't find diffuse texture, using filename '%s'", name.c_str(), imagePath.c_str() );
+            LOG_WARN( "Material '%s': can't find %s texture, using filename '%s'", matName.c_str(), texTypeStr.c_str(), imagePath.c_str() );
         }
         if ( !imagePath.empty() )
         {
-            albedoMapName = GetFilenameStem( imagePath );
-            outputJSON += "\t{ \"Image\": {\n";
-            outputJSON += "\t\t\"name\": \"" + albedoMapName + "\",\n";
-            outputJSON += "\t\t\"filename\": \"" + imagePath + "\",\n";
-            outputJSON += "\t\t\"semantic\": \"DIFFUSE\"\n";
+            std::string relPath = GetRelativePathToDir( imagePath, PG_ASSET_DIR );
+            if ( !relPath.empty() )
+                imagePath = relPath;
+        }
+    }
+    if ( !imagePath.empty() )
+        return imagePath;
+    return {};
+}
+
+static std::optional<glm::vec3> GetVec3( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+{
+    aiColor3D v;
+    if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
+        return glm::vec3( v.r, v.g, v.b );
+    return {};
+}
+
+static std::optional<float> GetFloat( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+{
+    ai_real v;
+    if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
+        return (float)v;
+    return {};
+}
+
+static std::optional<int> GetInt( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+{
+    ai_int v;
+    if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
+        return (int)v;
+    return {};
+}
+
+static std::optional<std::string> GetString( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+{
+    aiString v;
+    if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
+        return std::string( v.C_Str() );
+    return {};
+}
+
+static std::optional<bool> GetBool( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+{
+    bool v;
+    if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
+        return v;
+    return {};
+}
+
+static bool OutputMaterial( const aiMaterial* assimpMat, const aiScene* scene, const std::string& modelName, std::string& outputJSON )
+{
+    if ( !GetString( assimpMat, AI_MATKEY_NAME ) )
+    {
+        LOG_ERR( "Failed to parse material name while processing model '%s'", modelName.c_str() );
+        return false;
+    }
+    std::string matName = GetUniqueAssetName( ASSET_TYPE_MATERIAL, GetString( assimpMat, AI_MATKEY_NAME )->c_str() );
+
+    std::vector<std::string> matSettings;
+    AddJSON( matSettings, "name", matName );
+
+    if ( auto albedoTint = GetVec3( assimpMat, AI_MATKEY_BASE_COLOR ) )
+        AddJSON( matSettings, "albedoTint", *albedoTint );
+
+    if ( auto albedoTint = GetVec3( assimpMat, AI_MATKEY_COLOR_DIFFUSE ) )
+        AddJSON( matSettings, "albedoTint", *albedoTint );
+
+    auto metallicFactor = GetFloat( assimpMat, AI_MATKEY_METALLIC_FACTOR );
+    if ( metallicFactor )
+        AddJSON( matSettings, "metallicFactor", *metallicFactor );
+
+    if ( auto emissiveTint = GetVec3( assimpMat, AI_MATKEY_COLOR_EMISSIVE ) )
+    {
+        if ( *emissiveTint != glm::vec3( 0 ) )
+            AddJSON( matSettings, "emissiveTint", *emissiveTint );
+    }
+
+    // Textures
+    {
+        std::vector<std::string> texSettings;
+        texSettings.push_back( "" ); // reserve slot for name (calculated later)
+
+        if ( auto albedoMap = GetAssimpTexture( assimpMat, aiTextureType_BASE_COLOR, "baseColor", matName ) )
+            AddJSON( texSettings, "albedoMap", *albedoMap );
+        if ( auto albedoMap = GetAssimpTexture( assimpMat, aiTextureType_DIFFUSE, "diffuse", matName ) )
+            AddJSON( texSettings, "albedoMap", *albedoMap );
+
+        auto metalnessMap = GetAssimpTexture( assimpMat, aiTextureType_METALNESS, "metalness", matName );
+        if ( metalnessMap )
+            AddJSON( texSettings, "metalnessMap", *metalnessMap );
+        else if ( metallicFactor )
+            AddJSON( texSettings, "metalnessMap", "$white" );
+
+        if ( auto emissiveMap = GetAssimpTexture( assimpMat, aiTextureType_EMISSIVE, "emissive", matName ) )
+            AddJSON( texSettings, "emissiveMap", *emissiveMap );
+
+        // aiTextureType_SHININESS for gloss/roughness
+
+        // Only name + output a textureset if it has non-default values
+        if ( texSettings.size() > 1 )
+        {
+            std::string texturesetName = GetUniqueAssetName( ASSET_TYPE_TEXTURESET, matName );
+            AddJSON( texSettings, "name", texturesetName );
+            std::swap( texSettings[0], texSettings[texSettings.size() - 1] );
+            texSettings.pop_back();
+            if ( metalnessMap && metallicFactor )
+            {
+                LOG_WARN( "Textureset %s specifies both a metalness texture, and a metalness factor. This will probably look incorrect", texturesetName.c_str() );
+                LOG_WARN( "\tbecause this engine uses the metalness factor as a multiply tint factor, and assumes a white texture when only a factor + no texture is specified" );
+            }
+            outputJSON += "\t{ \"Textureset\": {\n";
+            for ( size_t i = 0; i < texSettings.size() - 1; ++i )
+                outputJSON += "\t\t" + texSettings[i] + ",\n";
+            outputJSON += "\t\t" + texSettings[texSettings.size() - 1] + "\n";
             outputJSON += "\t} },\n";
         }
     }
 
     outputJSON += "\t{ \"Material\": {\n";
-    outputJSON += "\t\t\"name\": \"" + name + "\",\n";
-    outputJSON += "\t\t\"albedo\": [ " + std::to_string( albedo.r ) + ", " + std::to_string( albedo.g ) + ", " + std::to_string( albedo.b ) + " ]";
-    if ( albedoMapName != "" )
+    for ( size_t i = 0; i < matSettings.size() - 1; ++i )
+        outputJSON += "\t\t" + matSettings[i] + ",\n";
+    outputJSON += "\t\t" + matSettings[matSettings.size() - 1] + "\n";
+    outputJSON += "\t} },\n";
+
+#if 0
+    std::vector<std::string> allMatSettings;
+    if ( auto v = GetString( assimpMat, AI_MATKEY_NAME ) ) AddJSON( allMatSettings, "Name", *v );
+    if ( auto v = GetBool( assimpMat, AI_MATKEY_TWOSIDED ) ) AddJSON( allMatSettings, "Two Sided", *v );
+    if ( auto v = GetInt( assimpMat, AI_MATKEY_SHADING_MODEL ) ) AddJSON( allMatSettings, "Shading Model", *v );
+    if ( auto v = GetBool( assimpMat, AI_MATKEY_ENABLE_WIREFRAME ) ) AddJSON( allMatSettings, "Enable Wireframe", *v );
+    if ( auto v = GetInt( assimpMat, AI_MATKEY_BLEND_FUNC ) ) AddJSON( allMatSettings, "BlendFunc", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_OPACITY ) ) AddJSON( allMatSettings, "Opacity", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_TRANSPARENCYFACTOR ) ) AddJSON( allMatSettings, "Transparency Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_BUMPSCALING ) ) AddJSON( allMatSettings, "BumpScaling", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_SHININESS ) ) AddJSON( allMatSettings, "Shininess", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_REFLECTIVITY ) ) AddJSON( allMatSettings, "Reflectivity", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_SHININESS_STRENGTH ) ) AddJSON( allMatSettings, "Shininess Strength", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_REFRACTI ) ) AddJSON( allMatSettings, "Refracti", *v );
+    if ( auto v = GetVec3( assimpMat, AI_MATKEY_COLOR_DIFFUSE ) ) AddJSON( allMatSettings, "Diffuse", *v );
+    if ( auto v = GetVec3( assimpMat, AI_MATKEY_COLOR_AMBIENT ) ) AddJSON( allMatSettings, "Ambient", *v );
+    if ( auto v = GetVec3( assimpMat, AI_MATKEY_COLOR_SPECULAR ) ) AddJSON( allMatSettings, "Specular", *v );
+    if ( auto v = GetVec3( assimpMat, AI_MATKEY_COLOR_EMISSIVE ) ) AddJSON( allMatSettings, "Emissive", *v );
+    if ( auto v = GetVec3( assimpMat, AI_MATKEY_COLOR_TRANSPARENT ) ) AddJSON( allMatSettings, "Transparent", *v );
+    if ( auto v = GetVec3( assimpMat, AI_MATKEY_COLOR_REFLECTIVE ) ) AddJSON( allMatSettings, "Reflective", *v );
+    if ( auto v = GetBool( assimpMat, AI_MATKEY_USE_COLOR_MAP ) ) AddJSON( allMatSettings, "Use Color Map", *v );
+    if ( auto v = GetVec3( assimpMat, AI_MATKEY_BASE_COLOR ) ) AddJSON( allMatSettings, "Base Color", *v );
+    if ( auto v = GetBool( assimpMat, AI_MATKEY_USE_METALLIC_MAP ) ) AddJSON( allMatSettings, "Use Metallic Map", *v );
+
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_METALLIC_FACTOR ) ) AddJSON( allMatSettings, "Metallic Factor", *v );
+    if ( auto v = GetBool( assimpMat, AI_MATKEY_USE_ROUGHNESS_MAP ) ) AddJSON( allMatSettings, "Use Roughness Map", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_ROUGHNESS_FACTOR ) ) AddJSON( allMatSettings, "Roughness Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_ANISOTROPY_FACTOR ) ) AddJSON( allMatSettings, "Anisotropy Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_SPECULAR_FACTOR ) ) AddJSON( allMatSettings, "Specular Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_GLOSSINESS_FACTOR ) ) AddJSON( allMatSettings, "Glossiness Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_SHEEN_COLOR_FACTOR ) ) AddJSON( allMatSettings, "Sheen Color Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_SHEEN_ROUGHNESS_FACTOR ) ) AddJSON( allMatSettings, "Sheen Roughness Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_CLEARCOAT_FACTOR ) ) AddJSON( allMatSettings, "Clearcoat Factor", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_CLEARCOAT_ROUGHNESS_FACTOR ) ) AddJSON( allMatSettings, "Clearcoat Roughness Factor ", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_TRANSMISSION_FACTOR ) ) AddJSON( allMatSettings, "Transmission Factor", *v );
+    if ( auto v = GetBool( assimpMat, AI_MATKEY_USE_EMISSIVE_MAP ) ) AddJSON( allMatSettings, "Use Emissive Map", *v );
+    if ( auto v = GetFloat( assimpMat, AI_MATKEY_EMISSIVE_INTENSITY ) ) AddJSON( allMatSettings, "Emissive Intensity", *v );
+    if ( auto v = GetBool( assimpMat, AI_MATKEY_USE_AO_MAP ) ) AddJSON( allMatSettings, "Use AO Map", *v );
+
+    for ( size_t i = 0; i < allMatSettings.size(); ++i )
     {
-        outputJSON += ",\n\t\t\"albedoMap\": \"" + albedoMapName + "\"";
+        LOG( "%s", allMatSettings[i].c_str() );
     }
-    outputJSON += "\n\t} },\n";
+
+    for ( int i = 0; i < (int)AI_TEXTURE_TYPE_MAX; ++i )
+    {
+        auto t = (aiTextureType)(aiTextureType_DIFFUSE + i);
+        int x = assimpMat->GetTextureCount( t );
+        if ( x )
+        {
+            LOG( "%s: %d", aiTextureTypeToString( t ), x );
+            std::string imagePath;
+            GetAssimpTexturePath( assimpMat, t, imagePath );
+            LOG( "\t%s", imagePath.c_str() );
+        }
+    }
+#endif
 
     return true;
 }
@@ -346,6 +547,17 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
 }
 
 
+static void DisplayHelp()
+{
+    auto msg =
+        "Usage: modelToPGModel PATH [texture_search_dir]\n"
+        "\tIf PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
+        "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
+        "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n";
+    std::cout << msg << std::endl;
+}
+
+
 int main( int argc, char* argv[] )
 {
     if ( argc < 2 )
@@ -389,17 +601,27 @@ int main( int argc, char* argv[] )
         LOG_ERR( "Path '%s' does not exist!", argv[1] );
         return 0;
     }
+
     PG_ASSERT( directory.length() );
     if ( directory[directory.length() - 1] != '/' && directory[directory.length() - 1] != '\\' )
     {
         directory += '/';
     }
 
-    auto startTime = PG::Time::GetTimePoint();
+    // if we are re-exporting, delete before initializing the database, so that it doesn't affect the unique name generation
+    std::string pafFilename = directory + "exported_" + outputPrefix + ".paf";
+    if ( PathExists( pafFilename ) )
+    {
+        DeleteFile( pafFilename );
+    }
+    AssetDatabase::Init();
+
+    auto startTime = Time::GetTimePoint();
     size_t modelsConverted = 0;
     std::string outputJSON = "[\n";
     outputJSON.reserve( 1024 * 1024 );
-    #pragma omp parallel for
+    // Cant run in 
+    // #pragma omp parallel for
     for ( int i = 0; i < static_cast<int>( filesToProcess.size() ); ++i )
     {
         std::string json;
@@ -408,13 +630,12 @@ int main( int argc, char* argv[] )
         outputJSON += json;
     }
 
-    LOG( "Models converted: %u in %.2f seconds", modelsConverted, PG::Time::GetDuration( startTime ) / 1000.0f );
+    LOG( "Models converted: %u in %.2f seconds", modelsConverted, Time::GetDuration( startTime ) / 1000.0f );
     LOG( "Errors: %zu, Warnings: %u", filesToProcess.size() - modelsConverted, g_warnings.load() );
     if ( modelsConverted > 0 )
     {
         outputJSON[outputJSON.length() - 2] = '\n';
         outputJSON[outputJSON.length() - 1] = ']';
-        std::string pafFilename = directory + "exported_" + outputPrefix + ".paf";
         LOG( "Saving asset file %s", pafFilename.c_str() );
         std::ofstream out( pafFilename );
         out << outputJSON;

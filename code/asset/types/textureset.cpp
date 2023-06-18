@@ -20,6 +20,11 @@ std::string TexturesetCreateInfo::GetMetalnessMap( bool isApplied ) const
     return isApplied ? metalnessMap : "$default_metalness";
 }
 
+std::string TexturesetCreateInfo::GetEmissiveMap( bool isApplied ) const
+{
+    return isApplied ? emissiveMap : "$black";
+}
+
 //std::string TexturesetCreateInfo::GetNormalMap( bool isApplied ) const
 //{
 //    return isApplied ? normalMap : "$default_normalmap";

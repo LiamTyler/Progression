@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2020, assimp team
+Copyright (c) 2006-2022, assimp team
 
 
 All rights reserved.
@@ -127,7 +127,7 @@ namespace {
 AI_WONT_RETURN void TokenizeError(const std::string& message, size_t offset) AI_WONT_RETURN_SUFFIX;
 AI_WONT_RETURN void TokenizeError(const std::string& message, size_t offset)
 {
-    throw DeadlyImportError(Util::AddOffset("FBX-Tokenize",message,offset));
+    throw DeadlyImportError("FBX-Tokenize", Util::GetOffsetText(offset), message);
 }
 
 
@@ -139,6 +139,7 @@ size_t Offset(const char* begin, const char* cursor) {
 }
 
 // ------------------------------------------------------------------------------------------------
+AI_WONT_RETURN void TokenizeError(const std::string& message, const char* begin, const char* cursor) AI_WONT_RETURN_SUFFIX;
 void TokenizeError(const std::string& message, const char* begin, const char* cursor) {
     TokenizeError(message, Offset(begin, cursor));
 }
@@ -341,8 +342,7 @@ void ReadData(const char*& sbegin_out, const char*& send_out, const char* input,
 
 
 // ------------------------------------------------------------------------------------------------
-bool ReadScope(TokenList& output_tokens, const char* input, const char*& cursor, const char* end, bool const is64bits)
-{
+bool ReadScope(TokenList &output_tokens, StackAllocator &token_allocator, const char *input, const char *&cursor, const char *end, bool const is64bits) {
     // the first word contains the offset at which this block ends
 	const uint64_t end_offset = is64bits ? ReadDoubleWord(input, cursor, end) : ReadWord(input, cursor, end);
 
@@ -375,6 +375,11 @@ bool ReadScope(TokenList& output_tokens, const char* input, const char*& cursor,
 
     // now come the individual properties
     const char* begin_cursor = cursor;
+
+    if ((begin_cursor + prop_length) > end) {
+        TokenizeError("property length out of bounds reading length ", input, cursor);
+    }
+
     for (unsigned int i = 0; i < prop_count; ++i) {
         ReadData(sbeg, send, input, cursor, begin_cursor + prop_length);
 
@@ -403,7 +408,7 @@ bool ReadScope(TokenList& output_tokens, const char* input, const char*& cursor,
 
         // XXX this is vulnerable to stack overflowing ..
         while(Offset(input, cursor) < end_offset - sentinel_block_length) {
-			ReadScope(output_tokens, input, cursor, input + end_offset - sentinel_block_length, is64bits);
+            ReadScope(output_tokens, token_allocator, input, cursor, input + end_offset - sentinel_block_length, is64bits);
         }
         output_tokens.push_back(new_Token(cursor, cursor + 1, TokenType_CLOSE_BRACKET, Offset(input, cursor) ));
 
@@ -426,8 +431,7 @@ bool ReadScope(TokenList& output_tokens, const char* input, const char*& cursor,
 
 // ------------------------------------------------------------------------------------------------
 // TODO: Test FBX Binary files newer than the 7500 version to check if the 64 bits address behaviour is consistent
-void TokenizeBinary(TokenList& output_tokens, const char* input, size_t length)
-{
+void TokenizeBinary(TokenList &output_tokens, const char *input, size_t length, StackAllocator &token_allocator) {
 	ai_assert(input);
 	ASSIMP_LOG_DEBUG("Tokenizing binary FBX file");
 
@@ -454,21 +458,21 @@ void TokenizeBinary(TokenList& output_tokens, const char* input, size_t length)
 	/*Result ignored*/ ReadByte(input, cursor, input + length);
 	/*Result ignored*/ ReadByte(input, cursor, input + length);
 	const uint32_t version = ReadWord(input, cursor, input + length);
-	ASSIMP_LOG_DEBUG_F("FBX version: ", version);
+	ASSIMP_LOG_DEBUG("FBX version: ", version);
 	const bool is64bits = version >= 7500;
     const char *end = input + length;
     try
     {
         while (cursor < end ) {
-		    if (!ReadScope(output_tokens, input, cursor, input + length, is64bits)) {
+            if (!ReadScope(output_tokens, token_allocator, input, cursor, input + length, is64bits)) {
                 break;
             }
         }
     }
     catch (const DeadlyImportError& e)
     {
-        if (!is64bits && (length > std::numeric_limits<std::uint32_t>::max())) {
-            throw DeadlyImportError("The FBX file is invalid. This may be because the content is too big for this older version (" + to_string(version) + ") of the FBX format. (" + e.what() + ")");
+        if (!is64bits && (length > std::numeric_limits<uint32_t>::max())) {
+            throw DeadlyImportError("The FBX file is invalid. This may be because the content is too big for this older version (", ai_to_string(version), ") of the FBX format. (", e.what(), ")");
         }
         throw;
     }

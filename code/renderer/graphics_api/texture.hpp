@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/image_types.hpp"
 #include "core/pixel_formats.hpp"
 #include "renderer/vulkan.hpp"
 #include <string>
@@ -9,25 +10,10 @@
 namespace PG
 {
 
-class Image2D;
-
 namespace Gfx
 {
 
     class Sampler;
-
-    enum class ImageType : uint8_t
-    {
-        TYPE_1D            = 0,
-        TYPE_1D_ARRAY      = 1,
-        TYPE_2D            = 2,
-        TYPE_2D_ARRAY      = 3,
-        TYPE_CUBEMAP       = 4,
-        TYPE_CUBEMAP_ARRAY = 5,
-        TYPE_3D            = 6,
-
-        NUM_IMAGE_TYPES
-    };
 
     struct TextureDescriptor
     {

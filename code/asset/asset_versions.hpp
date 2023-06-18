@@ -24,12 +24,12 @@ enum AssetType : unsigned int
 constexpr unsigned int g_assetVersions[] =
 {
     3, // ASSET_TYPE_GFX_IMAGE
-    2, // ASSET_TYPE_MATERIAL
+    3, // ASSET_TYPE_MATERIAL, "adding emissive maps + flipVertical option"
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
     7, // ASSET_TYPE_UI_LAYOUT, "mouse button down/up callbacks"
-    0, // ASSET_TYPE_TEXTURESET
+    1, // ASSET_TYPE_TEXTURESET, "adding emissive maps + flipVertical option"
 };
 
 constexpr uint32_t PG_FASTFILE_VERSION = 7 + ARRAY_SUM( g_assetVersions ); // mouse button down/up callbacks

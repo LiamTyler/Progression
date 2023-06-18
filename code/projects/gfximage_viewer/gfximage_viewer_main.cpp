@@ -22,9 +22,9 @@ static void DisplayHelp()
 
 using namespace PG;
 
-std::string ImageTypeToString( Gfx::ImageType type )
+std::string ImageTypeToString( ImageType type )
 {
-    PG_ASSERT( Underlying( type ) <= Underlying( Gfx::ImageType::NUM_IMAGE_TYPES ) );
+    PG_ASSERT( Underlying( type ) <= Underlying( ImageType::NUM_IMAGE_TYPES ) );
     static const char* names[] =
     {
         "TYPE_1D",

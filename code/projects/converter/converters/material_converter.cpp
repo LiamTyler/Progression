@@ -13,23 +13,40 @@
 namespace PG
 {
 
+static std::shared_ptr<GfxImageCreateInfo> GetImgCreateInfoBase( const std::string& name, const std::shared_ptr<TexturesetCreateInfo>& texturesetInfo )
+{
+    auto imageCreateInfo = std::make_shared<GfxImageCreateInfo>();
+    imageCreateInfo->name = name;
+    imageCreateInfo->filenames[0] = name;
+    imageCreateInfo->clampHorizontal = texturesetInfo->clampHorizontal;
+    imageCreateInfo->clampVertical = texturesetInfo->clampVertical;
+    imageCreateInfo->flipVertically = texturesetInfo->flipVertically;
+    return imageCreateInfo;
+}
+
 void MaterialConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& matInfo )
 {
     std::string texturesetName = matInfo->texturesetName.empty() ? "default" : matInfo->texturesetName;
     auto texturesetInfo = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );
-    std::string albedoMetalnessName = texturesetInfo->GetAlbedoMetalnessImageName( matInfo->applyAlbedo, matInfo->applyMetalness );
 
-    auto imageCreateInfo = std::make_shared<GfxImageCreateInfo>();
-    imageCreateInfo->name = albedoMetalnessName;
-    imageCreateInfo->semantic = GfxImageSemantic::ALBEDO_METALNESS;
-    imageCreateInfo->filenames[0] = texturesetInfo->GetAlbedoMap( matInfo->applyAlbedo );
-    imageCreateInfo->filenames[1] = texturesetInfo->GetMetalnessMap( matInfo->applyMetalness );
-    imageCreateInfo->clampHorizontal = texturesetInfo->clampHorizontal;
-    imageCreateInfo->clampVertical = texturesetInfo->clampVertical;
-    imageCreateInfo->compositeScales[1] = texturesetInfo->metalnessScale;
-    imageCreateInfo->compositeSourceChannels[1] = texturesetInfo->metalnessSourceChannel;
+    {
+        std::string albedoMetalnessName = texturesetInfo->GetAlbedoMetalnessImageName( matInfo->applyAlbedo, matInfo->applyMetalness );
+        auto imageCreateInfo = GetImgCreateInfoBase( albedoMetalnessName, texturesetInfo );
+        imageCreateInfo->semantic = GfxImageSemantic::ALBEDO_METALNESS;
+        imageCreateInfo->filenames[0] = texturesetInfo->GetAlbedoMap( matInfo->applyAlbedo );
+        imageCreateInfo->filenames[1] = texturesetInfo->GetMetalnessMap( matInfo->applyMetalness );
+        imageCreateInfo->compositeScales[1] = texturesetInfo->metalnessScale;
+        imageCreateInfo->compositeSourceChannels[1] = texturesetInfo->metalnessSourceChannel;
+        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
+    }
 
-    AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
+    if ( matInfo->applyEmissive && !texturesetInfo->emissiveMap.empty() )
+    {
+        std::string emissiveMapName = texturesetInfo->GetEmissiveMap( matInfo->applyEmissive );
+        auto imageCreateInfo = GetImgCreateInfoBase( emissiveMapName, texturesetInfo );
+        imageCreateInfo->semantic = GfxImageSemantic::COLOR;
+        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
+    }
 }
 
 std::string MaterialConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
@@ -38,6 +55,7 @@ std::string MaterialConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     size_t hash = Hash( info->albedoTint );
     HashCombine( hash, info->metalnessTint );
     //HashCombine( hash, info->roughnessTint );
+    HashCombine( hash, info->emissiveTint );
     std::string texturesetName = info->texturesetName.empty() ? "default" : info->texturesetName;
     HashCombine( hash, texturesetName );
     auto texsetInfo = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );
@@ -45,6 +63,9 @@ std::string MaterialConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     HashCombine( hash, albedoMetalness );
     //std::string normalRoughness = texsetInfo->GetNormalRoughImageName( info->applyNormals, info->applyRoughness );
     //HashCombine( hash, normalRoughness );
+    std::string emissiveMap = texsetInfo->GetEmissiveMap( info->applyEmissive );
+    HashCombine( hash, emissiveMap );
+
     cacheName += "_" + std::to_string( hash );
     return cacheName;
 }
@@ -66,8 +87,14 @@ bool MaterialConverter::ConvertInternal( ConstDerivedInfoPtr& matInfo )
     material.name = matInfo->name;
     material.albedoTint = matInfo->albedoTint;
     material.metalnessTint = matInfo->metalnessTint;
-    material.albedoMetalnessImage = AssetManager::Get<GfxImage>( texturesetInfo->GetAlbedoMetalnessImageName( matInfo->applyAlbedo, matInfo->applyMetalness ) );
     //material.roughnessTint = matInfo->roughnessTint;
+    material.emissiveTint = matInfo->emissiveTint;
+    material.albedoMetalnessImage = AssetManager::Get<GfxImage>( texturesetInfo->GetAlbedoMetalnessImageName( matInfo->applyAlbedo, matInfo->applyMetalness ) );
+    material.emissiveImage = nullptr;
+    if ( matInfo->applyEmissive && !texturesetInfo->emissiveMap.empty() )
+    {
+        material.emissiveImage = AssetManager::Get<GfxImage>( texturesetInfo->GetEmissiveMap( matInfo->applyEmissive ) );
+    }
 
     std::string cacheName = GetCacheName( matInfo );
     if ( !AssetCache::CacheAsset( assetType, cacheName, &material ) )

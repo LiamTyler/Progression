@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 2.4.4)
+cmake_minimum_required(VERSION 3.10.0)
 set(CMAKE_ALLOW_LOOSE_LOOP_CONSTRUCTS ON)
 
 # CMake 3.0 changed the project command, setting policy CMP0048 reverts to the old behaviour.
@@ -76,7 +76,15 @@ if(MSVC)
     set(CMAKE_DEBUG_POSTFIX "d")
     add_definitions(-D_CRT_SECURE_NO_DEPRECATE)
     add_definitions(-D_CRT_NONSTDC_NO_DEPRECATE)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" ) # clang-cl
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-non-prototype")
+    endif()
+
     include_directories(${CMAKE_CURRENT_SOURCE_DIR})
+else()
+    if(CMAKE_CXX_COMPILER_ID MATCHES "Clang" ) # clang-cl
+        SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-deprecated-non-prototype")
+    endif()
 endif()
 
 if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
@@ -88,7 +96,7 @@ if(NOT CMAKE_CURRENT_SOURCE_DIR STREQUAL CMAKE_CURRENT_BINARY_DIR)
         message(STATUS "to 'zconf.h.included' because this file is included with zlib")
         message(STATUS "but CMake generates it automatically in the build directory.")
         file(RENAME ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h ${CMAKE_CURRENT_SOURCE_DIR}/zconf.h.included)
-  endif()
+    endif()
 endif()
 
 set(ZLIB_PC ${CMAKE_CURRENT_BINARY_DIR}/zlib.pc)
@@ -199,7 +207,8 @@ endif(MINGW)
 add_library(zlibstatic STATIC ${ZLIB_SRCS} ${ZLIB_ASMS} ${ZLIB_PUBLIC_HDRS} ${ZLIB_PRIVATE_HDRS})
 
 INSTALL( TARGETS zlibstatic
-         LIBRARY DESTINATION ${ASSIMP_LIB_INSTALL_DIR}
-         ARCHIVE DESTINATION ${ASSIMP_LIB_INSTALL_DIR}
-         RUNTIME DESTINATION ${ASSIMP_BIN_INSTALL_DIR}
-         COMPONENT ${LIBASSIMP_COMPONENT})
+     EXPORT "${TARGETS_EXPORT_NAME}"
+     LIBRARY DESTINATION ${ASSIMP_LIB_INSTALL_DIR}
+     ARCHIVE DESTINATION ${ASSIMP_LIB_INSTALL_DIR}
+     RUNTIME DESTINATION ${ASSIMP_BIN_INSTALL_DIR}
+     COMPONENT ${LIBASSIMP_COMPONENT})

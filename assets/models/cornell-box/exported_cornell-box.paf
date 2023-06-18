@@ -1,19 +1,19 @@
 [
 	{ "Material": {
 		"name": "CornellBox-Original_leftWall",
-		"albedo": [ 0.630000, 0.065000, 0.050000 ]
+		"albedoTint": [ 0.630000, 0.065000, 0.050000 ]
 	} },
 	{ "Material": {
 		"name": "CornellBox-Original_rightWall",
-		"albedo": [ 0.140000, 0.450000, 0.091000 ]
+		"albedoTint": [ 0.140000, 0.450000, 0.091000 ]
 	} },
 	{ "Material": {
 		"name": "CornellBox-Original_floor",
-		"albedo": [ 0.725000, 0.710000, 0.680000 ]
+		"albedoTint": [ 0.725000, 0.710000, 0.680000 ]
 	} },
 	{ "Material": {
 		"name": "CornellBox-Original_light",
-		"albedo": [ 0.780000, 0.780000, 0.780000 ]
+		"albedoTint": [ 0.780000, 0.780000, 0.780000 ]
 	} },
 	{ "Model": { "name": "CornellBox-Original", "filename": "models/cornell-box/CornellBox-Original.pmodel" } }
 ]

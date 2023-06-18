@@ -24,6 +24,8 @@ std::string GetAbsPath_ShaderFilename( const std::string& filename )
 }
 
 
+#if USING( GPU_STRUCTS )
+
 struct ShaderReflectData
 {
     ShaderResourceLayout layout;
@@ -399,5 +401,14 @@ void Shader::Free()
     vkDestroyShaderModule( PG::Gfx::rg.device.GetHandle(), handle, nullptr );
 #endif // #if USING( GPU_DATA )
 }
+
+#else // #if USING( GPU_STRUCTS )
+
+bool Shader::Load( const BaseAssetCreateInfo* baseInfo ) { return false; }
+bool Shader::FastfileLoad( Serializer* serializer ) { return false; }
+bool Shader::FastfileSave( Serializer* serializer ) const { return false; }
+void Shader::Free() {}
+
+#endif // #else // #if USING( GPU_STRUCTS )
 
 } // namespace PG

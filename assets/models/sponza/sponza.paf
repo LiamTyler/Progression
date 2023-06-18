@@ -5,7 +5,7 @@
 	} },
 	{ "Material": {
 		"name": "Material__25",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "lion"
 	} },
 	{ "Textureset": {
@@ -14,12 +14,12 @@
 	} },
 	{ "Material": {
 		"name": "Material__298",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "background"
 	} },
 	{ "Material": {
 		"name": "Material__47",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ]
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ]
 	} },
 	{ "Textureset": {
 		"name": "vase_plant",
@@ -27,7 +27,7 @@
 	} },
 	{ "Material": {
 		"name": "Material__57",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "vase_plant"
 	} },
 	{ "Textureset": {
@@ -36,7 +36,7 @@
 	} },
 	{ "Material": {
 		"name": "arch",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_arch"
 	} },
 	{ "Textureset": {
@@ -45,7 +45,7 @@
 	} },
 	{ "Material": {
 		"name": "bricks",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "spnza_bricks_a"
 	} },
 	{ "Textureset": {
@@ -54,7 +54,7 @@
 	} },
 	{ "Material": {
 		"name": "ceiling",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_ceiling_a"
 	} },
 	{ "Textureset": {
@@ -63,7 +63,7 @@
 	} },
 	{ "Material": {
 		"name": "chain",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "chain_texture"
 	} },
 	{ "Textureset": {
@@ -72,7 +72,7 @@
 	} },
 	{ "Material": {
 		"name": "column_a",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_column_a"
 	} },
 	{ "Textureset": {
@@ -81,7 +81,7 @@
 	} },
 	{ "Material": {
 		"name": "column_b",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_column_b"
 	} },
 	{ "Textureset": {
@@ -90,7 +90,7 @@
 	} },
 	{ "Material": {
 		"name": "column_c",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_column_c"
 	} },
 	{ "Textureset": {
@@ -99,7 +99,7 @@
 	} },
 	{ "Material": {
 		"name": "details",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_details"
 	} },
 	{ "Textureset": {
@@ -108,7 +108,7 @@
 	} },
 	{ "Material": {
 		"name": "fabric_a",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_fabric"
 	} },
 	{ "Textureset": {
@@ -117,7 +117,7 @@
 	} },
 	{ "Material": {
 		"name": "fabric_c",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_curtain"
 	} },
 	{ "Textureset": {
@@ -126,7 +126,7 @@
 			} },
 	{ "Material": {
 		"name": "fabric_d",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_fabric_blue"
 	} },
 	{ "Textureset": {
@@ -135,7 +135,7 @@
 	} },
 	{ "Material": {
 		"name": "fabric_e",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_fabric_green"
 	} },
 	{ "Textureset": {
@@ -144,7 +144,7 @@
 	} },
 	{ "Material": {
 		"name": "fabric_f",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_curtain_green"
 	} },
 	{ "Textureset": {
@@ -153,7 +153,7 @@
 	} },
 	{ "Material": {
 		"name": "fabric_g",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_curtain_blue"
 	} },
 	{ "Textureset": {
@@ -162,7 +162,7 @@
 	} },
 	{ "Material": {
 		"name": "flagpole",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_flagpole"
 	} },
 	{ "Textureset": {
@@ -171,7 +171,7 @@
 	} },
 	{ "Material": {
 		"name": "floor",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_floor_a"
 	} },
 	{ "Textureset": {
@@ -180,7 +180,7 @@
 	} },
 	{ "Material": {
 		"name": "leaf",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_thorn"
 	} },
 	{ "Textureset": {
@@ -189,7 +189,7 @@
 	} },
 	{ "Material": {
 		"name": "roof",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "sponza_roof"
 	} },
 	{ "Textureset": {
@@ -198,7 +198,7 @@
 	} },
 	{ "Material": {
 		"name": "vase",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "vase"
 	} },
 	{ "Textureset": {
@@ -207,7 +207,7 @@
 	} },
 	{ "Material": {
 		"name": "vase_hanging",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "vase_hanging"
 	} },
 	{ "Textureset": {
@@ -216,7 +216,7 @@
 	} },
 	{ "Material": {
 		"name": "vase_round",
-		"albedo": [ 0.470400, 0.470400, 0.470400 ],
+		"albedoTint": [ 0.470400, 0.470400, 0.470400 ],
 		"textureset": "vase_round"
 	} },
 	{ "Model": {

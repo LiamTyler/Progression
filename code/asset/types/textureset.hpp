@@ -10,11 +10,13 @@ struct TexturesetCreateInfo : public BaseAssetCreateInfo
 {
     bool clampHorizontal = false;
     bool clampVertical = false;
+    bool flipVertically = true;
 
     std::string albedoMap = "$white";
     std::string metalnessMap = "$default_metalness";
     Channel metalnessSourceChannel = Channel::R;
     float metalnessScale = 1.0f;
+    std::string emissiveMap = "$black";
 
     //std::string normalMap = "$default_normalmap";
     //std::string roughnessMap = "$default_roughness";
@@ -26,6 +28,7 @@ struct TexturesetCreateInfo : public BaseAssetCreateInfo
     std::string GetMetalnessMap( bool isApplied ) const;
     //std::string GetNormalMap( bool isApplied ) const;
     //std::string GetRoughnessMap( bool isApplied ) const;
+    std::string GetEmissiveMap( bool isApplied ) const;
 
     std::string GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const;
     //std::string GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const;

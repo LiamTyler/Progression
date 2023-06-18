@@ -14,11 +14,13 @@ struct MaterialCreateInfo : public BaseAssetCreateInfo
     glm::vec3 albedoTint;
     float metalnessTint;
     //float roughnessTint;
+    glm::vec3 emissiveTint;
     
     bool applyAlbedo = true;
     bool applyMetalness = true;
     //bool applyNormals = true;
     //bool applyRoughness = true;
+    bool applyEmissive = true;
 };
 
 struct GfxImage;
@@ -36,6 +38,9 @@ struct Material : public BaseAsset
 
     //float roughnessTint;
     //GfxImage* normalRoughnessImage = nullptr;
+
+    glm::vec3 emissiveTint = glm::vec3( 0.0f );
+    GfxImage* emissiveImage = nullptr;
 };
 
 } // namespace PG

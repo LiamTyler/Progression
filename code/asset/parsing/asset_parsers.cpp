@@ -94,23 +94,21 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
 }
 
 
-
-
 bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     using namespace rapidjson;
     static JSONFunctionMapper< MaterialCreateInfo& > mapping(
     {
         { "textureset", []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = String( v ); } },
-        { "albedo",     []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint     = ParseVec3( v ); } },
-        { "metalness",  []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint  = ParseNumber<float>( v ); } },
+        { "albedoTint",     []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint     = ParseVec3( v ); } },
+        { "metalnessTint",  []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint  = ParseNumber<float>( v ); } },
+        { "emissiveTint",  []( const Value& v, MaterialCreateInfo& i ) { i.emissiveTint  = ParseVec3( v ); } },
         //{ "roughness",  []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint  = ParseNumber<float>( v ); } },
     });
     mapping.ForEachMember( value, *info );
 
    return true;
 }
-
 
 
 bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
@@ -133,7 +131,6 @@ bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr i
 }
 
 
-
 bool ScriptParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ScriptCreateInfo&> mapping(
@@ -143,7 +140,6 @@ bool ScriptParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr 
     mapping.ForEachMember( value, *info );
     return true;
 }
-
 
 
 BEGIN_STR_TO_ENUM_MAP( ShaderStage )
@@ -169,7 +165,6 @@ bool ShaderParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr 
 }
 
 
-
 BEGIN_STR_TO_ENUM_MAP( Channel )
     STR_TO_ENUM_VALUE( Channel, R )
     STR_TO_ENUM_VALUE( Channel, G )
@@ -192,6 +187,7 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfo
         //{ "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = String( v ); } },
         //{ "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
         //{ "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = v.GetBool(); } },
+        { "emissiveMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.emissiveMap = String( v ); } },
     });
     mapping.ForEachMember( value, *info );
 

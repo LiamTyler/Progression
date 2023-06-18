@@ -2,9 +2,13 @@
 
 #include "asset/types/base_asset.hpp"
 #include "core/feature_defines.hpp"
-#include "renderer/graphics_api/descriptor.hpp"
-#include "renderer/vulkan.hpp"
 #include <vector>
+
+// ShaderCreateInfo is needed for asset parsing + tools that don't need any rendering + gpu code
+#if USING( GPU_STRUCTS )
+#include "renderer/graphics_api/descriptor.hpp"
+#endif // #if USING( GPU_STRUCTS )
+
 
 namespace PG
 {
@@ -36,7 +40,9 @@ struct ShaderResourceLayout
 	uint32_t inputMask        = 0;
 	uint32_t outputMask       = 0;
     uint32_t pushConstantSize = 0;
+#if USING( GPU_STRUCTS )
 	Gfx::DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS];
+#endif // #if USING( GPU_STRUCTS )
 };
 
 struct Shader : public BaseAsset
@@ -48,7 +54,9 @@ struct Shader : public BaseAsset
 
     ShaderStage shaderStage;
     std::string entryPoint;
+#if USING( GPU_DATA )
     VkShaderModule handle = VK_NULL_HANDLE;
+#endif // #if USING( GPU_DATA )
     ShaderResourceLayout resourceLayout;
 
 #if USING( CONVERTER )

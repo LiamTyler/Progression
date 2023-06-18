@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2020, assimp team
+Copyright (c) 2006-2022, assimp team
 
 
 All rights reserved.
@@ -48,6 +48,7 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <assimp/ByteSwapper.h>
 #include <assimp/fast_atof.h>
 #include <assimp/DefaultLogger.hpp>
+#include <utility>
 
 using namespace Assimp;
 
@@ -307,8 +308,8 @@ bool PLY::Element::ParseElement(IOStreamBuffer<char> &streamBuffer, std::vector<
         streamBuffer.getNextLine(buffer);
         pCur = (char *)&buffer[0];
 
-        // skip all comments
-        PLY::DOM::SkipComments(buffer);
+        // skip all comments and go to next line
+        if (PLY::DOM::SkipComments(buffer)) continue;
 
         PLY::Property prop;
         if (!PLY::Property::ParseProperty(buffer, &prop))
@@ -381,10 +382,10 @@ bool PLY::DOM::SkipSpacesAndLineEnd(std::vector<char> &buffer) {
     return ret;
 }
 
-bool PLY::DOM::SkipComments(std::vector<char> &buffer) {
+bool PLY::DOM::SkipComments(std::vector<char> buffer) {
     ai_assert(!buffer.empty());
 
-    std::vector<char> nbuffer = buffer;
+    std::vector<char> nbuffer = std::move(buffer);
     // skip spaces
     if (!SkipSpaces(nbuffer)) {
         return false;
@@ -500,6 +501,7 @@ bool PLY::DOM::ParseInstanceBinary(IOStreamBuffer<char> &streamBuffer, DOM *p_pc
     }
 
     streamBuffer.getNextBlock(buffer);
+
     unsigned int bufferSize = static_cast<unsigned int>(buffer.size());
     const char *pCur = (char *)&buffer[0];
     if (!p_pcOut->ParseElementInstanceListsBinary(streamBuffer, buffer, pCur, bufferSize, loader, p_bBE)) {

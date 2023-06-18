@@ -63,3 +63,9 @@
 #else // #if USING( GAME )
     #define GPU_DATA NOT_IN_USE
 #endif // #else // #if USING( GAME )
+
+#if USING( GAME ) || USING( CONVERTER )
+    #define GPU_STRUCTS IN_USE
+#else // #if USING( GAME ) || USING( CONVERTER )
+    #define GPU_STRUCTS NOT_IN_USE
+#endif // #else // #if USING( GAME ) || USING( CONVERTER )

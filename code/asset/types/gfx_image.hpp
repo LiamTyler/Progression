@@ -1,8 +1,11 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
+#include "core/image_types.hpp"
 #include "core/pixel_formats.hpp"
+#if USING( GPU_DATA )
 #include "renderer/graphics_api/texture.hpp"
+#endif // #if USING( GPU_DATA )
 #include "ImageLib/image.hpp"
 
 class Serializer;
@@ -40,9 +43,11 @@ struct GfxImage : public BaseAsset
     size_t totalSizeInBytes = 0;
     unsigned char* pixels = nullptr; // stored face0Mip0,face0Mip1,face0Mip2...face1Mip0,face1Mip1,etc
     PixelFormat pixelFormat;
-    Gfx::ImageType imageType;
+    ImageType imageType;
 
+#if USING( GPU_DATA )
     Gfx::Texture gpuTexture;
+#endif // #if USING( GPU_DATA )
 };
 
 enum CubemapFaceIndex
@@ -70,7 +75,7 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
     Channel compositeSourceChannels[4] = { Channel::COUNT, Channel::COUNT, Channel::COUNT, Channel::COUNT };
 };
 
-// if numMuips is unspecified (0), assume all mips are in use
+// if numMips is unspecified (0), assume all mips are in use
 size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips = 0 );
 size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
 PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB );

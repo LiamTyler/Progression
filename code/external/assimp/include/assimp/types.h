@@ -3,7 +3,7 @@
 Open Asset Import Library (assimp)
 ---------------------------------------------------------------------------
 
-Copyright (c) 2006-2020, assimp team
+Copyright (c) 2006-2022, assimp team
 
 All rights reserved.
 
@@ -72,6 +72,12 @@ typedef int32_t ai_int32;
 typedef uint32_t ai_uint32;
 
 #ifdef __cplusplus
+
+#ifdef ASSIMP_USE_HUNTER
+#   include <utf8.h>
+#else
+#   include "../contrib/utf8cpp/source/utf8.h"
+#endif
 
 #include <cstring>
 #include <new> // for std::nothrow_t
@@ -305,9 +311,9 @@ struct aiString {
 
     /** Copy a const char* to the aiString */
     void Set(const char *sz) {
-        const ai_int32 len = (ai_uint32)::strlen(sz);
+        ai_int32 len = (ai_uint32)::strlen(sz);
         if (len > (ai_int32)MAXLEN - 1) {
-            return;
+            len = (ai_int32) MAXLEN - 1;
         }
         length = len;
         memcpy(data, sz, len);
@@ -321,7 +327,10 @@ struct aiString {
         }
 
         length = rOther.length;
-        ;
+        if (length >(MAXLEN - 1)) {
+            length = (ai_int32) MAXLEN - 1;
+        }
+
         memcpy(data, rOther.data, length);
         data[length] = '\0';
         return *this;

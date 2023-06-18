@@ -2,8 +2,12 @@
 
 #include "asset/types/base_asset.hpp"
 #include "core/feature_defines.hpp"
+#if USING( GPU_DATA )
 #include "renderer/graphics_api/buffer.hpp"
+#if USING( PG_RTX )
 #include "renderer/graphics_api/acceleration_structure.hpp"
+#endif // #if USING( PG_RTX )
+#endif // #if USING( GPU_DATA )
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include <vector>
@@ -60,7 +64,9 @@ struct Model : public BaseAsset
     size_t gpuNormalOffset;
     size_t gpuTexCoordOffset;
     size_t gpuTangentOffset;
-    Gfx::AccelerationStructure blas;
+    #if USING( PG_RTX )
+        Gfx::AccelerationStructure blas;
+    #endif // #if USING( PG_RTX )
 #endif // #if USING( GPU_DATA )
 };
 

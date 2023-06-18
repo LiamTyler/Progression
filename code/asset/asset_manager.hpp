@@ -7,6 +7,7 @@
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
 #include "asset/asset_versions.hpp"
+#include "shared/assert.hpp"
 #include <unordered_map>
 
 struct lua_State;

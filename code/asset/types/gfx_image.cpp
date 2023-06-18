@@ -1,6 +1,7 @@
 #include "asset/types/gfx_image.hpp"
 #include "core/image_processing.hpp"
 #include "ImageLib/bc_compression.hpp"
+#include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include <algorithm>
@@ -379,7 +380,7 @@ GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, bool isS
     if ( mips.empty() ) return {};
 
     GfxImage gfxImage;
-    gfxImage.imageType = Gfx::ImageType::TYPE_2D;
+    gfxImage.imageType = ImageType::TYPE_2D;
     gfxImage.width = mips[0].width;
     gfxImage.height = mips[0].height;
     gfxImage.depth = 1;

@@ -13,5 +13,5 @@
 		"name": "macaw",
 		"albedoMap": "images/macaw.png"
 	} },
-	{ "Material": { "name": "macaw", "albedo": [ 1, 1, 1 ], "textureset": "macaw" } }
+	{ "Material": { "name": "macaw", "albedoTint": [ 1, 1, 1 ], "textureset": "macaw" } }
 ]

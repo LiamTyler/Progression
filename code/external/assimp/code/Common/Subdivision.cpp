@@ -2,7 +2,7 @@
 Open Asset Import Library (assimp)
 ----------------------------------------------------------------------
 
-Copyright (c) 2006-2020, assimp team
+Copyright (c) 2006-2022, assimp team
 
 
 All rights reserved.
@@ -50,7 +50,10 @@ OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <stdio.h>
 
+#include <unordered_map>
+
 using namespace Assimp;
+
 void mydummy() {}
 
 #ifdef _MSC_VER
@@ -78,7 +81,7 @@ public:
     };
 
     typedef std::vector<unsigned int> UIntVector;
-    typedef std::map<uint64_t, Edge> EdgeMap;
+    typedef std::unordered_map<uint64_t, Edge> EdgeMap;
 
     // ---------------------------------------------------------------------------
     // Hashing function to derive an index into an #EdgeMap from two given
@@ -336,7 +339,7 @@ void CatmullClarkSubdivider::InternSubdivide(
                 // Report the number of bad edges. bad edges are referenced by less than two
                 // faces in the mesh. They occur at outer model boundaries in non-closed
                 // shapes.
-                ASSIMP_LOG_VERBOSE_DEBUG_F("Catmull-Clark Subdivider: got ", bad_cnt, " bad edges touching only one face (totally ",
+                ASSIMP_LOG_VERBOSE_DEBUG("Catmull-Clark Subdivider: got ", bad_cnt, " bad edges touching only one face (totally ",
                         static_cast<unsigned int>(edges.size()), " edges). ");
             }
         }

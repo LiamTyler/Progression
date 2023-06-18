@@ -381,10 +381,6 @@ void Model::FreeCPU()
 void Model::FreeGPU()
 {
 #if USING( GPU_DATA )
-    if ( blas )
-    {
-        blas.Free();
-    }
     if ( vertexBuffer )
     {
         vertexBuffer.Free();
@@ -393,6 +389,12 @@ void Model::FreeGPU()
     {
         indexBuffer.Free();
     }
+#if USING( PG_RTX )
+    if ( blas )
+    {
+        blas.Free();
+    }
+#endif // #if USING( PG_RTX )
 #endif // #if USING( GPU_DATA )
 }
 

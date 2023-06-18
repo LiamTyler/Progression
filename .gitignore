@@ -15,6 +15,7 @@ tests/
 Sponza-master/
 code/external/bc7enc_rdo/bc7e_ispc*
 imgui.ini
+assets/models/planter_box_01/
 
 __pycache__
 

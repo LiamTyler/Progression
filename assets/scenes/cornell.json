@@ -1,13 +1,13 @@
 [
     { "OfflineRenderSettings": {
         "imageResolution": [ 800, 800 ],
-        "maxDepth": 5,
+        "maxDepth": 10,
         "outputImageFilename": "offline_renders/cornell.png",
-        "numSamplesPerPixel": [ 16 ],
+        "numSamplesPerPixel": [ 128 ],
         "antialiasMethod": "JITTER",
         "tonemapMethod": "UNCHARTED2"
     }},
-    { "Camera": { "position": [ 0, -3, 1 ], "rotation": [ 0, 0, 0 ] } },
+    { "Camera": { "position": [ 0, -3, 1 ], "rotation": [ 0, 0, 0 ], "aspectRatio": 1 } },
     { "Script": "cameraController" },
     { "Entity": {
         "NameComponent": "cornellbox",

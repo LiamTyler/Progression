@@ -57,10 +57,24 @@ glm::vec3 Material::GetAlbedo( const glm::vec2& texCoords ) const
 }
 
 
+glm::vec3 Material::GetEmissive( const glm::vec2& texCoords ) const
+{
+    glm::vec3 color = emissiveTint;
+    if ( emissiveTex != TEXTURE_HANDLE_INVALID )
+    {
+        glm::vec4 sample = GetTex( emissiveTex )->Sample( texCoords );
+        color *= glm::vec3( sample );
+    }
+
+    return color;
+}
+
+
 BRDF Material::ComputeBRDF( IntersectionData* surfaceInfo ) const
 {
     BRDF brdf;
     brdf.Kd = GetAlbedo( surfaceInfo->texCoords );
+    brdf.Ke = GetEmissive( surfaceInfo->texCoords );
     brdf.T  = surfaceInfo->tangent;
     brdf.B  = surfaceInfo->bitangent;
     brdf.N  = surfaceInfo->normal;
@@ -87,6 +101,12 @@ MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
     if ( material->albedoMetalnessImage )
     {
         mat.albedoTex = LoadTextureFromGfxImage( material->albedoMetalnessImage );
+    }
+    mat.emissiveTint = material->emissiveTint;
+    mat.emissiveTex = TEXTURE_HANDLE_INVALID;
+    if ( material->emissiveImage )
+    {
+        mat.emissiveTex = LoadTextureFromGfxImage( material->emissiveImage );
     }
 
     g_materials.emplace_back( mat );

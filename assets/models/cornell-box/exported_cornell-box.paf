@@ -13,7 +13,8 @@
 	} },
 	{ "Material": {
 		"name": "CornellBox-Original_light",
-		"albedoTint": [ 0.780000, 0.780000, 0.780000 ]
+		"albedoTint": [ 0.780000, 0.780000, 0.780000 ],
+		"emissiveTint": [ 17.000000, 12.000000, 4.000000 ]
 	} },
 	{ "Model": { "name": "CornellBox-Original", "filename": "models/cornell-box/CornellBox-Original.pmodel" } }
 ]

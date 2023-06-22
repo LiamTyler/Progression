@@ -435,7 +435,6 @@ int main( int argc, char** argv )
     //                     fImg.SetFromFloat4( r, c, glm::vec4( p[0], p[1], p[2], s[0] ) );
     //                 }
     //             }
-
     //             RawImage2D img = RawImage2DFromFloatImage( fImg, ImageFormat::R8_G8_B8_A8_UNORM );
     //             img.Save( PG_ROOT_DIR "test.png" );
     //             //savePng(msdf, "output.png");

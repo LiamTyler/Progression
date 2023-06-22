@@ -47,7 +47,7 @@ struct Shape;
 // Otherwise during rendering, the materials emissive value is just used.
 struct AreaLight : public Light
 {
-    std::shared_ptr< Shape > shape;
+    Shape* shape;
 
     glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
 };

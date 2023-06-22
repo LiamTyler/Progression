@@ -22,7 +22,7 @@ std::string TexturesetCreateInfo::GetMetalnessMap( bool isApplied ) const
 
 std::string TexturesetCreateInfo::GetEmissiveMap( bool isApplied ) const
 {
-    return isApplied ? emissiveMap : "$black";
+    return isApplied ? emissiveMap : "";
 }
 
 //std::string TexturesetCreateInfo::GetNormalMap( bool isApplied ) const

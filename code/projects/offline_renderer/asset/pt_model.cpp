@@ -112,11 +112,12 @@ namespace PT
         for ( MeshInstanceHandle meshHandle = 1; meshHandle < static_cast<MeshInstanceHandle>( g_meshInstances.size() ); ++meshHandle )
         {
             const MeshInstance& mesh = g_meshInstances[meshHandle];
+            const Material* material = GetMaterial( mesh.material );
             newShapes += mesh.indices.size() / 3;
-            //if ( material->Ke != glm::vec3( 0 ) )
-            //{
-            //    newLights += data.indices.size() / 3;
-            //}
+            if ( material && material->emissiveTint != glm::vec3( 0 ) )
+            {
+                newLights += mesh.indices.size() / 3;
+            }
         }
         shapes.reserve( shapes.size() + newShapes );
         lights.reserve( lights.size() + newLights );
@@ -124,22 +125,23 @@ namespace PT
         for ( MeshInstanceHandle meshHandle = 1; meshHandle < static_cast<MeshInstanceHandle>( g_meshInstances.size() ); ++meshHandle )
         {
             const MeshInstance& mesh = g_meshInstances[meshHandle];
+            const Material* material = GetMaterial( mesh.material );
+            const bool isEmissive = material && material->emissiveTint != glm::vec3( 0 );
             for ( uint32_t face = 0; face < static_cast<uint32_t>( mesh.indices.size() / 3 ); ++face )
             {
-                auto tri            = new Triangle;
-                tri->meshHandle     = meshHandle;
-                tri->i0             = mesh.indices[3*face + 0];
-                tri->i1             = mesh.indices[3*face + 1];
-                tri->i2             = mesh.indices[3*face + 2];
-                //tri->firstVertIndex = 3 * face;
+                auto tri        = new Triangle;
+                tri->meshHandle = meshHandle;
+                tri->i0         = mesh.indices[3*face + 0];
+                tri->i1         = mesh.indices[3*face + 1];
+                tri->i2         = mesh.indices[3*face + 2];
                 shapes.push_back( tri );
-                //if ( data.material->Ke != glm::vec3( 0 ) )
-                //{
-                //    auto areaLight   = new AreaLight;
-                //    areaLight->Lemit = data.material->Ke;
-                //    areaLight->shape = tri;
-                //    lights.push_back( areaLight );
-                //}
+                if ( isEmissive )
+                {
+                    auto areaLight   = new AreaLight;
+                    areaLight->Lemit = material->emissiveTint;
+                    areaLight->shape = tri;
+                    lights.push_back( areaLight );
+                }
             }
         }
     }

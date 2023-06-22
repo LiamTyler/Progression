@@ -12,11 +12,12 @@ struct TexturesetCreateInfo : public BaseAssetCreateInfo
     bool clampVertical = false;
     bool flipVertically = true;
 
+    // only set defaults below when there MUST be a texture of that type (only assumed for diffuse + metalness so far)
     std::string albedoMap = "$white";
     std::string metalnessMap = "$default_metalness";
     Channel metalnessSourceChannel = Channel::R;
     float metalnessScale = 1.0f;
-    std::string emissiveMap = "$black";
+    std::string emissiveMap;
 
     //std::string normalMap = "$default_normalmap";
     //std::string roughnessMap = "$default_roughness";

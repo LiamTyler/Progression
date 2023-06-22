@@ -20,6 +20,7 @@ struct BRDF
     float Pdf( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_wi ) const;
 
     glm::vec3 Kd;
+    glm::vec3 Ke;
     glm::vec3 T, B, N;
 };
 
@@ -29,8 +30,11 @@ struct Material
 {
     glm::vec3 albedoTint = glm::vec3( 0.0f );
     TextureHandle albedoTex = TEXTURE_HANDLE_INVALID;
+    glm::vec3 emissiveTint = glm::vec3( 0.0f );
+    TextureHandle emissiveTex = TEXTURE_HANDLE_INVALID;
 
     glm::vec3 GetAlbedo( const glm::vec2& texCoords ) const;
+    glm::vec3 GetEmissive( const glm::vec2& texCoords ) const;
     BRDF ComputeBRDF( IntersectionData* surfaceInfo ) const;
 };
 

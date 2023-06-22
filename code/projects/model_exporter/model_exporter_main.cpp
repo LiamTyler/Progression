@@ -81,7 +81,7 @@ std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
 
 static std::string Vec3ToJSON( const glm::vec3& v )
 {
-    return "[" + std::to_string( v.r ) + ", " + std::to_string( v.g ) + ", " + std::to_string( v.b ) + " ]";
+    return "[ " + std::to_string( v.r ) + ", " + std::to_string( v.g ) + ", " + std::to_string( v.b ) + " ]";
 }
 
 template <typename T, typename = typename std::enable_if<std::is_arithmetic_v<T>, T>::type>

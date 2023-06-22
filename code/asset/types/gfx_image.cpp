@@ -21,6 +21,7 @@ bool IsSemanticComposite( GfxImageSemantic semantic )
     return semantic == GfxImageSemantic::ALBEDO_METALNESS;
 }
 
+
 void GfxImage::Free()
 {
     if ( pixels )

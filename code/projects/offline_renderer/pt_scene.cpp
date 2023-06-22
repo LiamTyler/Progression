@@ -296,19 +296,16 @@ bool Scene::Occluded( const Ray& ray, float tMax )
 
 glm::vec3 Scene::LEnvironment( const Ray& ray )
 {
-    glm::vec3 radiance( 1, 1, 1 );
     if ( skybox != TEXTURE_HANDLE_INVALID )
     {
-        radiance = glm::vec3( GetTex( skybox )->SampleDir( ray.direction ) );
+        glm::vec3 radiance = glm::vec3( GetTex( skybox )->SampleDir( ray.direction ) );
+        radiance *= skyTint;
+        radiance *= std::exp2f( skyEVAdjust );
+        return radiance;
     }
-    else
-    {
-        radiance = glm::vec3( 1, 1, 1 );
-    }
-    radiance *= skyTint;
-    radiance *= std::exp2f( skyEVAdjust );
 
-    return radiance;
+    return glm::vec3( 0 );
+
 }
 
 } // namespace PT

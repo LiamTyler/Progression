@@ -195,15 +195,15 @@ glm::vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
         }
 
         hitData.position += EPSILON * hitData.normal;
-        ComputeDifferentials( ray, &hitData );
-
-        // emitted light of current surface
-        //if ( bounce == 0 && glm::dot( hitData.wo, hitData.normal ) > 0 )
-        //{
-        //    L += pathThroughput * hitData.material->Ke;
-        //}
+        //ComputeDifferentials( ray, &hitData );
 
         BRDF brdf = hitData.material->ComputeBRDF( &hitData ); 
+
+        // emitted light of current surface
+        if ( bounce == 0 && glm::dot( hitData.wo, hitData.normal ) > 0 )
+        {
+            L += pathThroughput * brdf.Ke;
+        }
 
         // estimate direct
         glm::vec3 Ld = LDirect( hitData, scene, rng, brdf );

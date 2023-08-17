@@ -45,7 +45,7 @@ int TestImageCompression()
     RawImage2D exrImg;
     //exrImg.Load( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k.exr" );
     {
-        FloatImage floatImg;
+        FloatImage2D floatImg;
         floatImg.Load( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k.exr" );
         floatImg = floatImg.Resize( floatImg.width / 2, floatImg.height / 2 );
         exrImg = RawImage2DFromFloatImage( floatImg );
@@ -62,8 +62,8 @@ int TestImageCompression()
     RawImage2D uncompressed = compressed.Convert( exrImg.format );
     uncompressed.Save( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k_bc6.exr" );
 
-    FloatImage original = FloatImageFromRawImage2D( exrImg );
-    FloatImage uncompressedF = FloatImageFromRawImage2D( uncompressed );
+    FloatImage2D original = FloatImageFromRawImage2D( exrImg );
+    FloatImage2D uncompressedF = FloatImageFromRawImage2D( uncompressed );
 
     double mse = FloatImageMSE( original, uncompressedF );
     LOG( "MSE: %f, PSNR: %f", mse, MSEToPSNR( mse ) );

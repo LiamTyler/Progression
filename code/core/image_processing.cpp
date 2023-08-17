@@ -7,7 +7,7 @@
 namespace PG
 {
 
-FloatImage CompositeImage( const CompositeImageInput& input )
+FloatImage2D CompositeImage( const CompositeImageInput& input )
 {
     PG_ASSERT( input.compositeType == CompositeType::REMAP );
 
@@ -20,7 +20,7 @@ FloatImage CompositeImage( const CompositeImageInput& input )
         throw std::runtime_error( "CompositeImage: too many source images. Only specify up to 4" );
 
     uint32_t numOutputChannels = 0;
-    FloatImage sourceImages[4];
+    FloatImage2D sourceImages[4];
     ColorSpace sourceColorSpaces[4];
     uint32_t width = 0;
     uint32_t height = 0;
@@ -46,10 +46,10 @@ FloatImage CompositeImage( const CompositeImageInput& input )
     }
 
     ColorSpace outputColorSpace = input.outputColorSpace;
-    FloatImage outputImg( width, height, numOutputChannels );
+    FloatImage2D outputImg( width, height, numOutputChannels );
     for ( size_t i = 0; i < input.sourceImages.size(); ++i )
     {
-        FloatImage srcImage = sourceImages[i].Resize( width, height );
+        FloatImage2D srcImage = sourceImages[i].Resize( width, height );
         bool convertToLinear = sourceColorSpaces[i] == ColorSpace::SRGB && outputColorSpace == ColorSpace::LINEAR;
         bool convertToSRGB = sourceColorSpaces[i] == ColorSpace::LINEAR && outputColorSpace == ColorSpace::SRGB;
         for ( uint32_t pixelIndex = 0; pixelIndex < width * height; ++pixelIndex )

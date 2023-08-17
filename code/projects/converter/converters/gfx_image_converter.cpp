@@ -7,6 +7,19 @@
 namespace PG
 {
 
+void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageInfo )
+{
+    auto imageCreateInfo = std::make_shared<GfxImageCreateInfo>();
+    imageCreateInfo->name = imageInfo->name + "_irradiance";
+    for ( int i = 0; i < ARRAY_COUNT( imageInfo->filenames ); ++i )
+        imageCreateInfo->filenames[i] = imageInfo->filenames[i];
+    imageCreateInfo->clampHorizontal = false;
+    imageCreateInfo->clampVertical = false;
+    imageCreateInfo->flipVertically = imageInfo->flipVertically;
+    imageCreateInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
+    AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
+}
+
 std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     uint32_t numImages = 0;

@@ -1,6 +1,6 @@
-#include "utils/lz4_compressor.hpp"
-#include "core/assert.hpp"
-#include "utils/logger.hpp"
+#include "shared/lz4_compressor.hpp"
+#include "shared/assert.hpp"
+#include "shared/logger.hpp"
 #include "lz4/lz4.h"
 #include "memory_map/MemoryMapped.h"
 #include <fstream>

@@ -46,7 +46,7 @@ struct CompositeImageInput
     std::vector<SourceImage> sourceImages;
 };
 
-FloatImage CompositeImage( const CompositeImageInput& input );
+FloatImage2D CompositeImage( const CompositeImageInput& input );
 
 ImageFormat PixelFormatToImageFormat( PixelFormat pixelFormat );
 

@@ -445,6 +445,17 @@ int main( int argc, char** argv )
     // }
     // return 0;
 
+    //FloatImageCubemap cubemap;
+    //if ( !cubemap.LoadFromEquirectangular( PG_ASSET_DIR "images/skies/kloppenheim_06_8k.exr" ) )
+    //{
+    //    LOG_ERR( "Failed to load cubemap" );
+    //    return false;
+    //}
+    //
+    //for ( int i = 0; i < 6; ++i ) HDRImageToLDR( cubemap.faces[i] );
+    //cubemap.SaveUnfoldedFaces( PG_ASSET_DIR "images/skies/kloppenheim_06_8k_unfolded2.png" );
+    //return 0;
+
     if ( !s_singleAssetName.empty() )
     {
         if ( !ConvertSingleAsset() )

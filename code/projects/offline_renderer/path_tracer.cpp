@@ -295,7 +295,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
 PathTracer::PathTracer( Scene* inScene )
 {
     scene = inScene;
-    renderedImage = FloatImage( scene->settings.imageResolution.x, scene->settings.imageResolution.y, 4 );
+    renderedImage = FloatImage2D( scene->settings.imageResolution.x, scene->settings.imageResolution.y, 4 );
 }
 
 bool PathTracer::SaveImage( const std::string& filename ) const
@@ -305,7 +305,7 @@ bool PathTracer::SaveImage( const std::string& filename ) const
         return renderedImage.Save( filename );
     }
     
-    FloatImage tonemappedImg = renderedImage.Clone();
+    FloatImage2D tonemappedImg = renderedImage.Clone();
     TonemapFunc tonemapFunc = GetTonemapFunction( scene->settings.tonemapMethod );
     for ( uint32_t pixelIndex = 0; pixelIndex < renderedImage.width * renderedImage.height; ++pixelIndex )
     {

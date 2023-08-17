@@ -59,6 +59,7 @@ BEGIN_STR_TO_ENUM_MAP( GfxImageSemantic )
     STR_TO_ENUM_VALUE( GfxImageSemantic, GRAY )
     STR_TO_ENUM_VALUE( GfxImageSemantic, ALBEDO_METALNESS )
     STR_TO_ENUM_VALUE( GfxImageSemantic, ENVIRONMENT_MAP )
+    STR_TO_ENUM_VALUE( GfxImageSemantic, ENVIRONMENT_MAP_IRRADIANCE )
     STR_TO_ENUM_VALUE( GfxImageSemantic, UI )
 END_STR_TO_ENUM_MAP( GfxImageSemantic, NUM_IMAGE_SEMANTICS )
 

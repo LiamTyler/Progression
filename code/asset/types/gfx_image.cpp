@@ -17,7 +17,7 @@ namespace PG
 
 bool IsSemanticComposite( GfxImageSemantic semantic )
 {
-    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 5 );
+    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 6 );
     return semantic == GfxImageSemantic::ALBEDO_METALNESS;
 }
 
@@ -115,7 +115,7 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     compositeInfo.sourceImages[1].colorSpace = ColorSpace::LINEAR;
     compositeInfo.sourceImages[1].remaps.push_back( { createInfo->compositeSourceChannels[1], Channel::A } );
 
-    FloatImage composite = CompositeImage( compositeInfo );
+    FloatImage2D composite = CompositeImage( compositeInfo );
     if ( !composite.data )
     {
         return false;
@@ -200,6 +200,53 @@ static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* c
 }
 
 
+static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    int numFaces = 0;
+    for ( int i = 0; i < 6; ++i )
+    {
+        if ( !createInfo->filenames[i].empty() )
+        {
+            ++numFaces;
+        }
+    }
+    
+    FloatImageCubemap cubemap;
+    if ( numFaces == 1 )
+    {
+        PG_ASSERT( !createInfo->filenames[0].empty(), "Filename must be in first slot, for equirectangular inputs" );
+        if ( !cubemap.LoadFromEquirectangular( createInfo->filenames[0] ) )
+            return false;
+    }
+    else if ( numFaces == 6 )
+    {
+        if ( !cubemap.LoadFromFaces( createInfo->filenames ) )
+            return false;
+    }
+    else
+    {
+        LOG_ERR( "Unrecognized number of faces for environment map: %d. Only 1 (equirectangular) or 6 (cubemap) supported", numFaces );
+        return false;
+    }
+
+    PG_ASSERT( cubemap.numChannels >= 3 );
+    FloatImageCubemap irradianceMap( 32, 32, 3 );
+    for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+    {
+        for ( int dstRow = 0; dstRow < (int)irradianceMap.height; ++dstRow )
+        {
+            for ( int dstCol = 0; dstCol < (int)irradianceMap.width; ++dstCol )
+            {
+                glm::vec3 irradiance( 0 );
+                glm::vec3 normal = ;
+            }
+        }
+    }
+
+    return true;
+}
+
+
 bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
@@ -213,6 +260,9 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
         break;
     case GfxImageSemantic::ENVIRONMENT_MAP:
         success = Load_EnvironmentMap( this, createInfo );
+        break;
+    case GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE:
+        success = Load_EnvironmentMapIrradiance( this, createInfo );
         break;
     case GfxImageSemantic::UI:
         success = Load_UI( this, createInfo );

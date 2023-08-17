@@ -315,7 +315,7 @@ RawImage2D RawImage2D::Clone() const
 
 
 // TODO: load directly
-bool FloatImage::Load( const std::string& filename )
+bool FloatImage2D::Load( const std::string& filename )
 {
     RawImage2D rawImg;
     if ( !rawImg.Load( filename ) ) return false;
@@ -325,7 +325,7 @@ bool FloatImage::Load( const std::string& filename )
 }
 
 
-bool FloatImage::Save( const std::string& filename, ImageSaveFlags saveFlags ) const
+bool FloatImage2D::Save( const std::string& filename, ImageSaveFlags saveFlags ) const
 {
     ImageFormat format = static_cast<ImageFormat>( Underlying( ImageFormat::R32_FLOAT ) + numChannels - 1 );
     RawImage2D img = RawImage2DFromFloatImage( *this, format );
@@ -333,14 +333,14 @@ bool FloatImage::Save( const std::string& filename, ImageSaveFlags saveFlags ) c
 }
 
 
-FloatImage FloatImage::Resize( uint32_t newWidth, uint32_t newHeight ) const
+FloatImage2D FloatImage2D::Resize( uint32_t newWidth, uint32_t newHeight ) const
 {
     if ( width == newWidth && height == newHeight )
     {
         return *this;
     }
 
-    FloatImage outputImage( newWidth, newHeight, numChannels );
+    FloatImage2D outputImage( newWidth, newHeight, numChannels );
     if ( width == 1 && height == 1 )
     {
         float p[4];
@@ -362,15 +362,47 @@ FloatImage FloatImage::Resize( uint32_t newWidth, uint32_t newHeight ) const
 }
 
 
-FloatImage FloatImage::Clone() const
+FloatImage2D FloatImage2D::Clone() const
 {
-    FloatImage ret( width, height, numChannels );
+    FloatImage2D ret( width, height, numChannels );
     memcpy( ret.data.get(), data.get(), width * height * numChannels * sizeof( float ) );
     return ret;
 }
 
 
-glm::vec4 FloatImage::GetFloat4( uint32_t pixelIndex ) const
+glm::vec4 FloatImage2D::Sample( glm::vec2 uv, bool clampHorizontal, bool clampVertical ) const
+{
+    uv.x -= std::floor( uv.x );
+    uv.y -= std::floor( uv.y );
+
+    // subtract 0.5 to account for pixel centers
+    uv = uv * glm::vec2( width, height ) - glm::vec2( 0.5f );
+    glm::vec2 start = glm::floor( uv );
+    int col = static_cast<int>( start.x );
+    int row = static_cast<int>( start.y );
+        
+    glm::vec2 d = uv - start;
+    const float w00 = (1.0f - d.x) * (1.0f - d.y);
+	const float w01 = d.x * (1.0f - d.y);
+	const float w10 = (1.0f - d.x) * d.y;
+	const float w11 = d.x * d.y;
+        
+    glm::vec4 p00 = GetFloat4( row, col, clampHorizontal, clampVertical );
+    glm::vec4 p01 = GetFloat4( row, col + 1, clampHorizontal, clampVertical );
+    glm::vec4 p10 = GetFloat4( row + 1, col, clampHorizontal, clampVertical );
+    glm::vec4 p11 = GetFloat4( row + 1, col + 1, clampHorizontal, clampVertical);
+        
+    glm::vec4 ret( 0, 0, 0, 1 );
+    for ( uint32_t i = 0; i < numChannels; ++i )
+    {
+        ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
+    }
+
+    return ret;
+}
+
+
+glm::vec4 FloatImage2D::GetFloat4( uint32_t pixelIndex ) const
 {
     glm::vec4 pixel( 0, 0, 0, 1 );
     pixelIndex *= numChannels;
@@ -383,13 +415,38 @@ glm::vec4 FloatImage::GetFloat4( uint32_t pixelIndex ) const
 }
 
 
-glm::vec4 FloatImage::GetFloat4( uint32_t row, uint32_t col ) const
+glm::vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col ) const
 {
     return GetFloat4( row * width + col );
 }
 
 
-void FloatImage::SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel )
+glm::vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col, bool clampHorizontal, bool clampVertical ) const
+{
+    if ( clampHorizontal )
+    {
+        col = glm::clamp( col, 0u, width - 1 );
+    }
+    else
+    {
+        col = (col % width);
+        if ( col < 0 ) col += width;
+    }
+    if ( clampVertical )
+    {
+        row = glm::clamp( row, 0u, height - 1 );
+    }
+    else
+    {
+        row = (row % height);
+        if ( row < 0 ) row += height;
+    }
+
+    return GetFloat4( row, col );
+}
+
+
+void FloatImage2D::SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel )
 {
     pixelIndex *= numChannels;
     for ( uint32_t chan = 0; chan < numChannels; ++chan )
@@ -399,15 +456,177 @@ void FloatImage::SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel )
 }
 
 
-void FloatImage::SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& pixel )
+void FloatImage2D::SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& pixel )
 {
     SetFromFloat4( row * width + col, pixel );
 }
 
 
-FloatImage FloatImageFromRawImage2D( const RawImage2D& rawImage )
+void HDRImageToLDR( FloatImage2D& image )
 {
-    FloatImage floatImage;
+    image.ForEachPixel( [&]( uint32_t pixelIdx )
+    {
+        glm::vec4 p = image.GetFloat4( pixelIdx );
+        image.SetFromFloat4( pixelIdx, p / (p + glm::vec4( 1.0f )) );
+    });
+}
+
+
+// +x -> right, +y -> forward, +z -> up
+// uv (0, 0) is upper left corner of image
+static glm::vec3 CubemapFaceUVToCartesianDir( int cubeFace, glm::vec2 uv )
+{
+    uv = 2.0f * uv - glm::vec2( 1.0f );
+    glm::vec3 dir;
+    switch ( cubeFace )
+    {
+    case FACE_BACK:
+        dir = glm::vec3( -uv.x, -1, -uv.y );
+        break;
+    case FACE_LEFT:
+        dir = glm::vec3( -1, uv.x, -uv.y );
+        break;
+    case FACE_FRONT:
+        dir = glm::vec3( uv.x, 1, -uv.y );
+        break;
+    case FACE_RIGHT:
+        dir = glm::vec3( 1, -uv.x, -uv.y );
+        break;
+    case FACE_TOP:
+        dir = glm::vec3( uv.x, uv.y, 1 );
+        break;
+    case FACE_BOTTOM:
+        dir = glm::vec3( uv.x, -uv.y, -1 );
+        break;
+    }
+
+    return glm::normalize( dir );
+}
+
+
+// assumes direction is normalized, and right handed +Z up coordinates, upper left face coord = uv (0,0)
+static glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex )
+{
+    glm::vec3 v = direction;
+    glm::vec3 vAbs = abs( v );
+	float ma;
+	glm::vec2 uv;
+	if ( vAbs.y >= vAbs.x && vAbs.y >= vAbs.z )
+	{
+		faceIndex = v.y < 0.0f ? FACE_BACK : FACE_FRONT;
+		ma = 0.5f / vAbs.y;
+		uv = glm::vec2( v.y < 0.0f ? -v.x : v.x, -v.z );
+	}
+	else if ( vAbs.z >= vAbs.x )
+	{
+		faceIndex = v.z < 0.0f ? FACE_BOTTOM : FACE_TOP;
+		ma = 0.5f / vAbs.z;
+		uv = glm::vec2( v.x, v.z < 0.0f ? -v.y : v.y );
+	}
+	else
+	{
+		faceIndex = v.x < 0.0 ? FACE_LEFT : FACE_RIGHT;
+		ma = 0.5f / vAbs.x;
+		uv = glm::vec2( v.x < 0.0f ? v.y : -v.y, -v.z );
+	}
+	return uv * ma + glm::vec2( 0.5f );
+}
+
+
+// http://paulbourke.net/dome/dualfish2sphere/
+static glm::vec2 CartesianDirToEquirectangularUV( const glm::vec3& dir )
+{
+    float phi = atan2( dir.x, dir.y ); // -pi to pi
+    float theta = asin( dir.z ); // -pi/2 to pi/2
+
+    float x = phi / PI; // -1 to 1
+    float y = 2 * theta / PI; // -1 to 1
+
+    float u = 0.5f * x + 0.5f; // 0 to 1
+    float v = 0.5f * -y + 0.5f; // 0 to 1, where 0 = top and 1 = bottom
+    return { u, v };
+}
+
+
+bool FloatImageCubemap::LoadFromEquirectangular( const std::string& filename )
+{
+    FloatImage2D equiImg;
+    if ( !equiImg.Load( filename ) )
+        return false;
+
+    width = equiImg.width / 4;
+    height = width;
+    numChannels = equiImg.numChannels;
+    for ( uint32_t i = 0; i < 6; ++i )
+    {
+        faces[i] = FloatImage2D( width, height, numChannels );
+        #pragma omp parallel for
+        for ( int r = 0; r < (int)height; ++r )
+        {
+            for ( int c = 0; c < (int)3width; ++ c )
+            {
+                glm::vec2 localUV = { (c + 0.5f) / (float)width, (r + 0.5f) / (float)height };
+                glm::vec3 dir = CubemapFaceUVToCartesianDir( i, localUV );
+                glm::vec2 equiUV = CartesianDirToEquirectangularUV( dir );
+                faces[i].SetFromFloat4( r, c, equiImg.Sample( equiUV, true, true ) );
+            }
+        }
+    }
+
+    return true;
+}
+
+
+bool FloatImageCubemap::LoadFromFaces( const std::string filenames[6] )
+{
+    for ( int i = 0; i < 6; ++i )
+    {
+        if ( !faces[i].Load( filenames[i] ) )
+            return false;
+    }
+
+    return true;
+}
+
+
+static void CopyImageIntoAnother( FloatImage2D& dstImg, uint32_t dstRow, uint32_t dstCol, const FloatImage2D& srcImg )
+{
+    PG_ASSERT( dstCol + srcImg.width <= dstImg.width );
+    PG_ASSERT( dstRow + srcImg.height <= dstImg.height );
+    PG_ASSERT( srcImg.numChannels == dstImg.numChannels );
+    for ( uint32_t srcRow = 0; srcRow < srcImg.height; ++srcRow )
+    {
+        for ( uint32_t srcCol = 0; srcCol < srcImg.width; ++srcCol )
+        {
+            dstImg.SetFromFloat4( dstRow + srcRow, dstCol + srcCol, srcImg.GetFloat4( srcRow, srcCol ) );
+        }
+    }
+}
+
+
+bool FloatImageCubemap::SaveUnfoldedFaces( const std::string& filename ) const
+{
+    if ( !width || !height || !faces[0].data )
+    {
+        LOG_ERR( "FloatImageCubemap::SaveUnfoldedFaces no image data to save" );
+        return false;
+    }
+
+    FloatImage2D compositeImg( 4 * width, 3 * height, numChannels );
+    CopyImageIntoAnother( compositeImg, height, 0, faces[FACE_LEFT] );
+    CopyImageIntoAnother( compositeImg, height, width, faces[FACE_FRONT] );
+    CopyImageIntoAnother( compositeImg, height, 2 * width, faces[FACE_RIGHT] );
+    CopyImageIntoAnother( compositeImg, height, 3 * width, faces[FACE_BACK] );
+    CopyImageIntoAnother( compositeImg, 0, width, faces[FACE_TOP] );
+    CopyImageIntoAnother( compositeImg, 2 * height, width, faces[FACE_BOTTOM] );
+
+    return compositeImg.Save( filename );
+}
+
+
+FloatImage2D FloatImageFromRawImage2D( const RawImage2D& rawImage )
+{
+    FloatImage2D floatImage;
     floatImage.width = rawImage.width;
     floatImage.height = rawImage.height;
     floatImage.numChannels = rawImage.NumChannels();
@@ -425,7 +644,7 @@ FloatImage FloatImageFromRawImage2D( const RawImage2D& rawImage )
 }
 
 
-RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat format )
+RawImage2D RawImage2DFromFloatImage( const FloatImage2D& floatImage, ImageFormat format )
 {
     RawImage2D rawImage;
     rawImage.width = floatImage.width;
@@ -445,7 +664,7 @@ RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat f
 }
 
 
-std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage>& floatImages, ImageFormat format )
+std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2D>& floatImages, ImageFormat format )
 {
     std::vector<RawImage2D> rawImages( floatImages.size() );
     for ( size_t i = 0; i < floatImages.size(); ++i )
@@ -457,9 +676,9 @@ std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage>
 }
 
 
-std::vector<FloatImage> GenerateMipmaps( const FloatImage& image, const MipmapGenerationSettings& settings )
+std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& image, const MipmapGenerationSettings& settings )
 {
-    std::vector<FloatImage> mips;
+    std::vector<FloatImage2D> mips;
 
     uint32_t numMips = CalculateNumMips( image.width, image.height );
     
@@ -470,7 +689,7 @@ std::vector<FloatImage> GenerateMipmaps( const FloatImage& image, const MipmapGe
     stbir_edge edgeModeV = settings.clampVertical ? STBIR_EDGE_CLAMP : STBIR_EDGE_WRAP;
     for ( uint32_t mipLevel = 0; mipLevel < numMips; ++mipLevel )
     {
-        FloatImage mip( w, h, image.numChannels );
+        FloatImage2D mip( w, h, image.numChannels );
         if ( mipLevel == 0 )
         {
             memcpy( mip.data.get(), image.data.get(), w * h * numChannels * sizeof( float ) );
@@ -479,7 +698,7 @@ std::vector<FloatImage> GenerateMipmaps( const FloatImage& image, const MipmapGe
         {
             // NOTE!!! With STBIR_EDGE_WRAP and STBIR_FILTER_MITCHELL, im seeing artifacts, at least for non-even dimensioned images.
             // Both the top and right edges have dark lines near them, and some seemingly garbage pixels 
-            const FloatImage& prevMip = mips[mipLevel - 1];
+            const FloatImage2D& prevMip = mips[mipLevel - 1];
             stbir_resize( prevMip.data.get(), prevMip.width, prevMip.height, prevMip.width * numChannels * sizeof( float ),
                           mip.data.get(), w, h, w * numChannels * sizeof( float ), STBIR_TYPE_FLOAT,
                           numChannels, STBIR_ALPHA_CHANNEL_NONE, 0, edgeModeU, edgeModeV, STBIR_FILTER_BOX, STBIR_FILTER_BOX, STBIR_COLORSPACE_LINEAR, NULL );
@@ -506,7 +725,7 @@ uint32_t CalculateNumMips( uint32_t width, uint32_t height )
 }
 
 
-double FloatImageMSE( const FloatImage& img1, const FloatImage& img2, uint32_t channelsToCalc )
+double FloatImageMSE( const FloatImage2D& img1, const FloatImage2D& img2, uint32_t channelsToCalc )
 {
     if ( img1.width != img2.width || img1.height != img2.height || img1.numChannels != img2.numChannels )
     {

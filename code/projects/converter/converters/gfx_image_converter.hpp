@@ -11,6 +11,8 @@ class GfxImageConverter : public BaseAssetConverterTemplate<GfxImage, GfxImageCr
 public:
     GfxImageConverter() : BaseAssetConverterTemplate( ASSET_TYPE_GFX_IMAGE ) {}
 
+    virtual void AddReferencedAssetsInternal( ConstDerivedInfoPtr& baseInfo ) override;
+
 protected:
     std::string GetCacheNameInternal( ConstDerivedInfoPtr info ) override;
     AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp ) override;

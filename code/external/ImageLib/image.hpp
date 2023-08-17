@@ -259,7 +259,7 @@ struct RawImage2D
 };
 
 
-struct FloatImage
+struct FloatImage2D
 {
     uint32_t width = 0;
     uint32_t height = 0;
@@ -267,8 +267,8 @@ struct FloatImage
     std::shared_ptr<float[]> data;
 
 
-    FloatImage() = default;
-    FloatImage( uint32_t inWidth, uint32_t inHeight, uint32_t inNumChannels ) : width( inWidth ), height( inHeight ), numChannels( inNumChannels )
+    FloatImage2D() = default;
+    FloatImage2D( uint32_t inWidth, uint32_t inHeight, uint32_t inNumChannels ) : width( inWidth ), height( inHeight ), numChannels( inNumChannels )
     {
         data = std::make_shared<float[]>( width * height * numChannels );
     }
@@ -279,24 +279,73 @@ struct FloatImage
     // Currently just calls RawImage2DFromFloatImage, and then RawImage2D::Save
     bool Save( const std::string& filename, ImageSaveFlags saveFlags = ImageSaveFlags::DEFAULT ) const;
 
-    FloatImage Resize( uint32_t newWidth, uint32_t newHeight ) const;
-    FloatImage Clone() const;
+    FloatImage2D Resize( uint32_t newWidth, uint32_t newHeight ) const;
+    FloatImage2D Clone() const;
 
+    template <typename Func>
+    void ForEachPixel( Func F )
+    {
+        for ( uint32_t i = 0; i < width * height; ++i )
+            F( i );
+    }
+
+    glm::vec4 Sample( glm::vec2 uv, bool clampHorizontal, bool clampVertical ) const; // bilinear
     glm::vec4 GetFloat4( uint32_t pixelIndex ) const;
     glm::vec4 GetFloat4( uint32_t row, uint32_t col ) const;
+    glm::vec4 GetFloat4( uint32_t row, uint32_t col, bool clampHorizontal, bool clampVertical ) const;
     void SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel );
     void SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& pixel );
 };
 
+void HDRImageToLDR( FloatImage2D& image );
+
+enum FaceIndex
+{
+    FACE_BACK   = 0,
+    FACE_LEFT   = 1,
+    FACE_FRONT  = 2,
+    FACE_RIGHT  = 3,
+    FACE_TOP    = 4,
+    FACE_BOTTOM = 5,
+
+    NUM_FACES = 6
+};
+
+// Note: NOT the opengl coordinate space. I assume right handed coordinates, with +x -> right, +y -> forward, +z -> up
+// and the top left corner of each face is uv (0,0).
+// The bottom & top faces have orientation following the 'front' face. Like here:
+// https://en.wikipedia.org/wiki/Cube_mapping#Skylight_illumination, except that they use +Y up and bottom left (0,0) uv
+struct FloatImageCubemap
+{
+    uint32_t width = 0;
+    uint32_t height = 0;
+    uint32_t numChannels = 0;
+    FloatImage2D faces[6];
+
+
+    FloatImageCubemap() = default;
+    FloatImageCubemap( uint32_t inWidth, uint32_t inHeight, uint32_t inNumChannels ) : width( inWidth ), height( inHeight ), numChannels( inNumChannels )
+    {
+        for ( int i = 0; i < 6; ++i )
+            faces[i] = FloatImage2D( inWidth, inHeight, inNumChannels );
+    }
+
+    bool LoadFromEquirectangular( const std::string& filename );
+    bool LoadFromFaces( const std::string filenames[6] );
+
+    // just for debug visualization + confirmation
+    bool SaveUnfoldedFaces( const std::string& filename ) const;
+};
+
 // Creates a new image in the float32 version of rawImage. One caveat: if the raw format is already float32,
 // then data will just point to the same RawImage2D memory to avoid an allocation + copy
-FloatImage FloatImageFromRawImage2D( const RawImage2D& rawImage );
+FloatImage2D FloatImageFromRawImage2D( const RawImage2D& rawImage );
 
 // Creates a new raw image with the specified format. Like FloatImageFromRawImage2D, if "format" is already the same as the float image,
 // then the returned raw image isn't "new", it just points to the same memory as the float image to avoid an allocation + copy
 // If format == ImageFormat::INVALID, then it just uses the float image's original format
-RawImage2D RawImage2DFromFloatImage( const FloatImage& floatImage, ImageFormat format = ImageFormat::INVALID );
-std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage>& floatImages, ImageFormat format = ImageFormat::INVALID );
+RawImage2D RawImage2DFromFloatImage( const FloatImage2D& floatImage, ImageFormat format = ImageFormat::INVALID );
+std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2D>& floatImages, ImageFormat format = ImageFormat::INVALID );
 
 struct MipmapGenerationSettings
 {
@@ -304,8 +353,8 @@ struct MipmapGenerationSettings
     bool clampVertical = false;
 };
 
-std::vector<FloatImage> GenerateMipmaps( const FloatImage& floatImage, const MipmapGenerationSettings& settings );
+std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& floatImage, const MipmapGenerationSettings& settings );
 
 uint32_t CalculateNumMips( uint32_t width, uint32_t height );
-double FloatImageMSE( const FloatImage& img1, const FloatImage& img2, uint32_t channelsToCalc = 0b1111 );
+double FloatImageMSE( const FloatImage2D& img1, const FloatImage2D& img2, uint32_t channelsToCalc = 0b1111 );
 double MSEToPSNR( double mse, double maxValue = 1.0 );

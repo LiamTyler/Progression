@@ -79,6 +79,7 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
 // if numMips is unspecified (0), assume all mips are in use
 size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips = 0 );
 size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+size_t CalculateTotalImageBytes( const GfxImage& img );
 PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB );
 
 GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, bool isSRGB );

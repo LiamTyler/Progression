@@ -234,7 +234,6 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
-        //#pragma omp parallel for
         for ( int dstRow = 0; dstRow < (int)irradianceMap.size; ++dstRow )
         {
             for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )
@@ -265,8 +264,12 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
             }
         }
     }
+    irradianceMap.SaveUnfoldedFaces( PG_ROOT_DIR "test.hdr" );
+    irradianceMap.SaveUnfoldedFaces( PG_ROOT_DIR "test.exr" );
 
-    FaceIndex pgToVkFaceOrder[6] = { FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM, FACE_RIGHT, FACE_LEFT };
+    // From https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageSubresourceRange.html
+    // the layers of the image view starting at baseArrayLayer correspond to faces in the order +X, -X, +Y, -Y, +Z, -Z
+    FaceIndex pgToVkFaceOrder[6] = { FACE_RIGHT, FACE_LEFT, FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM };
     RawImage2D faces[6];
     BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
     for ( int i = 0; i < 6; ++i )
@@ -279,10 +282,10 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     gfxImage->width = irradianceMap.size;
     gfxImage->height = irradianceMap.size;
     gfxImage->depth = 1;
-    gfxImage->numFaces = 1;
+    gfxImage->numFaces = 6;
     gfxImage->mipLevels = 1;
     gfxImage->pixelFormat = ImageFormatToPixelFormat( ImageFormat::BC6H_U16F, false );
-    gfxImage->totalSizeInBytes = CalculateTotalImageBytes( gfxImage->pixelFormat, gfxImage->width, gfxImage->height, 1, 6, 1 );
+    gfxImage->totalSizeInBytes = CalculateTotalImageBytes( *gfxImage );
     gfxImage->pixels = static_cast<uint8_t*>( malloc( gfxImage->totalSizeInBytes ) );
 
     uint8_t* currentFace = gfxImage->pixels;
@@ -403,6 +406,12 @@ size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t he
     size_t totalBytes = depth * arrayLayers * CalculateTotalFaceSizeWithMips( width, height, format, mipLevels );
 
     return totalBytes;
+}
+
+
+size_t CalculateTotalImageBytes( const GfxImage& img )
+{
+    return CalculateTotalImageBytes( img.pixelFormat, img.width, img.height, img.depth, img.numFaces, img.mipLevels );
 }
 
 

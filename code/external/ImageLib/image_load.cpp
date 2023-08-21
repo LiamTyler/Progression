@@ -180,6 +180,7 @@ bool RawImage2D::Load( const std::string& filename )
             {
                 LOG_ERR( "\tTinyexr error '%s'", err );
             }
+            return false;
         }
         data = std::shared_ptr<uint8_t[]>( (uint8_t*)pixels, []( void* p ) { free( p ); } );
         width = static_cast<uint32_t>( w );

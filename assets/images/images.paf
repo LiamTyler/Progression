@@ -1,7 +1,7 @@
 [
 	{ "Image": {
 		"name": "kloppenheim",
-		"equirectangularFilename": "images/skies/kloppenheim_06_8k.exr",
+		"equirectangularFilename": "images/skies/kloppenheim_06_2k.exr",
 		"semantic": "ENVIRONMENT_MAP"
 	} },
     { "Image": {

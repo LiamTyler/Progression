@@ -49,3 +49,5 @@
 - [ ] do a pass on the code style consistency
 - [ ] have the game window open at the location it was the last time the game ran
 - [ ] allow for fixed aspect ratio
+- [ ] if you compile the converter, then make an edit in ImageLib, but not in the converter, it seems like the converter uses the new code, but you can no longer breakpoint in ImageLib. It will claim it's a stale cpp file
+- [ ] Switch to new parallel mechanism in part, since it doesn't seem like you can use a pragma omp, inside of another one. Only the outter one applies

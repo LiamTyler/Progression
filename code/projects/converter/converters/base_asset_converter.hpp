@@ -111,6 +111,7 @@ protected:
         asset.cacheName = cacheName;
         if ( !asset.Load( derivedCreateInfo.get() ) )
         {
+            LOG_ERR( "Failed to convert asset %s %s", g_assetNames[assetType], derivedCreateInfo->name.c_str() );
             return false;
         }
 

@@ -13,9 +13,9 @@
         "_aspectRatio": 1,
         "exposure": 1.0
     }},
-	{ "_Skybox": "kloppenheim" },
+	{ "Skybox": "kloppenheim" },
 	{ "Script": "cameraController" },
-    { "BackgroundColor": [ 0,0,1 ] },
+    { "_BackgroundColor": [ 0,0,1 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {
         "NameComponent": "tri",

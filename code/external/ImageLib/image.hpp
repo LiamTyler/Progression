@@ -317,17 +317,16 @@ enum FaceIndex
 // https://en.wikipedia.org/wiki/Cube_mapping#Skylight_illumination, except that they use +Y up and bottom left (0,0) uv
 struct FloatImageCubemap
 {
-    uint32_t width = 0;
-    uint32_t height = 0;
+    uint32_t size = 0;
     uint32_t numChannels = 0;
     FloatImage2D faces[6];
 
 
     FloatImageCubemap() = default;
-    FloatImageCubemap( uint32_t inWidth, uint32_t inHeight, uint32_t inNumChannels ) : width( inWidth ), height( inHeight ), numChannels( inNumChannels )
+    FloatImageCubemap( uint32_t inSize, uint32_t inNumChannels ) : size( inSize ), numChannels( inNumChannels )
     {
         for ( int i = 0; i < 6; ++i )
-            faces[i] = FloatImage2D( inWidth, inHeight, inNumChannels );
+            faces[i] = FloatImage2D( size, size, inNumChannels );
     }
 
     bool LoadFromEquirectangular( const std::string& filename );
@@ -335,7 +334,18 @@ struct FloatImageCubemap
 
     // just for debug visualization + confirmation
     bool SaveUnfoldedFaces( const std::string& filename ) const;
+    FloatImageCubemap Resize( uint32_t newSize ) const;
+
+    glm::vec4 Sample( const glm::vec3& dir ) const;
+
+private:
+    glm::vec4 FetchTexel_Wrapping( int faceIdx, int row, int col ) const;
 };
+
+glm::vec3 CubemapFaceUVToDirection( int cubeFace, glm::vec2 uv );
+glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex );
+glm::vec2 DirectionToEquirectangularUV( const glm::vec3& dir );
+glm::vec3 EquirectangularUVToDirection( const glm::vec2& uv );
 
 // Creates a new image in the float32 version of rawImage. One caveat: if the raw format is already float32,
 // then data will just point to the same RawImage2D memory to avoid an allocation + copy
@@ -346,6 +356,9 @@ FloatImage2D FloatImageFromRawImage2D( const RawImage2D& rawImage );
 // If format == ImageFormat::INVALID, then it just uses the float image's original format
 RawImage2D RawImage2DFromFloatImage( const FloatImage2D& floatImage, ImageFormat format = ImageFormat::INVALID );
 std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2D>& floatImages, ImageFormat format = ImageFormat::INVALID );
+
+FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg );
+FloatImage2D CubemapToEquirectangular( const FloatImageCubemap& cubemap );
 
 struct MipmapGenerationSettings
 {

@@ -6,6 +6,8 @@
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb/stb_image_resize.h"
 
+#include <array>
+
 
 static glm::u8vec4  DEFAULT_PIXEL_BYTE    = glm::u8vec4( 0, 0, 0, 255 );
 static glm::u16vec4 DEFAULT_PIXEL_SHORT   = glm::u16vec4( 0, 0, 0, USHRT_MAX );
@@ -390,7 +392,7 @@ glm::vec4 FloatImage2D::Sample( glm::vec2 uv, bool clampHorizontal, bool clampVe
     glm::vec4 p00 = GetFloat4( row, col, clampHorizontal, clampVertical );
     glm::vec4 p01 = GetFloat4( row, col + 1, clampHorizontal, clampVertical );
     glm::vec4 p10 = GetFloat4( row + 1, col, clampHorizontal, clampVertical );
-    glm::vec4 p11 = GetFloat4( row + 1, col + 1, clampHorizontal, clampVertical);
+    glm::vec4 p11 = GetFloat4( row + 1, col + 1, clampHorizontal, clampVertical );
         
     glm::vec4 ret( 0, 0, 0, 1 );
     for ( uint32_t i = 0; i < numChannels; ++i )
@@ -474,7 +476,7 @@ void HDRImageToLDR( FloatImage2D& image )
 
 // +x -> right, +y -> forward, +z -> up
 // uv (0, 0) is upper left corner of image
-static glm::vec3 CubemapFaceUVToCartesianDir( int cubeFace, glm::vec2 uv )
+glm::vec3 CubemapFaceUVToDirection( int cubeFace, glm::vec2 uv )
 {
     uv = 2.0f * uv - glm::vec2( 1.0f );
     glm::vec3 dir;
@@ -505,7 +507,7 @@ static glm::vec3 CubemapFaceUVToCartesianDir( int cubeFace, glm::vec2 uv )
 
 
 // assumes direction is normalized, and right handed +Z up coordinates, upper left face coord = uv (0,0)
-static glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex )
+glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex )
 {
     glm::vec3 v = direction;
     glm::vec3 vAbs = abs( v );
@@ -534,9 +536,9 @@ static glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& face
 
 
 // http://paulbourke.net/dome/dualfish2sphere/
-static glm::vec2 CartesianDirToEquirectangularUV( const glm::vec3& dir )
+glm::vec2 DirectionToEquirectangularUV( const glm::vec3& dir )
 {
-    float phi = atan2( dir.x, dir.y ); // -pi to pi
+    float phi = atan2( dir.y, dir.x ); // -pi to pi
     float theta = asin( dir.z ); // -pi/2 to pi/2
 
     float x = phi / PI; // -1 to 1
@@ -548,31 +550,30 @@ static glm::vec2 CartesianDirToEquirectangularUV( const glm::vec3& dir )
 }
 
 
+glm::vec3 EquirectangularUVToDirection( const glm::vec2& uv )
+{
+    float x = uv.x * 2 - 1;
+    float y = -(uv.y * 2 - 1); // the '-' is because I use (0,0) as the upper left corner of images, instead of bottom left
+
+    float lon = x * PI;
+    float lat = y * PI / 2;
+
+    glm::vec3 dir;
+    dir.x = cos( lat ) * cos( lon );
+    dir.y = cos( lat ) * sin( lon );
+    dir.z = sin( lat );
+
+    return dir;
+}
+
+
 bool FloatImageCubemap::LoadFromEquirectangular( const std::string& filename )
 {
     FloatImage2D equiImg;
     if ( !equiImg.Load( filename ) )
         return false;
 
-    width = equiImg.width / 4;
-    height = width;
-    numChannels = equiImg.numChannels;
-    for ( uint32_t i = 0; i < 6; ++i )
-    {
-        faces[i] = FloatImage2D( width, height, numChannels );
-        #pragma omp parallel for
-        for ( int r = 0; r < (int)height; ++r )
-        {
-            for ( int c = 0; c < (int)3width; ++ c )
-            {
-                glm::vec2 localUV = { (c + 0.5f) / (float)width, (r + 0.5f) / (float)height };
-                glm::vec3 dir = CubemapFaceUVToCartesianDir( i, localUV );
-                glm::vec2 equiUV = CartesianDirToEquirectangularUV( dir );
-                faces[i].SetFromFloat4( r, c, equiImg.Sample( equiUV, true, true ) );
-            }
-        }
-    }
-
+    *this = EquirectangularToCubemap( equiImg );
     return true;
 }
 
@@ -606,21 +607,196 @@ static void CopyImageIntoAnother( FloatImage2D& dstImg, uint32_t dstRow, uint32_
 
 bool FloatImageCubemap::SaveUnfoldedFaces( const std::string& filename ) const
 {
-    if ( !width || !height || !faces[0].data )
+    if ( !size || !faces[0].data )
     {
         LOG_ERR( "FloatImageCubemap::SaveUnfoldedFaces no image data to save" );
         return false;
     }
 
-    FloatImage2D compositeImg( 4 * width, 3 * height, numChannels );
-    CopyImageIntoAnother( compositeImg, height, 0, faces[FACE_LEFT] );
-    CopyImageIntoAnother( compositeImg, height, width, faces[FACE_FRONT] );
-    CopyImageIntoAnother( compositeImg, height, 2 * width, faces[FACE_RIGHT] );
-    CopyImageIntoAnother( compositeImg, height, 3 * width, faces[FACE_BACK] );
-    CopyImageIntoAnother( compositeImg, 0, width, faces[FACE_TOP] );
-    CopyImageIntoAnother( compositeImg, 2 * height, width, faces[FACE_BOTTOM] );
+    FloatImage2D compositeImg( 4 * size, 3 * size, numChannels );
+    CopyImageIntoAnother( compositeImg, size, 0, faces[FACE_LEFT] );
+    CopyImageIntoAnother( compositeImg, size, size, faces[FACE_FRONT] );
+    CopyImageIntoAnother( compositeImg, size, 2 * size, faces[FACE_RIGHT] );
+    CopyImageIntoAnother( compositeImg, size, 3 * size, faces[FACE_BACK] );
+    CopyImageIntoAnother( compositeImg, 0, size, faces[FACE_TOP] );
+    CopyImageIntoAnother( compositeImg, 2 * size, size, faces[FACE_BOTTOM] );
 
     return compositeImg.Save( filename );
+}
+
+
+FloatImageCubemap FloatImageCubemap::Resize( uint32_t newSize ) const
+{
+    FloatImageCubemap newCubemap( newSize, numChannels );
+    for ( int i = 0; i < 6; ++i )
+    {
+        newCubemap.faces[i] = faces[i].Resize( newSize, newSize );
+    }
+
+    return newCubemap;
+}
+
+
+glm::vec4 FloatImageCubemap::Sample( const glm::vec3& dir ) const
+{
+    int faceIdx;
+    glm::vec2 faceUV = CubemapDirectionToFaceUV( dir, faceIdx );
+
+    glm::vec2 uv = faceUV * glm::vec2( size, size ) - glm::vec2( 0.5f );
+    glm::vec2 start = glm::floor( uv );
+    int col = static_cast<int>( start.x );
+    int row = static_cast<int>( start.y );
+
+    glm::vec2 d = uv - start;
+    const float w00 = (1.0f - d.x) * (1.0f - d.y);
+	const float w01 = d.x * (1.0f - d.y);
+	const float w10 = (1.0f - d.x) * d.y;
+	const float w11 = d.x * d.y;
+        
+    glm::vec4 p00 = FetchTexel_Wrapping( faceIdx, row, col );
+    glm::vec4 p01 = FetchTexel_Wrapping( faceIdx, row, col + 1 );
+    glm::vec4 p10 = FetchTexel_Wrapping( faceIdx, row + 1, col );
+    glm::vec4 p11 = FetchTexel_Wrapping( faceIdx, row + 1, col + 1 );
+        
+    glm::vec4 ret( 0, 0, 0, 1 );
+    for ( uint32_t i = 0; i < numChannels; ++i )
+    {
+        ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
+    }
+
+    return ret;
+}
+
+
+glm::vec4 FloatImageCubemap::FetchTexel_Wrapping( int faceIdx, int row, int col ) const
+{
+    int W = (int)size;
+    PG_ASSERT( -1 <= col && col <= W );
+    PG_ASSERT( -1 <= row && row <= W );
+
+    // According to the section 'Cube Map Edge Handling' here:
+    // https://registry.khronos.org/vulkan/specs/1.3/html/chap16.html#textures-cubemapedge
+    // if the texel goes off the face in both texel dimensions, the average of all 3 faces should be returned
+    bool wrapRow = row == -1 || row == W;
+    bool wrapCol = col == -1 || col == W;
+    bool nr = row == -1;
+    bool nc = col == -1;
+    if ( wrapRow && wrapCol )
+    {
+        // [0] = current face, [1] = wrapped column face, [2] = wrapped row face
+        // The image here helps: https://en.wikipedia.org/wiki/Cube_mapping#Memory_addressing
+        // except I use Z as front/back and Y as top/bottom
+        std::array<int, 3> indices = { faceIdx, -1, -1 }; 
+        glm::ivec2 coords[3]; // x = col, y = row
+        coords[0] = { nc ? 0 : W - 1, nr ? 0 : W - 1 };
+        switch ( faceIdx )
+        {
+            case FACE_LEFT:
+                indices = { faceIdx, nc ? FACE_BACK : FACE_FRONT, nr ? FACE_TOP : FACE_BOTTOM };
+                coords[1] = { nc ? W - 1 : 0, nr ? 0 : W - 1 };
+                coords[2] = { 0, nc == nr ? 0 : W - 1 };
+                break;
+            case FACE_FRONT:
+                indices = { faceIdx, nc ? FACE_LEFT : FACE_RIGHT, nr ? FACE_TOP : FACE_BOTTOM };
+                coords[1] = { nc ? W - 1 : 0, nr ? 0 : W - 1 };
+                coords[2] = { nc ? 0 : W - 1, nr ? W - 1 : 0 };
+                break;
+            case FACE_RIGHT:
+                indices = { faceIdx, nc ? FACE_FRONT : FACE_BACK, nr ? FACE_TOP : FACE_BOTTOM };
+                coords[1] = { nc ? W - 1 : 0, nr ? 0 : W - 1 };
+                coords[2] = { nc ? 0 : W - 1, nr ? W - 1 : 0 };
+                break;
+            case FACE_BACK:
+                indices = { faceIdx, nc ? FACE_RIGHT : FACE_LEFT, nr ? FACE_TOP : FACE_BOTTOM };
+                coords[1] = { nc ? W - 1 : 0, nr ? 0 : W - 1 };
+                coords[2] = { W - 1, nc == nr ? W - 1 : 0 };
+                break;
+            case FACE_TOP:
+                indices = { faceIdx, nc ? FACE_LEFT : FACE_RIGHT, nr ? FACE_BACK : FACE_FRONT };
+                coords[1] = { nr ? W - 1 : 0, 0 };
+                coords[2] = { nc == nr ? W - 1 : 0, 0 };
+                break;
+            case FACE_BOTTOM:
+                indices = { faceIdx, nc ? FACE_LEFT : FACE_RIGHT, nr ? FACE_FRONT : FACE_BACK };
+                coords[1] = { nc == nr ? W - 1 : 0, W - 1 };
+                coords[2] = { nc == nr ? 0 : W - 1, W - 1 };
+                break;
+        }
+        glm::vec4 s0 = faces[indices[0]].GetFloat4( coords[0].y, coords[0].x );
+        glm::vec4 s1 = faces[indices[1]].GetFloat4( coords[1].y, coords[1].x );
+        glm::vec4 s2 = faces[indices[2]].GetFloat4( coords[2].y, coords[2].x );
+        return (1.0f / 3.0f) * (s0 + s1 + s2);
+    }
+
+    if ( wrapRow )
+    {
+        switch ( faceIdx )
+        {
+            case FACE_LEFT:
+                faceIdx = nr ? FACE_TOP : FACE_BOTTOM;
+                row = nr ? col : W - 1 - col;
+                col = 0;
+                break;
+            case FACE_FRONT:
+                faceIdx = nr ? FACE_TOP : FACE_BOTTOM;
+                row = nr ? W - 1 : 0;
+                break;
+            case FACE_RIGHT:
+                faceIdx = nr ? FACE_TOP : FACE_BOTTOM;
+                row = nr ? W - 1 - col : col;
+                col = W - 1;
+                break;
+            case FACE_BACK:
+                faceIdx = nr ? FACE_TOP : FACE_BOTTOM;
+                row = nr ? 0 : W - 1;
+                col = W - 1 - col;
+                break;
+            case FACE_TOP:
+                faceIdx = nr ? FACE_BACK : FACE_FRONT;
+                row = 0;
+                col = nr ? W - 1 - col : col;
+                break;
+            case FACE_BOTTOM:
+                faceIdx = nr ? FACE_FRONT : FACE_BACK;
+                row = W - 1;
+                col = nr ? col : W - 1 - col;
+                break;
+        }
+    }
+    else if ( wrapCol )
+    {
+        switch ( faceIdx )
+        {
+            case FACE_LEFT:
+                faceIdx = nc ? FACE_BACK : FACE_FRONT;
+                col = nc ? W - 1 : 0;
+                break;
+            case FACE_FRONT:
+                faceIdx = nc ? FACE_LEFT : FACE_RIGHT;
+                col = nc ? W - 1 : 0;
+                break;
+            case FACE_RIGHT:
+                faceIdx = nc ? FACE_FRONT : FACE_BACK;
+                col = nc ? W - 1 : 0;
+                break;
+            case FACE_BACK:
+                faceIdx = nc ? FACE_RIGHT : FACE_LEFT;
+                col = nc ? W - 1 : 0;
+                break;
+            case FACE_TOP:
+                faceIdx = nc ? FACE_LEFT : FACE_RIGHT;
+                col = nc ? row : W - 1 - row;
+                row = 0;
+                break;
+            case FACE_BOTTOM:
+                faceIdx = nc ? FACE_LEFT : FACE_RIGHT;
+                col = nc ? W - 1 - row : row;
+                row = W - 1;
+                break;
+        }
+    }
+
+    return faces[faceIdx].GetFloat4( row, col );
 }
 
 
@@ -673,6 +849,53 @@ std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2
     }
 
     return rawImages;
+}
+
+
+FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg )
+{
+    FloatImageCubemap cubemap;
+    cubemap.size = equiImg.width / 4;
+    cubemap.numChannels = equiImg.numChannels;
+    for ( uint32_t i = 0; i < 6; ++i )
+    {
+        cubemap.faces[i] = FloatImage2D( cubemap.size, cubemap.size, cubemap.numChannels );
+
+        #pragma omp parallel for
+        for ( int r = 0; r < (int)cubemap.size; ++r )
+        {
+            for ( int c = 0; c < (int)cubemap.size; ++ c )
+            {
+                glm::vec2 localUV = { (c + 0.5f) / (float)cubemap.size, (r + 0.5f) / (float)cubemap.size };
+                glm::vec3 dir = CubemapFaceUVToDirection( i, localUV );
+                glm::vec2 equiUV = DirectionToEquirectangularUV( dir );
+                cubemap.faces[i].SetFromFloat4( r, c, equiImg.Sample( equiUV, true, true ) );
+            }
+        }
+    }
+
+    return cubemap;
+}
+
+
+FloatImage2D CubemapToEquirectangular( const FloatImageCubemap& cubemap )
+{
+    FloatImage2D equiImg( 4 * cubemap.size, 2 * cubemap.size, cubemap.numChannels );
+    //#pragma omp parallel for
+    for ( int r = 0; r < (int)equiImg.height; ++r )
+    {
+        for ( int c = 0; c < (int)equiImg.width; ++ c )
+        {
+            glm::vec2 equiUV = { (c + 0.5f) / (float)equiImg.width, (r + 0.5f) / (float)equiImg.height };
+            glm::vec3 dir = EquirectangularUVToDirection( equiUV );
+            glm::vec2 newUV = DirectionToEquirectangularUV( dir );
+            PG_ASSERT( r == static_cast<int>( newUV.y * equiImg.height ) );
+            PG_ASSERT( c == static_cast<int>( newUV.x * equiImg.width ) );
+            equiImg.SetFromFloat4( r, c, cubemap.Sample( dir ) );
+        }
+    }
+
+    return equiImg;
 }
 
 

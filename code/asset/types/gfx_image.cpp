@@ -203,10 +203,12 @@ static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* c
 static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
     int numFaces = 0;
+    std::string filenames[6];
     for ( int i = 0; i < 6; ++i )
     {
         if ( !createInfo->filenames[i].empty() )
         {
+            filenames[i] = GetImageFullPath( createInfo->filenames[i] );
             ++numFaces;
         }
     }
@@ -214,13 +216,13 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     FloatImageCubemap cubemap;
     if ( numFaces == 1 )
     {
-        PG_ASSERT( !createInfo->filenames[0].empty(), "Filename must be in first slot, for equirectangular inputs" );
-        if ( !cubemap.LoadFromEquirectangular( createInfo->filenames[0] ) )
+        PG_ASSERT( !filenames[0].empty(), "Filename must be in first slot, for equirectangular inputs" );
+        if ( !cubemap.LoadFromEquirectangular( filenames[0] ) )
             return false;
     }
     else if ( numFaces == 6 )
     {
-        if ( !cubemap.LoadFromFaces( createInfo->filenames ) )
+        if ( !cubemap.LoadFromFaces( filenames ) )
             return false;
     }
     else
@@ -229,18 +231,65 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
         return false;
     }
 
-    PG_ASSERT( cubemap.numChannels >= 3 );
-    FloatImageCubemap irradianceMap( 32, 32, 3 );
+    FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
-        for ( int dstRow = 0; dstRow < (int)irradianceMap.height; ++dstRow )
+        //#pragma omp parallel for
+        for ( int dstRow = 0; dstRow < (int)irradianceMap.size; ++dstRow )
         {
-            for ( int dstCol = 0; dstCol < (int)irradianceMap.width; ++dstCol )
+            for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )
             {
+                glm::vec2 faceUV = { (dstCol + 0.5f) / irradianceMap.size, (dstRow + 0.5f) / irradianceMap.size };
+                glm::vec3 normal = CubemapFaceUVToDirection( faceIdx, faceUV );
+                glm::vec3 tangent = normal.x < 0.99f ? glm::vec3( 1, 0, 0 ) : glm::vec3( 0, 1, 0 );
+                glm::vec3 bitangent = glm::normalize( glm::cross( normal, tangent ) );
+                tangent = glm::normalize( glm::cross( bitangent, normal ) );
+
+                constexpr float angleDelta = PI / 120;
+                uint32_t numSamples = 0;
                 glm::vec3 irradiance( 0 );
-                glm::vec3 normal = ;
+                for ( float phi = 0; phi < 2 * PI; phi += angleDelta )
+                {
+                    for ( float theta = 0; theta < PI / 2; theta += angleDelta )
+                    {
+                        glm::vec3 tangentSpaceDir = { sin( theta ) * cos( phi ), sin( theta ) * sin( phi ), cos( theta ) };
+                        glm::vec3 worldSpaceDir = tangentSpaceDir.x * tangent + tangentSpaceDir.y * bitangent + tangentSpaceDir.z * normal;
+                        glm::vec3 radiance = cubemap.Sample( worldSpaceDir );
+                        irradiance += radiance * cos( theta ) * sin( theta );
+                        ++numSamples;
+                    }
+                }
+
+                irradiance *= (PI / numSamples);
+                irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( irradiance, 0 ) );
             }
         }
+    }
+
+    FaceIndex pgToVkFaceOrder[6] = { FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM, FACE_RIGHT, FACE_LEFT };
+    RawImage2D faces[6];
+    BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
+    for ( int i = 0; i < 6; ++i )
+    {
+        RawImage2D face = RawImage2DFromFloatImage( irradianceMap.faces[pgToVkFaceOrder[i]], ImageFormat::R16_G16_B16_FLOAT );
+        faces[i] = CompressToBC( face, compressorSettings );
+    }
+
+    gfxImage->imageType = ImageType::TYPE_2D;
+    gfxImage->width = irradianceMap.size;
+    gfxImage->height = irradianceMap.size;
+    gfxImage->depth = 1;
+    gfxImage->numFaces = 1;
+    gfxImage->mipLevels = 1;
+    gfxImage->pixelFormat = ImageFormatToPixelFormat( ImageFormat::BC6H_U16F, false );
+    gfxImage->totalSizeInBytes = CalculateTotalImageBytes( gfxImage->pixelFormat, gfxImage->width, gfxImage->height, 1, 6, 1 );
+    gfxImage->pixels = static_cast<uint8_t*>( malloc( gfxImage->totalSizeInBytes ) );
+
+    uint8_t* currentFace = gfxImage->pixels;
+    for ( int i = 0; i < 6; ++i )
+    {
+        memcpy( currentFace, faces[i].Raw(), faces[i].TotalBytes() );
+        currentFace += faces[i].TotalBytes();
     }
 
     return true;

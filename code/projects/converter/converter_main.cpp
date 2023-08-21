@@ -444,6 +444,20 @@ int main( int argc, char** argv )
     //     deinitializeFreetype(ft);
     // }
     // return 0;
+    
+    //FloatImage2D img;
+    //img.Load( PG_ASSET_DIR "images/skies/kloppenheim_06_8k.exr" );
+    //img = img.Resize( img.width / 4, img.height / 4 );
+    //img.Save( PG_ASSET_DIR "images/skies/kloppenheim_06_2k.hdr" );
+    //return 0;
+
+    //FloatImageCubemap cubemap;
+    //if ( !cubemap.LoadFromEquirectangular( PG_ASSET_DIR "images/skies/kloppenheim_06_2k.exr" ) )
+    //    return 0;
+    //
+    //FloatImage2D equiImg = CubemapToEquirectangular( cubemap );
+    //equiImg.Save( PG_ASSET_DIR "images/skies/kloppenheim_06_2k_ConvEqui.exr" );
+    //return 0;
 
     //FloatImageCubemap cubemap;
     //if ( !cubemap.LoadFromEquirectangular( PG_ASSET_DIR "images/skies/kloppenheim_06_8k.exr" ) )

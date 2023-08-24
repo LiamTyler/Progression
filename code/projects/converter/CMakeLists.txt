@@ -1,4 +1,3 @@
-cmake_minimum_required(VERSION 3.0)
 project(Converter LANGUAGES CXX C)
 
 include(helpful_functions)

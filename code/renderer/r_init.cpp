@@ -82,15 +82,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback(
 
     if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT )
     {
-        LOG_ERR( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_ERR( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
     }
     else if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT )
     {
-        LOG_WARN( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_WARN( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
     }
     else
     {
-        LOG( "Vulkan message type '%s': '%s'\n", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
     }
 
     return VK_FALSE;
@@ -210,15 +210,15 @@ static bool CreateDescriptorPool()
 {
     VkDescriptorPoolSize poolSizes[11] = {};
     poolSizes[0]  = { VK_DESCRIPTOR_TYPE_SAMPLER, 50 };
-    poolSizes[1]  = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1000 };
+    poolSizes[1]  = { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 65534 };
     poolSizes[2]  = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, 100 };
     poolSizes[3]  = { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, 50 };
     poolSizes[4]  = { VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER, 50 };
     poolSizes[5]  = { VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER, 50 };
     poolSizes[6]  = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 100 };
     poolSizes[7]  = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 50 };
-    poolSizes[8]  = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 50 };
-    poolSizes[9]  = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 50 };
+    poolSizes[8]  = { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 8 };
+    poolSizes[9]  = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 8 };
     poolSizes[10] = { VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT, 50 };
 
     rg.descriptorPool = rg.device.NewDescriptorPool( 11, poolSizes, true, 1000 );

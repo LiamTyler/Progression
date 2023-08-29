@@ -151,6 +151,17 @@ namespace Gfx
         VkDescriptorSetLayout vkLayout = layout.GetHandle();
         allocInfo.pSetLayouts          = &vkLayout;
 
+        VkDescriptorSetVariableDescriptorCountAllocateInfoEXT variable_info = {};
+        variable_info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_VARIABLE_DESCRIPTOR_COUNT_ALLOCATE_INFO_EXT;
+        variable_info.descriptorSetCount = 1;
+        uint32_t numDescriptorCounts = 65534;
+        variable_info.pDescriptorCounts = &numDescriptorCounts;
+
+        if ( name == "bindless textures" )
+        {
+            allocInfo.pNext = &variable_info;
+        }
+
         DescriptorSet descriptorSet;
         VK_CHECK_RESULT( vkAllocateDescriptorSets( m_device, &allocInfo, (VkDescriptorSet*) &descriptorSet.m_handle ) );
         PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_SET_NAME( descriptorSet, name ) );

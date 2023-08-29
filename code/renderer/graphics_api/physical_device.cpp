@@ -223,7 +223,11 @@ int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface, bool logIfU
         return 0;
     }
 
-    if ( !m_features.anisotropy || !m_features.bindless || !m_features.nullDescriptors || !m_features.raytracing )
+    if ( !m_features.anisotropy || !m_features.bindless || !m_features.nullDescriptors
+        #if USING( PG_RTX )
+        || !m_features.raytracing
+        #endif // USING( PG_RTX )
+    )
     {
         if ( logIfUnsuitable )
         {

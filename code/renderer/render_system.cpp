@@ -205,8 +205,8 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
         s_cubeVertexBuffer = rg.device.NewBuffer( sizeof( verts ), verts, BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "cube vertex buffer" );
         s_cubeIndexBuffer = rg.device.NewBuffer( sizeof( indices ), indices, BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "cube index buffer" );
     }
-
-    bindlessTexturesDescriptorSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_BINDLESS_TEXTURE_SET] );
+    
+    bindlessTexturesDescriptorSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_BINDLESS_TEXTURE_SET], "bindless textures" );
     InitPerFrameData();
 
     if ( !UIOverlay::Init( *s_renderGraph.GetRenderPass( "UI_2D" ) ) )

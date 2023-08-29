@@ -167,7 +167,7 @@ namespace Gfx
         poolInfo.maxSets       = maxSets;
         if ( bindless )
         {
-            poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT_EXT;
+            poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
         }
 
         VK_CHECK_RESULT( vkCreateDescriptorPool( m_handle, &poolInfo, nullptr, &pool.m_handle ) );
@@ -185,8 +185,9 @@ namespace Gfx
 
         // bindless info
         bool bindless = false;
-        VkDescriptorSetLayoutBindingFlagsCreateInfoEXT extendedInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO_EXT };
-        VkDescriptorBindingFlagsEXT bindFlag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT_EXT;
+        VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
+        VkDescriptorBindingFlags bindFlag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT |
+            VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
 	    for ( unsigned i = 0; i < PG_MAX_NUM_BINDINGS_PER_SET; ++i )
 	    {
@@ -276,7 +277,6 @@ namespace Gfx
                 }
                 else
                 {
-                    bindFlag                    = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT | VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
                     extendedInfo.pNext          = nullptr;
                     extendedInfo.bindingCount   = 1u;
                     extendedInfo.pBindingFlags  = &bindFlag;

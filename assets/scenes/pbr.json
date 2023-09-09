@@ -1,0 +1,25 @@
+[
+    { "OfflineRenderSettings": {
+        "imageResolution": [ 1280, 720 ],
+        "maxDepth": 5,
+        "outputImageFilename": "build/pbr.png",
+        "numSamplesPerPixel": [ 32 ],
+        "antialiasMethod": "NONE",
+        "tonemapMethod": "REINHARD"
+    }},
+    { "Camera": {
+        "position": [ 0, -5, 0 ],
+        "rotation": [ 0, 0, 0 ],
+        "_aspectRatio": 1,
+        "exposure": 1.0
+    }},
+	{ "Skybox": "kloppenheim" },
+	{ "Script": "cameraController" },
+    { "_BackgroundColor": [ 0,0,1 ] },
+    { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
+    { "Entity": {
+        "NameComponent": "model",
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "cube", "material": "red" }
+    }}
+]

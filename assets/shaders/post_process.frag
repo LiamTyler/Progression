@@ -14,6 +14,7 @@ void main()
 {
     vec3 linearHdrColor = texture( originalColor, texCoord ).rgb;
     vec3 toneMappedColor = Reinhard( linearHdrColor );
-    finalColor.rgb = LinearToGammaSRGB( toneMappedColor );
+    finalColor.rgb = LinearToGammaSRGB( linearHdrColor );
+    //finalColor.rgb = ( linearHdrColor );
     finalColor.a = 1;
 }

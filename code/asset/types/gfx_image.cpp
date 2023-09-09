@@ -82,7 +82,7 @@ void GfxImage::UploadToGpu()
     desc.arrayLayers = numFaces;
     desc.mipLevels   = mipLevels;
     desc.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    desc.addToBindlessArray = imageType == ImageType::TYPE_2D;
+    desc.addToBindlessArray = imageType == ImageType::TYPE_2D || imageType == ImageType::TYPE_CUBEMAP;
 
     gpuTexture = rg.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );
@@ -200,6 +200,128 @@ static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* c
 }
 
 
+static void FlipColumns( FloatImage2D& image )
+{
+    for ( uint32_t row = 0; row < image.height; ++row )
+    {
+        for ( uint32_t col = 0; col < image.width / 2; ++col )
+        {
+            uint32_t endCol = image.width - col - 1;
+            auto p0 = image.GetFloat4( row, col );
+            auto p1 = image.GetFloat4( row, endCol );
+            image.SetFromFloat4( row, col, p1 );
+            image.SetFromFloat4( row, endCol, p0 );
+        }
+    }
+}
+
+static void FlipRows( FloatImage2D& image )
+{
+    for ( uint32_t row = 0; row < image.height / 2; ++row )
+    {
+        for ( uint32_t col = 0; col < image.width; ++col )
+        {
+            uint32_t endRow = image.height - row - 1;
+            auto p0 = image.GetFloat4( row, col );
+            auto p1 = image.GetFloat4( endRow, col );
+            image.SetFromFloat4( row, col, p1 );
+            image.SetFromFloat4( endRow, col, p0 );
+        }
+    }
+}
+
+static void FlipMainDiag( FloatImage2D& image )
+{
+    PG_ASSERT( image.width == image.height );
+    for ( uint32_t row = 0; row < image.height; ++row )
+    {
+        for ( uint32_t col = row + 1; col < image.width; ++col )
+        {
+            auto p0 = image.GetFloat4( row, col );
+            auto p1 = image.GetFloat4( col, row );
+            image.SetFromFloat4( row, col, p1 );
+            image.SetFromFloat4( col, row, p0 );
+        }
+    }
+}
+
+static void FlipReverseDiag( FloatImage2D& image )
+{
+    PG_ASSERT( image.width == image.height );
+    for ( uint32_t row = 0; row < image.height; ++row )
+    {
+        for ( uint32_t col = 0; col < image.height - row - 1; ++col )
+        {
+            uint32_t tRow = image.height - col - 1;
+            uint32_t tCol = image.width - row - 1;
+            auto p0 = image.GetFloat4( row, col );
+            auto p1 = image.GetFloat4( tRow, tCol );
+            image.SetFromFloat4( row, col, p1 );
+            image.SetFromFloat4( tRow, tCol, p0 );
+        }
+    }
+}
+
+static void ConvertPGCubemapToVkCubemap( FloatImageCubemap& cubemap )
+{
+    // https://registry.khronos.org/vulkan/specs/1.3/html/chap16.html#_cube_map_face_selection
+    // Vulkan cubemap sampling expects left-handed(?) Y-up in when deciding the per-face UVs. Need to
+    // rotate/flip the pixels in each face accordingly to account for it
+    FlipColumns( cubemap.faces[0] );
+    FlipReverseDiag( cubemap.faces[1] );
+    FlipRows( cubemap.faces[2] );
+    FlipMainDiag( cubemap.faces[3] );
+    FlipRows( cubemap.faces[4] );
+    FlipColumns( cubemap.faces[5] );
+
+    // From https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageSubresourceRange.html
+    // the layers of the image view starting at baseArrayLayer correspond to faces in the order +X, -X, +Y, -Y, +Z, -Z
+    FaceIndex pgToVkFaceOrder[6] = { FACE_RIGHT, FACE_LEFT, FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM };
+    FloatImage2D reorderedFaces[6];
+    for ( int i = 0; i < 6; ++i )
+    {
+        reorderedFaces[i] = cubemap.faces[pgToVkFaceOrder[i]];
+    }
+    for ( int i = 0; i < 6; ++i )
+    {
+        cubemap.faces[i] = reorderedFaces[i];
+    }
+}
+
+
+static FloatImageCubemap CreateDebugCubemap( uint32_t size )
+{
+    const glm::vec3 faceColors[6] = 
+    {
+        glm::vec3( 0, 0, 1 ), // FACE_BACK
+        glm::vec3( 0, 1, 0 ), // FACE_LEFT
+        glm::vec3( 1, 0, 0 ), // FACE_FRONT
+        glm::vec3( 1, 1, 0 ), // FACE_RIGHT
+        glm::vec3( 0, 1, 1 ), // FACE_TOP
+        glm::vec3( 1, 0, 1 ), // FACE_BOTTOM
+    };
+
+    FloatImageCubemap cubemap( 32, 3 );
+    for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+    {
+        for ( int dstRow = 0; dstRow < (int)cubemap.size; ++dstRow )
+        {
+            for ( int dstCol = 0; dstCol < (int)cubemap.size; ++dstCol )
+            {
+                glm::vec2 faceUV = { (dstCol + 0.5f) / cubemap.size, (dstRow + 0.5f) / cubemap.size };
+                glm::vec3 vert = faceColors[faceIdx];
+                glm::vec3 hori = glm::vec3( 1 );
+                glm::vec3 b = faceUV.x * hori + faceUV.y * vert;
+                b /= std::max( 1.0f, (faceUV.x + faceUV.y) );
+                cubemap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( b, 1 ) );
+            }
+        }
+    }
+
+    return cubemap;
+}
+
+
 static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
     int numFaces = 0;
@@ -234,17 +356,19 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
+        LOG( "Convolving face %d / 6...", faceIdx );
         for ( int dstRow = 0; dstRow < (int)irradianceMap.size; ++dstRow )
         {
             for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )
             {
                 glm::vec2 faceUV = { (dstCol + 0.5f) / irradianceMap.size, (dstRow + 0.5f) / irradianceMap.size };
+                
                 glm::vec3 normal = CubemapFaceUVToDirection( faceIdx, faceUV );
                 glm::vec3 tangent = normal.x < 0.99f ? glm::vec3( 1, 0, 0 ) : glm::vec3( 0, 1, 0 );
                 glm::vec3 bitangent = glm::normalize( glm::cross( normal, tangent ) );
                 tangent = glm::normalize( glm::cross( bitangent, normal ) );
 
-                constexpr float angleDelta = PI / 120;
+                constexpr float angleDelta = PI / 60;
                 uint32_t numSamples = 0;
                 glm::vec3 irradiance( 0 );
                 for ( float phi = 0; phi < 2 * PI; phi += angleDelta )
@@ -264,17 +388,14 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
             }
         }
     }
-    irradianceMap.SaveUnfoldedFaces( PG_ROOT_DIR "test.hdr" );
-    irradianceMap.SaveUnfoldedFaces( PG_ROOT_DIR "test.exr" );
 
-    // From https://registry.khronos.org/vulkan/specs/1.3-extensions/man/html/VkImageSubresourceRange.html
-    // the layers of the image view starting at baseArrayLayer correspond to faces in the order +X, -X, +Y, -Y, +Z, -Z
-    FaceIndex pgToVkFaceOrder[6] = { FACE_RIGHT, FACE_LEFT, FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM };
+    ConvertPGCubemapToVkCubemap( irradianceMap );
+
     RawImage2D faces[6];
     BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
     for ( int i = 0; i < 6; ++i )
     {
-        RawImage2D face = RawImage2DFromFloatImage( irradianceMap.faces[pgToVkFaceOrder[i]], ImageFormat::R16_G16_B16_FLOAT );
+        RawImage2D face = RawImage2DFromFloatImage( irradianceMap.faces[i], ImageFormat::R16_G16_B16_FLOAT );
         faces[i] = CompressToBC( face, compressorSettings );
     }
 

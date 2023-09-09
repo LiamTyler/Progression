@@ -113,7 +113,7 @@ void Render( CommandBuffer& cmdBuf )
     }
     s_drawFunctions.clear();
 
-    ImGui::ShowDemoWindow();
+    //ImGui::ShowDemoWindow();
 
     ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();

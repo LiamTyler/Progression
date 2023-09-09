@@ -28,7 +28,7 @@ struct MaterialData
     VEC4 albedoTint;
     float metalnessTint;
     UINT albedoMetalnessMapIndex;
-    float pad1;
+    UINT irradianceMapIndex;
     float pad2;
 };
 
@@ -43,7 +43,8 @@ struct SkyboxData
     VEC3 tint;
     float scale;
 	UINT hasTexture;
-    UVEC3 _pad1;
+    UINT debug;
+    UVEC2 _pad1;
 };
 
 #ifndef PG_SHADER_CODE

@@ -172,6 +172,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             for ( auto [assetName, _] : AssetManager::g_resourceMaps[assetTypeIdx] )
             {
                 auto createInfo = AssetDatabase::FindAssetInfo( assetType, assetName );
+                PG_ASSERT( createInfo, "asset with name %s not found", assetName.c_str() );
                 g_converters[assetType]->AddReferencedAssets( createInfo );
                 AddUsedAsset( assetType, createInfo );
             }

@@ -59,7 +59,7 @@ static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
 // returns true on ERROR
 static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, ShaderResourceLayout& layout, unsigned set, unsigned binding )
 {
-	uint32_t& size = layout.sets[set].arraySizes[binding];
+	uint32_t& currentBindingSize = layout.sets[set].arraySizes[binding];
 	if ( !type.array.empty() )
 	{
 		if ( type.array.size() != 1 )
@@ -72,7 +72,8 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
         }
 		else
 		{
-			if ( type.array.front() == 0 )
+            uint32_t reflectedSize = type.array.front();
+			if ( reflectedSize == 0 )
 			{
                 // bindless
                 if ( binding != 0 )
@@ -81,17 +82,22 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
                 }
 				if ( (type.basetype != spirv_cross::SPIRType::Image && type.basetype != spirv_cross::SPIRType::SampledImage) || type.image.dim == spv::DimBuffer )
                 {
-					LOG_ERR( "Can only use bindless for images." );
+					LOG_ERR( "Engine is currently only setup to use bindless images, not any other bindless type. TODO: allow other bindless types" );
                 }
 				else
                 {
-                    size = UINT32_MAX;
+                    currentBindingSize = UINT32_MAX;
                     return false;
                 }
 			}
-			else if ( size && size != type.array.front() )
+            else if ( currentBindingSize == UINT32_MAX )
             {
-				LOG_ERR( "Array dimension for set %u, binding %u is inconsistent.", set, binding );
+                LOG( "\tAssuming array for set %u binding %u is trying to alias with the existing bindless resource at the same set & binding", set, binding );
+                return false;
+            }
+			else if ( currentBindingSize && currentBindingSize != reflectedSize )
+            {
+				LOG_ERR( "Array dimension for set %u, binding %u is inconsistent. (Current %u, new %u)", set, binding, currentBindingSize, reflectedSize );
             }
 			else if ( type.array.front() + binding > PG_MAX_NUM_BINDINGS_PER_SET )
             {
@@ -99,20 +105,20 @@ static bool ReflectShader_UpdateArraySize( const spirv_cross::SPIRType& type, Sh
             }
             else
             {
-				size = type.array.front();
+				currentBindingSize = reflectedSize;
                 return false;
             }
 		}
 	}
 	else
 	{
-		if ( size && size != 1 )
+		if ( currentBindingSize && currentBindingSize != 1 )
         {
 			LOG_ERR( "Array dimension for set %u, binding %u is inconsistent. Non-array type has size > 1?", set, binding );
         }
         else
         {
-		    size = 1;
+		    currentBindingSize = 1;
             return false;
         }
 	}

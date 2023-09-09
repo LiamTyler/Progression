@@ -536,32 +536,30 @@ glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex )
 
 
 // http://paulbourke.net/dome/dualfish2sphere/
+// NOTE: Keep in sync with skybox.frag
+// atan( x, y ) instead of ( y, x ) because im assume that the center pixel of a
+// lat-long image should correspond to the direction (0, +1, 0), which would be the
+// 'front' face if it was a cubemap
 glm::vec2 DirectionToEquirectangularUV( const glm::vec3& dir )
 {
-    float phi = atan2( dir.y, dir.x ); // -pi to pi
-    float theta = asin( dir.z ); // -pi/2 to pi/2
+    // assumes normalized input dir
+    float lon = atan2( dir.x, dir.y ); // -pi to pi
+    float lat = acos( dir.z ); // 0 to pi
+    glm::vec2 uv = { 0.5f * lon / PI + 0.5f, lat / PI };
 
-    float x = phi / PI; // -1 to 1
-    float y = 2 * theta / PI; // -1 to 1
-
-    float u = 0.5f * x + 0.5f; // 0 to 1
-    float v = 0.5f * -y + 0.5f; // 0 to 1, where 0 = top and 1 = bottom
-    return { u, v };
+    return uv;
 }
 
 
 glm::vec3 EquirectangularUVToDirection( const glm::vec2& uv )
 {
-    float x = uv.x * 2 - 1;
-    float y = -(uv.y * 2 - 1); // the '-' is because I use (0,0) as the upper left corner of images, instead of bottom left
-
-    float lon = x * PI;
-    float lat = y * PI / 2;
+    float lon = (2 * uv.x - 1) * PI; // -pi to pi
+    float lat = uv.y * PI; // 0 to pi, with 0 being the top row of the image
 
     glm::vec3 dir;
-    dir.x = cos( lat ) * cos( lon );
-    dir.y = cos( lat ) * sin( lon );
-    dir.z = sin( lat );
+    dir.x = sin( lat ) * cos( lon );
+    dir.y = sin( lat ) * sin( lon );
+    dir.z = cos( lat );
 
     return dir;
 }

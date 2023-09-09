@@ -18,11 +18,9 @@ layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
     SceneGlobals globals;
 };
 
-layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures[];
-//layout( std140, set = PG_LIGHTS_SET, binding = PG_POINT_LIGHTS_BIND_INDEX ) uniform PointLights
-//{
-//    PointLight pointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
-//};
+layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures_2D[];
+layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform samplerCube textures_Cube[];
+
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
     layout( offset = 128 ) MaterialData material;
@@ -33,9 +31,12 @@ void main()
     vec3 albedo = material.albedoTint.rgb;
     if ( material.albedoMetalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
     {
-        albedo *= texture( textures[material.albedoMetalnessMapIndex], texCoords ).rgb;
+        albedo *= texture( textures_2D[material.albedoMetalnessMapIndex], texCoords ).rgb;
     }
-    outColor = vec4( albedo, 1 );
+
+    vec3 irradiance = texture( textures_Cube[material.irradianceMapIndex], worldSpaceNormal ).rgb;
+    vec3 diffuse = irradiance * albedo;
+    outColor = vec4( diffuse, 1 );
 
     // float metalness = material.metalnessTint;
     // if ( material.metalnessMapIndex != PG_INVALID_TEXTURE_INDEX )

@@ -110,6 +110,10 @@ static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
     std::string name = v.GetString();
     scene->skybox = AssetManager::Get<GfxImage>( name );
     PG_ASSERT( scene->skybox, "Could not find skybox with name '%s'", name.c_str() );
+#if USING( GAME )
+    scene->skyboxIrradiance = AssetManager::Get<GfxImage>( name + "_irradiance" );
+#endif // #if USING( GAME )
+
     return true;
 }
 

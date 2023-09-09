@@ -26,52 +26,52 @@ if ( !( X ) ) \
 
 #define _PG_ASSERT3( X, FMT, A1 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1 ); \
+    printf( "Assert message: " FMT "\n", A1 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT4( X, FMT, A1, A2 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2 ); \
+    printf( "Assert message: " FMT "\n", A1, A2 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT5( X, FMT, A1, A2, A3 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT6( X, FMT, A1, A2, A3, A4 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3, A4 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3, A4 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT7( X, FMT, A1, A2, A3, A4, A5 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3, A4, A5 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT8( X, FMT, A1, A2, A3, A4, A5, A6 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3, A4, A5, A6 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT9( X, FMT, A1, A2, A3, A4, A5, A6, A7 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3, A4, A5, A6, A7 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT10( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT11( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8, A9 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8, A9 ); \
     _PG_ASSERT_END()
 
 #define _PG_ASSERT12( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 ) \
     _PG_ASSERT_START( X ) \
-    printf( "Assert message" FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 ); \
+    printf( "Assert message: " FMT "\n", A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 ); \
     _PG_ASSERT_END()
 
 #else // #if !USING( SHIP_BUILD )

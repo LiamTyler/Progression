@@ -6,6 +6,7 @@ layout( location = 0 ) in vec3 UV;
 
 //layout( set = 0, binding = 0 ) uniform samplerCube skybox;
 layout( set = 0, binding = 0 ) uniform sampler2D skybox;
+layout( set = 0, binding = 1 ) uniform samplerCube skyboxIrradiance;
 
 layout( location = 0 ) out vec4 finalColor;
 
@@ -18,14 +19,22 @@ void main()
 {
     if ( drawData.hasTexture != 0 )
     {
-        // Flip Z because in opengl, +z is forward instead of -z, because it uses a left handed system
-        // https://stackoverflow.com/questions/11685608/convention-of-faces-in-opengl-cubemapping
-        //finalColor = texture( skybox, vec3( UV.xy, -UV.z ) );
-        vec3 dir = normalize( vec3( UV.xy, -UV.z ) );
-        float lon = atan( dir.x, dir.y );
-        float lat = atan( dir.z, length( dir.xy ) );
-        vec2 uv = vec2( 0.5 * (lon / PI + 1), lat / PI + 0.5 );
-        finalColor = texture( skybox, uv );
+        vec3 dir = normalize( UV );
+
+        // NOTE: Keep in sync with image.cpp::DirectionToEquirectangularUV
+        float lon = atan( dir.x, dir.y ); // -pi to pi
+        float lat = acos( dir.z ); // 0 to PI
+        vec2 uv = vec2( 0.5f * lon / PI + 0.5f, lat / PI );
+
+        if ( (drawData.debug & 1) == 0 )
+        {
+            finalColor = texture( skybox, uv );
+        }
+        else
+        {
+            finalColor = texture( skyboxIrradiance, dir );
+            return;
+        }
     }
     else
     {

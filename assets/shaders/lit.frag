@@ -8,7 +8,9 @@
 
 layout( location = 0 ) in vec3 worldSpacePos;
 layout( location = 1 ) in vec3 worldSpaceNormal;
-layout( location = 2 ) in vec2 texCoords;
+layout( location = 2 ) in vec3 worldSpaceTangent;
+layout( location = 3 ) in vec3 worldSpaceBitangent;
+layout( location = 4 ) in vec2 texCoords;
 
 layout( location = 0 ) out vec4 outColor;
 
@@ -19,7 +21,8 @@ layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
 };
 
 layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures_2D[];
-layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform samplerCube textures_Cube[];
+// layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform samplerCube textures_Cube[];
+layout( set = 3, binding = 1 ) uniform samplerCube skyboxIrradiance;
 
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
@@ -34,7 +37,7 @@ void main()
         albedo *= texture( textures_2D[material.albedoMetalnessMapIndex], texCoords ).rgb;
     }
 
-    vec3 irradiance = texture( textures_Cube[material.irradianceMapIndex], worldSpaceNormal ).rgb;
+    vec3 irradiance = texture( skyboxIrradiance, worldSpaceNormal ).rgb;
     vec3 diffuse = irradiance * albedo;
     outColor = vec4( diffuse, 1 );
 

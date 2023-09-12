@@ -1,3 +1,5 @@
+pmodelFormat: 1
+
 Materials: 0
 Meshes: 1
 0: Plane
@@ -24,10 +26,10 @@ TexCoords: 4
 0.9999 0.9999
 0.0001 0.9999
 Tangents: 4
-1 0 0
-1 0 0
-1 0 0
-1 0 0
+1 0 0 1
+1 0 0 1
+1 0 0 1
+1 0 0 1
 Triangles: 2
 0 2 1
 0 3 2

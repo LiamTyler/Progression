@@ -226,8 +226,9 @@ void RegisterLuaFunctions( lua_State* L )
     mat_type["name"]                 = &Material::name;
     mat_type["albedoTint"]           = &Material::albedoTint;
     mat_type["metalnessTint"]        = &Material::metalnessTint;
-    //mat_type["roughnessTint"]        = &Material::roughnessTint;
+    mat_type["roughnessTint"]        = &Material::roughnessTint;
     mat_type["albedoMetalnessImage"] = &Material::albedoMetalnessImage;
+    mat_type["normalRoughnessImage"] = &Material::normalRoughnessImage;
     
     sol::usertype<Model> model_type = lua.new_usertype<Model>( "Model" );
     model_type["name"] = &Model::name;

@@ -17,8 +17,8 @@ namespace PG
 
 bool IsSemanticComposite( GfxImageSemantic semantic )
 {
-    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 6 );
-    return semantic == GfxImageSemantic::ALBEDO_METALNESS;
+    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 7 );
+    return semantic == GfxImageSemantic::ALBEDO_METALNESS || semantic == GfxImageSemantic::NORMAL_ROUGHNESS;
 }
 
 
@@ -133,6 +133,52 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
 
     return gfxImage->pixels != nullptr;
 }
+
+
+static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    CompositeImageInput compositeInfo;
+    compositeInfo.compositeType = CompositeType::REMAP;
+    compositeInfo.outputColorSpace = ColorSpace::LINEAR;
+    compositeInfo.sourceImages.resize( 2 );
+
+    compositeInfo.sourceImages[0].filename = GetImageFullPath( createInfo->filenames[0] );
+    compositeInfo.sourceImages[0].colorSpace = ColorSpace::LINEAR;
+    compositeInfo.sourceImages[0].remaps.push_back( { Channel::R, Channel::R } );
+    compositeInfo.sourceImages[0].remaps.push_back( { Channel::G, Channel::G } );
+    compositeInfo.sourceImages[0].remaps.push_back( { Channel::B, Channel::B } );
+
+    compositeInfo.sourceImages[1].filename = GetImageFullPath( createInfo->filenames[1] );
+    compositeInfo.sourceImages[1].colorSpace = ColorSpace::LINEAR;
+    compositeInfo.sourceImages[1].remaps.push_back( { createInfo->compositeSourceChannels[1], Channel::A } );
+
+    FloatImage2D composite = CompositeImage( compositeInfo );
+    if ( !composite.data )
+    {
+        return false;
+    }
+
+    if ( createInfo->compositeScales[2] ) // where invertRoughness is stored
+    {
+        composite.ForEachPixel( []( float* p )
+        {
+            p[3] = 1 - p[3];
+        });
+    }
+
+    MipmapGenerationSettings settings;
+    settings.clampHorizontal = createInfo->clampHorizontal;
+    settings.clampVertical = createInfo->clampVertical;
+    std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( GenerateMipmaps( composite, settings ) );
+    
+    BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
+    std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
+
+    *gfxImage = RawImage2DMipsToGfxImage( compressedMips, compositeInfo.outputColorSpace == ColorSpace::SRGB );
+
+    return gfxImage->pixels != nullptr;
+}
+
 
 
 static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo, RawImage2D &img )
@@ -430,6 +476,9 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
     {
     case GfxImageSemantic::ALBEDO_METALNESS:
         success = Load_AlbedoMetalness( this, createInfo );
+        break;
+    case GfxImageSemantic::NORMAL_ROUGHNESS:
+        success = Load_NormalRoughness( this, createInfo );
         break;
     case GfxImageSemantic::ENVIRONMENT_MAP:
         success = Load_EnvironmentMap( this, createInfo );

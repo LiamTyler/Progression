@@ -18,6 +18,7 @@ std::string GetAbsPath_ModelFilename( const std::string& filename )
     return PG_ASSET_DIR + filename;
 }
 
+
 bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
@@ -36,6 +37,14 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     std::string tmp;
+    uint32_t pmodelVersion;
+    in >> tmp >> pmodelVersion;
+    if ( tmp != "pmodelFormat:" )
+    {
+        LOG_ERR( "Invalid .pmodel file '%s'. First line should be 'pmodelFormat: ___' where the blank is the file version.", createInfo->filename.c_str() );
+        return false;
+    }
+
     uint32_t numMaterials;
     in >> tmp >> numMaterials;
     std::vector<std::string> materialNames( numMaterials );
@@ -107,7 +116,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     tangents.resize( numTangents );
     for ( uint32_t i = 0; i < numTangents; ++i )
     {
-        in >> tangents[i].x >> tangents[i].y >> tangents[i].z;
+        in >> tangents[i].x >> tangents[i].y >> tangents[i].z >> tangents[i].w;
     }
 
     uint32_t numTris;
@@ -312,7 +321,7 @@ void Model::UploadToGPU()
     totalSize += positions.size() * sizeof( glm::vec3 );
     totalSize += normals.size() * sizeof( glm::vec3 );
     totalSize += texCoordCount * sizeof( glm::vec2 );
-    totalSize += tangentCount * sizeof( glm::vec3 );
+    totalSize += tangentCount * sizeof( glm::vec4 );
     if ( totalSize == 0 && indices.size() == 0 )
     {
         return;
@@ -342,13 +351,13 @@ void Model::UploadToGPU()
     gpuTangentOffset = offset;
     if ( tangents.empty() )
     {
-        memset( tmpMem + offset, 0, tangentCount * sizeof( glm::vec2 ) );
+        memset( tmpMem + offset, 0, tangentCount * sizeof( glm::vec4 ) );
     }
     else
     {
-        memcpy( tmpMem + offset, tangents.data(), tangentCount * sizeof( glm::vec2 ) );
+        memcpy( tmpMem + offset, tangents.data(), tangentCount * sizeof( glm::vec4 ) );
     }
-    offset += tangentCount * sizeof( glm::vec3 );
+    offset += tangentCount * sizeof( glm::vec4 );
 
     using namespace Gfx;
     BufferType rayTracingType = BUFFER_TYPE_DEVICE_ADDRESS | BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY | BUFFER_TYPE_STORAGE;
@@ -415,6 +424,14 @@ std::vector<std::string> GetModelMaterialList( const std::string& fullModelPath 
     }
 
     std::string tmp;
+    uint32_t pmodelVersion;
+    in >> tmp >> pmodelVersion;
+    if ( tmp != "pmodelFormat:" )
+    {
+        LOG_ERR( "Invalid .pmodel file '%s'. First line should be 'pmodelFormat: ___' where the blank is the file version.", fullModelPath.c_str() );
+        return {};
+    }
+
     uint32_t numMaterials;
     in >> tmp >> numMaterials;
     materials.resize( numMaterials );

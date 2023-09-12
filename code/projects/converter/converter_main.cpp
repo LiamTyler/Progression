@@ -277,7 +277,7 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
                 {
                     ff.Close();
                     DeleteFile( fastfilePath );
-                    LOG_ERR( "Could not get cached asset %s", cacheName.c_str() );
+                    LOG_ERR( "Could not get cached asset %s of type %s", cacheName.c_str(), g_assetNames[assetTypeIdx] );
                     return false;
                 }
                 ff.Write( assetRawBytes.get(), numBytes );

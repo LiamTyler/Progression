@@ -58,6 +58,7 @@ BEGIN_STR_TO_ENUM_MAP( GfxImageSemantic )
     STR_TO_ENUM_VALUE( GfxImageSemantic, COLOR )
     STR_TO_ENUM_VALUE( GfxImageSemantic, GRAY )
     STR_TO_ENUM_VALUE( GfxImageSemantic, ALBEDO_METALNESS )
+    STR_TO_ENUM_VALUE( GfxImageSemantic, NORMAL_ROUGHNESS )
     STR_TO_ENUM_VALUE( GfxImageSemantic, ENVIRONMENT_MAP )
     STR_TO_ENUM_VALUE( GfxImageSemantic, ENVIRONMENT_MAP_IRRADIANCE )
     STR_TO_ENUM_VALUE( GfxImageSemantic, UI )
@@ -104,7 +105,7 @@ bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
         { "albedoTint",     []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint     = ParseVec3( v ); } },
         { "metalnessTint",  []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint  = ParseNumber<float>( v ); } },
         { "emissiveTint",  []( const Value& v, MaterialCreateInfo& i ) { i.emissiveTint  = ParseVec3( v ); } },
-        //{ "roughness",  []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint  = ParseNumber<float>( v ); } },
+        { "roughnessTint",  []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint  = ParseNumber<float>( v ); } },
     });
     mapping.ForEachMember( value, *info );
 
@@ -183,11 +184,11 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfo
         { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = String( v ); } },
         { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = String( v ); } },
         { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
-        //{ "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = String( v ); } },
-        //{ "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<float>( v ); } },
-        //{ "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = String( v ); } },
-        //{ "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
-        //{ "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = v.GetBool(); } },
+        { "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = String( v ); } },
+        { "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<float>( v ); } },
+        { "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = String( v ); } },
+        { "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
+        { "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = v.GetBool(); } },
         { "emissiveMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.emissiveMap = String( v ); } },
     });
     mapping.ForEachMember( value, *info );

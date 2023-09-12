@@ -10,6 +10,7 @@
 #endif // #if USING( GPU_DATA )
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
+#include "glm/vec4.hpp"
 #include <vector>
 
 namespace PG
@@ -50,7 +51,7 @@ struct Model : public BaseAsset
     std::vector<glm::vec3> positions;
     std::vector<glm::vec3> normals;
     std::vector<glm::vec2> texCoords;
-    std::vector<glm::vec3> tangents;
+    std::vector<glm::vec4> tangents; // xyz is the tangent, w is the bitangent sign
     std::vector<uint32_t> indices;
 
     std::vector<Mesh> meshes;

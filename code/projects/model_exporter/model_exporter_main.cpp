@@ -2,6 +2,7 @@
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
 #include "asset/asset_file_database.hpp"
+#include "asset/types/pmodel_versions.hpp"
 #include "asset/types/textureset.hpp"
 #include "core/time.hpp"
 #include "glm/glm.hpp"
@@ -240,6 +241,10 @@ static bool OutputMaterial( const aiMaterial* assimpMat, const aiScene* scene, c
     if ( metallicFactor )
         AddJSON( matSettings, "metallicFactor", *metallicFactor );
 
+    auto roughnessFactor = GetFloat( assimpMat, AI_MATKEY_ROUGHNESS_FACTOR );
+    if ( roughnessFactor )
+        AddJSON( matSettings, "roughnessFactor", *roughnessFactor );
+
     if ( auto emissiveTint = GetVec3( assimpMat, AI_MATKEY_COLOR_EMISSIVE ) )
     {
         if ( *emissiveTint != glm::vec3( 0 ) )
@@ -262,10 +267,17 @@ static bool OutputMaterial( const aiMaterial* assimpMat, const aiScene* scene, c
         else if ( metallicFactor )
             AddJSON( texSettings, "metalnessMap", "$white" );
 
+        if ( auto normalMap = GetAssimpTexture( assimpMat, aiTextureType_NORMALS, "normal", matName ) )
+            AddJSON( texSettings, "normalMap", *normalMap );
+
+        auto roughnessMap = GetAssimpTexture( assimpMat, aiTextureType_SHININESS, "roughness", matName );
+        if ( roughnessMap )
+            AddJSON( texSettings, "roughnessMap", *roughnessMap );
+        else if ( roughnessFactor )
+            AddJSON( texSettings, "roughnessMap", "$white" );
+
         if ( auto emissiveMap = GetAssimpTexture( assimpMat, aiTextureType_EMISSIVE, "emissive", matName ) )
             AddJSON( texSettings, "emissiveMap", *emissiveMap );
-
-        // aiTextureType_SHININESS for gloss/roughness
 
         // Only name + output a textureset if it has non-default values
         if ( texSettings.size() > 1 )
@@ -370,6 +382,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     std::vector<glm::vec3> normals;
     std::vector<glm::vec2> uvs;
     std::vector<glm::vec3> tangents;
+    std::vector<float> bitangentSigns;
     std::vector<uint32_t> indices;
     uint32_t numVertices = 0;
     uint32_t numIndices = 0;
@@ -456,13 +469,20 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
                     ++nanTangents;
                     t = glm::vec3( 0 );
                 }
+                const aiVector3D* pBitangent = &paiMesh->mBitangents[vIdx];
+                glm::vec3 bitangent( pBitangent->x, pBitangent->y, pBitangent->z );
+                glm::vec3 calcBitangent = glm::cross( normal, t );
+                float bDot = glm::dot( bitangent, calcBitangent );
+                float sign = bDot >= 0.0f ? 1.0f : -1.0f;
 
                 tangents.emplace_back( t );
+                bitangentSigns.emplace_back( sign );
             }
             else if ( anyMeshHasUVs )
             {
                 uvs.emplace_back( 0, 0 );
                 tangents.emplace_back( 0, 0, 0 );
+                bitangentSigns.push_back( 0 );
             }
         }
         if ( nanTangents > 0 )
@@ -491,6 +511,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         LOG_ERR( "Could not open output model filename '%s'", outputModelFilename.c_str() );
         return false;
     }
+    outFile << "pmodelFormat: " << (uint32_t)PModelVersionNum::CURRENT_VERSION << "\n\n";
 
     outFile << "Materials: " << materialNames.size() << "\n";
     for ( size_t i = 0; i < materialNames.size(); ++i )
@@ -526,7 +547,11 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     for ( size_t i = 0; i < uvs.size(); ++i ) PrintVec2( uvs[i] );
 
     outFile << "Tangents: " << tangents.size() << "\n";
-    for ( size_t i = 0; i < tangents.size(); ++i ) PrintVec3( tangents[i] );
+    for ( size_t i = 0; i < tangents.size(); ++i )
+    {
+        const auto& t = tangents[i];
+        outFile << t.x << " " << t.y << " " << t.z << (bitangentSigns[i] >= 0 ? " 1" : " -1") << "\n";
+    }
 
     outFile << "Triangles: " << indices.size() / 3 << "\n";
     for ( size_t i = 0; i < indices.size(); i += 3 ) outFile << indices[i+0] << " " << indices[i+1] << " " << indices[i+2] << "\n";
@@ -620,7 +645,7 @@ int main( int argc, char* argv[] )
     size_t modelsConverted = 0;
     std::string outputJSON = "[\n";
     outputJSON.reserve( 1024 * 1024 );
-    // Cant run in 
+    // Cant run in parallel, since writing the output 
     // #pragma omp parallel for
     for ( int i = 0; i < static_cast<int>( filesToProcess.size() ); ++i )
     {

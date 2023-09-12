@@ -13,13 +13,14 @@ struct MaterialCreateInfo : public BaseAssetCreateInfo
     std::string texturesetName;
     glm::vec3 albedoTint;
     float metalnessTint;
-    //float roughnessTint;
+    float roughnessTint;
     glm::vec3 emissiveTint;
     
+    // which textures from the textureset to actually apply
     bool applyAlbedo = true;
     bool applyMetalness = true;
-    //bool applyNormals = true;
-    //bool applyRoughness = true;
+    bool applyNormals = true;
+    bool applyRoughness = true;
     bool applyEmissive = true;
 };
 
@@ -36,8 +37,8 @@ struct Material : public BaseAsset
     float metalnessTint  = 1.0f;
     GfxImage* albedoMetalnessImage = nullptr;
 
-    //float roughnessTint;
-    //GfxImage* normalRoughnessImage = nullptr;
+    float roughnessTint = 1.0f;
+    GfxImage* normalRoughnessImage = nullptr;
 
     glm::vec3 emissiveTint = glm::vec3( 0.0f );
     GfxImage* emissiveImage = nullptr;

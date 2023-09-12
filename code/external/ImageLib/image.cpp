@@ -466,10 +466,12 @@ void FloatImage2D::SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& p
 
 void HDRImageToLDR( FloatImage2D& image )
 {
-    image.ForEachPixel( [&]( uint32_t pixelIdx )
+    image.ForEachPixelIndex( [&]( uint32_t pixelIdx )
     {
         glm::vec4 p = image.GetFloat4( pixelIdx );
-        image.SetFromFloat4( pixelIdx, p / (p + glm::vec4( 1.0f )) );
+        glm::vec3 rgb = p;
+        rgb /= (rgb + glm::vec3( 1.0f ));
+        image.SetFromFloat4( pixelIdx, glm::vec4( rgb, p.a ) );
     });
 }
 

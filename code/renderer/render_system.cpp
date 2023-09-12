@@ -99,14 +99,16 @@ static void InitPipelines()
     {
         VertexBindingDescriptor( 0, sizeof( glm::vec3 ) ),
         VertexBindingDescriptor( 1, sizeof( glm::vec3 ) ),
-        VertexBindingDescriptor( 2, sizeof( glm::vec2 ) ),
+        VertexBindingDescriptor( 2, sizeof( glm::vec4 ) ),
+        VertexBindingDescriptor( 3, sizeof( glm::vec2 ) ),
     };
 
     VertexAttributeDescriptor attribDescs[] =
     {
         VertexAttributeDescriptor( 0, 0, BufferDataType::FLOAT3, 0 ),
         VertexAttributeDescriptor( 1, 1, BufferDataType::FLOAT3, 0 ),
-        VertexAttributeDescriptor( 2, 2, BufferDataType::FLOAT2, 0 ),
+        VertexAttributeDescriptor( 2, 2, BufferDataType::FLOAT4, 0 ),
+        VertexAttributeDescriptor( 3, 3, BufferDataType::FLOAT2, 0 ),
     };
 
     PipelineDescriptor pipelineDesc;
@@ -346,9 +348,11 @@ RenderPass* GetRenderPass( const std::string& name )
 GpuData::MaterialData CPUMaterialToGPU( Material* material )
 {
     GpuData::MaterialData gpuMaterial;
-    gpuMaterial.albedoTint = glm::vec4( material->albedoTint, 1 );
+    gpuMaterial.albedoTint = material->albedoTint;
     gpuMaterial.metalnessTint = material->metalnessTint;
+    gpuMaterial.roughnessTint = material->roughnessTint;
     gpuMaterial.albedoMetalnessMapIndex = material->albedoMetalnessImage ? material->albedoMetalnessImage->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMaterial.normalRoughnessMapIndex = material->normalRoughnessImage ? material->normalRoughnessImage->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
 
     return gpuMaterial;
 }
@@ -514,7 +518,8 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
     
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuNormalOffset, 1 );
-        cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuTexCoordOffset, 2 );
+        cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuTangentOffset, 2 );
+        cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuTexCoordOffset, 3 );
         cmdBuf->BindIndexBuffer( model->indexBuffer );
     
         for ( size_t i = 0; i < model->meshes.size(); ++i )
@@ -522,10 +527,6 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
             const Mesh& mesh   = modelRenderer.model->meshes[i];
             Material* material = modelRenderer.materials[i];
             GpuData::MaterialData gpuMaterial = CPUMaterialToGPU( material );
-            if ( scene->skyboxIrradiance )
-            {
-                gpuMaterial.irradianceMapIndex = scene->skyboxIrradiance->gpuTexture.GetBindlessArrayIndex();
-            }
             cmdBuf->PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
             PG_DEBUG_MARKER_INSERT_CMDBUF( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
             cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );

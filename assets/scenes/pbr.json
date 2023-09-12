@@ -20,6 +20,6 @@
     { "Entity": {
         "NameComponent": "model",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "cube", "material": "red" }
+        "ModelRenderer": { "model": "quad", "material": "test_normals_1" }
     }}
 ]

@@ -19,12 +19,18 @@ bool Material::FastfileLoad( Serializer* serializer )
     serializer->Read( name );
     serializer->Read( albedoTint );
     serializer->Read( metalnessTint );
-    //serializer->Read( roughnessTint );
+    serializer->Read( roughnessTint );
     serializer->Read( emissiveTint );
+    
     std::string imgName;
     serializer->Read( imgName );
     albedoMetalnessImage = AssetManager::Get<GfxImage>( imgName );
     PG_ASSERT( albedoMetalnessImage, "AlbedoMetalness image '%s' not found for material '%s'", imgName.c_str(), name.c_str() );
+    
+    serializer->Read( imgName );
+    normalRoughnessImage = AssetManager::Get<GfxImage>( imgName );
+    PG_ASSERT( normalRoughnessImage, "NormalRoughness image '%s' not found for material '%s'", imgName.c_str(), name.c_str() );
+    
     serializer->Read( imgName );
     if ( !imgName.empty() )
     {
@@ -41,9 +47,11 @@ bool Material::FastfileSave( Serializer* serializer ) const
     serializer->Write( name );
     serializer->Write( albedoTint );
     serializer->Write( metalnessTint );
-    //serializer->Write( roughnessTint );
+    serializer->Write( roughnessTint );
     serializer->Write( emissiveTint );
     std::string imgName = albedoMetalnessImage ? albedoMetalnessImage->name : "";
+    serializer->Write( imgName );
+    imgName = normalRoughnessImage ? normalRoughnessImage->name : "";
     serializer->Write( imgName );
     imgName = emissiveImage ? emissiveImage->name : "";
     serializer->Write( imgName );

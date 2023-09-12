@@ -25,15 +25,15 @@ std::string TexturesetCreateInfo::GetEmissiveMap( bool isApplied ) const
     return isApplied ? emissiveMap : "";
 }
 
-//std::string TexturesetCreateInfo::GetNormalMap( bool isApplied ) const
-//{
-//    return isApplied ? normalMap : "$default_normalmap";
-//}
-//
-//std::string TexturesetCreateInfo::GetRoughnessMap( bool isApplied ) const
-//{
-//    return isApplied ? roughnessMap : "$default_roughness";
-//}
+std::string TexturesetCreateInfo::GetNormalMap( bool isApplied ) const
+{
+    return isApplied ? normalMap : "$default_normalmap";
+}
+
+std::string TexturesetCreateInfo::GetRoughnessMap( bool isApplied ) const
+{
+    return isApplied ? roughnessMap : "$default_roughness";
+}
 
 
 std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const
@@ -55,23 +55,24 @@ std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo,
 }
 
 
-//std::string TexturesetCreateInfo::GetNormalRoughImageName( bool applyNormals, bool applyRoughness ) const
-//{
-//    std::string cacheName;
-//    std::string normals = GetAlbedoMap( applyNormals );
-//    cacheName += GetFilenameStem( normals );
-//    cacheName += "~";
-//    std::string roughness = GetMetalnessMap( applyRoughness );
-//    cacheName += GetFilenameStem( roughness );
-//
-//    size_t hash = 0;
-//    HashCombine( hash, normals );
-//    HashCombine( hash, roughness );
-//    HashCombine( hash, roughnessScale );
-//    HashCombine( hash, Underlying( roughnessSourceChannel ) );
-//    HashCombine( hash, invertRoughness );
-//    
-//    return cacheName + "~" + std::to_string( hash );
-//}
+std::string TexturesetCreateInfo::GetNormalRoughnessImageName( bool applyNormals, bool applyRoughness ) const
+{
+    std::string cacheName;
+    std::string normals = GetAlbedoMap( applyNormals );
+    cacheName += GetFilenameStem( normals );
+    cacheName += "~";
+    std::string roughness = GetMetalnessMap( applyRoughness );
+    cacheName += GetFilenameStem( roughness );
+
+    size_t hash = 0;
+    HashCombine( hash, normals );
+    HashCombine( hash, slopeScale );
+    HashCombine( hash, roughness );
+    HashCombine( hash, roughnessScale );
+    HashCombine( hash, Underlying( roughnessSourceChannel ) );
+    HashCombine( hash, invertRoughness );
+    
+    return cacheName + "~" + std::to_string( hash );
+}
 
 } // namespace PG

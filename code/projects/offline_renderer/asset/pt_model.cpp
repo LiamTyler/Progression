@@ -62,7 +62,7 @@ namespace PT
 
         if ( model->tangents.empty() )
         {
-            model->tangents.resize( model->positions.size(), glm::vec3( 0 ) );
+            model->tangents.resize( model->positions.size(), glm::vec4( 0 ) );
             for ( const Mesh& mesh : model->meshes )
             {
                 for ( uint32_t i = 0; i < mesh.numIndices; i += 3 )
@@ -74,25 +74,25 @@ namespace PT
                     glm::vec3 t = glm::normalize( e );
                     glm::vec3 n = model->normals[i0];
 
-                    if ( model->tangents[i0] == glm::vec3( 0 ) )
-                        model->tangents[i0] = glm::normalize( t - model->normals[i0] * glm::dot( model->normals[i0], t ) );
-                    if ( model->tangents[i1] == glm::vec3( 0 ) )
-                        model->tangents[i1] = glm::normalize( t - model->normals[i1] * glm::dot( model->normals[i1], t ) );
-                    if ( model->tangents[i2] == glm::vec3( 0 ) )
-                        model->tangents[i2] = glm::normalize( t - model->normals[i2] * glm::dot( model->normals[i2], t ) );
+                    if ( model->tangents[i0] == glm::vec4( 0 ) )
+                        model->tangents[i0] = glm::vec4( glm::normalize( t - model->normals[i0] * glm::dot( model->normals[i0], t ) ), 1 );
+                    if ( model->tangents[i1] == glm::vec4( 0 ) )
+                        model->tangents[i1] = glm::vec4( glm::normalize( t - model->normals[i1] * glm::dot( model->normals[i1], t ) ), 1 );
+                    if ( model->tangents[i2] == glm::vec4( 0 ) )
+                        model->tangents[i2] = glm::vec4( glm::normalize( t - model->normals[i2] * glm::dot( model->normals[i2], t ) ), 1 );
                 }
             }
 
             for ( size_t i = 0; i < model->tangents.size(); ++i )
             {
-                glm::vec3& t = model->tangents[i];
+                glm::vec3 t = model->tangents[i];
                 if ( t == glm::vec3( 0 ) || glm::any( glm::isinf( t ) ) || glm::any( glm::isnan( t ) ) )
                 {
                     LOG_WARN( "Tangent %zu of model %s is bad, setting manually", i, model->name.c_str() );
-                    t = glm::vec3( 1, 0, 0 );
-                    if ( t == model->normals[i] )
+                    model->tangents[i] = glm::vec4( 1, 0, 0, 1 );
+                    if ( glm::vec3( t ) == model->normals[i] )
                     {
-                        t = glm::vec3( 0, 1, 0 );
+                        model->tangents[i] = glm::vec4( 0, 1, 0, 1 );
                     }
                 }
             }

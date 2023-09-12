@@ -14,6 +14,7 @@ set(SRC
     ${CODE_DIR}/asset/asset_file_database.hpp
     ${CODE_DIR}/asset/parsing/asset_parsers.cpp
     ${CODE_DIR}/asset/parsing/asset_parsers.hpp
+	${CODE_DIR}/asset/types/pmodel_versions.hpp
     
     ${PRIMARY_SHARED_SRC}
     ${CODE_DIR}/shared/json_parsing.cpp

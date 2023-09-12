@@ -27,9 +27,18 @@ static RawImage2D LoadBuiltInImage( const std::string& name )
         numChannels = 1;
         pixel = u8vec4( 11 );
     }
+    else if ( name == "$default_normalmap" )
+    {
+        pixel = u8vec4( 128, 128, 255, 255 );
+    }
+    else if ( name == "$default_roughness" )
+    {
+        numChannels = 1;
+        pixel = u8vec4( 200 ); // TODO: figure out real value
+    }
     else
     {
-        LOG( "Image '%s' is not a recognized builtin image name", name.c_str() );
+        LOG_ERR( "Image '%s' is not a recognized builtin image name", name.c_str() );
         return {};
     }
 

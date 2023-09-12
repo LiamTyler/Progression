@@ -9,7 +9,8 @@ set(
     ${CODE_DIR}/asset/types/material.cpp
     ${CODE_DIR}/asset/types/material.hpp
     ${CODE_DIR}/asset/types/model.cpp
-    ${CODE_DIR}/asset/types/model.hpp
+    ${CODE_DIR}/asset/types/model.hpp 
+    ${CODE_DIR}/asset/types/pmodel_versions.hpp
     ${CODE_DIR}/asset/types/script.cpp
     ${CODE_DIR}/asset/types/script.hpp
     ${CODE_DIR}/asset/types/shader.cpp

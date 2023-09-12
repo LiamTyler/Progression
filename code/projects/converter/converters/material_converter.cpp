@@ -40,6 +40,19 @@ void MaterialConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& matInf
         AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
     }
 
+    {
+        std::string normalRoughnessName = texturesetInfo->GetNormalRoughnessImageName( matInfo->applyNormals, matInfo->applyRoughness );
+        auto imageCreateInfo = GetImgCreateInfoBase( normalRoughnessName, texturesetInfo );
+        imageCreateInfo->semantic = GfxImageSemantic::NORMAL_ROUGHNESS;
+        imageCreateInfo->filenames[0] = texturesetInfo->GetNormalMap( matInfo->applyNormals );
+        imageCreateInfo->filenames[1] = texturesetInfo->GetRoughnessMap( matInfo->applyRoughness );
+        imageCreateInfo->compositeScales[0] = texturesetInfo->slopeScale;
+        imageCreateInfo->compositeScales[1] = texturesetInfo->roughnessScale;
+        imageCreateInfo->compositeScales[2] = texturesetInfo->invertRoughness;
+        imageCreateInfo->compositeSourceChannels[1] = texturesetInfo->roughnessSourceChannel;
+        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
+    }
+
     if ( matInfo->applyEmissive && !texturesetInfo->emissiveMap.empty() )
     {
         std::string emissiveMapName = texturesetInfo->GetEmissiveMap( matInfo->applyEmissive );
@@ -87,9 +100,10 @@ bool MaterialConverter::ConvertInternal( ConstDerivedInfoPtr& matInfo )
     material.name = matInfo->name;
     material.albedoTint = matInfo->albedoTint;
     material.metalnessTint = matInfo->metalnessTint;
-    //material.roughnessTint = matInfo->roughnessTint;
+    material.roughnessTint = matInfo->roughnessTint;
     material.emissiveTint = matInfo->emissiveTint;
     material.albedoMetalnessImage = AssetManager::Get<GfxImage>( texturesetInfo->GetAlbedoMetalnessImageName( matInfo->applyAlbedo, matInfo->applyMetalness ) );
+    material.normalRoughnessImage = AssetManager::Get<GfxImage>( texturesetInfo->GetNormalRoughnessImageName( matInfo->applyNormals, matInfo->applyRoughness ) );
     material.emissiveImage = nullptr;
     if ( matInfo->applyEmissive && !texturesetInfo->emissiveMap.empty() )
     {

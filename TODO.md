@@ -9,10 +9,10 @@
 - [x] multithread the converter
 - [x] change profiling to be all in RAM, no file writing. Show min + max + avg
 - [x] Make asset filenames consistent (all from PG_ASSET_DIR, parses only store relative path. Load() makes absolute path, or detects it at least)
-- [ ] Switch to dynamic rendering
 - [ ] add meshoptimizer back in
 - [ ] Get remote console up and running again, and able to send commands (windows and linux)
 - [x] show profiling results in ImGui view
+- [ ] get debug render views for materials + lighting
 
 ## Priority 2
 - [ ] separate out the sky init + rendering code into something like r_sky.cpp
@@ -21,7 +21,7 @@
 - [x] Get albedo + metalness image working for texturesets
 - [ ] Get normal + roughness image working for texturesets
 - [x] remove 2nd hash number in gfxImage cache composite names
-- [ ] Make model exporter work with texturesets
+- [x] Make model exporter work with texturesets
 - [ ] If assets are already in required/dependent fastfiles, dont put them in the top level FFs
 - [ ] include both debug + non-debug shaders in FF, allow for runtime switching
 - [ ] fix shader preproc options (allow from command line)
@@ -36,12 +36,14 @@
 - [ ] don't wait for idle while uploading images. Use barriers/whatever
 - [ ] controller support
 - [ ] allow for resizing window/multiple resolutions
+- [ ] Switch to dynamic rendering
 
 ## Priority 3
 - [ ] add TIFF loading and saving
 - [ ] Make sure image clamping vs wraping working correctly
 - [ ] decouple graphics code from all assets (GfxImage) just store a handle, and remove Vulkan dependencies from Projects that dont need it anymore
-- [ ] switch/add to .pmodel binary format, with binary <-> text tool
+- [ ] Try to make .pmodel files as small as possible (dont write info if not given, excess digits)
+- [ ] Make .pmodel files more editable (don't require vert counts ahead of time)
 - [ ] add .pmodel -> .obj tool
 - [ ] simplify TransitionImageLayoutImmediate args with defaults
 - [ ] get VS to find spirv/vulkan/shaderc files

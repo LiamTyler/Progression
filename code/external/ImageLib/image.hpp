@@ -283,10 +283,19 @@ struct FloatImage2D
     FloatImage2D Clone() const;
 
     template <typename Func>
-    void ForEachPixel( Func F )
+    void ForEachPixelIndex( Func F )
     {
         for ( uint32_t i = 0; i < width * height; ++i )
             F( i );
+    }
+
+    template <typename Func>
+    void ForEachPixel( Func F )
+    {
+        for ( uint32_t i = 0; i < width * height; ++i )
+        {
+            F( &data[i * numChannels] );
+        }
     }
 
     glm::vec4 Sample( glm::vec2 uv, bool clampHorizontal, bool clampVertical ) const; // bilinear

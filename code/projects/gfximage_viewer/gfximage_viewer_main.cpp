@@ -74,11 +74,11 @@ int TestImageCompression()
 
 int main( int argc, char* argv[] )
 {
-    //if ( argc < 2 )
-    //{
-    //    DisplayHelp();
-    //    return 0;
-    //}
+    if ( argc < 2 )
+    {
+        DisplayHelp();
+        return 0;
+    }
 
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );

@@ -4,6 +4,7 @@
 #include "shared/logger.hpp"
 #include <stdint.h>
 #include <string>
+#include <unordered_map>
 
 #define DVAR_DEBUGGING USE_IF( USING( DEBUG_BUILD ) )
 
@@ -65,36 +66,38 @@ public:
         using UT = relaxed_underlying_type<T>::type;
         if constexpr ( std::is_same_v<UT, bool> )
         {
-            DVAR_ASSERT( type == DvarType::BOOL, "Trying to a BOOL dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == DvarType::BOOL, "Trying to set a BOOL dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.bVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, short> || std::is_same_v<UT, int> )
         {
-            DVAR_ASSERT( type == DvarType::INT, "Trying to an INT dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == DvarType::INT, "Trying to set an INT dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.iVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, uint8_t> || std::is_same_v<UT, uint16_t> || std::is_same_v<UT, uint32_t> )
         {
-            DVAR_ASSERT( type == DvarType::UINT, "Trying to a UINT dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == DvarType::UINT, "Trying to set a UINT dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.uVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, float> )
         {
-            DVAR_ASSERT( type == DvarType::FLOAT, "Trying to a FLOAT dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == DvarType::FLOAT, "Trying to set a FLOAT dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.fVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, double> )
         {
-            DVAR_ASSERT( type == DvarType::DOUBLE, "Trying to a DOUBLE dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == DvarType::DOUBLE, "Trying to set a DOUBLE dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.dVal = newVal;
         }
         else
         {
-            LOG_ERR( "Wtf type is this? %s vs %s", typeid( UT ).name(), typeid( T ).name() );
+            LOG_ERR( "Unknown type in Dvar::Set: %s vs %s", typeid( UT ).name(), typeid( T ).name() );
         }
         // TODO: ideally, there would be an else statement here with a static_assert inside of it if none of the IFs above this pass
         //  constexpr if's don't work, but should try again with consteval if from C++23 once compilers support it
     }
+
+    void SetFromString( const std::string& str );
 
 private:
     const DvarType type;
@@ -106,6 +109,7 @@ private:
 };
 
 Dvar* GetDvar( std::string_view name );
+const std::unordered_map<std::string_view, Dvar*>& GetAllDvars();
 
 } // namespace PG
 

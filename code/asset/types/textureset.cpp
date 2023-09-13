@@ -58,10 +58,10 @@ std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo,
 std::string TexturesetCreateInfo::GetNormalRoughnessImageName( bool applyNormals, bool applyRoughness ) const
 {
     std::string cacheName;
-    std::string normals = GetAlbedoMap( applyNormals );
+    std::string normals = GetNormalMap( applyNormals );
     cacheName += GetFilenameStem( normals );
     cacheName += "~";
-    std::string roughness = GetMetalnessMap( applyRoughness );
+    std::string roughness = GetRoughnessMap( applyRoughness );
     cacheName += GetFilenameStem( roughness );
 
     size_t hash = 0;

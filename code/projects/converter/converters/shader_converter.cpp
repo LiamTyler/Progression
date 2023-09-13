@@ -62,10 +62,7 @@ void PG::AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateI
         dependentFiles.push_back( file );
 
     std::scoped_lock lock( s_shaderIncludeCacheLock );
-    if ( !s_shaderIncludeCache.contains( cacheName ) )
-        s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
-    else
-        PG_ASSERT( s_shaderIncludeCache[cacheName] == dependentFiles )
+    s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
 }
 
 static bool GetIncludeCacheEntry( const std::string& cacheName, std::vector<std::string>& entry )

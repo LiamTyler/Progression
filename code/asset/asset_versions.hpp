@@ -24,7 +24,7 @@ enum AssetType : unsigned int
 constexpr unsigned int g_assetVersions[] =
 {
     3, // ASSET_TYPE_GFX_IMAGE
-    4, // ASSET_TYPE_MATERIAL, "adding normal and roughness maps"
+    5, // ASSET_TYPE_MATERIAL, "fix bug with normal roughness map names being incorrect"
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER

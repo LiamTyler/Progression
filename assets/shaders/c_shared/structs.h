@@ -15,6 +15,7 @@ struct SceneGlobals
     MAT4 VP;
     MAT4 invVP;
     VEC4 cameraPos;
+    UINT r_materialViz;
 };
 
 struct PerObjectData
@@ -41,10 +42,11 @@ struct PointLight
 
 struct SkyboxData
 {
+    MAT4 VP;
     VEC3 tint;
     float scale;
 	UINT hasTexture;
-    UINT debug;
+    UINT r_skyboxViz;
     UVEC2 _pad1;
 };
 

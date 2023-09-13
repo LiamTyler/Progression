@@ -22,46 +22,80 @@ layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
 
 layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures_2D[];
 // layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform samplerCube textures_Cube[];
-layout( set = 3, binding = 1 ) uniform samplerCube skyboxIrradiance;
+layout( set = 3, binding = 0 ) uniform samplerCube skyboxIrradiance;
+
 
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
     layout( offset = 128 ) MaterialData material;
 };
 
+vec3 Vec3ToUnorm( vec3 v )
+{
+    return clamp( 0.5f * (v + vec3( 1 )), vec3( 0 ), vec3( 1 ) );
+}
+
+vec3 UnpackNormalMapVal( vec3 v )
+{
+    return (v * 255 - vec3( 128 )) / 127.0f;
+}
+
 void main()
 {
     vec3 albedo = material.albedoTint.rgb;
+    float metalness = material.metalnessTint;
     if ( material.albedoMetalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
     {
-        albedo *= texture( textures_2D[material.albedoMetalnessMapIndex], texCoords ).rgb;
+        vec4 albedoMetalness = texture( textures_2D[material.albedoMetalnessMapIndex], texCoords );
+        albedo *= albedoMetalness.rgb;
+        metalness *= albedoMetalness.a;
+    }
+
+    vec3 N = normalize( worldSpaceNormal );
+
+    float roughness = material.roughnessTint;
+    if ( material.normalRoughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
+    {
+        vec4 normalRoughness = texture( textures_2D[material.normalRoughnessMapIndex], texCoords );
+        vec3 nmv = UnpackNormalMapVal( normalRoughness.rgb );
+        vec3 T = normalize( worldSpaceTangent );
+        vec3 B = normalize( worldSpaceBitangent );
+        N = normalize( T * nmv.x + B * nmv.y + N * nmv.z );
+
+        roughness *= normalRoughness.a;
     }
 
     vec3 irradiance = texture( skyboxIrradiance, worldSpaceNormal ).rgb;
     vec3 diffuse = irradiance * albedo;
     outColor = vec4( diffuse, 1 );
 
-    // float metalness = material.metalnessTint;
-    // if ( material.metalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
-    // {
-    // 	metalness *= texture( textures[material.metalnessMapIndex], texCoords ).r;
-    // }
-    // // float roughness = material.roughnessTint;
-    // // if ( material.roughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
-    // // {
-    // // 	roughness *= texture( textures[material.roughnessMapIndex], texCoords ).r;
-    // // }
-    // 
-    // vec3 N = normalize( worldSpaceNormal );
-    // vec3 V = normalize( globals.cameraPos.xyz - worldSpacePos );
-    // 
-    // vec3 F0 = vec3( 0.04 ); 
-    // F0 = mix( F0, albedo, metalness );
-    // 
-    // // reflectance equation
-    // vec3 Lo = vec3( 0.0 );
-    // 
-    // vec3 ambient = vec3( 0.1 ) * albedo + vec3( 0.0001 * metalness );  //+ 0.0001 * roughness );
-    // vec3 color = ambient + Lo;
-    // outColor = vec4( color, 1 );
+    uint r_materialViz = globals.r_materialViz;
+    if ( r_materialViz == PG_DEBUG_LAYER_ALBEDO )
+    {
+        outColor.rgb = albedo;
+    }
+    else if ( r_materialViz == PG_DEBUG_LAYER_NORMAL )
+    {
+        outColor.rgb = Vec3ToUnorm( N );
+    }
+    else if ( r_materialViz == PG_DEBUG_LAYER_ROUGHNESS )
+    {
+        outColor.rgb = vec3( roughness );
+    }
+    else if ( r_materialViz == PG_DEBUG_LAYER_METALNESS )
+    {
+        outColor.rgb = vec3( metalness );
+    }
+    else if ( r_materialViz == PG_DEBUG_LAYER_GEOM_NORMAL )
+    {
+        outColor.rgb = Vec3ToUnorm( normalize( worldSpaceNormal ) );
+    }
+    else if ( r_materialViz == PG_DEBUG_LAYER_GEOM_TANGENT )
+    {
+        outColor.rgb = Vec3ToUnorm( normalize( worldSpaceTangent ) );
+    }
+    else if ( r_materialViz == PG_DEBUG_LAYER_GEOM_BITANGENT )
+    {
+        outColor.rgb = Vec3ToUnorm( normalize( worldSpaceBitangent ) );
+    }
 }

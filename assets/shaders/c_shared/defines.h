@@ -18,6 +18,15 @@
 #define MAT4 mat4
 #define UINT uint
 
+// keep in sync with r_materialViz
+#define PG_DEBUG_LAYER_ALBEDO 1
+#define PG_DEBUG_LAYER_NORMAL 2
+#define PG_DEBUG_LAYER_ROUGHNESS 3
+#define PG_DEBUG_LAYER_METALNESS 4
+#define PG_DEBUG_LAYER_GEOM_NORMAL 5
+#define PG_DEBUG_LAYER_GEOM_TANGENT 6
+#define PG_DEBUG_LAYER_GEOM_BITANGENT 7
+
 #else // #ifdef PG_SHADER_CODE
 
 // TODO: the preprocessor doesn't actually check for #if's before processing the includes yet

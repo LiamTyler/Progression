@@ -1,5 +1,6 @@
 #include "core/console_commands.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/dvars.hpp"
 #include "shared/logger.hpp"
 #include "shared/platform_defines.hpp"
 #include "shared/string.hpp"
@@ -49,6 +50,22 @@ static void ProcessCommand( const std::string& cmdStr )
             return;
         }
     }
+    const auto& dvars = GetAllDvars();
+    for ( const auto& [dvarName, dvarPtr] : dvars )
+    {
+        if ( cmd == dvarName )
+        {
+            if ( numArgs == 0 )
+            {
+                LOG_ERR( "Dvar %s specified on console command, but no value was given after dvar name", dvarName.data() );
+                return;
+            }
+
+            dvarPtr->SetFromString( subStrs[1] );
+            return;
+        }
+    }
+
     LOG_ERR( "Unknown console command '%s'", cmdStr.c_str() );
 }
 

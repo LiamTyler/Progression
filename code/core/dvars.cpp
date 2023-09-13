@@ -1,6 +1,6 @@
 #include "dvars.hpp"
 #include "shared/assert.hpp"
-#include <unordered_map>
+#include <stdexcept>
 
 namespace PG
 {
@@ -113,9 +113,49 @@ double Dvar::GetDouble() const
     return value.dVal;
 }
 
+void Dvar::SetFromString( const std::string& str )
+{
+    try
+    {
+        if ( type == DvarType::BOOL )
+        {
+            value.bVal = std::stoi( str );
+        }
+        else if ( type == DvarType::INT )
+        {
+            value.iVal = std::stoi( str );
+        }
+        else if ( type == DvarType::UINT )
+        {
+            value.uVal = std::stoul( str );
+        }
+        else if ( type == DvarType::FLOAT )
+        {
+            value.fVal = std::stof( str );
+        }
+        else if ( type == DvarType::DOUBLE )
+        {
+            value.dVal = std::stod( str );
+        }
+    }
+    catch ( const std::invalid_argument& )
+    {
+        LOG_ERR( "Dvar::SetFromString: could not convert string '%s' into dvar %s of type %s", str.c_str(), name, TypeToString( type ) );
+    }
+    catch ( const std::out_of_range& )
+    {
+        LOG_ERR( "Dvar::SetFromString: out of range error when converting string '%s' into dvar %s of type %s", str.c_str(), name, TypeToString( type ) );
+    }
+}
+
 Dvar* GetDvar( std::string_view name )
 {
     return s_dvars.contains( name ) ? s_dvars[name] : nullptr;
+}
+
+const std::unordered_map<std::string_view, Dvar*>& GetAllDvars()
+{
+    return s_dvars;
 }
 
 } // namespace PG

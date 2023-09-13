@@ -4,7 +4,6 @@
 
 layout( location = 0 ) in vec3 UV;
 
-//layout( set = 0, binding = 0 ) uniform samplerCube skybox;
 layout( set = 0, binding = 0 ) uniform sampler2D skybox;
 layout( set = 0, binding = 1 ) uniform samplerCube skyboxIrradiance;
 
@@ -12,7 +11,7 @@ layout( location = 0 ) out vec4 finalColor;
 
 layout( std430, push_constant ) uniform SkyboxDataUniform
 {
-    layout( offset = 64 ) SkyboxData drawData;
+    layout( offset = 0 ) SkyboxData drawData;
 };
 
 void main()
@@ -26,14 +25,15 @@ void main()
         float lat = acos( dir.z ); // 0 to PI
         vec2 uv = vec2( 0.5f * lon / PI + 0.5f, lat / PI );
 
-        if ( (drawData.debug & 1) == 0 )
+        if ( drawData.r_skyboxViz == 0 )
         {
             finalColor = texture( skybox, uv );
+            finalColor.rgb *= drawData.tint.rgb;
+            finalColor.rgb *= drawData.scale;
         }
-        else
+        else if ( drawData.r_skyboxViz == 1 )
         {
             finalColor = texture( skyboxIrradiance, dir );
-            return;
         }
     }
     else
@@ -41,7 +41,10 @@ void main()
         finalColor.rgb = vec3( 1, 1, 1 );
     }
 
-    finalColor.rgb *= drawData.tint.rgb;
-    finalColor.rgb *= drawData.scale;
+    if ( drawData.r_skyboxViz == 2 )
+    {
+        finalColor.rgb = vec3( 0, 0, 0 );
+    }
+    
     finalColor.a = 1;
 }

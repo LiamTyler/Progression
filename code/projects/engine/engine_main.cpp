@@ -70,18 +70,6 @@ int main( int argc, char* argv[] )
             Dvar* debugUIDvar = GetDvar( "r_debugUI" );
             debugUIDvar->Set( !debugUIDvar->GetBool() );
         }
-        if ( Input::GetKeyDown( Key::F2 ) )
-        {
-            Dvar* skyboxViz = GetDvar( "r_skyboxViz" );
-            uint32_t v = skyboxViz->GetUint();
-            skyboxViz->Set( v & 1 ? v - 1 : v + 1 );
-        }
-        if ( Input::GetKeyDown( Key::F3 ) )
-        {
-            Dvar* skyboxViz = GetDvar( "r_skyboxViz" );
-            uint32_t v = skyboxViz->GetUint();
-            skyboxViz->Set( v & 2 ? v - 2 : v + 2 );
-        }
 
         if ( auto primaryScenePtr = GetPrimaryScene() )
         {
@@ -91,7 +79,7 @@ int main( int argc, char* argv[] )
 
         RenderSystem::Render();
 
-        std::this_thread::sleep_for( (std::chrono::milliseconds)30 );
+        //std::this_thread::sleep_for( (std::chrono::milliseconds)30 );
 
         window->EndFrame();
     }

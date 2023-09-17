@@ -23,24 +23,36 @@ float PBR_D_GGX( float NdotH, float roughness )
 }
 
 
-float PBR_G_SchlickGGXInternal(float NdotV, float roughness)
+float PBR_G_SchlickGGXInternal( float NdotV, float remappedRoughness )
 {
-    float r = (roughness + 1.0);
-    float k = (r*r) / 8.0;
+    //float r = (roughness + 1.0);
+    //float k = (r*r) / 8.0;
 
     float num   = NdotV;
-    float denom = NdotV * (1.0 - k) + k;
+    float denom = NdotV * (1.0 - remappedRoughness) + remappedRoughness;
 	
     return num / denom;
 }
 
 
-float PBR_G_Smith( float NdotV, float NdotL, float roughness)
+float PBR_G_Smith( float NdotV, float NdotL, float remappedRoughness )
 {
-    float ggx2  = PBR_G_SchlickGGXInternal( NdotV, roughness );
-    float ggx1  = PBR_G_SchlickGGXInternal( NdotL, roughness );
+    float ggx2  = PBR_G_SchlickGGXInternal( NdotV, remappedRoughness );
+    float ggx1  = PBR_G_SchlickGGXInternal( NdotL, remappedRoughness );
 	
     return ggx1 * ggx2;
+}
+
+
+vec3 BRDF_Lambertian( vec3 albedo )
+{
+    return albedo / PI;
+}
+
+
+vec3 BRDF_CookTorrence( float D, vec3 F, float G, vec3 N, vec3 wo, vec3 wi )
+{
+    return (D * F * G) / (4 * dot( wo, N ) * dot( wi, N ));
 }
 
 #endif // #ifndef __PBR_GLSL__

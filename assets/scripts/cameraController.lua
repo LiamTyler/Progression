@@ -17,7 +17,7 @@ function Update()
     if Input.GetKeyUp( Key.X ) then
         active = not active
     end
-    if Input.GetKeyUp( Key.LEFT_ALT ) then
+    if Input.GetKeyUp( Key.R ) then
         GetMainWindow():SetRelativeMouse( not GetMainWindow():IsRelativeMouse() )
     end
     if not active then

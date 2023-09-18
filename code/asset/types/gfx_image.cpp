@@ -103,6 +103,7 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     CompositeImageInput compositeInfo;
     compositeInfo.compositeType = CompositeType::REMAP;
     compositeInfo.outputColorSpace = ColorSpace::SRGB;
+    compositeInfo.flipVertically = createInfo->flipVertically;
     compositeInfo.sourceImages.resize( 2 );
 
     compositeInfo.sourceImages[0].filename = GetImageFullPath( createInfo->filenames[0] );
@@ -121,6 +122,11 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
         return false;
     }
 
+    composite.ForEachPixel( [createInfo]( float* p )
+    {
+        p[3] *= createInfo->compositeScales[1]; // metalnessScale
+    });
+
     MipmapGenerationSettings settings;
     settings.clampHorizontal = createInfo->clampHorizontal;
     settings.clampVertical = createInfo->clampVertical;
@@ -135,11 +141,21 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
 }
 
 
+static glm::vec3 ScaleNormal( glm::vec3 n, float scale )
+{
+    n.x *= scale;
+    n.y *= scale;
+
+    return normalize( n );
+}
+
+
 static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
     CompositeImageInput compositeInfo;
     compositeInfo.compositeType = CompositeType::REMAP;
     compositeInfo.outputColorSpace = ColorSpace::LINEAR;
+    compositeInfo.flipVertically = createInfo->flipVertically;
     compositeInfo.sourceImages.resize( 2 );
 
     compositeInfo.sourceImages[0].filename = GetImageFullPath( createInfo->filenames[0] );
@@ -158,18 +174,50 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
         return false;
     }
 
-    if ( createInfo->compositeScales[2] ) // where invertRoughness is stored
+    float roughnessScale = createInfo->compositeScales[2];
+    bool invertRoughness = createInfo->compositeScales[3];
+    if ( roughnessScale != 1.0f || invertRoughness )
     {
-        composite.ForEachPixel( []( float* p )
+        float roughnessBias = invertRoughness ? 1.0f : 0;
+        if ( invertRoughness )
+            roughnessScale *= -1;
+
+        composite.ForEachPixel( [roughnessBias, roughnessScale]( float* p )
         {
-            p[3] = 1 - p[3];
+            p[3] = roughnessBias + roughnessScale * p[3];
+        });
+    }
+
+    float slopeScale = createInfo->compositeScales[0];
+    bool normalMapIsYUp = createInfo->compositeScales[1];
+    if ( slopeScale != 1.0f || !normalMapIsYUp )
+    {
+        composite.ForEachPixel( [slopeScale, normalMapIsYUp]( float* p )
+        {
+            glm::vec3 normal = { p[0], p[1], p[2] };
+            if ( !normalMapIsYUp )
+                normal.y *= -1;
+            normal = ScaleNormal( normal, slopeScale );
+            p[0] = normal.x; p[1] = normal.y; p[2] = normal.z;
         });
     }
 
     MipmapGenerationSettings settings;
     settings.clampHorizontal = createInfo->clampHorizontal;
     settings.clampVertical = createInfo->clampVertical;
-    std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( GenerateMipmaps( composite, settings ) );
+    // TODO: alter the normals based on the roughness when mipmapping, because the macro-level normals
+    // effectively become micro-level detail as you downsample
+    std::vector<FloatImage2D> floatMips = GenerateMipmaps( composite, settings );
+    for ( uint32_t mipLevel = 1; mipLevel < (uint32_t)floatMips.size(); ++mipLevel )
+    {
+        floatMips[mipLevel].ForEachPixel( []( float* p )
+        {
+            glm::vec3 normal = { p[0], p[1], p[2] };
+            normal = normalize( normal );
+            p[0] = normal.x; p[1] = normal.y; p[2] = normal.z;
+        });
+    }
+    std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( floatMips );
     
     BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
@@ -194,8 +242,9 @@ static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxIm
 
 static bool Load_UI( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
+    ImageLoadFlags imgLoadFlags = createInfo->flipVertically ? ImageLoadFlags::FLIP_VERTICALLY : ImageLoadFlags::DEFAULT;
     RawImage2D img;
-    if ( !img.Load( GetImageFullPath( createInfo->filenames[0] ) ) )
+    if ( !img.Load( GetImageFullPath( createInfo->filenames[0] ), imgLoadFlags ) )
         return false;
 
     BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
@@ -402,7 +451,6 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
-        LOG( "Convolving face %d / 6...", faceIdx );
         for ( int dstRow = 0; dstRow < (int)irradianceMap.size; ++dstRow )
         {
             for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )
@@ -433,6 +481,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
                 irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( irradiance, 0 ) );
             }
         }
+        LOG( "Convolved face %d / 6...", faceIdx + 1 );
     }
 
     ConvertPGCubemapToVkCubemap( irradianceMap );

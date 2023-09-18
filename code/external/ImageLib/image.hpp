@@ -7,6 +7,13 @@
 #include <string>
 #include <vector>
 
+enum class ImageLoadFlags : uint32_t
+{
+    DEFAULT         = 0,
+    FLIP_VERTICALLY = (1u << 0),
+};
+PG_DEFINE_ENUM_OPS( ImageLoadFlags );
+
 enum class ImageSaveFlags : uint32_t
 {
     DEFAULT               = 0,
@@ -209,7 +216,7 @@ struct RawImage2D
         data = std::shared_ptr<uint8_t[]>( srcData, []( uint8_t* x ) {} );
     }
 
-    bool Load( const std::string& filename );
+    bool Load( const std::string& filename, ImageLoadFlags loadFlags = ImageLoadFlags::DEFAULT );
 
     // If the file format doesn't support saving the current Format, then the pixels will be converted to an appropriate format for that file
     bool Save( const std::string& filename, ImageSaveFlags saveFlags = ImageSaveFlags::DEFAULT ) const;
@@ -274,7 +281,7 @@ struct FloatImage2D
     }
 
     // Currently just calls RawImage2D::Load, and then FloatImageFromRawImage2D
-    bool Load( const std::string& filename );
+    bool Load( const std::string& filename, ImageLoadFlags loadFlags = ImageLoadFlags::DEFAULT );
 
     // Currently just calls RawImage2DFromFloatImage, and then RawImage2D::Save
     bool Save( const std::string& filename, ImageSaveFlags saveFlags = ImageSaveFlags::DEFAULT ) const;

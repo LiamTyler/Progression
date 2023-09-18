@@ -23,16 +23,21 @@ enum AssetType : unsigned int
 
 constexpr unsigned int g_assetVersions[] =
 {
-    3, // ASSET_TYPE_GFX_IMAGE
-    5, // ASSET_TYPE_MATERIAL, "fix bug with normal roughness map names being incorrect"
+    4, // ASSET_TYPE_GFX_IMAGE, "use slopeScale, metalness + roughness tints correctly"
+    6, // ASSET_TYPE_MATERIAL, "use slopeScale, metalness + roughness tints correctly"
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER
     7, // ASSET_TYPE_UI_LAYOUT, "mouse button down/up callbacks"
-    2, // ASSET_TYPE_TEXTURESET, "adding normal and roughness maps"
+
+    // put all assets that don't actually have a struct below.
+    // Note: this means that bumping the image versions doesn't do anything :(
+    //       ex: changes to texturesets need to just bump the entire gfx_image version
+
+    0, // ASSET_TYPE_TEXTURESET, "use slopeScale, metalness + roughness tints correctly"
 };
 
-constexpr uint32_t PG_FASTFILE_VERSION = 7 + ARRAY_SUM( g_assetVersions ); // mouse button down/up callbacks
+constexpr uint32_t PG_FASTFILE_VERSION = 8 + ARRAY_SUM( g_assetVersions ); // mouse button down/up callbacks
 
 inline const char* const g_assetNames[] =
 {

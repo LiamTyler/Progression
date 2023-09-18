@@ -39,6 +39,7 @@ struct SourceImage
 struct CompositeImageInput
 {
     CompositeType compositeType;
+    bool flipVertically = false;
 
     // Must be set to SRGB or LINEAR. If input channel color space do not match, they will be converted to the output space.
     // The exception is the alpha channel. Input and output alpha channels are assumed to be linear, and will not be converted at all

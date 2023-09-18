@@ -34,6 +34,8 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
         HashCombine( hash, Underlying( info->semantic ) );
         HashCombine( hash, Underlying( info->dstPixelFormat ) );
         HashCombine( hash, Underlying( info->flipVertically ) );
+        HashCombine( hash, Underlying( info->clampHorizontal ) );
+        HashCombine( hash, Underlying( info->clampVertical ) );
         for ( int i = 0; i < 6; ++i )
         {
             if ( info->filenames[i].empty() )

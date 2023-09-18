@@ -178,17 +178,21 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfo
 {
     static JSONFunctionMapper<TexturesetCreateInfo&> mapping(
     {
-        { "name", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = String( v ); } },
+        //{ "name", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = String( v ); } },
         { "clampHorizontal", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampHorizontal = v.GetBool(); } },
         { "clampVertical", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampVertical = v.GetBool(); } },
+        { "flipVertically", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.flipVertically = v.GetBool(); } },
         { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = String( v ); } },
         { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = String( v ); } },
         { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
+        { "metalnessScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessScale = ParseNumber<float>( v ); } },
         { "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = String( v ); } },
         { "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<float>( v ); } },
+        { "normalMapIsYUp", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMapIsYUp = v.GetBool(); } },
         { "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = String( v ); } },
         { "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( String( v ) ); } },
         { "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = v.GetBool(); } },
+        { "roughnessScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessScale = v.GetBool(); } },
         { "emissiveMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.emissiveMap = String( v ); } },
     });
     mapping.ForEachMember( value, *info );

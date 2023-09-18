@@ -47,8 +47,9 @@ void MaterialConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& matInf
         imageCreateInfo->filenames[0] = texturesetInfo->GetNormalMap( matInfo->applyNormals );
         imageCreateInfo->filenames[1] = texturesetInfo->GetRoughnessMap( matInfo->applyRoughness );
         imageCreateInfo->compositeScales[0] = texturesetInfo->slopeScale;
-        imageCreateInfo->compositeScales[1] = texturesetInfo->roughnessScale;
-        imageCreateInfo->compositeScales[2] = texturesetInfo->invertRoughness;
+        imageCreateInfo->compositeScales[1] = texturesetInfo->normalMapIsYUp;
+        imageCreateInfo->compositeScales[2] = texturesetInfo->roughnessScale;
+        imageCreateInfo->compositeScales[3] = texturesetInfo->invertRoughness;
         imageCreateInfo->compositeSourceChannels[1] = texturesetInfo->roughnessSourceChannel;
         AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
     }
@@ -67,15 +68,15 @@ std::string MaterialConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     std::string cacheName = info->name;
     size_t hash = Hash( info->albedoTint );
     HashCombine( hash, info->metalnessTint );
-    //HashCombine( hash, info->roughnessTint );
+    HashCombine( hash, info->roughnessTint );
     HashCombine( hash, info->emissiveTint );
     std::string texturesetName = info->texturesetName.empty() ? "default" : info->texturesetName;
     HashCombine( hash, texturesetName );
     auto texsetInfo = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );
     std::string albedoMetalness = texsetInfo->GetAlbedoMetalnessImageName( info->applyAlbedo, info->applyMetalness );
     HashCombine( hash, albedoMetalness );
-    //std::string normalRoughness = texsetInfo->GetNormalRoughImageName( info->applyNormals, info->applyRoughness );
-    //HashCombine( hash, normalRoughness );
+    std::string normalRoughness = texsetInfo->GetNormalRoughnessImageName( info->applyNormals, info->applyRoughness );
+    HashCombine( hash, normalRoughness );
     std::string emissiveMap = texsetInfo->GetEmissiveMap( info->applyEmissive );
     HashCombine( hash, emissiveMap );
 

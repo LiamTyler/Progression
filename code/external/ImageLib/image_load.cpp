@@ -51,7 +51,7 @@ static RawImage2D LoadBuiltInImage( const std::string& name )
 }
 
 
-bool RawImage2D::Load( const std::string& filename )
+bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
 {
     if ( IsImageFilenameBuiltin( filename ) )
     {
@@ -200,6 +200,21 @@ bool RawImage2D::Load( const std::string& filename )
     {
         LOG_ERR( "Image filetype '%s' for image '%s' is not supported", ext.c_str(), filename.c_str() );
         return false;
+    }
+
+    if ( IsSet( loadFlags, ImageLoadFlags::FLIP_VERTICALLY ) )
+    {
+        uint32_t bytesPerRow = width * BitsPerPixel() / 8;
+        uint8_t* tmpRow = new uint8_t[bytesPerRow];
+        for ( uint32_t row = 0; row < height / 2; ++row )
+        {
+            uint8_t* upperRow = data.get() + row * bytesPerRow;
+            uint8_t* lowerRow = data.get() + (height - row - 1) * bytesPerRow;
+            memcpy( tmpRow, upperRow, bytesPerRow );
+            memcpy( upperRow, lowerRow, bytesPerRow );
+            memcpy( lowerRow, tmpRow, bytesPerRow );
+        }
+        delete[] tmpRow;
     }
 
     return true;

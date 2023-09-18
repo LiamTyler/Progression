@@ -85,7 +85,6 @@ void main()
     vec3 N;
     float roughness;
     GetNormalRoughness( texCoords, N, roughness );
-    roughness = 1;
 
     vec3 V = normalize( globals.cameraPos.xyz - worldSpacePos );
     vec3 F0 = vec3( 0.04 ); 

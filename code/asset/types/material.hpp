@@ -11,10 +11,10 @@ namespace PG
 struct MaterialCreateInfo : public BaseAssetCreateInfo
 {
     std::string texturesetName;
-    glm::vec3 albedoTint;
-    float metalnessTint;
-    float roughnessTint;
-    glm::vec3 emissiveTint;
+    glm::vec3 albedoTint = glm::vec3( 1 );
+    float metalnessTint = 1.0f;
+    float roughnessTint = 1.0f;
+    glm::vec3 emissiveTint = glm::vec3( 0 );
     
     // which textures from the textureset to actually apply
     bool applyAlbedo = true;

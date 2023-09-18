@@ -19,6 +19,8 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
     if ( input.sourceImages.size() > 4 )
         throw std::runtime_error( "CompositeImage: too many source images. Only specify up to 4" );
 
+    ImageLoadFlags imgLoadFlags = input.flipVertically ? ImageLoadFlags::FLIP_VERTICALLY : ImageLoadFlags::DEFAULT;
+
     uint32_t numOutputChannels = 0;
     FloatImage2D sourceImages[4];
     ColorSpace sourceColorSpaces[4];
@@ -26,7 +28,7 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
     uint32_t height = 0;
     for ( size_t i = 0; i < input.sourceImages.size(); ++i )
     {
-        if ( !sourceImages[i].Load( input.sourceImages[i].filename ) )
+        if ( !sourceImages[i].Load( input.sourceImages[i].filename, imgLoadFlags ) )
         {
             throw std::runtime_error( "Failed to load composite source image" );
         }
@@ -55,17 +57,20 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
         for ( uint32_t pixelIndex = 0; pixelIndex < width * height; ++pixelIndex )
         {
             glm::vec4 pixel = srcImage.GetFloat4( pixelIndex );
-            
 
+            // assume that the alpha channel is always linear, in both src and dst images
             for ( const Remap& remap : input.sourceImages[i].remaps )
             {
                 float x = pixel[Underlying( remap.from )];
-                if ( remap.to != Channel::A )
+                if ( remap.from != Channel::A && convertToLinear )
                 {
-                    float x = pixel[Underlying( remap.from )];
-                    if ( convertToLinear ) x = PG::GammaSRGBToLinear( x );
-                    else if ( convertToSRGB ) x = PG::LinearToGammaSRGB( x );
+                    x = PG::GammaSRGBToLinear( x );
                 }
+                if ( remap.to != Channel::A && convertToSRGB )
+                {
+                    x = PG::LinearToGammaSRGB( x );
+                }
+
                 outputImg.data[outputImg.numChannels * pixelIndex + Underlying( remap.to )] = x;
             }
         }

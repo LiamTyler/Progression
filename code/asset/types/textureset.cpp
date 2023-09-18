@@ -39,17 +39,20 @@ std::string TexturesetCreateInfo::GetRoughnessMap( bool isApplied ) const
 std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const
 {
     std::string cacheName;
-    std::string albedo = GetAlbedoMap( applyAlbedo );
-    cacheName += GetFilenameStem( albedo );
+    std::string albedoMapName = GetAlbedoMap( applyAlbedo );
+    cacheName += GetFilenameStem( albedoMapName );
     cacheName += "~";
-    std::string metal = GetMetalnessMap( applyMetalness );
-    cacheName += GetFilenameStem( metal );
+    std::string metalnessMapName = GetMetalnessMap( applyMetalness );
+    cacheName += GetFilenameStem( metalnessMapName );
 
     size_t hash = 0;
-    HashCombine( hash, albedo );
-    HashCombine( hash, metal );
-    HashCombine( hash, metalnessScale );
+    HashCombine( hash, clampHorizontal );
+    HashCombine( hash, clampVertical );
+    HashCombine( hash, flipVertically );
+    HashCombine( hash, albedoMapName );
+    HashCombine( hash, metalnessMapName );
     HashCombine( hash, Underlying( metalnessSourceChannel ) );
+    HashCombine( hash, metalnessScale );
     
     return cacheName + "~" + std::to_string( hash );
 }
@@ -65,12 +68,16 @@ std::string TexturesetCreateInfo::GetNormalRoughnessImageName( bool applyNormals
     cacheName += GetFilenameStem( roughness );
 
     size_t hash = 0;
+    HashCombine( hash, clampHorizontal );
+    HashCombine( hash, clampVertical );
+    HashCombine( hash, flipVertically );
     HashCombine( hash, normals );
     HashCombine( hash, slopeScale );
+    HashCombine( hash, normalMapIsYUp );
     HashCombine( hash, roughness );
-    HashCombine( hash, roughnessScale );
     HashCombine( hash, Underlying( roughnessSourceChannel ) );
     HashCombine( hash, invertRoughness );
+    HashCombine( hash, roughnessScale );
     
     return cacheName + "~" + std::to_string( hash );
 }

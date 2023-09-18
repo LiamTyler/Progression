@@ -317,10 +317,10 @@ RawImage2D RawImage2D::Clone() const
 
 
 // TODO: load directly
-bool FloatImage2D::Load( const std::string& filename )
+bool FloatImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
 {
     RawImage2D rawImg;
-    if ( !rawImg.Load( filename ) ) return false;
+    if ( !rawImg.Load( filename, loadFlags ) ) return false;
 
     *this = FloatImageFromRawImage2D( rawImg );
     return true;
@@ -920,11 +920,12 @@ std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& image, const Mipm
         else
         {
             // NOTE!!! With STBIR_EDGE_WRAP and STBIR_FILTER_MITCHELL, im seeing artifacts, at least for non-even dimensioned images.
-            // Both the top and right edges have dark lines near them, and some seemingly garbage pixels 
+            // Both the top and right edges have dark lines near them, and some seemingly garbage pixels
+            int alphaChannel = numChannels == 4 ? 3 : STBIR_ALPHA_CHANNEL_NONE;
             const FloatImage2D& prevMip = mips[mipLevel - 1];
             stbir_resize( prevMip.data.get(), prevMip.width, prevMip.height, prevMip.width * numChannels * sizeof( float ),
                           mip.data.get(), w, h, w * numChannels * sizeof( float ), STBIR_TYPE_FLOAT,
-                          numChannels, STBIR_ALPHA_CHANNEL_NONE, 0, edgeModeU, edgeModeV, STBIR_FILTER_BOX, STBIR_FILTER_BOX, STBIR_COLORSPACE_LINEAR, NULL );
+                          numChannels, alphaChannel, 0, edgeModeU, edgeModeV, STBIR_FILTER_BOX, STBIR_FILTER_BOX, STBIR_COLORSPACE_LINEAR, NULL );
         }
 
         mips.push_back( mip );

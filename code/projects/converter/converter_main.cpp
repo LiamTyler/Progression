@@ -218,22 +218,20 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
         }
     }
 
-    if ( convertErrors )
-        goto handleErrors;
-
-    // relies on outOfDateAssetList not having any duplicates in it
-    #pragma omp parallel for schedule( dynamic )
-    for ( int i = 0; i < (int)outOfDateAssetList.size(); ++i )
+    if ( !convertErrors )
     {
-        uint32_t assetTypeIdx = outOfDateAssetList[i].first;
-        const std::shared_ptr<BaseAssetCreateInfo>& createInfo = outOfDateAssetList[i].second;
-        if ( !g_converters[assetTypeIdx]->Convert( createInfo ) )
+        #pragma omp parallel for schedule( dynamic )
+        for ( int i = 0; i < (int)outOfDateAssetList.size(); ++i )
         {
-            convertErrors += 1;
+            uint32_t assetTypeIdx = outOfDateAssetList[i].first;
+            const std::shared_ptr<BaseAssetCreateInfo>& createInfo = outOfDateAssetList[i].second;
+            if ( !g_converters[assetTypeIdx]->Convert( createInfo ) )
+            {
+                convertErrors += 1;
+            }
         }
     }
 
-handleErrors:
     double duration = Time::GetDuration( convertStartTime ) / 1000.0f;
     if ( convertErrors )
     {

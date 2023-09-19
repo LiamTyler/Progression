@@ -12,6 +12,7 @@
 #include "shared/logger.hpp"
 #include "shared/random.hpp"
 #include <ctime>
+#include <omp.h>
 
 namespace PG
 {
@@ -22,12 +23,17 @@ bool g_offlineRenderer = false;
 
 bool EngineInitialize( EngineInitInfo info )
 {
+#if !USING( GAME )
+    omp_set_nested( 1 );
+#endif // #if !USING( GAME )
+
     g_headless = info.headless;
     g_offlineRenderer = info.offlineRenderer;
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
     Logger_AddLogLocation( "logfile", "log_engine.txt" );
     Lua::Init();
+    Time::Reset();
     AssetManager::Init();
 #if USING( GAME )
     if ( !g_headless )
@@ -46,9 +52,6 @@ bool EngineInitialize( EngineInitInfo info )
         LOG_ERR( "Could not initialize render system" );
         return false;
     }
-#endif // #if USING( GAME )
-    Time::Reset();
-#if USING( GAME )
     if ( !UI::Init() )
     {
         LOG_ERR( "Could not initialize UI system" );

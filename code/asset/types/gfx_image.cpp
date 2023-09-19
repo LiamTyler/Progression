@@ -451,6 +451,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
+        #pragma omp parallel for
         for ( int dstRow = 0; dstRow < (int)irradianceMap.size; ++dstRow )
         {
             for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )

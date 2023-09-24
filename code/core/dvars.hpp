@@ -42,6 +42,13 @@ private:
         uint32_t uVal;
         float fVal;
         double dVal;
+
+        DvarValue() : dVal( 0 ) {}
+        DvarValue( bool v ) : bVal( v ) {}
+        DvarValue( int v ) : iVal( v ) {}
+        DvarValue( uint32_t v ) : uVal( v ) {}
+        DvarValue( float v ) : fVal( v ) {}
+        DvarValue( double v ) : dVal( v ) {}
     };
 
 public:
@@ -110,6 +117,10 @@ private:
 
 Dvar* GetDvar( std::string_view name );
 const std::unordered_map<std::string_view, Dvar*>& GetAllDvars();
+
+#if !USING( SHIP_BUILD )
+void ExportDvars();
+#endif // !USING( SHIP_BUILD )
 
 } // namespace PG
 

@@ -1,5 +1,6 @@
 #include "init.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/dvars.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
 #if USING( GAME )
@@ -57,6 +58,9 @@ bool EngineInitialize( EngineInitInfo info )
         LOG_ERR( "Could not initialize UI system" );
         return false;
     }
+#if !USING( SHIP_BUILD )
+    ExportDvars();
+#endif // #if !USING( SHIP_BUILD )
     RemoteConsoleServer::Init();
 #endif // #if USING( GAME )
 

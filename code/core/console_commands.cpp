@@ -17,7 +17,7 @@ static void Process_loadFF( std::string* args, uint32_t numArgs )
 {
     if ( numArgs != 1 )
     {
-        LOG_ERR( "The 'loadFF' command expects 1 arg (the name of the fastfile to load" );
+        LOG_ERR( "The 'loadFF' command expects 1 arg (the name of the fastfile to load)" );
         return;
     }
 
@@ -35,7 +35,7 @@ static RegisteredCommand s_commands[] =
 {
     { "loadFF", Process_loadFF }
 };
-
+static_assert( ARRAY_COUNT( s_commands ) == 1, "Update remote_console_main.cpp with the new command for auto-completion" );
 
 static void ProcessCommand( const std::string& cmdStr )
 {

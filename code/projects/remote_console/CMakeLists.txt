@@ -18,7 +18,7 @@ set(SRC
 
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SRC})
 
-set(LIBS OpenMP::OpenMP_CXX)
+set(LIBS OpenMP::OpenMP_CXX isocline)
 
 add_executable(${PROJECT_NAME} ${SRC})
 SET_TARGET_POSTFIX(${PROJECT_NAME})

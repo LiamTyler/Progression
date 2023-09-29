@@ -6,3 +6,4 @@ Shader,postProcessFrag
 Shader,skyboxVert
 Shader,skyboxFrag
 Model,cube
+Image,brdfLUT

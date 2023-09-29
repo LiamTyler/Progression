@@ -26,7 +26,7 @@ struct FrameData
     Buffer sceneConstantBuffer;
     DescriptorSet sceneConstantDescSet;
     DescriptorSet skyboxDescSet;
-    DescriptorSet skyboxIrradianceDescSet;
+    DescriptorSet lightingAuxTexturesDescSet;
     DescriptorSet postProcessDescSet;
     
 

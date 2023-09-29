@@ -16,6 +16,9 @@ struct SceneGlobals
     MAT4 invVP;
     VEC4 cameraPos;
     UINT r_materialViz;
+    UINT r_lightingViz;
+    UINT r_postProcessing;
+    UINT r_tonemap;
 };
 
 struct PerObjectData

@@ -110,6 +110,7 @@ set(
     C_SHARED_SHADERS
     
     ${SHADER_DIR}/c_shared/defines.h
+    ${SHADER_DIR}/c_shared/dvar_defines.h
     ${SHADER_DIR}/c_shared/limits.h
     ${SHADER_DIR}/c_shared/structs.h
     ${SHADER_DIR}/c_shared/ui.h

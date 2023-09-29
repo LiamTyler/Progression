@@ -5,5 +5,11 @@
     { "Shader": { "name": "postProcessVert", "shaderStage" : "VERTEX", "filename": "post_process.vert" } },
     { "Shader": { "name": "postProcessFrag", "shaderStage" : "FRAGMENT", "filename": "post_process.frag" } },
     { "Shader": { "name": "skyboxVert", "shaderStage" : "VERTEX", "filename": "skybox.vert" } },
-    { "Shader": { "name": "skyboxFrag", "shaderStage" : "FRAGMENT", "filename": "skybox.frag" } }
+    { "Shader": { "name": "skyboxFrag", "shaderStage" : "FRAGMENT", "filename": "skybox.frag" } },
+    { "Image": {
+        "name": "brdfLUT",
+        "filename": "images/brdf_integrate_lut.png",
+        "dstFormat": "BC5_UNORM",
+        "flipVertically": true
+    } }
 ]

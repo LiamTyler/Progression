@@ -1,10 +1,11 @@
 #include "renderer/render_system.hpp"
 #include "renderer/debug_ui.hpp"
 #include "renderer/graphics_api.hpp"
+#include "renderer/rendergraph/r_rendergraph.hpp"
 #include "renderer/render_system.hpp"
+#include "renderer/r_dvars.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_init.hpp"
-#include "renderer/rendergraph/r_rendergraph.hpp"
 #include "renderer/r_texture_manager.hpp"
 #include "asset/asset_manager.hpp"
 #include "shaders/c_shared/limits.h"
@@ -37,29 +38,6 @@ DescriptorSet bindlessTexturesDescriptorSet;
 Texture* s_skyboxTextures[MAX_FRAMES_IN_FLIGHT];
 
 RenderGraph s_renderGraph;
-
-static Dvar r_skyboxViz(
-    "r_skyboxViz",
-    0u, 0u, 2u,
-    "0 - Regular Sky\n"
-    "1 - Sky Irradiance\n"
-    "2 - Black\n"
-);
-
-// keep in sync with c_shared/defines.h
-static Dvar r_materialViz(
-    "r_materialViz",
-    0u, 0u, 7u,
-    "Debug dvar for visualizing material related values. Auto turns off post processing when > 0\n"
-    "0 - Default\n"
-    "1 - Albedo\n"
-    "2 - Normal\n"
-    "3 - Roughness\n"
-    "4 - Metalness\n"
-    "5 - Geometric Normal\n"
-    "6 - Geometric Tangent\n"
-    "7 - Geometric Bitangent\n"
-);
 
 namespace PG
 {
@@ -97,9 +75,10 @@ static void InitPerFrameData()
         rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
         s_skyboxTextures[0] = nullptr;
 
-        data.skyboxIrradianceDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[3] );
-        imgDescriptors      = { DescriptorImageInfoNull() };
-        writeDescriptorSets = { WriteDescriptorSet_Image( data.skyboxIrradianceDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ) };
+        data.lightingAuxTexturesDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[3] );
+        imgDescriptors      = { DescriptorImageInfoNull(), DescriptorImageInfo( AssetManager::Get<GfxImage>( "brdfLUT" )->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
+        writeDescriptorSets = { WriteDescriptorSet_Image( data.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
+                                WriteDescriptorSet_Image( data.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &imgDescriptors[1] ) };
         rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     }
 }
@@ -389,6 +368,9 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.invVP  = glm::inverse( scene->camera.GetVP() );
     globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
     globalData.r_materialViz = r_materialViz.GetUint();
+    globalData.r_lightingViz = r_lightingViz.GetUint();
+    globalData.r_postProcessing = r_postProcessing.GetBool();
+    globalData.r_tonemap = r_tonemap.GetBool();
 
     Buffer& buffer = rg.frameData[rg.currentFrame].sceneConstantBuffer;
     memcpy( buffer.MappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );
@@ -445,7 +427,7 @@ static void UpdateSkyboxAndBackground( Scene* scene )
         std::vector< VkDescriptorImageInfo > imgDescriptors;
         std::vector< VkWriteDescriptorSet > writeDescriptorSets;
         imgDescriptors      = { DescriptorImageInfo( scene->skyboxIrradiance->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
-        writeDescriptorSets = { WriteDescriptorSet_Image( frameData.skyboxIrradianceDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ) };
+        writeDescriptorSets = { WriteDescriptorSet_Image( frameData.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ) };
         rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     }
 }
@@ -539,7 +521,7 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
     cmdBuf->SetScissor( SceneSizedScissor() );
     cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_BUFFER_SET );
     cmdBuf->BindDescriptorSet( bindlessTexturesDescriptorSet, PG_BINDLESS_TEXTURE_SET );
-    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].skyboxIrradianceDescSet, 3 );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightingAuxTexturesDescSet, 3 );
 
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
     {

@@ -18,21 +18,29 @@ layout( location = 0 ) out vec4 finalColor;
 
 bool ShouldApplyPostProcessing()
 {
-    return globals.r_materialViz == 0;
+    return globals.r_postProcessing != 0 && globals.r_materialViz == 0;
+}
+
+bool ShouldApplyTonemapping()
+{
+    return globals.r_tonemap != 0;
 }
 
 void main()
 {
     vec3 linearHdrColor = texture( originalColor, texCoord ).rgb;
-    if ( ShouldApplyPostProcessing() )
+    if ( !ShouldApplyPostProcessing() )
     {
-        vec3 toneMappedColor = Reinhard( linearHdrColor );
-        finalColor.rgb = LinearToGammaSRGB( linearHdrColor );
-    }
-    else
-    {
-        finalColor.rgb = linearHdrColor;
+        finalColor = vec4( linearHdrColor, 1 );
+        return;
     }
 
+    vec3 toneMappedColor = linearHdrColor;
+    if ( ShouldApplyTonemapping() )
+    {
+        toneMappedColor = Reinhard( linearHdrColor );
+    }
+
+    finalColor.rgb = LinearToGammaSRGB( toneMappedColor );
     finalColor.a = 1;
 }

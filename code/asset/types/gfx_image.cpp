@@ -98,6 +98,64 @@ static std::string GetImageFullPath( const std::string& filename )
 }
 
 
+static bool Load_Color( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    ImageLoadFlags imgLoadFlags = createInfo->flipVertically ? ImageLoadFlags::FLIP_VERTICALLY : ImageLoadFlags::DEFAULT;
+    RawImage2D img;
+    if ( !img.Load( GetImageFullPath( createInfo->filenames[0] ), imgLoadFlags ) )
+        return false;
+
+    PixelFormat format = createInfo->dstPixelFormat;
+    ImageFormat compressFormat = ImageFormat::BC7_UNORM;
+    if ( format == PixelFormat::INVALID )
+    {
+        // TODO: actually infer based on the image itself
+        format = PixelFormat::BC7_SRGB;
+    }
+    else if ( !PixelFormatIsCompressed( format ) )
+    {
+        if ( PixelFormatToImageFormat( format ) != img.format )
+        {
+            LOG_WARN( "Image %s requested %s format but the actual loaded image has format %d. Currently not supporting "
+                "format changes outside of srgb/compression changes for uncompressed images. Using loaded format with srgb",
+                createInfo->name.c_str(), PixelFormatName( format ).c_str(), (int)img.format );
+            format = ImageFormatToPixelFormat( img.format, true );
+        }
+    }
+    else
+    {
+        compressFormat = PixelFormatToImageFormat( format );
+    }
+
+    if ( PixelFormatIsCompressed( format ) )
+    {
+        BCCompressorSettings compressorSettings( compressFormat, COMPRESSOR_QUALITY );
+        img = CompressToBC( img, compressorSettings );
+    }
+
+    *gfxImage = RawImage2DMipsToGfxImage( { img }, format );
+
+    return gfxImage->pixels != nullptr;
+}
+
+
+static bool Load_Gray( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    ImageLoadFlags imgLoadFlags = createInfo->flipVertically ? ImageLoadFlags::FLIP_VERTICALLY : ImageLoadFlags::DEFAULT;
+    RawImage2D img;
+    if ( !img.Load( GetImageFullPath( createInfo->filenames[0] ), imgLoadFlags ) )
+        return false;
+
+    BCCompressorSettings compressorSettings( ImageFormat::BC4_UNORM, COMPRESSOR_QUALITY );
+    RawImage2D compressed = CompressToBC( img, compressorSettings );
+
+    PixelFormat format = ImageFormatToPixelFormat( compressed.format, false );
+    *gfxImage = RawImage2DMipsToGfxImage( { compressed }, format );
+
+    return gfxImage->pixels != nullptr;
+}
+
+
 static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
     CompositeImageInput compositeInfo;
@@ -135,7 +193,8 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
 
-    *gfxImage = RawImage2DMipsToGfxImage( compressedMips, compositeInfo.outputColorSpace == ColorSpace::SRGB );
+    PixelFormat format = ImageFormatToPixelFormat( compressedMips[0].format, compositeInfo.outputColorSpace == ColorSpace::SRGB );
+    *gfxImage = RawImage2DMipsToGfxImage( compressedMips, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -222,11 +281,11 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
 
-    *gfxImage = RawImage2DMipsToGfxImage( compressedMips, compositeInfo.outputColorSpace == ColorSpace::SRGB );
+    PixelFormat format = ImageFormatToPixelFormat( compressedMips[0].format, compositeInfo.outputColorSpace == ColorSpace::SRGB );
+    *gfxImage = RawImage2DMipsToGfxImage( compressedMips, format );
 
     return gfxImage->pixels != nullptr;
 }
-
 
 
 static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo, RawImage2D &img )
@@ -234,23 +293,8 @@ static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxIm
     BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
     RawImage2D compressed = CompressToBC( img, compressorSettings );
 
-    *gfxImage = RawImage2DMipsToGfxImage( { compressed }, false );
-
-    return gfxImage->pixels != nullptr;
-}
-
-
-static bool Load_UI( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
-{
-    ImageLoadFlags imgLoadFlags = createInfo->flipVertically ? ImageLoadFlags::FLIP_VERTICALLY : ImageLoadFlags::DEFAULT;
-    RawImage2D img;
-    if ( !img.Load( GetImageFullPath( createInfo->filenames[0] ), imgLoadFlags ) )
-        return false;
-
-    BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
-    RawImage2D compressed = CompressToBC( img, compressorSettings );
-
-    *gfxImage = RawImage2DMipsToGfxImage( { compressed }, false );
+    PixelFormat format = ImageFormatToPixelFormat( compressed.format, false );
+    *gfxImage = RawImage2DMipsToGfxImage( { compressed }, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -516,6 +560,23 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
 }
 
 
+static bool Load_UI( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    ImageLoadFlags imgLoadFlags = createInfo->flipVertically ? ImageLoadFlags::FLIP_VERTICALLY : ImageLoadFlags::DEFAULT;
+    RawImage2D img;
+    if ( !img.Load( GetImageFullPath( createInfo->filenames[0] ), imgLoadFlags ) )
+        return false;
+
+    BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
+    RawImage2D compressed = CompressToBC( img, compressorSettings );
+
+    PixelFormat format = ImageFormatToPixelFormat( compressed.format, false );
+    *gfxImage = RawImage2DMipsToGfxImage( { compressed }, format );
+
+    return gfxImage->pixels != nullptr;
+}
+
+
 bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
@@ -524,6 +585,12 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
     bool success = false;
     switch ( createInfo->semantic )
     {
+    case GfxImageSemantic::COLOR:
+        success = Load_Color( this, createInfo );
+        break;
+    case GfxImageSemantic::GRAY:
+        success = Load_Gray( this, createInfo );
+        break;
     case GfxImageSemantic::ALBEDO_METALNESS:
         success = Load_AlbedoMetalness( this, createInfo );
         break;
@@ -704,7 +771,7 @@ PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB )
 }
 
 
-GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, bool isSRGB )
+GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, PixelFormat format )
 {
     if ( mips.empty() ) return {};
 
@@ -715,7 +782,7 @@ GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, bool isS
     gfxImage.depth = 1;
     gfxImage.numFaces = 1;
     gfxImage.mipLevels = static_cast<uint32_t>( mips.size() );
-    gfxImage.pixelFormat = ImageFormatToPixelFormat( mips[0].format, isSRGB );
+    gfxImage.pixelFormat = format;
     gfxImage.totalSizeInBytes = CalculateTotalImageBytes( gfxImage.pixelFormat, gfxImage.width, gfxImage.height, 1, 1, gfxImage.mipLevels );
     gfxImage.pixels = static_cast<uint8_t*>( malloc( gfxImage.totalSizeInBytes ) );
 

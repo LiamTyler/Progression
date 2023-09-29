@@ -183,7 +183,7 @@ ImageFormat PixelFormatToImageFormat( PixelFormat pixelFormat )
     case PixelFormat::BC4_SNORM:
         return ImageFormat::BC4_SNORM;
     case PixelFormat::BC5_UNORM:
-        return ImageFormat::BC4_UNORM;
+        return ImageFormat::BC5_UNORM;
     case PixelFormat::BC5_SNORM:
         return ImageFormat::BC5_SNORM;
     case PixelFormat::BC6H_UFLOAT:

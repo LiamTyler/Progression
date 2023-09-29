@@ -96,6 +96,8 @@ set(
     ${CODE_DIR}/renderer/graphics_api.hpp
     ${CODE_DIR}/renderer/render_system.cpp
     ${CODE_DIR}/renderer/render_system.hpp
+    ${CODE_DIR}/renderer/r_dvars.cpp
+    ${CODE_DIR}/renderer/r_dvars.hpp
     ${CODE_DIR}/renderer/r_globals.cpp
     ${CODE_DIR}/renderer/r_globals.hpp
     ${CODE_DIR}/renderer/r_init.cpp

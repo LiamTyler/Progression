@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_EXT_nonuniform_qualifier : enable
 
-#include "c_shared/limits.h"
+#include "c_shared/dvar_defines.h"
 #include "c_shared/structs.h"
 #include "lib/pbr.glsl"
 
@@ -21,14 +21,15 @@ layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
 };
 
 layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures_2D[];
-// layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform samplerCube textures_Cube[];
 layout( set = 3, binding = 0 ) uniform samplerCube skyboxIrradiance;
-
+layout( set = 3, binding = 1 ) uniform sampler2D brdfLUT;
 
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
     layout( offset = 128 ) MaterialData material;
 };
+
+
 
 vec3 Vec3ToUnorm( vec3 v )
 {
@@ -70,11 +71,6 @@ void GetNormalRoughness( const vec2 uv, out vec3 N, out float roughness )
     }
 }
 
-vec3 fresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
-{
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
-}   
-
 
 void main()
 {
@@ -93,48 +89,69 @@ void main()
 
     vec3 Lo = vec3( 0 );
     // TODO: direct lighting
+    vec3 directLighting = vec3( 0 );
 
     // Diffuse IBL lighting
     vec3 irradiance = texture( skyboxIrradiance, N ).rgb;
-    vec3 kS = fresnelSchlickRoughness( NdotV, F0, roughness );
+    vec3 kS = PBR_FresnelSchlickRoughness( NdotV, F0, roughness );
     vec3 kD = (1.0 - kS) * (1.0 - metalness);
-    vec3 diffuse = irradiance * (albedo / PI) * kD;
-    Lo += diffuse;
+    vec3 diffuseIndirect = irradiance * (albedo / PI) * kD;
+    Lo += diffuseIndirect;
 
     // TODO: specular IBL
+    vec2 brdfScaleAndBias = texture( brdfLUT, vec2( NdotV, roughness ) ).rg;
+    vec3 specularIndirect = vec3( brdfScaleAndBias, 0 );
+    Lo += 0.000001 * specularIndirect;
 
     // TODO: emissive
 
 
     outColor = vec4( Lo, 1 );
 
+    uint r_lightingViz = globals.r_lightingViz;
+    if ( r_lightingViz == PG_DEBUG_LIGHTING_DIRECT )
+    {
+        outColor.rgb = directLighting;
+    }
+    else if ( r_lightingViz == PG_DEBUG_LIGHTING_INDIRECT )
+    {
+        outColor.rgb = diffuseIndirect + specularIndirect;
+    }
+    else if ( r_lightingViz == PG_DEBUG_LIGHTING_DIFFUSE_INDIRECT )
+    {
+        outColor.rgb = diffuseIndirect;
+    }
+    else if ( r_lightingViz == PG_DEBUG_LIGHTING_SPECULAR_INDIRECT )
+    {
+        outColor.rgb = specularIndirect;
+    }
 
     uint r_materialViz = globals.r_materialViz;
-    if ( r_materialViz == PG_DEBUG_LAYER_ALBEDO )
+    if ( r_materialViz == PG_DEBUG_MTL_ALBEDO )
     {
         outColor.rgb = albedo;
     }
-    else if ( r_materialViz == PG_DEBUG_LAYER_NORMAL )
+    else if ( r_materialViz == PG_DEBUG_MTL_NORMAL )
     {
         outColor.rgb = Vec3ToUnorm( N );
     }
-    else if ( r_materialViz == PG_DEBUG_LAYER_ROUGHNESS )
+    else if ( r_materialViz == PG_DEBUG_MTL_ROUGHNESS )
     {
         outColor.rgb = vec3( roughness );
     }
-    else if ( r_materialViz == PG_DEBUG_LAYER_METALNESS )
+    else if ( r_materialViz == PG_DEBUG_MTL_METALNESS )
     {
         outColor.rgb = vec3( metalness );
     }
-    else if ( r_materialViz == PG_DEBUG_LAYER_GEOM_NORMAL )
+    else if ( r_materialViz == PG_DEBUG_MTL_GEOM_NORMAL )
     {
         outColor.rgb = Vec3ToUnorm( normalize( worldSpaceNormal ) );
     }
-    else if ( r_materialViz == PG_DEBUG_LAYER_GEOM_TANGENT )
+    else if ( r_materialViz == PG_DEBUG_MTL_GEOM_TANGENT )
     {
         outColor.rgb = Vec3ToUnorm( normalize( worldSpaceTangent ) );
     }
-    else if ( r_materialViz == PG_DEBUG_LAYER_GEOM_BITANGENT )
+    else if ( r_materialViz == PG_DEBUG_MTL_GEOM_BITANGENT )
     {
         outColor.rgb = Vec3ToUnorm( normalize( worldSpaceBitangent ) );
     }

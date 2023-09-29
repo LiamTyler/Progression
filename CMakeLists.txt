@@ -28,6 +28,7 @@ set(COMMON_INCLUDE_DIRS
 )
 
 add_subdirectory(code/external)
+add_subdirectory(code/projects/brdf_integrate)
 add_subdirectory(code/projects/engine)
 add_subdirectory(code/projects/converter)
 add_subdirectory(code/projects/gfximage_viewer)

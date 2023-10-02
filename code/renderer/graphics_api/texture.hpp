@@ -25,7 +25,7 @@ namespace Gfx
         uint32_t height         = 0;
         uint32_t depth          = 1;
         VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        std::string sampler     = "linear_repeat_linear";
+        std::string sampler     = "trilinear_wrapU_wrapV";
         bool addToBindlessArray = true;
 
         size_t TotalSizeInBytes() const;

@@ -56,7 +56,7 @@ namespace Gfx
     {
         VkDescriptorImageInfo imageInfo;
         imageInfo.imageLayout = imageLayout;
-        imageInfo.sampler     = GetSampler( "nearest_clamped_nearest" )->GetHandle(); // has to be valid handle, but doesnt really matter which
+        imageInfo.sampler     = GetSampler( "nearest_clampU_clampV" )->GetHandle(); // has to be valid handle, but doesnt really matter which
         imageInfo.imageView   = VK_NULL_HANDLE;
 
         return imageInfo;

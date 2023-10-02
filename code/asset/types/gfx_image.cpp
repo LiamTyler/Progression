@@ -83,6 +83,10 @@ void GfxImage::UploadToGpu()
     desc.mipLevels   = mipLevels;
     desc.usage       = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
     desc.addToBindlessArray = imageType == ImageType::TYPE_2D || imageType == ImageType::TYPE_CUBEMAP;
+    desc.sampler = filterMode == GfxImageFilterMode::NEAREST ? "nearest_" : 
+        (filterMode == GfxImageFilterMode::BILINEAR ? "bilinear_" : "trilinear_");
+    desc.sampler += clampHorizontal ? "clampU_" : "wrapU_";
+    desc.sampler += clampVertical ? "clampV" : "wrapV";
 
     gpuTexture = rg.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );
@@ -611,6 +615,9 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
         return false;
     }
     name = createInfo->name;
+    clampHorizontal = createInfo->clampHorizontal;
+    clampVertical = createInfo->clampVertical;
+    filterMode = createInfo->filterMode;
     
     return success;
 }
@@ -629,6 +636,9 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
     serializer->Read( totalSizeInBytes );
     serializer->Read( pixelFormat );
     serializer->Read( imageType );
+    serializer->Read( clampHorizontal );
+    serializer->Read( clampVertical );
+    serializer->Read( filterMode );
     pixels = static_cast< unsigned char* >( malloc( totalSizeInBytes ) );
     serializer->Read( pixels, totalSizeInBytes );
 
@@ -652,6 +662,9 @@ bool GfxImage::FastfileSave( Serializer* serializer ) const
     serializer->Write( totalSizeInBytes );
     serializer->Write( pixelFormat );
     serializer->Write( imageType );
+    serializer->Write( clampHorizontal );
+    serializer->Write( clampVertical );
+    serializer->Write( filterMode );
     serializer->Write( pixels, totalSizeInBytes );
 
     return true;

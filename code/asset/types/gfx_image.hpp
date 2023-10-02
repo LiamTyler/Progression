@@ -28,6 +28,30 @@ enum class GfxImageSemantic : uint8_t
 
 bool IsSemanticComposite( GfxImageSemantic semantic );
 
+enum class GfxImageFilterMode : uint8_t
+{
+    NEAREST,
+    BILINEAR,
+    TRILINEAR,
+
+    COUNT
+};
+
+struct GfxImageCreateInfo : public BaseAssetCreateInfo
+{
+    std::string filenames[6];
+    GfxImageSemantic semantic     = GfxImageSemantic::COLOR;
+    PixelFormat dstPixelFormat    = PixelFormat::INVALID; // Format automatically chosen if dstPixelFormat == INVALID
+    bool flipVertically           = true;
+    bool clampHorizontal          = false;
+    bool clampVertical            = false;
+    GfxImageFilterMode filterMode = GfxImageFilterMode::TRILINEAR;
+
+    // for composite maps, like ALBEDO_METALNESS
+    float compositeScales[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    Channel compositeSourceChannels[4] = { Channel::COUNT, Channel::COUNT, Channel::COUNT, Channel::COUNT };
+};
+
 struct GfxImage : public BaseAsset
 {
     bool Load( const BaseAssetCreateInfo* baseInfo ) override;
@@ -46,6 +70,9 @@ struct GfxImage : public BaseAsset
     unsigned char* pixels = nullptr; // stored face0Mip0,face0Mip1,face0Mip2...face1Mip0,face1Mip1,etc
     PixelFormat pixelFormat;
     ImageType imageType;
+    bool clampHorizontal;
+    bool clampVertical;
+    GfxImageFilterMode filterMode;
 
 #if USING( GPU_DATA )
     Gfx::Texture gpuTexture;
@@ -60,21 +87,6 @@ enum CubemapFaceIndex
     CUBEMAP_FACE_RIGHT  = 3,
     CUBEMAP_FACE_TOP    = 4,
     CUBEMAP_FACE_BOTTOM = 5,
-};
-
-
-struct GfxImageCreateInfo : public BaseAssetCreateInfo
-{
-    std::string filenames[6];
-    GfxImageSemantic semantic  = GfxImageSemantic::COLOR;
-    PixelFormat dstPixelFormat = PixelFormat::INVALID; // Format automatically chosen if dstPixelFormat == INVALID
-    bool flipVertically        = true;
-    bool clampHorizontal       = true;
-    bool clampVertical         = true;
-
-    // for composite maps, like ALBEDO_METALNESS
-    float compositeScales[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
-    Channel compositeSourceChannels[4] = { Channel::COUNT, Channel::COUNT, Channel::COUNT, Channel::COUNT };
 };
 
 // if numMips is unspecified (0), assume all mips are in use

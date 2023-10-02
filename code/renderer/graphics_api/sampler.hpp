@@ -9,19 +9,19 @@ namespace PG
 namespace Gfx
 {
 
-    enum class FilterMode
+    enum class FilterMode : uint8_t
     {
         NEAREST = 0,
         LINEAR  = 1,
     };
 
-    enum class MipFilterMode
+    enum class MipFilterMode : uint8_t
     {
         NEAREST = 0,
         LINEAR  = 1,
     };
 
-    enum class WrapMode
+    enum class WrapMode : uint8_t
     {
         REPEAT          = 0,
         MIRRORED_REPEAT = 1,
@@ -29,7 +29,7 @@ namespace Gfx
         CLAMP_TO_BORDER = 3,
     };
 
-    enum class BorderColor
+    enum class BorderColor : uint8_t
     {
         TRANSPARENT_BLACK_FLOAT = 0,
         TRANSPARENT_BLACK_INT   = 1,
@@ -48,8 +48,8 @@ namespace Gfx
         WrapMode wrapModeU      = WrapMode::CLAMP_TO_EDGE;
         WrapMode wrapModeV      = WrapMode::CLAMP_TO_EDGE;
         WrapMode wrapModeW      = WrapMode::CLAMP_TO_EDGE;
-        float maxAnisotropy     = 1.0f;
         BorderColor borderColor = BorderColor::OPAQUE_BLACK_INT;
+        float maxAnisotropy     = 16.0f;
     };
 
     class Sampler

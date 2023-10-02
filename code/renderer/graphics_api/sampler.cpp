@@ -37,27 +37,59 @@ namespace Gfx
     }
 
 
-    void InitSamplers()
+    // helper for adding the 4 wrap variants, 2 in U and 2 in V
+    static void AddWrapSamplers( const SamplerDescriptor& samplerTemplate )
     {
-        SamplerDescriptor samplerDesc;
+        SamplerDescriptor samplerDesc = samplerTemplate;
 
-        samplerDesc.name      = "nearest_clamped_nearest";
-        samplerDesc.minFilter = FilterMode::NEAREST;
-        samplerDesc.magFilter = FilterMode::NEAREST;
-        samplerDesc.mipFilter = MipFilterMode::NEAREST;
+        samplerDesc.name = samplerTemplate.name + "clampU_clampV";
         samplerDesc.wrapModeU = WrapMode::CLAMP_TO_EDGE;
         samplerDesc.wrapModeV = WrapMode::CLAMP_TO_EDGE;
         samplerDesc.wrapModeW = WrapMode::CLAMP_TO_EDGE;
         AddSampler( samplerDesc );
 
-        samplerDesc.name      = "nearest_repeat_nearest";
-        samplerDesc.minFilter = FilterMode::NEAREST;
-        samplerDesc.magFilter = FilterMode::NEAREST;
-        samplerDesc.mipFilter = MipFilterMode::NEAREST;
+        samplerDesc.name = samplerTemplate.name + "clampU_wrapV";
+        samplerDesc.wrapModeU = WrapMode::CLAMP_TO_EDGE;
+        samplerDesc.wrapModeV = WrapMode::REPEAT;
+        samplerDesc.wrapModeW = WrapMode::CLAMP_TO_EDGE;
+        AddSampler( samplerDesc );
+
+        samplerDesc.name = samplerTemplate.name + "wrapU_clampV";
+        samplerDesc.wrapModeU = WrapMode::REPEAT;
+        samplerDesc.wrapModeV = WrapMode::CLAMP_TO_EDGE;
+        samplerDesc.wrapModeW = WrapMode::CLAMP_TO_EDGE;
+        AddSampler( samplerDesc );
+
+        samplerDesc.name = samplerTemplate.name + "wrapU_wrapV";
         samplerDesc.wrapModeU = WrapMode::REPEAT;
         samplerDesc.wrapModeV = WrapMode::REPEAT;
         samplerDesc.wrapModeW = WrapMode::REPEAT;
         AddSampler( samplerDesc );
+    }
+
+
+    void InitSamplers()
+    {
+        SamplerDescriptor samplerDesc;
+        samplerDesc.maxAnisotropy = 16.0f;
+
+        samplerDesc.name      = "nearest_";
+        samplerDesc.minFilter = FilterMode::NEAREST;
+        samplerDesc.magFilter = FilterMode::NEAREST;
+        samplerDesc.mipFilter = MipFilterMode::NEAREST;
+        AddWrapSamplers( samplerDesc );
+
+        samplerDesc.name      = "bilinear_";
+        samplerDesc.minFilter = FilterMode::LINEAR;
+        samplerDesc.magFilter = FilterMode::LINEAR;
+        samplerDesc.mipFilter = MipFilterMode::NEAREST;
+        AddWrapSamplers( samplerDesc );
+
+        samplerDesc.name      = "trilinear_";
+        samplerDesc.minFilter = FilterMode::LINEAR;
+        samplerDesc.magFilter = FilterMode::LINEAR;
+        samplerDesc.mipFilter = MipFilterMode::LINEAR;
+        AddWrapSamplers( samplerDesc );
 
         samplerDesc.name        = "shadow_map";
         samplerDesc.minFilter   = FilterMode::NEAREST;
@@ -67,25 +99,6 @@ namespace Gfx
         samplerDesc.wrapModeV   = WrapMode::CLAMP_TO_BORDER;
         samplerDesc.wrapModeW   = WrapMode::CLAMP_TO_BORDER;
         samplerDesc.borderColor = BorderColor::OPAQUE_WHITE_FLOAT;
-        AddSampler( samplerDesc );
-
-        samplerDesc.name        = "linear_clamped_linear";
-        samplerDesc.minFilter   = FilterMode::LINEAR;
-        samplerDesc.magFilter   = FilterMode::LINEAR;
-        samplerDesc.mipFilter   = MipFilterMode::LINEAR;
-        samplerDesc.wrapModeU   = WrapMode::CLAMP_TO_EDGE;
-        samplerDesc.wrapModeV   = WrapMode::CLAMP_TO_EDGE;
-        samplerDesc.wrapModeW   = WrapMode::CLAMP_TO_EDGE;
-        AddSampler( samplerDesc );
-
-        samplerDesc.name      = "linear_repeat_linear";
-        samplerDesc.minFilter = FilterMode::LINEAR;
-        samplerDesc.magFilter = FilterMode::LINEAR;
-        samplerDesc.mipFilter = MipFilterMode::LINEAR;
-        samplerDesc.wrapModeU = WrapMode::REPEAT;
-        samplerDesc.wrapModeV = WrapMode::REPEAT;
-        samplerDesc.wrapModeW = WrapMode::REPEAT;
-        samplerDesc.maxAnisotropy = 16.0f;
         AddSampler( samplerDesc );
     }
 

@@ -10,6 +10,8 @@
         "name": "brdfLUT",
         "filename": "images/brdf_integrate_lut.png",
         "dstFormat": "BC5_UNORM",
-        "flipVertically": true
+        "clampHorizontal": true,
+        "clampVertical": true,
+        "filterMode": "BILINEAR"
     } }
 ]

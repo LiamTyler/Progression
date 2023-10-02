@@ -64,6 +64,12 @@ BEGIN_STR_TO_ENUM_MAP( GfxImageSemantic )
     STR_TO_ENUM_VALUE( GfxImageSemantic, UI )
 END_STR_TO_ENUM_MAP( GfxImageSemantic, NUM_IMAGE_SEMANTICS )
 
+BEGIN_STR_TO_ENUM_MAP( GfxImageFilterMode )
+    STR_TO_ENUM_VALUE( GfxImageFilterMode, NEAREST )
+    STR_TO_ENUM_VALUE( GfxImageFilterMode, BILINEAR )
+    STR_TO_ENUM_VALUE( GfxImageFilterMode, TRILINEAR )
+END_STR_TO_ENUM_MAP( GfxImageFilterMode, COUNT )
+
 bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
@@ -89,6 +95,7 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
         },
         { "clampHorizontal", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.clampHorizontal = v.GetBool(); } },
         { "clampVertical",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.clampVertical = v.GetBool(); } },
+        { "filterMode",      []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filterMode = GfxImageFilterMode_StringToEnum( String( v ) ); } },
     });
     mapping.ForEachMember( value, *info );
 

@@ -33,12 +33,15 @@ Dvar r_lightingViz(
 
 Dvar r_skyboxViz(
     "r_skyboxViz",
-    0u, 0u, 2u,
+    0u, 0u, 4u,
     "0 - Regular Sky\n"
     "1 - Sky Irradiance\n"
-    "2 - Black\n"
-    "3 - White\n"
+    "2 - Sky Reflection (use r_skyboxReflectionMipLevel to control the mipLevel)\n"
+    "3 - Black\n"
+    "4 - White\n"
 );
+
+Dvar r_skyboxReflectionMipLevel( "r_skyboxReflectionMipLevel", 0.0f, 0.0f, 16.0f, "Control which mipLevel to visualize when using r_skyboxViz 2" );
 
 Dvar r_postProcessing( "r_postProcessing", true, "Enable/disable post processing entirely" );
 Dvar r_tonemap( "r_tonemap", true, "Enable/disable tonemapping" );

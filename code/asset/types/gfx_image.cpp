@@ -1,6 +1,8 @@
 #include "asset/types/gfx_image.hpp"
+#include "core/low_discrepancy_sampling.hpp"
 #include "core/image_processing.hpp"
 #include "ImageLib/bc_compression.hpp"
+#include "renderer/brdf_functions.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
@@ -17,7 +19,7 @@ namespace PG
 
 bool IsSemanticComposite( GfxImageSemantic semantic )
 {
-    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 7 );
+    static_assert( Underlying( GfxImageSemantic::NUM_IMAGE_SEMANTICS ) == 8 );
     return semantic == GfxImageSemantic::ALBEDO_METALNESS || semantic == GfxImageSemantic::NORMAL_ROUGHNESS;
 }
 
@@ -543,7 +545,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
         faces[i] = CompressToBC( face, compressorSettings );
     }
 
-    gfxImage->imageType = ImageType::TYPE_2D;
+    gfxImage->imageType = ImageType::TYPE_CUBEMAP;
     gfxImage->width = irradianceMap.size;
     gfxImage->height = irradianceMap.size;
     gfxImage->depth = 1;
@@ -558,6 +560,112 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     {
         memcpy( currentFace, faces[i].Raw(), faces[i].TotalBytes() );
         currentFace += faces[i].TotalBytes();
+    }
+
+    return true;
+}
+
+
+static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
+{
+    int numFaces = 0;
+    std::string filenames[6];
+    for ( int i = 0; i < 6; ++i )
+    {
+        if ( !createInfo->filenames[i].empty() )
+        {
+            filenames[i] = GetImageFullPath( createInfo->filenames[i] );
+            ++numFaces;
+        }
+    }
+    
+    FloatImageCubemap cubemap;
+    if ( numFaces == 1 )
+    {
+        PG_ASSERT( !filenames[0].empty(), "Filename must be in first slot, for equirectangular inputs" );
+        if ( !cubemap.LoadFromEquirectangular( filenames[0] ) )
+            return false;
+    }
+    else if ( numFaces == 6 )
+    {
+        if ( !cubemap.LoadFromFaces( filenames ) )
+            return false;
+    }
+    else
+    {
+        LOG_ERR( "Unrecognized number of faces for environment map: %d. Only 1 (equirectangular) or 6 (cubemap) supported", numFaces );
+        return false;
+    }
+
+    constexpr int FACE_SIZE = 128;
+    constexpr int MIP_LEVELS = 8; // keep in sync with FACE_SIZE
+    FloatImageCubemap outputMips[MIP_LEVELS];
+    for ( int mipLevel = 0; mipLevel < MIP_LEVELS; ++mipLevel )
+    {
+        const int MIP_SIZE = FACE_SIZE >> mipLevel;
+        outputMips[mipLevel] = FloatImageCubemap( MIP_SIZE, 3 );
+        float roughness = mipLevel / static_cast<float>( MIP_LEVELS - 1 );
+        for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+        {
+            #pragma omp parallel for
+            for ( int dstRow = 0; dstRow < MIP_SIZE; ++dstRow )
+            {
+                for ( int dstCol = 0; dstCol < MIP_SIZE; ++dstCol )
+                {
+                    glm::vec2 faceUV = { (dstCol + 0.5f) / MIP_SIZE, (dstRow + 0.5f) / MIP_SIZE };
+                
+                    glm::vec3 N = CubemapFaceUVToDirection( faceIdx, faceUV );
+                    glm::vec3 R = N;
+                    glm::vec3 V = N;
+
+                    float totalWeight = 0;
+                    glm::vec3 prefilteredColor( 0 );
+                    const uint32_t SAMPLE_COUNT = 1024u;
+                    for ( uint32_t i = 0u; i < SAMPLE_COUNT; ++i )
+                    {
+                        glm::vec2 Xi = glm::vec2( i / (float)SAMPLE_COUNT, Hammersley32( i ) );
+                        glm::vec3 H  = ImportanceSampleGGX_D( Xi, N, roughness );
+                        glm::vec3 L  = normalize( 2.0f * glm::dot( V, H ) * H - V );
+
+                        float NdotL = std::max( glm::dot( N, L ), 0.0f );
+                        if ( NdotL > 0.0f )
+                        {
+                            glm::vec3 radiance = cubemap.Sample( L );
+                            prefilteredColor += radiance * NdotL;
+                            totalWeight += NdotL;
+                        }
+                    }
+                    prefilteredColor = prefilteredColor / totalWeight;
+                    outputMips[mipLevel].faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( prefilteredColor, 0 ) );
+                }
+            }
+            LOG( "Convolved face %d / 6...", faceIdx + 1 );
+        }
+    }
+
+    gfxImage->imageType = ImageType::TYPE_CUBEMAP;
+    gfxImage->width = FACE_SIZE;
+    gfxImage->height = FACE_SIZE;
+    gfxImage->depth = 1;
+    gfxImage->numFaces = 6;
+    gfxImage->mipLevels = MIP_LEVELS;
+    gfxImage->pixelFormat = ImageFormatToPixelFormat( ImageFormat::BC6H_U16F, false );
+    gfxImage->totalSizeInBytes = CalculateTotalImageBytes( *gfxImage );
+    gfxImage->pixels = static_cast<uint8_t*>( malloc( gfxImage->totalSizeInBytes ) );
+    uint8_t* currentFace = gfxImage->pixels;
+
+    BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
+    for ( int mipLevel = 0; mipLevel < MIP_LEVELS; ++mipLevel )
+    {
+        ConvertPGCubemapToVkCubemap( outputMips[mipLevel] );
+        for ( int i = 0; i < 6; ++i )
+        {
+            RawImage2D face = RawImage2DFromFloatImage( outputMips[mipLevel].faces[i], ImageFormat::R16_G16_B16_FLOAT );
+            RawImage2D compressedFace = CompressToBC( face, compressorSettings );
+
+            memcpy( currentFace, compressedFace.Raw(), compressedFace.TotalBytes() );
+            currentFace += compressedFace.TotalBytes();
+        }
     }
 
     return true;
@@ -606,6 +714,9 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
         break;
     case GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE:
         success = Load_EnvironmentMapIrradiance( this, createInfo );
+        break;
+    case GfxImageSemantic::ENVIRONMENT_MAP_REFLECTION_PROBE:
+        success = Load_EnvironmentMapReflectionProbe( this, createInfo );
         break;
     case GfxImageSemantic::UI:
         success = Load_UI( this, createInfo );

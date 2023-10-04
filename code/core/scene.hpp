@@ -37,6 +37,7 @@ namespace PG
         entt::registry registry;
         GfxImage* skybox = nullptr;
         GfxImage* skyboxIrradiance = nullptr;
+        GfxImage* skyboxReflectionProbe = nullptr;
 
         // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions
         Lua::ScriptInstance nonEntityScripts[PG_MAX_NON_ENTITY_SCRIPTS];

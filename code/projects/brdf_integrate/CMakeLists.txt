@@ -3,8 +3,15 @@ project(BRDFIntegrate)
 include(helpful_functions)
 include(source_files)
 
+set(CODE_DIR ${PROGRESSION_DIR}/code)
+
 set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/brdf_integrate_main.cpp
+    
+    ${CODE_DIR}/core/low_discrepancy_sampling.cpp
+    ${CODE_DIR}/core/low_discrepancy_sampling.hpp
+    ${CODE_DIR}/renderer/brdf_functions.cpp
+    ${CODE_DIR}/renderer/brdf_functions.hpp
     
     ${PRIMARY_SHARED_SRC}
 )

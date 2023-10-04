@@ -11,15 +11,21 @@ void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageI
 {
     if ( imageInfo->semantic == GfxImageSemantic::ENVIRONMENT_MAP )
     {
-        auto imageCreateInfo = std::make_shared<GfxImageCreateInfo>();
-        imageCreateInfo->name = imageInfo->name + "_irradiance";
+        auto irradianceInfo = std::make_shared<GfxImageCreateInfo>();
+        irradianceInfo->name = imageInfo->name + "_irradiance";
         for ( int i = 0; i < ARRAY_COUNT( imageInfo->filenames ); ++i )
-            imageCreateInfo->filenames[i] = imageInfo->filenames[i];
-        imageCreateInfo->clampHorizontal = false;
-        imageCreateInfo->clampVertical = false;
-        imageCreateInfo->flipVertically = imageInfo->flipVertically;
-        imageCreateInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
-        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, imageCreateInfo );
+            irradianceInfo->filenames[i] = imageInfo->filenames[i];
+        irradianceInfo->clampHorizontal = false;
+        irradianceInfo->clampVertical = false;
+        irradianceInfo->flipVertically = imageInfo->flipVertically;
+        irradianceInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
+        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, irradianceInfo );
+
+        auto reflectionProbeInfo = std::make_shared<GfxImageCreateInfo>();
+        *reflectionProbeInfo = *irradianceInfo;
+        reflectionProbeInfo->name = imageInfo->name + "_reflectionProbe";
+        reflectionProbeInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_REFLECTION_PROBE;
+        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, reflectionProbeInfo );
     }
 }
 
@@ -36,6 +42,7 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
         HashCombine( hash, Underlying( info->flipVertically ) );
         HashCombine( hash, Underlying( info->clampHorizontal ) );
         HashCombine( hash, Underlying( info->clampVertical ) );
+        HashCombine( hash, Underlying( info->filterMode ) );
         for ( int i = 0; i < 6; ++i )
         {
             if ( info->filenames[i].empty() )

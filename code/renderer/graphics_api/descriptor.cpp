@@ -52,6 +52,27 @@ namespace Gfx
 	}
 
 
+    std::vector<VkWriteDescriptorSet> WriteDescriptorSet_Images( const DescriptorSet& set, VkDescriptorType type, const std::vector<VkDescriptorImageInfo> &imageInfos )
+    {
+        VkWriteDescriptorSet writeDescriptorSet {};
+		writeDescriptorSet.sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		writeDescriptorSet.dstSet          = set.GetHandle();
+		writeDescriptorSet.descriptorType  = type;
+		writeDescriptorSet.descriptorCount = 1;
+        writeDescriptorSet.dstArrayElement = 0;
+
+        std::vector<VkWriteDescriptorSet> ret( imageInfos.size() );
+        for ( uint32_t i = 0; i < (uint32_t)imageInfos.size(); ++i )
+        {
+            writeDescriptorSet.dstBinding = i;
+		    writeDescriptorSet.pImageInfo = &imageInfos[i];
+            ret[i] = writeDescriptorSet;
+        }
+
+        return ret;
+    }
+
+
     VkDescriptorImageInfo DescriptorImageInfoNull( VkImageLayout imageLayout )
     {
         VkDescriptorImageInfo imageInfo;

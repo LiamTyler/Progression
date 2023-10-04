@@ -309,6 +309,12 @@ namespace Gfx
     }
 
 
+    void Device::UpdateDescriptorSets( const std::vector<VkWriteDescriptorSet>& writeList ) const
+    {
+        vkUpdateDescriptorSets( m_handle, (uint32_t)writeList.size(), writeList.data(), 0, nullptr );
+    }
+
+
     void Device::UpdateDescriptorSet( const VkWriteDescriptorSet& writes ) const
     {
         vkUpdateDescriptorSets( m_handle, 1, &writes, 0, nullptr );
@@ -986,11 +992,12 @@ namespace Gfx
         {
             numMips = 1;
         }
-        for ( uint32_t face = 0; face < tex.GetArrayLayers(); ++face )
+
+        uint32_t width  = tex.GetWidth();
+        uint32_t height = tex.GetHeight();
+        for ( uint32_t mip = 0; mip < numMips; ++mip )
         {
-            uint32_t width  = tex.GetWidth();
-            uint32_t height = tex.GetHeight();
-            for ( uint32_t mip = 0; mip < numMips; ++mip )
+            for ( uint32_t face = 0; face < tex.GetArrayLayers(); ++face )
             {
                 VkBufferImageCopy region               = {};
                 region.bufferOffset                    = offset;
@@ -1006,7 +1013,6 @@ namespace Gfx
                 uint32_t size = NumBytesPerPixel( tex.GetPixelFormat() );
                 if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
                 {
-                    //PG_ASSERT( false );
                     uint32_t roundedWidth  = ( width  + 3 ) & ~3u;
                     uint32_t roundedHeight = ( height + 3 ) & ~3u;
                     uint32_t numBlocksX    = roundedWidth  / 4;
@@ -1018,10 +1024,9 @@ namespace Gfx
                     size *= width * height;
                 }
                 offset += size;
-
-                width  = std::max( width  >> 1, 1u );
-                height = std::max( height >> 1, 1u );
             }
+            width  = std::max( width  >> 1, 1u );
+            height = std::max( height >> 1, 1u );
         }
 
         vkCmdCopyBufferToImage(

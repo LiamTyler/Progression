@@ -61,25 +61,24 @@ static void InitPerFrameData()
 
         data.postProcessDescSet = rg.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[3] );
         imgDescriptors      = { DescriptorImageInfo( s_renderGraph.GetPhysicalResource( "litOutput", i )->texture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-        writeDescriptorSets = { WriteDescriptorSet_Image( data.postProcessDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ), };
-        rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        writeDescriptorSets = WriteDescriptorSet_Images( data.postProcessDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
+        rg.device.UpdateDescriptorSets( writeDescriptorSets );
     
         data.sceneConstantDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_BUFFER_SET] );
         bufferDescriptors   = { DescriptorBufferInfo( data.sceneConstantBuffer ) };
         writeDescriptorSets = { WriteDescriptorSet_Buffer( data.sceneConstantDescSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
-        rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        rg.device.UpdateDescriptorSets( writeDescriptorSets );
 
         data.skyboxDescSet = rg.descriptorPool.NewDescriptorSet( skyboxPipeline.GetResourceLayout()->sets[0] );
-        imgDescriptors      = { DescriptorImageInfoNull() };
-        writeDescriptorSets = { WriteDescriptorSet_Image( data.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ) };
-        rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        imgDescriptors      = { DescriptorImageInfoNull(), DescriptorImageInfoNull(), DescriptorImageInfoNull() };
+        writeDescriptorSets = WriteDescriptorSet_Images( data.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
+        rg.device.UpdateDescriptorSets( writeDescriptorSets );
         s_skyboxTextures[0] = nullptr;
 
         data.lightingAuxTexturesDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[3] );
-        imgDescriptors      = { DescriptorImageInfoNull(), DescriptorImageInfo( AssetManager::Get<GfxImage>( "brdfLUT" )->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
-        writeDescriptorSets = { WriteDescriptorSet_Image( data.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
-                                WriteDescriptorSet_Image( data.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &imgDescriptors[1] ) };
-        rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+        imgDescriptors      = { DescriptorImageInfoNull(), DescriptorImageInfoNull(), DescriptorImageInfo( AssetManager::Get<GfxImage>( "brdfLUT" )->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
+        writeDescriptorSets = WriteDescriptorSet_Images( data.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
+        rg.device.UpdateDescriptorSets( writeDescriptorSets );
     }
 }
 
@@ -404,10 +403,15 @@ static void UpdateSkyboxAndBackground( Scene* scene )
             std::vector< VkDescriptorImageInfo > imgDescriptors;
             std::vector< VkWriteDescriptorSet > writeDescriptorSets;
 
-            imgDescriptors      = { DescriptorImageInfo( *s_skyboxTextures[rg.currentFrame], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
-                                    DescriptorImageInfo( scene->skyboxIrradiance->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-            writeDescriptorSets = { WriteDescriptorSet_Image( frameData.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ),
-                                    WriteDescriptorSet_Image( frameData.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &imgDescriptors[1] ), };
+            imgDescriptors = { DescriptorImageInfo( *s_skyboxTextures[rg.currentFrame], VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
+                               DescriptorImageInfo( scene->skyboxIrradiance->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
+                               DescriptorImageInfo( scene->skyboxReflectionProbe->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
+            writeDescriptorSets = WriteDescriptorSet_Images( frameData.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
+            rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+
+            imgDescriptors      = { DescriptorImageInfo( scene->skyboxIrradiance->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ),
+                                    DescriptorImageInfo( scene->skyboxReflectionProbe->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
+            writeDescriptorSets = WriteDescriptorSet_Images( frameData.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
             rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
         }
     }
@@ -418,17 +422,12 @@ static void UpdateSkyboxAndBackground( Scene* scene )
             VkDescriptorImageInfo nullImg = DescriptorImageInfoNull();
             rg.device.UpdateDescriptorSet( WriteDescriptorSet_Image( frameData.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &nullImg ) );
             rg.device.UpdateDescriptorSet( WriteDescriptorSet_Image( frameData.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &nullImg ) );
+            rg.device.UpdateDescriptorSet( WriteDescriptorSet_Image( frameData.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, &nullImg ) );
+
+            rg.device.UpdateDescriptorSet( WriteDescriptorSet_Image( frameData.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &nullImg ) );
+            rg.device.UpdateDescriptorSet( WriteDescriptorSet_Image( frameData.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, &nullImg ) );
         }
         s_skyboxTextures[rg.currentFrame] = nullptr;
-    }     
-
-    if ( scene->skyboxIrradiance )
-    {
-        std::vector< VkDescriptorImageInfo > imgDescriptors;
-        std::vector< VkWriteDescriptorSet > writeDescriptorSets;
-        imgDescriptors      = { DescriptorImageInfo( scene->skyboxIrradiance->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
-        writeDescriptorSets = { WriteDescriptorSet_Image( frameData.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 0, &imgDescriptors[0] ) };
-        rg.device.UpdateDescriptorSets( static_cast< uint32_t >( writeDescriptorSets.size() ), writeDescriptorSets.data() );
     }
 }
 
@@ -568,6 +567,7 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
     data.tint = scene->skyTint;
     data.scale = exp2f( scene->skyEVAdjust );
     data.r_skyboxViz = r_skyboxViz.GetUint();
+    data.r_skyboxReflectionMipLevel = r_skyboxReflectionMipLevel.GetFloat();
     cmdBuf->PushConstants( 0, sizeof( data ), &data );
     cmdBuf->DrawIndexed( 0, 36 );
 }

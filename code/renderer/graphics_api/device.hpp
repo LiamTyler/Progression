@@ -41,6 +41,7 @@ namespace Gfx
         DescriptorPool NewDescriptorPool( int numPoolSizes, VkDescriptorPoolSize* poolSizes, bool bindless, uint32_t maxSets = 1, const std::string& name = "" ) const;
         bool RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uint32_t stagesForBindings[PG_MAX_NUM_DESCRIPTOR_SETS] ) const;
         void UpdateDescriptorSets( uint32_t count, const VkWriteDescriptorSet* writes ) const;
+        void UpdateDescriptorSets( const std::vector<VkWriteDescriptorSet>& writeList ) const;
         void UpdateDescriptorSet( const VkWriteDescriptorSet& write ) const;
         AccelerationStructure NewAccelerationStructure( AccelerationStructureType type, size_t size ) const;
         Buffer NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;

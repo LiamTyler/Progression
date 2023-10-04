@@ -8,6 +8,7 @@ layout( location = 0 ) in vec3 UV;
 
 layout( set = 0, binding = 0 ) uniform sampler2D skybox;
 layout( set = 0, binding = 1 ) uniform samplerCube skyboxIrradiance;
+layout( set = 0, binding = 2 ) uniform samplerCube skyboxReflectionProbe;
 
 layout( location = 0 ) out vec4 finalColor;
 
@@ -37,6 +38,10 @@ void main()
         else if ( drawData.r_skyboxViz == PG_DEBUG_SKY_IRRADIANCE )
         {
             finalColor = texture( skyboxIrradiance, dir );
+        }
+        else if ( drawData.r_skyboxViz == PG_DEBUG_SKY_REFLECTION_PROBE )
+        {
+            finalColor = textureLod( skyboxReflectionProbe, dir, drawData.r_skyboxReflectionMipLevel );
         }
     }
     else

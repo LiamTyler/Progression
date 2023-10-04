@@ -29,6 +29,7 @@ namespace Gfx
 
     VkWriteDescriptorSet WriteDescriptorSet_Buffer( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorBufferInfo* bufferInfo, uint32_t descriptorCount = 1, uint32_t arrayElement = 0 );
     VkWriteDescriptorSet WriteDescriptorSet_Image( const DescriptorSet& set, VkDescriptorType type, uint32_t binding, VkDescriptorImageInfo* imageInfo, uint32_t descriptorCount = 1, uint32_t arrayElement = 0 );
+    std::vector<VkWriteDescriptorSet> WriteDescriptorSet_Images( const DescriptorSet& set, VkDescriptorType type, const std::vector<VkDescriptorImageInfo> &imageInfos );
     VkDescriptorImageInfo DescriptorImageInfoNull( VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
     VkDescriptorImageInfo DescriptorImageInfo( const Gfx::Texture& tex, VkImageLayout imageLayout );
     VkDescriptorBufferInfo DescriptorBufferInfo( const Gfx::Buffer& buffer, VkDeviceSize offset = 0, VkDeviceSize range = VK_WHOLE_SIZE );

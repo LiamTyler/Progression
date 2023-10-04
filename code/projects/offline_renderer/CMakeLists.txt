@@ -27,6 +27,8 @@ set(
     ${CODE_DIR}/core/init.cpp
     ${CODE_DIR}/core/init.hpp
     ${CODE_DIR}/core/lights.hpp
+    ${CODE_DIR}/core/low_discrepancy_sampling.cpp
+    ${CODE_DIR}/core/low_discrepancy_sampling.hpp
     ${CODE_DIR}/core/lua.cpp
     ${CODE_DIR}/core/lua.hpp
     ${CODE_DIR}/core/pixel_formats.cpp
@@ -35,6 +37,9 @@ set(
     ${CODE_DIR}/core/time.hpp
     ${CODE_DIR}/core/scene.cpp
     ${CODE_DIR}/core/scene.hpp
+    
+    ${CODE_DIR}/renderer/brdf_functions.cpp
+    ${CODE_DIR}/renderer/brdf_functions.hpp
     
     ${ECS_SRC}
     

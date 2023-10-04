@@ -50,7 +50,8 @@ struct SkyboxData
     float scale;
 	UINT hasTexture;
     UINT r_skyboxViz;
-    UVEC2 _pad1;
+    float r_skyboxReflectionMipLevel;
+    UINT _pad1;
 };
 
 #ifndef PG_SHADER_CODE

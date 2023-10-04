@@ -13,8 +13,13 @@ set(SRC
     
 	${CODE_DIR}/core/image_processing.cpp
     ${CODE_DIR}/core/image_processing.hpp
+    ${CODE_DIR}/core/low_discrepancy_sampling.cpp
+    ${CODE_DIR}/core/low_discrepancy_sampling.hpp
     ${CODE_DIR}/core/pixel_formats.cpp
     ${CODE_DIR}/core/pixel_formats.hpp
+    
+    ${CODE_DIR}/renderer/brdf_functions.cpp
+    ${CODE_DIR}/renderer/brdf_functions.hpp
     
     ${PRIMARY_SHARED_SRC}
     ${CODE_DIR}/shared/serializer.cpp

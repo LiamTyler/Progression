@@ -21,6 +21,7 @@ enum class GfxImageSemantic : uint8_t
     NORMAL_ROUGHNESS,
     ENVIRONMENT_MAP,
     ENVIRONMENT_MAP_IRRADIANCE,
+    ENVIRONMENT_MAP_REFLECTION_PROBE,
     UI,
 
     NUM_IMAGE_SEMANTICS
@@ -67,7 +68,7 @@ struct GfxImage : public BaseAsset
     uint32_t mipLevels = 0;
     uint32_t numFaces  = 0;
     size_t totalSizeInBytes = 0;
-    unsigned char* pixels = nullptr; // stored face0Mip0,face0Mip1,face0Mip2...face1Mip0,face1Mip1,etc
+    unsigned char* pixels = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
     PixelFormat pixelFormat;
     ImageType imageType;
     bool clampHorizontal;

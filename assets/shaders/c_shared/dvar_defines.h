@@ -19,8 +19,9 @@
 // r_skyboxViz
 #define PG_DEBUG_SKY_REGULAR 0
 #define PG_DEBUG_SKY_IRRADIANCE 1
-#define PG_DEBUG_SKY_BLACK 2
-#define PG_DEBUG_SKY_WHITE 3
+#define PG_DEBUG_SKY_REFLECTION_PROBE 2
+#define PG_DEBUG_SKY_BLACK 3
+#define PG_DEBUG_SKY_WHITE 4
 
 
 #endif // #ifndef _SHADER_DVAR_DEFINES_H_

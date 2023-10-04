@@ -173,7 +173,6 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             {
                 auto createInfo = AssetDatabase::FindAssetInfo( assetType, assetName );
                 PG_ASSERT( createInfo, "asset with name %s not found", assetName.c_str() );
-                g_converters[assetType]->AddReferencedAssets( createInfo );
                 AddUsedAsset( assetType, createInfo );
             }
         }
@@ -220,7 +219,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
 
     if ( !convertErrors )
     {
-        #pragma omp parallel for schedule( dynamic )
+        //#pragma omp parallel for schedule( dynamic )
         for ( int i = 0; i < (int)outOfDateAssetList.size(); ++i )
         {
             uint32_t assetTypeIdx = outOfDateAssetList[i].first;

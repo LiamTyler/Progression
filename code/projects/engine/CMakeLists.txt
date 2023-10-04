@@ -45,6 +45,8 @@ set(
     ${CODE_DIR}/core/input.hpp
     ${CODE_DIR}/core/input_types.hpp
     ${CODE_DIR}/core/lights.hpp
+    ${CODE_DIR}/core/low_discrepancy_sampling.cpp
+    ${CODE_DIR}/core/low_discrepancy_sampling.hpp
     ${CODE_DIR}/core/lua.cpp
     ${CODE_DIR}/core/lua.hpp
     ${CODE_DIR}/core/pixel_formats.cpp
@@ -89,6 +91,8 @@ set(
     ${CODE_DIR}/renderer/graphics_api/vertex_descriptor.cpp
     ${CODE_DIR}/renderer/graphics_api/vertex_descriptor.hpp
     
+    ${CODE_DIR}/renderer/brdf_functions.cpp
+    ${CODE_DIR}/renderer/brdf_functions.hpp
     ${CODE_DIR}/renderer/debug_marker.cpp
     ${CODE_DIR}/renderer/debug_marker.hpp
     ${CODE_DIR}/renderer/debug_ui.cpp

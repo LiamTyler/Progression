@@ -22,7 +22,8 @@ layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
 
 layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures_2D[];
 layout( set = 3, binding = 0 ) uniform samplerCube skyboxIrradiance;
-layout( set = 3, binding = 1 ) uniform sampler2D brdfLUT;
+layout( set = 3, binding = 1 ) uniform samplerCube skyboxReflectionProbe;
+layout( set = 3, binding = 2 ) uniform sampler2D brdfLUT;
 
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
@@ -98,10 +99,14 @@ void main()
     vec3 diffuseIndirect = irradiance * (albedo / PI) * kD;
     Lo += diffuseIndirect;
 
-    // TODO: specular IBL
+    // Specular IBL lighting
+    // Note: keep in sync with gfx_image.cpp::MIP_LEVELS - 1
+    const float MAX_REFLECTION_LOD = 7;
+    vec3 R = reflect( -V, N );
+    vec3 prefilteredColor = textureLod( skyboxReflectionProbe, R,  roughness * MAX_REFLECTION_LOD ).rgb;
     vec2 brdfScaleAndBias = texture( brdfLUT, vec2( NdotV, roughness ) ).rg;
-    vec3 specularIndirect = vec3( brdfScaleAndBias, 0 );
-    Lo += 0.000001 * specularIndirect;
+    vec3 specularIndirect = prefilteredColor * (kS * brdfScaleAndBias.x + brdfScaleAndBias.y);
+    Lo += specularIndirect;
 
     // TODO: emissive
 

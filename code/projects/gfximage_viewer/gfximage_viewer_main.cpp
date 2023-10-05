@@ -40,38 +40,6 @@ std::string ImageTypeToString( ImageType type )
 }
 
 
-int TestImageCompression()
-{
-    RawImage2D exrImg;
-    //exrImg.Load( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k.exr" );
-    {
-        FloatImage2D floatImg;
-        floatImg.Load( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k.exr" );
-        floatImg = floatImg.Resize( floatImg.width / 2, floatImg.height / 2 );
-        exrImg = RawImage2DFromFloatImage( floatImg );
-        //exrImg.Save( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k_v1.exr" );
-    }
-
-    BCCompressorSettings settings;
-    settings.format = ImageFormat::BC6H_U16F;
-    //auto startTime = Time::GetTimePoint();
-    RawImage2D compressed = CompressToBC( exrImg, settings );
-    //LOG( "Compression done in %.2f seconds", Time::GetDuration( startTime ) / 1000.0f );
-    LOG( "Compression done" );
-
-    RawImage2D uncompressed = compressed.Convert( exrImg.format );
-    uncompressed.Save( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k_bc6.exr" );
-
-    FloatImage2D original = FloatImageFromRawImage2D( exrImg );
-    FloatImage2D uncompressedF = FloatImageFromRawImage2D( uncompressed );
-
-    double mse = FloatImageMSE( original, uncompressedF );
-    LOG( "MSE: %f, PSNR: %f", mse, MSEToPSNR( mse ) );
-
-    return 0;
-}
-
-
 int main( int argc, char* argv[] )
 {
     if ( argc < 2 )
@@ -82,8 +50,6 @@ int main( int argc, char* argv[] )
 
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
-
-    //return TestImageCompression();
 
     Serializer in;
     if ( !in.OpenForRead( argv[1] ) )

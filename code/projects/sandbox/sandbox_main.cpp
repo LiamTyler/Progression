@@ -1,6 +1,6 @@
 #include "shared/logger.hpp"
 #include "core/time.hpp"
-#define MSDFGEN_PUBLIC __declspec(dllimport) // for DLL import/export
+//#define MSDFGEN_PUBLIC __declspec(dllimport) // for DLL import/export
 #include "msdfgen.h"
 #include "ext/import-font.h"
 #include "ft2build.h"

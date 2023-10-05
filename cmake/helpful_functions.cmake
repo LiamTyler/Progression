@@ -29,6 +29,12 @@ macro(SET_PLATFORM_DEFINES)
 	endif()
 endmacro()
 
+macro(SET_LOCAL_AND_PARENT varName)
+    set( _COMBINED_LIST ${ARGN}) # Merge them together
+	set(${varName} ${_COMBINED_LIST})
+	set(${varName} ${_COMBINED_LIST} PARENT_SCOPE)
+endmacro()
+
 
 function(COPY_FILE_IF_DIFFERENT src dst)
 	execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${src} ${dst})

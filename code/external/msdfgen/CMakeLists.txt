@@ -113,11 +113,9 @@ if(MSDFGEN_USE_OPENMP)
 endif()
 
 if(BUILD_SHARED_LIBS AND WIN32)
-	message("Win32")
     target_compile_definitions(msdfgen-core PRIVATE "MSDFGEN_PUBLIC=__declspec(dllexport)")
     target_compile_definitions(msdfgen-core INTERFACE "MSDFGEN_PUBLIC=__declspec(dllimport)")
 else()
-	mssage("Not win32: a${BUILD_SHARED_LIBS} a${WIN32}")
     target_compile_definitions(msdfgen-core PUBLIC MSDFGEN_PUBLIC=)
 endif()
 

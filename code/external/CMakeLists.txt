@@ -40,6 +40,9 @@ set(ASSIMP_INCLUDES
 	${CMAKE_BINARY_DIR}/ext/assimp/include
 	PARENT_SCOPE
 )
+if(WIN32)
+    SET_LOCAL_AND_PARENT(ASSIMP_COMPILE_DEFS "ASSIMP_DLL")
+endif()
 
 #------------------------------LZ4---------------------------------------------
 if(MSVC)
@@ -53,7 +56,6 @@ else()
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/lz4/ ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib lz4)
     endif()
 endif()
-
 
 #------------------------------GLFW--------------------------------------------
 if(MSVC)
@@ -69,7 +71,12 @@ else()
     endif()
     set(GLFW_LIBS glfw PARENT_SCOPE)
 endif()
-set(GLFW_INCLUDES ${PROGRESSION_DIR}/code/external/glfw/include PARENT_SCOPE)
+set(GLFW_INCLUDES ${EXT_DIR}/glfw/include PARENT_SCOPE)
+SET_LOCAL_AND_PARENT(GLFW_EXT_FILES ${EXT_DIR}/glfw/include/GLFW/glfw3.h)
+if(WIN32)
+    SET_LOCAL_AND_PARENT(GLFW_COMPILE_DEFS "GLFW_DLL")
+endif()
+
 
 #-------------------------------LUA--------------------------------------------
 if(MSVC)
@@ -94,6 +101,8 @@ if(MSVC)
 		${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib
 		PARENT_SCOPE
 	)
+    file(GLOB tmpFiles ${Vulkan_INCLUDE_DIR}/shaderc/* ${Vulkan_INCLUDE_DIR}/spirv_cross/*)
+    SET_LOCAL_AND_PARENT(VULKAN_EXT_FILES ${tmpFiles})
 endif()
 
 #-------------------------------BC7ENC--------------------------------------------
@@ -151,7 +160,7 @@ endif()
 set(IMAGELIB_LIBS ImageLib tiff bc7enc ${ZLIB_LIBS} PARENT_SCOPE)
 set(IMAGELIB_LIBS_DEBUG ImageLib_d tiff bc7enc ${ZLIB_LIBS} PARENT_SCOPE)
 
-set(IMAGELIB_EXT_FILES
+SET_LOCAL_AND_PARENT(IMAGELIB_EXT_FILES
 	${EXT_DIR}/ImageLib/bc_compression.cpp
     ${EXT_DIR}/ImageLib/bc_compression.hpp
 	${EXT_DIR}/ImageLib/bc_decompression.cpp
@@ -162,23 +171,13 @@ set(IMAGELIB_EXT_FILES
     ${EXT_DIR}/ImageLib/image_load.hpp
 	${EXT_DIR}/ImageLib/image_save.cpp
     ${EXT_DIR}/ImageLib/image_save.hpp
-	PARENT_SCOPE
 )
 
 #-------------------------------PUGIXML--------------------------------------------
-if(MSVC)
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/pugixml.lib)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/pugixml-1.13 ${CMAKE_BINARY_DIR}/ext/pugixml Release)
-        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/pugixml/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib pugixml)
-    endif()
-else()
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libpugixml.so)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/pugixml-1.13 ${CMAKE_BINARY_DIR}/ext/pugixml Release)
-        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/pugixml ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib pugixml)
-    endif()
-endif()
+# Actually using the header only, not compiling the library
 set(PUGIXML_INCLUDES ${EXT_DIR}/pugixml-1.13/src/ PARENT_SCOPE)
-set(PUGIXML_LIBS pugixml PARENT_SCOPE)
+file(GLOB tmpFiles ${EXT_DIR}/pugixml-1.13/src/*)
+SET_LOCAL_AND_PARENT(PUGIXML_EXT_FILES ${tmpFiles})
 
 #-------------------------------FREETYPE2--------------------------------------------
 if(MSVC)
@@ -210,7 +209,10 @@ endif()
 set(MSDFGEN_INCLUDES ${EXT_DIR}/msdfgen/ PARENT_SCOPE)
 set(MSDFGEN_LIBS msdfgen-core PARENT_SCOPE)
 file(GLOB tmpFiles ${EXT_DIR}/msdfgen/core/*)
-set(MSDFGEN_EXT_FILES ${tmpFiles} PARENT_SCOPE)
+SET_LOCAL_AND_PARENT(MSDFGEN_EXT_FILES ${tmpFiles})
+if(WIN32)
+    SET_LOCAL_AND_PARENT(MSDFGEN_COMPILE_DEFS "MSDFGEN_PUBLIC=__declspec(dllimport)")
+endif()
 
 #-------------------------------ISOCLINE--------------------------------------------
 if(MSVC)
@@ -226,5 +228,12 @@ else()
 endif()
 set(ISOCLINE_INCLUDES ${EXT_DIR}/isocline/ PARENT_SCOPE)
 set(ISOCLINE_LIBS isocline PARENT_SCOPE)
-file(GLOB tmpFilesI ${EXT_DIR}/isocline/src/* ${EXT_DIR}/isocline/include/*)
-set(ISOCLINE_EXT_FILES ${tmpFilesI} PARENT_SCOPE)
+file(GLOB tmpFiles ${EXT_DIR}/isocline/src/* ${EXT_DIR}/isocline/include/*)
+SET_LOCAL_AND_PARENT(ISOCLINE_EXT_FILES ${tmpFiles})
+
+
+
+#-----------------------------------------------------------------------------------
+# intentionally not adding VULKAN_EXT_FILES below, since it ALL_EXT_FILES is usually used with source_group(TREE, and the files are not in the project root
+set(ALL_EXT_FILES ${GLFW_EXT_FILES} ${IMAGELIB_EXT_FILES} ${PUGIXML_EXT_FILES} ${MSDFGEN_EXT_FILES} ${ISOCLINE_EXT_FILES} PARENT_SCOPE)
+set(ALL_EXT_COMPILE_DEFS ${ASSIMP_COMPILE_DEFS} ${GLFW_COMPILE_DEFS} ${MSDFGEN_COMPILE_DEFS} PARENT_SCOPE)

@@ -81,9 +81,9 @@ set(
     ${CODE_DIR}/external/msdfgen/ext/import-font.h
 )
 
-set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES} ${MSDFGEN_EXT_FILES})
+set(ALL_FILES ${SRC} ${EXTERNALS} ${ALL_EXT_FILES})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
-set_source_files_properties(${IMAGELIB_EXT_FILES} ${MSDFGEN_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties(${ALL_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 target_include_directories(${PROJECT_NAME} PUBLIC
@@ -97,15 +97,15 @@ target_include_directories(${PROJECT_NAME} PUBLIC
 
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
-target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER)
+target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER ${ALL_EXT_COMPILE_DEFS})
 target_link_libraries(${PROJECT_NAME} PUBLIC debug
     OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG}
-    lua lz4 ${PUGIXML_LIBS}
+    lua lz4
     ${FREETYPE_LIBS} ${MSDFGEN_LIBS}
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX
     ${VULKAN_LIBS} ${IMAGELIB_LIBS}
-    lua lz4 ${PUGIXML_LIBS}
+    lua lz4
     ${FREETYPE_LIBS} ${MSDFGEN_LIBS}
 )
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

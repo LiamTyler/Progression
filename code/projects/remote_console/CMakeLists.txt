@@ -16,11 +16,12 @@ set(SRC
     ${CODE_DIR}/shared/platform_defines.hpp
 )
 
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SRC})
+set(ALL_FILES ${SRC} ${ISOCLINE_EXT_FILES})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
+set_source_files_properties(${ISOCLINE_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
+add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 set(LIBS OpenMP::OpenMP_CXX isocline)
-
-add_executable(${PROJECT_NAME} ${SRC})
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} ${LIBS})

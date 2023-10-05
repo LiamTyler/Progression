@@ -12,7 +12,7 @@
 - [ ] add meshoptimizer back in
 - [ ] Get remote console up and running again, and able to send commands (windows and linux)
 - [x] show profiling results in ImGui view
-- [ ] get debug render views for materials + lighting
+- [x] get debug render views for materials + lighting
 
 ## Priority 2
 - [ ] separate out the sky init + rendering code into something like r_sky.cpp
@@ -46,7 +46,7 @@
 - [ ] Make .pmodel files more editable (don't require vert counts ahead of time)
 - [ ] add .pmodel -> .obj tool
 - [ ] simplify TransitionImageLayoutImmediate args with defaults
-- [ ] get VS to find spirv/vulkan/shaderc files
+- [x] get VS to find spirv/vulkan/shaderc files
 - [ ] investigate different mipmap filters
 - [ ] do a pass on the code style consistency
 - [ ] have the game window open at the location it was the last time the game ran

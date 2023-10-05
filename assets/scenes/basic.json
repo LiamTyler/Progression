@@ -9,9 +9,7 @@
     }},
     { "Camera": {
         "position": [ 0, -5, 0 ],
-        "rotation": [ 0, 0, 0 ],
-        "_aspectRatio": 1,
-        "exposure": 1.0
+        "rotation": [ 0, 0, 0 ]
     }},
 	{ "Skybox": "kloppenheim" },
 	{ "Script": "cameraController" },

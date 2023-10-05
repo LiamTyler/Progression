@@ -250,10 +250,21 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
     std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
     time_t ffTimestamp = GetFileTimestamp( fastfilePath );
-    if ( ffTimestamp == NO_TIMESTAMP || ffTimestamp < GetLatestFastfileDependency() )
+
+    bool createFastFile = false;
+    if ( ffTimestamp == NO_TIMESTAMP )
+    {
+        LOG( "Fastfile %s is missing. Building...", fastfileName.c_str() );
+        createFastFile = true;
+    }
+    else if ( ffTimestamp < GetLatestFastfileDependency() )
     {
         LOG( "Fastfile %s is out of date. Rebuilding...", fastfileName.c_str() );
-        auto startTime = Time::GetTimePoint();
+        createFastFile = true;
+    }
+
+    if ( createFastFile )
+    {
         Serializer ff;
         if ( !ff.OpenForWrite( fastfilePath ) )
         {
@@ -281,7 +292,7 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
             }
         }
         ff.Close();
-        LOG( "Built fastfile in %.2f seconds", Time::GetDuration( startTime ) / 1000.0f );
+        LOG( "Build fastfile succeeded" );
     }
     else
     {
@@ -299,7 +310,6 @@ bool ProcessSingleScene( const std::string& sceneFile )
     ClearAllUsedAssets();
 
     bool foundScene = false;
-    auto enumerateStartTime = Time::GetTimePoint();
     std::string filename = SCENE_DIR + sceneFile + ".csv";
     if ( PathExists( filename ) )
     {
@@ -325,7 +335,6 @@ bool ProcessSingleScene( const std::string& sceneFile )
         LOG_ERR( "No scene file (csv or json) found for path '%s'", sceneFile.c_str() );
         return false;
     }
-    LOG( "Assets for scene %s enumerated in %.2f seconds", GetRelativeFilename( sceneFile ).c_str(), Time::GetDuration( enumerateStartTime ) / 1000.0f );
 
     uint32_t outOfDateAssets;
     bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );

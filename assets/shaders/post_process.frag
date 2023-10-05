@@ -1,6 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
+#include "c_shared/dvar_defines.h"
 #include "c_shared/structs.h"
 #include "lib/gamma.glsl"
 #include "lib/tonemap.glsl"
@@ -35,10 +36,29 @@ void main()
         return;
     }
 
-    vec3 toneMappedColor = linearHdrColor;
+    vec3 toneMappedColor = globals.cameraExposureAndPad.x * linearHdrColor;
     if ( ShouldApplyTonemapping() )
     {
-        toneMappedColor = Reinhard( linearHdrColor );
+        switch ( globals.r_tonemap )
+        {
+        case PG_TONEMAP_METHOD_ACES:
+            toneMappedColor = ACESFilm( toneMappedColor );
+            break;
+        case PG_TONEMAP_METHOD_UNCHARTED_2:
+            toneMappedColor = Uncharted2Tonemap( toneMappedColor );
+            break;
+        case PG_TONEMAP_METHOD_REINHARD:
+            toneMappedColor = Reinhard( toneMappedColor );
+            break;
+        case PG_TONEMAP_METHOD_DISABLED:
+        default:
+            toneMappedColor = clamp( toneMappedColor, vec3( 0 ), vec3( 1 ) );
+            break;
+        }
+    }
+    else
+    {
+        toneMappedColor = clamp( toneMappedColor, vec3( 0 ), vec3( 1 ) );
     }
 
     finalColor.rgb = LinearToGammaSRGB( toneMappedColor );

@@ -14,7 +14,7 @@ Camera::Camera()
     aspectRatio = 16.0f / 9.0f;
     nearPlane   = 0.1f;
     farPlane    = 100.0f;
-    exposure    = 1.0f;
+    exposure    = 0.0f;
     UpdateFrustum();
     UpdateProjectionMatrix();
 }

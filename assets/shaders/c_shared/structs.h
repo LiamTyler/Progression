@@ -14,7 +14,9 @@ struct SceneGlobals
     MAT4 P;
     MAT4 VP;
     MAT4 invVP;
-    VEC4 cameraPos;
+    VEC4 cameraPos; // w is 1, for convenience
+    VEC4 cameraExposureAndPad; // x = exposure, yzw = unused
+
     UINT r_materialViz;
     UINT r_lightingViz;
     UINT r_postProcessing;

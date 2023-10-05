@@ -31,7 +31,7 @@ public:
     float aspectRatio;
     float nearPlane;
     float farPlane;
-    float exposure;
+    float exposure; // in EVs. So the radiance is multiplied by pow( 2, exposure )
 
 protected:
     glm::mat4 m_viewMatrix;

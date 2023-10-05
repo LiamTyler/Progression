@@ -366,10 +366,11 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.VP     = scene->camera.GetVP();
     globalData.invVP  = glm::inverse( scene->camera.GetVP() );
     globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
+    globalData.cameraExposureAndPad = glm::vec4( powf( 2.0f, scene->camera.exposure ), 0, 0, 0 );
     globalData.r_materialViz = r_materialViz.GetUint();
     globalData.r_lightingViz = r_lightingViz.GetUint();
     globalData.r_postProcessing = r_postProcessing.GetBool();
-    globalData.r_tonemap = r_tonemap.GetBool();
+    globalData.r_tonemap = r_tonemap.GetUint();
 
     Buffer& buffer = rg.frameData[rg.currentFrame].sceneConstantBuffer;
     memcpy( buffer.MappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );

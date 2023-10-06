@@ -18,7 +18,7 @@ Dvar r_materialViz(
     "4 - Metalness\n"
     "5 - Geometric Normal\n"
     "6 - Geometric Tangent\n"
-    "7 - Geometric Bitangent\n"
+    "7 - Geometric Bitangent"
 );
 
 Dvar r_lightingViz(
@@ -29,7 +29,7 @@ Dvar r_lightingViz(
     "1 - Direct\n"
     "2 - Indirect\n"
     "3 - Diffuse Indirect\n"
-    "4 - Specular Indirect\n"
+    "4 - Specular Indirect"
 );
 
 Dvar r_skyboxViz(
@@ -39,7 +39,7 @@ Dvar r_skyboxViz(
     "1 - Sky Irradiance\n"
     "2 - Sky Reflection (use r_skyboxReflectionMipLevel to control the mipLevel)\n"
     "3 - Black\n"
-    "4 - White\n"
+    "4 - White"
 );
 
 Dvar r_skyboxReflectionMipLevel( "r_skyboxReflectionMipLevel", 0.0f, 0.0f, 16.0f, "Control which mipLevel to visualize when using r_skyboxViz 2" );
@@ -52,7 +52,7 @@ Dvar r_tonemap(
     "0 - Disable\n"
     "1 - ACES\n"
     "2 - Uncharted 2\n"
-    "3 - Reinhard\n"
+    "3 - Reinhard"
 );
 
 } // namespace PG

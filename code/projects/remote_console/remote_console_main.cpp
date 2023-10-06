@@ -1,6 +1,7 @@
 #include "shared/logger.hpp"
 #include "core/time.hpp"
 #include "isocline/include/isocline.h"
+#include "shared/string.hpp"
 #include <fstream>
 #include <iostream>
 
@@ -140,16 +141,42 @@ int main( int argc, char* argv[] )
             if ( input == NULL )
                 CLOSE_SOCKET_AND_RETURN;
 
-            bool shutdown = !strcmp( input, "exit" );
-            if ( shutdown )
+            std::string sInput( input );
+            if ( sInput == "exit" )
             {
                 free( input );
                 CLOSE_SOCKET_AND_RETURN;
             }
 
-            int msgLen = (int)strlen( input );
-            if ( !msgLen )
+            if ( sInput.empty() )
                 continue;
+
+            std::vector<std::string> words = SplitString( sInput, " " );
+            if ( words.size() && words[0] == "help" )
+            {
+                if ( words.size() < 2 )
+                {
+                    ic_println( "Usage: help [name_of_command]" );
+                    continue;
+                }
+
+                bool found = false;
+                for ( const Command& cmd : s_commands )
+                {
+                    if ( cmd.name == words[1] )
+                    {
+                        ic_printf( "Description for command %s:\n%s\n\n", cmd.name.c_str(), cmd.description.c_str() );
+                        found = true;
+                        break;
+                    }
+                }
+
+                if ( !found )
+                {
+                    ic_printf( "Help: no command with name '%s' found\n", words[1].c_str() );
+                }
+                continue;
+            }
 
             iResult = send( connectSocket, input, (int)strlen( input ), 0 );
             free( input );
@@ -179,7 +206,7 @@ int main( int argc, char* argv[] )
 static bool LoadCommands()
 {
     // baked in commands, from console_commands.cpp
-    s_commands.push_back( { "loadFF", "1 arg expected: the name of the fastfile to load/reload" } );
+    s_commands.push_back( { "loadFF", "one argument expected: the name of the fastfile to load/reload" } );
 
     // dvars
     // Make sure this filename lines up with the filename in dvars.cpp

@@ -408,18 +408,18 @@ void Model::FreeGPU()
 }
 
 
-std::vector<std::string> GetModelMaterialList( const std::string& fullModelPath )
+std::vector<std::string> GetModelMaterialList( const std::string& pModelFilePath )
 {
     std::vector<std::string> materials;
-    if ( GetFileExtension( fullModelPath ) != ".pmodel" )
+    if ( GetFileExtension( pModelFilePath ) != ".pmodel" )
     {
         LOG_ERR( "Model::Load only takes .pmodel format" );
         return materials;
     }
-    std::ifstream in( fullModelPath );
+    std::ifstream in( pModelFilePath );
     if ( !in )
     {
-        LOG_ERR( "Failed to open .pmodel file '%s'", fullModelPath.c_str() );
+        LOG_ERR( "Failed to open .pmodel file '%s'", pModelFilePath.c_str() );
         return materials;
     }
 
@@ -428,10 +428,12 @@ std::vector<std::string> GetModelMaterialList( const std::string& fullModelPath 
     in >> tmp >> pmodelVersion;
     if ( tmp != "pmodelFormat:" )
     {
-        LOG_ERR( "Invalid .pmodel file '%s'. First line should be 'pmodelFormat: ___' where the blank is the file version.", fullModelPath.c_str() );
+        LOG_ERR( "Invalid .pmodel file '%s'. First line should be 'pmodelFormat: ___' where the blank is the file version.", pModelFilePath.c_str() );
         return {};
     }
 
+    // pmodels store a list of all materials used at the beginning of the file, specifically just to make this function faster.
+    // A bit annoying for any user trying to manually edit a pmodel file, but it makes this function much faster
     uint32_t numMaterials;
     in >> tmp >> numMaterials;
     materials.resize( numMaterials );

@@ -8,14 +8,17 @@ set(SRC
     
     ${CODE_DIR}/core/time.cpp
     ${CODE_DIR}/core/time.hpp
+    
+    ${CODE_DIR}/shared/lz4_compressor.cpp
+    ${CODE_DIR}/shared/lz4_compressor.hpp
 	
     ${PRIMARY_SHARED_SRC}
 )
 
 set(
 	EXTERNALS
-    #${CODE_DIR}/external/memory_map/MemoryMapped.h
-    #${CODE_DIR}/external/memory_map/MemoryMapped.cpp
+    ${CODE_DIR}/external/memory_map/MemoryMapped.h
+    ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
     ${CODE_DIR}/external/msdfgen/ext/import-font.cpp
     ${CODE_DIR}/external/msdfgen/ext/import-font.h
 )

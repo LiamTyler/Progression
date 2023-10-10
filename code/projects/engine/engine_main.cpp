@@ -27,8 +27,8 @@ bool g_paused = false;
 int main( int argc, char* argv[] )
 {
     EngineInitInfo engineInitConfig;
-    engineInitConfig.windowWidth = 800;
-    engineInitConfig.windowHeight = 600;
+    engineInitConfig.windowWidth = 1280;
+    engineInitConfig.windowHeight = 720;
 	if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );

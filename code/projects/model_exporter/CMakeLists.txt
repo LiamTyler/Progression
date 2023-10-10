@@ -5,6 +5,10 @@ include(source_files)
 
 set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/model_exporter_main.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/model_exporter_common.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/model_exporter_common.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/model_exporter_materials.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/model_exporter_materials.hpp
     ${PROGRESSION_DIR}/code/core/pixel_formats.cpp
     ${PROGRESSION_DIR}/code/core/pixel_formats.hpp
 	${PROGRESSION_DIR}/code/core/time.cpp

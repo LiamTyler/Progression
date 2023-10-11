@@ -9,6 +9,9 @@ include(source_files)
 set(
 	SRC
     ${ASSET_SRC}
+    ${CODE_DIR}/asset/pmodel.cpp
+    ${CODE_DIR}/asset/pmodel.hpp
+    
     ${ASSET_PARSE_SRC}
     ${CODE_DIR}/ui/ui_element.hpp
     ${ECS_SRC}

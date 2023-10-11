@@ -1,7 +1,7 @@
 #include "model_exporter_common.hpp"
 #include "model_exporter_materials.hpp"
 #include "asset/asset_file_database.hpp"
-#include "asset/types/pmodel_versions.hpp"
+#include "asset/pmodel.hpp"
 #include "asset/types/textureset.hpp"
 #include "core/time.hpp"
 #include "shared/filesystem.hpp"
@@ -22,57 +22,7 @@ static_assert( PMODEL_MAX_COLORS_PER_VERT == AI_MAX_NUMBER_OF_COLOR_SETS );
 
 std::atomic<uint32_t> g_warnings;
 
-struct Vertex
-{
-    vec3 pos;
-    vec3 normal;
-    vec3 tangent;
-    vec3 bitangent;
-    vec2 uvs[PMODEL_MAX_UVS_PER_VERT];
-    vec4 colors[PMODEL_MAX_COLORS_PER_VERT];
-    float boneWeights[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
-    uint32_t boneIndices[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
-    uint8_t numBones = 0;
-
-    bool AddBone( uint32_t boneIdx, float weight )
-    {
-        if ( numBones < PMODEL_MAX_BONE_WEIGHTS_PER_VERT )
-        {
-            boneWeights[numBones] = weight;
-            boneIndices[numBones] = boneIdx;
-            ++numBones;
-            return true;
-        }
-
-        float minWeight = boneWeights[0];
-        uint32_t minIdx = 0;
-        for ( uint32_t slot = 1; slot < numBones; ++slot )
-        {
-            if ( boneWeights[slot] < minWeight )
-            {
-                minWeight = boneWeights[slot];
-                minIdx = slot;
-            }
-        }
-
-        return false;
-    }
-};
-
-struct Mesh
-{
-    std::string name;
-    uint32_t matIndex;
-    std::vector<uint32_t> indices;
-    std::vector<Vertex> vertices;
-    uint32_t numUVChannels;
-    uint32_t numColorChannels;
-    bool hasTangents;
-    bool hasBoneWeights;
-};
-
-
-static void ProcessVertices( const aiMesh* paiMesh, Mesh& pgMesh )
+static void ProcessVertices( const aiMesh* paiMesh, PModel::Mesh& pgMesh )
 {
     // it doesn't look like assimp guarantees that the uv or color sets will be contiguous. Aka
     // there could be uv0 and uv2 but no uv1. I want to compact them contiguously though
@@ -99,7 +49,7 @@ static void ProcessVertices( const aiMesh* paiMesh, Mesh& pgMesh )
     pgMesh.vertices.resize( numVerts );
     for ( uint32_t vIdx = 0; vIdx < numVerts; ++vIdx )
     {
-        Vertex& v = pgMesh.vertices[vIdx];
+        PModel::Vertex& v = pgMesh.vertices[vIdx];
         v.pos = AiToPG( paiMesh->mVertices[vIdx] );
         v.normal = AiToPG( paiMesh->mNormals[vIdx] );
         PG_ASSERT( !any( isnan( v.pos ) ) );
@@ -147,7 +97,7 @@ static void ProcessVertices( const aiMesh* paiMesh, Mesh& pgMesh )
                 vIdx, pgMesh.name.c_str(), numBonesPerVertex[vIdx], PMODEL_MAX_BONE_WEIGHTS_PER_VERT, PMODEL_MAX_BONE_WEIGHTS_PER_VERT );
         }
 
-        Vertex& v = pgMesh.vertices[vIdx];
+        PModel::Vertex& v = pgMesh.vertices[vIdx];
         float weightTotal = 0;
         for ( uint8_t slot = 0; slot < v.numBones; ++slot )
             weightTotal += v.boneWeights[slot];
@@ -238,20 +188,20 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         }
     }
 
-    std::vector<Mesh> meshes( scene->mNumMeshes );
+    PModel pmodel;
+    pmodel.meshes.resize( scene->mNumMeshes );
     std::string stem = GetFilenameStem( filename );
     for ( uint32_t meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx )
     {
         const aiMesh* paiMesh = scene->mMeshes[meshIdx];
-        Mesh& pgMesh = meshes[meshIdx];
+        PModel::Mesh& pgMesh = pmodel.meshes[meshIdx];
         pgMesh.name = paiMesh->mName.C_Str();
         if ( pgMesh.name.empty() )
         {
             pgMesh.name = stem + "_mesh" + std::to_string( meshIdx );
             LOG_WARN( "Mesh %u in file %s does not have a name. Assigning name %s", meshIdx, filename.c_str(), pgMesh.name.c_str() );
         }
-        pgMesh.matIndex = paiMesh->mMaterialIndex;
-        PG_ASSERT( pgMesh.matIndex < materialNames.size() );
+        pgMesh.materialName = materialNames[paiMesh->mMaterialIndex];
         pgMesh.numColorChannels = paiMesh->GetNumColorChannels();
         pgMesh.numUVChannels = paiMesh->GetNumUVChannels();
         pgMesh.hasTangents = paiMesh->mTangents && paiMesh->mBitangents;
@@ -286,93 +236,26 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         for ( uint32_t faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
         {
             const aiFace& face = paiMesh->mFaces[faceIdx];
-            PG_ASSERT( face.mNumIndices == 3 );
-            pgMesh.indices[faceIdx * 3 + 1] = face.mIndices[0];
-            pgMesh.indices[faceIdx * 3 + 2] = face.mIndices[1];
+            pgMesh.indices[faceIdx * 3 + 0] = face.mIndices[0];
+            pgMesh.indices[faceIdx * 3 + 1] = face.mIndices[1];
             pgMesh.indices[faceIdx * 3 + 2] = face.mIndices[2];
         }
     }
 
     size_t totalVerts = 0;
     size_t totalTris = 0;
-    for ( const Mesh& mesh : meshes )
+    for ( const PModel::Mesh& mesh : pmodel.meshes )
     {
         totalVerts += mesh.vertices.size();
         totalTris += mesh.indices.size() / 3;
     }
     
     LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u",
-        filename.c_str(), meshes.size(), materialNames.size(), totalTris, totalVerts );
+        filename.c_str(), pmodel.meshes.size(), materialNames.size(), totalTris, totalVerts );
 
     std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodel";
-    std::ofstream outFile( outputModelFilename );
-    if ( !outFile )
-    {
-        LOG_ERR( "Could not open output model filename '%s'", outputModelFilename.c_str() );
+    if ( !pmodel.Save( outputModelFilename, true ) )
         return false;
-    }
-    outFile << "pmodelFormat: " << (uint32_t)PModelVersionNum::CURRENT_VERSION << "\n\n";
-
-    
-    outFile << "Materials: " << materialNames.size() << "\n";
-    for ( size_t i = 0; i < materialNames.size(); ++i )
-    {
-        outFile << materialNames[i] << "\n";
-    }
-    outFile << "\n";
-
-    const char* uvPrefixes[PMODEL_MAX_UVS_PER_VERT] = { "uv0 ", "uv1 ", "uv2 ", "uv3 ", "uv4 ", "uv5 ", "uv6 " ,"uv7 " };
-    const char* colorPrefixes[PMODEL_MAX_COLORS_PER_VERT] = { "c0 ", "c1 ", "c2 ", "c3 ", "c4 ", "c5 ", "c6 " ,"c7 " };
-    const char* bonePrefixes[PMODEL_MAX_BONE_WEIGHTS_PER_VERT] =
-        { "b0 ", "b1 ", "b2 ", "b3 ", "b4 ", "b5 ", "b6 " ,"b7 ", "b8 ", "b9 ", "b10 ", "b11 ", "b12 ", "b13 ", "b14 " ,"b15 " };
-
-    size_t vertsWritten = 0;
-    const size_t tenPercentVerts = totalVerts / 10;
-    int lastPercent = 0;
-    for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
-    {
-        const Mesh& m = meshes[meshIdx];
-        outFile << "Mesh " << meshIdx << ": " << m.name << "\n";
-        outFile << "Mat: " << materialNames[m.matIndex] << "\n";
-        outFile << "NumUVs: " << m.numUVChannels << "\n";
-        outFile << "NumColors: " << m.numColorChannels << "\n\n";
-
-        for ( uint32_t vIdx = 0; vIdx < (uint32_t)m.vertices.size(); ++vIdx )
-        {
-            const Vertex& v = m.vertices[vIdx];
-            outFile << "V " << vIdx << "\n";
-            outFile << "p " << Vec3ToString( v.pos ) << "\n";
-            outFile << "n " << Vec3ToString( v.normal ) << "\n";
-            if ( m.hasTangents )
-            {
-                outFile << "t " << Vec3ToString( v.tangent ) << "\n";
-                outFile << "b " << Vec3ToString( v.bitangent ) << "\n";
-            }
-            for ( uint32_t i = 0; i < m.numUVChannels; ++i )
-                outFile << uvPrefixes[i] << Vec2ToString( v.uvs[i] ) << "\n";
-            for ( uint32_t i = 0; i < m.numColorChannels; ++i )
-                outFile << colorPrefixes[i] << Vec4ToString( v.colors[i] ) << "\n";
-
-            for ( uint8_t i = 0; i < v.numBones; ++i )
-            {
-                outFile << bonePrefixes[i] << v.boneIndices[i] << FloatToString( v.boneWeights[i] ) << "\n";
-            }
-
-            outFile << "\n";
-        }
-
-        outFile << "Tris:\n";
-        for ( size_t i = 0; i < m.indices.size(); i += 3 )
-            outFile << m.indices[i+0] << " " << m.indices[i+1] << " " << m.indices[i+2] << "\n";
-
-        vertsWritten += m.vertices.size();
-        int currentPercent = static_cast<int>( vertsWritten / (double)totalVerts * 100 );
-        if ( currentPercent - lastPercent >= 10 )
-        {
-            LOG( "%d%%...", currentPercent );
-            lastPercent = currentPercent;
-        }
-    }
 
     std::string relPath = GetPathRelativeToAssetDir( outputModelFilename );
     outputJSON += "\t{ \"Model\": { \"name\": \"" + modelName + "\", \"filename\": \"" + relPath + "\" } },\n";
@@ -396,6 +279,10 @@ static void DisplayHelp()
 
 int main( int argc, char* argv[] )
 {
+    char buff[64] = { 0 };
+    float f = 0.0f;
+    sprintf( buff, "%.6g", f );
+    
     if ( argc < 2 )
     {
         DisplayHelp();

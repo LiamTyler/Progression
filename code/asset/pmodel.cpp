@@ -67,7 +67,6 @@ bool PModel::Load( const std::string& filename )
         LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(), version );
         return false;
     }
-
     
     auto SkipEmptyLines = []( std::ifstream& inFile, std::string& line )
     {
@@ -87,7 +86,7 @@ bool PModel::Load( const std::string& filename )
         std::getline( in, line );
     } while ( !line.empty() );
 
-    while ( std::getline( in, line ) && line.substr( 0, 4 ) != "Mesh" )
+    while ( std::getline( in, line ) && line.substr( 0, 4 ) == "Mesh" )
     {
         Mesh& mesh = meshes.emplace_back();
         mesh.name = GetNameAfterColon( line );
@@ -153,6 +152,7 @@ bool PModel::Load( const std::string& filename )
             std::getline( in, line );
         }
     }
+    PG_ASSERT( meshes.size() );
 
     return true;
 }
@@ -256,6 +256,43 @@ bool PModel::Save( const std::string& filename, bool logProgress ) const
     }
 
     return Save( out, logProgress );
+}
+
+
+std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )
+{
+    std::ifstream in( filename );
+    if ( !in )
+    {
+        LOG_ERR( "Failed to open pmodel file '%s'", filename.c_str() );
+        return {};
+    }
+
+    std::string tmp;
+    in >> tmp; // pmodelFormat
+    uint32_t version;
+    in >> version;
+    if ( version < (uint32_t)PModelVersionNum::LAST_SUPPORTED_VERSION )
+    {
+        LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(), version );
+        return {};
+    }
+
+    //  skip to material list
+    std::string line;
+    do
+    {
+        std::getline( in, line );
+    } while ( line.empty() );
+
+    std::vector<std::string> materials;
+    do
+    {
+        materials.push_back( line );
+        std::getline( in, line );
+    } while ( !line.empty() );
+
+    return materials;
 }
 
 } // namespace PG

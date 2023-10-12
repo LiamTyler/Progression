@@ -1,6 +1,7 @@
 #include "asset/types/model.hpp"
 #include "asset/types/material.hpp"
 #include "asset/asset_manager.hpp"
+#include "asset/pmodel.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
@@ -29,102 +30,94 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         LOG_ERR( "Model::Load only takes .pmodel format" );
         return false;
     }
-    std::ifstream in( GetAbsPath_ModelFilename( createInfo->filename ) );
-    if ( !in )
-    {
-        LOG_ERR( "Failed to open .pmodel file '%s'", createInfo->filename.c_str() );
+
+    PModel pmodel;
+    if ( !pmodel.Load( GetAbsPath_ModelFilename( createInfo->filename ) ) )
         return false;
-    }
 
-    std::string tmp;
-    uint32_t pmodelVersion;
-    in >> tmp >> pmodelVersion;
-    if ( tmp != "pmodelFormat:" )
+    meshes.resize( pmodel.meshes.size() );
+    originalMaterials.resize( pmodel.meshes.size() );
+    uint32_t totalVerts = 0;
+    uint32_t totalIndices = 0;
+    bool anyMeshHasUVs = false;
+    bool anyMeshHasTangents = false;
+    for ( uint32_t meshIdx = 0; meshIdx < (uint32_t)meshes.size(); ++meshIdx )
     {
-        LOG_ERR( "Invalid .pmodel file '%s'. First line should be 'pmodelFormat: ___' where the blank is the file version.", createInfo->filename.c_str() );
-        return false;
-    }
+        Mesh& m = meshes[meshIdx];
+        const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
 
-    uint32_t numMaterials;
-    in >> tmp >> numMaterials;
-    std::vector<std::string> materialNames( numMaterials );
-    for ( uint32_t i = 0; i < numMaterials; ++i )
-    {
-        in >> tmp >> materialNames[i];
-    }
-
-    uint32_t numMeshes;
-    in >> tmp >> numMeshes;
-    meshes.resize( numMeshes );
-    originalMaterials.resize( numMeshes );
-    if ( materialNames.size() != numMeshes )
-    {
-        materialNames.resize( numMeshes, "default" );
-    }
-
-    for ( uint32_t i = 0; i < numMeshes; ++i )
-    {
-        int materialIdx;
-        in >> tmp >> meshes[i].name;
-        in >> tmp >> materialIdx;
-        in >> tmp >> meshes[i].startIndex;
-        in >> tmp >> meshes[i].startVertex;
-        in >> tmp >> meshes[i].numIndices;
-        in >> tmp >> meshes[i].numVertices;
-        meshes[i].startIndex *= 3;
-        meshes[i].numIndices *= 3;
-
-        originalMaterials[i] = AssetManager::Get<Material>( materialNames[materialIdx] );
-        if ( !originalMaterials[i] )
+        m.name = pMesh.name;
+        originalMaterials[meshIdx] = AssetManager::Get<Material>( pMesh.materialName );
+        if ( !originalMaterials[meshIdx] )
         {
-            LOG_ERR( "No material '%s' found", materialNames[materialIdx].c_str() );
+            LOG_ERR( "No material '%s' found", pMesh.materialName.c_str() );
             return false;
         }
-    }
-    in >> tmp;
 
-    uint32_t numPositions;
-    in >> tmp >> numPositions; PG_ASSERT( numPositions < 100000000 && in.good() );
-    positions.resize( numPositions );
-    for ( uint32_t i = 0; i < numPositions; ++i )
-    {
-        in >> positions[i].x >> positions[i].y >> positions[i].z;
-    }
+        m.startVertex = totalVerts;
+        m.startIndex = totalIndices;
+        m.numVertices = (uint32_t)pMesh.vertices.size();
+        m.numIndices = (uint32_t)pMesh.indices.size();
 
-    uint32_t numNormals;
-    in >> tmp >> numNormals; PG_ASSERT( numNormals < 100000000 && in.good() );
-    normals.resize( numNormals );
-    for ( uint32_t i = 0; i < numNormals; ++i )
-    {
-        in >> normals[i].x >> normals[i].y >> normals[i].z;
+        totalVerts += m.numVertices;
+        totalIndices += m.numIndices;
+
+        anyMeshHasUVs = anyMeshHasUVs || pMesh.numUVChannels > 0;
+        anyMeshHasTangents = anyMeshHasTangents || pMesh.hasTangents;
     }
 
-    uint32_t numTexCoords;
-    in >> tmp >> numTexCoords;
-    texCoords.resize( numTexCoords ); PG_ASSERT( numTexCoords < 100000000 && in.good() );
-    for ( uint32_t i = 0; i < numTexCoords; ++i )
+    positions.resize( totalVerts );
+    normals.resize( totalVerts );
+    if ( anyMeshHasUVs )
+        texCoords.resize( totalVerts );
+    if ( anyMeshHasTangents )
+        tangents.resize( totalVerts ); // xyz is the tangent, w is the bitangent sign
+    indices.resize( totalIndices );
+
+    uint32_t vertOffset = 0;
+    uint32_t indexOffset = 0;
+    for ( uint32_t meshIdx = 0; meshIdx < (uint32_t)meshes.size(); ++meshIdx )
     {
-        in >> texCoords[i].x >> texCoords[i].y;
-        if ( createInfo->flipTexCoordsVertically )
+        const Mesh& m = meshes[meshIdx];
+        const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
+
+        for ( uint32_t localVertIdx = 0; localVertIdx < m.numVertices; ++localVertIdx )
         {
-            texCoords[i].y = 1.0f - texCoords[i].y;
+            const PModel::Vertex& v = pMesh.vertices[localVertIdx];
+            uint32_t vIdx = vertOffset + localVertIdx;
+            positions[vIdx] = v.pos;
+            normals[vIdx] = v.normal;
+            if ( anyMeshHasUVs )
+            {
+                texCoords[vIdx] = pMesh.numUVChannels > 0 ? v.uvs[0] : glm::vec2( 0 );
+                if ( createInfo->flipTexCoordsVertically )
+                    texCoords[vIdx].y = 1.0f - texCoords[vIdx].y;
+            }
+            if ( anyMeshHasTangents )
+            {
+                if ( pMesh.hasTangents )
+                {
+                    glm::vec3 tangent = v.tangent;
+                    glm::vec3 bitangent = v.bitangent;
+                    glm::vec3 tNormal = glm::cross( tangent, bitangent );
+                    float bSign = glm::dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
+                    glm::vec4 packed = glm::vec4( tangent, bSign );
+                    tangents[vIdx] = packed;
+                }
+                else
+                {
+                    tangents[vIdx] = glm::vec4( 0, 0, 0, 0 );
+                }
+            }
         }
-    }
 
-    uint32_t numTangents;
-    in >> tmp >> numTangents; PG_ASSERT( numTangents < 100000000 && in.good() );
-    tangents.resize( numTangents );
-    for ( uint32_t i = 0; i < numTangents; ++i )
-    {
-        in >> tangents[i].x >> tangents[i].y >> tangents[i].z >> tangents[i].w;
-    }
+        for ( uint32_t localIIdx = 0; localIIdx < m.numIndices; ++localIIdx )
+        {
+            indices[indexOffset + localIIdx] = pMesh.indices[localIIdx];
+        }
 
-    uint32_t numTris;
-    in >> tmp >> numTris; PG_ASSERT( numTris < 100000000 && in.good() );
-    indices.resize( numTris * 3 );
-    for ( uint32_t i = 0; i < numTris; ++i )
-    {
-        in >> indices[3*i + 0] >> indices[3*i + 1] >> indices[3*i + 2];
+        vertOffset += m.numVertices;
+        indexOffset += m.numIndices;
     }
 
     if ( createInfo->recalculateNormals )
@@ -406,44 +399,5 @@ void Model::FreeGPU()
 #endif // #if USING( PG_RTX )
 #endif // #if USING( GPU_DATA )
 }
-
-
-std::vector<std::string> GetModelMaterialList( const std::string& pModelFilePath )
-{
-    std::vector<std::string> materials;
-    if ( GetFileExtension( pModelFilePath ) != ".pmodel" )
-    {
-        LOG_ERR( "Model::Load only takes .pmodel format" );
-        return materials;
-    }
-    std::ifstream in( pModelFilePath );
-    if ( !in )
-    {
-        LOG_ERR( "Failed to open .pmodel file '%s'", pModelFilePath.c_str() );
-        return materials;
-    }
-
-    std::string tmp;
-    uint32_t pmodelVersion;
-    in >> tmp >> pmodelVersion;
-    if ( tmp != "pmodelFormat:" )
-    {
-        LOG_ERR( "Invalid .pmodel file '%s'. First line should be 'pmodelFormat: ___' where the blank is the file version.", pModelFilePath.c_str() );
-        return {};
-    }
-
-    // pmodels store a list of all materials used at the beginning of the file, specifically just to make this function faster.
-    // A bit annoying for any user trying to manually edit a pmodel file, but it makes this function much faster
-    uint32_t numMaterials;
-    in >> tmp >> numMaterials;
-    materials.resize( numMaterials );
-    for ( uint32_t i = 0; i < numMaterials; ++i )
-    {
-        in >> tmp >> materials[i];
-    }
-
-    return materials;
-}
-
 
 } // namespace PG

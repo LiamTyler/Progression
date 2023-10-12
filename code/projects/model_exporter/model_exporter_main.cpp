@@ -257,7 +257,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     if ( !pmodel.Save( outputModelFilename, true ) )
         return false;
 
-    std::string relPath = GetPathRelativeToAssetDir( outputModelFilename );
+    std::string relPath = GetRelativePathToDir( outputModelFilename, g_rootDir );
     outputJSON += "\t{ \"Model\": { \"name\": \"" + modelName + "\", \"filename\": \"" + relPath + "\" } },\n";
 
     LOG( "Done processing file %s", filename.c_str() );

@@ -1,5 +1,6 @@
 #include "model_converter.hpp"
 #include "asset/types/material.hpp"
+#include "asset/pmodel.hpp"
 #include "shared/hash.hpp"
 
 namespace PG
@@ -9,7 +10,7 @@ void ModelConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& modelInfo
 {
     auto matCreateInfo = std::make_shared<MaterialCreateInfo>();
 
-    std::vector<std::string> materialNames = GetModelMaterialList( GetAbsPath_ModelFilename( modelInfo->filename ) );
+    std::vector<std::string> materialNames = GetUsedMaterialsPModel( GetAbsPath_ModelFilename( modelInfo->filename ) );
     for ( const auto& matName : materialNames )
     {
         AddUsedAsset( ASSET_TYPE_MATERIAL, AssetDatabase::FindAssetInfo( ASSET_TYPE_MATERIAL, matName ) );

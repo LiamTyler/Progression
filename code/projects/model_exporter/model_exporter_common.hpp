@@ -33,6 +33,3 @@ void AddJSON( std::vector<std::string>& settings, const std::string& key, bool v
 void AddJSON( std::vector<std::string>& settings, const std::string& key, const vec3& val );
 void AddJSON( std::vector<std::string>& settings, const std::string& key, const char* val );
 void AddJSON( std::vector<std::string>& settings, const std::string& key, const std::string& val );
-
-
-std::string GetPathRelativeToAssetDir( const std::string& path );

@@ -10,7 +10,6 @@ set(
     ${CODE_DIR}/asset/types/material.hpp
     ${CODE_DIR}/asset/types/model.cpp
     ${CODE_DIR}/asset/types/model.hpp
-    #${CODE_DIR}/asset/types/pmodel_versions.hpp
     ${CODE_DIR}/asset/types/script.cpp
     ${CODE_DIR}/asset/types/script.hpp
     ${CODE_DIR}/asset/types/shader.cpp
@@ -25,6 +24,8 @@ set(
     ${CODE_DIR}/asset/asset_manager.cpp
     ${CODE_DIR}/asset/asset_manager.hpp
     ${CODE_DIR}/asset/asset_versions.hpp
+    ${CODE_DIR}/asset/pmodel.cpp
+    ${CODE_DIR}/asset/pmodel.hpp
 )
 
 set(

@@ -13,6 +13,7 @@
 /*.spv
 /.vscode/
 /Sponza-master/
+/assets/models/sponza_intel/*
 /code/external/bc7enc_rdo/bc7e_ispc*
 /imgui.ini
 /assets/models/planter_box_01/

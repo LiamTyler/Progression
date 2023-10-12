@@ -19,10 +19,12 @@ static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType tex
 {
     aiString path;
     namespace fs = std::filesystem;
-    if ( assimpMat->GetTexture( texType, 0, &path, NULL, NULL, NULL, NULL, NULL ) == AI_SUCCESS )
+    uint32_t uvSet = UINT_MAX;
+    if ( assimpMat->GetTexture( texType, 0, &path, NULL, &uvSet, NULL, NULL, NULL ) == AI_SUCCESS )
     {
         std::string name = StripWhitespace( path.data );
         absPathToTex = name;
+        //LOG( "UVSet: %u", uvSet );
 
         std::string fullPath;
         std::string basename = GetRelativeFilename( name );
@@ -134,23 +136,22 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
     std::string matName = GetUniqueAssetName( ASSET_TYPE_MATERIAL, context.localMatName );
     AddJSON( matSettings, "name", matName );
 
-    std::optional<vec3> albedoTint = GetVec3( context.assimpMat, AI_MATKEY_BASE_COLOR );
+    auto albedoTint = GetVec3( context.assimpMat, AI_MATKEY_BASE_COLOR );
     if ( !albedoTint )
         albedoTint = GetVec3( context.assimpMat, AI_MATKEY_COLOR_DIFFUSE );
-
-    auto metallicFactor = GetFloat( context.assimpMat, AI_MATKEY_METALLIC_FACTOR );
-    auto roughnessFactor = GetFloat( context.assimpMat, AI_MATKEY_ROUGHNESS_FACTOR );
+    auto metalnessTint = GetFloat( context.assimpMat, AI_MATKEY_METALLIC_FACTOR );
+    auto roughnessTint = GetFloat( context.assimpMat, AI_MATKEY_ROUGHNESS_FACTOR );
     auto emissiveTint = GetVec3( context.assimpMat, AI_MATKEY_COLOR_EMISSIVE );
     //auto specularTint = GetVec3( context.assimpMat, AI_MATKEY_COLOR_SPECULAR );
 
     if ( albedoTint && albedoTint != DEFAULT_ALBEDO_TINT )
         AddJSON( matSettings, "albedoTint", *albedoTint );
-    if ( metallicFactor && metallicFactor != DEFAULT_METALLIC_TINT  )
-        AddJSON( matSettings, "metallicFactor", *albedoTint );
-    if ( roughnessFactor && roughnessFactor != DEFAULT_ROUGHNESS_TINT  )
-        AddJSON( matSettings, "roughnessFactor", *albedoTint );
+    if ( metalnessTint && metalnessTint != DEFAULT_METALLIC_TINT  )
+        AddJSON( matSettings, "metalnessTint", *metalnessTint );
+    if ( roughnessTint && roughnessTint != DEFAULT_ROUGHNESS_TINT  )
+        AddJSON( matSettings, "roughnessTint", *roughnessTint );
     if ( emissiveTint && emissiveTint != DEFAULT_EMISSIVE_TINT  )
-        AddJSON( matSettings, "emissiveTint", *albedoTint );
+        AddJSON( matSettings, "emissiveTint", *emissiveTint );
 
     // Textures
     std::vector<std::string> texSettings;
@@ -180,7 +181,7 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
         if ( sourceIsGLTF )
             AddJSON( texSettings, "metalnessSourceChannel", "G" );
     }
-    else if ( metallicFactor && *metallicFactor != 1.0 )
+    else if ( metalnessTint && *metalnessTint != 1.0 )
         AddJSON( texSettings, "metalnessMap", "$white" );
 
     if ( auto roughnessMap = GetAssimpTexture( context.assimpMat, aiTextureType_DIFFUSE_ROUGHNESS, "roughness", matName ) )
@@ -195,7 +196,7 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
         if ( sourceIsGLTF )
             AddJSON( texSettings, "roughnessSourceChannel", "B" );
     }
-    else if ( roughnessFactor && *roughnessFactor != 1.0 )
+    else if ( roughnessTint && *roughnessTint != 1.0 )
         AddJSON( texSettings, "roughnessMap", "$white" );
 
     if ( auto emissiveMap = GetAssimpTexture( context.assimpMat, aiTextureType_EMISSIVE, "emissive", matName ) )

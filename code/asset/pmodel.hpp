@@ -63,4 +63,6 @@ public:
     bool Save( const std::string& filename, bool logProgress = true ) const;
 };
 
+std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename );
+
 } // namespace PG

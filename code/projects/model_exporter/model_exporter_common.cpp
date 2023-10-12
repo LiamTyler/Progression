@@ -77,15 +77,3 @@ void AddJSON( std::vector<std::string>& settings, const std::string& key, const 
 {
     settings.push_back( "\"" + key + "\": \"" + val + "\"" );
 }
-
-
-std::string GetPathRelativeToAssetDir( const std::string& path )
-{
-    std::string relPath = GetRelativePathToDir( path, PG_ASSET_DIR );
-    if ( relPath.empty() )
-    {
-        relPath = path;
-    }
-
-    return relPath;
-}

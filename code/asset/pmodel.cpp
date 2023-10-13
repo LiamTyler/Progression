@@ -141,6 +141,7 @@ bool PModel::Load( const std::string& filename )
         }
 
         PG_ASSERT( line == "Tris:" );
+        std::getline( in, line );
         mesh.indices.reserve( mesh.vertices.size() * 2 );
         while ( !line.empty() )
         {

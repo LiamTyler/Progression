@@ -22,7 +22,18 @@ static_assert( PMODEL_MAX_COLORS_PER_VERT == AI_MAX_NUMBER_OF_COLOR_SETS );
 
 std::atomic<uint32_t> g_warnings;
 
-static void ProcessVertices( const aiMesh* paiMesh, PModel::Mesh& pgMesh )
+static mat4 AiToGLMMat4( const aiMatrix4x4& aiM )
+{
+    mat4 m;
+    m[0] = vec4( aiM.a1, aiM.b1, aiM.c1, aiM.d1 );
+    m[1] = vec4( aiM.a2, aiM.b2, aiM.c2, aiM.d2 );
+    m[2] = vec4( aiM.a3, aiM.b3, aiM.c3, aiM.d3 );
+    m[3] = vec4( aiM.a4, aiM.b4, aiM.c4, aiM.d4 );
+
+    return m;
+}
+
+static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat, PModel::Mesh& pgMesh )
 {
     // it doesn't look like assimp guarantees that the uv or color sets will be contiguous. Aka
     // there could be uv0 and uv2 but no uv1. I want to compact them contiguously though
@@ -45,13 +56,17 @@ static void ProcessVertices( const aiMesh* paiMesh, PModel::Mesh& pgMesh )
         }
     }
 
+    mat4 normalMatrix = inverse( transpose( localToWorldMat ) );
+
     uint32_t numVerts = paiMesh->mNumVertices;
     pgMesh.vertices.resize( numVerts );
     for ( uint32_t vIdx = 0; vIdx < numVerts; ++vIdx )
     {
         PModel::Vertex& v = pgMesh.vertices[vIdx];
         v.pos = AiToPG( paiMesh->mVertices[vIdx] );
+        v.pos = vec3( localToWorldMat * vec4( v.pos, 1.0f ) );
         v.normal = AiToPG( paiMesh->mNormals[vIdx] );
+        v.normal = vec3( normalMatrix * vec4( v.normal, 0.0f ) );
         PG_ASSERT( !any( isnan( v.pos ) ) );
         PG_ASSERT( !any( isnan( v.normal ) ) );
         v.numBones = 0;
@@ -59,7 +74,9 @@ static void ProcessVertices( const aiMesh* paiMesh, PModel::Mesh& pgMesh )
         if ( pgMesh.hasTangents )
         {
             v.tangent = AiToPG( paiMesh->mTangents[vIdx] );
+            v.tangent = vec3( localToWorldMat * vec4( v.tangent, 0.0f ) );
             v.bitangent = AiToPG( paiMesh->mBitangents[vIdx] );
+            v.bitangent = vec3( localToWorldMat * vec4( v.bitangent, 0.0f ) );
         }
 
         for ( uint32_t uvSetIdx = 0; uvSetIdx < pgMesh.numUVChannels; ++uvSetIdx )
@@ -108,44 +125,65 @@ static void ProcessVertices( const aiMesh* paiMesh, PModel::Mesh& pgMesh )
 }
 
 
-static std::string FloatToString( float x )
+void ParseNode( const std::string& filename, const std::vector<std::string>& materialNames, const aiScene* scene, const aiNode* node, const mat4& parentLocalToWorld, PModel& pmodel )
 {
-    if ( x == 0 )
-        return "0";
-    
-    int truncated = (int)x;
-    if ( x == (float)truncated )
-        return std::to_string( truncated );
-
-    char buffer[64];
-    int len = sprintf( buffer, "%.6f", x );
-    for ( int i = len - 1; i > 0; --i )
+    std::string stem = GetFilenameStem( filename );
+    mat4 currentLocalToWorld = AiToGLMMat4( node->mTransformation ) * parentLocalToWorld;
+    for ( uint32_t meshIdx = 0; meshIdx < node->mNumMeshes; ++meshIdx )
     {
-        if ( buffer[i] == '.' )
-            return std::string( buffer, i );
+        const aiMesh* paiMesh = scene->mMeshes[node->mMeshes[meshIdx]];
+        PModel::Mesh& pgMesh = pmodel.meshes.emplace_back();
+        pgMesh.name = paiMesh->mName.C_Str();
+        if ( pgMesh.name.empty() )
+        {
+            pgMesh.name = stem + "_mesh" + std::to_string( meshIdx );
+            LOG_WARN( "Mesh %u in file %s does not have a name. Assigning name %s", meshIdx, filename.c_str(), pgMesh.name.c_str() );
+        }
+        pgMesh.materialName = materialNames[paiMesh->mMaterialIndex];
+        pgMesh.numColorChannels = paiMesh->GetNumColorChannels();
+        pgMesh.numUVChannels = paiMesh->GetNumUVChannels();
+        pgMesh.hasTangents = paiMesh->mTangents && paiMesh->mBitangents;
+        pgMesh.hasBoneWeights = paiMesh->HasBones();
 
-        if ( buffer[i] == '0' )
-            continue;
+        if ( paiMesh->mNumAnimMeshes )
+        {
+            LOG_WARN( "Mesh %u '%s' in file %s contains attachment/anim meshes. Currently not supported",
+                meshIdx, filename.c_str(), pgMesh.name.c_str() );
+        }
 
-        return std::string( buffer, i + 1 );
+        for ( uint32_t uvSetIdx = 0; uvSetIdx < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++uvSetIdx )
+        {
+            if ( !paiMesh->HasTextureCoords( uvSetIdx ) || paiMesh->mNumUVComponents[uvSetIdx] == 2 )
+                continue;
+
+            if ( paiMesh->HasTextureCoordsName( uvSetIdx ) )
+            {
+                LOG_WARN( "Mesh %u '%s' in file %s: uv set %u '%s' has %u channels. Expecting 2, will ignore this uv set", meshIdx,
+                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->GetTextureCoordsName( uvSetIdx )->C_Str(), paiMesh->mNumUVComponents[uvSetIdx] );
+            }
+            else
+            {
+                LOG_WARN( "Mesh %u '%s' in file %s: uv set %u (unnamed) has %u channels. Expecting 2, will ignore this uv set", meshIdx,
+                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->mNumUVComponents[uvSetIdx] );
+            }
+        }
+
+        ProcessVertices( paiMesh, currentLocalToWorld, pgMesh );
+
+        pgMesh.indices.resize( paiMesh->mNumFaces * 3 );
+        for ( uint32_t faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
+        {
+            const aiFace& face = paiMesh->mFaces[faceIdx];
+            pgMesh.indices[faceIdx * 3 + 0] = face.mIndices[0];
+            pgMesh.indices[faceIdx * 3 + 1] = face.mIndices[1];
+            pgMesh.indices[faceIdx * 3 + 2] = face.mIndices[2];
+        }
     }
 
-    return std::string( buffer, len );
-}
-
-static std::string Vec2ToString( const vec2& v )
-{
-    return FloatToString( v.x ) + " " + FloatToString( v.y );
-}
-
-static std::string Vec3ToString( const vec3& v )
-{
-    return FloatToString( v.x ) + " " + FloatToString( v.y ) + " " + FloatToString( v.z );
-}
-
-static std::string Vec4ToString( const vec4& v )
-{
-    return FloatToString( v.x ) + " " + FloatToString( v.y ) + " " + FloatToString( v.z ) + " " + FloatToString( v.w );
+    for ( uint32_t childIdx = 0; childIdx < node->mNumChildren; ++childIdx )
+    {
+        ParseNode( filename, materialNames, scene, node->mChildren[childIdx], currentLocalToWorld, pmodel );
+    }
 }
 
 
@@ -189,6 +227,12 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     }
 
     PModel pmodel;
+
+    aiNode* root = scene->mRootNode;
+    ParseNode( filename, materialNames, scene, scene->mRootNode, mat4( 1.0f ), pmodel );
+
+
+    /*
     pmodel.meshes.resize( scene->mNumMeshes );
     std::string stem = GetFilenameStem( filename );
     for ( uint32_t meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx )
@@ -241,6 +285,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
             pgMesh.indices[faceIdx * 3 + 2] = face.mIndices[2];
         }
     }
+    */
 
     size_t totalVerts = 0;
     size_t totalTris = 0;

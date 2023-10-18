@@ -95,7 +95,8 @@ namespace Gfx
     }
 
 
-    VkDescriptorBufferInfo DescriptorBufferInfo( const Gfx::Buffer& buffer, VkDeviceSize offset, VkDeviceSize range )
+    VkDescriptorBufferInfo 
+        DescriptorBufferInfo( const Gfx::Buffer& buffer, VkDeviceSize offset, VkDeviceSize range )
     {
         VkDescriptorBufferInfo info;
         info.buffer = buffer.GetHandle();

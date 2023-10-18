@@ -265,6 +265,7 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
 
     if ( createFastFile )
     {
+        ++s_outOfDateScenes;
         Serializer ff;
         if ( !ff.OpenForWrite( fastfilePath ) )
         {
@@ -339,7 +340,6 @@ bool ProcessSingleScene( const std::string& sceneFile )
     uint32_t outOfDateAssets;
     bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );
     success = success && OutputFastfile( sceneFile, outOfDateAssets );
-    s_outOfDateScenes += outOfDateAssets > 0;
     return success;
 }
 

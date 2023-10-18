@@ -46,7 +46,8 @@ void main()
     }
     else
     {
-        finalColor.rgb = vec3( 1, 1, 1 );
+        finalColor.rgb = drawData.tint.rgb;
+        finalColor.rgb *= drawData.scale;
     }
 
     if ( drawData.r_skyboxViz == PG_DEBUG_SKY_BLACK )

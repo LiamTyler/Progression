@@ -89,6 +89,13 @@ inline glm::u16vec4 Float32ToFloat16( glm::vec4 v )
     return { Float32ToFloat16( v.x ), Float32ToFloat16( v.y), Float32ToFloat16( v.z ), Float32ToFloat16( v.w ) };
 }
 
+inline uint32_t Float32ToFloat16( float x, float y )
+{
+    uint32_t px = Float32ToFloat16( x );
+    uint32_t py = Float32ToFloat16( y );
+    return px | (py << 16);
+}
+
 
 inline float Float16ToFloat32( uint16_t f16 )
 {

@@ -44,6 +44,11 @@ inline float AbsDot( const glm::vec3& v1, const glm::vec3& v2 )
     return glm::abs( glm::dot( v1, v2 ) );
 }
 
+inline float Saturate( const float x )
+{
+    return std::max( 0.0f, std::max( 0.0f, x ) );
+}
+
 struct Ray
 {
     Ray() = default;

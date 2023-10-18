@@ -28,12 +28,19 @@ float PBR_D_GGX( float NdotH, float roughness )
     return num / denom;
 }
 
+float PBR_GetRemappedRoughness_Direct( float roughness )
+{
+    float r = roughness + 1.0f;
+    return r * r / 8.0f;
+}
+
+float PBR_GetRemappedRoughness_IBL( float roughness )
+{
+    return roughness * roughness / 2.0f;
+}
 
 float PBR_G_SchlickGGXInternal( float NdotV, float remappedRoughness )
 {
-    //float r = (roughness + 1.0);
-    //float k = (r*r) / 8.0;
-
     float num   = NdotV;
     float denom = NdotV * (1.0 - remappedRoughness) + remappedRoughness;
 	

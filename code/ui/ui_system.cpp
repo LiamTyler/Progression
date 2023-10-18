@@ -691,7 +691,7 @@ namespace PG::UI
         cmdBuf->SetScissor( DisplaySizedScissor() );
         cmdBuf->BindPipeline( &s_uiPipelines[PIPELINE_OPAQUE] );
         uint32_t lastPipelineIndex = PIPELINE_OPAQUE;
-        cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_SET );
+        cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_DESCRIPTOR_SET );
 
         IterateAllElementsInOrder( [&]( const UIElement& e )
         {

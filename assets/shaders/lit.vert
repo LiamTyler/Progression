@@ -3,7 +3,7 @@
 
 #include "c_shared/structs.h"
 
-layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
+layout( set = PG_SCENE_GLOBALS_DESCRIPTOR_SET, binding = 0 ) uniform SceneGlobalUBO
 {
 	SceneGlobals globals;
 };

@@ -103,6 +103,8 @@ set(
     ${SHADER_DIR}/ui.frag
     
     ${SHADER_DIR}/lib/gamma.glsl
+    ${SHADER_DIR}/lib/lights.glsl
+    ${SHADER_DIR}/lib/packing.glsl
     ${SHADER_DIR}/lib/pbr.glsl
     ${SHADER_DIR}/lib/tonemap.glsl
 )

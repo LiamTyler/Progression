@@ -8,7 +8,7 @@
 
 layout( location = 0 ) in vec2 texCoord;
 
-layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
+layout( set = PG_SCENE_GLOBALS_DESCRIPTOR_SET, binding = PG_SCENE_CONSTS_BINDING_SLOT ) uniform SceneGlobalUBO
 {
     SceneGlobals globals;
 };

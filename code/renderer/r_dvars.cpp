@@ -9,7 +9,7 @@ namespace PG
 // NOTE! keep these in sync with c_shared/dvar_defines.h
 Dvar r_materialViz(
     "r_materialViz",
-    1u, 0u, PG_DEBUG_MTL_COUNT,
+    0u, 0u, PG_DEBUG_MTL_COUNT,
     "Debug dvar for visualizing material related values. Auto turns off post processing when > 0\n"
     "0 - Default\n"
     "1 - Albedo\n"

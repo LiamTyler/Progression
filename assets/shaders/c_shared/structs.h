@@ -16,6 +16,7 @@ struct SceneGlobals
     MAT4 invVP;
     VEC4 cameraPos; // w is 1, for convenience
     VEC4 cameraExposureAndPad; // x = exposure, yzw = unused
+    UVEC4 lightCountAndPad3; // x = light count, yzw = pad
 
     UINT r_materialViz;
     UINT r_lightingViz;
@@ -39,10 +40,16 @@ struct MaterialData
     float pad2;
 };
 
-struct PointLight
+#define LIGHT_TYPE_POINT 0
+#define LIGHT_TYPE_SPOT 1
+#define LIGHT_TYPE_DIRECTIONAL 2
+
+struct PackedLight
 {
-    VEC4 positionAndRadius;
-    VEC4 color;
+    VEC4 positionAndRadius; // xyz = world position, w = radius
+    VEC4 colorAndType; // xyz = color, w = light type
+    VEC4 directionAndSpotAngles; // xyz = direction, w = inner and outer spot angles, fp16
+    VEC4 _pad; // just for 64 byte alignment
 };
 
 struct SkyboxData
@@ -60,10 +67,10 @@ struct SkyboxData
 } // namespace GpuData
 #endif // #ifndef PG_SHADER_CODE
 
-#define PG_SCENE_GLOBALS_BUFFER_SET 0
-#define PG_BINDLESS_TEXTURE_SET     1
-#define PG_LIGHTS_SET               2
-    #define PG_POINT_LIGHTS_BIND_INDEX  0
-    #define PG_SPOT_LIGHTS_BIND_INDEX   1
+#define PG_SCENE_GLOBALS_DESCRIPTOR_SET 0
+    #define PG_SCENE_CONSTS_BINDING_SLOT 0
+#define PG_BINDLESS_TEXTURE_DESCRIPTOR_SET 1
+#define PG_LIGHT_DESCRIPTOR_SET 2
+#define PG_LIGHTING_AUX_DESCRIPTOR_SET 3
 
 #endif // #ifndef _STRUCTS_H_

@@ -15,6 +15,13 @@ using namespace PG;
 
 Scene* s_primaryScene = nullptr;
 
+static bool ParseNull( const rapidjson::Value& v, Scene* scene )
+{
+    PG_UNUSED( v );
+    PG_UNUSED( scene );
+    return true;
+}
+
 
 static bool ParseAmbientColor( const rapidjson::Value& v, Scene* scene )
 {
@@ -54,7 +61,8 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
         { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::vec4( glm::normalize( ParseVec3( v ) ), 0 ); } }
     });
 
-    mapping.ForEachMember( value, scene->directionalLight );
+    DirectionalLight& light = scene->directionalLights.emplace_back();
+    mapping.ForEachMember( value, light );
     return true;
 }
 
@@ -80,8 +88,8 @@ static bool ParsePointLight( const rapidjson::Value& value, Scene* scene )
         { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius = ParseNumber< float >( v ); } },
     });
 
-    scene->pointLights.emplace_back();
-    mapping.ForEachMember( value, scene->pointLights[scene->pointLights.size() - 1] );
+    PointLight& light = scene->pointLights.emplace_back();
+    mapping.ForEachMember( value, light );
     return true;
 }
 
@@ -95,11 +103,12 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
         { "position",   []( const rapidjson::Value& v, SpotLight& l ) { l.position  = ParseVec3( v ); } },
         { "radius",     []( const rapidjson::Value& v, SpotLight& l ) { l.radius    = ParseNumber< float >( v ); } },
         { "direction",  []( const rapidjson::Value& v, SpotLight& l ) { l.direction = glm::vec4( glm::normalize( ParseVec3( v ) ), 0 ); } },
-        { "cutoff",     []( const rapidjson::Value& v, SpotLight& l ) { l.cutoff    = glm::radians( ParseNumber< float >( v ) ); } }
+        { "innerCutoffAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.innerCutoffAngle = glm::radians( ParseNumber< float >( v ) ); } },
+        { "outerCutoffAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerCutoffAngle = glm::radians( ParseNumber< float >( v ) ); } },
     });
 
-    scene->spotLights.emplace_back();
-    mapping.ForEachMember( value, scene->spotLights[scene->spotLights.size() - 1] );
+    SpotLight& light = scene->spotLights.emplace_back();
+    mapping.ForEachMember( value, light );
     return true;
 }
 
@@ -168,7 +177,7 @@ namespace PG
 Scene::~Scene()
 {
 #if USING( GPU_DATA )
-    tlas.Free();
+    //tlas.Free();
 #endif // #if USING( GPU_DATA )
 }
 
@@ -204,6 +213,7 @@ Scene* Scene::Load( const std::string& filename )
         { "Camera",           ParseCamera },
         { "Entity",           ParseEntity },
         { "DirectionalLight", ParseDirectionalLight },
+        { "OfflineRenderSettings", ParseNull },
         { "PointLight",       ParsePointLight },
         { "SpotLight",        ParseSpotLight },
         { "Skybox",           ParseSkybox },

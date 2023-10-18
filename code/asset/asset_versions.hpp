@@ -23,7 +23,7 @@ enum AssetType : unsigned int
 
 constexpr unsigned int g_assetVersions[] =
 {
-    5, // ASSET_TYPE_GFX_IMAGE, "respect clamp attributes, and change defaults to wrap instead of clamp"
+    6, // ASSET_TYPE_GFX_IMAGE, "Fix normal maps (previously not unpacking the normal map values before normalization, mipping, etc)"
     6, // ASSET_TYPE_MATERIAL, "use slopeScale, metalness + roughness tints correctly"
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL

@@ -52,21 +52,16 @@ static void InitPerFrameData()
     for ( int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
     {
         FrameData& data = rg.frameData[i];
-        data.sceneConstantBuffer = rg.device.NewBuffer( sizeof( GpuData::SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE, "sceneConstantsUBO" + std::to_string( i ) );
+        data.sceneConstantBuffer = rg.device.NewBuffer( sizeof( GpuData::SceneGlobals ), BUFFER_TYPE_UNIFORM, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "sceneConstantsUBO" + std::to_string( i ) );
         data.sceneConstantBuffer.Map();
         
         std::vector<VkDescriptorImageInfo> imgDescriptors;
         std::vector<VkDescriptorBufferInfo> bufferDescriptors;
         std::vector<VkWriteDescriptorSet> writeDescriptorSets;
 
-        data.postProcessDescSet = rg.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[3] );
-        imgDescriptors      = { DescriptorImageInfo( s_renderGraph.GetPhysicalResource( "litOutput", i )->texture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
-        writeDescriptorSets = WriteDescriptorSet_Images( data.postProcessDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
-        rg.device.UpdateDescriptorSets( writeDescriptorSets );
-    
-        data.sceneConstantDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_BUFFER_SET] );
+        data.sceneConstantDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_SCENE_GLOBALS_DESCRIPTOR_SET] );
         bufferDescriptors   = { DescriptorBufferInfo( data.sceneConstantBuffer ) };
-        writeDescriptorSets = { WriteDescriptorSet_Buffer( data.sceneConstantDescSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 0, &bufferDescriptors[0] ) };
+        writeDescriptorSets = { WriteDescriptorSet_Buffer( data.sceneConstantDescSet, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, PG_SCENE_CONSTS_BINDING_SLOT, &bufferDescriptors[0] ), };
         rg.device.UpdateDescriptorSets( writeDescriptorSets );
 
         data.skyboxDescSet = rg.descriptorPool.NewDescriptorSet( skyboxPipeline.GetResourceLayout()->sets[0] );
@@ -75,9 +70,21 @@ static void InitPerFrameData()
         rg.device.UpdateDescriptorSets( writeDescriptorSets );
         s_skyboxTextures[0] = nullptr;
 
-        data.lightingAuxTexturesDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[3] );
+        data.lightBuffer = rg.device.NewBuffer( PG_MAX_NUM_LIGHTS * sizeof( GpuData::PackedLight ), BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "lightSSBO" + std::to_string( i ) );
+        data.lightBuffer.Map();
+        data.lightsDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_LIGHT_DESCRIPTOR_SET] );
+        bufferDescriptors   = { DescriptorBufferInfo( data.lightBuffer ) };
+        writeDescriptorSets = { WriteDescriptorSet_Buffer( data.lightsDescSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferDescriptors[0] ), };
+        rg.device.UpdateDescriptorSets( writeDescriptorSets );
+
+        data.lightingAuxTexturesDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_LIGHTING_AUX_DESCRIPTOR_SET] );
         imgDescriptors      = { DescriptorImageInfoNull(), DescriptorImageInfoNull(), DescriptorImageInfo( AssetManager::Get<GfxImage>( "brdfLUT" )->gpuTexture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ) };
         writeDescriptorSets = WriteDescriptorSet_Images( data.lightingAuxTexturesDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
+        rg.device.UpdateDescriptorSets( writeDescriptorSets );
+
+        data.postProcessDescSet = rg.descriptorPool.NewDescriptorSet( postProcessPipeline.GetResourceLayout()->sets[PG_LIGHTING_AUX_DESCRIPTOR_SET] );
+        imgDescriptors      = { DescriptorImageInfo( s_renderGraph.GetPhysicalResource( "litOutput", i )->texture, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL ), };
+        writeDescriptorSets = WriteDescriptorSet_Images( data.postProcessDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
         rg.device.UpdateDescriptorSets( writeDescriptorSets );
     }
 }
@@ -89,6 +96,7 @@ static void ShutdownPerFrameData()
     {
         FrameData& data = rg.frameData[i];
         data.sceneConstantBuffer.Free();
+        data.lightBuffer.Free();
     }
 }
 
@@ -360,6 +368,37 @@ GpuData::MaterialData CPUMaterialToGPU( Material* material )
 
 static void UpdateGPUSceneData( Scene* scene )
 {
+    const uint32_t maxNumLights = PG_MAX_NUM_LIGHTS;
+    size_t totalLights = scene->directionalLights.size() + scene->pointLights.size() + scene->spotLights.size();
+    if ( totalLights > maxNumLights )
+    {
+        LOG_WARN( "Total number of lights in the scene %u exceeds the gpu light buffer size %u. Skipping the exceeding lights",
+            (uint32_t)totalLights, maxNumLights );
+    }
+
+    Buffer& lightBuffer = rg.frameData[rg.currentFrame].lightBuffer;
+    GpuData::PackedLight* gpuLights = reinterpret_cast<GpuData::PackedLight*>( lightBuffer.MappedPtr() );
+    uint32_t globalLightIdx = 0;
+    for ( uint32_t i = 0; i < (uint32_t)scene->directionalLights.size() && globalLightIdx < maxNumLights; ++i )
+    {
+        GpuData::PackedLight& l = gpuLights[globalLightIdx];
+        l = PackDirectionalLight( scene->directionalLights[i] );
+        ++globalLightIdx;
+    }
+    for ( uint32_t i = 0; i < (uint32_t)scene->spotLights.size() && globalLightIdx < maxNumLights; ++i )
+    {
+        GpuData::PackedLight& l = gpuLights[globalLightIdx];
+        l = PackSpotLight( scene->spotLights[i] );
+        ++globalLightIdx;
+    }
+    for ( uint32_t i = 0; i < (uint32_t)scene->pointLights.size() && globalLightIdx < maxNumLights; ++i )
+    {
+        GpuData::PackedLight& l = gpuLights[globalLightIdx];
+        l = PackPointLight( scene->pointLights[i] );
+        ++globalLightIdx;
+    }
+    //lightBuffer.FlushCpuWrites();
+
     GpuData::SceneGlobals globalData;
     globalData.V      = scene->camera.GetV();
     globalData.P      = scene->camera.GetP();
@@ -367,29 +406,15 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.invVP  = glm::inverse( scene->camera.GetVP() );
     globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
     globalData.cameraExposureAndPad = glm::vec4( powf( 2.0f, scene->camera.exposure ), 0, 0, 0 );
+    globalData.lightCountAndPad3.x = globalLightIdx;
     globalData.r_materialViz = r_materialViz.GetUint();
     globalData.r_lightingViz = r_lightingViz.GetUint();
     globalData.r_postProcessing = r_postProcessing.GetBool();
     globalData.r_tonemap = r_tonemap.GetUint();
 
-    Buffer& buffer = rg.frameData[rg.currentFrame].sceneConstantBuffer;
-    memcpy( buffer.MappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );
-    buffer.FlushCpuWrites();
-
-    //static GpuData::PointLight cpuPointLights[PG_MAX_NUM_GPU_POINT_LIGHTS];
-    //if ( scene->pointLights.size() > PG_MAX_NUM_GPU_POINT_LIGHTS )
-    //{
-    //    LOG_WARN( "Exceeding limit (%d) of GPU point lights (%zu). Ignoring any past limit", PG_MAX_NUM_GPU_POINT_LIGHTS, scene->pointLights.size() );
-    //}
-    //uint32_t numPointLights = std::min< uint32_t >( PG_MAX_NUM_GPU_POINT_LIGHTS, static_cast< uint32_t >( scene->pointLights.size() ) );
-    //for ( uint32_t i = 0; i < numPointLights; ++i )
-    //{
-    //    const PointLight& light = scene->pointLights[i];
-    //    cpuPointLights[i].positionAndRadius = glm::vec4( light.position, light.radius );
-    //    cpuPointLights[i].color = glm::vec4( light.intensity * light.color, 0 );
-    //}
-    //memcpy( s_gpuPointLights.MappedPtr(), cpuPointLights, numPointLights * sizeof( GpuData::PointLight ) );
-    //s_gpuPointLights.FlushCpuWrites();
+    Buffer& sceneBuffer = rg.frameData[rg.currentFrame].sceneConstantBuffer;
+    memcpy( sceneBuffer.MappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );
+    //sceneBuffer.FlushCpuWrites();
 }
 
 
@@ -488,7 +513,7 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
         return;
 
     cmdBuf->BindPipeline( &depthOnlyPipeline );
-    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_BUFFER_SET );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_DESCRIPTOR_SET );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
     glm::mat4 VP = scene->camera.GetVP();
@@ -519,9 +544,10 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
     cmdBuf->BindPipeline( &litPipeline );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
-    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_BUFFER_SET );
-    cmdBuf->BindDescriptorSet( bindlessTexturesDescriptorSet, PG_BINDLESS_TEXTURE_SET );
-    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightingAuxTexturesDescSet, 3 );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_DESCRIPTOR_SET );
+    cmdBuf->BindDescriptorSet( bindlessTexturesDescriptorSet, PG_BINDLESS_TEXTURE_DESCRIPTOR_SET );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightsDescSet, PG_LIGHT_DESCRIPTOR_SET );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightingAuxTexturesDescSet, PG_LIGHTING_AUX_DESCRIPTOR_SET );
 
     scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
     {
@@ -582,8 +608,8 @@ static void RenderFunc_PostProcessPass( RenderTask* task, Scene* scene, CommandB
     cmdBuf->BindPipeline( &postProcessPipeline );
     cmdBuf->SetViewport( DisplaySizedViewport() );
     cmdBuf->SetScissor( DisplaySizedScissor() );
-    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_BUFFER_SET );
-    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].postProcessDescSet, 3 );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_DESCRIPTOR_SET );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].postProcessDescSet, PG_LIGHTING_AUX_DESCRIPTOR_SET );
     cmdBuf->Draw( 0, 6 );
 }
 

@@ -24,8 +24,10 @@ enum : unsigned char
 struct FrameData
 {
     Buffer sceneConstantBuffer;
+    Buffer lightBuffer;
     DescriptorSet sceneConstantDescSet;
     DescriptorSet skyboxDescSet;
+    DescriptorSet lightsDescSet;
     DescriptorSet lightingAuxTexturesDescSet;
     DescriptorSet postProcessDescSet;
     

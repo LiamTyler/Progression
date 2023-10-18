@@ -100,12 +100,19 @@ bool PModel::Load( const std::string& filename )
         // skip to first vertex
         SkipEmptyLines( in, line );
 
+        uint32_t meshNumUVs = 0;
+        uint32_t meshNumColors = 0;
+        uint32_t meshNumTangents = 0;
+        uint32_t meshNumBitangents = 0;
+
         mesh.vertices.reserve( 65536 );
         while ( !line.empty() && line[0] == 'V' )
         {
             Vertex& v = mesh.vertices.emplace_back();
-            int numUVs = 0;
-            int numColors = 0;
+            uint32_t numUVs = 0;
+            uint32_t numColors = 0;
+            uint32_t numTangents = 0;
+            uint32_t numBitangents = 0;
 
             std::getline( in, line );
             while ( !line.empty() )
@@ -115,7 +122,10 @@ bool PModel::Load( const std::string& filename )
                 else if ( line[0] == 'n' )
                     sscanf( line.c_str(), "%s %f %f %f", tmpBuffer, &v.normal.x, &v.normal.y, &v.normal.z );
                 else if ( line[0] == 't' )
+                {
                     sscanf( line.c_str(), "%s %f %f %f", tmpBuffer, &v.tangent.x, &v.tangent.y, &v.tangent.z );
+                    ++numTangents;
+                }
                 else if ( line[0] == 'u' && line[1] == 'v' )
                 {
                     sscanf( line.c_str(), "%s %f %f", tmpBuffer, &v.uvs[numUVs].x, &v.uvs[numUVs].y );
@@ -132,13 +142,44 @@ bool PModel::Load( const std::string& filename )
                     ++v.numBones;
                 }
                 else if ( line[0] == 'b' )
+                {
                     sscanf( line.c_str(), "%s %f %f %f", tmpBuffer, &v.bitangent.x, &v.bitangent.y, &v.bitangent.z );
+                    ++numBitangents;
+                }
 
                 std::getline( in, line );
             }
 
+#if USING( DEBUG_BUILD )
+            if ( numTangents > 1 )
+                LOG_WARN( "Mesh %s vertex %u has more than 1 tangent specified", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+            if ( numBitangents > 1 )
+                LOG_WARN( "Mesh %s vertex %u has more than 1 bittangent specified", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+            if ( numTangents && !numBitangents )
+                LOG_WARN( "Mesh %s vertex %u has a tangent specified, but no bitangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+            if ( !numTangents && numBitangents )
+                LOG_WARN( "Mesh %s vertex %u has a bitangent specified, but no tangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+#endif // #if USING( DEBUG_BUILD )
+
+            meshNumUVs += numUVs;
+            meshNumColors += numColors;
+            meshNumTangents += numTangents;
+            meshNumBitangents += numBitangents;
+            mesh.hasBoneWeights = mesh.hasBoneWeights || (v.numBones > 0);
+
             std::getline( in, line );
         }
+        
+        if ( meshNumUVs != mesh.vertices.size() * mesh.numUVChannels )
+            LOG_WARN( "Not every vertex in mesh %s specified the expected uvs!", mesh.name.c_str() );
+        if ( meshNumColors != mesh.vertices.size() * mesh.numColorChannels )
+            LOG_WARN( "Not every vertex in mesh %s specified the expected vertex colors!", mesh.name.c_str() );
+        if ( meshNumTangents && meshNumTangents != mesh.vertices.size() )
+            LOG_WARN( "Only some, but not all of the vertices in mesh %s specified tangents!", mesh.name.c_str() );
+        if ( meshNumBitangents != mesh.vertices.size() )
+            LOG_WARN( "Only some, but not all of the vertices in mesh %s specified bitangents!", mesh.name.c_str() );
+
+        mesh.hasTangents = meshNumTangents > 0 && meshNumBitangents > 0;
 
         PG_ASSERT( line == "Tris:" );
         std::getline( in, line );

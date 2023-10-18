@@ -14,6 +14,17 @@
 
 static constexpr CompressionQuality COMPRESSOR_QUALITY = CompressionQuality::MEDIUM;
 
+// TODO: take source image precision into account and allow for 0. Aka 128/255 should map to 0 for an 8 bit image
+static glm::vec3 UnpackNormal( const glm::vec3& v )
+{
+    return 2.0f * v - glm::vec3( 1.0f );
+}
+
+static glm::vec3 PackNormal( const glm::vec3& v )
+{
+    return 0.5f * (v + glm::vec3( 1.0f ));
+}
+
 namespace PG
 {
 
@@ -239,33 +250,20 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
         return false;
     }
 
-    float roughnessScale = createInfo->compositeScales[2];
     bool invertRoughness = createInfo->compositeScales[3];
-    if ( roughnessScale != 1.0f || invertRoughness )
-    {
-        float roughnessBias = invertRoughness ? 1.0f : 0;
-        if ( invertRoughness )
-            roughnessScale *= -1;
-
-        composite.ForEachPixel( [roughnessBias, roughnessScale]( float* p )
-        {
-            p[3] = roughnessBias + roughnessScale * p[3];
-        });
-    }
-
+    float roughnessScale = invertRoughness ? -createInfo->compositeScales[2] : createInfo->compositeScales[2];
+    float roughnessBias = invertRoughness ? 1.0f : 0;
     float slopeScale = createInfo->compositeScales[0];
     bool normalMapIsYUp = createInfo->compositeScales[1];
-    if ( slopeScale != 1.0f || !normalMapIsYUp )
+    composite.ForEachPixel( [slopeScale, normalMapIsYUp, roughnessScale, roughnessBias]( float* p )
     {
-        composite.ForEachPixel( [slopeScale, normalMapIsYUp]( float* p )
-        {
-            glm::vec3 normal = { p[0], p[1], p[2] };
-            if ( !normalMapIsYUp )
-                normal.y *= -1;
-            normal = ScaleNormal( normal, slopeScale );
-            p[0] = normal.x; p[1] = normal.y; p[2] = normal.z;
-        });
-    }
+        glm::vec3 normal = UnpackNormal( { p[0], p[1], p[2] } );
+        if ( !normalMapIsYUp )
+            normal.y *= -1;
+        normal = ScaleNormal( normal, slopeScale );
+        p[0] = normal.x; p[1] = normal.y; p[2] = normal.z;
+        p[3] = roughnessBias + roughnessScale * p[3];
+    });
 
     MipmapGenerationSettings settings;
     settings.clampHorizontal = createInfo->clampHorizontal;
@@ -273,12 +271,12 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     // TODO: alter the normals based on the roughness when mipmapping, because the macro-level normals
     // effectively become micro-level detail as you downsample
     std::vector<FloatImage2D> floatMips = GenerateMipmaps( composite, settings );
-    for ( uint32_t mipLevel = 1; mipLevel < (uint32_t)floatMips.size(); ++mipLevel )
+    for ( uint32_t mipLevel = 0; mipLevel < (uint32_t)floatMips.size(); ++mipLevel )
     {
         floatMips[mipLevel].ForEachPixel( []( float* p )
         {
             glm::vec3 normal = { p[0], p[1], p[2] };
-            normal = normalize( normal );
+            normal = PackNormal( normalize( normal ) );
             p[0] = normal.x; p[1] = normal.y; p[2] = normal.z;
         });
     }

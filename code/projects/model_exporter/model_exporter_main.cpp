@@ -199,10 +199,11 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     }
 
     std::vector<std::string> materialNames;
+    bool isOBJ = GetFileExtension( filename ) == ".obj";
     for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
     {
         std::string matName = scene->mMaterials[i]->GetName().C_Str();
-        if ( matName == "DefaultMaterial" || matName == "default" )
+        if ( matName == "DefaultMaterial" || matName == "default" || (isOBJ && matName == "None") )
             matName = "default";
         else if ( matName == "" )
             matName = "material_" + std::to_string( i );

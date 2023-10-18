@@ -30,8 +30,8 @@ namespace PG
         Camera camera;
         glm::vec3 skyTint = glm::vec3( 1, 1, 1 );
         float skyEVAdjust = 0; // scales sky by pow( 2, skyEVAdjust )
-        glm::vec3 ambientColor    = glm::vec3( .1f );
-        DirectionalLight directionalLight;
+        glm::vec3 ambientColor    = glm::vec3( .1f );;
+        std::vector< DirectionalLight > directionalLights;
         std::vector< PointLight > pointLights;
         std::vector< SpotLight > spotLights;
         entt::registry registry;
@@ -44,7 +44,7 @@ namespace PG
         uint16_t numNonEntityScripts = 0;
 
     #if USING( GPU_DATA )
-        Gfx::AccelerationStructure tlas;
+        // Gfx::AccelerationStructure tlas;
     #endif // #if USING( GPU_DATA )
     };
 

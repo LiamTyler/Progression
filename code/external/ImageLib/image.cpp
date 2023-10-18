@@ -49,11 +49,11 @@ void GetBlockClamped8BitConvert( uint32_t blockX, uint32_t blockY, uint32_t widt
                     }
                     else if constexpr ( baseFormat == Underlying( ImageFormat::R16_FLOAT ) )
                     {
-                        outputRGBA[dstOffset + channel] = UNormFloatToByte( Float16ToFloat32( input[srcOffset + channel] ) );
+                        outputRGBA[dstOffset + channel] = UNormFloatToByte( Saturate( Float16ToFloat32( input[srcOffset + channel] ) ) );
                     }
                     else
                     {
-                        outputRGBA[dstOffset + channel] = UNormFloatToByte( input[srcOffset + channel] );
+                        outputRGBA[dstOffset + channel] = UNormFloatToByte( Saturate( input[srcOffset + channel] ) );
                     }
                 }
                 else

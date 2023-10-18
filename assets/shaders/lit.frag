@@ -5,6 +5,7 @@
 #include "c_shared/dvar_defines.h"
 #include "c_shared/structs.h"
 #include "lib/pbr.glsl"
+#include "lib/lights.glsl"
 
 layout( location = 0 ) in vec3 worldSpacePos;
 layout( location = 1 ) in vec3 worldSpaceNormal;
@@ -15,32 +16,26 @@ layout( location = 4 ) in vec2 texCoords;
 layout( location = 0 ) out vec4 outColor;
 
 
-layout( set = PG_SCENE_GLOBALS_BUFFER_SET, binding = 0 ) uniform SceneGlobalUBO
+layout( set = PG_SCENE_GLOBALS_DESCRIPTOR_SET, binding = PG_SCENE_CONSTS_BINDING_SLOT ) uniform SceneGlobalUBO
 {
     SceneGlobals globals;
 };
 
-layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures_2D[];
-layout( set = 3, binding = 0 ) uniform samplerCube skyboxIrradiance;
-layout( set = 3, binding = 1 ) uniform samplerCube skyboxReflectionProbe;
-layout( set = 3, binding = 2 ) uniform sampler2D brdfLUT;
+layout( set = PG_BINDLESS_TEXTURE_DESCRIPTOR_SET, binding = 0 ) uniform sampler2D textures_2D[];
+
+layout( std430, set = PG_LIGHT_DESCRIPTOR_SET, binding = 0 ) readonly buffer PackedLightSSBO
+{
+    PackedLight lights[];
+};
+layout( set = PG_LIGHTING_AUX_DESCRIPTOR_SET, binding = 0 ) uniform samplerCube skyboxIrradiance;
+layout( set = PG_LIGHTING_AUX_DESCRIPTOR_SET, binding = 1 ) uniform samplerCube skyboxReflectionProbe;
+layout( set = PG_LIGHTING_AUX_DESCRIPTOR_SET, binding = 2 ) uniform sampler2D brdfLUT;
 
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
     layout( offset = 128 ) MaterialData material;
 };
 
-
-
-vec3 Vec3ToUnorm( vec3 v )
-{
-    return clamp( 0.5f * (v + vec3( 1 )), vec3( 0 ), vec3( 1 ) );
-}
-
-vec3 UnpackNormalMapVal( vec3 v )
-{
-    return (v * 255 - vec3( 128 )) / 127.0f;
-}
 
 void GetAlbedoMetalness( const vec2 uv, out vec3 albedo, out float metalness )
 {
@@ -73,6 +68,59 @@ void GetNormalRoughness( const vec2 uv, out vec3 N, out float roughness )
 }
 
 
+vec3 DirectLighting( vec3 albedo, float metalness, vec3 N, float roughness, vec3 V, vec3 F0, float NdotV )
+{
+    vec3 diffuse = albedo / PI;
+    float remappedRoughness = PBR_GetRemappedRoughness_Direct( roughness );
+    vec3 Lo = vec3( 0 );
+
+    const uint numLights = globals.lightCountAndPad3.x;
+    for ( uint lightIdx = 0; lightIdx < numLights; ++lightIdx )
+    {
+        const PackedLight packedL = lights[lightIdx];
+        const uint lightType = UnpackLightType( packedL );
+        vec3 L, radiance;
+        switch ( lightType )
+        {
+            case LIGHT_TYPE_POINT:
+            {
+                PointLight l = UnpackPointLight( packedL );
+                continue;
+            }
+            case LIGHT_TYPE_SPOT:
+            {
+                SpotLight l = UnpackSpotLight( packedL );
+                continue;
+            }
+            case LIGHT_TYPE_DIRECTIONAL:
+            {
+                DirectionalLight l = UnpackDirectionalLight( packedL );
+                radiance = l.color;
+                L = -l.direction;
+                break;
+            }
+        }
+
+        vec3 H = normalize( V + L );
+        float NdotH = max( dot( N, H ), 0.0f );
+        float NdotL = max( dot( N, L ), 0.0f );
+        float VdotH = max( dot( V, H ), 0.0f );
+
+        float D = PBR_D_GGX( NdotH, roughness );
+        float G = PBR_G_Smith( NdotV, NdotL, remappedRoughness );
+        vec3 F = PBR_FresnelSchlick( VdotH, F0 );
+        float denom = max( 0.00001f, 4.0f * NdotV * NdotL );
+        vec3 specular = D * F * G / denom;
+
+        vec3 kD = (1.0f - F) * (1.0f - metalness);
+        
+        Lo += (kD * diffuse) * radiance * NdotL;
+    }
+
+    return Lo;
+}
+
+
 void main()
 {
     vec3 albedo;
@@ -89,8 +137,8 @@ void main()
     float NdotV = clamp( dot( N, V ), 0.0, 1.0 );
 
     vec3 Lo = vec3( 0 );
-    // TODO: direct lighting
-    vec3 directLighting = vec3( 0 );
+    vec3 directLighting = DirectLighting( albedo, metalness, N, roughness, V, F0, NdotV );
+    Lo += directLighting;
 
     // Diffuse IBL lighting
     vec3 irradiance = texture( skyboxIrradiance, N ).rgb;
@@ -138,7 +186,7 @@ void main()
     }
     else if ( r_materialViz == PG_DEBUG_MTL_NORMAL )
     {
-        outColor.rgb = Vec3ToUnorm( N );
+        outColor.rgb = Vec3ToUnorm_Clamped( N );
     }
     else if ( r_materialViz == PG_DEBUG_MTL_ROUGHNESS )
     {
@@ -150,14 +198,14 @@ void main()
     }
     else if ( r_materialViz == PG_DEBUG_MTL_GEOM_NORMAL )
     {
-        outColor.rgb = Vec3ToUnorm( normalize( worldSpaceNormal ) );
+        outColor.rgb = Vec3ToUnorm_Clamped( normalize( worldSpaceNormal ) );
     }
     else if ( r_materialViz == PG_DEBUG_MTL_GEOM_TANGENT )
     {
-        outColor.rgb = Vec3ToUnorm( normalize( worldSpaceTangent ) );
+        outColor.rgb = Vec3ToUnorm_Clamped( normalize( worldSpaceTangent ) );
     }
     else if ( r_materialViz == PG_DEBUG_MTL_GEOM_BITANGENT )
     {
-        outColor.rgb = Vec3ToUnorm( normalize( worldSpaceBitangent ) );
+        outColor.rgb = Vec3ToUnorm_Clamped( normalize( worldSpaceBitangent ) );
     }
 }

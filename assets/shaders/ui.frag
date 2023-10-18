@@ -9,7 +9,7 @@
 layout( location = 0 ) in vec2 texCoord;
 layout( location = 1 ) in vec4 vertColor;
 
-layout( set = PG_BINDLESS_TEXTURE_SET, binding = 0 ) uniform sampler2D textures[];
+layout( set = PG_BINDLESS_TEXTURE_DESCRIPTOR_SET, binding = 0 ) uniform sampler2D textures[];
 
 layout( std430, push_constant ) uniform UIElementConstantBufferUniform
 {

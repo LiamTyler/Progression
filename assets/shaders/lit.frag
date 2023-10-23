@@ -68,7 +68,7 @@ void GetNormalRoughness( const vec2 uv, out vec3 N, out float roughness )
 }
 
 
-vec3 DirectLighting( vec3 albedo, float metalness, vec3 N, float roughness, vec3 V, vec3 F0, float NdotV )
+vec3 DirectLighting( vec3 pos, vec3 albedo, float metalness, vec3 N, float roughness, vec3 V, vec3 F0, float NdotV )
 {
     vec3 diffuse = albedo / PI;
     float remappedRoughness = PBR_GetRemappedRoughness_Direct( roughness );
@@ -78,19 +78,24 @@ vec3 DirectLighting( vec3 albedo, float metalness, vec3 N, float roughness, vec3
     for ( uint lightIdx = 0; lightIdx < numLights; ++lightIdx )
     {
         const PackedLight packedL = lights[lightIdx];
+        vec3 radiance = packedL.colorAndType.rgb;
         const uint lightType = UnpackLightType( packedL );
-        vec3 L, radiance;
+        vec3 L;
         switch ( lightType )
         {
             case LIGHT_TYPE_POINT:
             {
                 PointLight l = UnpackPointLight( packedL );
-                continue;
+                radiance *= PointLightAttenuation( pos, l );
+                L = normalize( l.position - pos );
+                break;
             }
             case LIGHT_TYPE_SPOT:
             {
                 SpotLight l = UnpackSpotLight( packedL );
-                continue;
+                radiance *= SpotLightAttenuation( pos, l );
+                L = normalize( l.position - pos );
+                break;
             }
             case LIGHT_TYPE_DIRECTIONAL:
             {
@@ -113,8 +118,7 @@ vec3 DirectLighting( vec3 albedo, float metalness, vec3 N, float roughness, vec3
         vec3 specular = D * F * G / denom;
 
         vec3 kD = (1.0f - F) * (1.0f - metalness);
-        
-        Lo += (kD * diffuse) * radiance * NdotL;
+        Lo += (kD * diffuse + specular) * radiance * NdotL;
     }
 
     return Lo;
@@ -137,7 +141,7 @@ void main()
     float NdotV = clamp( dot( N, V ), 0.0, 1.0 );
 
     vec3 Lo = vec3( 0 );
-    vec3 directLighting = DirectLighting( albedo, metalness, N, roughness, V, F0, NdotV );
+    vec3 directLighting = DirectLighting( worldSpacePos, albedo, metalness, N, roughness, V, F0, NdotV );
     Lo += directLighting;
 
     // Diffuse IBL lighting

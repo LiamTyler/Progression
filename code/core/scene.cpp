@@ -58,7 +58,7 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
     {
         { "color",      [](const rapidjson::Value& v, DirectionalLight& l ) { l.color     = ParseVec3( v ); } },
         { "intensity",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.intensity = ParseNumber< float >( v ); } },
-        { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::vec4( glm::normalize( ParseVec3( v ) ), 0 ); } }
+        { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::normalize( ParseVec3( v ) ); } }
     });
 
     DirectionalLight& light = scene->directionalLights.emplace_back();
@@ -84,8 +84,8 @@ static bool ParsePointLight( const rapidjson::Value& value, Scene* scene )
     {
         { "color",      []( const rapidjson::Value& v, PointLight& l ) { l.color     = ParseVec3( v ); } },
         { "intensity",  []( const rapidjson::Value& v, PointLight& l ) { l.intensity = ParseNumber< float >( v ); } },
-        { "position",   []( const rapidjson::Value& v, PointLight& l ) { l.position = ParseVec3( v ); } },
-        { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius = ParseNumber< float >( v ); } },
+        { "position",   []( const rapidjson::Value& v, PointLight& l ) { l.position  = ParseVec3( v ); } },
+        { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius    = ParseNumber< float >( v ); } },
     });
 
     PointLight& light = scene->pointLights.emplace_back();
@@ -102,9 +102,9 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
         { "intensity",  []( const rapidjson::Value& v, SpotLight& l ) { l.intensity = ParseNumber< float >( v ); } },
         { "position",   []( const rapidjson::Value& v, SpotLight& l ) { l.position  = ParseVec3( v ); } },
         { "radius",     []( const rapidjson::Value& v, SpotLight& l ) { l.radius    = ParseNumber< float >( v ); } },
-        { "direction",  []( const rapidjson::Value& v, SpotLight& l ) { l.direction = glm::vec4( glm::normalize( ParseVec3( v ) ), 0 ); } },
-        { "innerCutoffAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.innerCutoffAngle = glm::radians( ParseNumber< float >( v ) ); } },
-        { "outerCutoffAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerCutoffAngle = glm::radians( ParseNumber< float >( v ) ); } },
+        { "direction",  []( const rapidjson::Value& v, SpotLight& l ) { l.direction = glm::normalize( ParseVec3( v ) ); } },
+        { "innerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.innerAngle = glm::radians( ParseNumber< float >( v ) ); } },
+        { "outerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerAngle = glm::radians( ParseNumber< float >( v ) ); } },
     });
 
     SpotLight& light = scene->spotLights.emplace_back();

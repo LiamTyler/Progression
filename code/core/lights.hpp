@@ -33,8 +33,8 @@ struct SpotLight : public Light
     glm::vec3 position     = glm::vec3( 0, 0, 0 );
     float radius           = 10;
     glm::vec3 direction    = glm::vec3( 0, 0, -1 );
-    float innerCutoffAngle = glm::radians( 20.0f );
-    float outerCutoffAngle = glm::radians( 30.0f );
+    float innerAngle = glm::radians( 20.0f );
+    float outerAngle = glm::radians( 30.0f );
 };
 
 #if USING( GAME )

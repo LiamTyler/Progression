@@ -14,7 +14,10 @@
 	{ "Skybox": "kloppenheim" },
 	{ "Script": "cameraController" },
     { "_SkyTint": [ 0, 0, 0 ] },
-    { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
+    { "_DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
+    { "_PointLight": { "color": [ 1, 1, 1 ], "intensity": 100, "position": [ 0, 0, 8 ], "radius": 10 } },
+    { "SpotLight": { "color": [ 1, 1, 1 ], "intensity": 100, "position": [ 0, 0, 5 ], "radius": 10,
+                "direction": [ 0, 0, -1 ], "innerAngle": 0, "outerAngle": 10 } },
     { "Entity": {
         "NameComponent": "model",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },

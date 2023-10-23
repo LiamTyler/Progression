@@ -46,9 +46,9 @@ struct MaterialData
 
 struct PackedLight
 {
-    VEC4 positionAndRadius; // xyz = world position, w = radius
+    VEC4 positionAndRadius; // xyz = world position, w = 2xfp16: radius and invRadiusSquared
     VEC4 colorAndType; // xyz = color, w = light type
-    VEC4 directionAndSpotAngles; // xyz = direction, w = inner and outer spot angles, fp16
+    VEC4 directionAndSpotAngles; // xyz = direction, w = 2xfp16: cosOuterSpotAngle and invCosSpotAngleDiff
     VEC4 _pad; // just for 64 byte alignment
 };
 

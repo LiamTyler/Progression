@@ -25,7 +25,7 @@ static RawImage2D LoadBuiltInImage( const std::string& name )
     else if ( name == "$default_metalness" )
     {
         numChannels = 1;
-        pixel = u8vec4( 11 );
+        pixel = u8vec4( 0 ); // Not the same as default specular (metalness should be binary)
     }
     else if ( name == "$default_normalmap" )
     {

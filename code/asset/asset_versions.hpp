@@ -23,8 +23,8 @@ enum AssetType : unsigned int
 
 constexpr unsigned int g_assetVersions[] =
 {
-    6, // ASSET_TYPE_GFX_IMAGE, "Fix normal maps (previously not unpacking the normal map values before normalization, mipping, etc)"
-    6, // ASSET_TYPE_MATERIAL, "use slopeScale, metalness + roughness tints correctly"
+    7, // ASSET_TYPE_GFX_IMAGE, "Change default metalness to 0"
+    7, // ASSET_TYPE_MATERIAL, "Change default metalness to 0"
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER

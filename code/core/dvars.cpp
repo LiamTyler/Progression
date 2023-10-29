@@ -1,5 +1,6 @@
 #include "dvars.hpp"
 #include "shared/assert.hpp"
+#include <cstring>
 #include <stdexcept>
 #if !USING( SHIP_BUILD )
 #include <fstream>
@@ -12,7 +13,7 @@ static std::unordered_map<std::string_view, Dvar*> s_dvars;
 
 static bool IsNameValid( const char* const inName )
 {
-    for ( int i = 0; i < strlen( inName ); ++i )
+    for ( uint32_t i = 0; i < (uint32_t)strlen( inName ); ++i )
     {
         if ( inName[i] == ' ' || inName[i] == '\t' || inName[i] == '\n' )
             return false;

@@ -481,7 +481,7 @@ void HDRImageToLDR( FloatImage2D& image )
 glm::vec3 CubemapFaceUVToDirection( int cubeFace, glm::vec2 uv )
 {
     uv = 2.0f * uv - glm::vec2( 1.0f );
-    glm::vec3 dir;
+    glm::vec3 dir( 0 );
     switch ( cubeFace )
     {
     case FACE_BACK:
@@ -689,6 +689,7 @@ glm::vec4 FloatImageCubemap::FetchTexel_Wrapping( int faceIdx, int row, int col 
         std::array<int, 3> indices = { faceIdx, -1, -1 }; 
         glm::ivec2 coords[3]; // x = col, y = row
         coords[0] = { nc ? 0 : W - 1, nr ? 0 : W - 1 };
+        coords[1] = coords[2] = { 0, 0 };
         switch ( faceIdx )
         {
             case FACE_LEFT:

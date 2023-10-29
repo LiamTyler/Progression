@@ -52,7 +52,7 @@ int main( int argc, char* argv[] )
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
 
-    constexpr uint32_t LUT_RESOLUTION = 512;
+    constexpr int LUT_RESOLUTION = 512;
     FloatImage2D lut( LUT_RESOLUTION, LUT_RESOLUTION, 3 );
     
     #pragma omp parallel for

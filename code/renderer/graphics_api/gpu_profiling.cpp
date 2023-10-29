@@ -207,7 +207,7 @@ namespace PG::Gfx::Profile
             record.avg = 0;
             record.max = 0;
             record.min = FLT_MAX;
-            for ( int i = 0; i < record.frameHistory.Size(); ++i )
+            for ( uint16_t i = 0; i < record.frameHistory.Size(); ++i )
             {
                 double t = record.frameHistory[i];
                 record.max = std::max( record.max, t );

@@ -2,12 +2,12 @@ cmake_minimum_required (VERSION 3.7.2)
 Project(ImageLib)
 
 if(NOT PROGRESSION_DIR)
-    set(ROOT_DIR ${CMAKE_SOURCE_DIR}/../../../)
+    set(ROOT_DIR ${CMAKE_SOURCE_DIR}/../../..)
 else()
     set(ROOT_DIR ${PROGRESSION_DIR})
 endif()
 list(APPEND CMAKE_MODULE_PATH "${ROOT_DIR}/cmake")
-set(SHARED_DIR ${ROOT_DIR}/code/shared/)
+set(SHARED_DIR ${ROOT_DIR}/code/shared)
 include(helpful_functions)
 
 set(CMAKE_SUPPRESS_REGENERATION true)
@@ -15,6 +15,7 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 find_package(OpenMP REQUIRED)
 
 SET_BIN_AND_LIB_DIRS(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
+set(PG_ROOT_BUILD_DIR ${CMAKE_BINARY_DIR}/../../..) #TODO: Pass this in?
 
 set(
 	SRC
@@ -68,10 +69,11 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${ROOT_DIR}/code/
     ${ROOT_DIR}/code/external/
     ${EXT_DIR}/libtiff/libtiff/
-    ${ROOT_DIR}/build/ext/libtiff/libtiff/
+    ${PG_ROOT_BUILD_DIR}/ext/libtiff/libtiff/
     ${EXT_DIR}/compressonator/
     ${EXT_DIR}/compressonator/cmp_core/source/
 )
+
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib/)
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX tiff)
 

@@ -65,7 +65,7 @@ namespace TextureManager
         if ( s_freeSlots.empty() )
         {
             openSlot = s_currentSlot;
-            PG_ASSERT( s_currentSlot < USHRT_MAX );
+            PG_ASSERT( s_currentSlot < 0xFFFF );
             ++s_currentSlot;
         }
         else

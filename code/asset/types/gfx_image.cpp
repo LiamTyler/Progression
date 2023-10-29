@@ -518,10 +518,10 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
                 {
                     for ( float theta = 0; theta < PI / 2; theta += angleDelta )
                     {
-                        glm::vec3 tangentSpaceDir = { sin( theta ) * cos( phi ), sin( theta ) * sin( phi ), cos( theta ) };
+                        glm::vec3 tangentSpaceDir = { sinf( theta ) * cosf( phi ), sinf( theta ) * sinf( phi ), cosf( theta ) };
                         glm::vec3 worldSpaceDir = tangentSpaceDir.x * tangent + tangentSpaceDir.y * bitangent + tangentSpaceDir.z * normal;
                         glm::vec3 radiance = cubemap.Sample( worldSpaceDir );
-                        irradiance += radiance * cos( theta ) * sin( theta );
+                        irradiance += radiance * cosf( theta ) * sinf( theta );
                         ++numSamples;
                     }
                 }

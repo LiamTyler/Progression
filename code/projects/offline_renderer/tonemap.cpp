@@ -13,6 +13,7 @@ TonemapOperator TonemapOperatorFromString( const std::string& name )
         { "NONE",       TonemapOperator::NONE },
         { "REINHARD",   TonemapOperator::REINHARD },
         { "UNCHARTED2", TonemapOperator::UNCHARTED2 },
+        { "ACES",       TonemapOperator::ACES },
     };
 
     auto it = map.find( name );
@@ -58,12 +59,25 @@ glm::vec3 Uncharted2Tonemap( const glm::vec3& pixel )
 }
 
 
+// https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
+glm::vec3 AcesTonemap( const glm::vec3& x )
+{
+    constexpr float a = 2.51f;
+    constexpr float b = 0.03f;
+    constexpr float c = 2.43f;
+    constexpr float d = 0.59f;
+    constexpr float e = 0.14f;
+    return glm::clamp( (x*(a*x+b)) / (x*(c*x+d)+e), glm::vec3( 0 ), glm::vec3( 1 ) );
+}
+
+
 TonemapFunc GetTonemapFunction( TonemapOperator op )
 {
     static TonemapFunc tonemapFuncs[] =
     {
         NoTonemap,
         ReinhardTonemap,
+        Uncharted2Tonemap,
         Uncharted2Tonemap,
     };
 

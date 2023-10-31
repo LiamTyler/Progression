@@ -405,7 +405,8 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.VP     = scene->camera.GetVP();
     globalData.invVP  = glm::inverse( scene->camera.GetVP() );
     globalData.cameraPos = glm::vec4( scene->camera.position, 1 );
-    globalData.cameraExposureAndPad = glm::vec4( powf( 2.0f, scene->camera.exposure ), 0, 0, 0 );
+    VEC3 skyTint = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
+    globalData.cameraExposureAndSkyTint = glm::vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
     globalData.lightCountAndPad3.x = globalLightIdx;
     globalData.r_materialViz = r_materialViz.GetUint();
     globalData.r_lightingViz = r_lightingViz.GetUint();

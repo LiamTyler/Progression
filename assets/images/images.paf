@@ -1,4 +1,6 @@
 [
+    { "Image": { "name": "white", "filename": "$white", "semantic": "COLOR" } },
+    { "Image": { "name": "white_sky", "equirectangularFilename": "$white", "semantic": "ENVIRONMENT_MAP" } },
 	{ "Image": {
 		"name": "kloppenheim",
 		"equirectangularFilename": "images/skies/kloppenheim_06_2k.exr",

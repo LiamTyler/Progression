@@ -15,7 +15,14 @@ set(CMAKE_SKIP_INSTALL_ALL_DEPENDENCY true)
 find_package(OpenMP REQUIRED)
 
 SET_BIN_AND_LIB_DIRS(${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/lib)
-set(PG_ROOT_BUILD_DIR ${CMAKE_BINARY_DIR}/../../..) #TODO: Pass this in?
+
+# Multi-configuration generators (at least MSVC) don't make sub folders for debug or release
+#TODO: Pass this in?
+if(MSVC)
+    set(PG_ROOT_BUILD_DIR ${CMAKE_BINARY_DIR}/../..)
+else()
+    set(PG_ROOT_BUILD_DIR ${CMAKE_BINARY_DIR}/../../..)
+endif()
 
 set(
 	SRC
@@ -64,6 +71,9 @@ set(SRC_ALL ${SRC} ${EXTERNALS})
 add_library(${PROJECT_NAME} ${SRC_ALL})
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
+
+message("CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR}")
+message("PG_ROOT_BUILD_DIR ${PG_ROOT_BUILD_DIR}")
 
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${ROOT_DIR}/code/

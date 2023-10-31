@@ -20,7 +20,7 @@ struct RenderSettings
     int maxDepth                         = 1;
     std::vector<int> numSamplesPerPixel  = { 8 };
     AntiAlias::Algorithm antialiasMethod = AntiAlias::Algorithm::NONE;
-    TonemapOperator tonemapMethod        = TonemapOperator::REINHARD;
+    TonemapOperator tonemapMethod        = TonemapOperator::ACES;
 };
 
 class Scene

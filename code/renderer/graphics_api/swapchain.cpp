@@ -64,17 +64,17 @@ static VkPresentModeKHR ChooseSwapPresentMode( const std::vector<VkPresentModeKH
 {
     VkPresentModeKHR mode = VK_PRESENT_MODE_FIFO_KHR;
 
-    for (const auto& availablePresentMode : availablePresentModes)
-    {
-        if ( availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR )
-        {
-            mode = availablePresentMode;
-        }
-    }
-    if ( mode != VK_PRESENT_MODE_MAILBOX_KHR )
-    {
-        LOG_WARN( "Preferred swap chain format 'VK_PRESENT_MODE_MAILBOX_KHR' not available. Defaulting to VK_PRESENT_MODE_FIFO_KHR" );
-    }
+    //for (const auto& availablePresentMode : availablePresentModes)
+    //{
+    //    if ( availablePresentMode == VK_PRESENT_MODE_MAILBOX_KHR )
+    //    {
+    //        mode = availablePresentMode;
+    //    }
+    //}
+    //if ( mode != VK_PRESENT_MODE_MAILBOX_KHR )
+    //{
+    //    LOG_WARN( "Preferred swap chain format 'VK_PRESENT_MODE_MAILBOX_KHR' not available. Defaulting to VK_PRESENT_MODE_FIFO_KHR" );
+    //}
 
     return mode;
 }

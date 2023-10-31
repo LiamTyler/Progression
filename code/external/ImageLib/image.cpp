@@ -856,7 +856,7 @@ std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2
 FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg )
 {
     FloatImageCubemap cubemap;
-    cubemap.size = equiImg.width / 4;
+    cubemap.size = std::max( 1u, equiImg.width / 4u );
     cubemap.numChannels = equiImg.numChannels;
     for ( uint32_t i = 0; i < 6; ++i )
     {

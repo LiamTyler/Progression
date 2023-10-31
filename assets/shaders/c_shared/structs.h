@@ -15,7 +15,7 @@ struct SceneGlobals
     MAT4 VP;
     MAT4 invVP;
     VEC4 cameraPos; // w is 1, for convenience
-    VEC4 cameraExposureAndPad; // x = exposure, yzw = unused
+    VEC4 cameraExposureAndSkyTint; // x = exposure, yzw = sky tint
     UVEC4 lightCountAndPad3; // x = light count, yzw = pad
 
     UINT r_materialViz;

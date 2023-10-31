@@ -465,6 +465,28 @@ static FloatImageCubemap CreateDebugCubemap( uint32_t size )
 }
 
 
+static void GfxImageFromCubemap( GfxImage* gfxImage, RawImage2D faces[6] )
+{
+    PG_ASSERT( faces[0].width == faces[0].height );
+    gfxImage->imageType = ImageType::TYPE_CUBEMAP;
+    gfxImage->width = faces[0].width;
+    gfxImage->height = faces[0].width;
+    gfxImage->depth = 1;
+    gfxImage->numFaces = 6;
+    gfxImage->mipLevels = 1;
+    gfxImage->pixelFormat = ImageFormatToPixelFormat( faces[0].format, false );
+    gfxImage->totalSizeInBytes = CalculateTotalImageBytes( *gfxImage );
+    gfxImage->pixels = static_cast<uint8_t*>( malloc( gfxImage->totalSizeInBytes ) );
+
+    uint8_t* currentFace = gfxImage->pixels;
+    for ( int i = 0; i < 6; ++i )
+    {
+        memcpy( currentFace, faces[i].Raw(), faces[i].TotalBytes() );
+        currentFace += faces[i].TotalBytes();
+    }
+}
+
+
 static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
     int numFaces = 0;
@@ -496,6 +518,33 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
         return false;
     }
 
+    // if the cubemap is a 1x1, it's probably a built-in constant texture, so just do a quick return
+    if ( cubemap.size == 1 )
+    {
+        bool isConstantColor = true;
+        glm::vec4 color = cubemap.faces[0].GetFloat4( 0 );
+        for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+        {
+            isConstantColor = isConstantColor && cubemap.faces[faceIdx].GetFloat4( 0 ) == color;
+        }
+        
+        if ( isConstantColor )
+        {
+            FloatImageCubemap irradianceMap( 1, cubemap.numChannels );
+            for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+                irradianceMap.faces[faceIdx].SetFromFloat4( 0, color );
+
+            RawImage2D faces[6];
+            for ( int i = 0; i < 6; ++i )
+            {
+                faces[i] = RawImage2DFromFloatImage( irradianceMap.faces[i], ImageFormat::R16_G16_B16_FLOAT );
+            }
+            GfxImageFromCubemap( gfxImage, faces );
+            
+            return true;
+        }
+    }
+
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
@@ -511,9 +560,32 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
                 glm::vec3 bitangent = glm::normalize( glm::cross( normal, tangent ) );
                 tangent = glm::normalize( glm::cross( bitangent, normal ) );
 
-                constexpr float angleDelta = PI / 60;
                 uint32_t numSamples = 0;
                 glm::vec3 irradiance( 0 );
+
+#if 0
+                for ( int skyFaceIdx = 0; skyFaceIdx < 6; ++skyFaceIdx )
+                {
+                    for ( int skyRow = 0; skyRow < (int)cubemap.size; ++skyRow )
+                    {
+                        for ( int skyCol = 0; skyCol < (int)cubemap.size; ++skyCol )
+                        {
+                            glm::vec2 skyFaceUV = { (skyCol + 0.5f) / cubemap.size, (skyRow + 0.5f) / cubemap.size };
+                            glm::vec3 skyDir = CubemapFaceUVToDirection( skyFaceIdx, skyFaceUV );
+                            float cosTheta = glm::dot( normal, skyDir );
+                            if ( cosTheta <= 0.0f )
+                                continue;
+
+                            glm::vec3 radiance = cubemap.Sample( skyDir );
+                            irradiance += radiance * cosTheta;
+                            ++numSamples;
+                        }
+                    }
+                }
+                irradiance *= (PI / numSamples);
+                irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( irradiance, 0 ) );
+#else
+                constexpr float angleDelta = PI / 60;
                 for ( float phi = 0; phi < 2 * PI; phi += angleDelta )
                 {
                     for ( float theta = 0; theta < PI / 2; theta += angleDelta )
@@ -528,6 +600,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
 
                 irradiance *= (PI / numSamples);
                 irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( irradiance, 0 ) );
+#endif
             }
         }
         LOG( "Convolved face %d / 6...", faceIdx + 1 );
@@ -543,22 +616,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
         faces[i] = CompressToBC( face, compressorSettings );
     }
 
-    gfxImage->imageType = ImageType::TYPE_CUBEMAP;
-    gfxImage->width = irradianceMap.size;
-    gfxImage->height = irradianceMap.size;
-    gfxImage->depth = 1;
-    gfxImage->numFaces = 6;
-    gfxImage->mipLevels = 1;
-    gfxImage->pixelFormat = ImageFormatToPixelFormat( ImageFormat::BC6H_U16F, false );
-    gfxImage->totalSizeInBytes = CalculateTotalImageBytes( *gfxImage );
-    gfxImage->pixels = static_cast<uint8_t*>( malloc( gfxImage->totalSizeInBytes ) );
-
-    uint8_t* currentFace = gfxImage->pixels;
-    for ( int i = 0; i < 6; ++i )
-    {
-        memcpy( currentFace, faces[i].Raw(), faces[i].TotalBytes() );
-        currentFace += faces[i].TotalBytes();
-    }
+    GfxImageFromCubemap( gfxImage, faces );
 
     return true;
 }

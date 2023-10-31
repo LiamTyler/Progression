@@ -1,0 +1,22 @@
+[
+    { "OfflineRenderSettings": {
+        "imageResolution": [ 1280, 720 ],
+        "maxDepth": 5,
+        "outputImageFilename": "build/pbr.png",
+        "numSamplesPerPixel": [ 32 ],
+        "antialiasMethod": "NONE",
+        "tonemapMethod": "ACES"
+    }},
+    { "Camera": {
+        "position": [ 0, -5, 0 ],
+        "rotation": [ 0, 0, 0 ]
+    }},
+	{ "Skybox": "white_sky" },
+	{ "Script": "cameraController" },
+    { "SkyTint": [ 0.5, 0.5, 0.5 ] },
+    { "Entity": {
+        "NameComponent": "model",
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "uv_sphere_4k", "material": "white" }
+    }}
+]

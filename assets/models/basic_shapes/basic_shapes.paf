@@ -5,6 +5,6 @@
 		"flipTexCoordsVertically": true
 	} },
 	{ "Model": { "name": "triangle", "filename": "models/basic_shapes/triangle.pmodel" } },
-	{ "Model": { "name": "quad", "filename": "models/basic_shapes/quad.pmodel" } }
-
+	{ "Model": { "name": "quad", "filename": "models/basic_shapes/quad.pmodel" } },
+	{ "Model": { "name": "uv_sphere_4k", "filename": "models/basic_shapes/uv_sphere_4k.pmodel" } }
 ]

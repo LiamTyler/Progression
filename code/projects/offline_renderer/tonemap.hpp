@@ -10,6 +10,7 @@ enum class TonemapOperator
     NONE,
     REINHARD,
     UNCHARTED2,
+    ACES,
 
     COUNT
 };

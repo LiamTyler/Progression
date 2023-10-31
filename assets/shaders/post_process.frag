@@ -36,7 +36,7 @@ void main()
         return;
     }
 
-    vec3 toneMappedColor = globals.cameraExposureAndPad.x * linearHdrColor;
+    vec3 toneMappedColor = globals.cameraExposureAndSkyTint.x * linearHdrColor;
     if ( ShouldApplyTonemapping() )
     {
         switch ( globals.r_tonemap )

@@ -537,7 +537,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
             RawImage2D faces[6];
             for ( int i = 0; i < 6; ++i )
             {
-                faces[i] = RawImage2DFromFloatImage( irradianceMap.faces[i], ImageFormat::R16_G16_B16_FLOAT );
+                faces[i] = RawImage2DFromFloatImage( irradianceMap.faces[i], ImageFormat::R16_G16_B16_A16_FLOAT );
             }
             GfxImageFromCubemap( gfxImage, faces );
             

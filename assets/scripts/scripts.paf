@@ -1,3 +1,4 @@
 [
-    { "Script": { "name": "cameraController", "filename": "scripts/cameraController.lua" } }
+    { "Script": { "name": "cameraController", "filename": "scripts/cameraController.lua" } },
+    { "Script": { "name": "furnaceTest", "filename": "scripts/furnace_test.lua" } }
 ]

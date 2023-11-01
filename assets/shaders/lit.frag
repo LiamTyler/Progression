@@ -145,17 +145,18 @@ void main()
     Lo += directLighting;
 
     // Diffuse IBL lighting
-    vec3 irradiance = texture( skyboxIrradiance, N ).rgb;
+    vec3 skyTint = globals.cameraExposureAndSkyTint.yzw;
+    vec3 irradiance = texture( skyboxIrradiance, N ).rgb * skyTint;
     vec3 kS = PBR_FresnelSchlickRoughness( NdotV, F0, roughness );
     vec3 kD = (1.0 - kS) * (1.0 - metalness);
-    vec3 diffuseIndirect = irradiance * (albedo / PI) * kD;
+    vec3 diffuseIndirect = irradiance * albedo * kD; // note: not using (albedo/pi) because the irradiance map already has the pi term pre-divided
     Lo += diffuseIndirect;
 
     // Specular IBL lighting
     // Note: keep in sync with gfx_image.cpp::MIP_LEVELS - 1
     const float MAX_REFLECTION_LOD = 7;
     vec3 R = reflect( -V, N );
-    vec3 prefilteredColor = textureLod( skyboxReflectionProbe, R,  roughness * MAX_REFLECTION_LOD ).rgb;
+    vec3 prefilteredColor = textureLod( skyboxReflectionProbe, R,  roughness * MAX_REFLECTION_LOD ).rgb * skyTint;
     vec2 brdfScaleAndBias = texture( brdfLUT, vec2( NdotV, roughness ) ).rg;
     vec3 specularIndirect = prefilteredColor * (kS * brdfScaleAndBias.x + brdfScaleAndBias.y);
     Lo += specularIndirect;

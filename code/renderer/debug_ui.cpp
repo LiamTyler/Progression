@@ -16,7 +16,7 @@ namespace PG::Gfx::UIOverlay
 
 static Dvar dvarDebugUI(
     "r_debugUI",
-    true,
+    false,
     "Controls whether to allow any 2D debug UI elements (those that use ImGUI) to be drawn"
 );
 

@@ -310,7 +310,7 @@ bool PathTracer::SaveImage( const std::string& filename ) const
     for ( uint32_t pixelIndex = 0; pixelIndex < renderedImage.width * renderedImage.height; ++pixelIndex )
     {
         glm::vec3 pixel = renderedImage.GetFloat4( pixelIndex );
-        glm::vec3 newColor = scene->camera.exposure * pixel;
+        glm::vec3 newColor = std::exp2f( scene->camera.exposure ) * pixel;
         newColor = tonemapFunc( newColor );
         newColor = LinearToGammaSRGB( newColor );
         newColor = glm::clamp( newColor, glm::vec3( 0 ), glm::vec3( 1 ) );

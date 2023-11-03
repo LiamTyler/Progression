@@ -2,8 +2,8 @@
     { "OfflineRenderSettings": {
         "imageResolution": [ 1280, 720 ],
         "maxDepth": 5,
-        "outputImageFilename": "build/pbr.png",
-        "numSamplesPerPixel": [ 32 ],
+        "outputImageFilename": "build/furnace_test.png",
+        "numSamplesPerPixel": [ 64 ],
         "antialiasMethod": "NONE",
         "tonemapMethod": "ACES"
     }},
@@ -20,4 +20,3 @@
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
         "ModelRenderer": { "model": "uv_sphere_4k", "material": "white" }
     }}
-]

@@ -78,7 +78,7 @@ TonemapFunc GetTonemapFunction( TonemapOperator op )
         NoTonemap,
         ReinhardTonemap,
         Uncharted2Tonemap,
-        Uncharted2Tonemap,
+        AcesTonemap,
     };
 
     return tonemapFuncs[static_cast<int>( op )];

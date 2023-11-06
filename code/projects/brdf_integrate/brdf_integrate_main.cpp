@@ -15,8 +15,8 @@ vec2 IntegrateBRDF( float NdotV, float roughness )
     V.y = 0.0;
     V.z = NdotV;
 
-    float A = 0.0;
-    float B = 0.0;
+    float scale = 0.0;
+    float bias = 0.0;
 
     vec3 N( 0.0f, 0.0f, 1.0f );
 
@@ -37,14 +37,18 @@ vec2 IntegrateBRDF( float NdotV, float roughness )
             float G_Vis = (G * VdotH) / (NdotH * NdotV);
             float Fc = pow( 1.0f - VdotH, 5.0f );
 
-            A += (1.0f - Fc) * G_Vis;
-            B += Fc * G_Vis;
+            scale += (1.0f - Fc) * G_Vis;
+            bias += Fc * G_Vis;
+
+            // Should we be doing something like this, since we use PBR_FresnelSchlickRoughness not the regular PBR_FresnelSchlick?
+            //    and if so, would that mean we need to introduce multiple brdfLUT's since due to the max( gloss, F0 ), so 1 brdfLUT per discrete F0 grayscale val?
+            //bias += (Fc * (1.0f - roughness)) * G_Vis;
         }
     }
-    A /= (float)SAMPLE_COUNT;
-    B /= (float)SAMPLE_COUNT;
+    scale /= (float)SAMPLE_COUNT;
+    bias /= (float)SAMPLE_COUNT;
 
-    return vec2( A, B );
+    return vec2( scale, bias );
 }
 
 int main( int argc, char* argv[] )

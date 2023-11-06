@@ -1,0 +1,18 @@
+[
+    { "OfflineRenderSettings": {
+        "imageResolution": [ 1280, 720 ],
+        "maxDepth": 5,
+        "outputImageFilename": "build/furnace_test.png",
+        "numSamplesPerPixel": [ 64 ],
+        "antialiasMethod": "NONE",
+        "tonemapMethod": "ACES"
+    }},
+    { "Camera": {
+        "position": [ 0, -20, 0 ],
+        "rotation": [ 0, 0, 0 ]
+    }},
+	{ "Skybox": "white_sky" },
+	{ "Script": "cameraController" },
+	{ "StartupScript": "furnaceTestGrid" },
+    { "SkyTint": [ 0.5, 0.5, 0.5 ] }
+]

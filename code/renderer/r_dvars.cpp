@@ -48,11 +48,15 @@ Dvar r_postProcessing( "r_postProcessing", true, "Enable/disable post processing
 
 Dvar r_tonemap(
     "r_tonemap",
-    1u, 0u, PG_TONEMAP_METHOD_COUNT,
+    0u, 0u, PG_TONEMAP_METHOD_COUNT,
     "0 - Disable\n"
     "1 - ACES\n"
     "2 - Uncharted 2\n"
     "3 - Reinhard"
 );
+
+Dvar r_debugInt( "r_debugInt", 0, INT_MIN, INT_MAX, "Just used as an optional debug value when doing shader dev" );
+Dvar r_debugUint( "r_debugUint", 0u, 0u, UINT_MAX, "Just used as an optional debug value when doing shader dev" );
+Dvar r_debugFloat( "r_debugFloat", 0.0f, -FLT_MAX, FLT_MAX, "Just used as an optional debug value when doing shader dev" );
 
 } // namespace PG

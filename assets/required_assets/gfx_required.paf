@@ -8,8 +8,8 @@
     { "Shader": { "name": "skyboxFrag", "shaderStage" : "FRAGMENT", "filename": "skybox.frag" } },
     { "Image": {
         "name": "brdfLUT",
-        "filename": "images/brdf_integrate_lut.png",
-        "dstFormat": "BC5_UNORM",
+        "filename": "images/brdf_integrate_lut.exr",
+        "dstFormat": "R32_G32_FLOAT",
         "clampHorizontal": true,
         "clampVertical": true,
         "filterMode": "BILINEAR"

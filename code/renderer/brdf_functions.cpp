@@ -6,9 +6,9 @@ using namespace glm;
 namespace PG
 {
 
-vec3 ImportanceSampleGGX_D( vec2 Xi, vec3 N, float roughness )
+vec3 ImportanceSampleGGX_D( vec2 Xi, vec3 N, float linearRoughness )
 {
-    float a = roughness * roughness; // note: Epic games used square roughness to better match Disney's original pbr research
+    float a = linearRoughness;
 	
     float phi = 2.0f * PI * Xi.x;
     float cosTheta = sqrt( (1.0f - Xi.y) / (1.0f + (a*a - 1.0f) * Xi.y) );
@@ -30,51 +30,55 @@ vec3 ImportanceSampleGGX_D( vec2 Xi, vec3 N, float roughness )
 }
 
 
-float GeometrySchlickGGX_IBL( float NdotV, float roughness )
+float GeometrySchlickGGX_IBL( float NdotV, float perceptualRoughness )
 {
     // note that we use a different k for IBL vs Direct lighting
-    float a = roughness;
+    float a = perceptualRoughness;
     float k = (a * a) / 2.0f;
 
-    float nom   = NdotV;
-    float denom = NdotV * (1.0f - k) + k;
-
-    return nom / denom;
+    return NdotV / (NdotV * (1.0f - k) + k);
 }
 
 
-float GeometrySmith_IBL( vec3 N, vec3 V, vec3 L, float roughness )
+float GeometrySmith_IBL( vec3 N, vec3 V, vec3 L, float perceptualRoughness )
 {
     float NdotV = std::max( dot( N, V ), 0.0f );
     float NdotL = std::max( dot( N, L ), 0.0f );
-    float ggx2 = GeometrySchlickGGX_IBL( NdotV, roughness );
-    float ggx1 = GeometrySchlickGGX_IBL( NdotL, roughness );
+    float ggx2 = GeometrySchlickGGX_IBL( NdotV, perceptualRoughness );
+    float ggx1 = GeometrySchlickGGX_IBL( NdotL, perceptualRoughness );
 
     return ggx1 * ggx2;
 }
 
 
-float GeometrySchlickGGX_Direct( float NdotV, float roughness )
+float GeometrySchlickGGX_Direct( float NdotV, float perceptualRoughness )
 {
     // note that we use a different k for IBL vs Direct lighting
-    float a = roughness + 1.0f;
+    float a = perceptualRoughness + 1.0f;
     float k = (a * a) / 8.0f;
 
-    float nom   = NdotV;
-    float denom = NdotV * (1.0f - k) + k;
-
-    return nom / denom;
+    return NdotV / (NdotV * (1.0f - k) + k);
 }
 
 
-float GeometrySmith_Direct( vec3 N, vec3 V, vec3 L, float roughness )
+float GeometrySmith_Direct( vec3 N, vec3 V, vec3 L, float perceptualRoughness )
 {
     float NdotV = std::max( dot( N, V ), 0.0f );
     float NdotL = std::max( dot( N, L ), 0.0f );
-    float ggx2 = GeometrySchlickGGX_Direct( NdotV, roughness );
-    float ggx1 = GeometrySchlickGGX_Direct( NdotL, roughness );
+    float ggx2 = GeometrySchlickGGX_Direct( NdotV, perceptualRoughness );
+    float ggx1 = GeometrySchlickGGX_Direct( NdotL, perceptualRoughness );
 
     return ggx1 * ggx2;
+}
+
+
+// https://google.github.io/filament/Filament.html#materialsystem/specularbrdf section 4.4.2
+float V_SmithGGXCorrelated( float NoV, float NoL, float linearRoughness )
+{
+    float a2 = linearRoughness * linearRoughness;
+    float GGXV = NoL * sqrt( NoV * NoV * (1.0f - a2) + a2 );
+    float GGXL = NoV * sqrt( NoL * NoL * (1.0f - a2) + a2 );
+    return 0.5f / (GGXV + GGXL);
 }
 
 } // namespace PG

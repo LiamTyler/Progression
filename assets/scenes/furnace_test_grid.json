@@ -13,6 +13,6 @@
     }},
 	{ "Skybox": "white_sky" },
 	{ "Script": "cameraController" },
-	{ "StartupScript": "furnaceTestGrid" },
+	{ "Script": "furnaceTestGrid" },
     { "SkyTint": [ 0.5, 0.5, 0.5 ] }
 ]

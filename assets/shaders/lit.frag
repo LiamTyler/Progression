@@ -37,6 +37,11 @@ layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 };
 
 
+// Note: keep in sync with gfx_image.cpp::MIP_LEVELS - 1
+#define MAX_REFLECTION_LOD 7 
+#define DIELECTRIC_SPECULAR 0.04f
+
+
 void GetAlbedoMetalness( const vec2 uv, out vec3 albedo, out float metalness )
 {
     albedo = material.albedoTint.rgb;
@@ -55,7 +60,7 @@ void GetNormalRoughness( const vec2 uv, out vec3 N, out float roughness )
     N = normalize( worldSpaceNormal );
     roughness = material.roughnessTint;
 
-    if ( material.normalRoughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
+    if ( false && material.normalRoughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
     {
         vec4 normalRoughnessSample = texture( textures_2D[material.normalRoughnessMapIndex], uv );
         vec3 nmv = UnpackNormalMapVal( normalRoughnessSample.rgb );
@@ -112,10 +117,9 @@ vec3 DirectLighting( vec3 pos, vec3 albedo, float metalness, vec3 N, float rough
         float VdotH = max( dot( V, H ), 0.0f );
 
         float D = PBR_D_GGX( NdotH, roughness );
-        float G = PBR_G_Smith( NdotV, NdotL, remappedRoughness );
+        float V = V_SmithGGXCorrelated( NdotV, NdotL, roughness );
         vec3 F = PBR_FresnelSchlick( VdotH, F0 );
-        float denom = max( 0.00001f, 4.0f * NdotV * NdotL );
-        vec3 specular = D * F * G / denom;
+        vec3 specular = D * F * V;
 
         vec3 kD = (1.0f - F) * (1.0f - metalness);
         Lo += (kD * diffuse + specular) * radiance * NdotL;
@@ -136,33 +140,72 @@ void main()
     GetNormalRoughness( texCoords, N, roughness );
 
     vec3 V = normalize( globals.cameraPos.xyz - worldSpacePos );
-    vec3 F0 = vec3( 0.04 ); 
-    F0 = mix( F0, albedo, metalness );
-    float NdotV = clamp( dot( N, V ), 0.0, 1.0 );
+    vec3 F0 = mix( vec3( DIELECTRIC_SPECULAR ), albedo, metalness );
+    float NdotV = clamp( dot( N, V ), 1e-5f, 1.0 );
+    vec3 R = reflect( -V, N );
+    vec3 skyTint = globals.cameraExposureAndSkyTint.yzw;
 
     vec3 Lo = vec3( 0 );
     vec3 directLighting = DirectLighting( worldSpacePos, albedo, metalness, N, roughness, V, F0, NdotV );
     Lo += directLighting;
 
-    // Diffuse IBL lighting
-    vec3 skyTint = globals.cameraExposureAndSkyTint.yzw;
+    vec2 f_ScaleAndBias = texture( brdfLUT, vec2( NdotV, roughness ) ).rg;
+    vec3 prefilteredRadiance = textureLod( skyboxReflectionProbe, R,  roughness * MAX_REFLECTION_LOD ).rgb * skyTint;
     vec3 irradiance = texture( skyboxIrradiance, N ).rgb * skyTint;
-    vec3 kS = PBR_FresnelSchlickRoughness( NdotV, F0, roughness );
-    vec3 kD = (1.0 - kS) * (1.0 - metalness);
-    vec3 diffuseIndirect = irradiance * albedo * kD; // note: not using (albedo/pi) because the irradiance map already has the pi term pre-divided
-    Lo += diffuseIndirect;
 
-    // Specular IBL lighting
-    // Note: keep in sync with gfx_image.cpp::MIP_LEVELS - 1
-    const float MAX_REFLECTION_LOD = 7;
-    vec3 R = reflect( -V, N );
-    vec3 prefilteredColor = textureLod( skyboxReflectionProbe, R,  roughness * MAX_REFLECTION_LOD ).rgb * skyTint;
-    vec2 brdfScaleAndBias = texture( brdfLUT, vec2( NdotV, roughness ) ).rg;
-    vec3 specularIndirect = prefilteredColor * (kS * brdfScaleAndBias.x + brdfScaleAndBias.y);
+    vec3 specularIndirect, diffuseIndirect;
+
+    if ( globals.debugInt == 0 )
+    {
+        vec3 kS = F0;
+        specularIndirect = prefilteredRadiance * (kS * f_ScaleAndBias.x + f_ScaleAndBias.y);
+        vec3 kD = (1.0f - kS) * (1.0f - metalness);
+        diffuseIndirect = irradiance * albedo * kD; // note: not using (albedo/pi) because the irradiance map already has the pi term pre-divided
+    }
+    else if ( globals.debugInt == 1 )
+    {
+        vec3 kS = PBR_FresnelSchlickRoughness( NdotV, F0, roughness );
+        specularIndirect = prefilteredRadiance * (kS * f_ScaleAndBias.x + f_ScaleAndBias.y);
+        vec3 kD = (1.0f - kS) * (1.0f - metalness);
+        diffuseIndirect = irradiance * albedo * kD; // note: not using (albedo/pi) because the irradiance map already has the pi term pre-divided
+    }
+    // https://github.com/BruOp/bae/blob/master/examples/04-pbr-ibl/fs_pbr_ibl.sc
+    else if ( globals.debugInt == 2 )
+    {
+        vec3 kS = F0;
+        vec3 FssEss = kS * f_ScaleAndBias.x + f_ScaleAndBias.y;
+
+        float Ems = (1.0f - (f_ScaleAndBias.x + f_ScaleAndBias.y));
+        vec3 Favg = F0 + (1.0f - F0) / 21.0f;
+        vec3 FmsEms = Ems * FssEss * Favg / (1.0f - Favg * Ems);
+        vec3 diffuseColor = albedo * (1.0f - DIELECTRIC_SPECULAR) * (1.0f - metalness);
+        vec3 kD = diffuseColor * (1.0f - FssEss - FmsEms);
+
+        specularIndirect = FssEss * prefilteredRadiance;
+        diffuseIndirect = (FmsEms + kD) * irradiance;
+    }
+    else if ( globals.debugInt == 3 )
+    {
+        // Roughness dependent fresnel, from Fdez-Aguera
+        vec3 Fr = max( vec3( 1.0f - roughness ), F0 ) - F0;
+        vec3 kS = F0 + Fr * pow( 1.0f - NdotV, 5.0f );
+        vec3 FssEss = kS * f_ScaleAndBias.x + f_ScaleAndBias.y;
+
+        float Ems = (1.0f - (f_ScaleAndBias.x + f_ScaleAndBias.y));
+        vec3 Favg = F0 + (1.0f - F0) / 21.0f;
+        vec3 FmsEms = Ems * FssEss * Favg / (1.0f - Favg * Ems);
+        vec3 diffuseColor = albedo * (1.0f - DIELECTRIC_SPECULAR) * (1.0f - metalness);
+        vec3 kD = diffuseColor * (1.0f - FssEss - FmsEms);
+
+        specularIndirect = FssEss * prefilteredRadiance;
+        diffuseIndirect = (FmsEms + kD) * irradiance;
+    }
+
+    Lo += diffuseIndirect;
     Lo += specularIndirect;
 
-    // TODO: emissive
 
+    // TODO: emissive
 
     outColor = vec4( Lo, 1 );
 

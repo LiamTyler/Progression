@@ -8,7 +8,7 @@ vec3 Vec3ToUnorm( vec3 v )
 
 vec3 Vec3ToUnorm_Clamped( vec3 v )
 {
-    return clamp( 0.5f * (v + 1.0f), 0.0f, 0.0f );
+    return clamp( 0.5f * (v + 1.0f), 0.0f, 1.0f );
 }
 
 vec3 UnpackNormalMapVal( vec3 v )

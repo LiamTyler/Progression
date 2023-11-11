@@ -70,6 +70,16 @@ int main( int argc, char* argv[] )
             Dvar* debugUIDvar = GetDvar( "r_debugUI" );
             debugUIDvar->Set( !debugUIDvar->GetBool() );
         }
+        if ( Input::GetKeyDown( Key::UP ) )
+        {
+            Dvar* r_debugInt = GetDvar( "r_debugInt" );
+            r_debugInt->Set( r_debugInt->GetInt() - 1 );
+        }
+        if ( Input::GetKeyDown( Key::DOWN ) )
+        {
+            Dvar* r_debugInt = GetDvar( "r_debugInt" );
+            r_debugInt->Set( r_debugInt->GetInt() + 1 );
+        }
 
         if ( auto primaryScenePtr = GetPrimaryScene() )
         {

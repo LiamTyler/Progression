@@ -22,6 +22,11 @@ struct SceneGlobals
     UINT r_lightingViz;
     UINT r_postProcessing;
     UINT r_tonemap;
+
+    int debugInt; // r_debugInt
+    UINT debugUint; // r_debugUint
+    float debugFloat; // r_debugFloat
+    UINT debug3;
 };
 
 struct PerObjectData
@@ -37,7 +42,7 @@ struct MaterialData
     float roughnessTint;
     UINT albedoMetalnessMapIndex;
     UINT normalRoughnessMapIndex;
-    float pad2;
+    float pad;
 };
 
 #define LIGHT_TYPE_POINT 0

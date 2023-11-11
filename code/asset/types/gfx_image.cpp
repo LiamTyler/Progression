@@ -131,12 +131,10 @@ static bool Load_Color( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo
     }
     else if ( !PixelFormatIsCompressed( format ) )
     {
-        if ( PixelFormatToImageFormat( format ) != img.format )
+        ImageFormat requestedImgFormat = PixelFormatToImageFormat( format );
+        if ( requestedImgFormat != img.format )
         {
-            LOG_WARN( "Image %s requested %s format but the actual loaded image has format %d. Currently not supporting "
-                "format changes outside of srgb/compression changes for uncompressed images. Using loaded format with srgb",
-                createInfo->name.c_str(), PixelFormatName( format ).c_str(), (int)img.format );
-            format = ImageFormatToPixelFormat( img.format, true );
+            img = img.Convert( requestedImgFormat );
         }
     }
     else
@@ -585,7 +583,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
                 irradiance *= (PI / numSamples);
                 irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( irradiance, 0 ) );
 #else
-                constexpr float angleDelta = PI / 60;
+                constexpr float angleDelta = PI / 180.0f;
                 for ( float phi = 0; phi < 2 * PI; phi += angleDelta )
                 {
                     for ( float theta = 0; theta < PI / 2; theta += angleDelta )
@@ -660,7 +658,8 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
     {
         const int MIP_SIZE = FACE_SIZE >> mipLevel;
         outputMips[mipLevel] = FloatImageCubemap( MIP_SIZE, 3 );
-        float roughness = mipLevel / static_cast<float>( MIP_LEVELS - 1 );
+        float perceptualRoughness = mipLevel / static_cast<float>( MIP_LEVELS - 1 );
+        float linearRoughness = perceptualRoughness * perceptualRoughness;
         for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
         {
             #pragma omp parallel for
@@ -680,7 +679,7 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
                     for ( uint32_t i = 0u; i < SAMPLE_COUNT; ++i )
                     {
                         glm::vec2 Xi = glm::vec2( i / (float)SAMPLE_COUNT, Hammersley32( i ) );
-                        glm::vec3 H  = ImportanceSampleGGX_D( Xi, N, roughness );
+                        glm::vec3 H  = ImportanceSampleGGX_D( Xi, N, linearRoughness );
                         glm::vec3 L  = normalize( 2.0f * glm::dot( V, H ) * H - V );
 
                         float NdotL = std::max( glm::dot( N, L ), 0.0f );

@@ -11,5 +11,8 @@ extern Dvar r_skyboxViz;
 extern Dvar r_skyboxReflectionMipLevel;
 extern Dvar r_postProcessing;
 extern Dvar r_tonemap;
+extern Dvar r_debugInt;
+extern Dvar r_debugUint;
+extern Dvar r_debugFloat;
 
 } // namespace PG

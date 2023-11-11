@@ -8,10 +8,10 @@ vec3 PBR_FresnelSchlick( float NdotV, vec3 F0 )
     return F0 + (1.0 - F0) * pow( 1.0 - NdotV, 5.0 );
 }
 
-
 vec3 PBR_FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
-    return F0 + (max(vec3(1.0 - roughness), F0) - F0) * pow(clamp(1.0 - cosTheta, 0.0, 1.0), 5.0);
+    vec3 Fr = max( vec3( 1.0f - roughness ), F0 ) - F0;
+    return F0 + Fr * pow( 1.0f - cosTheta, 5.0f);
 }
 
 
@@ -19,14 +19,11 @@ float PBR_D_GGX( float NdotH, float roughness )
 {
     float a      = roughness * roughness;
     float a2     = a * a;
-    float NdotH2 = NdotH * NdotH;
-	
-    float num   = a2;
-    float denom = (NdotH2 * (a2 - 1.0) + 1.0);
-    denom = PI * denom * denom;
-	
-    return num / denom;
+    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+
+    return a2 / (PI * denom * denom);
 }
+
 
 float PBR_GetRemappedRoughness_Direct( float roughness )
 {
@@ -41,10 +38,7 @@ float PBR_GetRemappedRoughness_IBL( float roughness )
 
 float PBR_G_SchlickGGXInternal( float NdotV, float remappedRoughness )
 {
-    float num   = NdotV;
-    float denom = NdotV * (1.0 - remappedRoughness) + remappedRoughness;
-	
-    return num / denom;
+    return NdotV / NdotV * (1.0 - remappedRoughness) + remappedRoughness;
 }
 
 
@@ -54,6 +48,16 @@ float PBR_G_Smith( float NdotV, float NdotL, float remappedRoughness )
     float ggx1  = PBR_G_SchlickGGXInternal( NdotL, remappedRoughness );
 	
     return ggx1 * ggx2;
+}
+
+
+// https://google.github.io/filament/Filament.html#materialsystem/specularbrdf section 4.4.2
+float V_SmithGGXCorrelated( float NoV, float NoL, float linearRoughness )
+{
+    float a2 = linearRoughness * linearRoughness;
+    float GGXV = NoL * sqrt( NoV * NoV * (1.0f - a2) + a2 );
+    float GGXL = NoV * sqrt( NoL * NoL * (1.0f - a2) + a2 );
+    return 0.5f / (GGXV + GGXL);
 }
 
 

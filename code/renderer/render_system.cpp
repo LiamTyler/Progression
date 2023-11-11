@@ -412,6 +412,10 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.r_lightingViz = r_lightingViz.GetUint();
     globalData.r_postProcessing = r_postProcessing.GetBool();
     globalData.r_tonemap = r_tonemap.GetUint();
+    globalData.debugInt = r_debugInt.GetInt();
+    globalData.debugUint = r_debugUint.GetUint();
+    globalData.debugFloat = r_debugFloat.GetFloat();
+    globalData.debug3 = 0u;
 
     Buffer& sceneBuffer = rg.frameData[rg.currentFrame].sceneConstantBuffer;
     memcpy( sceneBuffer.MappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );

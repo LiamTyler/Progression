@@ -194,11 +194,29 @@ void main()
         float Ems = (1.0f - (f_ScaleAndBias.x + f_ScaleAndBias.y));
         vec3 Favg = F0 + (1.0f - F0) / 21.0f;
         vec3 FmsEms = Ems * FssEss * Favg / (1.0f - Favg * Ems);
-        vec3 diffuseColor = albedo * (1.0f - DIELECTRIC_SPECULAR) * (1.0f - metalness);
+        vec3 diffuseColor = albedo;// * (1.0f - DIELECTRIC_SPECULAR) * (1.0f - metalness);
         vec3 kD = diffuseColor * (1.0f - FssEss - FmsEms);
 
         specularIndirect = FssEss * prefilteredRadiance;
         diffuseIndirect = (FmsEms + kD) * irradiance;
+    }
+    else if ( globals.debugInt == 4 )
+    {
+        // Roughness dependent fresnel, from Fdez-Aguera
+        vec3 Fr = max( vec3( 1.0f - roughness ), F0 ) - F0;
+        vec3 kS = F0 + Fr * pow( 1.0f - NdotV, 5.0f );
+        vec3 FssEss = kS * f_ScaleAndBias.x + f_ScaleAndBias.y;
+
+        float Ess = f_ScaleAndBias.x + f_ScaleAndBias.y;
+        float Ems = 1.0f - Ess;
+        vec3 Favg = F0 + (1.0f - F0) / 21.0f;
+        vec3 Fms = FssEss * Favg / (1.0f - Ems * Favg);
+
+        vec3 Edss = 1.0f - (FssEss + Fms * Ems);
+        vec3 kD = albedo * Edss;
+
+        specularIndirect = FssEss * prefilteredRadiance;
+        diffuseIndirect = (Fms * Ems + kD) * irradiance;
     }
 
     Lo += diffuseIndirect;

@@ -922,7 +922,7 @@ std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& image, const Mipm
         {
             // NOTE!!! With STBIR_EDGE_WRAP and STBIR_FILTER_MITCHELL, im seeing artifacts, at least for non-even dimensioned images.
             // Both the top and right edges have dark lines near them, and some seemingly garbage pixels
-            int alphaChannel = numChannels == 4 ? 3 : STBIR_ALPHA_CHANNEL_NONE;
+            int alphaChannel = STBIR_ALPHA_CHANNEL_NONE;
             const FloatImage2D& prevMip = mips[mipLevel - 1];
             stbir_resize( prevMip.data.get(), prevMip.width, prevMip.height, prevMip.width * numChannels * sizeof( float ),
                           mip.data.get(), w, h, w * numChannels * sizeof( float ), STBIR_TYPE_FLOAT,

@@ -352,6 +352,10 @@ RenderPass* GetRenderPass( const std::string& name )
     return s_renderGraph.GetRenderPass( name );
 }
 
+static uint32_t GetGpuTexIndex( GfxImage* gfxImage )
+{
+    return gfxImage ? gfxImage->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+}
 
 GpuData::MaterialData CPUMaterialToGPU( Material* material )
 {
@@ -359,8 +363,10 @@ GpuData::MaterialData CPUMaterialToGPU( Material* material )
     gpuMaterial.albedoTint = material->albedoTint;
     gpuMaterial.metalnessTint = material->metalnessTint;
     gpuMaterial.roughnessTint = material->roughnessTint;
-    gpuMaterial.albedoMetalnessMapIndex = material->albedoMetalnessImage ? material->albedoMetalnessImage->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
-    gpuMaterial.normalRoughnessMapIndex = material->normalRoughnessImage ? material->normalRoughnessImage->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMaterial.emissiveTint = material->emissiveTint;
+    gpuMaterial.albedoMetalnessMapIndex = GetGpuTexIndex( material->albedoMetalnessImage );
+    gpuMaterial.normalRoughnessMapIndex = GetGpuTexIndex( material->normalRoughnessImage );
+    gpuMaterial.emissiveMapIndex = GetGpuTexIndex( material->emissiveImage );
 
     return gpuMaterial;
 }
@@ -523,9 +529,9 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
     cmdBuf->SetScissor( SceneSizedScissor() );
     glm::mat4 VP = scene->camera.GetVP();
 
-    scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& renderer, PG::Transform& transform )
+    scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
     {
-        const Model* model = renderer.model;
+        const Model* model = modelRenderer.model;
         auto M = transform.Matrix();
         cmdBuf->PushConstants( 0, sizeof( glm::mat4 ), &M[0][0] );
         cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
@@ -533,7 +539,11 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
         
         for ( size_t i = 0; i < model->meshes.size(); ++i )
         {
-            const auto& mesh = model->meshes[i];
+            const Mesh& mesh = model->meshes[i];
+            Material* material = modelRenderer.materials[i];
+            if ( material->type == MaterialType::DECAL )
+                continue;
+
             PG_DEBUG_MARKER_INSERT_CMDBUF( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
             cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
         }
@@ -572,6 +582,9 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
         {
             const Mesh& mesh   = modelRenderer.model->meshes[i];
             Material* material = modelRenderer.materials[i];
+            if ( material->type == MaterialType::DECAL )
+                continue;
+
             GpuData::MaterialData gpuMaterial = CPUMaterialToGPU( material );
             cmdBuf->PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
             PG_DEBUG_MARKER_INSERT_CMDBUF( (*cmdBuf), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );

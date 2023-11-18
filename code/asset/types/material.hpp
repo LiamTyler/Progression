@@ -8,8 +8,18 @@ class Serializer;
 namespace PG
 {
 
+enum class MaterialType : uint8_t
+{
+    SURFACE = 0,
+    DECAL = 1,
+
+    COUNT
+};
+
+
 struct MaterialCreateInfo : public BaseAssetCreateInfo
 {
+    MaterialType type = MaterialType::SURFACE;
     std::string texturesetName;
     glm::vec3 albedoTint = glm::vec3( 1 );
     float metalnessTint = 1.0f;
@@ -32,7 +42,8 @@ struct Material : public BaseAsset
 
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
-
+    
+    MaterialType type;
     glm::vec3 albedoTint = glm::vec3( 1.0f );
     float metalnessTint  = 1.0f;
     GfxImage* albedoMetalnessImage = nullptr;

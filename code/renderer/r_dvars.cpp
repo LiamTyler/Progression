@@ -16,9 +16,10 @@ Dvar r_materialViz(
     "2 - Normal\n"
     "3 - Roughness\n"
     "4 - Metalness\n"
-    "5 - Geometric Normal\n"
-    "6 - Geometric Tangent\n"
-    "7 - Geometric Bitangent"
+    "5 - Emissive\n"
+    "6 - Geometric Normal\n"
+    "7 - Geometric Tangent\n"
+    "8 - Geometric Bitangent"
 );
 
 Dvar r_lightingViz(
@@ -29,7 +30,8 @@ Dvar r_lightingViz(
     "1 - Direct\n"
     "2 - Indirect\n"
     "3 - Diffuse Indirect\n"
-    "4 - Specular Indirect"
+    "4 - Specular Indirect\n"
+    "5 - Emissive"
 );
 
 Dvar r_skyboxViz(
@@ -48,7 +50,7 @@ Dvar r_postProcessing( "r_postProcessing", true, "Enable/disable post processing
 
 Dvar r_tonemap(
     "r_tonemap",
-    0u, 0u, PG_TONEMAP_METHOD_COUNT,
+    1u, 0u, PG_TONEMAP_METHOD_COUNT,
     "0 - Disable\n"
     "1 - ACES\n"
     "2 - Uncharted 2\n"

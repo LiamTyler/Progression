@@ -103,16 +103,27 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
 }
 
 
+BEGIN_STR_TO_ENUM_MAP( MaterialType )
+    STR_TO_ENUM_VALUE( MaterialType, SURFACE )
+    STR_TO_ENUM_VALUE( MaterialType, DECAL )
+END_STR_TO_ENUM_MAP( MaterialType, COUNT )
+
 bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     using namespace rapidjson;
     static JSONFunctionMapper< MaterialCreateInfo& > mapping(
     {
+        { "type", []( const Value& v, MaterialCreateInfo& i ) { i.type = MaterialType_StringToEnum( String( v ) ); } },
         { "textureset", []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = String( v ); } },
-        { "albedoTint",     []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint     = ParseVec3( v ); } },
-        { "metalnessTint",  []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint  = ParseNumber<float>( v ); } },
-        { "emissiveTint",  []( const Value& v, MaterialCreateInfo& i ) { i.emissiveTint  = ParseVec3( v ); } },
-        { "roughnessTint",  []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint  = ParseNumber<float>( v ); } },
+        { "albedoTint", []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint = ParseVec3( v ); } },
+        { "metalnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint = ParseNumber<float>( v ); } },
+        { "emissiveTint", []( const Value& v, MaterialCreateInfo& i ) { i.emissiveTint = ParseVec3( v ); } },
+        { "roughnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint = ParseNumber<float>( v ); } },
+        { "applyAlbedo", []( const Value& v, MaterialCreateInfo& i ) { i.applyAlbedo = v.GetBool(); } },
+        { "applyMetalness", []( const Value& v, MaterialCreateInfo& i ) { i.applyMetalness = v.GetBool(); } },
+        { "applyNormals", []( const Value& v, MaterialCreateInfo& i ) { i.applyNormals = v.GetBool(); } },
+        { "applyRoughness", []( const Value& v, MaterialCreateInfo& i ) { i.applyRoughness = v.GetBool(); } },
+        { "applyEmissive", []( const Value& v, MaterialCreateInfo& i ) { i.applyEmissive = v.GetBool(); } },
     });
     mapping.ForEachMember( value, *info );
 

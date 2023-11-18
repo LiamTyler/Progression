@@ -17,6 +17,7 @@ bool Material::FastfileLoad( Serializer* serializer )
     PG_ASSERT( serializer );
     MaterialCreateInfo createInfo;
     serializer->Read( name );
+    serializer->Read( type );
     serializer->Read( albedoTint );
     serializer->Read( metalnessTint );
     serializer->Read( roughnessTint );
@@ -45,6 +46,7 @@ bool Material::FastfileLoad( Serializer* serializer )
 bool Material::FastfileSave( Serializer* serializer ) const
 {
     serializer->Write( name );
+    serializer->Write( type );
     serializer->Write( albedoTint );
     serializer->Write( metalnessTint );
     serializer->Write( roughnessTint );

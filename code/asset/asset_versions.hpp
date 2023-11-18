@@ -23,8 +23,8 @@ enum AssetType : unsigned int
 
 constexpr unsigned int g_assetVersions[] =
 {
-    7, // ASSET_TYPE_GFX_IMAGE, "Change default metalness to 0"
-    7, // ASSET_TYPE_MATERIAL, "Change default metalness to 0"
+    8, // ASSET_TYPE_GFX_IMAGE, "Changed how alpha is handled during mipmapping"
+    8, // ASSET_TYPE_MATERIAL, "Added "
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
     0, // ASSET_TYPE_SHADER

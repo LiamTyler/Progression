@@ -43,7 +43,13 @@ struct MaterialData
     UINT albedoMetalnessMapIndex;
     UINT normalRoughnessMapIndex;
     float pad;
+    VEC3 emissiveTint;
+    UINT emissiveMapIndex;
 };
+
+#ifndef PG_SHADER_CODE
+static_assert( sizeof( MaterialData ) <= 128, "Total push constant data has to be less than 256, and the first 128 is matrices" );
+#endif // #ifndef PG_SHADER_CODE
 
 #define LIGHT_TYPE_POINT 0
 #define LIGHT_TYPE_SPOT 1

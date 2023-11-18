@@ -11,8 +11,8 @@
     { "Camera": { "position": [ 0, -3, 3 ], "rotation": [ 0, 0, 0 ] } },
     { "Script": "cameraController" },
     { "SkyTint": [ 1, 1, 1 ] },
-    { "SkyEVAdjust": 5.0 },
-    { "_Skybox": "kloppenheim" },
+    { "_SkyEVAdjust": 5.0 },
+    { "Skybox": "white_sky" },
     { "_AmbientColor": [ 0.8, 0.8, 0.8 ] },
     { "DirectionalLight": { "color": [ 12, 10, 8 ], "direction": [ 0, -6, 0 ] } },
     { "Entity": {

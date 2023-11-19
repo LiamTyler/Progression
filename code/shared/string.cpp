@@ -14,6 +14,7 @@ int Stricmp( const char* str1, const char* str2 )
 #endif // #else // #if USING( WINDOWS_PROGRAM )
 }
 
+
 std::string StripWhitespace( const std::string& s )
 {
     size_t start, end;
@@ -48,4 +49,25 @@ std::vector<std::string> SplitString( const std::string& str, const std::string 
 		ret.push_back( str.substr(start_index) );
     }
 	return ret;
+}
+
+
+void AddTrailingSlashIfMissing( std::string& str )
+{
+	if ( str[str.length() - 1] != '/' && str[str.length() - 1] != '\\' )
+    {
+        str += '/';
+    }
+}
+
+
+void SingleCharReplacement( char* str, char match, char replace )
+{
+	while ( *str != '\0' )
+	{
+		if ( *str == match )
+			*str = replace;
+
+		++str;
+	}
 }

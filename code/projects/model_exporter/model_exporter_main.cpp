@@ -4,6 +4,7 @@
 #include "asset/pmodel.hpp"
 #include "asset/types/textureset.hpp"
 #include "core/time.hpp"
+#include "getopt/getopt.h"
 #include "shared/filesystem.hpp"
 #include "shared/hash.hpp"
 #include "shared/logger.hpp"
@@ -300,10 +301,10 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         filename.c_str(), pmodel.meshes.size(), materialNames.size(), totalTris, totalVerts );
 
     std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodel";
-    if ( !pmodel.Save( outputModelFilename, true ) )
+    if ( !pmodel.Save( outputModelFilename, g_options.floatPrecision, true ) )
         return false;
 
-    std::string relPath = GetRelativePathToDir( outputModelFilename, g_rootDir );
+    std::string relPath = GetRelativePathToDir( outputModelFilename, g_options.rootDir );
     outputJSON += "\t{ \"Model\": { \"name\": \"" + modelName + "\", \"filename\": \"" + relPath + "\" } },\n";
 
     LOG( "Done processing file %s", filename.c_str() );
@@ -315,20 +316,73 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
 static void DisplayHelp()
 {
     auto msg =
-        "Usage: modelToPGModel PATH [texture_search_dir]\n"
-        "\tIf PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
+        "Usage: ModelExporter [options] PATH\n"
+        "If PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
         "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
-        "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n";
+        "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n"
+        "Options\n"
+        "  --floatPrecision [1-9] Specify how many float sig figs to write out. Default is 6 (max is 9)\n"
+        "  --help                 Print this message and exit\n"
+        "  --ignoreCollisions     Skip renaming any assets that have the same name as an existing asset in the database\n"
+        "  --texDir [path]        Specify a different directory to use to search for the textures\n";
     std::cout << msg << std::endl;
+}
+
+
+static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
+{
+    if ( argc < 2 )
+    {
+        return false;
+    }
+
+    static struct option long_options[] =
+    {
+        { "floatPrecision",   required_argument,  0, 'f' },
+        { "ignoreCollisions", no_argument,        0, 'i' },
+        { "help",             no_argument,        0, 'h' },
+        { "texDir",           required_argument,  0, 't' },
+        { 0, 0, 0, 0 }
+    };
+
+    int option_index = 0;
+    int c            = -1;
+    while ( ( c = getopt_long( argc, argv, "f:iht:", long_options, &option_index ) ) != -1 )
+    {
+        switch ( c )
+        {
+            case 'f':
+                g_options.floatPrecision = std::stoul( optarg );
+                break;
+            case 'h':
+                DisplayHelp();
+                return false;
+            case 'i':
+                g_options.ignoreNameCollisions = true;
+                break;
+            case 't':
+                g_textureSearchDir = optarg;
+                break;
+            default:
+                LOG_ERR( "Invalid option, try 'ModelExporter --help' for more information" );
+                return false;
+        }
+    }
+
+    if ( optind >= argc )
+    {
+        DisplayHelp();
+        return false;
+    }
+
+    path = argv[optind];
+
+    return true;
 }
 
 
 int main( int argc, char* argv[] )
 {
-    char buff[64] = { 0 };
-    float f = 0.0f;
-    sprintf( buff, "%.6g", f );
-    
     if ( argc < 2 )
     {
         DisplayHelp();
@@ -338,18 +392,26 @@ int main( int argc, char* argv[] )
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
 
+    std::string path;
+    if ( !ParseCommandLineArgs( argc, argv, path ) )
+    {
+        DisplayHelp();
+        return 0;
+    }
+
     g_warnings = 0;
     std::unordered_set<std::string> modelExtensions = { ".obj", ".fbx", ".ply", ".gltf", ".stl" };
     std::vector<std::string> filesToProcess;
     std::string outputPrefix;
-    if ( IsDirectory( argv[1] ) )
+    if ( IsDirectory( path ) )
     {
-        g_rootDir = argv[1];
-        g_textureSearchDir = argc > 2 ? argv[2] : g_rootDir;
-        outputPrefix = GetDirectoryStem( g_rootDir );
+        g_options.rootDir = path;
+        if ( g_textureSearchDir.empty() )
+            g_textureSearchDir = g_options.rootDir;
+        outputPrefix = GetDirectoryStem( g_options.rootDir );
 
         namespace fs = std::filesystem;
-        for ( const auto& entry : fs::directory_iterator( g_rootDir ) )
+        for ( const auto& entry : fs::directory_iterator( g_options.rootDir ) )
         {
             std::string ext = GetFileExtension( entry.path().string() );
             if ( entry.is_regular_file() && modelExtensions.find( ext ) != modelExtensions.end() )
@@ -358,26 +420,25 @@ int main( int argc, char* argv[] )
             }
         }
     }
-    else if ( IsFile( argv[1] ) )
+    else if ( IsFile( path ) )
     {
-        g_rootDir = g_textureSearchDir = GetParentPath( argv[1] );
-        outputPrefix = GetFilenameStem( argv[1] );
-        filesToProcess.push_back( argv[1] );
+        g_options.rootDir = GetParentPath( path );
+        if ( g_textureSearchDir.empty() )
+            g_textureSearchDir = g_options.rootDir;
+        outputPrefix = GetFilenameStem( path );
+        filesToProcess.push_back( path );
     }
     else
     {
-        LOG_ERR( "Path '%s' does not exist!", argv[1] );
+        LOG_ERR( "Path '%s' does not exist!", path.c_str() );
         return 0;
     }
 
-    PG_ASSERT( g_rootDir.length() );
-    if ( g_rootDir[g_rootDir.length() - 1] != '/' && g_rootDir[g_rootDir.length() - 1] != '\\' )
-    {
-        g_rootDir += '/';
-    }
+    PG_ASSERT( g_options.rootDir.length() );
+    AddTrailingSlashIfMissing( g_options.rootDir );
 
     // if we are re-exporting, delete before initializing the database, so that it doesn't affect the unique name generation
-    std::string pafFilename = g_rootDir + "exported_" + outputPrefix + ".paf";
+    std::string pafFilename = g_options.rootDir + "exported_" + outputPrefix + ".paf";
     if ( PathExists( pafFilename ) )
     {
         DeleteFile( pafFilename );

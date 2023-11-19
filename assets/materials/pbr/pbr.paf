@@ -1,0 +1,15 @@
+[
+    { "Textureset": {
+		"name": "stone_brick_wall",
+		"albedoMap": "materials/pbr/stone_brick_wall/stone_brick_wall_001_diff_2k.jpg",
+		"normalMap": "materials/pbr/stone_brick_wall/stone_brick_wall_001_nor_gl_2k.jpg",
+		"roughnessMap": "materials/pbr/stone_brick_wall/stone_brick_wall_001_arm_2k.jpg",
+        "roughnessSourceChannel": "G",
+		"metalnessMap": "materials/pbr/stone_brick_wall/stone_brick_wall_001_arm_2k.jpg",
+        "metalnessSourceChannel": "B"
+	}},
+    { "Material": {
+        "name": "stone_brick_wall",
+        "textureset": "stone_brick_wall"
+    }}
+]

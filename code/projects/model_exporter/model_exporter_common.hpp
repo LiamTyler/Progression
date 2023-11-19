@@ -11,7 +11,14 @@
 
 using namespace glm;
 
-extern std::string g_rootDir;
+struct Options
+{
+    std::string rootDir;
+    bool ignoreNameCollisions;
+    uint32_t floatPrecision;
+};
+
+extern Options g_options;
 
 vec2 AiToPG( const aiVector2D& v );
 vec3 AiToPG( const aiVector3D& v );

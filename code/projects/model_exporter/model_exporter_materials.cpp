@@ -69,7 +69,7 @@ static std::optional<std::string> GetAssimpTexture( const aiMaterial* assimpMat,
 
         if ( !imagePath.empty() )
         {
-            std::string relPath = GetRelativePathToDir( imagePath, g_rootDir );
+            std::string relPath = GetRelativePathToDir( imagePath, g_options.rootDir );
             if ( !relPath.empty() )
                 imagePath = relPath;
         }
@@ -179,7 +179,7 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
     {
         AddJSON( texSettings, "metalnessMap", *metalnessMap );
         if ( sourceIsGLTF )
-            AddJSON( texSettings, "metalnessSourceChannel", "G" );
+            AddJSON( texSettings, "metalnessSourceChannel", "B" );
     }
     else if ( metalnessTint && *metalnessTint != 1.0 )
         AddJSON( texSettings, "metalnessMap", "$white" );
@@ -188,13 +188,13 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
     {
         AddJSON( texSettings, "roughnessMap", *roughnessMap );
         if ( sourceIsGLTF )
-            AddJSON( texSettings, "roughnessSourceChannel", "B" );
+            AddJSON( texSettings, "roughnessSourceChannel", "G" );
     }
     else if ( auto roughnessMap = GetAssimpTexture( context.assimpMat, aiTextureType_SHININESS, "roughness", matName ) )
     {
         AddJSON( texSettings, "roughnessMap", *roughnessMap );
         if ( sourceIsGLTF )
-            AddJSON( texSettings, "roughnessSourceChannel", "B" );
+            AddJSON( texSettings, "roughnessSourceChannel", "G" );
     }
     else if ( roughnessTint && *roughnessTint != 1.0 )
         AddJSON( texSettings, "roughnessMap", "$white" );

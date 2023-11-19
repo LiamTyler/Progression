@@ -5,7 +5,12 @@
 
 using namespace PG;
 
-std::string g_rootDir;
+Options g_options =
+{
+    .rootDir = "",
+    .ignoreNameCollisions = false,
+    .floatPrecision = 6,
+};
 
 std::unordered_set<std::string> g_addedTexturesetNames;
 std::unordered_set<std::string> g_addedMaterialNames;
@@ -36,6 +41,9 @@ void AddCreatedName( AssetType assetType, const std::string& name )
 
 std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
 {
+    if ( g_options.ignoreNameCollisions )
+        return name;
+
     std::string finalName = name;
     int postFix = 0;
     while ( AssetDatabase::FindAssetInfo( assetType, finalName ) || HaveCreated( assetType, finalName ) )

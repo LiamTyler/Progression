@@ -59,8 +59,8 @@ public:
 
     bool Load( const std::string& filename );
 
-    bool Save( std::ofstream& out, bool logProgress = true ) const;
-    bool Save( const std::string& filename, bool logProgress = true ) const;
+    bool Save( std::ofstream& out, uint32_t floatPrecision = 6, bool logProgress = true ) const;
+    bool Save( const std::string& filename, uint32_t floatPrecision = 6, bool logProgress = true ) const;
 };
 
 std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename );

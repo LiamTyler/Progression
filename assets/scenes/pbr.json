@@ -5,22 +5,22 @@
         "outputImageFilename": "build/pbr.png",
         "numSamplesPerPixel": [ 32 ],
         "antialiasMethod": "NONE",
-        "tonemapMethod": "REINHARD"
+        "tonemapMethod": "ACES"
     }},
     { "Camera": {
-        "position": [ 0, -5, 0 ],
+        "position": [ 0, -5, 2 ],
         "rotation": [ 0, 0, 0 ]
     }},
-	{ "Skybox": "kloppenheim" },
+	{ "Skybox": "white_sky" },
 	{ "Script": "cameraController" },
     { "_SkyTint": [ 0, 0, 0 ] },
     { "_DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "_PointLight": { "color": [ 1, 1, 1 ], "intensity": 100, "position": [ 0, 0, 8 ], "radius": 10 } },
-    { "SpotLight": { "color": [ 1, 1, 1 ], "intensity": 100, "position": [ 0, 0, 5 ], "radius": 10,
+    { "_SpotLight": { "color": [ 1, 1, 1 ], "intensity": 100, "position": [ 0, 0, 5 ], "radius": 10,
                 "direction": [ 0, 0, -1 ], "innerAngle": 0, "outerAngle": 10 } },
     { "Entity": {
         "NameComponent": "model",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "quad", "material": "test_normals_1" }
+        "ModelRenderer": { "model": "quad", "material": "stone_brick_wall" }
     }}
 ]

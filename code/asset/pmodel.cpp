@@ -200,15 +200,29 @@ bool PModel::Load( const std::string& filename )
 }
 
 
-static constexpr float PosZero( float x )
+static constexpr float PZ( float x )
 {
     return x == 0.0f ? +0.0f : x;
 }
 
 
-bool PModel::Save( std::ofstream& outFile, bool logProgress ) const
+bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProgress ) const
 {
     auto Start = Clock::now();
+
+    enum { POS_AND_NORMAL, TANGENTS, UV, COLOR, BONE };
+    std::string fmtStrings[] =
+    {
+        "V %u\np %.6g %.6g %.6g\nn %.6g %.6g %.6g\n",
+        "t %.6g %.6g %.6g\nb %.6g %.6g %.6g\n",
+        "uv %.6g %.6g\n",
+        "c %.6g %.6g %.6g %.6g\n",
+        "bw %u %.6g\n",
+    };
+
+    floatPrecision = std::max( 1u, std::min( 9u, floatPrecision ) );
+    for ( int strIdx = 0; strIdx < ARRAY_COUNT( fmtStrings ); ++strIdx )
+        SingleCharReplacement( &fmtStrings[strIdx][0], '6', '0' + floatPrecision );
 
     size_t totalVerts = 0;
     size_t totalTris = 0;
@@ -242,22 +256,25 @@ bool PModel::Save( std::ofstream& outFile, bool logProgress ) const
         for ( uint32_t vIdx = 0; vIdx < (uint32_t)m.vertices.size(); ++vIdx )
         {
             const PModel::Vertex& v = m.vertices[vIdx];
-            int pos = sprintf( buffer, "V %u\np %.6g %.6g %.6g\nn %.6g %.6g %.6g\n", vIdx, PosZero( v.pos.x ),
-                PosZero( v.pos.y ), PosZero( v.pos.z ), PosZero( v.normal.x ), PosZero( v.normal.y ), PosZero( v.normal.z ) );
+            int pos = sprintf( buffer, fmtStrings[POS_AND_NORMAL].c_str(), vIdx, PZ( v.pos.x ),
+                PZ( v.pos.y ), PZ( v.pos.z ), PZ( v.normal.x ), PZ( v.normal.y ), PZ( v.normal.z ) );
             if ( m.hasTangents )
             {
-                pos += sprintf( buffer + pos, "t %.6g %.6g %.6g\nb %.6g %.6g %.6g\n", PosZero( v.tangent.x ), PosZero( v.tangent.y ),
-                    PosZero( v.tangent.z ), PosZero( v.bitangent.x ), PosZero( v.bitangent.y ), PosZero( v.bitangent.z ) );
+                pos += sprintf( buffer + pos, fmtStrings[TANGENTS].c_str(), PZ( v.tangent.x ), PZ( v.tangent.y ),
+                    PZ( v.tangent.z ), PZ( v.bitangent.x ), PZ( v.bitangent.y ), PZ( v.bitangent.z ) );
             }
             for ( uint32_t i = 0; i < m.numUVChannels; ++i )
-                pos += sprintf( buffer + pos, "uv %.6g %.6g\n", PosZero( v.uvs[i].x ), PosZero( v.uvs[i].y ) );
+                pos += sprintf( buffer + pos, fmtStrings[UV].c_str(), PZ( v.uvs[i].x ), PZ( v.uvs[i].y ) );
 
             for ( uint32_t i = 0; i < m.numColorChannels; ++i )
-                pos += sprintf( buffer + pos, "c %.6g %.6g %.6g %.6g\n", PosZero( v.colors[i].x ), PosZero( v.colors[i].y ),
-                    PosZero( v.colors[i].z ), PosZero( v.colors[i].w ) );
+                pos += sprintf( buffer + pos, fmtStrings[COLOR].c_str(), PZ( v.colors[i].x ), PZ( v.colors[i].y ),
+                    PZ( v.colors[i].z ), PZ( v.colors[i].w ) );
 
-            for ( uint32_t i = 0; i < m.numColorChannels; ++i )
-                pos += sprintf( buffer + pos, "bw %u %.6g\n", v.boneIndices[i], PosZero( v.boneWeights[i] ) );
+            if ( m.hasBoneWeights )
+            {
+                for ( uint8_t i = 0; i < v.numBones; ++i )
+                    pos += sprintf( buffer + pos, fmtStrings[BONE].c_str(), v.boneIndices[i], PZ( v.boneWeights[i] ) );
+            }
 
             pos += sprintf( buffer + pos, "\n" );
             outFile.write( buffer, pos );
@@ -288,7 +305,7 @@ bool PModel::Save( std::ofstream& outFile, bool logProgress ) const
     return outFile.good();
 }
 
-bool PModel::Save( const std::string& filename, bool logProgress ) const
+bool PModel::Save( const std::string& filename, uint32_t floatPrecision, bool logProgress ) const
 {
     std::ofstream out( filename );
     if ( !out )
@@ -297,7 +314,7 @@ bool PModel::Save( const std::string& filename, bool logProgress ) const
         return false;
     }
 
-    return Save( out, logProgress );
+    return Save( out, floatPrecision, logProgress );
 }
 
 

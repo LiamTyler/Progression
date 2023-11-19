@@ -26,11 +26,18 @@ set(SRC
     ${CODE_DIR}/shared/json_parsing.hpp
 )
 
-source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${SRC})
+set(
+	EXTERNALS
+    ${CODE_DIR}/external/getopt/getopt.c
+    ${CODE_DIR}/external/getopt/getopt.h
+)
+
+set(ALL_FILES ${SRC} ${EXTERNALS})
+source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
+add_executable(${PROJECT_NAME} ${ALL_FILES})
 
 set(LIBS ${ASSIMP_LIBS} OpenMP::OpenMP_CXX)
 
-add_executable(${PROJECT_NAME} ${SRC})
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_link_libraries(${PROJECT_NAME} ${LIBS})

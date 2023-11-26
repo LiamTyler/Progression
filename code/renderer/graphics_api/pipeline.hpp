@@ -34,9 +34,11 @@ namespace Gfx
         MEMORY_READ_BIT                     = 0x00008000,
         MEMORY_WRITE_BIT                    = 0x00010000,
     };
+    
 
     enum class PipelineStageFlags
     {
+        NONE                                = 0x00000000,
         TOP_OF_PIPE_BIT                     = 0x00000001,
         DRAW_INDIRECT_BIT                   = 0x00000002,
         VERTEX_INPUT_BIT                    = 0x00000004,
@@ -55,8 +57,11 @@ namespace Gfx
         ALL_GRAPHICS_BIT                    = 0x00008000,
         ALL_COMMANDS_BIT                    = 0x00010000,
     };
+    PG_DEFINE_ENUM_OPS( PipelineStageFlags );
 
-    enum class CompareFunction
+    PipelineStageFlags GetPipelineStageFlags( ImageLayout imageLayout );
+
+    enum class CompareFunction : uint8_t
     {
         NEVER   = 0,
         LESS    = 1,
@@ -77,7 +82,7 @@ namespace Gfx
         CompareFunction compareFunc = CompareFunction::LESS; 
     };
 
-    enum class BlendFactor
+    enum class BlendFactor : uint8_t
     {
         ZERO                    = 0,
         ONE                     = 1,
@@ -94,7 +99,7 @@ namespace Gfx
         NUM_BLEND_FACTORS
     };
 
-    enum class BlendEquation
+    enum class BlendEquation : uint8_t
     {
         ADD                 = 0,
         SUBTRACT            = 1,
@@ -116,7 +121,7 @@ namespace Gfx
         bool blendingEnabled = false;
     };
 
-    enum class  WindingOrder
+    enum class WindingOrder : uint8_t
     {
         COUNTER_CLOCKWISE = 0,
         CLOCKWISE         = 1,
@@ -124,7 +129,7 @@ namespace Gfx
         NUM_WINDING_ORDER
     };
 
-    enum class CullFace
+    enum class CullFace : uint8_t
     {
         NONE            = 0,
         FRONT           = 1,
@@ -134,7 +139,7 @@ namespace Gfx
         NUM_CULL_FACE
     };
 
-    enum class PolygonMode
+    enum class PolygonMode : uint8_t
     {
         FILL  = 0,
         LINE  = 1,
@@ -175,7 +180,7 @@ namespace Gfx
         int height = 0;
     };
 
-    enum class PrimitiveType
+    enum class PrimitiveType : uint8_t
     {
         POINTS          = 0,
 
@@ -189,11 +194,21 @@ namespace Gfx
         NUM_PRIMITIVE_TYPE
     };
 
+    struct PipelineAttachmentInfo
+    {
+        PixelFormat colorAttachmentFormats[MAX_COLOR_ATTACHMENTS];
+        uint8_t numColorAttachments = 0;
+        PixelFormat depthAttachmentFormat = PixelFormat::INVALID;
+
+        bool HasInfo() const { return numColorAttachments > 0 || depthAttachmentFormat != PixelFormat::INVALID; }
+    };
+
     struct PipelineDescriptor
     {
         std::array< Shader*, 3 > shaders = {};
         VertexInputDescriptor vertexDescriptor;
-        RenderPass* renderPass;
+        RenderPass* renderPass = nullptr;
+        PipelineAttachmentInfo dynamicAttachmentInfo;
         RasterizerInfo rasterizerInfo;
         PrimitiveType primitiveType = PrimitiveType::TRIANGLES;
         PipelineDepthInfo depthInfo;

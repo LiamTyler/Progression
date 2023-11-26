@@ -135,6 +135,8 @@ bool PixelFormatHasDepthFormat( PixelFormat format );
 
 bool PixelFormatHasStencil( PixelFormat format );
 
+bool PixelFormatIsDepthOnly( PixelFormat format );
+
 bool PixelFormatIsCompressed( PixelFormat format );
 
 // Normally r = 0, g = 1, b = 2, a = 3, besides for a few formats like B8_G8_R8_UNORM

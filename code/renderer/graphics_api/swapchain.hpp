@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/pixel_formats.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
 #include "renderer/vulkan.hpp"
 #include <array>
@@ -12,7 +13,7 @@ namespace PG
 namespace Gfx
 {
 
-class SwapChain
+class Swapchain
 {
 public:
 
@@ -22,7 +23,7 @@ public:
     operator bool() const;
 
     uint32_t GetCurrentImageIndex() const;
-    VkFormat GetFormat() const;
+    PixelFormat GetFormat() const;
     uint32_t GetWidth() const;
     uint32_t GetHeight() const;
     VkSwapchainKHR GetHandle() const;

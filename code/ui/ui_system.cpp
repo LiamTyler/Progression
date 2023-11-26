@@ -90,7 +90,7 @@ namespace PG::UI
 
         using namespace Gfx;
         PipelineDescriptor pipelineDesc;    
-        pipelineDesc.renderPass = RenderSystem::GetRenderPass( "UI_2D" );
+        pipelineDesc.dynamicAttachmentInfo = RenderSystem::GetPipelineAttachmentInfo( "UI_2D" );
         pipelineDesc.depthInfo.depthTestEnabled  = false;
         pipelineDesc.depthInfo.depthWriteEnabled = false;
         pipelineDesc.rasterizerInfo.winding  = WindingOrder::COUNTER_CLOCKWISE;

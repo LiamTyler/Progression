@@ -119,14 +119,14 @@ static void InitPipelines()
         VertexAttributeDescriptor( 3, 3, BufferDataType::FLOAT2, 0 ),
     };
 
-    PipelineDescriptor pipelineDesc;
-    pipelineDesc.renderPass             = s_renderGraph.GetRenderPass( "depth_prepass" );
+    PipelineDescriptor pipelineDesc{};
+    pipelineDesc.dynamicAttachmentInfo  = s_renderGraph.GetPipelineAttachmentInfo( "depth_prepass" );
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 1, attribDescs );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
     pipelineDesc.shaders[0]             = AssetManager::Get< Shader >( "depthVert" );
     depthOnlyPipeline = rg.device.NewGraphicsPipeline( pipelineDesc, "DepthPrepass" );
     
-    pipelineDesc.renderPass             = s_renderGraph.GetRenderPass( "lighting" );
+    pipelineDesc.dynamicAttachmentInfo  = s_renderGraph.GetPipelineAttachmentInfo( "lighting" );
     pipelineDesc.depthInfo.compareFunc  = CompareFunction::LEQUAL;
     pipelineDesc.depthInfo.depthWriteEnabled = false;
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 4, bindingDescs, 4, attribDescs );
@@ -135,7 +135,7 @@ static void InitPipelines()
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "litFrag" );
     litPipeline = rg.device.NewGraphicsPipeline( pipelineDesc, "Lit" );
     
-    pipelineDesc.renderPass             = s_renderGraph.GetRenderPass( "skybox" );
+    pipelineDesc.dynamicAttachmentInfo  = s_renderGraph.GetPipelineAttachmentInfo( "skybox" );
     pipelineDesc.vertexDescriptor       = VertexInputDescriptor::Create( 1, bindingDescs, 1, attribDescs );
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
     pipelineDesc.rasterizerInfo.cullFace = CullFace::NONE;
@@ -143,7 +143,7 @@ static void InitPipelines()
     pipelineDesc.shaders[1]             = AssetManager::Get< Shader >( "skyboxFrag" );
     skyboxPipeline = rg.device.NewGraphicsPipeline( pipelineDesc, "Skybox" );
     
-    pipelineDesc.renderPass             = s_renderGraph.GetRenderPass( "post_processing" );
+    pipelineDesc.dynamicAttachmentInfo       = s_renderGraph.GetPipelineAttachmentInfo( "post_processing" );
     pipelineDesc.depthInfo.depthTestEnabled  = false;
     pipelineDesc.depthInfo.depthWriteEnabled = false;
     pipelineDesc.rasterizerInfo.winding = WindingOrder::COUNTER_CLOCKWISE;
@@ -241,7 +241,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     SetupBindlessDescriptorSet();
     InitPerFrameData();
 
-    if ( !UIOverlay::Init( *s_renderGraph.GetRenderPass( "UI_2D" ) ) )
+    if ( !UIOverlay::Init( s_renderGraph.GetPipelineAttachmentInfo( "UI_2D" ).colorAttachmentFormats[0] ) )
         return false;
 
     return true;
@@ -347,9 +347,9 @@ void CreateTLAS( Scene* scene )
 }
 
 
-RenderPass* GetRenderPass( const std::string& name )
+PipelineAttachmentInfo GetPipelineAttachmentInfo( const std::string& name )
 {
-    return s_renderGraph.GetRenderPass( name );
+    return s_renderGraph.GetPipelineAttachmentInfo( name );
 }
 
 static uint32_t GetGpuTexIndex( GfxImage* gfxImage )
@@ -483,7 +483,7 @@ void Render()
 
     UpdateDescriptors();
 
-    rg.swapChainImageIndex = rg.swapchain.AcquireNextImage( frameData.swapchainImgAvailableSemaphore );
+    rg.swapchainImageIndex = rg.swapchain.AcquireNextImage( frameData.swapchainImgAvailableSemaphore );
 
     auto& cmdBuf = frameData.graphicsCmdBuf;
     cmdBuf.BeginRecording();
@@ -501,7 +501,14 @@ void Render()
         UpdateSkyboxAndBackground( scene );
     }
 
-    s_renderGraph.Render( scene, &cmdBuf );
+    RG_RenderData renderData
+    {
+        .scene = scene,
+        .cmdBuf = &cmdBuf,
+        .swapchain = &rg.swapchain,
+        .swapchainImageIndex = rg.swapchainImageIndex
+    };
+    s_renderGraph.Render( renderData );
 
 #if USING( PG_DEBUG_UI )
     UIOverlay::EndFrame();
@@ -510,7 +517,7 @@ void Render()
     PG_PROFILE_GPU_END( cmdBuf, "Frame" );
     cmdBuf.EndRecording();
     rg.device.SubmitCommandBuffers( 1, &cmdBuf,frameData.swapchainImgAvailableSemaphore, frameData.renderCompleteSemaphore, &frameData.inFlightFence );
-    rg.device.SubmitFrameForPresentation( rg.swapchain, rg.swapChainImageIndex, frameData.renderCompleteSemaphore );
+    rg.device.SubmitFrameForPresentation( rg.swapchain, rg.swapchainImageIndex, frameData.renderCompleteSemaphore );
 
     Gfx::Profile::EndFrame();
 
@@ -518,18 +525,19 @@ void Render()
 }
 
 
-static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
+static void RenderFunc_DepthPass( RenderTask* task, RG_RenderData& renderData )
 {
-    if ( !scene )
+    if ( !renderData.scene )
         return;
 
+    CommandBuffer* cmdBuf = renderData.cmdBuf;
     cmdBuf->BindPipeline( &depthOnlyPipeline );
     cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_DESCRIPTOR_SET );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
-    glm::mat4 VP = scene->camera.GetVP();
+    glm::mat4 VP = renderData.scene->camera.GetVP();
 
-    scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
+    renderData.scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
     {
         const Model* model = modelRenderer.model;
         auto M = transform.Matrix();
@@ -551,11 +559,12 @@ static void RenderFunc_DepthPass( RenderTask* task, Scene* scene, CommandBuffer*
 }
 
 
-static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
+static void RenderFunc_LitPass( RenderTask* task, RG_RenderData& renderData )
 {
-    if ( !scene )
+    if ( !renderData.scene )
         return;
 
+    CommandBuffer* cmdBuf = renderData.cmdBuf;
     cmdBuf->BindPipeline( &litPipeline );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
@@ -564,7 +573,7 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
     cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightsDescSet, PG_LIGHT_DESCRIPTOR_SET );
     cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightingAuxTexturesDescSet, PG_LIGHTING_AUX_DESCRIPTOR_SET );
 
-    scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
+    renderData.scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
     {
         const Model* model = modelRenderer.model;
         auto M = transform.Matrix();
@@ -594,11 +603,12 @@ static void RenderFunc_LitPass( RenderTask* task, Scene* scene, CommandBuffer* c
 }
 
 
-static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
+static void RenderFunc_SkyboxPass( RenderTask* task, RG_RenderData& renderData )
 {
-    if ( !scene )
+    if ( !renderData.scene )
         return;
 
+    CommandBuffer* cmdBuf = renderData.cmdBuf;
     cmdBuf->BindPipeline( &skyboxPipeline );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
@@ -607,10 +617,10 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
     cmdBuf->BindVertexBuffer( s_cubeVertexBuffer );
     cmdBuf->BindIndexBuffer( s_cubeIndexBuffer, IndexType::UNSIGNED_SHORT );
     GpuData::SkyboxData data;
-    data.VP = scene->camera.GetP() * glm::mat4( glm::mat3( scene->camera.GetV() ) );
+    data.VP = renderData.scene->camera.GetP() * glm::mat4( glm::mat3( renderData.scene->camera.GetV() ) );
     data.hasTexture = s_skyboxTextures[rg.currentFrame] != nullptr;
-    data.tint = scene->skyTint;
-    data.scale = exp2f( scene->skyEVAdjust );
+    data.tint = renderData.scene->skyTint;
+    data.scale = exp2f( renderData.scene->skyEVAdjust );
     data.r_skyboxViz = r_skyboxViz.GetUint();
     data.r_skyboxReflectionMipLevel = r_skyboxReflectionMipLevel.GetFloat();
     cmdBuf->PushConstants( 0, sizeof( data ), &data );
@@ -618,11 +628,12 @@ static void RenderFunc_SkyboxPass( RenderTask* task, Scene* scene, CommandBuffer
 }
 
 
-static void RenderFunc_PostProcessPass( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
+static void RenderFunc_PostProcessPass( RenderTask* task, RG_RenderData& renderData )
 {
-    if ( !scene )
+    if ( !renderData.scene )
         return;
 
+    CommandBuffer* cmdBuf = renderData.cmdBuf;
     cmdBuf->BindPipeline( &postProcessPipeline );
     cmdBuf->SetViewport( DisplaySizedViewport() );
     cmdBuf->SetScissor( DisplaySizedScissor() );
@@ -632,8 +643,9 @@ static void RenderFunc_PostProcessPass( RenderTask* task, Scene* scene, CommandB
 }
 
 
-static void RenderFunc_UI2D( RenderTask* task, Scene* scene, CommandBuffer* cmdBuf )
+static void RenderFunc_UI2D( RenderTask* task, RG_RenderData& renderData )
 {
+    CommandBuffer* cmdBuf = renderData.cmdBuf;
     UI::Render( cmdBuf, &bindlessTexturesDescriptorSet );
 #if USING( PG_DEBUG_UI )
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
@@ -663,21 +675,19 @@ static bool InitRenderGraph( int width, int height )
     
     task = builder.AddTask( "post_processing" );
     task->AddTextureInput( "litOutput" );
-    task->AddColorOutput( "finalOutput", PixelFormat::R8_G8_B8_A8_UNORM, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1 );
+    task->AddSwapChainOutput();
     task->SetRenderFunction( RenderFunc_PostProcessPass );
 
     task = builder.AddTask( "UI_2D" );
-    //task->AddTextureInput( "postProcessOutput" );
-    task->AddColorOutput( "finalOutput" );
+    task->AddSwapChainOutput();
     task->SetRenderFunction( RenderFunc_UI2D );
-
-    builder.SetBackbufferResource( "finalOutput" );
     
     RenderGraphCompileInfo compileInfo;
     compileInfo.sceneWidth = width;
     compileInfo.sceneHeight = height;
     compileInfo.displayWidth = rg.swapchain.GetWidth();
     compileInfo.displayHeight = rg.swapchain.GetHeight();
+    compileInfo.swapchainFormat = rg.swapchain.GetFormat();
     if ( !s_renderGraph.Compile( builder, compileInfo ) )
     {
         LOG_ERR( "Failed to compile task graph" );

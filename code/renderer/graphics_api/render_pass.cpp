@@ -52,24 +52,24 @@ namespace Gfx
             return "UNDEFINED";
         case ImageLayout::GENERAL:
             return "GENERAL";
-        case ImageLayout::COLOR_ATTACHMENT_OPTIMAL:
-            return "COLOR_ATTACHMENT_OPTIMAL";
-        case ImageLayout::DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
-            return "DEPTH_STENCIL_ATTACHMENT_OPTIMAL";
-        case ImageLayout::DEPTH_STENCIL_READ_ONLY_OPTIMAL:
-            return "DEPTH_STENCIL_READ_ONLY_OPTIMAL";
-        case ImageLayout::SHADER_READ_ONLY_OPTIMAL:
-            return "SHADER_READ_ONLY_OPTIMAL";
-        case ImageLayout::TRANSFER_SRC_OPTIMAL:
-            return "TRANSFER_SRC_OPTIMAL";
-        case ImageLayout::TRANSFER_DST_OPTIMAL:
-            return "TRANSFER_DST_OPTIMAL";
+        case ImageLayout::COLOR_ATTACHMENT:
+            return "COLOR_ATTACHMENT";
+        case ImageLayout::DEPTH_STENCIL_ATTACHMENT:
+            return "DEPTH_STENCIL_ATTACHMENT";
+        case ImageLayout::DEPTH_STENCIL_READ_ONLY:
+            return "DEPTH_STENCIL_READ_ONLY";
+        case ImageLayout::SHADER_READ_ONLY:
+            return "SHADER_READ_ONLY";
+        case ImageLayout::TRANSFER_SRC:
+            return "TRANSFER_SRC";
+        case ImageLayout::TRANSFER_DST:
+            return "TRANSFER_DST";
         case ImageLayout::PREINITIALIZED:
             return "PREINITIALIZED";
-        case ImageLayout::DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
-            return "DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL";
-        case ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
-            return "DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL";
+        case ImageLayout::DEPTH_READ_ONLY_STENCIL_ATTACHMENT:
+            return "DEPTH_READ_ONLY_STENCIL_ATTACHMENT";
+        case ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY:
+            return "DEPTH_ATTACHMENT_STENCIL_READ_ONLY";
         case ImageLayout::PRESENT_SRC_KHR:
             return "PRESENT_SRC_KHR";
         default:

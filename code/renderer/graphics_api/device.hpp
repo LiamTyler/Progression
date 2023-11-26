@@ -57,7 +57,7 @@ namespace Gfx
         Framebuffer NewFramebuffer( const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name = "" ) const;
         Framebuffer NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name = "" ) const;
         void SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs, const Semaphore& swapImgSem, const Semaphore& renderCompleteSem, const Fence* finishedFence = nullptr ) const;
-        void SubmitFrameForPresentation( const SwapChain& swapChain, uint32_t swapImageIndex, const Semaphore& waitSemaphore ) const;
+        void SubmitFrameForPresentation( const Swapchain& swapChain, uint32_t swapImageIndex, const Semaphore& waitSemaphore ) const;
 
         void Copy( Buffer dst, Buffer src ) const;
         void CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips = true ) const;

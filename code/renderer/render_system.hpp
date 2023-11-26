@@ -1,6 +1,6 @@
 #pragma once
 
-#include "graphics_api/render_pass.hpp"
+#include "graphics_api/pipeline.hpp"
 #include <string>
 
 namespace PG
@@ -15,7 +15,7 @@ namespace RenderSystem
     void Render();
 
     void CreateTLAS( Scene* scene );
-    ::PG::Gfx::RenderPass* GetRenderPass( const std::string& name );
+    ::PG::Gfx::PipelineAttachmentInfo GetPipelineAttachmentInfo( const std::string& name );
 
 } // namespace RenderSystem
 } // namespace PG

@@ -30,7 +30,6 @@ struct FrameData
     DescriptorSet lightsDescSet;
     DescriptorSet lightingAuxTexturesDescSet;
     DescriptorSet postProcessDescSet;
-    
 
     CommandBuffer graphicsCmdBuf;
     Fence inFlightFence;
@@ -44,9 +43,8 @@ struct R_Globals
     VkSurfaceKHR surface;
     Device device;
     PhysicalDevice physicalDevice;
-    SwapChain swapchain;
-    uint32_t swapChainImageIndex;
-    Framebuffer swapchainFramebuffers[GFX_MAX_SWAPCHAIN_IMAGES];
+    Swapchain swapchain;
+    uint32_t swapchainImageIndex;
     CommandPool commandPools[GFX_CMD_POOL_TOTAL];
     DescriptorPool descriptorPool;
     FrameData frameData[MAX_FRAMES_IN_FLIGHT];

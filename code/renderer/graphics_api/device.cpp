@@ -39,19 +39,20 @@ namespace Gfx
         // Since the physical device is only chosen if it is known to support all the features we need, we can simply use vkGetPhysicalDeviceFeatures2()
         // to fill out the features the device supports (will contain all features we want to enable) and pass that to the device create info
         VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
-#if USING( PG_RTX )
-        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
-        VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
-#endif // #if USING( PG_RTX )
         VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
         VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
         VkPhysicalDeviceFeatures2 deviceFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
+        VkPhysicalDeviceDynamicRenderingFeaturesKHR dynRendering{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
 
 #if USING( PG_RTX )
-        deviceFeatures2.pNext = MakePNextChain( { &bufferDeviceAddressFeatures, &rayTracingPipelineFeatures, &accelerationStructureFeatures, &indexingFeatures, &vkFeatures2 } );
+        VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+        VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+
+        deviceFeatures2.pNext = MakePNextChain( { &dynRendering, &bufferDeviceAddressFeatures, &indexingFeatures, &vkFeatures2, &rayTracingPipelineFeatures, &accelerationStructureFeatures } );
 #else // #if USING( PG_RTX )
-        deviceFeatures2.pNext = MakePNextChain( { &bufferDeviceAddressFeatures, &indexingFeatures, &vkFeatures2 } );
+        deviceFeatures2.pNext = MakePNextChain( { &dynRendering, &bufferDeviceAddressFeatures, &indexingFeatures, &vkFeatures2 } );
 #endif // #else // #if USING( PG_RTX )
+
         vkGetPhysicalDeviceFeatures2( pDev.GetHandle(), &deviceFeatures2 );
 #if !USING( DEBUG_BUILD )
         vkFeatures2.robustBufferAccess2 = VK_FALSE;
@@ -165,9 +166,10 @@ namespace Gfx
         poolInfo.poolSizeCount = numPoolSizes;
         poolInfo.pPoolSizes    = poolSizes;
         poolInfo.maxSets       = maxSets;
+        poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
         if ( bindless )
         {
-            poolInfo.flags = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+            poolInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
         }
 
         VK_CHECK_RESULT( vkCreateDescriptorPool( m_handle, &poolInfo, nullptr, &pool.m_handle ) );
@@ -749,11 +751,11 @@ namespace Gfx
         multisampling.sampleShadingEnable   = VK_FALSE;
         multisampling.rasterizationSamples  = VK_SAMPLE_COUNT_1_BIT;
 
-        uint8_t numColorAttachments = 0;
+        bool dynamicRendering = desc.renderPass == nullptr && desc.dynamicAttachmentInfo.HasInfo();
+        uint8_t numColorAttachments = dynamicRendering ? desc.dynamicAttachmentInfo.numColorAttachments : desc.renderPass->desc.numColorAttachments;
         VkPipelineColorBlendAttachmentState colorBlendAttachment[8] = {};
-        for ( uint8_t i = 0; i < desc.renderPass->desc.numColorAttachments; ++i )
+        for ( uint8_t i = 0; i < numColorAttachments; ++i )
         {
-            ++numColorAttachments;
             colorBlendAttachment[i].colorWriteMask      = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
             colorBlendAttachment[i].blendEnable         = desc.colorAttachmentInfos[i].blendingEnabled;
             colorBlendAttachment[i].srcColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcColorBlendFactor );
@@ -793,9 +795,30 @@ namespace Gfx
         pipelineInfo.pColorBlendState    = &colorBlending;
         pipelineInfo.pDynamicState       = &dynamicState;
         pipelineInfo.layout              = p.m_pipelineLayout;
-        pipelineInfo.renderPass          = desc.renderPass->GetHandle();
+        pipelineInfo.renderPass          = dynamicRendering ? nullptr : desc.renderPass->GetHandle();
         pipelineInfo.subpass             = 0;
         pipelineInfo.basePipelineHandle  = VK_NULL_HANDLE;
+
+        VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo;
+        VkFormat dynRenderingFormats[MAX_COLOR_ATTACHMENTS];
+        if ( dynamicRendering )
+        {
+            dynRenderingCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+            dynRenderingCreateInfo.colorAttachmentCount = desc.dynamicAttachmentInfo.numColorAttachments;
+            dynRenderingCreateInfo.pColorAttachmentFormats = &dynRenderingFormats[1];
+            for ( uint8_t i = 0; i < numColorAttachments; ++i )
+                dynRenderingFormats[1 + i] = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.colorAttachmentFormats[i] );
+
+            if ( desc.dynamicAttachmentInfo.depthAttachmentFormat != PixelFormat::INVALID )
+            {
+                VkFormat fmt = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.depthAttachmentFormat );
+                dynRenderingCreateInfo.depthAttachmentFormat = fmt;
+                if ( PixelFormatHasStencil( desc.dynamicAttachmentInfo.depthAttachmentFormat ) )
+                    dynRenderingCreateInfo.stencilAttachmentFormat = fmt;
+            }
+
+            pipelineInfo.pNext = &dynRenderingCreateInfo;
+        }
 
         if ( vkCreateGraphicsPipelines( m_handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &p.m_pipeline ) != VK_SUCCESS )
         {
@@ -1077,7 +1100,7 @@ namespace Gfx
     }
 
 
-    void Device::SubmitFrameForPresentation( const SwapChain& swapChain, uint32_t swapImageIndex, const Semaphore& rdyForPresentSem ) const
+    void Device::SubmitFrameForPresentation( const Swapchain& swapChain, uint32_t swapImageIndex, const Semaphore& rdyForPresentSem ) const
     {
         VkSemaphore vkSemaphores[] = { rdyForPresentSem.GetHandle() };
         VkPresentInfoKHR presentInfo   = {};

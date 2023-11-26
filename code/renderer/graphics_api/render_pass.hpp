@@ -11,7 +11,7 @@ namespace Gfx
 {
     constexpr uint8_t MAX_COLOR_ATTACHMENTS = 8;
 
-    enum class LoadAction
+    enum class LoadAction : uint8_t
     {
         LOAD      = 0,
         CLEAR     = 1,
@@ -20,7 +20,7 @@ namespace Gfx
         NUM_LOAD_ACTION
     };
 
-    enum class StoreAction
+    enum class StoreAction : uint8_t
     {
         STORE = 0,
         DONT_CARE = 1,
@@ -32,18 +32,24 @@ namespace Gfx
     {
         UNDEFINED = 0,
         GENERAL = 1,
-        COLOR_ATTACHMENT_OPTIMAL = 2,
-        DEPTH_STENCIL_ATTACHMENT_OPTIMAL = 3,
-        DEPTH_STENCIL_READ_ONLY_OPTIMAL = 4,
-        SHADER_READ_ONLY_OPTIMAL = 5,
-        TRANSFER_SRC_OPTIMAL = 6,
-        TRANSFER_DST_OPTIMAL = 7,
+        COLOR_ATTACHMENT = 2,
+        DEPTH_STENCIL_ATTACHMENT = 3,
+        DEPTH_STENCIL_READ_ONLY = 4,
+        SHADER_READ_ONLY = 5,
+        TRANSFER_SRC = 6,
+        TRANSFER_DST = 7,
         PREINITIALIZED = 8,
-        DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL = 1000117000,
-        DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL = 1000117001,
+        DEPTH_READ_ONLY_STENCIL_ATTACHMENT = 1000117000,
+        DEPTH_ATTACHMENT_STENCIL_READ_ONLY = 1000117001,
+        DEPTH_ATTACHMENT = 1000241000,
+        DEPTH_READ_ONLY = 1000241001,
+        STENCIL_ATTACHMENT = 1000241002,
+        STENCIL_READ_ONLY = 1000241003,
+        READ_ONLY = 1000314000,
+        ATTACHMENT = 1000314001,
         PRESENT_SRC_KHR = 1000001002,
 
-        NUM_IMAGE_LAYOUT
+        NUM_IMAGE_LAYOUT = 18
     };
 
     class ColorAttachmentDescriptor

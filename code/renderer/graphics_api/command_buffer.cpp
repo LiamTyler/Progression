@@ -226,6 +226,8 @@ namespace Gfx
 			// Make sure any writes to the color buffer have been finished
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			break;
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
 		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
 			// Image is a depth/stencil attachment
 			// Make sure any writes to the depth/stencil buffer have been finished
@@ -241,6 +243,10 @@ namespace Gfx
 			// Make sure any writes to the image have been finished
 			imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
 			break;
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+        case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 			// Image is read by a shader
 			// Make sure any shader reads from the image have been finished
@@ -274,11 +280,17 @@ namespace Gfx
 			// Make sure any writes to the color buffer have been finished
 			imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
 			break;
+        case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
 		case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
 			// Image layout will be used as a depth/stencil attachment
 			// Make sure any writes to depth/stencil buffer have been finished
 			imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
 			break;
+		case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
+		case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
+        case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_STENCIL_ATTACHMENT_OPTIMAL:
+		case VK_IMAGE_LAYOUT_STENCIL_READ_ONLY_OPTIMAL:
 		case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
 			// Image will be read in a shader (sampler, input attachment)
 			// Make sure any writes to the image have been finished
@@ -301,16 +313,16 @@ namespace Gfx
         PipelineImageBarrier( srcStageMask, dstStageMask, imageMemoryBarrier );
     }
 
-    void CommandBuffer::TransitionImageLayout( VkImage image, VkImageAspectFlags aspectMask, ImageLayout oldLayout, ImageLayout newLayout, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask ) const
-    {
-        VkImageSubresourceRange subresourceRange;
-		subresourceRange.aspectMask = aspectMask;
-		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount = 1;
-        subresourceRange.baseArrayLayer = 0;
-		subresourceRange.layerCount = 1;
-        TransitionImageLayout( image, oldLayout, newLayout, subresourceRange, srcStageMask, dstStageMask );
-    }
+    //void CommandBuffer::TransitionImageLayout( VkImage image, VkImageAspectFlags aspectMask, ImageLayout oldLayout, ImageLayout newLayout, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask ) const
+    //{
+    //    VkImageSubresourceRange subresourceRange;
+	//	subresourceRange.aspectMask = aspectMask;
+	//	subresourceRange.baseMipLevel = 0;
+	//	subresourceRange.levelCount = 1;
+    //    subresourceRange.baseArrayLayer = 0;
+	//	subresourceRange.layerCount = 1;
+    //    TransitionImageLayout( image, oldLayout, newLayout, subresourceRange, srcStageMask, dstStageMask );
+    //}
     
 
     void CommandBuffer::Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount, uint32_t firstInstance ) const

@@ -7,6 +7,7 @@
 #include "core/window.hpp"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
+#include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/vulkan.hpp"
 #include "shared/logger.hpp"
@@ -33,7 +34,7 @@ static void CheckVkResult( VkResult err )
         abort();
 }
 
-bool Init( const RenderPass& renderPass )
+bool Init( PixelFormat colorAttachmentFormat )
 {
     s_updated = false;
     s_drawFunctions.reserve( 64 );
@@ -64,19 +65,9 @@ bool Init( const RenderPass& renderPass )
     init_info.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
     init_info.Allocator = nullptr;
     init_info.CheckVkResultFn = CheckVkResult;
-    ImGui_ImplVulkan_Init( &init_info, renderPass.GetHandle() );
-
-    // Upload pending fonts (currently just the default)
-    {
-        Gfx::CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time upload ImGui fonts" );
-        cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-        ImGui_ImplVulkan_CreateFontsTexture( cmdBuf.GetHandle() );
-        cmdBuf.EndRecording();
-        rg.device.Submit( cmdBuf );
-        rg.device.WaitForIdle();
-        cmdBuf.Free();
-        ImGui_ImplVulkan_DestroyFontUploadObjects();
-    }
+    init_info.UseDynamicRendering = true;
+    init_info.ColorAttachmentFormat = PGToVulkanPixelFormat( colorAttachmentFormat );
+    ImGui_ImplVulkan_Init( &init_info, VK_NULL_HANDLE );
 
     return true;
 }

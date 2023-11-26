@@ -17,20 +17,26 @@ class Scene;
 namespace Gfx
 {
 
+class CommandBuffer;
+class Swapchain;
+struct RenderTask;
+
 enum class ResourceType : uint8_t
 {
-    COLOR_ATTACH,
-    DEPTH_ATTACH,
-    TEXTURE,
-    BUFFER,
-
-    COUNT
+    NONE = 0,
+    TEXTURE = (1 << 0),
+    BUFFER = (1 << 1),
+    COLOR_ATTACH = (1 << 2),
+    DEPTH_ATTACH = (1 << 3),
+    STENCIL_ATTACH = (1 << 4),
+    SWAPCHAIN_IMAGE = (1 << 5),
 };
+PG_DEFINE_ENUM_OPS( ResourceType )
 
 enum class ResourceState : uint8_t
 {
-    READ_ONLY,
-    WRITE,
+    READ_ONLY = 0,
+    WRITE = 1,
 
     COUNT
 };
@@ -65,11 +71,10 @@ constexpr uint32_t ResolveRelativeSize( uint32_t scene, uint32_t display, uint32
     }
 }
 
-
 struct RG_Element
 {
     std::string name;
-    ResourceType type    = ResourceType::COUNT;
+    ResourceType type    = ResourceType::NONE;
     ResourceState state  = ResourceState::COUNT;
     PixelFormat format   = PixelFormat::INVALID;
     uint32_t width       = 0;
@@ -79,45 +84,78 @@ struct RG_Element
     uint32_t mipLevels   = 1;
     glm::vec4 clearColor = glm::vec4( 0 );
     bool isCleared       = false;
+    bool isExternal      = false;
 };
 
-struct RG_PhysicalResource
+
+struct RG_AttachmentInfo
 {
-    RG_PhysicalResource()
+    glm::vec4 clearColor;
+    LoadAction loadAction;
+    StoreAction storeAction;
+    PixelFormat format;
+    ImageLayout imageLayout;
+    uint16_t physicalResourceIndex;
+};
+
+struct RG_TaskRenderTargetsDynamic
+{
+    RG_TaskRenderTargetsDynamic() : numColorAttach( 0 ), renderAreaWidth( USHRT_MAX ), renderAreaHeight( USHRT_MAX )
     {
+        depthAttachInfo.format = PixelFormat::INVALID;
     }
-    ~RG_PhysicalResource() {}
 
-    std::string name;
-    union
-    {
-        Gfx::Texture texture;
-    };
-    uint16_t firstTask;
-    uint16_t lastTask;
+    RG_AttachmentInfo colorAttachInfo[MAX_COLOR_ATTACHMENTS];
+    RG_AttachmentInfo depthAttachInfo;
+    uint8_t numColorAttach;
+    uint16_t renderAreaWidth;
+    uint16_t renderAreaHeight;
+
+    void AddColorAttach( const RG_Element& element, uint16_t phyRes, LoadAction loadAction, StoreAction storeAction );
+    void AddDepthAttach( const RG_Element& element, uint16_t phyRes, LoadAction loadAction, StoreAction storeAction );
 };
 
-struct RG_TaskRenderTargets
+struct RG_RenderData
 {
-    uint16_t colorAttachments[MAX_COLOR_ATTACHMENTS];
-    uint16_t depthAttach;
-    uint8_t numColorAttachments;
+    Scene* scene;
+    CommandBuffer* cmdBuf;
+    Swapchain* swapchain;
+    uint32_t swapchainImageIndex;
 };
 
-
-class CommandBuffer;
-struct RenderTask;
-using RenderFunction = std::function<void( RenderTask*, Scene* scene, CommandBuffer* cmdBuf )>;
+using RenderFunction = std::function<void( RenderTask* task, RG_RenderData& renderData )>;
 
 struct RenderTask
 {
-    std::string name;
+    struct ImageTransition
+    {
+        ImageLayout previousLayout;
+        ImageLayout desiredLayout;
+        uint16_t physicalResourceIndex;
+        VkImageAspectFlags aspect;
+    };
 
-    RenderPass renderPasses[MAX_FRAMES_IN_FLIGHT];
-    Framebuffer framebuffers[MAX_FRAMES_IN_FLIGHT];
+    void AddTransition( ImageLayout previousLayout, ImageLayout desiredLayout, uint16_t physicalResourceIndex, ResourceType resType )
+    {
+        VkImageAspectFlags aspect = VK_IMAGE_ASPECT_NONE;
+        if ( IsSet( resType, ResourceType::COLOR_ATTACH ) )
+        {
+            aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+        }
+        else
+        {
+            if ( IsSet( resType, ResourceType::DEPTH_ATTACH ) ) aspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
+            if ( IsSet( resType, ResourceType::STENCIL_ATTACH ) ) aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
+        }
+        imageTransitions.emplace_back( previousLayout, desiredLayout, physicalResourceIndex, aspect );
+    }
+
+    std::string name;
     RenderFunction renderFunction;
-    RG_TaskRenderTargets renderTargets;
+    RG_TaskRenderTargetsDynamic* renderTargetData = nullptr;
+    std::vector<ImageTransition> imageTransitions;
 };
+
 
 struct RenderGraphCompileInfo
 {
@@ -125,7 +163,9 @@ struct RenderGraphCompileInfo
     uint32_t sceneHeight;
     uint32_t displayWidth;
     uint32_t displayHeight;
+    PixelFormat swapchainFormat;
 };
+
 
 class RenderTaskBuilder
 {
@@ -135,6 +175,8 @@ public:
     void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
     void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels );
     void AddColorOutput( const std::string& name );
+    void AddSwapChainOutput( const glm::vec4& clearColor );
+    void AddSwapChainOutput();
     void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, float clearValue );
     void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height );
     void AddDepthOutput( const std::string& name );
@@ -157,13 +199,27 @@ class RenderGraphBuilder
 public:
     RenderGraphBuilder();
     RenderTaskBuilder* AddTask( const std::string& name );
-    void SetBackbufferResource( const std::string& name );
 
-    bool Validate() const;
+    bool Validate( const RenderGraphCompileInfo& compileInfo ) const;
 
 private:
     std::vector< RenderTaskBuilder > tasks;
-    std::string backbuffer;
+};
+
+
+struct RG_PhysicalResource
+{
+    RG_PhysicalResource() {}
+    ~RG_PhysicalResource() {}
+
+    std::string name;
+    union
+    {
+        Gfx::Texture texture;
+    };
+    uint16_t firstTask;
+    uint16_t lastTask;
+    bool isExternal = false;
 };
 
 
@@ -175,12 +231,13 @@ public:
     bool Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo );
     void Free();
     void Print() const;
-    void Render( Scene* scene, CommandBuffer* cmdBuf );
-    RG_PhysicalResource* GetPhysicalResource( uint16_t idx, uint8_t frameInFlight );
+    void Render( RG_RenderData& renderData );
+
+    Texture* GetTexture( uint16_t idx );
+    RG_PhysicalResource* GetPhysicalResource( uint16_t idx );
     RG_PhysicalResource* GetPhysicalResource( const std::string& logicalName, uint8_t frameInFlight );
-    RG_PhysicalResource* GetBackBufferResource( uint8_t frameInFlight );
     RenderTask* GetRenderTask( const std::string& name );
-    RenderPass* GetRenderPass( const std::string& name, int frame = 0 );
+    PipelineAttachmentInfo GetPipelineAttachmentInfo( const std::string& name ) const;
 
     struct Statistics
     {
@@ -201,8 +258,8 @@ private:
 
     uint16_t numPhysicalResources;
     RG_PhysicalResource physicalResources[MAX_PHYSICAL_RESOURCES_PER_FRAME][MAX_FRAMES_IN_FLIGHT];
+    uint16_t swapchainPhysicalResIdx;
     std::unordered_map<std::string, uint16_t> resourceNameToIndexMap;
-    std::string backBufferName;
 
     Statistics stats;
 };

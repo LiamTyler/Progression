@@ -51,8 +51,8 @@ namespace Gfx
         void TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkImageSubresourceRange subresourceRange,
             PipelineStageFlags srcStageMask = PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags dstStageMask = PipelineStageFlags::ALL_COMMANDS_BIT ) const;
         // subresource is auto set to first mip and layer
-        void TransitionImageLayout( VkImage image, VkImageAspectFlags aspectMask, ImageLayout oldLayout, ImageLayout newLayout,
-            PipelineStageFlags srcStageMask = PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags dstStageMask = PipelineStageFlags::ALL_COMMANDS_BIT ) const;
+        //void TransitionImageLayout( VkImage image, VkImageAspectFlags aspectMask, ImageLayout oldLayout, ImageLayout newLayout,
+        //    PipelineStageFlags srcStageMask = PipelineStageFlags::ALL_COMMANDS_BIT, PipelineStageFlags dstStageMask = PipelineStageFlags::ALL_COMMANDS_BIT ) const;
 
         void Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount = 1, uint32_t firstInstance = 0 ) const;
         void DrawIndexed( uint32_t firstIndex, uint32_t indexCount, int vertexOffset = 0, uint32_t firstInstance = 0, uint32_t instanceCount = 1 ) const;

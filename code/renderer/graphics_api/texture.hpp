@@ -35,6 +35,7 @@ namespace Gfx
     class Texture
     {
         friend class Device;
+        friend class RenderGraph;
     public:
         Texture() = default;
 

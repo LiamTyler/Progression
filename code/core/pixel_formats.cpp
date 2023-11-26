@@ -379,6 +379,12 @@ bool PixelFormatHasStencil( PixelFormat format )
 }
 
 
+bool PixelFormatIsDepthOnly( PixelFormat format )
+{
+    return format == PixelFormat::DEPTH_16_UNORM || format == PixelFormat::DEPTH_32_FLOAT;
+}
+
+
 bool PixelFormatIsCompressed( PixelFormat format )
 {
     auto f = Underlying( format );

@@ -1,4 +1,5 @@
 #include "renderer/graphics_api/swapchain.hpp"
+#include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/vulkan.hpp"
 #include "shared/assert.hpp"
@@ -108,7 +109,7 @@ namespace PG
 namespace Gfx
 {
 
-bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferredHeight )
+bool Swapchain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferredHeight )
 {
     m_device = dev;
     SwapChainSupportDetails swapChainSupport = QuerySwapChainSupport( rg.physicalDevice.GetHandle(), rg.surface );
@@ -174,14 +175,14 @@ bool SwapChain::Create( VkDevice dev, uint32_t preferredWidth, uint32_t preferre
 }
 
 
-uint32_t SwapChain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
+uint32_t Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
 {
     VK_CHECK_RESULT( vkAcquireNextImageKHR( m_device, m_handle, UINT64_MAX, presentCompleteSemaphore.GetHandle(), VK_NULL_HANDLE, &m_currentImage ) );
     return m_currentImage;
 }
 
 
-void SwapChain::Free()
+void Swapchain::Free()
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
     for ( size_t i = 0; i < m_numImages; ++i )
@@ -194,20 +195,20 @@ void SwapChain::Free()
 }
 
 
-SwapChain::operator bool() const
+Swapchain::operator bool() const
 {
     return m_handle != VK_NULL_HANDLE;
 }
 
 
-uint32_t SwapChain::GetCurrentImageIndex() const            { return m_currentImage; }
-VkFormat SwapChain::GetFormat() const                       { return m_imageFormat; }
-uint32_t SwapChain::GetWidth() const                        { return m_width; }
-uint32_t SwapChain::GetHeight() const                       { return m_height; }
-VkSwapchainKHR SwapChain::GetHandle() const                 { return m_handle; }
-uint32_t SwapChain::GetNumImages() const                    { return m_numImages; }
-VkImage SwapChain::GetImage( uint32_t index ) const         { return m_images[index]; }
-VkImageView SwapChain::GetImageView( uint32_t index ) const { return m_imageViews[index]; }
+uint32_t Swapchain::GetCurrentImageIndex() const            { return m_currentImage; }
+PixelFormat Swapchain::GetFormat() const                    { return VulkanToPGPixelFormat( m_imageFormat ); }
+uint32_t Swapchain::GetWidth() const                        { return m_width; }
+uint32_t Swapchain::GetHeight() const                       { return m_height; }
+VkSwapchainKHR Swapchain::GetHandle() const                 { return m_handle; }
+uint32_t Swapchain::GetNumImages() const                    { return m_numImages; }
+VkImage Swapchain::GetImage( uint32_t index ) const         { return m_images[index]; }
+VkImageView Swapchain::GetImageView( uint32_t index ) const { return m_imageViews[index]; }
 
 } // namespace Gfx
 } // namespace PG

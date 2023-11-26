@@ -10,7 +10,7 @@
 namespace PG::Gfx::UIOverlay
 {
 
-    bool Init( const RenderPass& renderPass );
+    bool Init( PixelFormat colorAttachmentFormat );
     void Shutdown();
 
     void BeginFrame();

@@ -20,13 +20,17 @@ namespace Gfx
         NUM_LOAD_ACTION
     };
 
+    std::string LoadActionToString( LoadAction action );
+
     enum class StoreAction : uint8_t
     {
         STORE = 0,
         DONT_CARE = 1,
 
         NUM_STORE_ACTION
-    }; 
+    };
+
+    std::string StoreActionToString( StoreAction action );
     
     enum class ImageLayout
     {
@@ -51,6 +55,8 @@ namespace Gfx
 
         NUM_IMAGE_LAYOUT = 18
     };
+
+    std::string ImageLayoutToString( ImageLayout layout );
 
     class ColorAttachmentDescriptor
     {
@@ -122,8 +128,6 @@ namespace Gfx
         VkRenderPass m_handle = VK_NULL_HANDLE;
         VkDevice     m_device = VK_NULL_HANDLE;
     };
-
-    std::string ImageLayoutToString( ImageLayout layout );
 
 } // namespace Gfx
 } // namespace PG

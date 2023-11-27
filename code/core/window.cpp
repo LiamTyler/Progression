@@ -118,7 +118,7 @@ void Window::EndFrame()
 {
     Time::EndFrame();
     ++s_framesDrawnSinceLastFPSUpdate;
-    if ( Time::GetDuration( s_lastFPSUpdateTime ) > 1000.0f )
+    if ( Time::GetTimeSince( s_lastFPSUpdateTime ) > 1000.0f )
     {
         std::string titleWithFps =
           m_title + " -- FPS: " + std::to_string( s_framesDrawnSinceLastFPSUpdate );

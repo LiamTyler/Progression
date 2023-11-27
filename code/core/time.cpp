@@ -25,7 +25,7 @@ namespace Time
 
     float Time()
     {
-        return static_cast< float >( GetDuration( s_startTime ) );
+        return static_cast< float >( GetTimeSince( s_startTime ) );
     }
 
 
@@ -54,10 +54,16 @@ namespace Time
     }
 
 
-    double GetDuration( const Point& point )
+    double GetTimeSince( const Point& point )
     {
         auto now = Clock::now();
-        return duration_cast< microseconds >( now - point ).count() / static_cast< float >( 1000 );
+        return duration_cast< microseconds >( now - point ).count() / 1000.0;
+    }
+
+
+    double GetElapsedTime( const Point& startPoint, const Point& endPoint )
+    {
+        return duration_cast< microseconds >( endPoint - startPoint ).count() / 1000.0;
     }
 
 } // namespace Time

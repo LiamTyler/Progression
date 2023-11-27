@@ -24,7 +24,8 @@ namespace Lua
         luaTimeNamespace["dt"] = 0;
         luaTimeNamespace["Time"] = Time::Time;
         luaTimeNamespace["GetTimePoint"] = Time::GetTimePoint;
-        luaTimeNamespace["GetDuration"] = Time::GetDuration;
+        luaTimeNamespace["GetTimeSince"] = Time::GetTimeSince;
+        luaTimeNamespace["GetElapsedTime"] = Time::GetElapsedTime;
     }
 
 

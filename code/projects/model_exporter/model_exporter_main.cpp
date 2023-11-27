@@ -459,7 +459,7 @@ int main( int argc, char* argv[] )
         outputJSON += json;
     }
 
-    LOG( "Models converted: %u in %.2f seconds", modelsConverted, Time::GetDuration( startTime ) / 1000.0f );
+    LOG( "Models converted: %u in %.2f seconds", modelsConverted, Time::GetTimeSince( startTime ) / 1000.0f );
     LOG( "Errors: %zu, Warnings: %u", filesToProcess.size() - modelsConverted, g_warnings.load() );
     if ( modelsConverted > 0 )
     {

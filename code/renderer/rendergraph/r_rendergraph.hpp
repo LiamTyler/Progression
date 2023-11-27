@@ -164,6 +164,9 @@ struct RenderGraphCompileInfo
     uint32_t displayWidth;
     uint32_t displayHeight;
     PixelFormat swapchainFormat;
+    bool validate = true;
+    bool mergeResources = true;
+    bool showStats = true;
 };
 
 
@@ -230,7 +233,8 @@ public:
 
     bool Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo );
     void Free();
-    void Print() const;
+    void PrintStats() const;
+    void PrintAllInfo() const;
     void Render( RG_RenderData& renderData );
 
     Texture* GetTexture( uint16_t idx );
@@ -241,9 +245,14 @@ public:
 
     struct Statistics
     {
-        float memUsedMB;
+        size_t bytesUsed;
         uint16_t numTextures;
         uint16_t numLogicalOutputs;
+        uint16_t numMergedResources;
+        size_t bytesSavedByMerging;
+        double compileTime;
+        double allocateTime;
+        double validateTime;
     };
     Statistics GetStats() const;
 
@@ -251,17 +260,17 @@ public:
     static constexpr uint16_t MAX_PHYSICAL_RESOURCES_PER_FRAME = 256;
 
 private:
-    uint8_t frameInFlight = 0;
-    uint16_t numRenderTasks;
-    RenderTask renderTasks[MAX_TASKS];
-    std::unordered_map<std::string, uint16_t> taskNameToIndexMap;
+    uint8_t m_frameInFlight = 0;
+    uint16_t m_numRenderTasks;
+    RenderTask m_renderTasks[MAX_TASKS];
+    std::unordered_map<std::string, uint16_t> m_taskNameToIndexMap;
 
-    uint16_t numPhysicalResources;
-    RG_PhysicalResource physicalResources[MAX_PHYSICAL_RESOURCES_PER_FRAME][MAX_FRAMES_IN_FLIGHT];
-    uint16_t swapchainPhysicalResIdx;
-    std::unordered_map<std::string, uint16_t> resourceNameToIndexMap;
+    uint16_t m_numPhysicalResources;
+    RG_PhysicalResource m_physicalResources[MAX_PHYSICAL_RESOURCES_PER_FRAME][MAX_FRAMES_IN_FLIGHT];
+    uint16_t m_swapchainPhysicalResIdx;
+    std::unordered_map<std::string, uint16_t> m_resourceNameToIndexMap;
 
-    Statistics stats;
+    Statistics m_stats;
 };
 
 } // namespace Gfx

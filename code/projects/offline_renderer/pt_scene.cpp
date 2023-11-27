@@ -244,7 +244,7 @@ bool Scene::Load( const std::string& filename )
     LOG( "Building BVH for %zu shapes...", shapes.size() );
     auto bvhTime = Time::GetTimePoint();
     bvh.Build( shapes );
-    float bvhBuildTime = (float)Time::GetDuration( bvhTime ) / 1000.0f;
+    float bvhBuildTime = (float)Time::GetTimeSince( bvhTime ) / 1000.0f;
     LOG( "BVH build time: %.3f seconds", bvhBuildTime );
 
     return true;

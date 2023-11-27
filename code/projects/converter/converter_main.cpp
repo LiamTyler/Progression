@@ -231,7 +231,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
         }
     }
 
-    double duration = Time::GetDuration( convertStartTime ) / 1000.0f;
+    double duration = Time::GetTimeSince( convertStartTime ) / 1000.0f;
     if ( convertErrors )
     {
         LOG_ERR( "Convert for '%s' FAILED with %u errors in %.2f seconds", sceneName.c_str(), convertErrors, duration );
@@ -411,7 +411,7 @@ int main( int argc, char** argv )
     {
         return 0;
     }
-    LOG( "Converter initialized in %.2f seconds\n", Time::GetDuration( initStartTime ) / 1000.0f );
+    LOG( "Converter initialized in %.2f seconds\n", Time::GetTimeSince( initStartTime ) / 1000.0f );
 
     if ( !s_singleAssetName.empty() )
     {
@@ -431,7 +431,7 @@ int main( int argc, char** argv )
         }
     }
 
-    LOG( "Total time: %.2f seconds", Time::GetDuration( initStartTime ) / 1000.0f );
+    LOG( "Total time: %.2f seconds", Time::GetTimeSince( initStartTime ) / 1000.0f );
     
     ShutdownConverters();
     EngineShutdown();

@@ -27,7 +27,10 @@ namespace Time
     Point GetTimePoint();
 
     // Returns the number of milliseconds elapsed since Point
-    double GetDuration( const Point& point );
+    double GetTimeSince( const Point& point );
+
+    // Returns the number of milliseconds between two points
+    double GetElapsedTime( const Point& startPoint, const Point& endPoint );
 
 } // namespace Time
 } // namespace PG

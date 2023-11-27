@@ -80,7 +80,7 @@ bool Init()
         }
     }
 
-    //LOG( "Asset Database Initialized in %.2f seconds.", Time::GetDuration( startTime ) / 1000.0f );
+    //LOG( "Asset Database Initialized in %.2f seconds.", Time::GetTimeSince( startTime ) / 1000.0f );
     return true;
 }
 

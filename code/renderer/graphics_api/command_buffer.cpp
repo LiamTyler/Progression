@@ -313,17 +313,6 @@ namespace Gfx
         PipelineImageBarrier( srcStageMask, dstStageMask, imageMemoryBarrier );
     }
 
-    //void CommandBuffer::TransitionImageLayout( VkImage image, VkImageAspectFlags aspectMask, ImageLayout oldLayout, ImageLayout newLayout, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask ) const
-    //{
-    //    VkImageSubresourceRange subresourceRange;
-	//	subresourceRange.aspectMask = aspectMask;
-	//	subresourceRange.baseMipLevel = 0;
-	//	subresourceRange.levelCount = 1;
-    //    subresourceRange.baseArrayLayer = 0;
-	//	subresourceRange.layerCount = 1;
-    //    TransitionImageLayout( image, oldLayout, newLayout, subresourceRange, srcStageMask, dstStageMask );
-    //}
-    
 
     void CommandBuffer::Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount, uint32_t firstInstance ) const
     {

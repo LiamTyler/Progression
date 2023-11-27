@@ -44,6 +44,55 @@ namespace Gfx
     RenderPass::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 
 
+    std::string LoadActionToString( LoadAction action )
+    {
+        switch( action )
+        {
+        case LoadAction::LOAD:
+            return "LOAD";
+        case LoadAction::CLEAR:
+            return "CLEAR";
+        case LoadAction::DONT_CARE:
+            return "DONT_CARE";
+        default:
+            PG_ASSERT( false, "Invalid load action %d", Underlying( action ) );
+        }
+    }
+
+    std::string StoreActionToString( StoreAction action )
+    {
+        switch( action )
+        {
+        case StoreAction::STORE:
+            return "STORE";
+        case StoreAction::DONT_CARE:
+            return "DONT_CARE";
+        default:
+            PG_ASSERT( false, "Invalid store action %d", Underlying( action ) );
+        }
+    }
+
+    /*
+            UNDEFINED = 0,
+        GENERAL = 1,
+        COLOR_ATTACHMENT = 2,
+        DEPTH_STENCIL_ATTACHMENT = 3,
+        DEPTH_STENCIL_READ_ONLY = 4,
+        SHADER_READ_ONLY = 5,
+        TRANSFER_SRC = 6,
+        TRANSFER_DST = 7,
+        PREINITIALIZED = 8,
+        DEPTH_READ_ONLY_STENCIL_ATTACHMENT = 1000117000,
+        DEPTH_ATTACHMENT_STENCIL_READ_ONLY = 1000117001,
+        DEPTH_ATTACHMENT = 1000241000,
+        DEPTH_READ_ONLY = 1000241001,
+        STENCIL_ATTACHMENT = 1000241002,
+        STENCIL_READ_ONLY = 1000241003,
+        READ_ONLY = 1000314000,
+        ATTACHMENT = 1000314001,
+        PRESENT_SRC_KHR = 1000001002,
+        */
+
     std::string ImageLayoutToString( ImageLayout layout )
     {
         switch( layout )
@@ -70,6 +119,18 @@ namespace Gfx
             return "DEPTH_READ_ONLY_STENCIL_ATTACHMENT";
         case ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY:
             return "DEPTH_ATTACHMENT_STENCIL_READ_ONLY";
+        case ImageLayout::DEPTH_ATTACHMENT:
+            return "DEPTH_ATTACHMENT";
+        case ImageLayout::DEPTH_READ_ONLY:
+            return "DEPTH_READ_ONLY";
+        case ImageLayout::STENCIL_ATTACHMENT:
+            return "STENCIL_ATTACHMENT";
+        case ImageLayout::STENCIL_READ_ONLY:
+            return "STENCIL_READ_ONLY";
+        case ImageLayout::READ_ONLY:
+            return "READ_ONLY";
+        case ImageLayout::ATTACHMENT:
+            return "ATTACHMENT";
         case ImageLayout::PRESENT_SRC_KHR:
             return "PRESENT_SRC_KHR";
         default:

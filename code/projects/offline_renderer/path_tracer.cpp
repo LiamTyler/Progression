@@ -289,7 +289,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
         }
     }
 
-    LOG( "\nRendered scene in %.2f seconds", Time::GetDuration( timeStart ) / 1000 );
+    LOG( "\nRendered scene in %.2f seconds", Time::GetTimeSince( timeStart ) / 1000 );
 }
 
 PathTracer::PathTracer( Scene* inScene )

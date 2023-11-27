@@ -26,7 +26,7 @@ int TestImageCompression()
     settings.format = ImageFormat::BC6H_U16F;
     //auto startTime = Time::GetTimePoint();
     RawImage2D compressed = CompressToBC( exrImg, settings );
-    //LOG( "Compression done in %.2f seconds", Time::GetDuration( startTime ) / 1000.0f );
+    //LOG( "Compression done in %.2f seconds", Time::GetTimeSince( startTime ) / 1000.0f );
     LOG( "Compression done" );
 
     RawImage2D uncompressed = compressed.Convert( exrImg.format );

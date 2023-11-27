@@ -1,4 +1,5 @@
 #include "r_rendergraph.hpp"
+#include "core/time.hpp"
 #include "renderer/graphics_api/command_buffer.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
@@ -267,6 +268,24 @@ namespace Gfx
             return true;
         }
 
+        size_t SizeInBytes() const
+        {
+            if ( IsSet( element.type, ResourceType::TEXTURE ) )
+            {
+                TextureDescriptor texDesc;
+                texDesc.format = element.format;
+                texDesc.width = element.width;
+                texDesc.height = element.height;
+                texDesc.depth = element.depth;
+                texDesc.arrayLayers = element.arrayLayers;
+                texDesc.mipLevels = element.mipLevels;
+                return texDesc.TotalSizeInBytes();
+            }
+
+
+            return 0;
+        }
+
         std::string name;
         RG_Element element;
         uint16_t firstTask;
@@ -277,27 +296,24 @@ namespace Gfx
 
     bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& compileInfo )
     {
-        // TODO: re-order tasks for more optimal rendering. For now, keep same order
-        // TODO: handle external images
-        // TODO: buffers
-        // TODO: compute tasks
-        // TODO: cull tasks that dont affect the final image
-        // TODO: use StoreOp::DONT_CARE when applicable
-        // TODO: right now, if a resource is used as an input, the layouts will never be transitioned to WRITE if it's used as an output later
-
         assert( builder.tasks.size() <= MAX_TASKS );
 
-        if ( !builder.Validate( compileInfo ) )
+        auto startTime = Time::GetTimePoint();
+        if ( compileInfo.validate )
         {
-            LOG_ERR( "RenderGraph::Compile failed: Invalid RenderGraphBuilder!" );
-            return false;
+            if ( !builder.Validate( compileInfo ) )
+            {
+                LOG_ERR( "RenderGraph::Compile failed: Invalid RenderGraphBuilder!" );
+                return false;
+            }
         }
+        auto postValidateTime = Time::GetTimePoint();
 
         uint16_t numBuildTasks = static_cast< uint16_t >( builder.tasks.size() );
-        numRenderTasks = numBuildTasks;
-        numPhysicalResources = 0;
-        swapchainPhysicalResIdx = UINT16_MAX;
-        stats = {};
+        m_numRenderTasks = numBuildTasks;
+        m_numPhysicalResources = 0;
+        m_swapchainPhysicalResIdx = UINT16_MAX;
+        m_stats = {};
 
         // 1. Create a list of all resources that are (logically) produced by the task graph.
         //    Also resolves scene relatives sizes, and finds the first and last task each resource is used in
@@ -307,7 +323,7 @@ namespace Gfx
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
             RenderTaskBuilder& task = builder.tasks[taskIndex];
-            taskNameToIndexMap[task.name] = taskIndex;
+            m_taskNameToIndexMap[task.name] = taskIndex;
 
             for ( RG_Element& element : task.elements )
             {
@@ -348,7 +364,7 @@ namespace Gfx
                 }
             }
         }
-        stats.numLogicalOutputs = static_cast< uint16_t >( logicalOutputs.size() );
+        m_stats.numLogicalOutputs = static_cast< uint16_t >( logicalOutputs.size() );
 
         // 2. Before we create physical resources for these, find out if we can merge two "logical" resources
         //    Two resources are mergeable, if their lifetimes do not overlap at all, and have the same resource descriptors.
@@ -359,16 +375,21 @@ namespace Gfx
         {
             RG_LogicalOutput& logicalOutput = logicalOutputs[i];
             bool mergedResourceFound = false;
-            for ( RG_LogicalOutput& mergedOutput : mergedLogicalOutputs )
+            if ( compileInfo.mergeResources )
             {
-                if ( mergedOutput.Mergable( logicalOutput ) )
+                for ( RG_LogicalOutput& mergedOutput : mergedLogicalOutputs )
                 {
-                    mergedOutput.firstTask = std::min( mergedOutput.firstTask, logicalOutput.firstTask );
-                    mergedOutput.lastTask = std::max( mergedOutput.lastTask, logicalOutput.lastTask );
-                    mergedOutput.name += "_" + logicalOutput.name;
-                    logicalOutput.physicalResourceIndex = mergedOutput.physicalResourceIndex;
-                    mergedResourceFound = true;
-                    break;
+                    if ( mergedOutput.Mergable( logicalOutput ) )
+                    {
+                        mergedOutput.firstTask = std::min( mergedOutput.firstTask, logicalOutput.firstTask );
+                        mergedOutput.lastTask = std::max( mergedOutput.lastTask, logicalOutput.lastTask );
+                        mergedOutput.name += "_" + logicalOutput.name;
+                        logicalOutput.physicalResourceIndex = mergedOutput.physicalResourceIndex;
+                        m_stats.numMergedResources++;
+                        m_stats.bytesSavedByMerging += logicalOutput.SizeInBytes();
+                        mergedResourceFound = true;
+                        break;
+                    }
                 }
             }
 
@@ -377,9 +398,9 @@ namespace Gfx
                 logicalOutput.physicalResourceIndex = static_cast<uint16_t>( mergedLogicalOutputs.size() );
                 mergedLogicalOutputs.push_back( logicalOutput );
                 if ( IsSet( logicalOutput.element.type, ResourceType::SWAPCHAIN_IMAGE ) )
-                    swapchainPhysicalResIdx = logicalOutput.physicalResourceIndex;
+                    m_swapchainPhysicalResIdx = logicalOutput.physicalResourceIndex;
             }
-            resourceNameToIndexMap[logicalOutput.name] = logicalOutput.physicalResourceIndex;
+            m_resourceNameToIndexMap[logicalOutput.name] = logicalOutput.physicalResourceIndex;
         }
 
         // 3. Gather all the info needed to create the task objects
@@ -396,7 +417,7 @@ namespace Gfx
 
         for ( uint16_t taskIndex = 0; taskIndex < numBuildTasks; ++taskIndex )
         {
-            RenderTask& renderTask = renderTasks[taskIndex];
+            RenderTask& renderTask = m_renderTasks[taskIndex];
             RenderTaskBuilder& buildTask = builder.tasks[taskIndex];
 
             renderTask.name = std::move( buildTask.name );
@@ -439,7 +460,7 @@ namespace Gfx
                 {
                     if ( trackingInfo.lastReadTask < trackingInfo.lastWriteTask || (trackingInfo.lastReadTask == USHRT_MAX && trackingInfo.lastWriteTask != USHRT_MAX) )
                     {
-                        const RenderTask& prevTask = renderTasks[trackingInfo.lastWriteTask];
+                        const RenderTask& prevTask = m_renderTasks[trackingInfo.lastWriteTask];
                         ImageLayout desiredLayout = ImageLayout::SHADER_READ_ONLY;
                         if ( IsSet( logicalRes.element.type, ResourceType::DEPTH_ATTACH ) )
                             desiredLayout = dsLayout;
@@ -453,59 +474,74 @@ namespace Gfx
             }
         }
 
+        auto preAllocateTime = Time::GetTimePoint();
+
         // 4. Create the gpu resources. RenderPasses, Textures
+        bool error = false;
+        m_numPhysicalResources = static_cast<uint16_t>( mergedLogicalOutputs.size() );
+        for ( uint16_t resIdx = 0; resIdx < m_numPhysicalResources && !error; ++resIdx )
         {
-            bool error = false;
-            numPhysicalResources = static_cast<uint16_t>( mergedLogicalOutputs.size() );
-            for ( uint16_t resIdx = 0; resIdx < numPhysicalResources && !error; ++resIdx )
+            const RG_LogicalOutput& lRes = mergedLogicalOutputs[resIdx];
+
+            TextureDescriptor texDesc;
+            texDesc.format = lRes.element.format;
+            texDesc.width  = lRes.element.width;
+            texDesc.height = lRes.element.height;
+            texDesc.depth  = lRes.element.depth;
+            texDesc.arrayLayers = lRes.element.arrayLayers;
+            texDesc.mipLevels   = lRes.element.mipLevels;
+            texDesc.addToBindlessArray = true;
+            texDesc.type = ImageType::TYPE_2D;
+            texDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            if ( IsSet( lRes.element.type, ResourceType::COLOR_ATTACH ) )
+                texDesc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            else if ( IsSet( lRes.element.type, ResourceType::DEPTH_ATTACH ) || IsSet( lRes.element.type, ResourceType::STENCIL_ATTACH ) )
+                texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+            if ( lRes.element.isExternal )
             {
-                const RG_LogicalOutput& lRes = mergedLogicalOutputs[resIdx];
-
-                TextureDescriptor texDesc;
-                texDesc.format = lRes.element.format;
-                texDesc.width  = lRes.element.width;
-                texDesc.height = lRes.element.height;
-                texDesc.depth  = lRes.element.depth;
-                texDesc.arrayLayers = lRes.element.arrayLayers;
-                texDesc.mipLevels   = lRes.element.mipLevels;
-                texDesc.addToBindlessArray = true;
-                texDesc.type = ImageType::TYPE_2D;
-                texDesc.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-                if ( IsSet( lRes.element.type, ResourceType::COLOR_ATTACH ) )
-                    texDesc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-                else if ( IsSet( lRes.element.type, ResourceType::DEPTH_ATTACH ) || IsSet( lRes.element.type, ResourceType::STENCIL_ATTACH ) )
-                    texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-                if ( lRes.element.isExternal )
-                {
-                    for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
-                    {
-                        RG_PhysicalResource& pRes = physicalResources[resIdx][frameInFlight];
-                        pRes.name = lRes.name;
-                        pRes.firstTask = lRes.firstTask;
-                        pRes.lastTask = lRes.lastTask;
-                        pRes.texture.m_desc = texDesc;
-                        pRes.isExternal = true;
-                    }
-                    continue;
-                }
-
                 for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
                 {
-                    RG_PhysicalResource& pRes = physicalResources[resIdx][frameInFlight];
+                    RG_PhysicalResource& pRes = m_physicalResources[resIdx][frameInFlight];
                     pRes.name = lRes.name;
                     pRes.firstTask = lRes.firstTask;
                     pRes.lastTask = lRes.lastTask;
-                    pRes.texture = rg.device.NewTexture( texDesc, pRes.name );
-                    error = !pRes.texture;
+                    pRes.texture.m_desc = texDesc;
+                    pRes.isExternal = true;
+                }
+                continue;
+            }
 
-                    stats.memUsedMB += pRes.texture.GetTotalBytes() / (1024.0f * 1024.0f);
-                    stats.numTextures++;
+            for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
+            {
+                RG_PhysicalResource& pRes = m_physicalResources[resIdx][frameInFlight];
+                if ( pRes.isExternal )
+                    continue;
+                pRes.name = lRes.name;
+                pRes.firstTask = lRes.firstTask;
+                pRes.lastTask = lRes.lastTask;
+                pRes.texture = rg.device.NewTexture( texDesc, pRes.name );
+                error = !pRes.texture;
+
+                // only track numbers for a single frame
+                if ( frameInFlight == 0 )
+                {
+                    m_stats.bytesUsed += pRes.texture.GetTotalBytes();
+                    m_stats.numTextures++;
                 }
             }
         }
 
-        return true;
+        auto endTime = Time::GetTimePoint();
+        
+        m_stats.validateTime = Time::GetElapsedTime( startTime, postValidateTime );
+        m_stats.compileTime = Time::GetElapsedTime( postValidateTime, preAllocateTime );
+        m_stats.allocateTime = Time::GetElapsedTime( preAllocateTime, endTime );
+
+        if ( compileInfo.showStats )
+            PrintStats();
+
+        return !error;
     }
 
 
@@ -513,58 +549,130 @@ namespace Gfx
     {
         for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
         {
-            for ( uint16_t i = 0; i < numPhysicalResources; ++i )
+            for ( uint16_t i = 0; i < m_numPhysicalResources; ++i )
             {
-                RG_PhysicalResource& res = physicalResources[i][frameInFlight];
+                RG_PhysicalResource& res = m_physicalResources[i][frameInFlight];
                 if ( !res.isExternal && res.texture )
                 {
-                    physicalResources[i][frameInFlight].texture.Free();
+                    m_physicalResources[i][frameInFlight].texture.Free();
                 }
             }
         }
 
-        for ( uint16_t taskIndex = 0; taskIndex < numRenderTasks; ++taskIndex )
+        for ( uint16_t taskIndex = 0; taskIndex < m_numRenderTasks; ++taskIndex )
         {
-            if ( renderTasks[taskIndex].renderTargetData )
-                delete renderTasks[taskIndex].renderTargetData;
+            if ( m_renderTasks[taskIndex].renderTargetData )
+                delete m_renderTasks[taskIndex].renderTargetData;
         }
     }
 
 
-    void RenderGraph::Print() const
+    void RenderGraph::PrintStats() const
     {
-        LOG( "Logical Outputs: %u", stats.numLogicalOutputs );
-        LOG( "Physical Resources: %u", numPhysicalResources );
-        for ( uint16_t i = 0; i < numPhysicalResources; ++i )
+        float toMB = 1.0f / (1024.0f * 1024.0f);
+        LOG( "Render Graph Stats: " );
+        LOG( "    Validate Time: %g ms", m_stats.validateTime );
+        LOG( "    Compile Time: %g ms", m_stats.compileTime );
+        LOG( "    Allocate Time: %g ms", m_stats.allocateTime );
+        LOG( "    Total Time: %g ms", m_stats.compileTime + m_stats.allocateTime + m_stats.validateTime );
+        LOG( "    Num Tasks: %u", m_numRenderTasks );
+        LOG( "    Logical Outputs: %u", m_stats.numLogicalOutputs );
+        LOG( "    Merged Resources: %u, Saving: %g MB (x %d)", m_stats.numMergedResources,
+            m_stats.bytesSavedByMerging * toMB, MAX_FRAMES_IN_FLIGHT );
+        LOG( "    Managed Physical Resources: %u (x %d)", m_numPhysicalResources, MAX_FRAMES_IN_FLIGHT );
+        LOG( "    Managed Memory Used: %g MB (x %d)", m_stats.bytesUsed * toMB, MAX_FRAMES_IN_FLIGHT );
+    }
+
+
+    static std::string AspectToString( VkImageAspectFlags aspect )
+    {
+        std::vector<std::string> bits;
+        if ( aspect & VK_IMAGE_ASPECT_COLOR_BIT )
+            bits.push_back( "COLOR" );
+        if ( aspect & VK_IMAGE_ASPECT_DEPTH_BIT )
+            bits.push_back( "DEPTH" );
+        if ( aspect & VK_IMAGE_ASPECT_STENCIL_BIT )
+            bits.push_back( "STENCIL" );
+
+        if ( bits.size() == 0 )
+            return "NONE";
+
+        std::string ret = bits[0];
+        for ( size_t i = 1; i < bits.size(); ++i )
+            ret += " | " + bits[i];
+        return ret;
+    }
+
+
+    void RenderGraph::PrintAllInfo() const
+    {
+        PrintStats();
+        LOG( "Render Graph All Info:" );
+        for ( uint16_t i = 0; i < m_numPhysicalResources; ++i )
         {
-            const auto& res = physicalResources[i][0];
-            LOG( "\tPhysical resource[%u]: '%s'", i, res.name.c_str() );
-            LOG( "\t\tUsed in tasks: %u - %u (%s - %s)", res.firstTask, res.lastTask, renderTasks[res.firstTask].name.c_str(), renderTasks[res.lastTask].name.c_str() );
-            const auto& tex = res.texture;
-            LOG( "\t\tformat: %s, width: %u, height: %u, depth: %u, arrayLayers: %u, mipLevels: %u", PixelFormatName( tex.GetPixelFormat() ).c_str(), tex.GetWidth(), tex.GetHeight(), tex.GetDepth(), tex.GetArrayLayers(), tex.GetMipLevels() );
+            const RG_PhysicalResource& res = m_physicalResources[i][0];
+            LOG( "Physical resource[%u]: '%s'", i, res.name.c_str() );
+            LOG( "    Used in tasks: %u - %u (%s - %s)", res.firstTask, res.lastTask, m_renderTasks[res.firstTask].name.c_str(), m_renderTasks[res.lastTask].name.c_str() );
+            if ( res.isExternal )
+                LOG( "    Managed By Render Graph: No (externally allocated resource)" );
+            const Texture& tex = res.texture;
+            LOG( "    Format: %s, Width: %u, Height: %u, Depth: %u, ArrayLayers: %u, MipLevels: %u,", PixelFormatName( tex.GetPixelFormat() ).c_str(), tex.GetWidth(), tex.GetHeight(), tex.GetDepth(), tex.GetArrayLayers(), tex.GetMipLevels() );
         }
-        LOG( "Physical Resources Mem: %f(MB)", stats.memUsedMB );
 
-        LOG( "Tasks: %u", numRenderTasks );
-        for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
+        LOG( "Tasks: %u", m_numRenderTasks );
+        for ( uint16_t taskIdx = 0; taskIdx < m_numRenderTasks; ++taskIdx )
         {
-            const RenderTask& task = renderTasks[taskIdx];
+            const RenderTask& task = m_renderTasks[taskIdx];
             LOG( "Task[%u]: %s", taskIdx, task.name.c_str() );
+            LOG( "  Transitions: %u", (uint32_t)task.imageTransitions.size() );
+            for ( uint32_t i = 0; i < (uint32_t)task.imageTransitions.size(); ++i )
+            {
+                const RenderTask::ImageTransition& t = task.imageTransitions[i];
+                LOG( "    Physical Resource %s", m_physicalResources[t.physicalResourceIndex][0].name.c_str() );
+                LOG( "    Layout %s -> %s, Aspect: %s", ImageLayoutToString( t.previousLayout ).c_str(),
+                    ImageLayoutToString( t.desiredLayout ).c_str(), AspectToString( t.aspect ).c_str() );
+            }
 
-            //uint8_t numColor = 0;
-            //for ( uint8_t i = 0; i < task.renderTargetData->numColorAttach; ++i )
-            //{
-            //    LOG( "\tColorAttachment[%u]: %s", i, physicalResources[task.renderTargetData->colorAttachAuxInfo[i].physicalResourceIndex].name.c_str() );
-            //
-            //    const auto& attach = task.renderPasses[0].desc.colorAttachmentDescriptors[numColor];
-            //    LOG( "\t\tImageLayout: %s -> %s", ImageLayoutToString( task.renderTargetData->colorAttachAuxInfo[i].previousLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
-            //}
-            //if ( task.renderPasses[0].desc.numDepthAttachments != 0 )
-            //{
-            //    LOG( "\tDepthAttachment: %s", physicalResources[task.renderTargetData->depthAttachAuxInfo.physicalResourceIndex].name.c_str() );
-            //    const auto& attach = task.renderPasses[0].desc.depthAttachmentDescriptor;
-            //    LOG( "\t\tImageLayout: %s -> %s", ImageLayoutToString( attach.initialLayout ).c_str(), ImageLayoutToString( attach.finalLayout ).c_str() );
-            //}
+            const RG_TaskRenderTargetsDynamic* rtData = task.renderTargetData;
+            LOG( "  Render Area: %u x %u", rtData->renderAreaWidth, rtData->renderAreaHeight );
+            LOG( "  Num Color Attachments: %u", rtData->numColorAttach );
+            for ( uint8_t i = 0; i < rtData->numColorAttach; ++i )
+            {
+                const RG_AttachmentInfo& attach = rtData->colorAttachInfo[i];
+                LOG( "  ColorAttachment[%u]: %s", i, m_physicalResources[attach.physicalResourceIndex][0].name.c_str() );
+                if ( attach.loadAction == LoadAction::CLEAR )
+                {
+                    glm::vec4 c = attach.clearColor;
+                    LOG( "    Format: %s, Layout: %s, Load: %s, ClearColor: (%g %g %g %g), Store: %s", PixelFormatName( attach.format ).c_str(), ImageLayoutToString( attach.imageLayout ).c_str(),
+                        LoadActionToString( attach.loadAction ).c_str(), c.r, c.g, c.b, c.a, StoreActionToString( attach.storeAction ).c_str() );
+                }
+                else
+                {
+                    LOG( "    Format: %s, Layout: %s, Load: %s, Store: %s", PixelFormatName( attach.format ).c_str(), ImageLayoutToString( attach.imageLayout ).c_str(),
+                        LoadActionToString( attach.loadAction ).c_str(), StoreActionToString( attach.storeAction ).c_str() );
+                }
+            }
+
+            bool hasDepth = rtData->depthAttachInfo.format != PixelFormat::INVALID;
+            if ( hasDepth )
+            {
+                LOG( "  Has Depth Attach: True" );
+                const RG_AttachmentInfo& attach = rtData->depthAttachInfo;
+                if ( attach.loadAction == LoadAction::CLEAR )
+                {
+                    LOG( "    Format: %s, Layout: %s, Load: %s, Clear Val: %.1f, Store: %s", PixelFormatName( attach.format ).c_str(), ImageLayoutToString( attach.imageLayout ).c_str(),
+                        LoadActionToString( attach.loadAction ).c_str(), attach.clearColor.x, StoreActionToString( attach.storeAction ).c_str() );
+                }
+                else
+                {
+                    LOG( "    Format: %s, Layout: %s, Load: %s, Store: %s", PixelFormatName( attach.format ).c_str(), ImageLayoutToString( attach.imageLayout ).c_str(),
+                        LoadActionToString( attach.loadAction ).c_str(), StoreActionToString( attach.storeAction ).c_str() );
+                }
+            }
+            else
+            {
+                LOG( "  Has Depth Attach: False" );
+            }
         }
     }
 
@@ -585,7 +693,7 @@ namespace Gfx
             // Kinda hacky, but the swapchain image has a slot in the physical resource array, even if it's
             // not managed by the render graph. Populate it with the data, so accesses between swapchain and non-swapchain
             // images are the same
-            Texture& tex = *GetTexture( swapchainPhysicalResIdx );
+            Texture& tex = *GetTexture( m_swapchainPhysicalResIdx );
             tex.m_image = renderData.swapchain->GetImage( renderData.swapchainImageIndex );
             tex.m_imageView = renderData.swapchain->GetImageView( renderData.swapchainImageIndex );
             tex.m_desc.width = renderData.swapchain->GetWidth();
@@ -604,9 +712,9 @@ namespace Gfx
 		renderInfo.layerCount = 1;
 
         CommandBuffer& cmdBuf = *renderData.cmdBuf;
-        for ( uint16_t taskIdx = 0; taskIdx < numRenderTasks; ++taskIdx )
+        for ( uint16_t taskIdx = 0; taskIdx < m_numRenderTasks; ++taskIdx )
         {
-            RenderTask& task = renderTasks[taskIdx];
+            RenderTask& task = m_renderTasks[taskIdx];
             const RG_TaskRenderTargetsDynamic* rtData = task.renderTargetData;
             PG_ASSERT( rtData, "should be true for now, until compute support" );
 
@@ -661,47 +769,47 @@ namespace Gfx
         }
 
         // transition the swapchain image to PRESENT
-        VkImage img = GetTexture( swapchainPhysicalResIdx )->GetHandle();
+        VkImage img = GetTexture( m_swapchainPhysicalResIdx )->GetHandle();
         VkImageSubresourceRange range{ VK_IMAGE_ASPECT_COLOR_BIT, 0, VK_REMAINING_MIP_LEVELS, 0, VK_REMAINING_ARRAY_LAYERS };
         PipelineStageFlags srcStageMask = GetPipelineStageFlags( ImageLayout::COLOR_ATTACHMENT );
         PipelineStageFlags dstStageMask = GetPipelineStageFlags( ImageLayout::PRESENT_SRC_KHR );
         cmdBuf.TransitionImageLayout( img, ImageLayout::COLOR_ATTACHMENT, ImageLayout::PRESENT_SRC_KHR, range, srcStageMask, dstStageMask );
         
-        frameInFlight = (frameInFlight + 1) % MAX_FRAMES_IN_FLIGHT;
+        m_frameInFlight = (m_frameInFlight + 1) % MAX_FRAMES_IN_FLIGHT;
     }
 
 
     Texture* RenderGraph::GetTexture( uint16_t idx )
     {
-        return &physicalResources[idx][frameInFlight].texture;
+        return &m_physicalResources[idx][m_frameInFlight].texture;
     }
 
     RG_PhysicalResource* RenderGraph::GetPhysicalResource( uint16_t idx )
     {
-        return &physicalResources[idx][frameInFlight];
+        return &m_physicalResources[idx][m_frameInFlight];
     }
 
     RG_PhysicalResource* RenderGraph::GetPhysicalResource( const std::string& logicalName, uint8_t frameIdx )
     {
-        auto it = resourceNameToIndexMap.find( logicalName );
-        return it == resourceNameToIndexMap.end() ? nullptr : &physicalResources[it->second][frameIdx];
+        auto it = m_resourceNameToIndexMap.find( logicalName );
+        return it == m_resourceNameToIndexMap.end() ? nullptr : &m_physicalResources[it->second][frameIdx];
     }
 
 
     RenderTask* RenderGraph::GetRenderTask( const std::string& name )
     {
-        auto it = taskNameToIndexMap.find( name );
-        return it == taskNameToIndexMap.end() ? nullptr : &renderTasks[it->second];
+        auto it = m_taskNameToIndexMap.find( name );
+        return it == m_taskNameToIndexMap.end() ? nullptr : &m_renderTasks[it->second];
     }
 
 
     PipelineAttachmentInfo RenderGraph::GetPipelineAttachmentInfo( const std::string& name ) const
     {
         PipelineAttachmentInfo info{};
-        auto it = taskNameToIndexMap.find( name );
-        if ( it != taskNameToIndexMap.end() )
+        auto it = m_taskNameToIndexMap.find( name );
+        if ( it != m_taskNameToIndexMap.end() )
         {
-            const RenderTask& task = renderTasks[it->second];
+            const RenderTask& task = m_renderTasks[it->second];
             if ( !task.renderTargetData )
                 return info;
 
@@ -717,7 +825,7 @@ namespace Gfx
 
     RenderGraph::Statistics RenderGraph::GetStats() const
     {
-        return stats;
+        return m_stats;
     }
 
 } // namespace Gfx

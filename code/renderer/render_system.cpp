@@ -688,13 +688,14 @@ static bool InitRenderGraph( int width, int height )
     compileInfo.displayWidth = rg.swapchain.GetWidth();
     compileInfo.displayHeight = rg.swapchain.GetHeight();
     compileInfo.swapchainFormat = rg.swapchain.GetFormat();
+    compileInfo.showStats = false;
     if ( !s_renderGraph.Compile( builder, compileInfo ) )
     {
         LOG_ERR( "Failed to compile task graph" );
         return false;
     }
 
-    //s_renderGraph.Print();
+    s_renderGraph.PrintAllInfo();
     
     return true;
 }

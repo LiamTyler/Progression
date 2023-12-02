@@ -8,15 +8,12 @@
 
 #define GFX_MAX_SWAPCHAIN_IMAGES 3
 
-namespace PG
-{
-namespace Gfx
+namespace PG::Gfx
 {
 
 class Swapchain
 {
 public:
-
     bool Create( VkDevice device, uint32_t preferredWidth, uint32_t preferredHeight );
     uint32_t AcquireNextImage( const Semaphore& presentCompleteSemaphore );
     void Free();
@@ -43,5 +40,4 @@ private:
     std::array<VkImageView, GFX_MAX_SWAPCHAIN_IMAGES> m_imageViews;
 };
 
-} // namespace Gfx
-} // namespace PG
+} // namespace PG::Gfx

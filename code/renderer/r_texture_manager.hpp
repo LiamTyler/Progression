@@ -4,9 +4,7 @@
 #include <cstdint>
 #include <vector>
 
-namespace PG
-{
-namespace Gfx
+namespace PG::Gfx
 {
 
 class Texture;
@@ -14,12 +12,11 @@ class Texture;
 namespace TextureManager
 {
 
-    void Init();
-    void Shutdown();
-    uint16_t GetOpenSlot( Texture* texture );
-    void FreeSlot( uint16_t slot );
-    void UpdateDescriptors( const DescriptorSet& textureDescriptorSet );
+void Init();
+void Shutdown();
+uint16_t GetOpenSlot( Texture* texture );
+void FreeSlot( uint16_t slot );
+void UpdateDescriptors( const DescriptorSet& textureDescriptorSet );
 
 } // namespace TextureManager
-} // namespace Gfx
-} // namespace PG
+} // namespace PG::Gfx

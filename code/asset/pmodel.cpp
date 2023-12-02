@@ -2,13 +2,12 @@
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "shared/string.hpp"
+#include <chrono>
 #include <set>
 
-#include <chrono>
-
 using namespace std::chrono;
-using Clock = high_resolution_clock;
-using TimePoint = time_point< Clock >;
+using Clock     = high_resolution_clock;
+using TimePoint = time_point<Clock>;
 
 using namespace glm;
 
@@ -32,21 +31,20 @@ bool PModel::Vertex::AddBone( uint32_t boneIdx, float weight )
         if ( boneWeights[slot] < minWeight )
         {
             minWeight = boneWeights[slot];
-            minIdx = slot;
+            minIdx    = slot;
         }
     }
 
     return false;
 }
 
-
 static std::string GetNameAfterColon( const std::string& line )
 {
     size_t startIdx = line.find( ':' );
-    while ( std::isspace( line[++startIdx] ) );
+    while ( std::isspace( line[++startIdx] ) )
+        ;
     return line.substr( startIdx );
 }
-
 
 bool PModel::Load( const std::string& filename )
 {
@@ -64,10 +62,11 @@ bool PModel::Load( const std::string& filename )
     in >> version;
     if ( version < (uint32_t)PModelVersionNum::LAST_SUPPORTED_VERSION )
     {
-        LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(), version );
+        LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(),
+            version );
         return false;
     }
-    
+
     auto SkipEmptyLines = []( std::ifstream& inFile, std::string& line )
     {
         do
@@ -89,7 +88,7 @@ bool PModel::Load( const std::string& filename )
     while ( std::getline( in, line ) && line.substr( 0, 4 ) == "Mesh" )
     {
         Mesh& mesh = meshes.emplace_back();
-        mesh.name = GetNameAfterColon( line );
+        mesh.name  = GetNameAfterColon( line );
         std::getline( in, line );
         mesh.materialName = GetNameAfterColon( line );
         std::getline( in, line );
@@ -100,18 +99,18 @@ bool PModel::Load( const std::string& filename )
         // skip to first vertex
         SkipEmptyLines( in, line );
 
-        uint32_t meshNumUVs = 0;
-        uint32_t meshNumColors = 0;
-        uint32_t meshNumTangents = 0;
+        uint32_t meshNumUVs        = 0;
+        uint32_t meshNumColors     = 0;
+        uint32_t meshNumTangents   = 0;
         uint32_t meshNumBitangents = 0;
 
         mesh.vertices.reserve( 65536 );
         while ( !line.empty() && line[0] == 'V' )
         {
-            Vertex& v = mesh.vertices.emplace_back();
-            uint32_t numUVs = 0;
-            uint32_t numColors = 0;
-            uint32_t numTangents = 0;
+            Vertex& v              = mesh.vertices.emplace_back();
+            uint32_t numUVs        = 0;
+            uint32_t numColors     = 0;
+            uint32_t numTangents   = 0;
             uint32_t numBitangents = 0;
 
             std::getline( in, line );
@@ -133,7 +132,8 @@ bool PModel::Load( const std::string& filename )
                 }
                 else if ( line[0] == 'c' )
                 {
-                    sscanf( line.c_str(), "%s %f %f %f %f", tmpBuffer, &v.colors[numColors].x, &v.colors[numColors].y, &v.colors[numColors].z, &v.colors[numColors].w );
+                    sscanf( line.c_str(), "%s %f %f %f %f", tmpBuffer, &v.colors[numColors].x, &v.colors[numColors].y,
+                        &v.colors[numColors].z, &v.colors[numColors].w );
                     ++numColors;
                 }
                 else if ( line[0] == 'b' && line[1] == 'w' )
@@ -156,20 +156,22 @@ bool PModel::Load( const std::string& filename )
             if ( numBitangents > 1 )
                 LOG_WARN( "Mesh %s vertex %u has more than 1 bittangent specified", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
             if ( numTangents && !numBitangents )
-                LOG_WARN( "Mesh %s vertex %u has a tangent specified, but no bitangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+                LOG_WARN(
+                    "Mesh %s vertex %u has a tangent specified, but no bitangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
             if ( !numTangents && numBitangents )
-                LOG_WARN( "Mesh %s vertex %u has a bitangent specified, but no tangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+                LOG_WARN(
+                    "Mesh %s vertex %u has a bitangent specified, but no tangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
 #endif // #if USING( DEBUG_BUILD )
 
             meshNumUVs += numUVs;
             meshNumColors += numColors;
             meshNumTangents += numTangents;
             meshNumBitangents += numBitangents;
-            mesh.hasBoneWeights = mesh.hasBoneWeights || (v.numBones > 0);
+            mesh.hasBoneWeights = mesh.hasBoneWeights || ( v.numBones > 0 );
 
             std::getline( in, line );
         }
-        
+
         if ( meshNumUVs != mesh.vertices.size() * mesh.numUVChannels )
             LOG_WARN( "Not every vertex in mesh %s specified the expected uvs!", mesh.name.c_str() );
         if ( meshNumColors != mesh.vertices.size() * mesh.numColorChannels )
@@ -199,18 +201,20 @@ bool PModel::Load( const std::string& filename )
     return true;
 }
 
-
-static constexpr float PZ( float x )
-{
-    return x == 0.0f ? +0.0f : x;
-}
-
+static constexpr float PZ( float x ) { return x == 0.0f ? +0.0f : x; }
 
 bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProgress ) const
 {
     auto Start = Clock::now();
 
-    enum { POS_AND_NORMAL, TANGENTS, UV, COLOR, BONE };
+    enum
+    {
+        POS_AND_NORMAL,
+        TANGENTS,
+        UV,
+        COLOR,
+        BONE
+    };
     std::string fmtStrings[] =
     {
         "V %u\np %.6g %.6g %.6g\nn %.6g %.6g %.6g\n",
@@ -225,7 +229,7 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         SingleCharReplacement( &fmtStrings[strIdx][0], '6', '0' + floatPrecision );
 
     size_t totalVerts = 0;
-    size_t totalTris = 0;
+    size_t totalTris  = 0;
     std::set<std::string> materialSet;
     for ( const PModel::Mesh& mesh : meshes )
     {
@@ -242,33 +246,33 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
     }
     outFile << "\n";
 
-    size_t vertsWritten = 0;
+    size_t vertsWritten          = 0;
     const size_t tenPercentVerts = totalVerts / 10;
-    int lastPercent = 0;
+    int lastPercent              = 0;
     char buffer[1024];
     for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
     {
         const PModel::Mesh& m = meshes[meshIdx];
-        sprintf( buffer, "Mesh %u: %s\nMat: %s\nNumUVs %u\nNumColors: %u\n\n",
-            (uint32_t)meshIdx, m.name.c_str(), m.materialName.c_str(), m.numUVChannels, m.numColorChannels );
+        sprintf( buffer, "Mesh %u: %s\nMat: %s\nNumUVs %u\nNumColors: %u\n\n", (uint32_t)meshIdx, m.name.c_str(), m.materialName.c_str(),
+            m.numUVChannels, m.numColorChannels );
         outFile << buffer;
 
         for ( uint32_t vIdx = 0; vIdx < (uint32_t)m.vertices.size(); ++vIdx )
         {
             const PModel::Vertex& v = m.vertices[vIdx];
-            int pos = sprintf( buffer, fmtStrings[POS_AND_NORMAL].c_str(), vIdx, PZ( v.pos.x ),
-                PZ( v.pos.y ), PZ( v.pos.z ), PZ( v.normal.x ), PZ( v.normal.y ), PZ( v.normal.z ) );
+            int pos = sprintf( buffer, fmtStrings[POS_AND_NORMAL].c_str(), vIdx, PZ( v.pos.x ), PZ( v.pos.y ), PZ( v.pos.z ),
+                PZ( v.normal.x ), PZ( v.normal.y ), PZ( v.normal.z ) );
             if ( m.hasTangents )
             {
-                pos += sprintf( buffer + pos, fmtStrings[TANGENTS].c_str(), PZ( v.tangent.x ), PZ( v.tangent.y ),
-                    PZ( v.tangent.z ), PZ( v.bitangent.x ), PZ( v.bitangent.y ), PZ( v.bitangent.z ) );
+                pos += sprintf( buffer + pos, fmtStrings[TANGENTS].c_str(), PZ( v.tangent.x ), PZ( v.tangent.y ), PZ( v.tangent.z ),
+                    PZ( v.bitangent.x ), PZ( v.bitangent.y ), PZ( v.bitangent.z ) );
             }
             for ( uint32_t i = 0; i < m.numUVChannels; ++i )
                 pos += sprintf( buffer + pos, fmtStrings[UV].c_str(), PZ( v.uvs[i].x ), PZ( v.uvs[i].y ) );
 
             for ( uint32_t i = 0; i < m.numColorChannels; ++i )
-                pos += sprintf( buffer + pos, fmtStrings[COLOR].c_str(), PZ( v.colors[i].x ), PZ( v.colors[i].y ),
-                    PZ( v.colors[i].z ), PZ( v.colors[i].w ) );
+                pos += sprintf( buffer + pos, fmtStrings[COLOR].c_str(), PZ( v.colors[i].x ), PZ( v.colors[i].y ), PZ( v.colors[i].z ),
+                    PZ( v.colors[i].w ) );
 
             if ( m.hasBoneWeights )
             {
@@ -283,7 +287,7 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         outFile << "Tris:\n";
         for ( size_t i = 0; i < m.indices.size(); i += 3 )
         {
-            sprintf( buffer, "%u %u %u\n", m.indices[i+0], m.indices[i+1], m.indices[i+2] );
+            sprintf( buffer, "%u %u %u\n", m.indices[i + 0], m.indices[i + 1], m.indices[i + 2] );
             outFile << buffer;
         }
 
@@ -298,8 +302,8 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         }
     }
 
-    auto now = Clock::now();
-    double time = duration_cast< microseconds >( now - Start ).count() / static_cast< float >( 1000 );
+    auto now    = Clock::now();
+    double time = duration_cast<microseconds>( now - Start ).count() / static_cast<float>( 1000 );
     LOG( "Exported mesh in %f sec", time / 1000.0 );
 
     return outFile.good();
@@ -317,7 +321,6 @@ bool PModel::Save( const std::string& filename, uint32_t floatPrecision, bool lo
     return Save( out, floatPrecision, logProgress );
 }
 
-
 std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )
 {
     std::ifstream in( filename );
@@ -333,7 +336,8 @@ std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )
     in >> version;
     if ( version < (uint32_t)PModelVersionNum::LAST_SUPPORTED_VERSION )
     {
-        LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(), version );
+        LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(),
+            version );
         return {};
     }
 

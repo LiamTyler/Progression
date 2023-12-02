@@ -5,14 +5,14 @@
 
 #include "shared/logger.hpp"
 #include <thread>
-#if USING ( WINDOWS_PROGRAM )
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment (lib, "Ws2_32.lib")
+#if USING( WINDOWS_PROGRAM )
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #pragma comment( lib, "Ws2_32.lib" )
 #else // #if USING ( WINDOWS_PROGRAM )
-#error "Need to implement socket code for linux"
+    #error "Need to implement socket code for linux"
 #endif // #else // #if USING ( WINDOWS_PROGRAM )
 
 static bool s_serverShouldStop;
@@ -26,10 +26,9 @@ static void ListenForCommands();
 namespace PG::RemoteConsoleServer
 {
 
-
 bool Init()
 {
-    s_initialized = false;
+    s_initialized      = false;
     s_serverShouldStop = false;
 
     WSADATA wsa;
@@ -38,15 +37,15 @@ bool Init()
     s_listenSocket = INVALID_SOCKET;
     s_clientSocket = INVALID_SOCKET;
 
-    struct addrinfo *result = NULL;
+    struct addrinfo* result = NULL;
     struct addrinfo hints;
-    
-	if ( WSAStartup( MAKEWORD( 2,2 ), &wsa ) != 0 )
-	{
+
+    if ( WSAStartup( MAKEWORD( 2, 2 ), &wsa ) != 0 )
+    {
         LOG_ERR( "Failed. Error Code : %d", WSAGetLastError() );
-		return false;
-	}
-	
+        return false;
+    }
+
     ZeroMemory( &hints, sizeof( hints ) );
     hints.ai_family   = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
@@ -90,12 +89,11 @@ bool Init()
         WSACleanup();
         return false;
     }
-    s_initialized = true;
+    s_initialized  = true;
     s_serverThread = std::thread( ListenForCommands );
 
     return true;
 }
-
 
 void Shutdown()
 {
@@ -119,11 +117,9 @@ void Shutdown()
     s_initialized = false;
 }
 
-
 } // namespace PG::RemoteConsoleServer
 
-
-static void ListenForCommands() 
+static void ListenForCommands()
 {
     while ( !s_serverShouldStop )
     {
@@ -159,17 +155,17 @@ static void ListenForCommands()
             {
                 recvBuffer[bytesReceived] = '\0';
                 PG::AddConsoleCommand( recvBuffer );
-                //LOG( "RemoteConsoleServer: recieved message '%s'", recvBuffer );
+                // LOG( "RemoteConsoleServer: recieved message '%s'", recvBuffer );
 
-                //std::string sendMsg = "message recieved";
-                //int iSendResult = send( s_clientSocket, sendMsg.c_str(), (int)sendMsg.length() + 1, 0 );
-                //if ( iSendResult == SOCKET_ERROR )
+                // std::string sendMsg = "message recieved";
+                // int iSendResult = send( s_clientSocket, sendMsg.c_str(), (int)sendMsg.length() + 1, 0 );
+                // if ( iSendResult == SOCKET_ERROR )
                 //{
-                //    LOG_ERR( "send failed with error: %d", WSAGetLastError() );
-                //    clientConnected = false;
-                //}
+                //     LOG_ERR( "send failed with error: %d", WSAGetLastError() );
+                //     clientConnected = false;
+                // }
             }
-            else 
+            else
             {
                 int err = WSAGetLastError();
                 if ( err == WSAETIMEDOUT || errno == WSAEWOULDBLOCK )

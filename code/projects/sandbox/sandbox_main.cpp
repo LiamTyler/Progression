@@ -1,38 +1,37 @@
-#include "shared/logger.hpp"
-#include "core/time.hpp"
-#include "msdfgen.h"
-#include "ext/import-font.h"
-#include "ft2build.h"
 #include "ImageLib/bc_compression.hpp"
 #include "ImageLib/image.hpp"
+#include "core/time.hpp"
+#include "ext/import-font.h"
+#include "ft2build.h"
+#include "msdfgen.h"
+#include "shared/logger.hpp"
 #include "shared/lz4_compressor.hpp"
 #include <fstream>
 #include <iostream>
 
-
 int TestImageCompression()
 {
     RawImage2D exrImg;
-    //exrImg.Load( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k.exr" );
+    // exrImg.Load( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k.exr" );
     {
         FloatImage2D floatImg;
         floatImg.Load( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k.exr" );
         floatImg = floatImg.Resize( floatImg.width / 2, floatImg.height / 2 );
-        exrImg = RawImage2DFromFloatImage( floatImg );
-        //exrImg.Save( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k_v1.exr" );
+        exrImg   = RawImage2DFromFloatImage( floatImg );
+        // exrImg.Save( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k_v1.exr" );
     }
 
     BCCompressorSettings settings;
     settings.format = ImageFormat::BC6H_U16F;
-    //auto startTime = Time::GetTimePoint();
+    // auto startTime = Time::GetTimePoint();
     RawImage2D compressed = CompressToBC( exrImg, settings );
-    //LOG( "Compression done in %.2f seconds", Time::GetTimeSince( startTime ) / 1000.0f );
+    // LOG( "Compression done in %.2f seconds", Time::GetTimeSince( startTime ) / 1000.0f );
     LOG( "Compression done" );
 
     RawImage2D uncompressed = compressed.Convert( exrImg.format );
     uncompressed.Save( PG_ASSET_DIR "images/skyboxes/kloppenheim_06_8k_bc6.exr" );
 
-    FloatImage2D original = FloatImageFromRawImage2D( exrImg );
+    FloatImage2D original      = FloatImageFromRawImage2D( exrImg );
     FloatImage2D uncompressedF = FloatImageFromRawImage2D( uncompressed );
 
     double mse = FloatImageMSE( original, uncompressedF );
@@ -41,14 +40,13 @@ int TestImageCompression()
     return 0;
 }
 
-
 int main( int argc, char* argv[] )
 {
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
 
     LZ4CompressFile( "C:/Users/Liam Tyler/Downloads/main_sponza/Main.1_Sponza/NewSponza_Main_glTF_002.pmodel", "test.bin" );
-    
+
     // using namespace msdfgen;
     // FreetypeHandle *ft = initializeFreetype();
     // if (ft) {
@@ -84,31 +82,31 @@ int main( int argc, char* argv[] )
     //     deinitializeFreetype(ft);
     // }
     // return 0;
-    // 
+    //
     // FloatImage2D img;
     // img.Load( PG_ASSET_DIR "images/skies/kloppenheim_06_8k.exr" );
     // img = img.Resize( img.width / 4, img.height / 4 );
     // img.Save( PG_ASSET_DIR "images/skies/kloppenheim_06_2k.hdr" );
     // return 0;
 
-    //FloatImageCubemap cubemap;
-    //if ( !cubemap.LoadFromEquirectangular( PG_ASSET_DIR "images/skies/kloppenheim_06_2k.exr" ) )
-    //    return 0;
+    // FloatImageCubemap cubemap;
+    // if ( !cubemap.LoadFromEquirectangular( PG_ASSET_DIR "images/skies/kloppenheim_06_2k.exr" ) )
+    //     return 0;
     //
-    //FloatImage2D equiImg = CubemapToEquirectangular( cubemap );
-    //equiImg.Save( PG_ASSET_DIR "images/skies/kloppenheim_06_2k_ConvEqui.exr" );
-    //return 0;
+    // FloatImage2D equiImg = CubemapToEquirectangular( cubemap );
+    // equiImg.Save( PG_ASSET_DIR "images/skies/kloppenheim_06_2k_ConvEqui.exr" );
+    // return 0;
 
-    //FloatImageCubemap cubemap;
-    //if ( !cubemap.LoadFromEquirectangular( PG_ASSET_DIR "images/skies/kloppenheim_06_8k.exr" ) )
+    // FloatImageCubemap cubemap;
+    // if ( !cubemap.LoadFromEquirectangular( PG_ASSET_DIR "images/skies/kloppenheim_06_8k.exr" ) )
     //{
-    //    LOG_ERR( "Failed to load cubemap" );
-    //    return false;
-    //}
+    //     LOG_ERR( "Failed to load cubemap" );
+    //     return false;
+    // }
     //
-    //for ( int i = 0; i < 6; ++i ) HDRImageToLDR( cubemap.faces[i] );
-    //cubemap.SaveUnfoldedFaces( PG_ASSET_DIR "images/skies/kloppenheim_06_8k_unfolded2.png" );
-    //return 0;
+    // for ( int i = 0; i < 6; ++i ) HDRImageToLDR( cubemap.faces[i] );
+    // cubemap.SaveUnfoldedFaces( PG_ASSET_DIR "images/skies/kloppenheim_06_8k_unfolded2.png" );
+    // return 0;
 
     return true;
 }

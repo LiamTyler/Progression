@@ -5,7 +5,6 @@
 #include <string>
 #include <vector>
 
-
 class Serializer
 {
 public:
@@ -25,42 +24,40 @@ public:
     void Write( const std::string& s );
     void Read( std::string& s );
 
-    template< typename T >
+    template <typename T>
     void Write( const T& x )
     {
-        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        static_assert( std::is_trivial<T>::value, "T must be a trivial plain old data type" );
         Write( &x, sizeof( T ) );
     }
 
-    template< typename T >
-    void Write( const std::vector< T >& x )
+    template <typename T>
+    void Write( const std::vector<T>& x )
     {
-        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        static_assert( std::is_trivial<T>::value, "T must be a trivial plain old data type" );
         size_t size = x.size();
         Write( size );
         Write( x.data(), x.size() * sizeof( T ) );
     }
 
-    template< typename T >
+    template <typename T>
     void Read( T& x )
     {
-        static_assert( !std::is_const< T >::value, "T must be non-const" );
-        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        static_assert( !std::is_const<T>::value, "T must be non-const" );
+        static_assert( std::is_trivial<T>::value, "T must be a trivial plain old data type" );
         Read( (void*)&x, sizeof( T ) );
     }
 
-    template< typename T >
-    void Read( std::vector< T >& x )
+    template <typename T>
+    void Read( std::vector<T>& x )
     {
-        static_assert( !std::is_const< T >::value, "T must be non-const" );
-        static_assert( std::is_trivial< T >::value, "T must be a trivial plain old data type" );
+        static_assert( !std::is_const<T>::value, "T must be non-const" );
+        static_assert( std::is_trivial<T>::value, "T must be a trivial plain old data type" );
         size_t size;
         Read( size );
         x.resize( size );
         Read( (void*)x.data(), size * sizeof( T ) );
     }
-
-    
 
 private:
     std::string filename;

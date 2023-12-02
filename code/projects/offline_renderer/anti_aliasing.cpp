@@ -6,20 +6,18 @@
 
 using namespace PG::Random;
 
-namespace PT
-{
-namespace AntiAlias
+namespace PT::AntiAlias
 {
 
 Algorithm AlgorithmFromString( const std::string& alg )
 {
-    std::unordered_map< std::string, Algorithm > map =
+    std::unordered_map<std::string, Algorithm> map =
     {
-        { "NONE",             Algorithm::NONE },
+        { "NONE",             Algorithm::NONE             },
         { "REGULAR_2X2_GRID", Algorithm::REGULAR_2X2_GRID },
         { "REGULAR_4X4_GRID", Algorithm::REGULAR_4X4_GRID },
         { "ROTATED_2X2_GRID", Algorithm::ROTATED_2X2_GRID },
-        { "JITTER",           Algorithm::JITTER },
+        { "JITTER",           Algorithm::JITTER           },
     };
 
     auto it = map.find( alg );
@@ -32,25 +30,22 @@ Algorithm AlgorithmFromString( const std::string& alg )
     return it->second;
 }
 
-glm::vec2 None( int iteration, RNG &rng  )
-{
-    return { 0, 0 };
-}
+glm::vec2 None( int iteration, RNG& rng ) { return { 0, 0 }; }
 
-glm::vec2 Regular2x2Grid( int iteration, RNG &rng )
+glm::vec2 Regular2x2Grid( int iteration, RNG& rng )
 {
     static glm::vec2 offsets[] =
     {
         { -0.25, -0.25 },
         { 0.25,  -0.25 },
-        { 0.25,   0.25 },
-        { -0.25,  0.25 },
+        { 0.25,  0.25  },
+        { -0.25, 0.25  },
     };
 
     return offsets[iteration % 4];
 }
 
-glm::vec2 Regular4x4Grid( int iteration, RNG &rng )
+glm::vec2 Regular4x4Grid( int iteration, RNG& rng )
 {
     static glm::vec2 offsets[] =
     {
@@ -75,7 +70,7 @@ glm::vec2 Regular4x4Grid( int iteration, RNG &rng )
     return offsets[iteration % 16];
 }
 
-glm::vec2 Rotated2x2Grid( int iteration, RNG &rng )
+glm::vec2 Rotated2x2Grid( int iteration, RNG& rng )
 {
     static glm::vec2 offsets[] =
     {
@@ -88,10 +83,7 @@ glm::vec2 Rotated2x2Grid( int iteration, RNG &rng )
     return offsets[iteration % 4];
 }
 
-glm::vec2 Jitter( int iteration, RNG &rng )
-{
-    return { rng.UniformFloat() - 0.5f, rng.UniformFloat() - 0.5f };
-}
+glm::vec2 Jitter( int iteration, RNG& rng ) { return { rng.UniformFloat() - 0.5f, rng.UniformFloat() - 0.5f }; }
 
 int GetIterations( Algorithm alg )
 {
@@ -103,25 +95,24 @@ int GetIterations( Algorithm alg )
         4,  // ROTATED_2X2_GRID
         0,  // JITTER
     };
-    static_assert( ARRAY_COUNT( iterations ) == static_cast< int >( Algorithm::NUM_ALGORITHM ), "Forgot to update this" );
+    static_assert( ARRAY_COUNT( iterations ) == static_cast<int>( Algorithm::NUM_ALGORITHM ), "Forgot to update this" );
 
-    return iterations[static_cast< int >( alg )];
+    return iterations[static_cast<int>( alg )];
 }
 
 AAFuncPointer GetAlgorithm( Algorithm alg )
 {
     static AAFuncPointer functions[] =
     {
-        None,            // NONE
-        Regular2x2Grid,  // REGULAR_2X2_GRID
-        Regular4x4Grid,  // REGULAR_4X4_GRID
-        Rotated2x2Grid,  // ROTATED_2X2_GRID
-        Jitter,          // JITTER
+        None,           // NONE
+        Regular2x2Grid, // REGULAR_2X2_GRID
+        Regular4x4Grid, // REGULAR_4X4_GRID
+        Rotated2x2Grid, // ROTATED_2X2_GRID
+        Jitter,         // JITTER
     };
-    static_assert( ARRAY_COUNT( functions ) == static_cast< int >( Algorithm::NUM_ALGORITHM ), "Forgot to update this" );
+    static_assert( ARRAY_COUNT( functions ) == static_cast<int>( Algorithm::NUM_ALGORITHM ), "Forgot to update this" );
 
-    return functions[static_cast< int >( alg )];
+    return functions[static_cast<int>( alg )];
 }
 
-} // namespace AntiAlias
-} // namespace PT
+} // namespace PT::AntiAlias

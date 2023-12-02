@@ -13,7 +13,6 @@
 
 using namespace PG;
 
-
 namespace PT
 {
 
@@ -25,6 +24,7 @@ Scene::~Scene()
     }
 }
 
+// clang-format off
 static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
 {
     Camera& camera = scene->camera;
@@ -179,18 +179,15 @@ static bool ParseScript( const rapidjson::Value& v, Scene* scene )
     scene->nonEntityScripts.emplace_back( script );
     return true;
 }
-
+// clang-format on
 
 static void CreateShapesFromSceneGeo( Scene* scene )
 {
-    scene->registry.view< ModelRenderer, Transform >().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
-    {
-        AddMeshInstancesForModel( modelRenderer.model, modelRenderer.materials, transform );
-    });
+    scene->registry.view<ModelRenderer, Transform>().each( [&]( ModelRenderer& modelRenderer, Transform& transform )
+        { AddMeshInstancesForModel( modelRenderer.model, modelRenderer.materials, transform ); } );
 
     EmitTrianglesForAllMeshes( scene->shapes, scene->lights );
 }
-
 
 bool Scene::Load( const std::string& filename )
 {
@@ -201,7 +198,7 @@ bool Scene::Load( const std::string& filename )
         return false;
     }
 
-    Lua::State()["ECS"] = &this->registry;
+    Lua::State()["ECS"]   = &this->registry;
     Lua::State()["scene"] = this;
 
     if ( !AssetManager::LoadFastFile( "defaults_required" ) )
@@ -214,21 +211,20 @@ bool Scene::Load( const std::string& filename )
         return false;
     }
 
-    static JSONFunctionMapperBoolCheck< Scene* > mapping(
-    {
-        { "Camera",                ParseCamera },
-        { "Entity",                ParseEntity },
-        { "DirectionalLight",      ParseDirectionalLight },
-        { "PointLight",            ParsePointLight },
+    static JSONFunctionMapperBoolCheck<Scene*> mapping( {
+        { "Camera",                ParseCamera                },
+        { "Entity",                ParseEntity                },
+        { "DirectionalLight",      ParseDirectionalLight      },
+        { "PointLight",            ParsePointLight            },
         { "OfflineRenderSettings", ParseOfflineRenderSettings },
-        { "Skybox",                ParseSkybox },
-        { "SkyEVAdjust",           ParseSkyEVAdjust },
-        { "SkyTint",               ParseSkyTint },
-        { "StartupScript",         ParseStartupScript },
-        { "Script",                ParseScript },
-    });
+        { "Skybox",                ParseSkybox                },
+        { "SkyEVAdjust",           ParseSkyEVAdjust           },
+        { "SkyTint",               ParseSkyTint               },
+        { "StartupScript",         ParseStartupScript         },
+        { "Script",                ParseScript                },
+    } );
 
-    Scene* scene = this;
+    Scene* scene  = this;
     scene->skybox = TEXTURE_HANDLE_INVALID;
     for ( rapidjson::Value::ConstValueIterator itr = document.Begin(); itr != document.End(); ++itr )
     {
@@ -250,10 +246,9 @@ bool Scene::Load( const std::string& filename )
     return true;
 }
 
-
 void Scene::Start()
 {
-    Lua::State()["ECS"] = &registry;
+    Lua::State()["ECS"]   = &registry;
     Lua::State()["scene"] = this;
 
     for ( auto& script : nonEntityScripts )
@@ -261,38 +256,35 @@ void Scene::Start()
         sol::function startFn = script.env["Start"];
         if ( startFn.valid() )
         {
-            //script.env["scene"] = this;
-            //CHECK_SOL_FUNCTION_CALL( startFn() );
+            // script.env["scene"] = this;
+            // CHECK_SOL_FUNCTION_CALL( startFn() );
         }
     }
 }
 
-
 bool Scene::Intersect( const Ray& ray, IntersectionData& hitData )
 {
     hitData.t = FLT_MAX;
-    //for ( const auto& shape : bvh.shapes )
-    //{
-    //    shape->Intersect( ray, &hitData );
-    //}
-    //return hitData.t != FLT_MAX;
+    // for ( const auto& shape : bvh.shapes )
+    // {
+    //     shape->Intersect( ray, &hitData );
+    // }
+    // return hitData.t != FLT_MAX;
     return bvh.Intersect( ray, &hitData );
 }
 
-
 bool Scene::Occluded( const Ray& ray, float tMax )
 {
-    //for ( const auto& shape : bvh.shapes )
-    //{
-    //    if ( shape->TestIfHit( ray, tMax ) )
-    //    {
-    //        return true;
-    //    }
-    //}
-    //return false;
+    // for ( const auto& shape : bvh.shapes )
+    // {
+    //     if ( shape->TestIfHit( ray, tMax ) )
+    //     {
+    //         return true;
+    //     }
+    // }
+    // return false;
     return bvh.Occluded( ray, tMax );
 }
-
 
 glm::vec3 Scene::LEnvironment( const Ray& ray )
 {
@@ -305,7 +297,6 @@ glm::vec3 Scene::LEnvironment( const Ray& ray )
     }
 
     return glm::vec3( 0 );
-
 }
 
 } // namespace PT

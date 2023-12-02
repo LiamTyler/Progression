@@ -17,35 +17,32 @@ namespace PG::AssetManager
 {
 
 uint32_t GetAssetTypeIDHelper::IDCounter = 0;
-std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
+std::unordered_map<std::string, BaseAsset*> g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
+
 #if USING( ASSET_LIVE_UPDATE )
 std::vector<BaseAsset*> s_pendingAssetUpdates[AssetType::ASSET_TYPE_COUNT];
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
 void Init()
 {
-    GetAssetTypeID<GfxImage>::ID();     // AssetType::ASSET_TYPE_GFX_IMAGE
-    GetAssetTypeID<Material>::ID();     // AssetType::ASSET_TYPE_MATERIAL
-    GetAssetTypeID<Script>::ID();       // AssetType::ASSET_TYPE_SCRIPT
-    GetAssetTypeID<Model>::ID();        // AssetType::ASSET_TYPE_MODEL
-    GetAssetTypeID<Shader>::ID();       // AssetType::ASSET_TYPE_SHADER
-    GetAssetTypeID<UILayout>::ID();     // AssetType::ASSET_TYPE_UI_LAYOUT
-    PG_ASSERT( GetAssetTypeID<GfxImage>::ID()   == ASSET_TYPE_GFX_IMAGE, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Material>::ID()   == ASSET_TYPE_MATERIAL, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Script>::ID()     == ASSET_TYPE_SCRIPT, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Model>::ID()      == ASSET_TYPE_MODEL, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<Shader>::ID()     == ASSET_TYPE_SHADER, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( GetAssetTypeID<UILayout>::ID()   == ASSET_TYPE_UI_LAYOUT, "This needs to line up with AssetType ordering" );
+    GetAssetTypeID<GfxImage>::ID(); // AssetType::ASSET_TYPE_GFX_IMAGE
+    GetAssetTypeID<Material>::ID(); // AssetType::ASSET_TYPE_MATERIAL
+    GetAssetTypeID<Script>::ID();   // AssetType::ASSET_TYPE_SCRIPT
+    GetAssetTypeID<Model>::ID();    // AssetType::ASSET_TYPE_MODEL
+    GetAssetTypeID<Shader>::ID();   // AssetType::ASSET_TYPE_SHADER
+    GetAssetTypeID<UILayout>::ID(); // AssetType::ASSET_TYPE_UI_LAYOUT
+    PG_ASSERT( GetAssetTypeID<GfxImage>::ID() == ASSET_TYPE_GFX_IMAGE, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Material>::ID() == ASSET_TYPE_MATERIAL, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Script>::ID() == ASSET_TYPE_SCRIPT, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Model>::ID() == ASSET_TYPE_MODEL, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<Shader>::ID() == ASSET_TYPE_SHADER, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( GetAssetTypeID<UILayout>::ID() == ASSET_TYPE_UI_LAYOUT, "This needs to line up with AssetType ordering" );
     static_assert( ASSET_TYPE_COUNT == 7, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
 #if USING( ASSET_LIVE_UPDATE )
-bool LiveUpdatesSupported( AssetType type )
-{
-    return type == AssetType::ASSET_TYPE_SCRIPT || type == AssetType::ASSET_TYPE_UI_LAYOUT;
-}
+bool LiveUpdatesSupported( AssetType type ) { return type == AssetType::ASSET_TYPE_SCRIPT || type == AssetType::ASSET_TYPE_UI_LAYOUT; }
 #endif // #if USING( ASSET_LIVE_UPDATE )
-
 
 static void ClearPendingLiveUpdates()
 {
@@ -64,7 +61,6 @@ static void ClearPendingLiveUpdates()
     }
 #endif // #if USING( ASSET_LIVE_UPDATE )
 }
-
 
 void ProcessPendingLiveUpdates()
 {
@@ -108,8 +104,7 @@ void ProcessPendingLiveUpdates()
 #endif // #if USING( ASSET_LIVE_UPDATE )
 }
 
-
-template < typename ActualAssetType >
+template <typename ActualAssetType>
 bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
 {
     ActualAssetType* asset = new ActualAssetType;
@@ -127,23 +122,21 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
     else
     {
         s_pendingAssetUpdates[assetType].push_back( asset );
-        //LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)", asset->name.c_str(), g_assetNames[assetType] );
-        //asset->Free();
-        //delete asset;
+        // LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)",
+        // asset->name.c_str(), g_assetNames[assetType] ); asset->Free(); delete asset;
     }
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
     return true;
 }
 
-#define LOAD_FF_CASE( ASSET_ENUM, actualAssetType ) \
-case ASSET_ENUM: \
-    if ( !LoadAssetFromFastFile< actualAssetType >( &serializer, assetType ) ) \
-    { \
-        return false; \
-    } \
-    break
-
+#define LOAD_FF_CASE( ASSET_ENUM, actualAssetType )                              \
+    case ASSET_ENUM:                                                             \
+        if ( !LoadAssetFromFastFile<actualAssetType>( &serializer, assetType ) ) \
+        {                                                                        \
+            return false;                                                        \
+        }                                                                        \
+        break
 
 bool LoadFastFile( const std::string& fname )
 {
@@ -169,15 +162,12 @@ bool LoadFastFile( const std::string& fname )
             LOAD_FF_CASE( ASSET_TYPE_MODEL, Model );
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader );
             LOAD_FF_CASE( ASSET_TYPE_UI_LAYOUT, UILayout );
-        default:
-            LOG_ERR( "Unknown asset type '%d'", static_cast< int >( assetType ) );
-            return false;
+        default: LOG_ERR( "Unknown asset type '%d'", static_cast<int>( assetType ) ); return false;
         }
-    }   
+    }
 
     return true;
 }
-
 
 // Since the render system shutsdown before the asset manager, need to free up any remaining gpu resources
 // before/during the render system's shutdown.
@@ -197,7 +187,6 @@ void FreeRemainingGpuResources()
     }
 }
 
-
 void Shutdown()
 {
     for ( uint32_t i = 0; i < AssetType::ASSET_TYPE_COUNT; ++i )
@@ -211,12 +200,11 @@ void Shutdown()
     }
 }
 
-
 void RegisterLuaFunctions( lua_State* L )
 {
     sol::state_view lua( L );
     sol::table assetManagerNamespace = lua.create_named_table( "AssetManager" );
-    
+
     assetManagerNamespace["GetGfxImage"] = []( const std::string& name ) { return AssetManager::Get<GfxImage>( name ); };
     assetManagerNamespace["GetMaterial"] = []( const std::string& name ) { return AssetManager::Get<Material>( name ); };
     assetManagerNamespace["GetScript"]   = []( const std::string& name ) { return AssetManager::Get<Script>( name ); };
@@ -229,27 +217,26 @@ void RegisterLuaFunctions( lua_State* L )
     mat_type["roughnessTint"]        = &Material::roughnessTint;
     mat_type["albedoMetalnessImage"] = &Material::albedoMetalnessImage;
     mat_type["normalRoughnessImage"] = &Material::normalRoughnessImage;
-    
+
     sol::usertype<Model> model_type = lua.new_usertype<Model>( "Model" );
-    model_type["name"] = &Model::name;
-    model_type["meshes"] = &Model::meshes;
+    model_type["name"]              = &Model::name;
+    model_type["meshes"]            = &Model::meshes;
     model_type["originalMaterials"] = &Model::originalMaterials;
 
     sol::usertype<GfxImage> image_type = lua.new_usertype<GfxImage>( "GfxImage" );
-    image_type["name"]        = &GfxImage::name;
-    image_type["width"]       = &GfxImage::width;
-    image_type["height"]      = &GfxImage::height;
-    image_type["depth"]       = &GfxImage::depth;
-    image_type["mipLevels"]   = &GfxImage::mipLevels;
-    image_type["numFaces"]    = &GfxImage::numFaces;
-    image_type["pixelFormat"] = &GfxImage::pixelFormat;
-    image_type["imageType"]   = &GfxImage::imageType;
+    image_type["name"]                 = &GfxImage::name;
+    image_type["width"]                = &GfxImage::width;
+    image_type["height"]               = &GfxImage::height;
+    image_type["depth"]                = &GfxImage::depth;
+    image_type["mipLevels"]            = &GfxImage::mipLevels;
+    image_type["numFaces"]             = &GfxImage::numFaces;
+    image_type["pixelFormat"]          = &GfxImage::pixelFormat;
+    image_type["imageType"]            = &GfxImage::imageType;
 
     sol::usertype<Script> script_type = lua.new_usertype<Script>( "Script" );
-    script_type["name"] = &Script::name;
-    script_type["scriptText"] = &Script::scriptText;
+    script_type["name"]               = &Script::name;
+    script_type["scriptText"]         = &Script::scriptText;
 }
-
 
 BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
 {
@@ -258,4 +245,4 @@ BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
     return it == g_resourceMaps[assetTypeID].end() ? nullptr : it->second;
 }
 
-} // namesapce PG::AssetManager
+} // namespace PG::AssetManager

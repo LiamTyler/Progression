@@ -1,6 +1,6 @@
 #include "base_asset_converter.hpp"
-#include "converters.hpp"
 #include "asset/asset_manager.hpp"
+#include "converters.hpp"
 #include <unordered_set>
 
 namespace PG
@@ -14,24 +14,11 @@ void AddFastfileDependency( const std::string& file )
     s_latestAssetTimestamp = std::max( s_latestAssetTimestamp, GetFileTimestamp( file ) );
 }
 
+void AddFastfileDependency( time_t timestamp ) { s_latestAssetTimestamp = std::max( s_latestAssetTimestamp, timestamp ); }
 
-void AddFastfileDependency( time_t timestamp )
-{
-    s_latestAssetTimestamp = std::max( s_latestAssetTimestamp, timestamp );
-}
+void ClearAllFastfileDependencies() { s_latestAssetTimestamp = 0; }
 
-
-void ClearAllFastfileDependencies()
-{
-    s_latestAssetTimestamp = 0;
-}
-
-
-time_t GetLatestFastfileDependency()
-{
-    return s_latestAssetTimestamp;
-}
-
+time_t GetLatestFastfileDependency() { return s_latestAssetTimestamp; }
 
 struct BaseCreateInfoHash
 {

@@ -1,10 +1,10 @@
-#include "model_exporter_common.hpp"
-#include "model_exporter_materials.hpp"
 #include "asset/asset_file_database.hpp"
 #include "asset/pmodel.hpp"
 #include "asset/types/textureset.hpp"
 #include "core/time.hpp"
 #include "getopt/getopt.h"
+#include "model_exporter_common.hpp"
+#include "model_exporter_materials.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/hash.hpp"
 #include "shared/logger.hpp"
@@ -42,7 +42,7 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
     uint32_t colorSetRemap[AI_MAX_NUMBER_OF_COLOR_SETS] = { UINT_MAX };
     static_assert( AI_MAX_NUMBER_OF_TEXTURECOORDS == 8 );
     {
-        uint32_t pgUVIdx = 0;
+        uint32_t pgUVIdx    = 0;
         uint32_t pgColorIdx = 0;
         for ( uint32_t i = 0; i < 8; ++i )
         {
@@ -64,18 +64,18 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
     for ( uint32_t vIdx = 0; vIdx < numVerts; ++vIdx )
     {
         PModel::Vertex& v = pgMesh.vertices[vIdx];
-        v.pos = AiToPG( paiMesh->mVertices[vIdx] );
-        v.pos = vec3( localToWorldMat * vec4( v.pos, 1.0f ) );
-        v.normal = AiToPG( paiMesh->mNormals[vIdx] );
-        v.normal = vec3( normalMatrix * vec4( v.normal, 0.0f ) );
+        v.pos             = AiToPG( paiMesh->mVertices[vIdx] );
+        v.pos             = vec3( localToWorldMat * vec4( v.pos, 1.0f ) );
+        v.normal          = AiToPG( paiMesh->mNormals[vIdx] );
+        v.normal          = vec3( normalMatrix * vec4( v.normal, 0.0f ) );
         PG_ASSERT( !any( isnan( v.pos ) ) );
         PG_ASSERT( !any( isnan( v.normal ) ) );
         v.numBones = 0;
 
         if ( pgMesh.hasTangents )
         {
-            v.tangent = AiToPG( paiMesh->mTangents[vIdx] );
-            v.tangent = vec3( localToWorldMat * vec4( v.tangent, 0.0f ) );
+            v.tangent   = AiToPG( paiMesh->mTangents[vIdx] );
+            v.tangent   = vec3( localToWorldMat * vec4( v.tangent, 0.0f ) );
             v.bitangent = AiToPG( paiMesh->mBitangents[vIdx] );
             v.bitangent = vec3( localToWorldMat * vec4( v.bitangent, 0.0f ) );
         }
@@ -83,14 +83,14 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
         for ( uint32_t uvSetIdx = 0; uvSetIdx < pgMesh.numUVChannels; ++uvSetIdx )
         {
             uint32_t aiUVSetIdx = uvSetRemap[uvSetIdx];
-            vec3 uvw = AiToPG( paiMesh->mTextureCoords[aiUVSetIdx][vIdx] );
-            v.uvs[uvSetIdx] = vec2( uvw.x, uvw.y );
+            vec3 uvw            = AiToPG( paiMesh->mTextureCoords[aiUVSetIdx][vIdx] );
+            v.uvs[uvSetIdx]     = vec2( uvw.x, uvw.y );
         }
 
         for ( uint32_t colorSetIdx = 0; colorSetIdx < pgMesh.numColorChannels; ++colorSetIdx )
         {
             uint32_t aiColorSetIdx = colorSetRemap[colorSetIdx];
-            v.colors[colorSetIdx] = AiToPG( paiMesh->mColors[aiColorSetIdx][vIdx] );
+            v.colors[colorSetIdx]  = AiToPG( paiMesh->mColors[aiColorSetIdx][vIdx] );
         }
     }
 
@@ -111,7 +111,8 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
     {
         if ( numBonesPerVertex[vIdx] > PMODEL_MAX_BONE_WEIGHTS_PER_VERT )
         {
-            LOG_WARN( "Vertex %u in mesh %s has %u bones weights in the source file, but Pmodels only support %u per vertex. Using the %u highest weights instead",
+            LOG_WARN( "Vertex %u in mesh %s has %u bones weights in the source file, but Pmodels only support %u per vertex. Using the %u "
+                      "highest weights instead",
                 vIdx, pgMesh.name.c_str(), numBonesPerVertex[vIdx], PMODEL_MAX_BONE_WEIGHTS_PER_VERT, PMODEL_MAX_BONE_WEIGHTS_PER_VERT );
         }
 
@@ -125,31 +126,31 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
     }
 }
 
-
-void ParseNode( const std::string& filename, const std::vector<std::string>& materialNames, const aiScene* scene, const aiNode* node, const mat4& parentLocalToWorld, PModel& pmodel )
+void ParseNode( const std::string& filename, const std::vector<std::string>& materialNames, const aiScene* scene, const aiNode* node,
+    const mat4& parentLocalToWorld, PModel& pmodel )
 {
-    std::string stem = GetFilenameStem( filename );
+    std::string stem         = GetFilenameStem( filename );
     mat4 currentLocalToWorld = AiToGLMMat4( node->mTransformation ) * parentLocalToWorld;
     for ( uint32_t meshIdx = 0; meshIdx < node->mNumMeshes; ++meshIdx )
     {
         const aiMesh* paiMesh = scene->mMeshes[node->mMeshes[meshIdx]];
-        PModel::Mesh& pgMesh = pmodel.meshes.emplace_back();
-        pgMesh.name = paiMesh->mName.C_Str();
+        PModel::Mesh& pgMesh  = pmodel.meshes.emplace_back();
+        pgMesh.name           = paiMesh->mName.C_Str();
         if ( pgMesh.name.empty() )
         {
             pgMesh.name = stem + "_mesh" + std::to_string( meshIdx );
             LOG_WARN( "Mesh %u in file %s does not have a name. Assigning name %s", meshIdx, filename.c_str(), pgMesh.name.c_str() );
         }
-        pgMesh.materialName = materialNames[paiMesh->mMaterialIndex];
+        pgMesh.materialName     = materialNames[paiMesh->mMaterialIndex];
         pgMesh.numColorChannels = paiMesh->GetNumColorChannels();
-        pgMesh.numUVChannels = paiMesh->GetNumUVChannels();
-        pgMesh.hasTangents = paiMesh->mTangents && paiMesh->mBitangents;
-        pgMesh.hasBoneWeights = paiMesh->HasBones();
+        pgMesh.numUVChannels    = paiMesh->GetNumUVChannels();
+        pgMesh.hasTangents      = paiMesh->mTangents && paiMesh->mBitangents;
+        pgMesh.hasBoneWeights   = paiMesh->HasBones();
 
         if ( paiMesh->mNumAnimMeshes )
         {
-            LOG_WARN( "Mesh %u '%s' in file %s contains attachment/anim meshes. Currently not supported",
-                meshIdx, filename.c_str(), pgMesh.name.c_str() );
+            LOG_WARN( "Mesh %u '%s' in file %s contains attachment/anim meshes. Currently not supported", meshIdx, filename.c_str(),
+                pgMesh.name.c_str() );
         }
 
         for ( uint32_t uvSetIdx = 0; uvSetIdx < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++uvSetIdx )
@@ -160,7 +161,8 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
             if ( paiMesh->HasTextureCoordsName( uvSetIdx ) )
             {
                 LOG_WARN( "Mesh %u '%s' in file %s: uv set %u '%s' has %u channels. Expecting 2, will ignore this uv set", meshIdx,
-                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->GetTextureCoordsName( uvSetIdx )->C_Str(), paiMesh->mNumUVComponents[uvSetIdx] );
+                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->GetTextureCoordsName( uvSetIdx )->C_Str(),
+                    paiMesh->mNumUVComponents[uvSetIdx] );
             }
             else
             {
@@ -174,7 +176,7 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
         pgMesh.indices.resize( paiMesh->mNumFaces * 3 );
         for ( uint32_t faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
         {
-            const aiFace& face = paiMesh->mFaces[faceIdx];
+            const aiFace& face              = paiMesh->mFaces[faceIdx];
             pgMesh.indices[faceIdx * 3 + 0] = face.mIndices[0];
             pgMesh.indices[faceIdx * 3 + 1] = face.mIndices[1];
             pgMesh.indices[faceIdx * 3 + 2] = face.mIndices[2];
@@ -187,12 +189,13 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
     }
 }
 
-
 static bool ConvertModel( const std::string& filename, std::string& outputJSON )
 {
     LOG( "Parsing file %s...", filename.c_str() );
     Assimp::Importer importer;
-    const aiScene* scene = importer.ReadFile( filename.c_str(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices | aiProcess_CalcTangentSpace | aiProcess_RemoveRedundantMaterials );
+    const aiScene* scene =
+        importer.ReadFile( filename.c_str(), aiProcess_Triangulate | aiProcess_GenNormals | aiProcess_JoinIdenticalVertices |
+                                                 aiProcess_CalcTangentSpace | aiProcess_RemoveRedundantMaterials );
     if ( !scene )
     {
         LOG_ERR( "Error parsing model file '%s': '%s'", filename.c_str(), importer.GetErrorString() );
@@ -204,7 +207,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
     {
         std::string matName = scene->mMaterials[i]->GetName().C_Str();
-        if ( matName == "DefaultMaterial" || matName == "default" || (isOBJ && matName == "None") )
+        if ( matName == "DefaultMaterial" || matName == "default" || ( isOBJ && matName == "None" ) )
             matName = "default";
         else if ( matName == "" )
             matName = "material_" + std::to_string( i );
@@ -215,14 +218,14 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     std::string modelName = GetFilenameStem( filename );
 
     MaterialContext matContext;
-    matContext.scene = scene;
-    matContext.file = filename;
+    matContext.scene     = scene;
+    matContext.file      = filename;
     matContext.modelName = modelName;
     for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
     {
         if ( materialNames[i] != "default" )
         {
-            matContext.assimpMat = scene->mMaterials[i];
+            matContext.assimpMat    = scene->mMaterials[i];
             matContext.localMatName = materialNames[i];
             OutputMaterial( matContext, outputJSON );
         }
@@ -232,7 +235,6 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
 
     aiNode* root = scene->mRootNode;
     ParseNode( filename, materialNames, scene, scene->mRootNode, mat4( 1.0f ), pmodel );
-
 
     /*
     pmodel.meshes.resize( scene->mNumMeshes );
@@ -267,7 +269,8 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
             if ( paiMesh->HasTextureCoordsName( uvSetIdx ) )
             {
                 LOG_WARN( "Mesh %u '%s' in file %s: uv set %u '%s' has %u channels. Expecting 2, will ignore this uv set", meshIdx,
-                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->GetTextureCoordsName( uvSetIdx )->C_Str(), paiMesh->mNumUVComponents[uvSetIdx] );
+                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->GetTextureCoordsName( uvSetIdx )->C_Str(),
+    paiMesh->mNumUVComponents[uvSetIdx] );
             }
             else
             {
@@ -290,15 +293,15 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     */
 
     size_t totalVerts = 0;
-    size_t totalTris = 0;
+    size_t totalTris  = 0;
     for ( const PModel::Mesh& mesh : pmodel.meshes )
     {
         totalVerts += mesh.vertices.size();
         totalTris += mesh.indices.size() / 3;
     }
-    
-    LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u",
-        filename.c_str(), pmodel.meshes.size(), materialNames.size(), totalTris, totalVerts );
+
+    LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u", filename.c_str(), pmodel.meshes.size(),
+        materialNames.size(), totalTris, totalVerts );
 
     std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodel";
     if ( !pmodel.Save( outputModelFilename, g_options.floatPrecision, true ) )
@@ -312,22 +315,19 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     return true;
 }
 
-
 static void DisplayHelp()
 {
-    auto msg =
-        "Usage: ModelExporter [options] PATH\n"
-        "If PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
-        "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
-        "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n"
-        "Options\n"
-        "  --floatPrecision [1-9] Specify how many float sig figs to write out. Default is 6 (max is 9)\n"
-        "  --help                 Print this message and exit\n"
-        "  --ignoreCollisions     Skip renaming any assets that have the same name as an existing asset in the database\n"
-        "  --texDir [path]        Specify a different directory to use to search for the textures\n";
+    auto msg = "Usage: ModelExporter [options] PATH\n"
+               "If PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
+               "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
+               "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n"
+               "Options\n"
+               "  --floatPrecision [1-9] Specify how many float sig figs to write out. Default is 6 (max is 9)\n"
+               "  --help                 Print this message and exit\n"
+               "  --ignoreCollisions     Skip renaming any assets that have the same name as an existing asset in the database\n"
+               "  --texDir [path]        Specify a different directory to use to search for the textures\n";
     std::cout << msg << std::endl;
 }
-
 
 static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
 {
@@ -338,11 +338,11 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
 
     static struct option long_options[] =
     {
-        { "floatPrecision",   required_argument,  0, 'f' },
-        { "ignoreCollisions", no_argument,        0, 'i' },
-        { "help",             no_argument,        0, 'h' },
-        { "texDir",           required_argument,  0, 't' },
-        { 0, 0, 0, 0 }
+        { "floatPrecision",   required_argument, 0, 'f' },
+        { "ignoreCollisions", no_argument,       0, 'i' },
+        { "help",             no_argument,       0, 'h' },
+        { "texDir",           required_argument, 0, 't' },
+        { 0,                  0,                 0, 0   }
     };
 
     int option_index = 0;
@@ -351,21 +351,11 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
     {
         switch ( c )
         {
-            case 'f':
-                g_options.floatPrecision = std::stoul( optarg );
-                break;
-            case 'h':
-                DisplayHelp();
-                return false;
-            case 'i':
-                g_options.ignoreNameCollisions = true;
-                break;
-            case 't':
-                g_textureSearchDir = optarg;
-                break;
-            default:
-                LOG_ERR( "Invalid option, try 'ModelExporter --help' for more information" );
-                return false;
+        case 'f': g_options.floatPrecision = std::stoul( optarg ); break;
+        case 'h': DisplayHelp(); return false;
+        case 'i': g_options.ignoreNameCollisions = true; break;
+        case 't': g_textureSearchDir = optarg; break;
+        default: LOG_ERR( "Invalid option, try 'ModelExporter --help' for more information" ); return false;
         }
     }
 
@@ -379,7 +369,6 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
 
     return true;
 }
-
 
 int main( int argc, char* argv[] )
 {
@@ -399,7 +388,7 @@ int main( int argc, char* argv[] )
         return 0;
     }
 
-    g_warnings = 0;
+    g_warnings                                      = 0;
     std::unordered_set<std::string> modelExtensions = { ".obj", ".fbx", ".ply", ".gltf", ".stl" };
     std::vector<std::string> filesToProcess;
     std::string outputPrefix;
@@ -445,11 +434,11 @@ int main( int argc, char* argv[] )
     }
     AssetDatabase::Init();
 
-    auto startTime = Time::GetTimePoint();
+    auto startTime         = Time::GetTimePoint();
     size_t modelsConverted = 0;
     std::string outputJSON = "[\n";
     outputJSON.reserve( 1024 * 1024 );
-    // Cant run in parallel, since writing the output 
+    // Cant run in parallel, since writing the output
     // #pragma omp parallel for
     for ( int i = 0; i < static_cast<int>( filesToProcess.size() ); ++i )
     {

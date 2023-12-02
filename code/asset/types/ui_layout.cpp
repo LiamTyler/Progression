@@ -1,19 +1,16 @@
 #include "asset/types/ui_layout.hpp"
 #include "asset/asset_manager.hpp"
+#include "pugixml-1.13/src/pugixml.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
-#include "pugixml-1.13/src/pugixml.hpp"
 #include <fstream>
 
 namespace PG
 {
 
-std::string GetAbsPath_UILayoutFilename( const std::string& filename )
-{
-    return PG_ASSET_DIR + filename;
-}
+std::string GetAbsPath_UILayoutFilename( const std::string& filename ) { return PG_ASSET_DIR + filename; }
 
 using namespace UI;
 
@@ -26,18 +23,16 @@ static glm::vec2 ParseVec2( const char* str )
     return v;
 }
 
-
 static glm::vec4 ParseVec4( const char* str )
 {
     glm::vec4 v( 0 );
-    char* endPtr1, *endPtr2;
+    char *endPtr1, *endPtr2;
     v.x = std::strtof( str, &endPtr1 );
     v.y = std::strtof( endPtr1, &endPtr2 );
     v.z = std::strtof( endPtr2, &endPtr1 );
     v.w = std::strtof( endPtr1, NULL );
     return v;
 }
-
 
 static UIElementBlendMode ParseBlendMode( const char* str )
 {
@@ -61,7 +56,6 @@ static UIElementBlendMode ParseBlendMode( const char* str )
     return UIElementBlendMode::OPAQUE;
 }
 
-
 static UIElementType ParseElementType( const char* str )
 {
     static const char* strs[] =
@@ -83,23 +77,23 @@ static UIElementType ParseElementType( const char* str )
     return UIElementType::DEFAULT;
 }
 
-
 #if USING( CONVERTER )
-static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vector<UIElementCreateInfo> &createInfos, UIElementHandle parentIdx )
+static UIElementHandle ParseUIElement(
+    const pugi::xml_node& element, std::vector<UIElementCreateInfo>& createInfos, UIElementHandle parentIdx )
 {
     UIElementHandle idx = static_cast<UIElementHandle>( createInfos.size() );
     createInfos.emplace_back();
-    createInfos[idx].element.parent = parentIdx;
+    createInfos[idx].element.parent      = parentIdx;
     createInfos[idx].element.prevSibling = UI_NULL_HANDLE;
     createInfos[idx].element.nextSibling = UI_NULL_HANDLE;
-    createInfos[idx].element.firstChild = UI_NULL_HANDLE;
-    createInfos[idx].element.lastChild = UI_NULL_HANDLE;
+    createInfos[idx].element.firstChild  = UI_NULL_HANDLE;
+    createInfos[idx].element.lastChild   = UI_NULL_HANDLE;
 
     using namespace pugi;
     for ( auto attribIt = element.attributes_begin(); attribIt != element.attributes_end(); ++attribIt )
     {
         const xml_attribute& attrib = *attribIt;
-        const char* val = attrib.value();
+        const char* val             = attrib.value();
 
         if ( !strcmp( attrib.name(), "pos" ) )
         {
@@ -171,9 +165,9 @@ static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vecto
         else
         {
             createInfos[prevChild].element.nextSibling = childIdx;
-            createInfos[childIdx].element.prevSibling = prevChild;
+            createInfos[childIdx].element.prevSibling  = prevChild;
         }
-        
+
         if ( !child.next_sibling() )
         {
             createInfos[idx].element.lastChild = childIdx;
@@ -186,12 +180,11 @@ static UIElementHandle ParseUIElement( const pugi::xml_node& element, std::vecto
 }
 #endif // #if USING( CONVERTER )
 
-
 bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
     const UILayoutCreateInfo* createInfo = (const UILayoutCreateInfo*)baseInfo;
-    name = createInfo->name;
+    name                                 = createInfo->name;
 
 #if USING( CONVERTER )
     const std::string absPath = GetAbsPath_UILayoutFilename( createInfo->xmlFilename );
@@ -205,12 +198,12 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
 
     // add a dummy root node, to guarantee a single root node to the entire layout
     {
-        UIElement& rootElement = createInfos.emplace_back().element;
-        rootElement.parent = UI_NULL_HANDLE;
+        UIElement& rootElement  = createInfos.emplace_back().element;
+        rootElement.parent      = UI_NULL_HANDLE;
         rootElement.prevSibling = UI_NULL_HANDLE;
         rootElement.nextSibling = UI_NULL_HANDLE;
-        rootElement.firstChild = UI_NULL_HANDLE;
-        rootElement.lastChild = UI_NULL_HANDLE;
+        rootElement.firstChild  = UI_NULL_HANDLE;
+        rootElement.lastChild   = UI_NULL_HANDLE;
     }
 
     UIElementHandle prevElement = UI_NULL_HANDLE;
@@ -221,7 +214,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
             UIElementHandle element = ParseUIElement( *it, createInfos, 0 );
             if ( prevElement != UI_NULL_HANDLE )
             {
-                createInfos[element].element.prevSibling = prevElement;
+                createInfos[element].element.prevSibling     = prevElement;
                 createInfos[prevElement].element.nextSibling = element;
             }
 
@@ -229,7 +222,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
             if ( rootElement.firstChild == UI_NULL_HANDLE )
             {
                 rootElement.firstChild = element;
-                rootElement.lastChild = element;
+                rootElement.lastChild  = element;
             }
             else
             {
@@ -240,7 +233,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
         }
     }
 
-    script = nullptr;
+    script                  = nullptr;
     std::string scriptFName = GetFilenameMinusExtension( absPath ) + ".lua";
     if ( PathExists( scriptFName ) )
     {
@@ -249,11 +242,10 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     return true;
-#else // #if // #if USING( CONVERTER )
+#else // #if USING( CONVERTER )
     return false;
-#endif // #else // #if // #if USING( CONVERTER )
+#endif // #else // #if USING( CONVERTER )
 }
-
 
 bool UILayout::FastfileLoad( Serializer* serializer )
 {
@@ -288,7 +280,6 @@ bool UILayout::FastfileLoad( Serializer* serializer )
 
     return true;
 }
-
 
 bool UILayout::FastfileSave( Serializer* serializer ) const
 {

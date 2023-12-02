@@ -12,7 +12,7 @@ int main( int argc, char** argv )
 {
     EngineInitInfo engineInitConfig;
     engineInitConfig.offlineRenderer = true;
-	if ( !EngineInitialize( engineInitConfig ) )
+    if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );
         return 1;
@@ -25,7 +25,7 @@ int main( int argc, char** argv )
     }
 
     std::string sceneName = argc > 1 ? argv[1] : "";
-    Scene *scene = new Scene;
+    Scene* scene          = new Scene;
     if ( !scene->Load( PG_ASSET_DIR "scenes/" + sceneName + ".json" ) )
     {
         LOG_ERR( "Could not load scene file '%s'", sceneName.c_str() );
@@ -43,7 +43,8 @@ int main( int argc, char** argv )
         std::string filename = PG_ROOT_DIR + scene->settings.outputImageFilename;
         if ( scene->settings.numSamplesPerPixel.size() > 1 )
         {
-            filename  = PG_ROOT_DIR + GetFilenameMinusExtension( filename ) + "_" + std::to_string( scene->settings.numSamplesPerPixel[sppIteration] ) + GetFileExtension( filename );
+            filename = PG_ROOT_DIR + GetFilenameMinusExtension( filename ) + "_" +
+                       std::to_string( scene->settings.numSamplesPerPixel[sppIteration] ) + GetFileExtension( filename );
         }
 
         if ( pathTracer.SaveImage( filename ) )

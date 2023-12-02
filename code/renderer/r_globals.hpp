@@ -1,14 +1,12 @@
 #pragma once
 
-#include "graphics_api/device.hpp"
 #include "graphics_api/descriptor.hpp"
+#include "graphics_api/device.hpp"
 #include "graphics_api/framebuffer.hpp"
-#include "graphics_api/swapchain.hpp"
 #include "graphics_api/physical_device.hpp"
+#include "graphics_api/swapchain.hpp"
 
-namespace PG
-{
-namespace Gfx
+namespace PG::Gfx
 {
 
 enum : unsigned char
@@ -55,12 +53,11 @@ struct R_Globals
 };
 
 Viewport DisplaySizedViewport( bool vulkanFlipViewport = true );
-Scissor  DisplaySizedScissor();
+Scissor DisplaySizedScissor();
 Viewport SceneSizedViewport( bool vulkanFlipViewport = true );
-Scissor  SceneSizedScissor();
+Scissor SceneSizedScissor();
 VkDescriptorSetLayout GetEmptyDescriptorSetLayout();
 
 extern R_Globals rg;
 
-} // namespace Gfx
-} // namespace PG
+} // namespace PG::Gfx

@@ -24,7 +24,10 @@ struct Light
     glm::vec3 Lemit = glm::vec3( 0 );
     int nSamples    = 1;
 
-    virtual glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const { return glm::vec3( 0 ); }
+    virtual glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
+    {
+        return glm::vec3( 0 );
+    }
 };
 
 struct PointLight : public Light

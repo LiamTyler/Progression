@@ -4,11 +4,7 @@
 #include "shared/logger.hpp"
 #include <cstring>
 
-Serializer::~Serializer()
-{
-    Close();
-}
-
+Serializer::~Serializer() { Close(); }
 
 bool Serializer::OpenForRead( const std::string& fname )
 {
@@ -23,11 +19,10 @@ bool Serializer::OpenForRead( const std::string& fname )
     return true;
 }
 
-
 bool Serializer::OpenForWrite( const std::string& fname )
 {
     PG_ASSERT( !IsOpen(), "Dont forget to close last file used" );
-    filename = fname;
+    filename               = fname;
     std::string parentPath = GetParentPath( fname );
     if ( !parentPath.empty() && !PathExists( parentPath ) )
     {
@@ -43,7 +38,6 @@ bool Serializer::OpenForWrite( const std::string& fname )
     return true;
 }
 
-
 void Serializer::Close()
 {
     if ( memMappedFile.isValid() )
@@ -57,12 +51,7 @@ void Serializer::Close()
     }
 }
 
-
-bool Serializer::IsOpen() const
-{
-    return writeFile.is_open() || memMappedFile.isValid();
-}
-
+bool Serializer::IsOpen() const { return writeFile.is_open() || memMappedFile.isValid(); }
 
 size_t Serializer::BytesLeft() const
 {
@@ -75,33 +64,29 @@ size_t Serializer::BytesLeft() const
     return 0;
 }
 
-
 void Serializer::Write( const void* buffer, size_t bytes )
 {
-    PG_ASSERT( writeFile.good() && (buffer || (!buffer && !bytes)) );
-    writeFile.write( reinterpret_cast< const char* >( buffer ), bytes );
+    PG_ASSERT( writeFile.good() && ( buffer || ( !buffer && !bytes ) ) );
+    writeFile.write( reinterpret_cast<const char*>( buffer ), bytes );
 }
-
 
 void Serializer::Read( void* buffer, size_t bytes )
 {
-    PG_ASSERT( !bytes || (buffer && currentReadPos) );
-    PG_ASSERT( !bytes || (currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size()), "Reading off the end of the file" );
+    PG_ASSERT( !bytes || ( buffer && currentReadPos ) );
+    PG_ASSERT( !bytes || ( currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size() ), "Reading off the end of the file" );
     memcpy( buffer, currentReadPos, bytes );
     currentReadPos += bytes;
 }
 
-
 void Serializer::Write( const std::string& s )
 {
-    int strSize = static_cast< int >( s.length() );
+    int strSize = static_cast<int>( s.length() );
     Write( strSize );
     if ( strSize > 0 )
     {
         Write( &s[0], strSize );
     }
 }
-
 
 void Serializer::Read( std::string& s )
 {

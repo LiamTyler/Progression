@@ -1,7 +1,7 @@
 #pragma once
 
-#include "shared/platform_defines.hpp"
 #include "shared/logger.hpp"
+#include "shared/platform_defines.hpp"
 #include <stdint.h>
 #include <string>
 #include <unordered_map>
@@ -9,11 +9,14 @@
 #define DVAR_DEBUGGING USE_IF( USING( DEBUG_BUILD ) )
 
 #if USING( DVAR_DEBUGGING )
-#include "shared/assert.hpp"
-#include <typeinfo>
-#define DVAR_ASSERT( ... ) PG_ASSERT( __VA_ARGS__ )
+    #include "shared/assert.hpp"
+    #include <typeinfo>
+    #define DVAR_ASSERT( ... ) PG_ASSERT( __VA_ARGS__ )
 #else // #if USING( DVAR_DEBUGGING )
-#define DVAR_ASSERT( ... )  do {} while ( 0 )
+    #define DVAR_ASSERT( ... ) \
+        do                     \
+        {                      \
+        } while ( 0 )
 #endif // #if USING( DVAR_DEBUGGING )
 
 namespace PG
@@ -52,7 +55,6 @@ private:
     };
 
 public:
-
     explicit Dvar( const char* const inName, bool defaultVal, const char* const desc );
     explicit Dvar( const char* const inName, int defaultVal, int minVal, int maxVal, const char* const desc );
     explicit Dvar( const char* const inName, uint32_t defaultVal, uint32_t minVal, uint32_t maxVal, const char* const desc );
@@ -125,5 +127,5 @@ void ExportDvars();
 } // namespace PG
 
 #if USING( DVAR_DEBUGGING )
-#undef DVAR_ASSERT
+    #undef DVAR_ASSERT
 #endif // #if USING( DVAR_DEBUGGING )

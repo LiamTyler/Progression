@@ -4,12 +4,10 @@
 #include "shared/random.hpp"
 #include <functional>
 
-namespace PT
-{
-namespace AntiAlias
+namespace PT::AntiAlias
 {
 
-typedef glm::vec2 (*AAFuncPointer)( int iteration, PG::Random::RNG &rng );
+typedef glm::vec2 ( *AAFuncPointer )( int iteration, PG::Random::RNG& rng );
 
 enum class Algorithm
 {
@@ -35,5 +33,4 @@ int GetIterations( Algorithm alg );
 
 AAFuncPointer GetAlgorithm( Algorithm );
 
-} // namespace AntiAlias
-} // namespace PT
+} // namespace PT::AntiAlias

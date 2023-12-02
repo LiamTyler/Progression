@@ -11,7 +11,6 @@ std::string ScriptConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     return cacheName;
 }
 
-
 AssetStatus ScriptConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
     const std::string absFilename = GetAbsPath_ScriptFilename( info->filename );

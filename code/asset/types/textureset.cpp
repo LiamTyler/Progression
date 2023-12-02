@@ -10,31 +10,15 @@
 namespace PG
 {
 
-std::string TexturesetCreateInfo::GetAlbedoMap( bool isApplied ) const
-{
-    return isApplied ? albedoMap : "$white";
-}
+std::string TexturesetCreateInfo::GetAlbedoMap( bool isApplied ) const { return isApplied ? albedoMap : "$white"; }
 
-std::string TexturesetCreateInfo::GetMetalnessMap( bool isApplied ) const
-{
-    return isApplied ? metalnessMap : "$default_metalness";
-}
+std::string TexturesetCreateInfo::GetMetalnessMap( bool isApplied ) const { return isApplied ? metalnessMap : "$default_metalness"; }
 
-std::string TexturesetCreateInfo::GetEmissiveMap( bool isApplied ) const
-{
-    return isApplied ? emissiveMap : "";
-}
+std::string TexturesetCreateInfo::GetEmissiveMap( bool isApplied ) const { return isApplied ? emissiveMap : ""; }
 
-std::string TexturesetCreateInfo::GetNormalMap( bool isApplied ) const
-{
-    return isApplied ? normalMap : "$default_normalmap";
-}
+std::string TexturesetCreateInfo::GetNormalMap( bool isApplied ) const { return isApplied ? normalMap : "$default_normalmap"; }
 
-std::string TexturesetCreateInfo::GetRoughnessMap( bool isApplied ) const
-{
-    return isApplied ? roughnessMap : "$default_roughness";
-}
-
+std::string TexturesetCreateInfo::GetRoughnessMap( bool isApplied ) const { return isApplied ? roughnessMap : "$default_roughness"; }
 
 std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo, bool applyMetalness ) const
 {
@@ -53,10 +37,9 @@ std::string TexturesetCreateInfo::GetAlbedoMetalnessImageName( bool applyAlbedo,
     HashCombine( hash, metalnessMapName );
     HashCombine( hash, Underlying( metalnessSourceChannel ) );
     HashCombine( hash, metalnessScale );
-    
+
     return cacheName + "~" + std::to_string( hash );
 }
-
 
 std::string TexturesetCreateInfo::GetNormalRoughnessImageName( bool applyNormals, bool applyRoughness ) const
 {
@@ -78,7 +61,7 @@ std::string TexturesetCreateInfo::GetNormalRoughnessImageName( bool applyNormals
     HashCombine( hash, Underlying( roughnessSourceChannel ) );
     HashCombine( hash, invertRoughness );
     HashCombine( hash, roughnessScale );
-    
+
     return cacheName + "~" + std::to_string( hash );
 }
 

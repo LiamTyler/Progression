@@ -5,8 +5,8 @@
 #include "asset/asset_versions.hpp"
 #include "asset/types/base_asset.hpp"
 #include "shared/assert.hpp"
-#include "shared/filesystem.hpp"
 #include "shared/file_dependency.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/json_parsing.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
@@ -33,7 +33,7 @@ void AddFastfileDependency( time_t timestamp );
 void ClearAllFastfileDependencies();
 time_t GetLatestFastfileDependency();
 
-using BaseCreateInfoPtr = std::shared_ptr<BaseAssetCreateInfo>;
+using BaseCreateInfoPtr      = std::shared_ptr<BaseAssetCreateInfo>;
 using ConstBaseCreateInfoPtr = const std::shared_ptr<const BaseAssetCreateInfo>;
 void ClearAllUsedAssets();
 void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo );
@@ -53,12 +53,11 @@ public:
     virtual void AddReferencedAssets( ConstBaseCreateInfoPtr& baseInfo ) {}
 };
 
-
-template< typename DerivedAsset, typename DerivedInfo>
+template <typename DerivedAsset, typename DerivedInfo>
 class BaseAssetConverterTemplate : public BaseAssetConverter
 {
 public:
-    using DerivedInfoPtr = std::shared_ptr<DerivedInfo>;
+    using DerivedInfoPtr      = std::shared_ptr<DerivedInfo>;
     using ConstDerivedInfoPtr = const std::shared_ptr<const DerivedInfo>&;
 
     BaseAssetConverterTemplate( AssetType inAssetType ) : BaseAssetConverter( inAssetType ) {}
@@ -100,7 +99,7 @@ public:
     }
 
 protected:
-    virtual std::string GetCacheNameInternal( ConstDerivedInfoPtr derivedCreateInfo ) = 0;
+    virtual std::string GetCacheNameInternal( ConstDerivedInfoPtr derivedCreateInfo )                            = 0;
     virtual AssetStatus IsAssetOutOfDateInternal( ConstDerivedInfoPtr derivedCreateInfo, time_t cacheTimestamp ) = 0;
     virtual void AddReferencedAssetsInternal( ConstDerivedInfoPtr& derivedCreateInfo ) {}
 
@@ -108,7 +107,7 @@ protected:
     {
         DerivedAsset asset;
         const std::string cacheName = GetCacheName( derivedCreateInfo );
-        asset.cacheName = cacheName;
+        asset.cacheName             = cacheName;
         if ( !asset.Load( derivedCreateInfo.get() ) )
         {
             LOG_ERR( "Failed to convert asset %s %s", g_assetNames[assetType], derivedCreateInfo->name.c_str() );
@@ -117,7 +116,8 @@ protected:
 
         if ( !AssetCache::CacheAsset( assetType, cacheName, &asset ) )
         {
-            LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], derivedCreateInfo->name.c_str(), asset.cacheName.c_str() );
+            LOG_ERR(
+                "Failed to cache asset %s %s (%s)", g_assetNames[assetType], derivedCreateInfo->name.c_str(), asset.cacheName.c_str() );
             return false;
         }
 

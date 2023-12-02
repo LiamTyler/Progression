@@ -7,6 +7,6 @@
 namespace PG
 {
 
-    void ParseComponent( const rapidjson::Value& value, entt::entity e, entt::registry& registry, const std::string& typeName );
+void ParseComponent( const rapidjson::Value& value, entt::entity e, entt::registry& registry, const std::string& typeName );
 
 } // namespace PG

@@ -4,15 +4,12 @@
 #include "shared/logger.hpp"
 #include <unordered_set>
 
-static std::unordered_set< size_t > s_debugMessages;
+static std::unordered_set<size_t> s_debugMessages;
 
 static std::chrono::high_resolution_clock::time_point s_lastFPSUpdateTime;
 static unsigned int s_framesDrawnSinceLastFPSUpdate = 0;
 
-static void ErrorCallback( int err, const char* description )
-{
-    LOG_ERR( "GLFW ERROR %d: '%s'", err, description );
-}
+static void ErrorCallback( int err, const char* description ) { LOG_ERR( "GLFW ERROR %d: '%s'", err, description ); }
 
 static PG::Window* s_mainWindow = nullptr;
 
@@ -23,15 +20,14 @@ void RegisterLuaFunctions_Window( lua_State* state )
 {
     sol::state_view lua( state );
 
-    lua["GetMainWindow"] = &GetMainWindow;
-    sol::usertype< Window > window_type = lua.new_usertype< Window >( "Window" );
-    window_type.set_function( "Width",            &Window::Width );
-    window_type.set_function( "Height",           &Window::Height );
+    lua["GetMainWindow"]              = &GetMainWindow;
+    sol::usertype<Window> window_type = lua.new_usertype<Window>( "Window" );
+    window_type.set_function( "Width", &Window::Width );
+    window_type.set_function( "Height", &Window::Height );
     window_type.set_function( "SetRelativeMouse", &Window::SetRelativeMouse );
-    window_type.set_function( "IsRelativeMouse",  &Window::IsRelativeMouse );
-    window_type.set_function( "SetTitle",         &Window::SetTitle );
+    window_type.set_function( "IsRelativeMouse", &Window::IsRelativeMouse );
+    window_type.set_function( "SetTitle", &Window::SetTitle );
 }
-
 
 void InitWindowSystem( const WindowCreateInfo& info )
 {
@@ -45,19 +41,13 @@ void InitWindowSystem( const WindowCreateInfo& info )
     s_mainWindow->Init( info );
 }
 
-
 void ShutdownWindowSystem()
 {
     delete s_mainWindow;
     glfwTerminate();
 }
 
-
-Window* GetMainWindow()
-{
-    return s_mainWindow;
-}
-
+Window* GetMainWindow() { return s_mainWindow; }
 
 Window::~Window()
 {
@@ -68,13 +58,8 @@ Window::~Window()
     }
 }
 
-
 extern bool g_engineShutdown;
-static void WindowCloseCallback( GLFWwindow* window )
-{
-    g_engineShutdown = true;
-}
-
+static void WindowCloseCallback( GLFWwindow* window ) { g_engineShutdown = true; }
 
 void Window::Init( const WindowCreateInfo& createInfo )
 {
@@ -98,21 +83,14 @@ void Window::Init( const WindowCreateInfo& createInfo )
     glfwSetErrorCallback( ErrorCallback );
 
 #if !USING( SHIP_BUILD )
-    if ( createInfo.debugContext )
-    {
-    }
+    if ( createInfo.debugContext ) {}
 #endif // #if !USING( SHIP_BUILD )
 
     s_framesDrawnSinceLastFPSUpdate = 0;
     s_lastFPSUpdateTime             = Time::GetTimePoint();
 }
 
-
-void Window::StartFrame()
-{
-    Time::StartFrame();
-}
-
+void Window::StartFrame() { Time::StartFrame(); }
 
 void Window::EndFrame()
 {
@@ -120,14 +98,12 @@ void Window::EndFrame()
     ++s_framesDrawnSinceLastFPSUpdate;
     if ( Time::GetTimeSince( s_lastFPSUpdateTime ) > 1000.0f )
     {
-        std::string titleWithFps =
-          m_title + " -- FPS: " + std::to_string( s_framesDrawnSinceLastFPSUpdate );
+        std::string titleWithFps = m_title + " -- FPS: " + std::to_string( s_framesDrawnSinceLastFPSUpdate );
         glfwSetWindowTitle( m_window, titleWithFps.c_str() );
         s_framesDrawnSinceLastFPSUpdate = 0;
         s_lastFPSUpdateTime             = Time::GetTimePoint();
     }
 }
-
 
 void Window::SetRelativeMouse( bool b )
 {
@@ -135,12 +111,10 @@ void Window::SetRelativeMouse( bool b )
     m_relativeMouse = b;
 }
 
-
 void Window::SetTitle( const std::string& title )
 {
     m_title = title;
     glfwSetWindowTitle( m_window, m_title.c_str() );
 }
-
 
 } // namespace PG

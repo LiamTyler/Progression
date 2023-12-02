@@ -1,5 +1,5 @@
-#include "asset/asset_manager.hpp"
 #include "asset/asset_file_database.hpp"
+#include "asset/asset_manager.hpp"
 #include "asset/asset_versions.hpp"
 #include "converters.hpp"
 #include "core/init.hpp"
@@ -8,8 +8,8 @@
 #include "ecs/components/model_renderer.hpp"
 #include "getopt/getopt.h"
 #include "shared/assert.hpp"
-#include "shared/filesystem.hpp"
 #include "shared/file_dependency.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/json_parsing.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
@@ -22,13 +22,15 @@ using namespace PG;
 static void DisplayHelp()
 {
     auto msg =
-      "Usage: converter [options] [ASSET_NAME or SCENE_FILE]\n"
-      "SCENE_FILE is relative to the project's assets/ folder. Can also pass in a specific CSV instead of a regular json scene file\n"
-      "ASSET_NAME is the name of the asset to be converted. Only applies when using --single, otherwise it's always interpreted as a scene path\n"
-      "Options\n"
-      "  --force        Don't check asset file dependencies, just reconvert everything\n"
-      "  --help         Print this message and exit\n"
-      "  --single       Used to process a specific asset (and its referenced assets). Format: type name. Ex: '--single material wood_floor\n";
+        "Usage: converter [options] [ASSET_NAME or SCENE_FILE]\n"
+        "SCENE_FILE is relative to the project's assets/ folder. Can also pass in a specific CSV instead of a regular json scene file\n"
+        "ASSET_NAME is the name of the asset to be converted. Only applies when using --single, otherwise it's always interpreted as a "
+        "scene path\n"
+        "Options\n"
+        "  --force        Don't check asset file dependencies, just reconvert everything\n"
+        "  --help         Print this message and exit\n"
+        "  --single       Used to process a specific asset (and its referenced assets). Format: type name. Ex: '--single material "
+        "wood_floor\n";
 
     LOG( "%s", msg );
 }
@@ -39,7 +41,6 @@ static uint32_t s_outOfDateScenes = 0;
 
 static const std::string SCENE_DIR = PG_ASSET_DIR "scenes/";
 
-
 static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile )
 {
     if ( argc == 1 )
@@ -49,42 +50,42 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
 
     static struct option long_options[] =
     {
-        { "force",      no_argument,        0, 'f' },
-        { "help",       no_argument,        0, 'h' },
-        { "single",     required_argument,  0, 's' },
-        { 0, 0, 0, 0 }
+        { "force",  no_argument,       0, 'f' },
+        { "help",   no_argument,       0, 'h' },
+        { "single", required_argument, 0, 's' },
+        { 0,        0,                 0, 0   }
     };
 
     s_singleAssetType = ASSET_TYPE_COUNT;
-    int option_index = 0;
-    int c            = -1;
+    int option_index  = 0;
+    int c             = -1;
     while ( ( c = getopt_long( argc, argv, "fhs", long_options, &option_index ) ) != -1 )
     {
         switch ( c )
         {
-            case 'f':
-                g_converterConfigOptions.force = true;
-                break;
-            case 'h':
-                DisplayHelp();
-                return false;
-            case 's':
-                for ( uint32_t i = 0; i < Underlying( ASSET_TYPE_COUNT ); ++i )
+        case 'f':
+            g_converterConfigOptions.force = true;
+            break;
+        case 'h':
+            DisplayHelp();
+            return false;
+        case 's':
+            for ( uint32_t i = 0; i < Underlying( ASSET_TYPE_COUNT ); ++i )
+            {
+                if ( !Stricmp( g_assetNames[i], optarg ) )
                 {
-                    if ( !Stricmp( g_assetNames[i], optarg ) )
-                    {
-                        s_singleAssetType = (AssetType)i;
-                    }
+                    s_singleAssetType = (AssetType)i;
                 }
-                if ( s_singleAssetType == ASSET_TYPE_COUNT )
-                {
-                    LOG_ERR( "No asset type with name '%s'", optarg );
-                    return false;
-                }
-                break;
-            default:
-                LOG_ERR( "Invalid option, try 'converter --help' for more information" );
+            }
+            if ( s_singleAssetType == ASSET_TYPE_COUNT )
+            {
+                LOG_ERR( "No asset type with name '%s'", optarg );
                 return false;
+            }
+            break;
+        default:
+            LOG_ERR( "Invalid option, try 'converter --help' for more information" );
+            return false;
         }
     }
 
@@ -105,7 +106,6 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
     return true;
 }
 
-
 bool FindAssetsUsedInFile( const std::string& sceneFile )
 {
     std::string ext = GetFileExtension( sceneFile );
@@ -123,7 +123,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
         {
             ++lineIdx;
             line = StripWhitespace( line );
-            if ( line.empty() || (line.length() >= 2 && line[0] == '/' && line[1] == '/' ) )
+            if ( line.empty() || ( line.length() >= 2 && line[0] == '/' && line[1] == '/' ) )
                 continue;
 
             const auto vec = SplitString( line );
@@ -132,10 +132,10 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                 LOG_ERR( "Asset CSV %s: Invalid line %d '%s'", sceneFile.c_str(), lineIdx, line.c_str() );
                 continue;
             }
-            bool found = false;
-            uint32_t assetTypeIdx = 0;
+            bool found                = false;
+            uint32_t assetTypeIdx     = 0;
             std::string assetTypeName = vec[0];
-            std::string assetName = vec[1];
+            std::string assetName     = vec[1];
             for ( ; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
             {
                 if ( assetTypeName == g_assetNames[assetTypeIdx] )
@@ -188,13 +188,12 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
     return true;
 }
 
-
 bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
 {
-    auto convertStartTime = Time::GetTimePoint();
+    auto convertStartTime  = Time::GetTimePoint();
     uint32_t convertErrors = 0;
-    outOfDateAssets = 0;
-    uint32_t totalAssets = 0;
+    outOfDateAssets        = 0;
+    uint32_t totalAssets   = 0;
     std::vector<std::pair<AssetType, std::shared_ptr<BaseAssetCreateInfo>>> outOfDateAssetList;
     outOfDateAssetList.reserve( 100 );
     for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
@@ -222,7 +221,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
         #pragma omp parallel for schedule( dynamic )
         for ( int i = 0; i < (int)outOfDateAssetList.size(); ++i )
         {
-            uint32_t assetTypeIdx = outOfDateAssetList[i].first;
+            uint32_t assetTypeIdx                                  = outOfDateAssetList[i].first;
             const std::shared_ptr<BaseAssetCreateInfo>& createInfo = outOfDateAssetList[i].second;
             if ( !g_converters[assetTypeIdx]->Convert( createInfo ) )
             {
@@ -238,18 +237,18 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
     }
     else
     {
-        LOG( "Convert for '%s' succeeded in %.2f seconds, %u / %u assets out of date", sceneName.c_str(), duration, outOfDateAssets, totalAssets );
+        LOG( "Convert for '%s' succeeded in %.2f seconds, %u / %u assets out of date", sceneName.c_str(), duration, outOfDateAssets,
+            totalAssets );
     }
 
     return convertErrors == 0;
 }
 
-
 bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAssets )
 {
     std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
-    time_t ffTimestamp = GetFileTimestamp( fastfilePath );
+    time_t ffTimestamp       = GetFileTimestamp( fastfilePath );
 
     bool createFastFile = false;
     if ( ffTimestamp == NO_TIMESTAMP )
@@ -304,13 +303,12 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
     return true;
 }
 
-
 bool ProcessSingleScene( const std::string& sceneFile )
 {
     ClearAllFastfileDependencies();
     ClearAllUsedAssets();
 
-    bool foundScene = false;
+    bool foundScene      = false;
     std::string filename = SCENE_DIR + sceneFile + ".csv";
     if ( PathExists( filename ) )
     {
@@ -339,10 +337,9 @@ bool ProcessSingleScene( const std::string& sceneFile )
 
     uint32_t outOfDateAssets;
     bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );
-    success = success && OutputFastfile( sceneFile, outOfDateAssets );
+    success      = success && OutputFastfile( sceneFile, outOfDateAssets );
     return success;
 }
-
 
 bool ConvertScenes( const std::string& scene )
 {
@@ -377,7 +374,6 @@ bool ConvertScenes( const std::string& scene )
     return true;
 }
 
-
 bool ConvertSingleAsset()
 {
     auto createInfo = AssetDatabase::FindAssetInfo( s_singleAssetType, s_singleAssetName );
@@ -393,11 +389,10 @@ bool ConvertSingleAsset()
     return ConvertAssets( s_singleAssetName, outOfDateAssets );
 }
 
-
 int main( int argc, char** argv )
 {
     auto initStartTime = Time::GetTimePoint();
-	EngineInitialize();
+    EngineInitialize();
     g_converterConfigOptions = {};
     std::string sceneFile;
     s_singleAssetName = "";
@@ -432,7 +427,7 @@ int main( int argc, char** argv )
     }
 
     LOG( "Total time: %.2f seconds", Time::GetTimeSince( initStartTime ) / 1000.0f );
-    
+
     ShutdownConverters();
     EngineShutdown();
     return 0;

@@ -13,7 +13,6 @@ namespace PT
 std::vector<std::shared_ptr<Texture>> g_textures = { nullptr };
 std::unordered_map<std::string, TextureHandle> s_textureNameToHandleMap;
 
-
 TextureHandle LoadTextureFromGfxImage( GfxImage* image )
 {
     PG_ASSERT( image && image->name.length() > 0 );
@@ -34,8 +33,8 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     if ( image->imageType == ImageType::TYPE_2D )
     {
         tex = std::make_shared<Texture2D>( image->width, image->height, image->mipLevels, image->pixelFormat, (void*)image->pixels );
-        //RawImage2D img( image->width, image->height, PixelFormatToImageFormat( image->pixelFormat ), std::static_pointer_cast<Texture2D>( tex )->Raw( 0 ) );
-        //img.Save( PG_ROOT_DIR + image->name + (PixelFormatIsFloat( image->pixelFormat ) ? ".exr" : ".png") );
+        // RawImage2D img( image->width, image->height, PixelFormatToImageFormat( image->pixelFormat ), std::static_pointer_cast<Texture2D>(
+        // tex )->Raw( 0 ) ); img.Save( PG_ROOT_DIR + image->name + (PixelFormatIsFloat( image->pixelFormat ) ? ".exr" : ".png") );
     }
     else if ( image->imageType == ImageType::TYPE_CUBEMAP )
     {
@@ -53,7 +52,7 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     }
 
     g_textures.push_back( tex );
-    TextureHandle handle = static_cast<TextureHandle>( g_textures.size() - 1 );
+    TextureHandle handle                  = static_cast<TextureHandle>( g_textures.size() - 1 );
     s_textureNameToHandleMap[image->name] = handle;
 
     if ( image == &decompressedImg )
@@ -64,10 +63,6 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     return handle;
 }
 
-
-Texture* GetTex( TextureHandle handle )
-{
-    return g_textures[handle].get();
-}
+Texture* GetTex( TextureHandle handle ) { return g_textures[handle].get(); }
 
 } // namespace PT

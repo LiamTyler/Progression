@@ -1,9 +1,9 @@
 #pragma once
 
+#include "asset/asset_versions.hpp"
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
-#include "asset/asset_versions.hpp"
 #include "glm/glm.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"

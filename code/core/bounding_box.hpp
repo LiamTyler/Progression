@@ -27,7 +27,6 @@ public:
     void Encompass( glm::vec3 point );
     void Encompass( glm::vec3* points, int numPoints );
 
-
     glm::vec3 min;
     glm::vec3 max;
 };

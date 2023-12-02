@@ -2,29 +2,27 @@
 
 #include "renderer/vulkan.hpp"
 
-namespace PG
-{
-namespace Gfx
+namespace PG::Gfx
 {
 
-    class Framebuffer
-    {
-        friend class Device;
-    public:
-        Framebuffer() = default;
+class Framebuffer
+{
+    friend class Device;
 
-        void Free();
-        operator bool() const;
-        VkFramebuffer GetHandle() const;
-        uint32_t      GetWidth() const;
-        uint32_t      GetHeight() const;
+public:
+    Framebuffer() = default;
 
-    private:
-        VkFramebuffer m_handle = VK_NULL_HANDLE;
-        VkDevice      m_device = VK_NULL_HANDLE;
-        uint32_t m_width;
-        uint32_t m_height;
-    };
+    void Free();
+    operator bool() const;
+    VkFramebuffer GetHandle() const;
+    uint32_t GetWidth() const;
+    uint32_t GetHeight() const;
 
-} // namespace Gfx
-} // namespace PG
+private:
+    VkFramebuffer m_handle = VK_NULL_HANDLE;
+    VkDevice m_device      = VK_NULL_HANDLE;
+    uint32_t m_width;
+    uint32_t m_height;
+};
+
+} // namespace PG::Gfx

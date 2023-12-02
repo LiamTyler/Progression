@@ -1,7 +1,7 @@
 #include "model_exporter_materials.hpp"
+#include "assimp/GltfMaterial.h"
 #include "shared/filesystem.hpp"
 #include "shared/string.hpp"
-#include "assimp/GltfMaterial.h"
 #include <optional>
 
 std::string g_textureSearchDir;
@@ -14,21 +14,21 @@ struct ImageInfo
     std::string type;
 };
 
-
 static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, std::string& absPathToTex )
 {
     aiString path;
-    namespace fs = std::filesystem;
+    namespace fs   = std::filesystem;
     uint32_t uvSet = UINT_MAX;
     if ( assimpMat->GetTexture( texType, 0, &path, NULL, &uvSet, NULL, NULL, NULL ) == AI_SUCCESS )
     {
         std::string name = StripWhitespace( path.data );
-        absPathToTex = name;
-        //LOG( "UVSet: %u", uvSet );
+        absPathToTex     = name;
+        // LOG( "UVSet: %u", uvSet );
 
         std::string fullPath;
         std::string basename = GetRelativeFilename( name );
-        for( auto itEntry = fs::recursive_directory_iterator( g_textureSearchDir ); itEntry != fs::recursive_directory_iterator(); ++itEntry )
+        for ( auto itEntry = fs::recursive_directory_iterator( g_textureSearchDir ); itEntry != fs::recursive_directory_iterator();
+              ++itEntry )
         {
             std::string itFile = itEntry->path().filename().string();
             if ( basename == itEntry->path().filename().string() )
@@ -53,7 +53,8 @@ static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType tex
     return true;
 }
 
-static std::optional<std::string> GetAssimpTexture( const aiMaterial* assimpMat, aiTextureType texType, const std::string& texTypeStr, const std::string& matName )
+static std::optional<std::string> GetAssimpTexture(
+    const aiMaterial* assimpMat, aiTextureType texType, const std::string& texTypeStr, const std::string& matName )
 {
     std::string imagePath;
     if ( assimpMat->GetTextureCount( texType ) > 0 )
@@ -121,10 +122,10 @@ static std::optional<bool> GetBool( const aiMaterial* assimpMat, const char* key
     return {};
 }
 
-const vec3 DEFAULT_ALBEDO_TINT = vec3( 1 );
-const float DEFAULT_METALLIC_TINT = 1.0f;
+const vec3 DEFAULT_ALBEDO_TINT     = vec3( 1 );
+const float DEFAULT_METALLIC_TINT  = 1.0f;
 const float DEFAULT_ROUGHNESS_TINT = 1.0f;
-const vec3 DEFAULT_EMISSIVE_TINT = vec3( 0 );
+const vec3 DEFAULT_EMISSIVE_TINT   = vec3( 0 );
 
 bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
 {
@@ -141,16 +142,16 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
         albedoTint = GetVec3( context.assimpMat, AI_MATKEY_COLOR_DIFFUSE );
     auto metalnessTint = GetFloat( context.assimpMat, AI_MATKEY_METALLIC_FACTOR );
     auto roughnessTint = GetFloat( context.assimpMat, AI_MATKEY_ROUGHNESS_FACTOR );
-    auto emissiveTint = GetVec3( context.assimpMat, AI_MATKEY_COLOR_EMISSIVE );
-    //auto specularTint = GetVec3( context.assimpMat, AI_MATKEY_COLOR_SPECULAR );
+    auto emissiveTint  = GetVec3( context.assimpMat, AI_MATKEY_COLOR_EMISSIVE );
+    // auto specularTint = GetVec3( context.assimpMat, AI_MATKEY_COLOR_SPECULAR );
 
     if ( albedoTint && albedoTint != DEFAULT_ALBEDO_TINT )
         AddJSON( matSettings, "albedoTint", *albedoTint );
-    if ( metalnessTint && metalnessTint != DEFAULT_METALLIC_TINT  )
+    if ( metalnessTint && metalnessTint != DEFAULT_METALLIC_TINT )
         AddJSON( matSettings, "metalnessTint", *metalnessTint );
-    if ( roughnessTint && roughnessTint != DEFAULT_ROUGHNESS_TINT  )
+    if ( roughnessTint && roughnessTint != DEFAULT_ROUGHNESS_TINT )
         AddJSON( matSettings, "roughnessTint", *roughnessTint );
-    if ( emissiveTint && emissiveTint != DEFAULT_EMISSIVE_TINT  )
+    if ( emissiveTint && emissiveTint != DEFAULT_EMISSIVE_TINT )
         AddJSON( matSettings, "emissiveTint", *emissiveTint );
 
     // Textures

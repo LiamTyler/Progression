@@ -3,9 +3,9 @@
 #include "core/pixel_formats.hpp"
 #include "glm/vec4.hpp"
 #include "renderer/graphics_api/framebuffer.hpp"
-#include "renderer/r_globals.hpp"
 #include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/texture.hpp"
+#include "renderer/r_globals.hpp"
 #include <functional>
 #include <vector>
 
@@ -23,27 +23,27 @@ struct RenderTask;
 
 enum class ResourceType : uint8_t
 {
-    NONE = 0,
-    TEXTURE = (1 << 0),
-    BUFFER = (1 << 1),
-    COLOR_ATTACH = (1 << 2),
-    DEPTH_ATTACH = (1 << 3),
-    STENCIL_ATTACH = (1 << 4),
-    SWAPCHAIN_IMAGE = (1 << 5),
+    NONE            = 0,
+    TEXTURE         = ( 1 << 0 ),
+    BUFFER          = ( 1 << 1 ),
+    COLOR_ATTACH    = ( 1 << 2 ),
+    DEPTH_ATTACH    = ( 1 << 3 ),
+    STENCIL_ATTACH  = ( 1 << 4 ),
+    SWAPCHAIN_IMAGE = ( 1 << 5 ),
 };
 PG_DEFINE_ENUM_OPS( ResourceType )
 
 enum class ResourceState : uint8_t
 {
     READ_ONLY = 0,
-    WRITE = 1,
+    WRITE     = 1,
 
     COUNT
 };
 
 enum class RelativeSizes : uint32_t
 {
-    Scene = 1u << 30,
+    Scene   = 1u << 30,
     Display = 1u << 31,
 
     ALL = Scene | Display
@@ -86,7 +86,6 @@ struct RG_Element
     bool isCleared       = false;
     bool isExternal      = false;
 };
-
 
 struct RG_AttachmentInfo
 {
@@ -144,8 +143,10 @@ struct RenderTask
         }
         else
         {
-            if ( IsSet( resType, ResourceType::DEPTH_ATTACH ) ) aspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
-            if ( IsSet( resType, ResourceType::STENCIL_ATTACH ) ) aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
+            if ( IsSet( resType, ResourceType::DEPTH_ATTACH ) )
+                aspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
+            if ( IsSet( resType, ResourceType::STENCIL_ATTACH ) )
+                aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
         }
         imageTransitions.emplace_back( previousLayout, desiredLayout, physicalResourceIndex, aspect );
     }
@@ -156,7 +157,6 @@ struct RenderTask
     std::vector<ImageTransition> imageTransitions;
 };
 
-
 struct RenderGraphCompileInfo
 {
     uint32_t sceneWidth;
@@ -164,41 +164,44 @@ struct RenderGraphCompileInfo
     uint32_t displayWidth;
     uint32_t displayHeight;
     PixelFormat swapchainFormat;
-    bool validate = true;
+    bool validate       = true;
     bool mergeResources = true;
-    bool showStats = true;
+    bool showStats      = true;
 };
-
 
 class RenderTaskBuilder
 {
 public:
     RenderTaskBuilder( const std::string& inName ) : name( inName ) {}
 
-    void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
-    void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels );
+    void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers,
+        uint32_t mipLevels, const glm::vec4& clearColor );
+    void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers,
+        uint32_t mipLevels );
     void AddColorOutput( const std::string& name );
     void AddSwapChainOutput( const glm::vec4& clearColor );
     void AddSwapChainOutput();
     void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, float clearValue );
     void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height );
     void AddDepthOutput( const std::string& name );
-    void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
-    void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels );
+    void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
+        uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
+    void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
+        uint32_t arrayLayers, uint32_t mipLevels );
     void AddTextureOutput( const std::string& name );
     void AddTextureInput( const std::string& name );
 
     void SetRenderFunction( RenderFunction func );
 
     std::string name;
-    std::vector< RG_Element > elements;
+    std::vector<RG_Element> elements;
     RenderFunction renderFunction;
 };
-
 
 class RenderGraphBuilder
 {
     friend class RenderGraph;
+
 public:
     RenderGraphBuilder();
     RenderTaskBuilder* AddTask( const std::string& name );
@@ -206,9 +209,8 @@ public:
     bool Validate( const RenderGraphCompileInfo& compileInfo ) const;
 
 private:
-    std::vector< RenderTaskBuilder > tasks;
+    std::vector<RenderTaskBuilder> tasks;
 };
-
 
 struct RG_PhysicalResource
 {
@@ -224,7 +226,6 @@ struct RG_PhysicalResource
     uint16_t lastTask;
     bool isExternal = false;
 };
-
 
 class RenderGraph
 {
@@ -256,7 +257,7 @@ public:
     };
     Statistics GetStats() const;
 
-    static constexpr uint16_t MAX_TASKS = 64;
+    static constexpr uint16_t MAX_TASKS                        = 64;
     static constexpr uint16_t MAX_PHYSICAL_RESOURCES_PER_FRAME = 256;
 
 private:

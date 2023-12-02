@@ -1,5 +1,6 @@
 #include "asset/asset_cache.hpp"
 #include "asset/types/gfx_image.hpp"
+#include "bc_compression.hpp"
 #include "core/image_processing.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
@@ -7,16 +8,13 @@
 #include "shared/serializer.hpp"
 #include <cstdio>
 
-#include "bc_compression.hpp"
-
 static void DisplayHelp()
 {
-    auto msg =
-        "Usage: GfxImageViewer PATH\n"
-        "\tPATH must be a valid path to a gfximage .pgi file\n"
-        "\tOutputs: will print out the image stats and decompress the image into a [PATH]_f[x]_m[y].png file\n"
-        "\t\tfor most formats, except for BC6/float images which will generate EXR image(s)\n"
-        "\t\tThe f[x] is the face index, and the m[y] is the mip level\n";
+    auto msg = "Usage: GfxImageViewer PATH\n"
+               "\tPATH must be a valid path to a gfximage .pgi file\n"
+               "\tOutputs: will print out the image stats and decompress the image into a [PATH]_f[x]_m[y].png file\n"
+               "\t\tfor most formats, except for BC6/float images which will generate EXR image(s)\n"
+               "\t\tThe f[x] is the face index, and the m[y] is the mip level\n";
     printf( "%s\n", msg );
 }
 
@@ -38,7 +36,6 @@ std::string ImageTypeToString( ImageType type )
 
     return names[Underlying( type )];
 }
-
 
 int main( int argc, char* argv[] )
 {

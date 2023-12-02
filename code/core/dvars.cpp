@@ -3,7 +3,7 @@
 #include <cstring>
 #include <stdexcept>
 #if !USING( SHIP_BUILD )
-#include <fstream>
+    #include <fstream>
 #endif // #if !USING( SHIP_BUILD )
 
 namespace PG
@@ -25,7 +25,8 @@ static bool IsNameValid( const char* const inName )
 static void RegisterDvar( Dvar* dvar )
 {
     PG_ASSERT( IsNameValid( dvar->GetName() ), "dvar name '%s' cannot contain any whitespace", dvar->GetName() );
-    PG_ASSERT( !s_dvars.contains( dvar->GetName() ), "Trying to register dvar '%s' multiple times! Make sure it's only defined once", dvar->GetName() );
+    PG_ASSERT( !s_dvars.contains( dvar->GetName() ), "Trying to register dvar '%s' multiple times! Make sure it's only defined once",
+        dvar->GetName() );
     s_dvars.emplace( dvar->GetName(), dvar );
 }
 
@@ -34,16 +35,11 @@ const char* Dvar::TypeToString( DvarType t )
     static_assert( Underlying( DvarType::COUNT ) == 5 );
     switch ( t )
     {
-    case DvarType::BOOL:
-        return "BOOL";
-    case DvarType::INT:
-        return "INT";
-    case DvarType::UINT:
-        return "UINT";
-    case DvarType::FLOAT:
-        return "FLOAT";
-    case DvarType::DOUBLE:
-        return "DOUBLE";
+    case DvarType::BOOL: return "BOOL";
+    case DvarType::INT: return "INT";
+    case DvarType::UINT: return "UINT";
+    case DvarType::FLOAT: return "FLOAT";
+    case DvarType::DOUBLE: return "DOUBLE";
     }
 
     return "_ERR";
@@ -85,15 +81,9 @@ Dvar::Dvar( const char* const inName, double defaultVal, double minVal, double m
     RegisterDvar( this );
 }
 
-const char* const Dvar::GetName() const
-{
-    return name;
-}
+const char* const Dvar::GetName() const { return name; }
 
-const char* const Dvar::GetDescription() const
-{
-    return description;
-}
+const char* const Dvar::GetDescription() const { return description; }
 
 bool Dvar::GetBool() const
 {
@@ -170,19 +160,14 @@ void Dvar::SetFromString( const std::string& str )
     }
     catch ( const std::out_of_range& )
     {
-        LOG_ERR( "Dvar::SetFromString: out of range error when converting string '%s' into dvar %s of type %s", str.c_str(), name, TypeToString( type ) );
+        LOG_ERR( "Dvar::SetFromString: out of range error when converting string '%s' into dvar %s of type %s", str.c_str(), name,
+            TypeToString( type ) );
     }
 }
 
-Dvar* GetDvar( std::string_view name )
-{
-    return s_dvars.contains( name ) ? s_dvars[name] : nullptr;
-}
+Dvar* GetDvar( std::string_view name ) { return s_dvars.contains( name ) ? s_dvars[name] : nullptr; }
 
-const std::unordered_map<std::string_view, Dvar*>& GetAllDvars()
-{
-    return s_dvars;
-}
+const std::unordered_map<std::string_view, Dvar*>& GetAllDvars() { return s_dvars; }
 
 #if !USING( SHIP_BUILD )
 // Make sure this filename lines up with the filename in remote_console_main.cpp

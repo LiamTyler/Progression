@@ -34,11 +34,11 @@ public:
     bool Intersect( const Ray& ray, IntersectionData& hitData );
     bool Occluded( const Ray& ray, float tMax = FLT_MAX );
     glm::vec3 LEnvironment( const Ray& ray );
-    
+
     BVH bvh;
     PG::Camera camera;
-    std::vector< Shape* > shapes; // invalid after bvh is built. Use bvh.shapes
-    std::vector< Light* > lights;
+    std::vector<Shape*> shapes; // invalid after bvh is built. Use bvh.shapes
+    std::vector<Light*> lights;
     glm::vec3 skyTint = glm::vec3( 1, 1, 1 );
     float skyEVAdjust = 0; // scales sky by pow( 2, skyEVAdjust )
     TextureHandle skybox;

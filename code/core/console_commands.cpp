@@ -9,7 +9,6 @@
 
 using namespace PG;
 
-
 static std::mutex s_lock;
 std::vector<std::string> s_pendingCommands;
 
@@ -23,7 +22,6 @@ static void Process_loadFF( std::string* args, uint32_t numArgs )
 
     AssetManager::LoadFastFile( args[0] );
 }
-
 
 struct RegisteredCommand
 {
@@ -40,8 +38,8 @@ static_assert( ARRAY_COUNT( s_commands ) == 1, "Update remote_console_main.cpp w
 static void ProcessCommand( const std::string& cmdStr )
 {
     std::vector<std::string> subStrs = SplitString( cmdStr, " " );
-    uint32_t numArgs = subStrs.empty() ? 0 : static_cast<uint32_t>( subStrs.size() - 1 );
-    const std::string& cmd = subStrs.empty() ? "" : subStrs[0];
+    uint32_t numArgs                 = subStrs.empty() ? 0 : static_cast<uint32_t>( subStrs.size() - 1 );
+    const std::string& cmd           = subStrs.empty() ? "" : subStrs[0];
     for ( int i = 0; i < ARRAY_COUNT( s_commands ); ++i )
     {
         if ( !strcmp( cmd.c_str(), s_commands[i].name ) )

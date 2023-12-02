@@ -24,15 +24,15 @@ glm::vec2 ConcentricSampleDisk( float u1, float u2, float radius )
 
     float theta = 0;
     float r     = radius;
-    if ( u1*u1 > u2*u2 )
+    if ( u1 * u1 > u2 * u2 )
     {
         r *= u1;
-        theta = (PI/4) * (u2/u1);
+        theta = ( PI / 4 ) * ( u2 / u1 );
     }
     else
     {
         r *= u2;
-        theta = (PI/2) - (PI/4) * (u1/u2);
+        theta = ( PI / 2 ) - ( PI / 4 ) * ( u1 / u2 );
     }
     return r * glm::vec2( std::cos( theta ), std::sin( theta ) );
 }
@@ -48,7 +48,7 @@ glm::vec3 UniformSampleHemisphere( float u1, float u2 )
 glm::vec3 CosineSampleHemisphere( float u1, float u2 )
 {
     auto d  = ConcentricSampleDisk( u1, u2 );
-    float z = std::sqrt( std::max( 0.f, 1 - d.x*d.x - d.y*d.y ) );
+    float z = std::sqrt( std::max( 0.f, 1 - d.x * d.x - d.y * d.y ) );
     return { d.x, d.y, z };
 }
 

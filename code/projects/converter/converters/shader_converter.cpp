@@ -53,7 +53,8 @@ void PG::CloseShaderIncludeCache()
     }
 }
 
-void PG::AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
+void PG::AddIncludeCacheEntry(
+    const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
 {
     std::vector<std::string> dependentFiles;
     dependentFiles.reserve( 1 + preprocOutput.includedFilesAbsPath.size() );
@@ -77,15 +78,17 @@ static bool GetIncludeCacheEntry( const std::string& cacheName, std::vector<std:
     return false;
 }
 
-#else // #if USING( SHADER_INCLUDE_CACHE )
+#else  // #if USING( SHADER_INCLUDE_CACHE )
 void PG::InitShaderIncludeCache() {}
 void PG::CloseShaderIncludeCache() {}
-void PG::AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
+void PG::AddIncludeCacheEntry(
+    const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
 {
-    PG_UNUSED( cacheName ); PG_UNUSED( createInfo ); PG_UNUSED( preprocOutput );
+    PG_UNUSED( cacheName );
+    PG_UNUSED( createInfo );
+    PG_UNUSED( preprocOutput );
 }
 #endif // #else // #if USING( SHADER_INCLUDE_CACHE )
-
 
 namespace PG
 {

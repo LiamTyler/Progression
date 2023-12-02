@@ -10,7 +10,7 @@ static bool QueueSupportsTimestamps( VkQueueFamilyProperties q, VkQueueFlags fla
         return q.timestampValidBits > 0;
     else
         return true;
-#else // #if USING( PG_GPU_PROFILING )
+#else  // #if USING( PG_GPU_PROFILING )
     return true;
 #endif // #else // #if USING( PG_GPU_PROFILING )
 }
@@ -19,7 +19,7 @@ static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfa
 {
     uint32_t queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties( device, &queueFamilyCount, nullptr );
-    std::vector< VkQueueFamilyProperties > queueFamilies( queueFamilyCount );
+    std::vector<VkQueueFamilyProperties> queueFamilies( queueFamilyCount );
     vkGetPhysicalDeviceQueueFamilyProperties( device, &queueFamilyCount, queueFamilies.data() );
 
     // search for dedicated queue first
@@ -28,9 +28,9 @@ static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfa
         const VkQueueFamilyProperties& props = queueFamilies[i];
         if ( props.queueCount > 0 )
         {
-            if ( (props.queueFlags & flags) == flags && QueueSupportsTimestamps( props, flags ) )
+            if ( ( props.queueFlags & flags ) == flags && QueueSupportsTimestamps( props, flags ) )
             {
-                if ( !headless && (flags & VK_QUEUE_GRAPHICS_BIT) )
+                if ( !headless && ( flags & VK_QUEUE_GRAPHICS_BIT ) )
                 {
                     VkBool32 presentSupport = false;
                     VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceSupportKHR( device, i, surface, &presentSupport ) );
@@ -53,7 +53,7 @@ static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfa
         {
             if ( props.queueFlags & flags && QueueSupportsTimestamps( props, flags ) )
             {
-                if ( !headless && (flags & VK_QUEUE_GRAPHICS_BIT) )
+                if ( !headless && ( flags & VK_QUEUE_GRAPHICS_BIT ) )
                 {
                     VkBool32 presentSupport = false;
                     VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceSupportKHR( device, i, surface, &presentSupport ) );
@@ -72,12 +72,11 @@ static uint32_t FindQueueFamily( bool headless, VkPhysicalDevice device, VkSurfa
     return ~0u;
 }
 
-
 static bool HasSwapChainSupport( VkPhysicalDevice device, VkSurfaceKHR surface )
 {
     VkSurfaceCapabilitiesKHR capabilities;
-    std::vector< VkSurfaceFormatKHR > formats;
-    std::vector< VkPresentModeKHR > presentModes;
+    std::vector<VkSurfaceFormatKHR> formats;
+    std::vector<VkPresentModeKHR> presentModes;
 
     VK_CHECK_RESULT( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( device, surface, &capabilities ) );
 
@@ -102,7 +101,6 @@ static bool HasSwapChainSupport( VkPhysicalDevice device, VkSurfaceKHR surface )
     return !formats.empty() && !presentModes.empty();
 }
 
-
 namespace PG
 {
 namespace Gfx
@@ -113,45 +111,43 @@ static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDe
     VkPhysicalDeviceProperties vkProperties;
     vkGetPhysicalDeviceProperties( physicalDevice, &vkProperties );
     PhysicalDeviceProperties p = {};
-    p.name            = vkProperties.deviceName;
-    p.apiVersionMajor = VK_VERSION_MAJOR( vkProperties.apiVersion );
-    p.apiVersionMinor = VK_VERSION_MINOR( vkProperties.apiVersion );
-    p.apiVersionPatch = VK_VERSION_PATCH( vkProperties.apiVersion );
-    p.isDiscrete      = vkProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-    p.nanosecondsPerTick = vkProperties.limits.timestampPeriod;
+    p.name                     = vkProperties.deviceName;
+    p.apiVersionMajor          = VK_VERSION_MAJOR( vkProperties.apiVersion );
+    p.apiVersionMinor          = VK_VERSION_MINOR( vkProperties.apiVersion );
+    p.apiVersionPatch          = VK_VERSION_PATCH( vkProperties.apiVersion );
+    p.isDiscrete               = vkProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
+    p.nanosecondsPerTick       = vkProperties.limits.timestampPeriod;
 
     return p;
 }
 
-
 static PhysicalDeviceFeatures GetDeviceFeatures( VkPhysicalDevice physicalDevice )
 {
-    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
-	VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
-	VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
+    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
+    VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
     VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
     VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
     VkPhysicalDeviceFeatures2 deviceFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
 
-    deviceFeatures2.pNext = MakePNextChain( { &bufferDeviceAddressFeatures, &rayTracingPipelineFeatures, &accelerationStructureFeatures, &indexingFeatures, &vkFeatures2 } );
+    deviceFeatures2.pNext = MakePNextChain(
+        { &bufferDeviceAddressFeatures, &rayTracingPipelineFeatures, &accelerationStructureFeatures, &indexingFeatures, &vkFeatures2 } );
     vkGetPhysicalDeviceFeatures2( physicalDevice, &deviceFeatures2 );
-    
+
     PhysicalDeviceFeatures f = {};
-    f.anisotropy = deviceFeatures2.features.samplerAnisotropy;
-    f.nullDescriptors = vkFeatures2.nullDescriptor;
-    f.bindless =
-        indexingFeatures.descriptorBindingPartiallyBound &&
-        indexingFeatures.runtimeDescriptorArray &&
-        indexingFeatures.descriptorBindingSampledImageUpdateAfterBind &&
-        indexingFeatures.shaderSampledImageArrayNonUniformIndexing;
-    f.raytracing =
-        bufferDeviceAddressFeatures.bufferDeviceAddress &&
-        rayTracingPipelineFeatures.rayTracingPipeline &&
-        accelerationStructureFeatures.accelerationStructure;
+    f.anisotropy             = deviceFeatures2.features.samplerAnisotropy;
+    f.nullDescriptors        = vkFeatures2.nullDescriptor;
+    f.bindless               = indexingFeatures.descriptorBindingPartiallyBound && indexingFeatures.runtimeDescriptorArray &&
+                 indexingFeatures.descriptorBindingSampledImageUpdateAfterBind &&
+                 indexingFeatures.shaderSampledImageArrayNonUniformIndexing;
+    f.raytracing = bufferDeviceAddressFeatures.bufferDeviceAddress && rayTracingPipelineFeatures.rayTracingPipeline &&
+                   accelerationStructureFeatures.accelerationStructure;
 
     return f;
 }
-
 
 PhysicalDevice::PhysicalDevice( VkPhysicalDevice vkPhysicalDevice, VkSurfaceKHR surface, bool headless )
 {
@@ -161,7 +157,7 @@ PhysicalDevice::PhysicalDevice( VkPhysicalDevice vkPhysicalDevice, VkSurfaceKHR 
     vkGetPhysicalDeviceMemoryProperties( m_handle, &m_memProperties );
     m_GCTQueueFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT );
     m_graphicsFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_GRAPHICS_BIT );
-    m_computeFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_COMPUTE_BIT );
+    m_computeFamily  = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_COMPUTE_BIT );
     m_transferFamily = FindQueueFamily( headless, m_handle, surface, VK_QUEUE_TRANSFER_BIT );
 
     uint32_t extensionCount;
@@ -177,12 +173,10 @@ PhysicalDevice::PhysicalDevice( VkPhysicalDevice vkPhysicalDevice, VkSurfaceKHR 
     m_rating = RateDevice( headless, surface );
 }
 
-
 bool PhysicalDevice::ExtensionSupported( const std::string& extensionName ) const
 {
     return std::find( m_availableExtensions.begin(), m_availableExtensions.end(), extensionName ) != m_availableExtensions.end();
 }
-
 
 int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface, bool logIfUnsuitable ) const
 {
@@ -224,17 +218,21 @@ int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface, bool logIfU
     }
 
     if ( !m_features.anisotropy || !m_features.bindless || !m_features.nullDescriptors
-        #if USING( PG_RTX )
-        || !m_features.raytracing
-        #endif // USING( PG_RTX )
+#if USING( PG_RTX )
+         || !m_features.raytracing
+#endif // USING( PG_RTX )
     )
     {
         if ( logIfUnsuitable )
         {
-            if ( !m_features.anisotropy ) LOG_ERR( "\t\tNo support for anisotropy" );
-            if ( !m_features.bindless ) LOG_ERR( "\t\tNo support for bindless textures" );
-            if ( !m_features.nullDescriptors ) LOG_ERR( "N\t\to support for nullDescriptors" );
-            if ( !m_features.raytracing ) LOG_ERR( "\t\tNo support for raytracing" );
+            if ( !m_features.anisotropy )
+                LOG_ERR( "\t\tNo support for anisotropy" );
+            if ( !m_features.bindless )
+                LOG_ERR( "\t\tNo support for bindless textures" );
+            if ( !m_features.nullDescriptors )
+                LOG_ERR( "N\t\to support for nullDescriptors" );
+            if ( !m_features.raytracing )
+                LOG_ERR( "\t\tNo support for raytracing" );
         }
         return 0;
     }
@@ -244,22 +242,20 @@ int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface, bool logIfU
     {
         score += 1000;
     }
-    
+
     return score;
 }
 
-
-std::string PhysicalDevice::GetName() const                                  { return m_properties.name; }
-VkPhysicalDevice PhysicalDevice::GetHandle() const                           { return m_handle; }
-PhysicalDeviceProperties PhysicalDevice::GetProperties() const               { return m_properties; }
-PhysicalDeviceFeatures PhysicalDevice::GetFeatures() const                   { return m_features; }
+std::string PhysicalDevice::GetName() const { return m_properties.name; }
+VkPhysicalDevice PhysicalDevice::GetHandle() const { return m_handle; }
+PhysicalDeviceProperties PhysicalDevice::GetProperties() const { return m_properties; }
+PhysicalDeviceFeatures PhysicalDevice::GetFeatures() const { return m_features; }
 VkPhysicalDeviceMemoryProperties PhysicalDevice::GetMemoryProperties() const { return m_memProperties; }
-uint32_t PhysicalDevice::GetGCTQueueFamily() const                           { return m_GCTQueueFamily; }
-uint32_t PhysicalDevice::GetGraphicsQueueFamily() const                      { return m_graphicsFamily; }
-uint32_t PhysicalDevice::GetComputeQueueFamily() const                       { return m_computeFamily; }
-uint32_t PhysicalDevice::GetTransferQueueFamily() const                      { return m_transferFamily; }
-int PhysicalDevice::GetRating() const                                        { return m_rating; }
-
+uint32_t PhysicalDevice::GetGCTQueueFamily() const { return m_GCTQueueFamily; }
+uint32_t PhysicalDevice::GetGraphicsQueueFamily() const { return m_graphicsFamily; }
+uint32_t PhysicalDevice::GetComputeQueueFamily() const { return m_computeFamily; }
+uint32_t PhysicalDevice::GetTransferQueueFamily() const { return m_transferFamily; }
+int PhysicalDevice::GetRating() const { return m_rating; }
 
 std::vector<PhysicalDevice> EnumerateCompatiblePhysicalDevices( VkInstance instance, VkSurfaceKHR surface, bool headless, bool verbose )
 {
@@ -287,8 +283,8 @@ std::vector<PhysicalDevice> EnumerateCompatiblePhysicalDevices( VkInstance insta
         if ( verbose )
         {
             const auto& properties = dev.GetProperties();
-            LOG( "Device %u: '%s', api = %u.%u.%u. Rating: %d", i, dev.GetProperties().name.c_str(), properties.apiVersionMajor, properties.apiVersionMinor, properties.apiVersionPatch, dev.GetRating() );
-            
+            LOG( "Device %u: '%s', api = %u.%u.%u. Rating: %d", i, dev.GetProperties().name.c_str(), properties.apiVersionMajor,
+                properties.apiVersionMinor, properties.apiVersionPatch, dev.GetRating() );
         }
     }
 
@@ -300,14 +296,14 @@ std::vector<PhysicalDevice> EnumerateCompatiblePhysicalDevices( VkInstance insta
         {
             PhysicalDevice dev( vkDevices[i], surface, headless );
             const auto& properties = dev.GetProperties();
-            LOG_ERR( "\tDevice %u: '%s', api = %u.%u.%u. Rating: %d", i, dev.GetProperties().name.c_str(), properties.apiVersionMajor, properties.apiVersionMinor, properties.apiVersionPatch, dev.GetRating() );
+            LOG_ERR( "\tDevice %u: '%s', api = %u.%u.%u. Rating: %d", i, dev.GetProperties().name.c_str(), properties.apiVersionMajor,
+                properties.apiVersionMinor, properties.apiVersionPatch, dev.GetRating() );
             dev.RateDevice( headless, surface, true );
         }
     }
 
     return devices;
 }
-
 
 PhysicalDevice SelectBestPhysicalDevice( std::vector<PhysicalDevice>& devices, int deviceOverride )
 {
@@ -318,10 +314,10 @@ PhysicalDevice SelectBestPhysicalDevice( std::vector<PhysicalDevice>& devices, i
         return devices[deviceOverride];
     }
 
-    std::sort( devices.begin(), devices.end(), []( const PhysicalDevice& lhs, const PhysicalDevice& rhs ) { return lhs.GetRating() > rhs.GetRating(); } );
+    std::sort( devices.begin(), devices.end(),
+        []( const PhysicalDevice& lhs, const PhysicalDevice& rhs ) { return lhs.GetRating() > rhs.GetRating(); } );
     return devices[0];
 }
-
 
 } // namespace Gfx
 } // namespace PG

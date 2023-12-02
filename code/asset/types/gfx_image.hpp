@@ -4,7 +4,7 @@
 #include "core/image_types.hpp"
 #include "core/pixel_formats.hpp"
 #if USING( GPU_DATA )
-#include "renderer/graphics_api/texture.hpp"
+    #include "renderer/graphics_api/texture.hpp"
 #endif // #if USING( GPU_DATA )
 #include "ImageLib/image.hpp"
 
@@ -49,7 +49,7 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
     GfxImageFilterMode filterMode = GfxImageFilterMode::TRILINEAR;
 
     // for composite maps, like ALBEDO_METALNESS
-    float compositeScales[4] = { 1.0f, 1.0f, 1.0f, 1.0f };
+    float compositeScales[4]           = { 1.0f, 1.0f, 1.0f, 1.0f };
     Channel compositeSourceChannels[4] = { Channel::COUNT, Channel::COUNT, Channel::COUNT, Channel::COUNT };
 };
 
@@ -62,13 +62,13 @@ struct GfxImage : public BaseAsset
     unsigned char* GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel = 0 ) const;
     void UploadToGpu();
 
-    uint32_t width     = 0;
-    uint32_t height    = 0;
-    uint32_t depth     = 0;
-    uint32_t mipLevels = 0;
-    uint32_t numFaces  = 0;
+    uint32_t width          = 0;
+    uint32_t height         = 0;
+    uint32_t depth          = 0;
+    uint32_t mipLevels      = 0;
+    uint32_t numFaces       = 0;
     size_t totalSizeInBytes = 0;
-    unsigned char* pixels = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
+    unsigned char* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
     PixelFormat pixelFormat;
     ImageType imageType;
     bool clampHorizontal;
@@ -92,11 +92,12 @@ enum CubemapFaceIndex
 
 // if numMips is unspecified (0), assume all mips are in use
 size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips = 0 );
-size_t CalculateTotalImageBytes( PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+size_t CalculateTotalImageBytes(
+    PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
 size_t CalculateTotalImageBytes( const GfxImage& img );
 PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB );
 
 GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, PixelFormat format );
-GfxImage DecompressGfxImage( const GfxImage &image );
+GfxImage DecompressGfxImage( const GfxImage& image );
 
 } // namespace PG

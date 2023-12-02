@@ -23,7 +23,7 @@ public:
     glm::vec3 GetForwardDir() const;
     glm::vec3 GetUpDir() const;
     glm::vec3 GetRightDir() const;
-    Frustum   GetFrustum() const;
+    Frustum GetFrustum() const;
 
     glm::vec3 position;
     glm::vec3 rotation;
@@ -41,7 +41,6 @@ protected:
     glm::vec3 m_currRight;
     Frustum m_frustum;
 };
-
 
 void RegisterLuaFunctions_Camera( lua_State* L );
 

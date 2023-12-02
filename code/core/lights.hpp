@@ -2,9 +2,9 @@
 
 #include "shared/platform_defines.hpp"
 #if USING( GAME )
-#include "c_shared/structs.h"
+    #include "c_shared/structs.h"
 #else // #if USING( GAME )
-#include "glm/vec3.hpp"
+    #include "glm/vec3.hpp"
 #endif // #else // #if USING( GAME )
 #include "glm/trigonometric.hpp"
 
@@ -30,11 +30,11 @@ struct PointLight : public Light
 
 struct SpotLight : public Light
 {
-    glm::vec3 position     = glm::vec3( 0, 0, 0 );
-    float radius           = 10;
-    glm::vec3 direction    = glm::vec3( 0, 0, -1 );
-    float innerAngle = glm::radians( 20.0f );
-    float outerAngle = glm::radians( 30.0f );
+    glm::vec3 position  = glm::vec3( 0, 0, 0 );
+    float radius        = 10;
+    glm::vec3 direction = glm::vec3( 0, 0, -1 );
+    float innerAngle    = glm::radians( 20.0f );
+    float outerAngle    = glm::radians( 30.0f );
 };
 
 #if USING( GAME )

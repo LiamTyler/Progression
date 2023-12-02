@@ -1,29 +1,29 @@
-#include "shared/logger.hpp"
 #include "core/time.hpp"
 #include "isocline/include/isocline.h"
+#include "shared/logger.hpp"
 #include "shared/string.hpp"
 #include <fstream>
 #include <iostream>
 
-#if USING ( WINDOWS_PROGRAM )
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#include <winsock2.h>
-#include <ws2tcpip.h>
-#pragma comment (lib, "Ws2_32.lib")
+#if USING( WINDOWS_PROGRAM )
+    #define WIN32_LEAN_AND_MEAN
+    #include <windows.h>
+    #include <winsock2.h>
+    #include <ws2tcpip.h>
+    #pragma comment( lib, "Ws2_32.lib" )
 #else // #if USING ( WINDOWS_PROGRAM )
-#error "Need to implement socket code for linux"
+    #error "Need to implement socket code for linux"
 #endif // #else // #if USING ( WINDOWS_PROGRAM )
 
 using namespace PG;
 
-#define CLOSE_SOCKET_AND_RETURN   \
-{                                 \
-    closesocket( connectSocket ); \
-    WSACleanup();                 \
-    Logger_Shutdown();            \
-    return 0;                     \
-}
+#define CLOSE_SOCKET_AND_RETURN       \
+    {                                 \
+        closesocket( connectSocket ); \
+        WSACleanup();                 \
+        Logger_Shutdown();            \
+        return 0;                     \
+    }
 
 struct Command
 {
@@ -40,7 +40,7 @@ int main( int argc, char* argv[] )
 {
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
-    
+
     if ( !LoadCommands() )
     {
         LOG_ERR( "Invalid dvar file. Please regenerate (rerun engine)" );
@@ -50,22 +50,22 @@ int main( int argc, char* argv[] )
     setlocale( LC_ALL, "C.UTF-8" );
 
     // use `ic_print` functions to use bbcode's for markup
-    ic_style_def( "kbd","gray underline" );     // you can define your own styles
-    ic_style_def( "ic-prompt","ansi-maroon" );  // or re-define system styles
-  
+    ic_style_def( "kbd", "gray underline" );    // you can define your own styles
+    ic_style_def( "ic-prompt", "ansi-maroon" ); // or re-define system styles
+
     ic_printf( "[b]Remote Console[/b]:\n"
-            "- Type 'exit' to quit. (or use [kbd]ctrl-d[/]).\n"
-            "- Press [kbd]F1[/] for help on editing commands.\n"
-            "- Use [kbd]ctrl-r[/] to search the history.\n\n" );
-  
+               "- Type 'exit' to quit. (or use [kbd]ctrl-d[/]).\n"
+               "- Press [kbd]F1[/] for help on editing commands.\n"
+               "- Use [kbd]ctrl-r[/] to search the history.\n\n" );
+
     // enable history; use a NULL filename to not persist history to disk
-    ic_set_history( PG_BIN_DIR "remote_console_history.txt", -1 /* default entries (= 200) */);
+    ic_set_history( PG_BIN_DIR "remote_console_history.txt", -1 /* default entries (= 200) */ );
 
     // enable completion with a default completion function
     ic_set_default_completer( &Completer, NULL );
 
     // enable syntax highlighting with a highlight function
-    //ic_set_default_highlighter(highlighter, NULL);
+    // ic_set_default_highlighter(highlighter, NULL);
 
     // try to auto complete after a completion as long as the completion is unique
     ic_enable_auto_tab( true );
@@ -75,7 +75,7 @@ int main( int argc, char* argv[] )
 
     {
         WSADATA wsaData;
-        int iResult = WSAStartup( MAKEWORD( 2,2 ), &wsaData );
+        int iResult = WSAStartup( MAKEWORD( 2, 2 ), &wsaData );
         if ( iResult != 0 )
         {
             LOG_ERR( "WSAStartup failed with error: %d\n", iResult );
@@ -89,8 +89,8 @@ int main( int argc, char* argv[] )
         hints.ai_socktype = SOCK_STREAM;
         hints.ai_protocol = IPPROTO_TCP;
 
-        struct addrinfo *addr = NULL;
-        iResult = getaddrinfo( NULL, "27015", &hints, &addr );
+        struct addrinfo* addr = NULL;
+        iResult               = getaddrinfo( NULL, "27015", &hints, &addr );
         if ( iResult != 0 )
         {
             LOG_ERR( "getaddrinfo failed with error: %d", iResult );
@@ -217,7 +217,7 @@ static bool LoadCommands()
         dvarFile.read( (char*)&numDvars, sizeof( numDvars ) );
         for ( int dvarIdx = 0; dvarIdx < numDvars; ++dvarIdx )
         {
-            Command &cmd = s_commands.emplace_back();
+            Command& cmd = s_commands.emplace_back();
             int nameLen;
             dvarFile.read( (char*)&nameLen, sizeof( nameLen ) );
             cmd.name.resize( nameLen );
@@ -245,19 +245,16 @@ static bool LoadCommands()
     return true;
 }
 
-static void Word_completer( ic_completion_env_t* cenv, const char* word ) 
-{
-    ic_add_completions( cenv, word, s_commandNames.data() );
-}
+static void Word_completer( ic_completion_env_t* cenv, const char* word ) { ic_add_completions( cenv, word, s_commandNames.data() ); }
 
-static void Completer( ic_completion_env_t* cenv, const char* input ) 
+static void Completer( ic_completion_env_t* cenv, const char* input )
 {
     // try to complete file names from the roots "." and "/usr/local"
-    //ic_complete_filename( cenv, input, 0, ".;/usr/local;c:\\Program Files" , NULL /* any extension */ );
+    // ic_complete_filename( cenv, input, 0, ".;/usr/local;c:\\Program Files" , NULL /* any extension */ );
 
-    // and also use our custom completer  
-    ic_complete_word( cenv, input, &Word_completer, NULL /* from default word boundary; whitespace or separator */ );        
-  
-    // ic_complete_word( cenv, input, &word_completer, &ic_char_is_idletter );        
-    // ic_complete_qword( cenv, input, &word_completer, &ic_char_is_idletter  );        
+    // and also use our custom completer
+    ic_complete_word( cenv, input, &Word_completer, NULL /* from default word boundary; whitespace or separator */ );
+
+    // ic_complete_word( cenv, input, &word_completer, &ic_char_is_idletter );
+    // ic_complete_qword( cenv, input, &word_completer, &ic_char_is_idletter  );
 }

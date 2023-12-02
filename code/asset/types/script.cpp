@@ -7,17 +7,13 @@
 namespace PG
 {
 
-std::string GetAbsPath_ScriptFilename( const std::string& filename )
-{
-    return PG_ASSET_DIR + filename;
-}
-
+std::string GetAbsPath_ScriptFilename( const std::string& filename ) { return PG_ASSET_DIR + filename; }
 
 bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
     const ScriptCreateInfo* createInfo = (const ScriptCreateInfo*)baseInfo;
-    name = createInfo->name;
+    name                               = createInfo->name;
     std::ifstream in( GetAbsPath_ScriptFilename( createInfo->filename ), std::ios::binary );
     if ( !in )
     {
@@ -29,11 +25,10 @@ bool Script::Load( const BaseAssetCreateInfo* baseInfo )
     size_t size = in.tellg();
     scriptText.resize( size );
     in.seekg( 0 );
-    in.read( &scriptText[0], size ); 
+    in.read( &scriptText[0], size );
 
     return true;
 }
-
 
 bool Script::FastfileLoad( Serializer* serializer )
 {
@@ -43,7 +38,6 @@ bool Script::FastfileLoad( Serializer* serializer )
 
     return true;
 }
-
 
 bool Script::FastfileSave( Serializer* serializer ) const
 {

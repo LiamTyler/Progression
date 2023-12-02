@@ -13,11 +13,11 @@ enum class CompressionQuality
 
 struct BCCompressorSettings
 {
-    ImageFormat format = ImageFormat::INVALID;
+    ImageFormat format         = ImageFormat::INVALID;
     CompressionQuality quality = CompressionQuality::MEDIUM;
-    int bc4SourceChannel  = 0;
-    int bc5SourceChannel1 = 0;
-    int bc5SourceChannel2 = 1;
+    int bc4SourceChannel       = 0;
+    int bc5SourceChannel1      = 0;
+    int bc5SourceChannel2      = 1;
 };
 
 // Note: BC6H_U16F works fine, but something seems wrong with Compressenator's BC6H_S16F

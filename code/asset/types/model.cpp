@@ -1,30 +1,25 @@
 #include "asset/types/model.hpp"
-#include "asset/types/material.hpp"
 #include "asset/asset_manager.hpp"
 #include "asset/pmodel.hpp"
+#include "asset/types/material.hpp"
+#include "glm/geometric.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
-#include "glm/geometric.hpp"
 #include <cstring>
-
 
 namespace PG
 {
 
-std::string GetAbsPath_ModelFilename( const std::string& filename )
-{
-    return PG_ASSET_DIR + filename;
-}
-
+std::string GetAbsPath_ModelFilename( const std::string& filename ) { return PG_ASSET_DIR + filename; }
 
 bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
     const ModelCreateInfo* createInfo = (const ModelCreateInfo*)baseInfo;
-    name = createInfo->name;
+    name                              = createInfo->name;
     if ( GetFileExtension( createInfo->filename ) != ".pmodel" )
     {
         LOG_ERR( "Model::Load only takes .pmodel format" );
@@ -37,16 +32,16 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
     meshes.resize( pmodel.meshes.size() );
     originalMaterials.resize( pmodel.meshes.size() );
-    uint32_t totalVerts = 0;
-    uint32_t totalIndices = 0;
-    bool anyMeshHasUVs = false;
+    uint32_t totalVerts     = 0;
+    uint32_t totalIndices   = 0;
+    bool anyMeshHasUVs      = false;
     bool anyMeshHasTangents = false;
     for ( uint32_t meshIdx = 0; meshIdx < (uint32_t)meshes.size(); ++meshIdx )
     {
-        Mesh& m = meshes[meshIdx];
+        Mesh& m                   = meshes[meshIdx];
         const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
 
-        m.name = pMesh.name;
+        m.name                     = pMesh.name;
         originalMaterials[meshIdx] = AssetManager::Get<Material>( pMesh.materialName );
         if ( !originalMaterials[meshIdx] )
         {
@@ -55,14 +50,14 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         }
 
         m.startVertex = totalVerts;
-        m.startIndex = totalIndices;
+        m.startIndex  = totalIndices;
         m.numVertices = (uint32_t)pMesh.vertices.size();
-        m.numIndices = (uint32_t)pMesh.indices.size();
+        m.numIndices  = (uint32_t)pMesh.indices.size();
 
         totalVerts += m.numVertices;
         totalIndices += m.numIndices;
 
-        anyMeshHasUVs = anyMeshHasUVs || pMesh.numUVChannels > 0;
+        anyMeshHasUVs      = anyMeshHasUVs || pMesh.numUVChannels > 0;
         anyMeshHasTangents = anyMeshHasTangents || pMesh.hasTangents;
     }
 
@@ -74,19 +69,19 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         tangents.resize( totalVerts ); // xyz is the tangent, w is the bitangent sign
     indices.resize( totalIndices );
 
-    uint32_t vertOffset = 0;
+    uint32_t vertOffset  = 0;
     uint32_t indexOffset = 0;
     for ( uint32_t meshIdx = 0; meshIdx < (uint32_t)meshes.size(); ++meshIdx )
     {
-        const Mesh& m = meshes[meshIdx];
+        const Mesh& m             = meshes[meshIdx];
         const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
 
         for ( uint32_t localVertIdx = 0; localVertIdx < m.numVertices; ++localVertIdx )
         {
             const PModel::Vertex& v = pMesh.vertices[localVertIdx];
-            uint32_t vIdx = vertOffset + localVertIdx;
-            positions[vIdx] = v.pos;
-            normals[vIdx] = v.normal;
+            uint32_t vIdx           = vertOffset + localVertIdx;
+            positions[vIdx]         = v.pos;
+            normals[vIdx]           = v.normal;
             if ( anyMeshHasUVs )
             {
                 texCoords[vIdx] = pMesh.numUVChannels > 0 ? v.uvs[0] : glm::vec2( 0 );
@@ -97,12 +92,12 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             {
                 if ( pMesh.hasTangents )
                 {
-                    glm::vec3 tangent = v.tangent;
+                    glm::vec3 tangent   = v.tangent;
                     glm::vec3 bitangent = v.bitangent;
-                    glm::vec3 tNormal = glm::cross( tangent, bitangent );
-                    float bSign = glm::dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
-                    glm::vec4 packed = glm::vec4( tangent, bSign );
-                    tangents[vIdx] = packed;
+                    glm::vec3 tNormal   = glm::cross( tangent, bitangent );
+                    float bSign         = glm::dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
+                    glm::vec4 packed    = glm::vec4( tangent, bSign );
+                    tangents[vIdx]      = packed;
                 }
                 else
                 {
@@ -128,7 +123,6 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
     return true;
 }
-
 
 bool Model::FastfileLoad( Serializer* serializer )
 {
@@ -166,7 +160,6 @@ bool Model::FastfileLoad( Serializer* serializer )
     return true;
 }
 
-
 bool Model::FastfileSave( Serializer* serializer ) const
 {
     PG_ASSERT( serializer );
@@ -193,11 +186,10 @@ bool Model::FastfileSave( Serializer* serializer ) const
     return true;
 }
 
-
 void Model::RecalculateNormals()
 {
     PG_ASSERT( positions.size() == normals.size() );
-    std::vector< glm::vec3 > newNormals;
+    std::vector<glm::vec3> newNormals;
     newNormals.resize( normals.size(), glm::vec3( 0 ) );
     for ( const Mesh& mesh : meshes )
     {
@@ -208,7 +200,7 @@ void Model::RecalculateNormals()
             const auto i2 = mesh.startVertex + indices[mesh.startIndex + i + 2];
             glm::vec3 e01 = positions[i1] - positions[i0];
             glm::vec3 e02 = positions[i2] - positions[i0];
-            auto N = glm::cross( e01, e02 );
+            auto N        = glm::cross( e01, e02 );
             if ( glm::length( N ) <= 0.00001f )
             {
                 // degenerate tri, just use the existing normals
@@ -232,61 +224,66 @@ void Model::RecalculateNormals()
     }
 }
 
-
 void Model::CreateBLAS()
 {
 #if USING( PG_RTX ) && USING( GPU_DATA )
     VkDeviceAddress vertexAddress = vertexBuffer.GetDeviceAddress();
     VkDeviceAddress indexAddress  = indexBuffer.GetDeviceAddress();
-    uint32_t numTriangles = static_cast<uint32_t>( (indexBuffer.GetLength() / sizeof( uint32_t )) / 3 );
+    uint32_t numTriangles         = static_cast<uint32_t>( ( indexBuffer.GetLength() / sizeof( uint32_t ) ) / 3 );
 
     VkAccelerationStructureGeometryKHR accelerationStructureGeometry{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
-    accelerationStructureGeometry.flags = VK_GEOMETRY_OPAQUE_BIT_KHR;
-    accelerationStructureGeometry.geometryType = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-    accelerationStructureGeometry.geometry.triangles.sType = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
+    accelerationStructureGeometry.flags                           = VK_GEOMETRY_OPAQUE_BIT_KHR;
+    accelerationStructureGeometry.geometryType                    = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
+    accelerationStructureGeometry.geometry.triangles.sType        = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
     accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-    accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress = vertexAddress;
-    accelerationStructureGeometry.geometry.triangles.maxVertex = numVertices;
-    accelerationStructureGeometry.geometry.triangles.vertexStride = sizeof( glm::vec3 );
-    accelerationStructureGeometry.geometry.triangles.indexType = VK_INDEX_TYPE_UINT32;
-    accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress = indexAddress;
+    accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress    = vertexAddress;
+    accelerationStructureGeometry.geometry.triangles.maxVertex                   = numVertices;
+    accelerationStructureGeometry.geometry.triangles.vertexStride                = sizeof( glm::vec3 );
+    accelerationStructureGeometry.geometry.triangles.indexType                   = VK_INDEX_TYPE_UINT32;
+    accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress     = indexAddress;
     accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
-    accelerationStructureGeometry.geometry.triangles.transformData.hostAddress = nullptr;
+    accelerationStructureGeometry.geometry.triangles.transformData.hostAddress   = nullptr;
 
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
-	accelerationStructureBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-	accelerationStructureBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-	accelerationStructureBuildGeometryInfo.geometryCount = 1;
-	accelerationStructureBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
+    VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{
+        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
+    accelerationStructureBuildGeometryInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    accelerationStructureBuildGeometryInfo.flags         = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    accelerationStructureBuildGeometryInfo.geometryCount = 1;
+    accelerationStructureBuildGeometryInfo.pGeometries   = &accelerationStructureGeometry;
 
-    VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
+    VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{
+        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
     vkGetAccelerationStructureBuildSizesKHR( Gfx::rg.device.GetHandle(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &accelerationStructureBuildGeometryInfo, &numTriangles, &accelerationStructureBuildSizesInfo );
 
     using namespace Gfx;
-    blas = rg.device.NewAccelerationStructure( AccelerationStructureType::BLAS, accelerationStructureBuildSizesInfo.accelerationStructureSize );
+    blas = rg.device.NewAccelerationStructure(
+        AccelerationStructureType::BLAS, accelerationStructureBuildSizesInfo.accelerationStructureSize );
 
-    Buffer scratchBuffer = rg.device.NewBuffer( accelerationStructureBuildSizesInfo.buildScratchSize, BUFFER_TYPE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
+    Buffer scratchBuffer = rg.device.NewBuffer(
+        accelerationStructureBuildSizesInfo.buildScratchSize, BUFFER_TYPE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
 
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
-    accelerationBuildGeometryInfo.type = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    accelerationBuildGeometryInfo.flags = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-    accelerationBuildGeometryInfo.mode = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    accelerationBuildGeometryInfo.dstAccelerationStructure = blas.GetHandle();
-    accelerationBuildGeometryInfo.geometryCount = 1;
-    accelerationBuildGeometryInfo.pGeometries = &accelerationStructureGeometry;
+    VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{
+        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
+    accelerationBuildGeometryInfo.type                      = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
+    accelerationBuildGeometryInfo.flags                     = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
+    accelerationBuildGeometryInfo.mode                      = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
+    accelerationBuildGeometryInfo.dstAccelerationStructure  = blas.GetHandle();
+    accelerationBuildGeometryInfo.geometryCount             = 1;
+    accelerationBuildGeometryInfo.pGeometries               = &accelerationStructureGeometry;
     accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.GetDeviceAddress();
 
     VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-    accelerationStructureBuildRangeInfo.primitiveCount = numTriangles;
-    accelerationStructureBuildRangeInfo.primitiveOffset = 0;
-    accelerationStructureBuildRangeInfo.firstVertex = 0;
-    accelerationStructureBuildRangeInfo.transformOffset = 0;
+    accelerationStructureBuildRangeInfo.primitiveCount                                          = numTriangles;
+    accelerationStructureBuildRangeInfo.primitiveOffset                                         = 0;
+    accelerationStructureBuildRangeInfo.firstVertex                                             = 0;
+    accelerationStructureBuildRangeInfo.transformOffset                                         = 0;
     std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
 
     CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time Build AS" );
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    vkCmdBuildAccelerationStructuresKHR( cmdBuf.GetHandle(), 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data() );
+    vkCmdBuildAccelerationStructuresKHR(
+        cmdBuf.GetHandle(), 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data() );
     cmdBuf.EndRecording();
     rg.device.Submit( cmdBuf );
     rg.device.WaitForIdle();
@@ -294,7 +291,6 @@ void Model::CreateBLAS()
     scratchBuffer.Free();
 #endif // #if USING( PG_RTX ) && USING( GPU_DATA )
 }
-
 
 void Model::UploadToGPU()
 {
@@ -308,7 +304,7 @@ void Model::UploadToGPU()
     PG_ASSERT( tangents.empty() || positions.size() == tangents.size() );
     PG_ASSERT( texCoords.empty() || positions.size() == texCoords.size() );
     size_t texCoordCount = positions.size();
-    size_t tangentCount = positions.size();
+    size_t tangentCount  = positions.size();
 
     size_t totalSize = 0;
     totalSize += positions.size() * sizeof( glm::vec3 );
@@ -320,9 +316,9 @@ void Model::UploadToGPU()
         return;
     }
 
-    gpuPositionOffset = 0;
-    size_t offset = 0;
-    unsigned char* tmpMem = static_cast< unsigned char* >( malloc( totalSize ) );
+    gpuPositionOffset     = 0;
+    size_t offset         = 0;
+    unsigned char* tmpMem = static_cast<unsigned char*>( malloc( totalSize ) );
     memcpy( tmpMem + offset, positions.data(), positions.size() * sizeof( glm::vec3 ) );
     offset += positions.size() * sizeof( glm::vec3 );
 
@@ -340,7 +336,7 @@ void Model::UploadToGPU()
         memcpy( tmpMem + offset, texCoords.data(), texCoordCount * sizeof( glm::vec2 ) );
     }
     offset += texCoordCount * sizeof( glm::vec2 );
-    
+
     gpuTangentOffset = offset;
     if ( tangents.empty() )
     {
@@ -354,8 +350,10 @@ void Model::UploadToGPU()
 
     using namespace Gfx;
     BufferType rayTracingType = BUFFER_TYPE_DEVICE_ADDRESS | BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY | BUFFER_TYPE_STORAGE;
-    vertexBuffer = rg.device.NewBuffer( totalSize, tmpMem, rayTracingType | BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
-    indexBuffer = rg.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), rayTracingType | BUFFER_TYPE_INDEX, MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
+    vertexBuffer =
+        rg.device.NewBuffer( totalSize, tmpMem, rayTracingType | BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
+    indexBuffer = rg.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), rayTracingType | BUFFER_TYPE_INDEX,
+        MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
     free( tmpMem );
     CreateBLAS();
 
@@ -363,22 +361,23 @@ void Model::UploadToGPU()
 #endif // #if USING( GPU_DATA )
 }
 
-
 void Model::Free()
 {
     FreeGPU();
     FreeCPU();
 }
 
-
 void Model::FreeCPU()
 {
-    positions.clear(); positions.shrink_to_fit();
-    normals.clear(); normals.shrink_to_fit();
-    texCoords.clear(); texCoords.shrink_to_fit();
-    tangents.clear(); tangents.shrink_to_fit();
+    positions.clear();
+    positions.shrink_to_fit();
+    normals.clear();
+    normals.shrink_to_fit();
+    texCoords.clear();
+    texCoords.shrink_to_fit();
+    tangents.clear();
+    tangents.shrink_to_fit();
 }
-
 
 void Model::FreeGPU()
 {
@@ -387,16 +386,18 @@ void Model::FreeGPU()
     {
         vertexBuffer.Free();
     }
-    if ( indexBuffer)
+    if ( indexBuffer )
     {
         indexBuffer.Free();
     }
+
 #if USING( PG_RTX )
     if ( blas )
     {
         blas.Free();
     }
 #endif // #if USING( PG_RTX )
+
 #endif // #if USING( GPU_DATA )
 }
 

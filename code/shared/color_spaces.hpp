@@ -18,18 +18,15 @@ inline float LinearToGammaSRGB( float x )
     }
 }
 
-
 inline glm::vec3 LinearToGammaSRGB( glm::vec3 v )
 {
-    return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ) };  
+    return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ) };
 }
-
 
 inline glm::vec4 LinearToGammaSRGB( glm::vec4 v )
 {
-    return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ), v.a };  
+    return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ), v.a };
 }
-
 
 inline float GammaSRGBToLinear( float x )
 {
@@ -39,20 +36,18 @@ inline float GammaSRGBToLinear( float x )
     }
     else
     {
-        return std::pow( (x + 0.055f) / 1.055f, 2.4f );
+        return std::pow( ( x + 0.055f ) / 1.055f, 2.4f );
     }
 }
 
-
 inline glm::vec3 GammaSRGBToLinear( glm::vec3 v )
 {
-    return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ) };  
+    return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ) };
 }
-
 
 inline glm::vec4 GammaSRGBToLinear( glm::vec4 v )
 {
-    return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ), v.w };  
+    return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ), v.w };
 }
 
 } // namespace PG

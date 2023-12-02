@@ -5,37 +5,34 @@
 
 struct lua_State;
 
-namespace PG
-{
-namespace Input
+namespace PG::Input
 {
 
-    void Init();
-    void Shutdown();
+void Init();
+void Shutdown();
 
-    // should be called once per frame to update inputs
-    void PollEvents();
+// should be called once per frame to update inputs
+void PollEvents();
 
-    // Get[Key/MouseButton]Down returns true the first frame the Key/MouseButton is pressed
-    // Get[Key/MouseButton]Up returns true the first frame the Key/MouseButton is released
-    // Get[Key/MouseButton]Held returns true all frames the Key/MouseButton is pressed, including the first frame
-    bool GetKeyDown( Key k );
-    bool AnyKeyDown();
-    bool GetKeyUp( Key k );
-    bool AnyKeyUp();
-    bool GetKeyHeld( Key k );
+// Get[Key/MouseButton]Down returns true the first frame the Key/MouseButton is pressed
+// Get[Key/MouseButton]Up returns true the first frame the Key/MouseButton is released
+// Get[Key/MouseButton]Held returns true all frames the Key/MouseButton is pressed, including the first frame
+bool GetKeyDown( Key k );
+bool AnyKeyDown();
+bool GetKeyUp( Key k );
+bool AnyKeyUp();
+bool GetKeyHeld( Key k );
 
-    bool GetMouseButtonDown( MouseButton b );
-    bool AnyMouseButtonDown();
-    bool GetMouseButtonUp( MouseButton b );
-    bool AnyMouseButtonUp();
-    bool GetMouseButtonHeld( MouseButton b ); 
+bool GetMouseButtonDown( MouseButton b );
+bool AnyMouseButtonDown();
+bool GetMouseButtonUp( MouseButton b );
+bool AnyMouseButtonUp();
+bool GetMouseButtonHeld( MouseButton b );
 
-    glm::vec2 GetMousePosition();
-    glm::vec2 GetMouseChange();
-    glm::vec2 GetScrollChange();
+glm::vec2 GetMousePosition();
+glm::vec2 GetMouseChange();
+glm::vec2 GetScrollChange();
 
-    void RegisterLuaFunctions( lua_State* L );
+void RegisterLuaFunctions( lua_State* L );
 
-} // namespace Input
-} // namespace PG
+} // namespace PG::Input

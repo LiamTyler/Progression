@@ -16,35 +16,33 @@ const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] =
     std::make_shared<TexturesetParser>(), // ASSET_TYPE_TEXTURESET
 };
 
+#define BEGIN_STR_TO_ENUM_MAP( EnumName )                           \
+    static EnumName EnumName##_StringToEnum( std::string_view str ) \
+    {                                                               \
+        static std::pair<std::string, EnumName> arr[] = {
 
-#define BEGIN_STR_TO_ENUM_MAP( EnumName ) \
-static EnumName EnumName ## _StringToEnum( std::string_view str ) \
-{ \
-    static std::pair<std::string, EnumName> arr[] = \
-    {
-
-#define BEGIN_STR_TO_ENUM_MAP_SCOPED( EnumName, Namespace ) \
-static Namespace::EnumName EnumName ## _StringToEnum( std::string_view str ) \
-{ \
-    static std::pair<std::string, Namespace::EnumName> arr[] = \
-    {
+#define BEGIN_STR_TO_ENUM_MAP_SCOPED( EnumName, Namespace )                    \
+    static Namespace::EnumName EnumName##_StringToEnum( std::string_view str ) \
+    {                                                                          \
+        static std::pair<std::string, Namespace::EnumName> arr[] = {
 
 #define STR_TO_ENUM_VALUE( EnumName, val ) { #val, EnumName::val },
 
-#define END_STR_TO_ENUM_MAP( EnumName, defaultVal ) \
-    }; \
-       \
-    for ( int i = 0; i < ARRAY_COUNT( arr ); ++i ) \
-    { \
-        if ( arr[i].first == str ) \
-        { \
-            return arr[i].second; \
-        } \
-    } \
-      \
+#define END_STR_TO_ENUM_MAP( EnumName, defaultVal )                                                            \
+    }                                                                                                          \
+    ;                                                                                                          \
+                                                                                                               \
+    for ( int i = 0; i < ARRAY_COUNT( arr ); ++i )                                                             \
+    {                                                                                                          \
+        if ( arr[i].first == str )                                                                             \
+        {                                                                                                      \
+            return arr[i].second;                                                                              \
+        }                                                                                                      \
+    }                                                                                                          \
+                                                                                                               \
     LOG_WARN( "No " #EnumName " found with name '%s'. Using default '" #defaultVal "' instead.", str.data() ); \
-    return EnumName::defaultVal; \
-}
+    return EnumName::defaultVal;                                                                               \
+    }
 
 std::string String( const rapidjson::Value& value )
 {
@@ -52,7 +50,7 @@ std::string String( const rapidjson::Value& value )
     return value.GetString();
 }
 
-
+// clang-format off
 
 BEGIN_STR_TO_ENUM_MAP( GfxImageSemantic )
     STR_TO_ENUM_VALUE( GfxImageSemantic, COLOR )
@@ -102,7 +100,6 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
     return true;
 }
 
-
 BEGIN_STR_TO_ENUM_MAP( MaterialType )
     STR_TO_ENUM_VALUE( MaterialType, SURFACE )
     STR_TO_ENUM_VALUE( MaterialType, DECAL )
@@ -130,7 +127,6 @@ bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
    return true;
 }
 
-
 bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ModelCreateInfo&> mapping(
@@ -150,7 +146,6 @@ bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr i
     return true;
 }
 
-
 bool ScriptParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ScriptCreateInfo&> mapping(
@@ -160,7 +155,6 @@ bool ScriptParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr 
     mapping.ForEachMember( value, *info );
     return true;
 }
-
 
 BEGIN_STR_TO_ENUM_MAP( ShaderStage )
     STR_TO_ENUM_VALUE( ShaderStage, VERTEX )
@@ -183,7 +177,6 @@ bool ShaderParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr 
 
     return true;
 }
-
 
 BEGIN_STR_TO_ENUM_MAP( Channel )
     STR_TO_ENUM_VALUE( Channel, R )
@@ -218,7 +211,6 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfo
     return true;
 }
 
-
 bool UILayoutParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<UILayoutCreateInfo&> mapping(
@@ -229,5 +221,7 @@ bool UILayoutParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
 
     return true;
 }
+
+// clang-format on
 
 } // namespace PG

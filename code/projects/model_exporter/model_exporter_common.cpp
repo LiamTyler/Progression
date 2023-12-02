@@ -7,9 +7,9 @@ using namespace PG;
 
 Options g_options =
 {
-    .rootDir = "",
+    .rootDir              = "",
     .ignoreNameCollisions = false,
-    .floatPrecision = 6,
+    .floatPrecision       = 6,
 };
 
 std::unordered_set<std::string> g_addedTexturesetNames;
@@ -18,26 +18,29 @@ std::unordered_set<std::string> g_addedModelNames;
 
 vec2 AiToPG( const aiVector2D& v ) { return vec2( v.x, v.y ); }
 vec3 AiToPG( const aiVector3D& v ) { return vec3( v.x, v.y, v.z ); }
-vec4 AiToPG( const aiColor4D& v )  { return vec4( v.r, v.g, v.b, v.a ); }
-
+vec4 AiToPG( const aiColor4D& v ) { return vec4( v.r, v.g, v.b, v.a ); }
 
 static bool HaveCreated( AssetType assetType, const std::string& name )
 {
-    if ( assetType == ASSET_TYPE_TEXTURESET ) return g_addedTexturesetNames.contains( name );
-    else if ( assetType == ASSET_TYPE_MATERIAL ) return g_addedMaterialNames.contains( name );
-    else if ( assetType == ASSET_TYPE_MODEL ) return g_addedModelNames.contains( name );
+    if ( assetType == ASSET_TYPE_TEXTURESET )
+        return g_addedTexturesetNames.contains( name );
+    else if ( assetType == ASSET_TYPE_MATERIAL )
+        return g_addedMaterialNames.contains( name );
+    else if ( assetType == ASSET_TYPE_MODEL )
+        return g_addedModelNames.contains( name );
 
     return false;
 }
 
-
 void AddCreatedName( AssetType assetType, const std::string& name )
 {
-    if ( assetType == ASSET_TYPE_TEXTURESET ) g_addedTexturesetNames.insert( name );
-    else if ( assetType == ASSET_TYPE_MATERIAL ) g_addedMaterialNames.insert( name );
-    else if ( assetType == ASSET_TYPE_MODEL ) g_addedModelNames.insert( name );
+    if ( assetType == ASSET_TYPE_TEXTURESET )
+        g_addedTexturesetNames.insert( name );
+    else if ( assetType == ASSET_TYPE_MATERIAL )
+        g_addedMaterialNames.insert( name );
+    else if ( assetType == ASSET_TYPE_MODEL )
+        g_addedModelNames.insert( name );
 }
-
 
 std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
 {
@@ -45,7 +48,7 @@ std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
         return name;
 
     std::string finalName = name;
-    int postFix = 0;
+    int postFix           = 0;
     while ( AssetDatabase::FindAssetInfo( assetType, finalName ) || HaveCreated( assetType, finalName ) )
     {
         ++postFix;
@@ -59,16 +62,14 @@ std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
     return finalName;
 }
 
-
 std::string Vec3ToJSON( const vec3& v )
 {
     return "[ " + std::to_string( v.r ) + ", " + std::to_string( v.g ) + ", " + std::to_string( v.b ) + " ]";
 }
 
-
 void AddJSON( std::vector<std::string>& settings, const std::string& key, bool val )
 {
-    settings.push_back( "\"" + key + "\": " + (val ? "true" : "false") );
+    settings.push_back( "\"" + key + "\": " + ( val ? "true" : "false" ) );
 }
 
 void AddJSON( std::vector<std::string>& settings, const std::string& key, const vec3& val )

@@ -7,16 +7,16 @@
 namespace PG::Gfx::Profile
 {
 
-    bool Init();
-    void Shutdown();
-    void DrawResultsOnScreen();
+bool Init();
+void Shutdown();
+void DrawResultsOnScreen();
 
-    void StartFrame( const CommandBuffer& cmdbuf );
-    void Reset( const CommandBuffer& cmdbuf );
-    void EndFrame();
-    
-    void StartTimestamp( const CommandBuffer& cmdbuf, const std::string& name );
-    void EndTimestamp( const CommandBuffer& cmdbuf, const std::string& name );
+void StartFrame( const CommandBuffer& cmdbuf );
+void Reset( const CommandBuffer& cmdbuf );
+void EndFrame();
+
+void StartTimestamp( const CommandBuffer& cmdbuf, const std::string& name );
+void EndTimestamp( const CommandBuffer& cmdbuf, const std::string& name );
 
 } // namespace PG::Gfx::Profile
 
@@ -28,8 +28,17 @@ namespace PG::Gfx::Profile
 
 #else // #if USING( PG_GPU_PROFILING )
 
-#define PG_PROFILE_GPU_RESET( cmdbuf ) do {} while( 0 )
-#define PG_PROFILE_GPU_START( cmdbuf, name ) do {} while( 0 )
-#define PG_PROFILE_GPU_END( cmdbuf, name ) do {} while( 0 )
+#define PG_PROFILE_GPU_RESET( cmdbuf ) \
+    do                                 \
+    {                                  \
+    } while ( 0 )
+#define PG_PROFILE_GPU_START( cmdbuf, name ) \
+    do                                       \
+    {                                        \
+    } while ( 0 )
+#define PG_PROFILE_GPU_END( cmdbuf, name ) \
+    do                                     \
+    {                                      \
+    } while ( 0 )
 
 #endif // #else // #if USING( PG_GPU_PROFILING )

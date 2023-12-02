@@ -21,18 +21,9 @@ glm::mat4 Transform::Matrix() const
     return model;
 }
 
+glm::vec3 Transform::TransformPoint( glm::vec3 p ) const { return glm::vec3( Matrix() * glm::vec4( p, 1 ) ); }
 
-glm::vec3 Transform::TransformPoint( glm::vec3 p ) const
-{
-    return glm::vec3( Matrix() * glm::vec4( p, 1 ) );
-}
-
-
-glm::vec3 Transform::TransformVector( glm::vec3 v ) const
-{
-    return glm::vec3( Matrix() * glm::vec4( v, 0 ) );
-}
-
+glm::vec3 Transform::TransformVector( glm::vec3 v ) const { return glm::vec3( Matrix() * glm::vec4( v, 0 ) ); }
 
 Ray Transform::operator*( const Ray& ray ) const
 {

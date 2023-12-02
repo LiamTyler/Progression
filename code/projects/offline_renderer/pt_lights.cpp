@@ -9,7 +9,7 @@ glm::vec3 PointLight::Sample_Li( const Interaction& it, glm::vec3& wi, Scene* sc
 {
     wi  = glm::normalize( position - it.p );
     pdf = 1;
-    
+
     float distToLight = glm::length( position - it.p );
 
     IntersectionData shadowHit;
@@ -19,7 +19,7 @@ glm::vec3 PointLight::Sample_Li( const Interaction& it, glm::vec3& wi, Scene* sc
         return glm::vec3( 0 );
     }
 
-    return Lemit / (distToLight*distToLight);
+    return Lemit / ( distToLight * distToLight );
 }
 
 glm::vec3 DirectionalLight::Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const

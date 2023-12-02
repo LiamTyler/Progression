@@ -15,6 +15,8 @@ using namespace PG;
 
 Scene* s_primaryScene = nullptr;
 
+// clang-format off
+
 static bool ParseNull( const rapidjson::Value& v, Scene* scene )
 {
     PG_UNUSED( v );
@@ -169,7 +171,7 @@ static bool ParseScript( const rapidjson::Value& v, Scene* scene )
 #endif // #if !USING( CONVERTER )
     return true;
 }
-
+// clang-format on
 
 namespace PG
 {
@@ -177,10 +179,9 @@ namespace PG
 Scene::~Scene()
 {
 #if USING( GPU_DATA )
-    //tlas.Free();
+    // tlas.Free();
 #endif // #if USING( GPU_DATA )
 }
-
 
 Scene* Scene::Load( const std::string& filename )
 {
@@ -196,7 +197,7 @@ Scene* Scene::Load( const std::string& filename )
 
     Scene* previousPrimaryScene = GetPrimaryScene();
     SetPrimaryScene( scene );
-    Lua::State()["ECS"] = &scene->registry;
+    Lua::State()["ECS"]   = &scene->registry;
     Lua::State()["scene"] = scene;
 
 #if USING( GAME )
@@ -207,21 +208,20 @@ Scene* Scene::Load( const std::string& filename )
     }
 #endif // #if USING( GAME )
 
-    static JSONFunctionMapperBoolCheck< Scene* > mapping(
-    {
-        { "AmbientColor",     ParseAmbientColor },
-        { "Camera",           ParseCamera },
-        { "Entity",           ParseEntity },
-        { "DirectionalLight", ParseDirectionalLight },
-        { "OfflineRenderSettings", ParseNull },
-        { "PointLight",       ParsePointLight },
-        { "SpotLight",        ParseSpotLight },
-        { "Skybox",           ParseSkybox },
-        { "SkyEVAdjust",      ParseSkyEVAdjust },
-        { "SkyTint",          ParseSkyTint },
-        { "StartupScript",    ParseStartupScript },
-        { "Script",           ParseScript },
-    });
+    static JSONFunctionMapperBoolCheck<Scene*> mapping( {
+        {"AmbientColor",           ParseAmbientColor    },
+        { "Camera",                ParseCamera          },
+        { "Entity",                ParseEntity          },
+        { "DirectionalLight",      ParseDirectionalLight},
+        { "OfflineRenderSettings", ParseNull            },
+        { "PointLight",            ParsePointLight      },
+        { "SpotLight",             ParseSpotLight       },
+        { "Skybox",                ParseSkybox          },
+        { "SkyEVAdjust",           ParseSkyEVAdjust     },
+        { "SkyTint",               ParseSkyTint         },
+        { "StartupScript",         ParseStartupScript   },
+        { "Script",                ParseScript          },
+    } );
 
     for ( rapidjson::Value::ConstValueIterator itr = document.Begin(); itr != document.End(); ++itr )
     {
@@ -237,10 +237,9 @@ Scene* Scene::Load( const std::string& filename )
     return scene;
 }
 
-
 void Scene::Start()
 {
-    Lua::State()["ECS"] = &registry;
+    Lua::State()["ECS"]   = &registry;
     Lua::State()["scene"] = this;
 
     for ( int i = 0; i < numNonEntityScripts; ++i )
@@ -248,18 +247,17 @@ void Scene::Start()
         sol::function startFn = nonEntityScripts[i].env["Start"];
         if ( startFn.valid() )
         {
-            //nonEntityScripts[i].env["scene"] = this;
+            // nonEntityScripts[i].env["scene"] = this;
             CHECK_SOL_FUNCTION_CALL( startFn() );
         }
     }
 }
 
-
 void Scene::Update()
 {
-    Lua::State()["ECS"] = &registry;
-    Lua::State()["scene"] = this;
-    auto luaTimeNamespace = Lua::State()["Time"].get< sol::table >();
+    Lua::State()["ECS"]    = &registry;
+    Lua::State()["scene"]  = this;
+    auto luaTimeNamespace  = Lua::State()["Time"].get<sol::table>();
     luaTimeNamespace["dt"] = Time::DeltaTime();
     for ( int i = 0; i < numNonEntityScripts; ++i )
     {
@@ -270,25 +268,15 @@ void Scene::Update()
     }
 }
 
+Scene* GetPrimaryScene() { return s_primaryScene; }
 
-Scene* GetPrimaryScene()
-{
-    return s_primaryScene;
-}
-
-
-void SetPrimaryScene( Scene* scene )
-{
-    s_primaryScene = scene;
-}
-
+void SetPrimaryScene( Scene* scene ) { s_primaryScene = scene; }
 
 void RegisterLuaFunctions_Scene( lua_State* L )
 {
     sol::state_view lua( L );
-    sol::usertype< Scene > scene_type = lua.new_usertype< Scene >( "Scene" );
-    scene_type["camera"] = &Scene::camera;
+    sol::usertype<Scene> scene_type = lua.new_usertype<Scene>( "Scene" );
+    scene_type["camera"]            = &Scene::camera;
 }
-
 
 } // namespace PG

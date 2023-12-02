@@ -12,7 +12,6 @@
     #define ASSET_LIVE_UPDATE IN_USE
 #endif // #else // #if USING( SHIP_BUILD ) || !USING( GAME )
 
-
 #if !USING( SHIP_BUILD )
     #define PG_GPU_PROFILING IN_USE
     #define PG_DEBUG_UI IN_USE

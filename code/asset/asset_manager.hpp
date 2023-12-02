@@ -1,12 +1,12 @@
 #pragma once
 
+#include "asset/asset_versions.hpp"
 #include "asset/types/base_asset.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/material.hpp"
 #include "asset/types/model.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
-#include "asset/asset_versions.hpp"
 #include "shared/assert.hpp"
 #include <unordered_map>
 
@@ -16,7 +16,7 @@ namespace PG::AssetManager
 {
 
 #if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
-    extern std::unordered_map< std::string, BaseAsset* > g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
+extern std::unordered_map<std::string, BaseAsset*> g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
 #endif // #if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
 
 struct GetAssetTypeIDHelper
@@ -34,7 +34,6 @@ struct GetAssetTypeID : public GetAssetTypeIDHelper
     }
 };
 
-
 void Init();
 
 void ProcessPendingLiveUpdates();
@@ -48,10 +47,11 @@ void RegisterLuaFunctions( lua_State* L );
 
 BaseAsset* Get( uint32_t assetTypeID, const std::string& name );
 
-template < typename T >
+template <typename T>
 T* Get( const std::string& name )
 {
-    static_assert( std::is_base_of<BaseAsset, T>::value && !std::is_same<BaseAsset, T>::value, "Resource manager only manages classes derived from 'Resource'" );
+    static_assert( std::is_base_of<BaseAsset, T>::value && !std::is_same<BaseAsset, T>::value,
+        "Resource manager only manages classes derived from 'Resource'" );
     BaseAsset* asset;
 #if USING( CONVERTER )
     uint32_t assetTypeID = GetAssetTypeID<T>::ID();
@@ -60,19 +60,19 @@ T* Get( const std::string& name )
     if ( it == g_resourceMaps[assetTypeID].end() )
     {
         // in the converter just want to get a list of asset names that are used while parsing the scene
-        asset = new T;
-        asset->name = name;
+        asset                             = new T;
+        asset->name                       = name;
         g_resourceMaps[assetTypeID][name] = asset;
     }
     else
     {
         asset = it->second;
     }
-#else // #if USING( CONVERTER )
+#else  // #if USING( CONVERTER )
     asset = Get( GetAssetTypeID<T>::ID(), name );
 #endif // #else // #if USING( CONVERTER )
 
     return static_cast<T*>( asset );
 }
 
-} // namesapce PG::AssetManager
+} // namespace PG::AssetManager

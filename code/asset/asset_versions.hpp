@@ -20,7 +20,6 @@ enum AssetType : unsigned int
     ASSET_TYPE_COUNT
 };
 
-
 constexpr unsigned int g_assetVersions[] =
 {
     8, // ASSET_TYPE_GFX_IMAGE, "Changed how alpha is handled during mipmapping"

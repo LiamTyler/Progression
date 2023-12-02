@@ -2,8 +2,8 @@
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #define STBI_NO_PIC
-#define STBI_NO_PSD   
-#define STBI_NO_GIF   
+#define STBI_NO_PSD
+#define STBI_NO_GIF
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb/stb_image.h"
 #include "tiffio.h"
@@ -25,7 +25,7 @@ static RawImage2D LoadBuiltInImage( const std::string& name )
     else if ( name == "$default_metalness" )
     {
         numChannels = 1;
-        pixel = u8vec4( 0 ); // Not the same as default specular (metalness should be binary)
+        pixel       = u8vec4( 0 ); // Not the same as default specular (metalness should be binary)
     }
     else if ( name == "$default_normalmap" )
     {
@@ -34,7 +34,7 @@ static RawImage2D LoadBuiltInImage( const std::string& name )
     else if ( name == "$default_roughness" )
     {
         numChannels = 1;
-        pixel = u8vec4( 200 ); // TODO: figure out real value
+        pixel       = u8vec4( 200 ); // TODO: figure out real value
     }
     else
     {
@@ -49,7 +49,6 @@ static RawImage2D LoadBuiltInImage( const std::string& name )
     }
     return img;
 }
-
 
 bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
 {
@@ -75,38 +74,38 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
         if ( ext == ".hdr" )
         {
             startFormat = ImageFormat::R32_FLOAT;
-            pixels = (uint8_t*)stbi_loadf( filename.c_str(), &w, &h, &numChannels, 0 );
+            pixels      = (uint8_t*)stbi_loadf( filename.c_str(), &w, &h, &numChannels, 0 );
         }
         else if ( stbi_is_16_bit_from_file( file ) )
         {
             startFormat = ImageFormat::R16_UNORM;
-            pixels = (uint8_t*)stbi_load_from_file_16( file, &w, &h, &numChannels, 0 );
+            pixels      = (uint8_t*)stbi_load_from_file_16( file, &w, &h, &numChannels, 0 );
         }
         else
         {
             startFormat = ImageFormat::R8_UNORM;
-            pixels = stbi_load_from_file( file, &w, &h, &numChannels, 0 );
+            pixels      = stbi_load_from_file( file, &w, &h, &numChannels, 0 );
         }
         if ( !pixels )
         {
             LOG_ERR( "RawImage2D::Load: error while loading image '%s'", filename.c_str() );
             return false;
         }
-        data = std::shared_ptr<uint8_t[]>( pixels, []( void* p ) { stbi_image_free( p ); } );
-        width = static_cast<uint32_t>( w );
+        data   = std::shared_ptr<uint8_t[]>( pixels, []( void* p ) { stbi_image_free( p ); } );
+        width  = static_cast<uint32_t>( w );
         height = static_cast<uint32_t>( h );
         format = static_cast<ImageFormat>( (int)startFormat + numChannels - 1 );
     }
     else if ( ext == ".tif" || ext == ".tiff" )
     {
-        //TIFFSetWarningHandler( NULL );
-	    //TIFFSetWarningHandlerExt( NULL );
-	    //TIFFSetErrorHandler( NULL );
-	    //TIFFSetErrorHandlerExt( NULL );
+        // TIFFSetWarningHandler( NULL );
+        // TIFFSetWarningHandlerExt( NULL );
+        // TIFFSetErrorHandler( NULL );
+        // TIFFSetErrorHandlerExt( NULL );
 
         TIFF* tif = TIFFOpen( filename.c_str(), "rb" );
         if ( tif )
-		{
+        {
             if ( TIFFIsTiled( tif ) )
             {
                 LOG_ERR( "Tiled TIF images not currently supported (image '%s')", filename.c_str() );
@@ -115,7 +114,7 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
             }
 
             uint16_t config;
-		    TIFFGetField( tif, TIFFTAG_PLANARCONFIG, &config );
+            TIFFGetField( tif, TIFFTAG_PLANARCONFIG, &config );
             if ( config != PLANARCONFIG_CONTIG )
             {
                 LOG_ERR( "Separate planar TIF images not currently supported (image '%s')", filename.c_str() );
@@ -124,8 +123,8 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
             }
 
             uint16_t numChannels, numBitsPerChannel;
-	        TIFFGetField( tif, TIFFTAG_SAMPLESPERPIXEL, &numChannels );
-	        TIFFGetField( tif, TIFFTAG_BITSPERSAMPLE, &numBitsPerChannel );
+            TIFFGetField( tif, TIFFTAG_SAMPLESPERPIXEL, &numChannels );
+            TIFFGetField( tif, TIFFTAG_BITSPERSAMPLE, &numBitsPerChannel );
             if ( numBitsPerChannel != 8 && numBitsPerChannel != 16 && numBitsPerChannel != 32 )
             {
                 LOG_ERR( "%u bit TIF images not currently supported (image '%s')", numBitsPerChannel, filename.c_str() );
@@ -133,29 +132,31 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
                 return false;
             }
 
-			TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &width );
-	        TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &height );
-            
-            ImageFormat format = ImageFormat::R8_UNORM;
-            if ( numBitsPerChannel == 16 ) format = ImageFormat::R16_UNORM;
-            else if ( numBitsPerChannel == 32 ) format = ImageFormat::R32_FLOAT;
-            
-            format = static_cast<ImageFormat>( Underlying( format ) + numChannels - 1 );
-            *this = RawImage2D( width, height, format );
+            TIFFGetField( tif, TIFFTAG_IMAGEWIDTH, &width );
+            TIFFGetField( tif, TIFFTAG_IMAGELENGTH, &height );
 
-            size_t stripSize = TIFFStripSize( tif );
+            ImageFormat format = ImageFormat::R8_UNORM;
+            if ( numBitsPerChannel == 16 )
+                format = ImageFormat::R16_UNORM;
+            else if ( numBitsPerChannel == 32 )
+                format = ImageFormat::R32_FLOAT;
+
+            format = static_cast<ImageFormat>( Underlying( format ) + numChannels - 1 );
+            *this  = RawImage2D( width, height, format );
+
+            size_t stripSize   = TIFFStripSize( tif );
             uint32_t numStrips = TIFFNumberOfStrips( tif );
             uint32_t rowsPerStrip;
             TIFFGetFieldDefaulted( tif, TIFFTAG_ROWSPERSTRIP, &rowsPerStrip );
             uint8_t* buf = static_cast<uint8_t*>( _TIFFmalloc( stripSize ) );
 
             uint32_t bytesPerPixel = numChannels * numBitsPerChannel / 8;
-            uint32_t bytesPerRow = width * bytesPerPixel;
+            uint32_t bytesPerRow   = width * bytesPerPixel;
 
             uint32_t totalRowsRead = 0;
-	        for ( uint32_t strip = 0; strip < numStrips; strip++ )
+            for ( uint32_t strip = 0; strip < numStrips; strip++ )
             {
-		        if ( TIFFReadEncodedStrip( tif, strip, buf, (tsize_t) -1 ) == -1 )
+                if ( TIFFReadEncodedStrip( tif, strip, buf, (tsize_t)-1 ) == -1 )
                 {
                     LOG_ERR( "TIFFReadEncodedStrip error while processing TIF '%s'", filename.c_str() );
                     _TIFFfree( buf );
@@ -172,7 +173,7 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
                     }
                 }
             }
-	        _TIFFfree( buf );
+            _TIFFfree( buf );
             TIFFClose( tif );
         }
     }
@@ -191,8 +192,8 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
             }
             return false;
         }
-        data = std::shared_ptr<uint8_t[]>( (uint8_t*)pixels, []( void* p ) { free( p ); } );
-        width = static_cast<uint32_t>( w );
+        data   = std::shared_ptr<uint8_t[]>( (uint8_t*)pixels, []( void* p ) { free( p ); } );
+        width  = static_cast<uint32_t>( w );
         height = static_cast<uint32_t>( h );
         format = ImageFormat::R32_G32_B32_A32_FLOAT;
     }
@@ -205,11 +206,11 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
     if ( IsSet( loadFlags, ImageLoadFlags::FLIP_VERTICALLY ) )
     {
         uint32_t bytesPerRow = width * BitsPerPixel() / 8;
-        uint8_t* tmpRow = new uint8_t[bytesPerRow];
+        uint8_t* tmpRow      = new uint8_t[bytesPerRow];
         for ( uint32_t row = 0; row < height / 2; ++row )
         {
             uint8_t* upperRow = data.get() + row * bytesPerRow;
-            uint8_t* lowerRow = data.get() + (height - row - 1) * bytesPerRow;
+            uint8_t* lowerRow = data.get() + ( height - row - 1 ) * bytesPerRow;
             memcpy( tmpRow, upperRow, bytesPerRow );
             memcpy( upperRow, lowerRow, bytesPerRow );
             memcpy( lowerRow, tmpRow, bytesPerRow );

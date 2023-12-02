@@ -10,14 +10,8 @@ class Frustum
 public:
     Frustum() = default;
 
-    void Update( float fov,
-                 float np,
-                 float fp,
-                 float aspect,
-                 const glm::vec3& pos,
-                 const glm::vec3& forward,
-                 const glm::vec3& up,
-                 const glm::vec3& right );
+    void Update( float fov, float np, float fp, float aspect, const glm::vec3& pos, const glm::vec3& forward, const glm::vec3& up,
+        const glm::vec3& right );
 
     bool BoxInFrustum( const AABB& aabb ) const;
     bool SameSide( const glm::vec3& point, const glm::vec4& plane ) const;

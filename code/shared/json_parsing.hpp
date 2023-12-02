@@ -10,46 +10,43 @@
 
 bool ParseJSONFile( const std::string& filename, rapidjson::Document& document );
 
-template < typename T >
+template <typename T>
 T ParseNumber( const rapidjson::Value& v )
 {
     PG_ASSERT( v.IsNumber() );
-    return v.Get< T >();
+    return v.Get<T>();
 }
 
-
-template<typename ComponentType = float>
+template <typename ComponentType = float>
 glm::vec<2, ComponentType> ParseVec2( const rapidjson::Value& v )
 {
     PG_ASSERT( v.IsArray() && v.Size() == 2 );
-    auto& GetF = ParseNumber< ComponentType >;
+    auto& GetF = ParseNumber<ComponentType>;
     return glm::vec<2, ComponentType>( GetF( v[0] ), GetF( v[1] ) );
 }
 
-
-template<typename ComponentType = float>
+template <typename ComponentType = float>
 glm::vec<3, ComponentType> ParseVec3( const rapidjson::Value& v )
 {
     PG_ASSERT( v.IsArray() && v.Size() == 3 );
-    auto& GetF = ParseNumber< ComponentType >;
+    auto& GetF = ParseNumber<ComponentType>;
     return glm::vec<3, ComponentType>( GetF( v[0] ), GetF( v[1] ), GetF( v[2] ) );
 }
 
-
-template<typename ComponentType = float>
+template <typename ComponentType = float>
 glm::vec<4, ComponentType> ParseVec4( const rapidjson::Value& v )
 {
     PG_ASSERT( v.IsArray() && v.Size() == 4 );
-    auto& GetF = ParseNumber< ComponentType >;
+    auto& GetF = ParseNumber<ComponentType>;
     return glm::vec<4, ComponentType>( GetF( v[0] ), GetF( v[1] ), GetF( v[2] ), GetF( v[3] ) );
 }
 
-template < typename ...Args >
+template <typename... Args>
 class JSONFunctionMapper
 {
 public:
-    using FunctionType = std::function< void( const rapidjson::Value&, Args... ) >;
-    using StringToFuncMap = std::unordered_map< std::string, FunctionType >;
+    using FunctionType    = std::function<void( const rapidjson::Value&, Args... )>;
+    using StringToFuncMap = std::unordered_map<std::string, FunctionType>;
 
     JSONFunctionMapper( const StringToFuncMap& m ) : mapping( m ) {}
 
@@ -88,12 +85,12 @@ public:
     StringToFuncMap mapping;
 };
 
-
-template < typename ...Args >
+template <typename... Args>
 class JSONFunctionMapperBoolCheck
 {
-    using function_type = std::function< bool( const rapidjson::Value&, Args... ) >;
-    using map_type = std::unordered_map< std::string, function_type >;
+    using function_type = std::function<bool( const rapidjson::Value&, Args... )>;
+    using map_type      = std::unordered_map<std::string, function_type>;
+
 public:
     JSONFunctionMapperBoolCheck( const map_type& m ) : mapping( m ) {}
 
@@ -139,8 +136,7 @@ public:
     map_type mapping;
 };
 
-
-template< typename Func >
+template <typename Func>
 void ForEachJSONMember( const rapidjson::Value& v, const Func& func )
 {
     for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )

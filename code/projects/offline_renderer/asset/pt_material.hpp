@@ -6,7 +6,7 @@
 
 namespace PG
 {
-    struct Material;
+struct Material;
 } // namespace PG
 
 namespace PT
@@ -28,9 +28,9 @@ struct IntersectionData;
 
 struct Material
 {
-    glm::vec3 albedoTint = glm::vec3( 0.0f );
-    TextureHandle albedoTex = TEXTURE_HANDLE_INVALID;
-    glm::vec3 emissiveTint = glm::vec3( 0.0f );
+    glm::vec3 albedoTint      = glm::vec3( 0.0f );
+    TextureHandle albedoTex   = TEXTURE_HANDLE_INVALID;
+    glm::vec3 emissiveTint    = glm::vec3( 0.0f );
     TextureHandle emissiveTex = TEXTURE_HANDLE_INVALID;
 
     glm::vec3 GetAlbedo( const glm::vec2& texCoords ) const;
@@ -38,7 +38,7 @@ struct Material
     BRDF ComputeBRDF( IntersectionData* surfaceInfo ) const;
 };
 
-using MaterialHandle = uint16_t;
+using MaterialHandle                             = uint16_t;
 constexpr MaterialHandle MATERIAL_HANDLE_INVALID = 0;
 
 MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material );

@@ -10,14 +10,14 @@
 enum class ImageLoadFlags : uint32_t
 {
     DEFAULT         = 0,
-    FLIP_VERTICALLY = (1u << 0),
+    FLIP_VERTICALLY = ( 1u << 0 ),
 };
 PG_DEFINE_ENUM_OPS( ImageLoadFlags );
 
 enum class ImageSaveFlags : uint32_t
 {
     DEFAULT               = 0,
-    KEEP_FLOATS_AS_32_BIT = (1u << 0), // will convert f32 to fp16 by default if applicable, like when saving EXRs
+    KEEP_FLOATS_AS_32_BIT = ( 1u << 0 ), // will convert f32 to fp16 by default if applicable, like when saving EXRs
 };
 PG_DEFINE_ENUM_OPS( ImageSaveFlags );
 
@@ -61,22 +61,26 @@ enum class ImageFormat : uint8_t
 
 constexpr bool IsFormat8BitUnorm( ImageFormat format )
 {
-    return Underlying( ImageFormat::R8_UNORM ) <= Underlying( format ) && Underlying( format ) <= Underlying( ImageFormat::R8_G8_B8_A8_UNORM );
+    return Underlying( ImageFormat::R8_UNORM ) <= Underlying( format ) &&
+           Underlying( format ) <= Underlying( ImageFormat::R8_G8_B8_A8_UNORM );
 }
 
 constexpr bool IsFormat16BitUnorm( ImageFormat format )
 {
-    return Underlying( ImageFormat::R16_UNORM ) <= Underlying( format ) && Underlying( format ) <= Underlying( ImageFormat::R16_G16_B16_A16_UNORM );
+    return Underlying( ImageFormat::R16_UNORM ) <= Underlying( format ) &&
+           Underlying( format ) <= Underlying( ImageFormat::R16_G16_B16_A16_UNORM );
 }
 
 constexpr bool IsFormat16BitFloat( ImageFormat format )
 {
-    return Underlying( ImageFormat::R16_FLOAT ) <= Underlying( format ) && Underlying( format ) <= Underlying( ImageFormat::R16_G16_B16_A16_FLOAT );
+    return Underlying( ImageFormat::R16_FLOAT ) <= Underlying( format ) &&
+           Underlying( format ) <= Underlying( ImageFormat::R16_G16_B16_A16_FLOAT );
 }
 
 constexpr bool IsFormat32BitFloat( ImageFormat format )
 {
-    return Underlying( ImageFormat::R32_FLOAT ) <= Underlying( format ) && Underlying( format ) <= Underlying( ImageFormat::R32_G32_B32_A32_FLOAT );
+    return Underlying( ImageFormat::R32_FLOAT ) <= Underlying( format ) &&
+           Underlying( format ) <= Underlying( ImageFormat::R32_G32_B32_A32_FLOAT );
 }
 
 constexpr bool IsFormatBCCompressed( ImageFormat format )
@@ -88,22 +92,17 @@ constexpr ImageFormat GetFormatAfterDecompression( ImageFormat format )
 {
     switch ( format )
     {
-        case ImageFormat::BC1_UNORM:
-        case ImageFormat::BC2_UNORM:
-        case ImageFormat::BC3_UNORM:
-        case ImageFormat::BC7_UNORM:
-            return ImageFormat::R8_G8_B8_A8_UNORM;
-        case ImageFormat::BC4_UNORM:
-        case ImageFormat::BC4_SNORM:
-            return ImageFormat::R8_UNORM;
-        case ImageFormat::BC5_UNORM:
-        case ImageFormat::BC5_SNORM:
-            return ImageFormat::R8_G8_UNORM;
-        case ImageFormat::BC6H_U16F:
-        case ImageFormat::BC6H_S16F:
-            return ImageFormat::R16_G16_B16_FLOAT;
-        default:
-            return ImageFormat::INVALID;
+    case ImageFormat::BC1_UNORM:
+    case ImageFormat::BC2_UNORM:
+    case ImageFormat::BC3_UNORM:
+    case ImageFormat::BC7_UNORM: return ImageFormat::R8_G8_B8_A8_UNORM;
+    case ImageFormat::BC4_UNORM:
+    case ImageFormat::BC4_SNORM: return ImageFormat::R8_UNORM;
+    case ImageFormat::BC5_UNORM:
+    case ImageFormat::BC5_SNORM: return ImageFormat::R8_G8_UNORM;
+    case ImageFormat::BC6H_U16F:
+    case ImageFormat::BC6H_S16F: return ImageFormat::R16_G16_B16_FLOAT;
+    default: return ImageFormat::INVALID;
     }
 }
 
@@ -148,43 +147,40 @@ inline uint32_t NumChannels( ImageFormat format )
 {
     static constexpr uint8_t mapping[] =
     {
-        0,   // INVALID,
-        1,   // R8_UNORM,
-        2,   // R8_G8_UNORM,
-        3,   // R8_G8_B8_UNORM,
-        4,   // R8_G8_B8_A8_UNORM,
-        1,   // R16_UNORM,
-        2,   // R16_G16_UNORM,
-        3,   // R16_G16_B16_UNORM,
-        4,   // R16_G16_B16_A16_UNORM,
-        1,   // R16_FLOAT,
-        2,   // R16_G16_FLOAT,
-        3,   // R16_G16_B16_FLOAT,
-        4,   // R16_G16_B16_A16_FLOAT,
-        1,   // R32_FLOAT,
-        2,   // R32_G32_FLOAT,
-        3,   // R32_G32_B32_FLOAT,
-        4,   // R32_G32_B32_A32_FLOAT,
-        3,   // BC1_UNORM,
-        4,   // BC2_UNORM,
-        4,   // BC3_UNORM,
-        1,   // BC4_UNORM,
-        1,   // BC4_SNORM,
-        2,   // BC5_UNORM,
-        2,   // BC5_SNORM,
-        3,   // BC6H_U16F,
-        3,   // BC6H_S16F,
-        4,   // BC7_UNORM,
+        0, // INVALID,
+        1, // R8_UNORM,
+        2, // R8_G8_UNORM,
+        3, // R8_G8_B8_UNORM,
+        4, // R8_G8_B8_A8_UNORM,
+        1, // R16_UNORM,
+        2, // R16_G16_UNORM,
+        3, // R16_G16_B16_UNORM,
+        4, // R16_G16_B16_A16_UNORM,
+        1, // R16_FLOAT,
+        2, // R16_G16_FLOAT,
+        3, // R16_G16_B16_FLOAT,
+        4, // R16_G16_B16_A16_FLOAT,
+        1, // R32_FLOAT,
+        2, // R32_G32_FLOAT,
+        3, // R32_G32_B32_FLOAT,
+        4, // R32_G32_B32_A32_FLOAT,
+        3, // BC1_UNORM,
+        4, // BC2_UNORM,
+        4, // BC3_UNORM,
+        1, // BC4_UNORM,
+        1, // BC4_SNORM,
+        2, // BC5_UNORM,
+        2, // BC5_SNORM,
+        3, // BC6H_U16F,
+        3, // BC6H_S16F,
+        4, // BC7_UNORM,
     };
 
     static_assert( ARRAY_COUNT( mapping ) == static_cast<int>( ImageFormat::COUNT ) );
     return mapping[Underlying( format )];
 }
 
-inline bool IsImageFilenameBuiltin( const std::string& filename )
-{
-    return !filename.empty() && filename[0] == '$';
-}
+inline bool IsImageFilenameBuiltin( const std::string& filename ) { return !filename.empty() && filename[0] == '$'; }
 
 enum class Channel : uint8_t
 {
@@ -198,27 +194,28 @@ enum class Channel : uint8_t
 
 struct RawImage2D
 {
-    uint32_t width = 0;
-    uint32_t height = 0;
+    uint32_t width     = 0;
+    uint32_t height    = 0;
     ImageFormat format = ImageFormat::INVALID;
     std::shared_ptr<uint8_t[]> data;
-
 
     RawImage2D() = default;
     RawImage2D( uint32_t inWidth, uint32_t inHeight, ImageFormat inFormat ) : width( inWidth ), height( inHeight ), format( inFormat )
     {
         size_t totalBytes = TotalBytes();
-        data = std::make_shared<uint8_t[]>( totalBytes );
+        data              = std::make_shared<uint8_t[]>( totalBytes );
     }
-    RawImage2D( uint32_t inWidth, uint32_t inHeight, ImageFormat inFormat, uint8_t* srcData ) : width( inWidth ), height( inHeight ), format( inFormat )
+    RawImage2D( uint32_t inWidth, uint32_t inHeight, ImageFormat inFormat, uint8_t* srcData )
+        : width( inWidth ), height( inHeight ), format( inFormat )
     {
         size_t totalBytes = TotalBytes();
-        data = std::shared_ptr<uint8_t[]>( srcData, []( uint8_t* x ) {} );
+        data              = std::shared_ptr<uint8_t[]>( srcData, []( uint8_t* x ) {} );
     }
 
     bool Load( const std::string& filename, ImageLoadFlags loadFlags = ImageLoadFlags::DEFAULT );
 
-    // If the file format doesn't support saving the current Format, then the pixels will be converted to an appropriate format for that file
+    // If the file format doesn't support saving the current Format, then the pixels will be converted to an appropriate format for that
+    // file
     bool Save( const std::string& filename, ImageSaveFlags saveFlags = ImageSaveFlags::DEFAULT ) const;
 
     // Returns a new image with same size + pixel data as the current image, but in the desired Format,
@@ -240,10 +237,10 @@ struct RawImage2D
 
     uint32_t BitsPerPixel() const { return ::BitsPerPixel( format ); }
     uint32_t NumChannels() const { return ::NumChannels( format ); }
-    uint32_t PaddedWidth() const { return (width + 3) & ~3u; }
-    uint32_t PaddedHeight() const { return (height + 3) & ~3u; }
-    uint32_t BlocksX() const { return (width + 3) / 4; }
-    uint32_t BlocksY() const { return (height + 3) / 4; }
+    uint32_t PaddedWidth() const { return ( width + 3 ) & ~3u; }
+    uint32_t PaddedHeight() const { return ( height + 3 ) & ~3u; }
+    uint32_t BlocksX() const { return ( width + 3 ) / 4; }
+    uint32_t BlocksY() const { return ( height + 3 ) / 4; }
     uint32_t BytesPerBlock() const { return BitsPerPixel() * 16 / 8; }
 
     size_t TotalBytes() const
@@ -265,17 +262,16 @@ struct RawImage2D
     }
 };
 
-
 struct FloatImage2D
 {
-    uint32_t width = 0;
-    uint32_t height = 0;
+    uint32_t width       = 0;
+    uint32_t height      = 0;
     uint32_t numChannels = 0;
     std::shared_ptr<float[]> data;
 
-
     FloatImage2D() = default;
-    FloatImage2D( uint32_t inWidth, uint32_t inHeight, uint32_t inNumChannels ) : width( inWidth ), height( inHeight ), numChannels( inNumChannels )
+    FloatImage2D( uint32_t inWidth, uint32_t inHeight, uint32_t inNumChannels )
+        : width( inWidth ), height( inHeight ), numChannels( inNumChannels )
     {
         data = std::make_shared<float[]>( width * height * numChannels );
     }
@@ -333,10 +329,9 @@ enum FaceIndex
 // https://en.wikipedia.org/wiki/Cube_mapping#Skylight_illumination, except that they use +Y up and bottom left (0,0) uv
 struct FloatImageCubemap
 {
-    uint32_t size = 0;
+    uint32_t size        = 0;
     uint32_t numChannels = 0;
     FloatImage2D faces[6];
-
 
     FloatImageCubemap() = default;
     FloatImageCubemap( uint32_t inSize, uint32_t inNumChannels ) : size( inSize ), numChannels( inNumChannels )
@@ -371,7 +366,8 @@ FloatImage2D FloatImageFromRawImage2D( const RawImage2D& rawImage );
 // then the returned raw image isn't "new", it just points to the same memory as the float image to avoid an allocation + copy
 // If format == ImageFormat::INVALID, then it just uses the float image's original format
 RawImage2D RawImage2DFromFloatImage( const FloatImage2D& floatImage, ImageFormat format = ImageFormat::INVALID );
-std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2D>& floatImages, ImageFormat format = ImageFormat::INVALID );
+std::vector<RawImage2D> RawImage2DFromFloatImages(
+    const std::vector<FloatImage2D>& floatImages, ImageFormat format = ImageFormat::INVALID );
 
 FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg );
 FloatImage2D CubemapToEquirectangular( const FloatImageCubemap& cubemap );
@@ -379,7 +375,7 @@ FloatImage2D CubemapToEquirectangular( const FloatImageCubemap& cubemap );
 struct MipmapGenerationSettings
 {
     bool clampHorizontal = false;
-    bool clampVertical = false;
+    bool clampVertical   = false;
 };
 
 std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& floatImage, const MipmapGenerationSettings& settings );

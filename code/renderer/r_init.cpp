@@ -10,9 +10,7 @@ VkDescriptorSetLayout s_emptyDescriptSetLayout;
 
 extern std::vector< const char* > VK_VALIDATION_LAYERS;
 
-namespace PG
-{
-namespace Gfx
+namespace PG::Gfx
 {
 
 VkDescriptorSetLayout GetEmptyDescriptorSetLayout()
@@ -403,5 +401,5 @@ void R_Shutdown()
 }
 
 
-} // namespace Gfx
+
 } // namespace PG

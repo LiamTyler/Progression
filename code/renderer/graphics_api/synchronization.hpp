@@ -2,14 +2,13 @@
 
 #include "renderer/vulkan.hpp"
 
-namespace PG
-{
-namespace Gfx
+namespace PG::Gfx
 {
 
 class Fence
 {
     friend class Device;
+
 public:
     Fence() = default;
 
@@ -20,13 +19,14 @@ public:
     operator bool() const;
 
 private:
-    VkFence m_handle  = VK_NULL_HANDLE;
+    VkFence m_handle = VK_NULL_HANDLE;
     VkDevice m_device;
 };
 
 class Semaphore
 {
     friend class Device;
+
 public:
     Semaphore() = default;
 
@@ -39,5 +39,4 @@ private:
     VkDevice m_device;
 };
 
-} // namespace Gfx
-} // namespace PG
+} // namespace PG::Gfx

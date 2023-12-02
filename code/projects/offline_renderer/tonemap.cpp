@@ -5,15 +5,14 @@
 namespace PT
 {
 
-
 TonemapOperator TonemapOperatorFromString( const std::string& name )
 {
-    std::unordered_map< std::string, TonemapOperator > map =
+    std::unordered_map<std::string, TonemapOperator> map =
     {
-        { "NONE",       TonemapOperator::NONE },
-        { "REINHARD",   TonemapOperator::REINHARD },
+        { "NONE",       TonemapOperator::NONE       },
+        { "REINHARD",   TonemapOperator::REINHARD   },
         { "UNCHARTED2", TonemapOperator::UNCHARTED2 },
-        { "ACES",       TonemapOperator::ACES },
+        { "ACES",       TonemapOperator::ACES       },
     };
 
     auto it = map.find( name );
@@ -26,17 +25,9 @@ TonemapOperator TonemapOperatorFromString( const std::string& name )
     return it->second;
 }
 
+glm::vec3 NoTonemap( const glm::vec3& pixel ) { return pixel; }
 
-glm::vec3 NoTonemap( const glm::vec3& pixel )
-{
-    return pixel;
-}
-
-
-glm::vec3 ReinhardTonemap( const glm::vec3& pixel )
-{
-    return pixel / ( glm::vec3( 1.0f ) + pixel );
-}
+glm::vec3 ReinhardTonemap( const glm::vec3& pixel ) { return pixel / ( glm::vec3( 1.0f ) + pixel ); }
 
 // source: http://filmicworlds.com/blog/filmic-tonemapping-operators/
 static glm::vec3 Uncharted2TonemapHelper( const glm::vec3& x )
@@ -47,7 +38,7 @@ static glm::vec3 Uncharted2TonemapHelper( const glm::vec3& x )
     float D = 0.20f;
     float E = 0.02f;
     float F = 0.30f;
-    return ((x*(A*x+C*B)+D*E)/(x*(A*x+B)+D*F))-E/F;
+    return ( ( x * ( A * x + C * B ) + D * E ) / ( x * ( A * x + B ) + D * F ) ) - E / F;
 }
 
 glm::vec3 Uncharted2Tonemap( const glm::vec3& pixel )
@@ -58,7 +49,6 @@ glm::vec3 Uncharted2Tonemap( const glm::vec3& pixel )
     return color;
 }
 
-
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 glm::vec3 AcesTonemap( const glm::vec3& x )
 {
@@ -67,9 +57,8 @@ glm::vec3 AcesTonemap( const glm::vec3& x )
     constexpr float c = 2.43f;
     constexpr float d = 0.59f;
     constexpr float e = 0.14f;
-    return glm::clamp( (x*(a*x+b)) / (x*(c*x+d)+e), glm::vec3( 0 ), glm::vec3( 1 ) );
+    return glm::clamp( ( x * ( a * x + b ) ) / ( x * ( c * x + d ) + e ), glm::vec3( 0 ), glm::vec3( 1 ) );
 }
-
 
 TonemapFunc GetTonemapFunction( TonemapOperator op )
 {

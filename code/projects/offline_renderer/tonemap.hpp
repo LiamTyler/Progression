@@ -17,7 +17,7 @@ enum class TonemapOperator
 
 TonemapOperator TonemapOperatorFromString( const std::string& name );
 
-using TonemapFunc = glm::vec3(*)(const glm::vec3& v);
+using TonemapFunc = glm::vec3(*)( const glm::vec3& v );
 
 TonemapFunc GetTonemapFunction( TonemapOperator op );
 

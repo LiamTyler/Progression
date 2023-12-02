@@ -6,9 +6,8 @@
 
 // ShaderCreateInfo is needed for asset parsing + tools that don't need any rendering + gpu code
 #if USING( GPU_STRUCTS )
-#include "renderer/graphics_api/descriptor.hpp"
+    #include "renderer/graphics_api/descriptor.hpp"
 #endif // #if USING( GPU_STRUCTS )
-
 
 namespace PG
 {
@@ -29,7 +28,7 @@ struct ShaderCreateInfo : public BaseAssetCreateInfo
 {
     std::string filename;
     ShaderStage shaderStage = ShaderStage::NUM_SHADER_STAGES;
-    std::vector< std::pair< std::string, std::string > > defines;
+    std::vector<std::pair<std::string, std::string>> defines;
     bool generateDebugInfo = false;
 };
 
@@ -37,11 +36,11 @@ std::string GetAbsPath_ShaderFilename( const std::string& filename );
 
 struct ShaderResourceLayout
 {
-	uint32_t inputMask        = 0;
-	uint32_t outputMask       = 0;
+    uint32_t inputMask        = 0;
+    uint32_t outputMask       = 0;
     uint32_t pushConstantSize = 0;
 #if USING( GPU_STRUCTS )
-	Gfx::DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS];
+    Gfx::DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS];
 #endif // #if USING( GPU_STRUCTS )
 };
 
@@ -60,7 +59,7 @@ struct Shader : public BaseAsset
     ShaderResourceLayout resourceLayout;
 
 #if USING( CONVERTER )
-    std::vector< uint32_t > savedSpirv;
+    std::vector<uint32_t> savedSpirv;
 #endif // #if USING( CONVERTER )
 };
 

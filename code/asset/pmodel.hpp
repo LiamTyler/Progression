@@ -13,11 +13,11 @@ namespace PG
 
 enum class PModelVersionNum : unsigned int
 {
-    BITANGENT_SIGNS = 1,
+    BITANGENT_SIGNS      = 1,
     VERTEX_DATA_TOGETHER = 2,
 
     TOTAL,
-    CURRENT_VERSION = TOTAL - 1,
+    CURRENT_VERSION        = TOTAL - 1,
     LAST_SUPPORTED_VERSION = VERTEX_DATA_TOGETHER,
 };
 

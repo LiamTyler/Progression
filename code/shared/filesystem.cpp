@@ -5,7 +5,6 @@
 
 namespace fs = std::filesystem;
 
-
 std::string BackToForwardSlashes( std::string str )
 {
     for ( size_t i = 0; i < str.length(); ++i )
@@ -18,7 +17,6 @@ std::string BackToForwardSlashes( std::string str )
 
     return str;
 }
-
 
 std::string UnderscorePath( std::string str )
 {
@@ -33,26 +31,21 @@ std::string UnderscorePath( std::string str )
     return str;
 }
 
-
-void CreateDirectory( const std::string& dir )
-{
-    fs::create_directories( dir );
-}
-
+void CreateDirectory( const std::string& dir ) { fs::create_directories( dir ); }
 
 bool CopyFile( const std::string& from, const std::string& to, bool overwriteExisting )
 {
     // For some reason, the overwrite_existing option doesnt work on my desktop
-    //fs::copy_options options;
-    //if ( overwriteExisting )
+    // fs::copy_options options;
+    // if ( overwriteExisting )
     //{
     //    options = fs::copy_options::overwrite_existing;
     //}
-    //try
+    // try
     //{
     //    fs::copy( from, to, fs::copy_options::overwrite_existing );
     //}
-    //catch ( fs::filesystem_error &e )
+    // catch ( fs::filesystem_error &e )
     //{
     //    std::cout << "ERROR '" << e.what() << "'" << std::endl;
     //    std::cout << "Equivalent? '" << fs::equivalent( from, to ) << std::endl;
@@ -67,11 +60,11 @@ bool CopyFile( const std::string& from, const std::string& to, bool overwriteExi
     {
         return false;
     }
- 
+
     fseek( infile, 0L, SEEK_END );
     long numBytes = ftell( infile );
     fseek( infile, 0L, SEEK_SET );
-    char* buffer = (char*)malloc( numBytes );
+    char* buffer   = (char*)malloc( numBytes );
     size_t numRead = fread( buffer, numBytes, 1, infile );
     if ( numRead != 1 )
     {
@@ -94,7 +87,6 @@ bool CopyFile( const std::string& from, const std::string& to, bool overwriteExi
     return true;
 }
 
-
 void DeleteFile( const std::string& filename )
 {
     try
@@ -108,48 +100,19 @@ void DeleteFile( const std::string& filename )
     }
 }
 
+void DeleteRecursive( const std::string& path ) { fs::remove_all( path ); }
 
-void DeleteRecursive( const std::string& path )
-{
-    fs::remove_all( path );
-}
+bool PathExists( const std::string& path ) { return fs::exists( path ); }
 
+bool IsDirectory( const std::string& path ) { return fs::is_directory( path ); }
 
-bool PathExists( const std::string& path )
-{
-    return fs::exists( path );
-}
+bool IsFile( const std::string& path ) { return fs::is_regular_file( path ); }
 
+bool DirExists( const std::string& dir ) { return fs::is_directory( dir ); }
 
-bool IsDirectory( const std::string& path )
-{
-    return fs::is_directory( path );
-}
+std::string GetCWD() { return BackToForwardSlashes( fs::current_path().string() ); }
 
-
-bool IsFile( const std::string& path )
-{
-    return fs::is_regular_file( path );
-}
-
-
-bool DirExists( const std::string& dir )
-{
-    return fs::is_directory( dir );
-}
-
-
-std::string GetCWD()
-{
-    return BackToForwardSlashes( fs::current_path().string() );
-}
-
-
-std::string GetAbsolutePath( const std::string& path )
-{
-    return BackToForwardSlashes( fs::absolute( path ).string() );
-}
-
+std::string GetAbsolutePath( const std::string& path ) { return BackToForwardSlashes( fs::absolute( path ).string() ); }
 
 std::string GetFileExtension( const std::string& filename )
 {
@@ -162,24 +125,11 @@ std::string GetFileExtension( const std::string& filename )
     return ext;
 }
 
+std::string GetFilenameMinusExtension( const std::string& filename ) { return GetParentPath( filename ) + GetFilenameStem( filename ); }
 
-std::string GetFilenameMinusExtension( const std::string& filename )
-{
-    return GetParentPath( filename ) + GetFilenameStem( filename );
-}
+std::string GetFilenameStem( const std::string& filename ) { return fs::path( filename ).stem().string(); }
 
-
-std::string GetFilenameStem( const std::string& filename )
-{
-    return fs::path( filename ).stem().string();
-}
-
-
-std::string GetRelativeFilename( const std::string& filename )
-{
-    return fs::path( filename ).filename().string();
-}
-
+std::string GetRelativeFilename( const std::string& filename ) { return fs::path( filename ).filename().string(); }
 
 std::string GetParentPath( std::string path )
 {
@@ -187,9 +137,9 @@ std::string GetParentPath( std::string path )
     {
         return "";
     }
-    
+
     path[path.length() - 1] = ' ';
-    std::string parent = fs::path( path ).parent_path().string();
+    std::string parent      = fs::path( path ).parent_path().string();
     if ( parent.length() )
     {
         parent += '/';
@@ -199,16 +149,15 @@ std::string GetParentPath( std::string path )
     return parent;
 }
 
-
 std::string GetRelativePathToDir( const std::string& file, const std::string& parentPath )
 {
     return BackToForwardSlashes( fs::relative( file, parentPath ).string() );
 }
 
-
 std::string GetDirectoryStem( const std::string& path )
 {
-    if ( path.empty() ) return "";
+    if ( path.empty() )
+        return "";
     if ( path[path.length() - 1] == '/' || path[path.length() - 1] == '\\' )
     {
         return GetFilenameStem( path.substr( 0, path.length() - 1 ) );
@@ -217,20 +166,7 @@ std::string GetDirectoryStem( const std::string& path )
     {
         return GetFilenameStem( path );
     }
-    //std::string ret;
-    //auto p = fs::path( path );
-    //if ( fs::is_directory( p ) )
-    //{
-    //    size_t l = path.length();
-    //    int end = (int)l - 1;
-    //    while ( end > 0 && (path[end] == '/' || path[end] == '\\' ) ) --end;
-    //    int start = end - 1;
-    //    while ( start >= 0 && (path[start] != '/' && path[start] != '\\' ) ) --start;
-    //    start = start < 0 ? 0 : start + 1;
-    //    ret = path.substr( start, end - start + 1 );
-    //}
 }
-
 
 std::vector<std::string> GetFilesInDir( const std::string& path, bool recursive )
 {

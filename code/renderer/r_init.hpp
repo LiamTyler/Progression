@@ -2,14 +2,11 @@
 
 #include <cstdint>
 
-namespace PG
-{
-namespace Gfx
+namespace PG::Gfx
 {
 
 bool R_Init( bool headless, uint32_t width = 0, uint32_t height = 0 );
 
 void R_Shutdown();
 
-} // namespace Gfx
-} // namespace PG
+} // namespace PG::Gfx

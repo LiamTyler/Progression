@@ -16,13 +16,14 @@ bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
     fseek( fp, 0L, SEEK_END );
     auto fileSize = ftell( fp ) + 1;
     fseek( fp, 0L, SEEK_SET );
-    std::vector< char > buffer( fileSize );
+    std::vector<char> buffer( fileSize );
     rapidjson::FileReadStream is( fp, buffer.data(), fileSize );
 
     rapidjson::ParseResult ok = document.ParseStream( is );
     if ( !ok )
     {
-        LOG_ERR( "Failed to parse json file '%s'. Error: '%s' (%zu)", filename.c_str(), rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
+        LOG_ERR(
+            "Failed to parse json file '%s'. Error: '%s' (%zu)", filename.c_str(), rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
         return false;
     }
 

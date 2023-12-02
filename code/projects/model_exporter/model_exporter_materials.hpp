@@ -2,7 +2,6 @@
 
 #include "model_exporter_common.hpp"
 
-
 extern std::string g_textureSearchDir;
 
 struct MaterialContext

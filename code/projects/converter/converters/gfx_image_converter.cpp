@@ -3,7 +3,6 @@
 #include "image.hpp"
 #include "shared/hash.hpp"
 
-
 namespace PG
 {
 
@@ -11,19 +10,19 @@ void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageI
 {
     if ( imageInfo->semantic == GfxImageSemantic::ENVIRONMENT_MAP )
     {
-        auto irradianceInfo = std::make_shared<GfxImageCreateInfo>();
+        auto irradianceInfo  = std::make_shared<GfxImageCreateInfo>();
         irradianceInfo->name = imageInfo->name + "_irradiance";
         for ( int i = 0; i < ARRAY_COUNT( imageInfo->filenames ); ++i )
             irradianceInfo->filenames[i] = imageInfo->filenames[i];
         irradianceInfo->clampHorizontal = false;
-        irradianceInfo->clampVertical = false;
-        irradianceInfo->flipVertically = imageInfo->flipVertically;
-        irradianceInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
+        irradianceInfo->clampVertical   = false;
+        irradianceInfo->flipVertically  = imageInfo->flipVertically;
+        irradianceInfo->semantic        = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
         AddUsedAsset( ASSET_TYPE_GFX_IMAGE, irradianceInfo );
 
-        auto reflectionProbeInfo = std::make_shared<GfxImageCreateInfo>();
-        *reflectionProbeInfo = *irradianceInfo;
-        reflectionProbeInfo->name = imageInfo->name + "_reflectionProbe";
+        auto reflectionProbeInfo      = std::make_shared<GfxImageCreateInfo>();
+        *reflectionProbeInfo          = *irradianceInfo;
+        reflectionProbeInfo->name     = imageInfo->name + "_reflectionProbe";
         reflectionProbeInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_REFLECTION_PROBE;
         AddUsedAsset( ASSET_TYPE_GFX_IMAGE, reflectionProbeInfo );
     }
@@ -31,7 +30,7 @@ void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageI
 
 std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
-    uint32_t numImages = 0;
+    uint32_t numImages    = 0;
     std::string cacheName = info->name;
     // composite image names are already a valid cache name. No need to append a 2nd hash
     if ( !IsSemanticComposite( info->semantic ) )
@@ -57,13 +56,12 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
         for ( int i = 0; i < 6; ++i )
         {
             if ( !info->filenames[i].empty() )
-                 ++numImages;
+                ++numImages;
         }
     }
     PG_ASSERT( numImages > 0, "GfxImage assets must have at least 1 filename specified" );
     return cacheName;
 }
-
 
 AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
@@ -81,7 +79,7 @@ AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr inf
         if ( IsFileOutOfDate( cacheTimestamp, absPath ) )
             return AssetStatus::OUT_OF_DATE;
     }
-    
+
     return AssetStatus::UP_TO_DATE;
 }
 

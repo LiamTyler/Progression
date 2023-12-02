@@ -1,6 +1,6 @@
 #include "model_converter.hpp"
-#include "asset/types/material.hpp"
 #include "asset/pmodel.hpp"
+#include "asset/types/material.hpp"
 #include "shared/hash.hpp"
 
 namespace PG
@@ -17,18 +17,16 @@ void ModelConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& modelInfo
     }
 }
 
-
 std::string ModelConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
-    size_t hash = Hash( info->filename );
+    size_t hash           = Hash( info->filename );
     HashCombine( hash, info->flipTexCoordsVertically );
     HashCombine( hash, info->recalculateNormals );
     cacheName += "_" + std::to_string( hash );
 
     return cacheName;
 }
-
 
 AssetStatus ModelConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {

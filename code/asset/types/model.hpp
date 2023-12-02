@@ -3,11 +3,11 @@
 #include "asset/types/base_asset.hpp"
 #include "core/feature_defines.hpp"
 #if USING( GPU_DATA )
-#include "renderer/graphics_api/buffer.hpp"
+    #include "renderer/graphics_api/buffer.hpp"
 #if USING( PG_RTX )
-#include "renderer/graphics_api/acceleration_structure.hpp"
+    #include "renderer/graphics_api/acceleration_structure.hpp"
 #endif // #if USING( PG_RTX )
-#endif // #if USING( GPU_DATA )
+#endif     // #if USING( GPU_DATA )
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"
 #include "glm/vec4.hpp"
@@ -31,7 +31,7 @@ struct ModelCreateInfo : public BaseAssetCreateInfo
 {
     std::string filename;
     bool flipTexCoordsVertically = false;
-    bool recalculateNormals = false;
+    bool recalculateNormals      = false;
 };
 
 std::string GetAbsPath_ModelFilename( const std::string& filename );
@@ -65,10 +65,10 @@ struct Model : public BaseAsset
     size_t gpuNormalOffset;
     size_t gpuTexCoordOffset;
     size_t gpuTangentOffset;
-    #if USING( PG_RTX )
-        Gfx::AccelerationStructure blas;
-    #endif // #if USING( PG_RTX )
-#endif // #if USING( GPU_DATA )
+#if USING( PG_RTX )
+    Gfx::AccelerationStructure blas;
+#endif // #if USING( PG_RTX )
+#endif     // #if USING( GPU_DATA )
 };
 
 } // namespace PG

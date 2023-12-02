@@ -1,7 +1,7 @@
 #include "asset/shader_preprocessor.hpp"
 #include "asset/types/shader.hpp"
-#include "shared/assert.hpp"
 #include "shaderc/shaderc.hpp"
+#include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/hash.hpp"
 #include "shared/logger.hpp"
@@ -11,11 +11,9 @@
 #include <regex>
 #include <sstream>
 
-
 // Cache that stores shader files in memory once they are read from disk the first time.
 //  Future requests to load from disk will use the cache instead
 #define FILE_CACHE IN_USE
-
 
 static std::shared_ptr<std::string> ReadShaderFile( const std::string& filename )
 {
@@ -34,7 +32,6 @@ static std::shared_ptr<std::string> ReadShaderFile( const std::string& filename 
 
     return strPtr;
 }
-
 
 std::string CleanUpPreproc( const std::string& preprocOutput )
 {
@@ -65,7 +62,6 @@ std::string CleanUpPreproc( const std::string& preprocOutput )
     return result;
 }
 
-
 static const char* PGShaderStageToDefine( PG::ShaderStage stage )
 {
     static const char* shaderStageToDefine[] =
@@ -77,12 +73,11 @@ static const char* PGShaderStageToDefine( PG::ShaderStage stage )
         "IS_FRAGMENT_SHADER",
         "IS_COMPUTE_SHADER",
     };
-    
-    int index = static_cast< int >( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
+
+    int index = static_cast<int>( stage );
+    PG_ASSERT( 0 <= index && index <= static_cast<int>( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
     return shaderStageToDefine[index];
 }
-
 
 static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
 {
@@ -95,12 +90,11 @@ static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
         shaderc_fragment_shader,        // FRAGMENT
         shaderc_compute_shader,         // COMPUTE
     };
-    
-    int index = static_cast< int >( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast< int >( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
+
+    int index = static_cast<int>( stage );
+    PG_ASSERT( 0 <= index && index <= static_cast<int>( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
     return convert[index];
 }
-
 
 #if USING( FILE_CACHE )
 static std::unordered_map<std::string, std::shared_ptr<std::string>> s_fileCache;
@@ -112,20 +106,16 @@ std::shared_ptr<std::string> GetFileContents( const std::string& absFilePath )
     if ( s_fileCache.contains( absFilePath ) )
         return s_fileCache[absFilePath];
 
-    auto fileContents = ReadShaderFile( absFilePath );
+    auto fileContents        = ReadShaderFile( absFilePath );
     s_fileCache[absFilePath] = fileContents;
     return fileContents;
 }
 
 #else // #if USING( FILE_CACHE )
 
-std::shared_ptr<std::string> GetFileContents( const std::string& absFilePath )
-{
-    return ReadShaderFile( absFilePath );
-}
+std::shared_ptr<std::string> GetFileContents( const std::string& absFilePath ) { return ReadShaderFile( absFilePath ); }
 
 #endif // #else // #if USING( FILE_CACHE )
-
 
 namespace PG
 {
@@ -133,7 +123,7 @@ namespace PG
 class ShaderIncluder : public shaderc::CompileOptions::IncluderInterface
 {
 public:
-    ShaderIncluder( ShaderPreprocessOutput *outputData )
+    ShaderIncluder( ShaderPreprocessOutput* outputData )
     {
         output = outputData;
         fileContentPtrs.reserve( 16 );
@@ -141,7 +131,8 @@ public:
 
     virtual ~ShaderIncluder() = default;
 
-    virtual shaderc_include_result* GetInclude( const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth )
+    virtual shaderc_include_result* GetInclude(
+        const char* requested_source, shaderc_include_type type, const char* requesting_source, size_t include_depth )
     {
         shaderc_include_result* result = new shaderc_include_result;
         memset( result, 0, sizeof( shaderc_include_result ) );
@@ -175,8 +166,8 @@ public:
 
         delete data;
     }
-    
-    ShaderPreprocessOutput *output;
+
+    ShaderPreprocessOutput* output;
     std::vector<std::shared_ptr<std::string>> fileContentPtrs;
 };
 
@@ -188,11 +179,11 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     shaderc::CompileOptions options;
     options.SetTargetEnvironment( shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3 );
     options.SetSourceLanguage( shaderc_source_language_glsl );
-    auto includer = std::make_unique< ShaderIncluder >( &output );
+    auto includer = std::make_unique<ShaderIncluder>( &output );
     options.SetIncluder( std::move( includer ) );
-    
+
     std::string shaderStageDefine = PGShaderStageToDefine( createInfo.shaderStage );
-    auto defines = createInfo.defines;
+    auto defines                  = createInfo.defines;
     defines.emplace_back( "PG_SHADER_CODE", "1" );
     defines.emplace_back( PGShaderStageToDefine( createInfo.shaderStage ), "1" );
     if ( createInfo.generateDebugInfo )
@@ -209,7 +200,8 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
         return output;
 
     shaderc_shader_kind shadercStage = PGToShadercShaderStage( createInfo.shaderStage );
-    shaderc::PreprocessedSourceCompilationResult result = compiler.PreprocessGlsl( fileContents->c_str(), shadercStage, createInfo.filename.c_str(), options );
+    shaderc::PreprocessedSourceCompilationResult result =
+        compiler.PreprocessGlsl( fileContents->c_str(), shadercStage, createInfo.filename.c_str(), options );
 
     if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
     {
@@ -217,27 +209,28 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
         return output;
     }
 
-    output.success = true;
+    output.success      = true;
     output.outputShader = { result.cbegin(), result.cend() };
 
     if ( savePreproc )
     {
         output.outputShader = CleanUpPreproc( output.outputShader );
-        size_t seed = 0;
+        size_t seed         = 0;
         for ( const auto& [define, value] : defines )
         {
             HashCombine( seed, define + value );
         }
-        std::string preprocFilename = PG_ASSET_DIR "cache/shader_preproc/" + GetRelativeFilename( createInfo.filename ) + "_" + std::to_string( seed ) + ".glsl";
+        std::string preprocFilename =
+            PG_ASSET_DIR "cache/shader_preproc/" + GetRelativeFilename( createInfo.filename ) + "_" + std::to_string( seed ) + ".glsl";
         std::ofstream out( preprocFilename );
         if ( !out )
         {
-            LOG_ERR( "Could not output preproc file '%s'",  preprocFilename.c_str() );
+            LOG_ERR( "Could not output preproc file '%s'", preprocFilename.c_str() );
             output.success = false;
             return output;
         }
         out << output.outputShader << std::endl;
-        
+
         // write list of #defines at the bottom for easier debugging
         for ( const auto& [define, value] : defines )
         {
@@ -248,10 +241,6 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     return output;
 }
 
-
-int PGShaderStageToShaderc( const ShaderStage stage )
-{
-    return static_cast< int >( PGToShadercShaderStage( stage ) );
-}
+int PGShaderStageToShaderc( const ShaderStage stage ) { return static_cast<int>( PGToShadercShaderStage( stage ) ); }
 
 } // namespace PG

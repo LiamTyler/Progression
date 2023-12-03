@@ -3,20 +3,20 @@
 #include <cstring>
 #include <vector>
 
-static glm::vec4 s_regionColors[] =
+static vec4 s_regionColors[] =
 {
-    glm::vec4( 213, 62, 79, 255 ) / 255.0f,
-    glm::vec4( 252, 141, 89, 255 ) / 255.0f,
-    glm::vec4( 254, 224, 139, 255 ) / 255.0f,
-    glm::vec4( 230, 245, 152, 255 ) / 255.0f,
-    glm::vec4( 153, 213, 148, 255 ) / 255.0f,
-    glm::vec4( 50, 136, 189, 255 ) / 255.0f,
+    vec4( 213, 62, 79, 255 ) / 255.0f,
+    vec4( 252, 141, 89, 255 ) / 255.0f,
+    vec4( 254, 224, 139, 255 ) / 255.0f,
+    vec4( 230, 245, 152, 255 ) / 255.0f,
+    vec4( 153, 213, 148, 255 ) / 255.0f,
+    vec4( 50, 136, 189, 255 ) / 255.0f,
 };
 
 namespace PG::Gfx::DebugMarker
 {
 
-glm::vec4 GetNextRegionColor()
+vec4 GetNextRegionColor()
 {
     static size_t index = 0;
     return s_regionColors[index++ % ARRAY_COUNT( s_regionColors )];
@@ -89,7 +89,7 @@ void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, ui
     }
 }
 
-void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color )
+void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, vec4 color )
 {
     if ( s_active )
     {
@@ -102,7 +102,7 @@ void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm
     }
 }
 
-void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color )
+void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, vec4 color )
 {
     if ( s_active )
     {
@@ -123,7 +123,7 @@ void EndRegion_CmdBuf( VkCommandBuffer cmdBuffer )
     }
 }
 
-void BeginRegion_Queue( VkQueue queue, const std::string& name, glm::vec4 color )
+void BeginRegion_Queue( VkQueue queue, const std::string& name, vec4 color )
 {
     if ( s_active )
     {
@@ -136,7 +136,7 @@ void BeginRegion_Queue( VkQueue queue, const std::string& name, glm::vec4 color 
     }
 }
 
-void Insert_Queue( VkQueue queue, const std::string& name, glm::vec4 color )
+void Insert_Queue( VkQueue queue, const std::string& name, vec4 color )
 {
     if ( s_active )
     {

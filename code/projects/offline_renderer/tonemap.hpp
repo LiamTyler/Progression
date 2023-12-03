@@ -1,6 +1,7 @@
 #pragma once
 
-#include "shared/math.hpp"
+#include "shared/math_vec.hpp"
+#include <string>
 
 namespace PT
 {
@@ -17,7 +18,7 @@ enum class TonemapOperator
 
 TonemapOperator TonemapOperatorFromString( const std::string& name );
 
-using TonemapFunc = glm::vec3(*)( const glm::vec3& v );
+using TonemapFunc = vec3(*)( const vec3& v );
 
 TonemapFunc GetTonemapFunction( TonemapOperator op );
 

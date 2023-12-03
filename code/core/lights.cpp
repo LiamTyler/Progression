@@ -2,7 +2,6 @@
 #include "shared/float_conversions.hpp"
 
 using namespace GpuData;
-using namespace glm;
 
 namespace PG
 {

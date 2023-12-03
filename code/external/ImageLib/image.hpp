@@ -2,7 +2,7 @@
 
 #include "shared/core_defines.hpp"
 #include "shared/float_conversions.hpp"
-#include "shared/math.hpp"
+#include "shared/math_vec.hpp"
 #include <memory>
 #include <string>
 #include <vector>
@@ -226,10 +226,10 @@ struct RawImage2D
     RawImage2D Clone() const;
 
     float GetPixelAsFloat( int row, int col, int chan ) const;
-    glm::vec4 GetPixelAsFloat4( int row, int col ) const;
+    vec4 GetPixelAsFloat4( int row, int col ) const;
 
     void SetPixelFromFloat( int row, int col, int chan, float x );
-    void SetPixelFromFloat4( int row, int col, glm::vec4 pixel );
+    void SetPixelFromFloat4( int row, int col, vec4 pixel );
 
     uint8_t* GetCompressedBlock( int blockX, int blockY );
     void GetBlockClamped8Bit( int blockX, int blockY, uint8_t* outputRGBA ) const;
@@ -301,12 +301,12 @@ struct FloatImage2D
         }
     }
 
-    glm::vec4 Sample( glm::vec2 uv, bool clampHorizontal, bool clampVertical ) const; // bilinear
-    glm::vec4 GetFloat4( uint32_t pixelIndex ) const;
-    glm::vec4 GetFloat4( uint32_t row, uint32_t col ) const;
-    glm::vec4 GetFloat4( uint32_t row, uint32_t col, bool clampHorizontal, bool clampVertical ) const;
-    void SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel );
-    void SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& pixel );
+    vec4 Sample( vec2 uv, bool clampHorizontal, bool clampVertical ) const; // bilinear
+    vec4 GetFloat4( uint32_t pixelIndex ) const;
+    vec4 GetFloat4( uint32_t row, uint32_t col ) const;
+    vec4 GetFloat4( uint32_t row, uint32_t col, bool clampHorizontal, bool clampVertical ) const;
+    void SetFromFloat4( uint32_t pixelIndex, const vec4& pixel );
+    void SetFromFloat4( uint32_t row, uint32_t col, const vec4& pixel );
 };
 
 void HDRImageToLDR( FloatImage2D& image );
@@ -347,16 +347,16 @@ struct FloatImageCubemap
     bool SaveUnfoldedFaces( const std::string& filename ) const;
     FloatImageCubemap Resize( uint32_t newSize ) const;
 
-    glm::vec4 Sample( const glm::vec3& dir ) const;
+    vec4 Sample( const vec3& dir ) const;
 
 private:
-    glm::vec4 FetchTexel_Wrapping( int faceIdx, int row, int col ) const;
+    vec4 FetchTexel_Wrapping( int faceIdx, int row, int col ) const;
 };
 
-glm::vec3 CubemapFaceUVToDirection( int cubeFace, glm::vec2 uv );
-glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex );
-glm::vec2 DirectionToEquirectangularUV( const glm::vec3& dir );
-glm::vec3 EquirectangularUVToDirection( const glm::vec2& uv );
+vec3 CubemapFaceUVToDirection( int cubeFace, vec2 uv );
+vec2 CubemapDirectionToFaceUV( const vec3& direction, int& faceIndex );
+vec2 DirectionToEquirectangularUV( const vec3& dir );
+vec3 EquirectangularUVToDirection( const vec2& uv );
 
 // Creates a new image in the float32 version of rawImage. One caveat: if the raw format is already float32,
 // then data will just point to the same RawImage2D memory to avoid an allocation + copy

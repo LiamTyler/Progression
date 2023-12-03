@@ -7,7 +7,7 @@ bool Frustum::BoxInFrustum( const AABB& aabb ) const
 {
     for ( int i = 0; i < 6; ++i )
     {
-        if ( !SameSide( aabb.P( glm::vec3( planes[i] ) ), planes[i] ) )
+        if ( !SameSide( aabb.P( vec3( planes[i] ) ), planes[i] ) )
         {
             return false;
         }
@@ -15,10 +15,10 @@ bool Frustum::BoxInFrustum( const AABB& aabb ) const
     return true;
 }
 
-void Frustum::Update( float fov, float nearPlane, float farPlane, float aspect, const glm::vec3& pos, const glm::vec3& forward,
-    const glm::vec3& up, const glm::vec3& right )
+void Frustum::Update(
+    float fov, float nearPlane, float farPlane, float aspect, const vec3& pos, const vec3& forward, const vec3& up, const vec3& right )
 {
-    glm::vec3 ntl, ntr, nbl, nbr, ftl, ftr, fbr, fbl;
+    vec3 ntl, ntr, nbl, nbr, ftl, ftr, fbr, fbl;
     float nearHeight, nearWidth, farHeight, farWidth;
     float angle = 0.5f * fov;
 
@@ -27,19 +27,19 @@ void Frustum::Update( float fov, float nearPlane, float farPlane, float aspect, 
     nearWidth  = aspect * nearHeight;
     farWidth   = aspect * farHeight;
 
-    glm::vec3 nc = pos + nearPlane * forward;
-    glm::vec3 fc = pos + farPlane * forward;
+    vec3 nc = pos + nearPlane * forward;
+    vec3 fc = pos + farPlane * forward;
 
-    glm::vec3 Y = up;
-    glm::vec3 X = right;
-    ntl         = nc + Y * nearHeight - X * nearWidth;
-    ntr         = nc + Y * nearHeight + X * nearWidth;
-    nbl         = nc - Y * nearHeight - X * nearWidth;
-    nbr         = nc - Y * nearHeight + X * nearWidth;
-    ftl         = fc + Y * farHeight - X * farWidth;
-    ftr         = fc + Y * farHeight + X * farWidth;
-    fbl         = fc - Y * farHeight - X * farWidth;
-    fbr         = fc - Y * farHeight + X * farWidth;
+    vec3 Y = up;
+    vec3 X = right;
+    ntl    = nc + Y * nearHeight - X * nearWidth;
+    ntr    = nc + Y * nearHeight + X * nearWidth;
+    nbl    = nc - Y * nearHeight - X * nearWidth;
+    nbr    = nc - Y * nearHeight + X * nearWidth;
+    ftl    = fc + Y * farHeight - X * farWidth;
+    ftr    = fc + Y * farHeight + X * farWidth;
+    fbl    = fc - Y * farHeight - X * farWidth;
+    fbr    = fc - Y * farHeight + X * farWidth;
 
     SetPlane( 0, ntl, ntr, nbr ); // near
     SetPlane( 1, ftr, ftl, fbl ); // far
@@ -57,19 +57,19 @@ void Frustum::Update( float fov, float nearPlane, float farPlane, float aspect, 
     corners[7] = fbr;
 }
 
-bool Frustum::SameSide( const glm::vec3& point, const glm::vec4& plane ) const
+bool Frustum::SameSide( const vec3& point, const vec4& plane ) const
 {
     return ( point.x * plane.x + point.y * plane.y + point.z * plane.z + plane.w ) >= 0;
 }
 
-void Frustum::SetPlane( int planeIndex, const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3 )
+void Frustum::SetPlane( int planeIndex, const vec3& p1, const vec3& p2, const vec3& p3 )
 {
-    glm::vec3 p12 = p2 - p1;
-    glm::vec3 p13 = p3 - p1;
+    vec3 p12 = p2 - p1;
+    vec3 p13 = p3 - p1;
 
-    glm::vec3 n        = glm::normalize( glm::cross( p12, p13 ) );
-    float d            = glm::dot( n, -p1 );
-    planes[planeIndex] = glm::vec4( n, d );
+    vec3 n             = Normalize( Cross( p12, p13 ) );
+    float d            = Dot( n, -p1 );
+    planes[planeIndex] = vec4( n, d );
 }
 
 } // namespace PG

@@ -4,12 +4,10 @@
 #include "assimp/Importer.hpp"
 #include "assimp/postprocess.h"
 #include "assimp/scene.h"
-#include "glm/glm.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
+#include "shared/math_vec.hpp"
 #include <vector>
-
-using namespace glm;
 
 struct Options
 {

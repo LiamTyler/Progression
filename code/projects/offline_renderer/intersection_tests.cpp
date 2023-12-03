@@ -5,26 +5,25 @@
 namespace PT::intersect
 {
 
-bool RayPlaneIntersection(
-    const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec3& N, const glm::vec3& arbitraryPointOnPlane, float& t )
+bool RayPlaneIntersection( const vec3& rayPos, const vec3& rayDir, const vec3& N, const vec3& arbitraryPointOnPlane, float& t )
 {
-    float denom = glm::dot( N, rayDir );
-    if ( fabs( denom ) < 1e-6 )
+    float denom = Dot( N, rayDir );
+    if ( fabs( denom ) < 1e-6f )
     {
         return false;
     }
 
-    float d = glm::dot( N, arbitraryPointOnPlane );
-    t       = -( glm::dot( N, rayPos ) - d ) / denom;
+    float d = Dot( N, arbitraryPointOnPlane );
+    t       = -( Dot( N, rayPos ) - d ) / denom;
     return t > 0;
 }
 
-bool RaySphere( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec3& spherePos, float radius, float& t, float maxT )
+bool RaySphere( const vec3& rayPos, const vec3& rayDir, const vec3& spherePos, float radius, float& t, float maxT )
 {
-    glm::vec3 OC = rayPos - spherePos;
-    float a      = glm::dot( rayDir, rayDir );
-    float b      = 2 * glm::dot( OC, rayDir );
-    float c      = glm::dot( OC, OC ) - radius * radius;
+    vec3 OC = rayPos - spherePos;
+    float a = Dot( rayDir, rayDir );
+    float b = 2 * Dot( OC, rayDir );
+    float c = Dot( OC, OC ) - radius * radius;
 
     float disc = b * b - 4 * a * c;
     if ( disc < 0 )
@@ -43,13 +42,13 @@ bool RaySphere( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec
 }
 
 // https://www.scratchapixel.com/lessons/3d-basic-rendering/ray-tracing-rendering-a-triangle/moller-trumbore-ray-triangle-intersection
-bool RayTriangle( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::vec3& v0, const glm::vec3& v1, const glm::vec3& v2, float& t,
-    float& u, float& v, float maxT )
+bool RayTriangle(
+    const vec3& rayPos, const vec3& rayDir, const vec3& v0, const vec3& v1, const vec3& v2, float& t, float& u, float& v, float maxT )
 {
-    glm::vec3 v0v1 = v1 - v0;
-    glm::vec3 v0v2 = v2 - v0;
-    glm::vec3 pvec = glm::cross( rayDir, v0v2 );
-    float det      = glm::dot( v0v1, pvec );
+    vec3 v0v1 = v1 - v0;
+    vec3 v0v2 = v2 - v0;
+    vec3 pvec = Cross( rayDir, v0v2 );
+    float det = Dot( v0v1, pvec );
     // ray and triangle are parallel if det is close to 0
     if ( fabs( det ) < 0.000000001 )
     {
@@ -58,50 +57,50 @@ bool RayTriangle( const glm::vec3& rayPos, const glm::vec3& rayDir, const glm::v
 
     float invDet = 1 / det;
 
-    glm::vec3 tvec = rayPos - v0;
-    u              = glm::dot( tvec, pvec ) * invDet;
+    vec3 tvec = rayPos - v0;
+    u         = Dot( tvec, pvec ) * invDet;
     if ( u < 0 || u > 1 )
     {
         return false;
     }
 
-    glm::vec3 qvec = glm::cross( tvec, v0v1 );
-    v              = glm::dot( rayDir, qvec ) * invDet;
+    vec3 qvec = Cross( tvec, v0v1 );
+    v         = Dot( rayDir, qvec ) * invDet;
     if ( v < 0 || u + v > 1 )
     {
         return false;
     }
 
-    t = glm::dot( v0v2, qvec ) * invDet;
+    t = Dot( v0v2, qvec ) * invDet;
 
     return t < maxT && t > 0;
 }
 
-bool RayAABB( const glm::vec3& rayPos, const glm::vec3& invRayDir, const glm::vec3& aabbMin, const glm::vec3& aabbMax, float maxT )
+bool RayAABB( const vec3& rayPos, const vec3& invRayDir, const vec3& aabbMin, const vec3& aabbMax, float maxT )
 {
     float tx1 = ( aabbMin.x - rayPos.x ) * invRayDir.x;
     float tx2 = ( aabbMax.x - rayPos.x ) * invRayDir.x;
 
-    float tmin = std::min( tx1, tx2 );
-    float tmax = std::max( tx1, tx2 );
+    float tmin = Min( tx1, tx2 );
+    float tmax = Max( tx1, tx2 );
 
     float ty1 = ( aabbMin.y - rayPos.y ) * invRayDir.y;
     float ty2 = ( aabbMax.y - rayPos.y ) * invRayDir.y;
 
-    tmin = std::max( tmin, std::min( ty1, ty2 ) );
-    tmax = std::min( tmax, std::max( ty1, ty2 ) );
+    tmin = Max( tmin, Min( ty1, ty2 ) );
+    tmax = Min( tmax, Max( ty1, ty2 ) );
 
     float tz1 = ( aabbMin.z - rayPos.z ) * invRayDir.z;
     float tz2 = ( aabbMax.z - rayPos.z ) * invRayDir.z;
 
-    tmin = std::max( tmin, std::min( tz1, tz2 ) );
-    tmax = std::min( tmax, std::max( tz1, tz2 ) );
+    tmin = Max( tmin, Min( tz1, tz2 ) );
+    tmax = Min( tmax, Max( tz1, tz2 ) );
 
-    return ( tmin < maxT ) && ( tmax >= std::max( 0.0f, tmin ) );
+    return ( tmin < maxT ) && ( tmax >= Max( 0.0f, tmin ) );
 }
 
-bool RayAABBFastest( const glm::vec3& rayPos, const glm::vec3& invRayDir, const int isDirNeg[3], const glm::vec3& aabbMin,
-    const glm::vec3& aabbMax, float maxT )
+bool RayAABBFastest(
+    const vec3& rayPos, const vec3& invRayDir, const int isDirNeg[3], const vec3& aabbMin, const vec3& aabbMax, float maxT )
 {
     float tMin  = ( ( isDirNeg[0] ? aabbMax : aabbMin ).x - rayPos.x ) * invRayDir.x;
     float tMax  = ( ( 1 - isDirNeg[0] ? aabbMax : aabbMin ).x - rayPos.x ) * invRayDir.x;

@@ -31,8 +31,8 @@ static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
     static JSONFunctionMapper< Camera& > mapping(
     {
         { "position",    []( const rapidjson::Value& v, Camera& camera ) { camera.position    = ParseVec3( v ); } },
-        { "rotation",    []( const rapidjson::Value& v, Camera& camera ) { camera.rotation    = glm::radians( ParseVec3( v ) ); } },
-        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = glm::radians( ParseNumber< float >( v ) ); } },
+        { "rotation",    []( const rapidjson::Value& v, Camera& camera ) { camera.rotation    = DegToRad( ParseVec3( v ) ); } },
+        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = DegToRad( ParseNumber< float >( v ) ); } },
         { "aspectRatio", []( const rapidjson::Value& v, Camera& camera ) { camera.aspectRatio = ParseNumber< float >( v ); } },
         { "nearPlane",   []( const rapidjson::Value& v, Camera& camera ) { camera.nearPlane   = ParseNumber< float >( v ); } },
         { "farPlane",    []( const rapidjson::Value& v, Camera& camera ) { camera.farPlane    = ParseNumber< float >( v ); } },
@@ -51,7 +51,7 @@ static void ParseBaseLight( const rapidjson::Value& value, Light* light )
 {
     struct BaseLightCreateInfo
     {
-        glm::vec3 color = glm::vec3( 0 );
+        vec3 color = vec3( 0 );
         float intensity = 1.0f;
         int nSamples = 1;
     };
@@ -72,7 +72,7 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< DirectionalLight& > mapping(
     {
-        { "direction",  []( const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::normalize( ParseVec3( v ) ); } }
+        { "direction",  []( const rapidjson::Value& v, DirectionalLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } }
     });
 
     auto light = new DirectionalLight;
@@ -113,7 +113,7 @@ static bool ParseOfflineRenderSettings( const rapidjson::Value& v, Scene* scene 
 {
     static JSONFunctionMapper< RenderSettings& > mapping(
     {
-        { "imageResolution", []( const rapidjson::Value& v, RenderSettings& s ) { s.imageResolution = ParseVec2<int>( v ); } },
+        { "imageResolution", []( const rapidjson::Value& v, RenderSettings& s ) { s.imageResolution = { ParseNumber<int>( v[0] ), ParseNumber<int>( v[1] ) }; } },
         { "maxDepth", []( const rapidjson::Value& v, RenderSettings& s ) { s.maxDepth = ParseNumber<int>( v ); } },
         { "outputImageFilename", []( const rapidjson::Value& v, RenderSettings& s ) { s.outputImageFilename = v.GetString(); } },
         { "numSamplesPerPixel", []( const rapidjson::Value& v, RenderSettings& s )
@@ -286,17 +286,17 @@ bool Scene::Occluded( const Ray& ray, float tMax )
     return bvh.Occluded( ray, tMax );
 }
 
-glm::vec3 Scene::LEnvironment( const Ray& ray )
+vec3 Scene::LEnvironment( const Ray& ray )
 {
     if ( skybox != TEXTURE_HANDLE_INVALID )
     {
-        glm::vec3 radiance = glm::vec3( GetTex( skybox )->SampleDir( ray.direction ) );
+        vec3 radiance = vec3( GetTex( skybox )->SampleDir( ray.direction ) );
         radiance *= skyTint;
         radiance *= std::exp2f( skyEVAdjust );
         return radiance;
     }
 
-    return glm::vec3( 0 );
+    return vec3( 0 );
 }
 
 } // namespace PT

@@ -1025,8 +1025,8 @@ void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool c
             }
             offset += size;
         }
-        width  = std::max( width >> 1, 1u );
-        height = std::max( height >> 1, 1u );
+        width  = Max( width >> 1, 1u );
+        height = Max( height >> 1, 1u );
     }
 
     vkCmdCopyBufferToImage( cmdBuf.GetHandle(), buffer.GetHandle(), tex.GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,

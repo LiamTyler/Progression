@@ -30,7 +30,7 @@ struct BVHBuildNode
 struct BVHBuildShapeInfo
 {
     AABB aabb;
-    glm::vec3 centroid;
+    vec3 centroid;
     ShapePtr shape;
 };
 
@@ -215,8 +215,8 @@ void BVH::Build( std::vector<ShapePtr>& listOfShapes, SplitMethod splitMethod )
     if ( shapes.size() == 0 )
     {
         nodes            = new LinearBVHNode[1];
-        nodes->aabb.min  = glm::vec3( FLT_MAX );
-        nodes->aabb.max  = glm::vec3( FLT_MAX );
+        nodes->aabb.min  = vec3( FLT_MAX );
+        nodes->aabb.max  = vec3( FLT_MAX );
         nodes->numShapes = 0;
         return;
     }
@@ -247,7 +247,7 @@ bool BVH::Intersect( const Ray& ray, IntersectionData* hitData ) const
     int nodesToVisit[64];
     int currentNodeIndex = 0;
     int toVisitOffset    = 0;
-    glm::vec3 invRayDir  = glm::vec3( 1.0 ) / ray.direction;
+    vec3 invRayDir       = vec3( 1.0 ) / ray.direction;
     int isDirNeg[3]      = { invRayDir.x < 0, invRayDir.y < 0, invRayDir.z < 0 };
     float oldMaxT        = hitData->t;
 
@@ -289,7 +289,7 @@ bool BVH::Occluded( const Ray& ray, float tMax ) const
     int nodesToVisit[64];
     int currentNodeIndex = 0;
     int toVisitOffset    = 0;
-    glm::vec3 invRayDir  = glm::vec3( 1.0 ) / ray.direction;
+    vec3 invRayDir       = vec3( 1.0 ) / ray.direction;
     int isDirNeg[3]      = { invRayDir.x < 0, invRayDir.y < 0, invRayDir.z < 0 };
 
     while ( true )

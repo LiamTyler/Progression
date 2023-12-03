@@ -1,7 +1,7 @@
 #pragma once
 
 #include "core/input_types.hpp"
-#include "glm/vec2.hpp"
+#include "shared/math_vec.hpp"
 
 struct lua_State;
 
@@ -29,9 +29,9 @@ bool GetMouseButtonUp( MouseButton b );
 bool AnyMouseButtonUp();
 bool GetMouseButtonHeld( MouseButton b );
 
-glm::vec2 GetMousePosition();
-glm::vec2 GetMouseChange();
-glm::vec2 GetScrollChange();
+vec2 GetMousePosition();
+vec2 GetMouseChange();
+vec2 GetScrollChange();
 
 void RegisterLuaFunctions( lua_State* L );
 

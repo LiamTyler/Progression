@@ -21,7 +21,7 @@ using namespace PG;
 namespace PT
 {
 
-float Fresnel( const glm::vec3& I, const glm::vec3& N, const float& ior )
+float Fresnel( const vec3& I, const vec3& N, const float& ior )
 {
     // this happens when the material is reflective, but not refractive
     if ( ior == 1 )
@@ -29,14 +29,14 @@ float Fresnel( const glm::vec3& I, const glm::vec3& N, const float& ior )
         return 1;
     }
 
-    float cosi = std::min( 1.0f, std::max( 1.0f, glm::dot( I, N ) ) );
+    float cosi = Min( 1.0f, Max( 1.0f, Dot( I, N ) ) );
     float etai = 1, etat = ior;
     if ( cosi > 0 )
     {
         std::swap( etai, etat );
     }
 
-    float sint = etai / etat * sqrtf( std::max( 0.0f, 1 - cosi * cosi ) );
+    float sint = etai / etat * sqrtf( Max( 0.0f, 1 - cosi * cosi ) );
 
     float kr;
     if ( sint >= 1 )
@@ -45,7 +45,7 @@ float Fresnel( const glm::vec3& I, const glm::vec3& N, const float& ior )
     }
     else
     {
-        float cost = sqrtf( std::max( 0.0f, 1 - sint * sint ) );
+        float cost = sqrtf( Max( 0.0f, 1 - sint * sint ) );
         cosi       = fabsf( cosi );
         float Rs   = ( ( etat * cosi ) - ( etai * cost ) ) / ( ( etat * cosi ) + ( etai * cost ) );
         float Rp   = ( ( etai * cosi ) - ( etat * cost ) ) / ( ( etai * cosi ) + ( etat * cost ) );
@@ -55,11 +55,11 @@ float Fresnel( const glm::vec3& I, const glm::vec3& N, const float& ior )
     return kr;
 }
 
-glm::vec3 Refract( const glm::vec3& I, const glm::vec3& N, const float& ior )
+vec3 Refract( const vec3& I, const vec3& N, const float& ior )
 {
-    float cosi = std::min( 1.0f, std::max( 1.0f, glm::dot( I, N ) ) );
+    float cosi = Min( 1.0f, Max( 1.0f, Dot( I, N ) ) );
     float etai = 1, etat = ior;
-    glm::vec3 n = N;
+    vec3 n = N;
     if ( cosi < 0 )
     {
         cosi = -cosi;
@@ -71,31 +71,31 @@ glm::vec3 Refract( const glm::vec3& I, const glm::vec3& N, const float& ior )
     }
     float eta = etai / etat;
     float k   = 1 - eta * eta * ( 1 - cosi * cosi );
-    return k < 0 ? glm::vec3( 0 ) : eta * I + ( eta * cosi - sqrtf( k ) ) * n;
+    return k < 0 ? vec3( 0 ) : eta * I + ( eta * cosi - sqrtf( k ) ) * n;
 }
 
-glm::vec3 EstimateSingleDirect( Light* light, const IntersectionData& hitData, Scene* scene, Random::RNG& rng, const BRDF& brdf )
+vec3 EstimateSingleDirect( Light* light, const IntersectionData& hitData, Scene* scene, Random::RNG& rng, const BRDF& brdf )
 {
     Interaction it{ hitData.position, hitData.normal };
-    glm::vec3 wi;
+    vec3 wi;
     float lightPdf;
 
     // get incoming radiance, and how likely it was to sample that direction on the light
-    glm::vec3 Li = light->Sample_Li( it, wi, scene, rng, lightPdf );
+    vec3 Li = light->Sample_Li( it, wi, scene, rng, lightPdf );
     if ( lightPdf == 0 )
     {
-        return glm::vec3( 0 );
+        return vec3( 0 );
     }
 
     return brdf.F( hitData.wo, wi ) * Li * AbsDot( hitData.normal, wi ) / lightPdf;
 }
 
-glm::vec3 LDirect( const IntersectionData& hitData, Scene* scene, Random::RNG& rng, const BRDF& brdf )
+vec3 LDirect( const IntersectionData& hitData, Scene* scene, Random::RNG& rng, const BRDF& brdf )
 {
-    glm::vec3 L( 0 );
+    vec3 L( 0 );
     for ( const auto& light : scene->lights )
     {
-        glm::vec3 Ld( 0 );
+        vec3 Ld( 0 );
         for ( int i = 0; i < light->nSamples; ++i )
         {
             Ld += EstimateSingleDirect( light, hitData, scene, rng, brdf );
@@ -124,31 +124,31 @@ void ComputeDifferentials( const RayDifferential& ray, IntersectionData* surf )
 {
     if ( !ray.hasDifferentials )
     {
-        surf->du = surf->dv = glm::vec2( 0 );
+        surf->du = surf->dv = vec2( 0 );
         return;
     }
 
     constexpr float EPS = 0.000001f;
-    glm::vec3 dpdx( 0 );
-    glm::vec3 dpdy( 0 );
-    const glm::vec3& N = surf->normal;
-    const glm::vec3& P = surf->position;
+    vec3 dpdx( 0 );
+    vec3 dpdy( 0 );
+    const vec3& N = surf->normal;
+    const vec3& P = surf->position;
 
-    float tx = glm::dot( N, ray.diffX.direction );
-    float ty = glm::dot( N, ray.diffY.direction );
+    float tx = Dot( N, ray.diffX.direction );
+    float ty = Dot( N, ray.diffY.direction );
     if ( fabs( tx ) < EPS || fabs( ty ) < EPS )
     {
-        surf->du = surf->dv = glm::vec2( 0 );
+        surf->du = surf->dv = vec2( 0 );
         return;
     }
 
-    float d      = glm::dot( surf->normal, surf->position );
-    tx           = -( glm::dot( N, ray.diffX.position ) - d ) / tx;
-    ty           = -( glm::dot( N, ray.diffY.position ) - d ) / ty;
-    glm::vec3 px = ray.diffX.Evaluate( tx );
-    glm::vec3 py = ray.diffY.Evaluate( ty );
-    dpdx         = px - P;
-    dpdy         = py - P;
+    float d = Dot( surf->normal, surf->position );
+    tx      = -( Dot( N, ray.diffX.position ) - d ) / tx;
+    ty      = -( Dot( N, ray.diffY.position ) - d ) / ty;
+    vec3 px = ray.diffX.Evaluate( tx );
+    vec3 py = ray.diffY.Evaluate( ty );
+    dpdx    = px - P;
+    dpdy    = py - P;
 
     // 2 unknowns, 3 equations. Choose 2 dimensions least likely to be degenerate
     int dim[2];
@@ -176,14 +176,14 @@ void ComputeDifferentials( const RayDifferential& ray, IntersectionData* surf )
     float By[2] = { py[dim[0]] - P[dim[0]], py[dim[1]] - P[dim[1]] };
     if ( !SolveLinearSystem2x2( A, Bx, surf->du.x, surf->dv.x ) || !SolveLinearSystem2x2( A, By, surf->du.y, surf->dv.y ) )
     {
-        surf->du = surf->dv = glm::vec2( 0 );
+        surf->du = surf->dv = vec2( 0 );
     }
 }
 
-glm::vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
+vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
 {
-    glm::vec3 L              = glm::vec3( 0 );
-    glm::vec3 pathThroughput = glm::vec3( 1 );
+    vec3 L              = vec3( 0 );
+    vec3 pathThroughput = vec3( 1 );
 
     for ( int bounce = 0; bounce < scene->settings.maxDepth; ++bounce )
     {
@@ -201,27 +201,27 @@ glm::vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
         BRDF brdf = hitData.material->ComputeBRDF( &hitData );
 
         // emitted light of current surface
-        if ( bounce == 0 && glm::dot( hitData.wo, hitData.normal ) > 0 )
+        if ( bounce == 0 && Dot( hitData.wo, hitData.normal ) > 0 )
         {
             L += pathThroughput * brdf.Ke;
         }
 
         // estimate direct
-        glm::vec3 Ld = LDirect( hitData, scene, rng, brdf );
+        vec3 Ld = LDirect( hitData, scene, rng, brdf );
         L += pathThroughput * Ld;
 
         // sample the BRDF to get the next ray's direction (wi)
         float pdf;
-        glm::vec3 wi;
-        glm::vec3 F = brdf.Sample_F( hitData.wo, wi, rng, pdf );
+        vec3 wi;
+        vec3 F = brdf.Sample_F( hitData.wo, wi, rng, pdf );
 
-        if ( pdf == 0.f || F == glm::vec3( 0 ) )
+        if ( pdf == 0.f || F == vec3( 0 ) )
         {
             break;
         }
 
         pathThroughput *= F * AbsDot( wi, hitData.normal ) / pdf;
-        if ( pathThroughput == glm::vec3( 0 ) )
+        if ( pathThroughput == vec3( 0 ) )
         {
             break;
         }
@@ -242,9 +242,9 @@ void PathTracer::Render( int samplesPerPixelIteration )
 
     float halfHeight = std::tan( cam.vFov / 2 );
     float halfWidth  = halfHeight * cam.aspectRatio;
-    glm::vec3 UL     = cam.position + cam.GetForwardDir() + halfHeight * cam.GetUpDir() - halfWidth * cam.GetRightDir();
-    glm::vec3 dU     = cam.GetRightDir() * ( 2 * halfWidth / renderedImage.width );
-    glm::vec3 dV     = -cam.GetUpDir() * ( 2 * halfHeight / renderedImage.height );
+    vec3 UL          = cam.position + cam.GetForwardDir() + halfHeight * cam.GetUpDir() - halfWidth * cam.GetRightDir();
+    vec3 dU          = cam.GetRightDir() * ( 2 * halfWidth / renderedImage.width );
+    vec3 dV          = -cam.GetUpDir() * ( 2 * halfHeight / renderedImage.height );
     UL += 0.5f * ( dU + dV ); // move to center of pixel
 
     std::atomic<int> renderProgress( 0 );
@@ -260,22 +260,22 @@ void PathTracer::Render( int samplesPerPixelIteration )
         for ( int col = 0; col < width; ++col )
         {
             PG::Random::RNG rng( row * width + col );
-            glm::vec3 imagePlanePos = UL + dV * (float)row + dU * (float)col;
+            vec3 imagePlanePos = UL + dV * (float)row + dU * (float)col;
 
-            glm::vec3 totalColor = glm::vec3( 0 );
+            vec3 totalColor = vec3( 0 );
             for ( int rayCounter = 0; rayCounter < samplesPerPixel; ++rayCounter )
             {
-                glm::vec2 pixelOffsets   = AAFunc( rayCounter, rng );
-                glm::vec3 antiAliasedPos = imagePlanePos + dU * pixelOffsets.x + dV * pixelOffsets.y;
-                Ray ray                  = Ray( cam.position, glm::normalize( antiAliasedPos - ray.position ) );
-                if ( glm::any( glm::isnan( ray.direction ) ) )
+                vec2 pixelOffsets   = AAFunc( rayCounter, rng );
+                vec3 antiAliasedPos = imagePlanePos + dU * pixelOffsets.x + dV * pixelOffsets.y;
+                Ray ray             = Ray( cam.position, Normalize( antiAliasedPos - ray.position ) );
+                if ( any( isnan( ray.direction ) ) )
                 {
                     throw std::runtime_error( "shiit" );
                 }
                 totalColor += Li( ray, rng, scene );
             }
 
-            renderedImage.SetFromFloat4( row, col, glm::vec4( totalColor / (float)samplesPerPixel, 1.0f ) );
+            renderedImage.SetFromFloat4( row, col, vec4( totalColor / (float)samplesPerPixel, 1.0f ) );
         }
 
         int rowsCompleted = ++renderProgress;
@@ -310,12 +310,12 @@ bool PathTracer::SaveImage( const std::string& filename ) const
     TonemapFunc tonemapFunc    = GetTonemapFunction( scene->settings.tonemapMethod );
     for ( uint32_t pixelIndex = 0; pixelIndex < renderedImage.width * renderedImage.height; ++pixelIndex )
     {
-        glm::vec3 pixel    = renderedImage.GetFloat4( pixelIndex );
-        glm::vec3 newColor = std::exp2f( scene->camera.exposure ) * pixel;
-        newColor           = tonemapFunc( newColor );
-        newColor           = LinearToGammaSRGB( newColor );
-        newColor           = glm::clamp( newColor, glm::vec3( 0 ), glm::vec3( 1 ) );
-        tonemappedImg.SetFromFloat4( pixelIndex, glm::vec4( newColor, 1.0f ) );
+        vec3 pixel    = renderedImage.GetFloat4( pixelIndex );
+        vec3 newColor = std::exp2f( scene->camera.exposure ) * pixel;
+        newColor      = tonemapFunc( newColor );
+        newColor      = LinearToGammaSRGB( newColor );
+        newColor      = Saturate( newColor );
+        tonemappedImg.SetFromFloat4( pixelIndex, vec4( newColor, 1.0f ) );
     }
     return tonemappedImg.Save( filename );
 }

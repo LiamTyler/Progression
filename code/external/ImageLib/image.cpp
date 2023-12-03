@@ -3,15 +3,15 @@
 #include "shared/assert.hpp"
 #include "shared/float_conversions.hpp"
 #include "shared/logger.hpp"
+#include "shared/math_vec.hpp"
 #define STB_IMAGE_RESIZE_IMPLEMENTATION
 #include "stb/stb_image_resize.h"
-
 #include <array>
 
-static glm::u8vec4 DEFAULT_PIXEL_BYTE     = glm::u8vec4( 0, 0, 0, 255 );
-static glm::u16vec4 DEFAULT_PIXEL_SHORT   = glm::u16vec4( 0, 0, 0, USHRT_MAX );
-static glm::u16vec4 DEFAULT_PIXEL_FLOAT16 = glm::u16vec4( 0, 0, 0, Float32ToFloat16( 1.0f ) );
-static glm::vec4 DEFAULT_PIXEL_FLOAT32    = glm::vec4( 0, 0, 0, 1 );
+static u8vec4 DEFAULT_PIXEL_BYTE     = u8vec4( 0, 0, 0, 255 );
+static u16vec4 DEFAULT_PIXEL_SHORT   = u16vec4( 0, 0, 0, USHRT_MAX );
+static u16vec4 DEFAULT_PIXEL_FLOAT16 = u16vec4( 0, 0, 0, Float32ToFloat16( 1.0f ) );
+static vec4 DEFAULT_PIXEL_FLOAT32    = vec4( 0, 0, 0, 1 );
 
 uint8_t* RawImage2D::GetCompressedBlock( int blockX, int blockY )
 {
@@ -193,9 +193,9 @@ float RawImage2D::GetPixelAsFloat( int row, int col, int chan ) const
     return 0;
 }
 
-glm::vec4 RawImage2D::GetPixelAsFloat4( int row, int col ) const
+vec4 RawImage2D::GetPixelAsFloat4( int row, int col ) const
 {
-    glm::vec4 pixel      = DEFAULT_PIXEL_FLOAT32;
+    vec4 pixel           = DEFAULT_PIXEL_FLOAT32;
     uint32_t numChannels = NumChannels();
     uint32_t index       = numChannels * ( row * width + col );
     if ( IsFormat8BitUnorm( format ) )
@@ -244,7 +244,7 @@ void RawImage2D::SetPixelFromFloat( int row, int col, int chan, float x )
     }
 }
 
-void RawImage2D::SetPixelFromFloat4( int row, int col, glm::vec4 pixel )
+void RawImage2D::SetPixelFromFloat4( int row, int col, vec4 pixel )
 {
     uint32_t numChannels = NumChannels();
     uint32_t index       = numChannels * ( row * width + col );
@@ -298,7 +298,7 @@ RawImage2D RawImage2D::Convert( ImageFormat dstFormat ) const
     {
         for ( uint32_t col = 0; col < width; ++col )
         {
-            glm::vec4 pixelAsFloat = GetPixelAsFloat4( row, col );
+            vec4 pixelAsFloat = GetPixelAsFloat4( row, col );
             outputImg.SetPixelFromFloat4( row, col, pixelAsFloat );
         }
     }
@@ -367,29 +367,29 @@ FloatImage2D FloatImage2D::Clone() const
     return ret;
 }
 
-glm::vec4 FloatImage2D::Sample( glm::vec2 uv, bool clampHorizontal, bool clampVertical ) const
+vec4 FloatImage2D::Sample( vec2 uv, bool clampHorizontal, bool clampVertical ) const
 {
     uv.x -= std::floor( uv.x );
     uv.y -= std::floor( uv.y );
 
     // subtract 0.5 to account for pixel centers
-    uv              = uv * glm::vec2( width, height ) - glm::vec2( 0.5f );
-    glm::vec2 start = glm::floor( uv );
-    int col         = static_cast<int>( start.x );
-    int row         = static_cast<int>( start.y );
+    uv         = uv * vec2( width, height ) - vec2( 0.5f );
+    vec2 start = floor( uv );
+    int col    = static_cast<int>( start.x );
+    int row    = static_cast<int>( start.y );
 
-    glm::vec2 d     = uv - start;
+    vec2 d          = uv - start;
     const float w00 = ( 1.0f - d.x ) * ( 1.0f - d.y );
     const float w01 = d.x * ( 1.0f - d.y );
     const float w10 = ( 1.0f - d.x ) * d.y;
     const float w11 = d.x * d.y;
 
-    glm::vec4 p00 = GetFloat4( row, col, clampHorizontal, clampVertical );
-    glm::vec4 p01 = GetFloat4( row, col + 1, clampHorizontal, clampVertical );
-    glm::vec4 p10 = GetFloat4( row + 1, col, clampHorizontal, clampVertical );
-    glm::vec4 p11 = GetFloat4( row + 1, col + 1, clampHorizontal, clampVertical );
+    vec4 p00 = GetFloat4( row, col, clampHorizontal, clampVertical );
+    vec4 p01 = GetFloat4( row, col + 1, clampHorizontal, clampVertical );
+    vec4 p10 = GetFloat4( row + 1, col, clampHorizontal, clampVertical );
+    vec4 p11 = GetFloat4( row + 1, col + 1, clampHorizontal, clampVertical );
 
-    glm::vec4 ret( 0, 0, 0, 1 );
+    vec4 ret( 0, 0, 0, 1 );
     for ( uint32_t i = 0; i < numChannels; ++i )
     {
         ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
@@ -398,9 +398,9 @@ glm::vec4 FloatImage2D::Sample( glm::vec2 uv, bool clampHorizontal, bool clampVe
     return ret;
 }
 
-glm::vec4 FloatImage2D::GetFloat4( uint32_t pixelIndex ) const
+vec4 FloatImage2D::GetFloat4( uint32_t pixelIndex ) const
 {
-    glm::vec4 pixel( 0, 0, 0, 1 );
+    vec4 pixel( 0, 0, 0, 1 );
     pixelIndex *= numChannels;
     for ( uint32_t chan = 0; chan < numChannels; ++chan )
     {
@@ -410,13 +410,13 @@ glm::vec4 FloatImage2D::GetFloat4( uint32_t pixelIndex ) const
     return pixel;
 }
 
-glm::vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col ) const { return GetFloat4( row * width + col ); }
+vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col ) const { return GetFloat4( row * width + col ); }
 
-glm::vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col, bool clampHorizontal, bool clampVertical ) const
+vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col, bool clampHorizontal, bool clampVertical ) const
 {
     if ( clampHorizontal )
     {
-        col = glm::clamp( col, 0u, width - 1 );
+        col = std::clamp( col, 0u, width - 1 );
     }
     else
     {
@@ -426,7 +426,7 @@ glm::vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col, bool clampHorizon
     }
     if ( clampVertical )
     {
-        row = glm::clamp( row, 0u, height - 1 );
+        row = std::clamp( row, 0u, height - 1 );
     }
     else
     {
@@ -438,7 +438,7 @@ glm::vec4 FloatImage2D::GetFloat4( uint32_t row, uint32_t col, bool clampHorizon
     return GetFloat4( row, col );
 }
 
-void FloatImage2D::SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel )
+void FloatImage2D::SetFromFloat4( uint32_t pixelIndex, const vec4& pixel )
 {
     pixelIndex *= numChannels;
     for ( uint32_t chan = 0; chan < numChannels; ++chan )
@@ -447,65 +447,65 @@ void FloatImage2D::SetFromFloat4( uint32_t pixelIndex, const glm::vec4& pixel )
     }
 }
 
-void FloatImage2D::SetFromFloat4( uint32_t row, uint32_t col, const glm::vec4& pixel ) { SetFromFloat4( row * width + col, pixel ); }
+void FloatImage2D::SetFromFloat4( uint32_t row, uint32_t col, const vec4& pixel ) { SetFromFloat4( row * width + col, pixel ); }
 
 void HDRImageToLDR( FloatImage2D& image )
 {
     image.ForEachPixelIndex(
         [&]( uint32_t pixelIdx )
         {
-            glm::vec4 p   = image.GetFloat4( pixelIdx );
-            glm::vec3 rgb = p;
-            rgb /= ( rgb + glm::vec3( 1.0f ) );
-            image.SetFromFloat4( pixelIdx, glm::vec4( rgb, p.a ) );
+            vec4 p   = image.GetFloat4( pixelIdx );
+            vec3 rgb = p;
+            rgb /= ( rgb + vec3( 1.0f ) );
+            image.SetFromFloat4( pixelIdx, vec4( rgb, p.a ) );
         } );
 }
 
 // +x -> right, +y -> forward, +z -> up
 // uv (0, 0) is upper left corner of image
-glm::vec3 CubemapFaceUVToDirection( int cubeFace, glm::vec2 uv )
+vec3 CubemapFaceUVToDirection( int cubeFace, vec2 uv )
 {
-    uv = 2.0f * uv - glm::vec2( 1.0f );
-    glm::vec3 dir( 0 );
+    uv = 2.0f * uv - vec2( 1.0f );
+    vec3 dir( 0 );
     switch ( cubeFace )
     {
-    case FACE_BACK: dir = glm::vec3( -uv.x, -1, -uv.y ); break;
-    case FACE_LEFT: dir = glm::vec3( -1, uv.x, -uv.y ); break;
-    case FACE_FRONT: dir = glm::vec3( uv.x, 1, -uv.y ); break;
-    case FACE_RIGHT: dir = glm::vec3( 1, -uv.x, -uv.y ); break;
-    case FACE_TOP: dir = glm::vec3( uv.x, uv.y, 1 ); break;
-    case FACE_BOTTOM: dir = glm::vec3( uv.x, -uv.y, -1 ); break;
+    case FACE_BACK: dir = vec3( -uv.x, -1, -uv.y ); break;
+    case FACE_LEFT: dir = vec3( -1, uv.x, -uv.y ); break;
+    case FACE_FRONT: dir = vec3( uv.x, 1, -uv.y ); break;
+    case FACE_RIGHT: dir = vec3( 1, -uv.x, -uv.y ); break;
+    case FACE_TOP: dir = vec3( uv.x, uv.y, 1 ); break;
+    case FACE_BOTTOM: dir = vec3( uv.x, -uv.y, -1 ); break;
     }
 
-    return glm::normalize( dir );
+    return Normalize( dir );
 }
 
 // assumes direction is normalized, and right handed +Z up coordinates, upper left face coord = uv (0,0)
-glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex )
+vec2 CubemapDirectionToFaceUV( const vec3& direction, int& faceIndex )
 {
-    glm::vec3 v    = direction;
-    glm::vec3 vAbs = abs( v );
+    vec3 v    = direction;
+    vec3 vAbs = abs( v );
     float ma;
-    glm::vec2 uv;
+    vec2 uv;
     if ( vAbs.y >= vAbs.x && vAbs.y >= vAbs.z )
     {
         faceIndex = v.y < 0.0f ? FACE_BACK : FACE_FRONT;
         ma        = 0.5f / vAbs.y;
-        uv        = glm::vec2( v.y < 0.0f ? -v.x : v.x, -v.z );
+        uv        = vec2( v.y < 0.0f ? -v.x : v.x, -v.z );
     }
     else if ( vAbs.z >= vAbs.x )
     {
         faceIndex = v.z < 0.0f ? FACE_BOTTOM : FACE_TOP;
         ma        = 0.5f / vAbs.z;
-        uv        = glm::vec2( v.x, v.z < 0.0f ? -v.y : v.y );
+        uv        = vec2( v.x, v.z < 0.0f ? -v.y : v.y );
     }
     else
     {
         faceIndex = v.x < 0.0 ? FACE_LEFT : FACE_RIGHT;
         ma        = 0.5f / vAbs.x;
-        uv        = glm::vec2( v.x < 0.0f ? v.y : -v.y, -v.z );
+        uv        = vec2( v.x < 0.0f ? v.y : -v.y, -v.z );
     }
-    return uv * ma + glm::vec2( 0.5f );
+    return uv * ma + vec2( 0.5f );
 }
 
 // http://paulbourke.net/dome/dualfish2sphere/
@@ -513,22 +513,22 @@ glm::vec2 CubemapDirectionToFaceUV( const glm::vec3& direction, int& faceIndex )
 // atan( x, y ) instead of ( y, x ) because im assume that the center pixel of a
 // lat-long image should correspond to the direction (0, +1, 0), which would be the
 // 'front' face if it was a cubemap
-glm::vec2 DirectionToEquirectangularUV( const glm::vec3& dir )
+vec2 DirectionToEquirectangularUV( const vec3& dir )
 {
     // assumes normalized input dir
-    float lon    = atan2( dir.x, dir.y ); // -pi to pi
-    float lat    = acos( dir.z );         // 0 to pi
-    glm::vec2 uv = { 0.5f * lon / PI + 0.5f, lat / PI };
+    float lon = atan2( dir.x, dir.y ); // -pi to pi
+    float lat = acos( dir.z );         // 0 to pi
+    vec2 uv   = { 0.5f * lon / PI + 0.5f, lat / PI };
 
     return uv;
 }
 
-glm::vec3 EquirectangularUVToDirection( const glm::vec2& uv )
+vec3 EquirectangularUVToDirection( const vec2& uv )
 {
     float lon = ( 2 * uv.x - 1 ) * PI; // -pi to pi
     float lat = uv.y * PI;             // 0 to pi, with 0 being the top row of the image
 
-    glm::vec3 dir;
+    vec3 dir;
     dir.x = sin( lat ) * cos( lon );
     dir.y = sin( lat ) * sin( lon );
     dir.z = cos( lat );
@@ -601,28 +601,28 @@ FloatImageCubemap FloatImageCubemap::Resize( uint32_t newSize ) const
     return newCubemap;
 }
 
-glm::vec4 FloatImageCubemap::Sample( const glm::vec3& dir ) const
+vec4 FloatImageCubemap::Sample( const vec3& dir ) const
 {
     int faceIdx;
-    glm::vec2 faceUV = CubemapDirectionToFaceUV( dir, faceIdx );
+    vec2 faceUV = CubemapDirectionToFaceUV( dir, faceIdx );
 
-    glm::vec2 uv    = faceUV * glm::vec2( size, size ) - glm::vec2( 0.5f );
-    glm::vec2 start = glm::floor( uv );
-    int col         = static_cast<int>( start.x );
-    int row         = static_cast<int>( start.y );
+    vec2 uv    = faceUV * vec2( size, size ) - vec2( 0.5f );
+    vec2 start = floor( uv );
+    int col    = static_cast<int>( start.x );
+    int row    = static_cast<int>( start.y );
 
-    glm::vec2 d     = uv - start;
+    vec2 d          = uv - start;
     const float w00 = ( 1.0f - d.x ) * ( 1.0f - d.y );
     const float w01 = d.x * ( 1.0f - d.y );
     const float w10 = ( 1.0f - d.x ) * d.y;
     const float w11 = d.x * d.y;
 
-    glm::vec4 p00 = FetchTexel_Wrapping( faceIdx, row, col );
-    glm::vec4 p01 = FetchTexel_Wrapping( faceIdx, row, col + 1 );
-    glm::vec4 p10 = FetchTexel_Wrapping( faceIdx, row + 1, col );
-    glm::vec4 p11 = FetchTexel_Wrapping( faceIdx, row + 1, col + 1 );
+    vec4 p00 = FetchTexel_Wrapping( faceIdx, row, col );
+    vec4 p01 = FetchTexel_Wrapping( faceIdx, row, col + 1 );
+    vec4 p10 = FetchTexel_Wrapping( faceIdx, row + 1, col );
+    vec4 p11 = FetchTexel_Wrapping( faceIdx, row + 1, col + 1 );
 
-    glm::vec4 ret( 0, 0, 0, 1 );
+    vec4 ret( 0, 0, 0, 1 );
     for ( uint32_t i = 0; i < numChannels; ++i )
     {
         ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
@@ -631,7 +631,7 @@ glm::vec4 FloatImageCubemap::Sample( const glm::vec3& dir ) const
     return ret;
 }
 
-glm::vec4 FloatImageCubemap::FetchTexel_Wrapping( int faceIdx, int row, int col ) const
+vec4 FloatImageCubemap::FetchTexel_Wrapping( int faceIdx, int row, int col ) const
 {
     int W = (int)size;
     PG_ASSERT( -1 <= col && col <= W );
@@ -650,7 +650,7 @@ glm::vec4 FloatImageCubemap::FetchTexel_Wrapping( int faceIdx, int row, int col 
         // The image here helps: https://en.wikipedia.org/wiki/Cube_mapping#Memory_addressing
         // except I use Z as front/back and Y as top/bottom
         std::array<int, 3> indices = { faceIdx, -1, -1 };
-        glm::ivec2 coords[3]; // x = col, y = row
+        ivec2 coords[3]; // x = col, y = row
         coords[0] = { nc ? 0 : W - 1, nr ? 0 : W - 1 };
         coords[1] = coords[2] = { 0, 0 };
         switch ( faceIdx )
@@ -686,9 +686,9 @@ glm::vec4 FloatImageCubemap::FetchTexel_Wrapping( int faceIdx, int row, int col 
             coords[2] = { nc == nr ? 0 : W - 1, W - 1 };
             break;
         }
-        glm::vec4 s0 = faces[indices[0]].GetFloat4( coords[0].y, coords[0].x );
-        glm::vec4 s1 = faces[indices[1]].GetFloat4( coords[1].y, coords[1].x );
-        glm::vec4 s2 = faces[indices[2]].GetFloat4( coords[2].y, coords[2].x );
+        vec4 s0 = faces[indices[0]].GetFloat4( coords[0].y, coords[0].x );
+        vec4 s1 = faces[indices[1]].GetFloat4( coords[1].y, coords[1].x );
+        vec4 s2 = faces[indices[2]].GetFloat4( coords[2].y, coords[2].x );
         return ( 1.0f / 3.0f ) * ( s0 + s1 + s2 );
     }
 
@@ -816,7 +816,7 @@ std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2
 FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg )
 {
     FloatImageCubemap cubemap;
-    cubemap.size        = std::max( 1u, equiImg.width / 4u );
+    cubemap.size        = Max( 1u, equiImg.width / 4u );
     cubemap.numChannels = equiImg.numChannels;
     for ( uint32_t i = 0; i < 6; ++i )
     {
@@ -827,9 +827,9 @@ FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg )
         {
             for ( int c = 0; c < (int)cubemap.size; ++c )
             {
-                glm::vec2 localUV = { ( c + 0.5f ) / (float)cubemap.size, ( r + 0.5f ) / (float)cubemap.size };
-                glm::vec3 dir     = CubemapFaceUVToDirection( i, localUV );
-                glm::vec2 equiUV  = DirectionToEquirectangularUV( dir );
+                vec2 localUV = { ( c + 0.5f ) / (float)cubemap.size, ( r + 0.5f ) / (float)cubemap.size };
+                vec3 dir     = CubemapFaceUVToDirection( i, localUV );
+                vec2 equiUV  = DirectionToEquirectangularUV( dir );
                 cubemap.faces[i].SetFromFloat4( r, c, equiImg.Sample( equiUV, true, true ) );
             }
         }
@@ -846,9 +846,9 @@ FloatImage2D CubemapToEquirectangular( const FloatImageCubemap& cubemap )
     {
         for ( int c = 0; c < (int)equiImg.width; ++c )
         {
-            glm::vec2 equiUV = { ( c + 0.5f ) / (float)equiImg.width, ( r + 0.5f ) / (float)equiImg.height };
-            glm::vec3 dir    = EquirectangularUVToDirection( equiUV );
-            glm::vec2 newUV  = DirectionToEquirectangularUV( dir );
+            vec2 equiUV = { ( c + 0.5f ) / (float)equiImg.width, ( r + 0.5f ) / (float)equiImg.height };
+            vec3 dir    = EquirectangularUVToDirection( equiUV );
+            vec2 newUV  = DirectionToEquirectangularUV( dir );
             PG_ASSERT( r == static_cast<int>( newUV.y * equiImg.height ) );
             PG_ASSERT( c == static_cast<int>( newUV.x * equiImg.width ) );
             equiImg.SetFromFloat4( r, c, cubemap.Sample( dir ) );
@@ -888,8 +888,8 @@ std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& image, const Mipm
         }
 
         mips.push_back( mip );
-        w = std::max( 1u, w >> 1 );
-        h = std::max( 1u, h >> 1 );
+        w = Max( 1u, w >> 1 );
+        h = Max( 1u, h >> 1 );
     }
 
     return mips;
@@ -897,7 +897,7 @@ std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& image, const Mipm
 
 uint32_t CalculateNumMips( uint32_t width, uint32_t height )
 {
-    uint32_t largestDim = std::max( width, height );
+    uint32_t largestDim = Max( width, height );
     if ( largestDim == 0 )
     {
         return 0;

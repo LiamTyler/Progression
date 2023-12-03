@@ -104,8 +104,8 @@ int main( int argc, char* argv[] )
                 }
             }
 
-            w = std::max( 1u, w >> 1 );
-            h = std::max( 1u, h >> 1 );
+            w = Max( 1u, w >> 1 );
+            h = Max( 1u, h >> 1 );
         }
     }
 

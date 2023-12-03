@@ -5,6 +5,7 @@
 #include "sampling.hpp"
 #include "shared/assert.hpp"
 #include "shared/color_spaces.hpp"
+#include "shared/math.hpp"
 #include "shared/random.hpp"
 #include <algorithm>
 #include <unordered_map>
@@ -14,49 +15,46 @@ using namespace PG;
 namespace PT
 {
 
-glm::vec3 FresnelSchlick( const glm::vec3& F0, float cosTheta )
-{
-    return F0 + ( glm::vec3( 1.0f ) - F0 ) * std::pow( 1.0f - cosTheta, 5.0f );
-}
+vec3 FresnelSchlick( const vec3& F0, float cosTheta ) { return F0 + ( vec3( 1.0f ) - F0 ) * std::pow( 1.0f - cosTheta, 5.0f ); }
 
-glm::vec3 BRDF::F( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_wi ) const { return Kd / PI; }
+vec3 BRDF::F( const vec3& worldSpace_wo, const vec3& worldSpace_wi ) const { return Kd / PI; }
 
-glm::vec3 BRDF::Sample_F( const glm::vec3& worldSpace_wo, glm::vec3& worldSpace_wi, PG::Random::RNG& rng, float& pdf ) const
+vec3 BRDF::Sample_F( const vec3& worldSpace_wo, vec3& worldSpace_wi, PG::Random::RNG& rng, float& pdf ) const
 {
-    float u           = rng.UniformFloat();
-    float v           = rng.UniformFloat();
-    glm::vec3 localWi = CosineSampleHemisphere( u, v );
-    worldSpace_wi     = T * localWi.x + B * localWi.y + N * localWi.z;
-    // worldSpace_wi     = T * localWi.x + B * localWi.y + N * std::max( 0.00001f, localWi.z );
+    float u       = rng.UniformFloat();
+    float v       = rng.UniformFloat();
+    vec3 localWi  = CosineSampleHemisphere( u, v );
+    worldSpace_wi = T * localWi.x + B * localWi.y + N * localWi.z;
+    // worldSpace_wi     = T * localWi.x + B * localWi.y + N * Max( 0.00001f, localWi.z );
     pdf = Pdf( worldSpace_wo, worldSpace_wi );
     return F( worldSpace_wo, worldSpace_wi );
 }
 
-float BRDF::Pdf( const glm::vec3& worldSpace_wo, const glm::vec3& worldSpace_wi ) const
+float BRDF::Pdf( const vec3& worldSpace_wo, const vec3& worldSpace_wi ) const
 {
-    bool sameHemisphere = glm::dot( worldSpace_wo, N ) * glm::dot( worldSpace_wi, N ) > 0;
+    bool sameHemisphere = Dot( worldSpace_wo, N ) * Dot( worldSpace_wi, N ) > 0;
     return sameHemisphere ? AbsDot( worldSpace_wi, N ) / PI : 0;
 }
 
-glm::vec3 Material::GetAlbedo( const glm::vec2& texCoords ) const
+vec3 Material::GetAlbedo( const vec2& texCoords ) const
 {
-    glm::vec3 color = albedoTint;
+    vec3 color = albedoTint;
     if ( albedoTex != TEXTURE_HANDLE_INVALID )
     {
-        glm::vec4 sample = GetTex( albedoTex )->Sample( texCoords );
-        color *= glm::vec3( sample );
+        vec4 sample = GetTex( albedoTex )->Sample( texCoords );
+        color *= vec3( sample );
     }
 
     return color;
 }
 
-glm::vec3 Material::GetEmissive( const glm::vec2& texCoords ) const
+vec3 Material::GetEmissive( const vec2& texCoords ) const
 {
-    glm::vec3 color = emissiveTint;
+    vec3 color = emissiveTint;
     if ( emissiveTex != TEXTURE_HANDLE_INVALID )
     {
-        glm::vec4 sample = GetTex( emissiveTex )->Sample( texCoords );
-        color *= glm::vec3( sample );
+        vec4 sample = GetTex( emissiveTex )->Sample( texCoords );
+        color *= vec3( sample );
     }
 
     return color;

@@ -611,7 +611,7 @@ void ReloadLayoutIfInUse( UILayout* oldLayout, UILayout* newLayout )
 }
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
-static bool ElementContainsPos( const UIElement& e, const glm::vec2& absolutePos )
+static bool ElementContainsPos( const UIElement& e, const vec2& absolutePos )
 {
     return e.pos.x <= absolutePos.x && absolutePos.x <= ( e.pos.x + e.dimensions.x ) && e.pos.y <= absolutePos.y &&
            absolutePos.y <= ( e.pos.y + e.dimensions.y );
@@ -642,7 +642,7 @@ void Update()
             }
 
             auto window         = GetMainWindow();
-            bool mouseInElement = ElementContainsPos( e, Input::GetMousePosition() / glm::vec2( window->Width(), window->Height() ) );
+            bool mouseInElement = ElementContainsPos( e, Input::GetMousePosition() / vec2( window->Width(), window->Height() ) );
             if ( mouseInElement )
             {
                 if ( Input::AnyMouseButtonDown() && IsSet( e.scriptFlags, UIElementScriptFlags::MOUSE_BUTTON_DOWN ) )

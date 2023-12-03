@@ -1,15 +1,15 @@
 #pragma once
 
 #include "core/feature_defines.hpp"
-#include "glm/vec4.hpp"
 #include "renderer/r_globals.hpp"
+#include "shared/math_vec.hpp"
 #include <string>
 
 namespace PG::Gfx::DebugMarker
 {
 // From https://www.saschawillems.de/blog/2016/05/28/tutorial-on-using-vulkans-vk_ext_debug_marker-with-renderdoc/
 
-glm::vec4 GetNextRegionColor();
+vec4 GetNextRegionColor();
 
 // Get function pointers for the debug report extensions from the device
 void Init( VkInstance instance );
@@ -19,12 +19,12 @@ bool IsActive();
 void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, const std::string& name );
 void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag );
 
-void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
-void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
+void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, vec4 color = vec4( 0 ) );
+void Insert_CmdBuf( VkCommandBuffer cmdbuffer, const std::string& name, vec4 color = vec4( 0 ) );
 void EndRegion_CmdBuf( VkCommandBuffer cmdBuffer );
 
-void BeginRegion_Queue( VkQueue queue, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
-void Insert_Queue( VkQueue queue, const std::string& name, glm::vec4 color = glm::vec4( 0 ) );
+void BeginRegion_Queue( VkQueue queue, const std::string& name, vec4 color = vec4( 0 ) );
+void Insert_Queue( VkQueue queue, const std::string& name, vec4 color = vec4( 0 ) );
 void EndRegion_Queue( VkQueue queue );
 
 // Object specific naming functions

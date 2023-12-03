@@ -5,6 +5,25 @@
 #include "shared/logger.hpp"
 #include <vector>
 
+vec2 ParseVec2( const rapidjson::Value& v )
+{
+    PG_ASSERT( v.IsArray() && v.Size() == 2 );
+    return vec2( ParseNumber<float>( v[0] ), ParseNumber<float>( v[1] ) );
+}
+
+vec3 ParseVec3( const rapidjson::Value& v )
+{
+    PG_ASSERT( v.IsArray() && v.Size() == 3 );
+    return vec3( ParseNumber<float>( v[0] ), ParseNumber<float>( v[1] ), ParseNumber<float>( v[2] ) );
+}
+
+vec4 ParseVec4( const rapidjson::Value& v )
+{
+    PG_ASSERT( v.IsArray() && v.Size() == 4 );
+    return vec4( ParseNumber<float>( v[0] ), ParseNumber<float>( v[1] ), ParseNumber<float>( v[2] ), ParseNumber<float>( v[3] ) );
+}
+
+
 bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
 {
     FILE* fp = fopen( filename.c_str(), "rb" );

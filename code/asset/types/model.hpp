@@ -8,9 +8,7 @@
     #include "renderer/graphics_api/acceleration_structure.hpp"
 #endif // #if USING( PG_RTX )
 #endif     // #if USING( GPU_DATA )
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
-#include "glm/vec4.hpp"
+#include "shared/math_vec.hpp"
 #include <vector>
 
 namespace PG
@@ -48,10 +46,10 @@ struct Model : public BaseAsset
     void FreeCPU();
     void FreeGPU();
 
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> texCoords;
-    std::vector<glm::vec4> tangents; // xyz is the tangent, w is the bitangent sign
+    std::vector<vec3> positions;
+    std::vector<vec3> normals;
+    std::vector<vec2> texCoords;
+    std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
     std::vector<uint32_t> indices;
 
     std::vector<Mesh> meshes;

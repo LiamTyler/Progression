@@ -11,7 +11,7 @@ struct LightIlluminationInfo
 {
     float attenuation;
     float distanceToLight;
-    glm::vec3 dirToLight;
+    vec3 dirToLight;
     float pdf = 1;
 };
 
@@ -21,27 +21,27 @@ struct Light
 {
     virtual ~Light() = default;
 
-    glm::vec3 Lemit = glm::vec3( 0 );
+    vec3 Lemit = vec3( 0 );
     int nSamples    = 1;
 
-    virtual glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
+    virtual vec3 Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
     {
-        return glm::vec3( 0 );
+        return vec3( 0 );
     }
 };
 
 struct PointLight : public Light
 {
-    glm::vec3 position = glm::vec3( 0, 0, 0 );
+    vec3 position = vec3( 0, 0, 0 );
 
-    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
+    vec3 Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
 };
 
 struct DirectionalLight : public Light
 {
-    glm::vec3 direction = glm::vec3( 0, -1, 0 );
+    vec3 direction = vec3( 0, -1, 0 );
 
-    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
+    vec3 Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
 };
 
 struct Shape;
@@ -52,7 +52,7 @@ struct AreaLight : public Light
 {
     Shape* shape;
 
-    glm::vec3 Sample_Li( const Interaction& it, glm::vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
+    vec3 Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const override;
 };
 
 } // namespace PT

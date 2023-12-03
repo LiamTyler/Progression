@@ -5,18 +5,18 @@
 #include "renderer/brdf_functions.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
+#include "shared/math_vec.hpp"
 #include "shared/serializer.hpp"
 #if USING( GPU_DATA )
     #include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
-#include <algorithm>
 
 static constexpr CompressionQuality COMPRESSOR_QUALITY = CompressionQuality::MEDIUM;
 
 // TODO: take source image precision into account and allow for 0. Aka 128/255 should map to 0 for an 8 bit image
-static glm::vec3 UnpackNormal( const glm::vec3& v ) { return 2.0f * v - glm::vec3( 1.0f ); }
+static vec3 UnpackNormal( const vec3& v ) { return 2.0f * v - vec3( 1.0f ); }
 
-static glm::vec3 PackNormal( const glm::vec3& v ) { return 0.5f * ( v + glm::vec3( 1.0f ) ); }
+static vec3 PackNormal( const vec3& v ) { return 0.5f * ( v + vec3( 1.0f ) ); }
 
 namespace PG
 {
@@ -202,12 +202,12 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     return gfxImage->pixels != nullptr;
 }
 
-static glm::vec3 ScaleNormal( glm::vec3 n, float scale )
+static vec3 ScaleNormal( vec3 n, float scale )
 {
     n.x *= scale;
     n.y *= scale;
 
-    return normalize( n );
+    return Normalize( n );
 }
 
 static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
@@ -242,7 +242,7 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     composite.ForEachPixel(
         [slopeScale, normalMapIsYUp, roughnessScale, roughnessBias]( float* p )
         {
-            glm::vec3 normal = UnpackNormal( { p[0], p[1], p[2] } );
+            vec3 normal = UnpackNormal( { p[0], p[1], p[2] } );
             if ( !normalMapIsYUp )
                 normal.y *= -1;
             normal = ScaleNormal( normal, slopeScale );
@@ -263,11 +263,11 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
         floatMips[mipLevel].ForEachPixel(
             []( float* p )
             {
-                glm::vec3 normal = { p[0], p[1], p[2] };
-                normal           = PackNormal( normalize( normal ) );
-                p[0]             = normal.x;
-                p[1]             = normal.y;
-                p[2]             = normal.z;
+                vec3 normal = { p[0], p[1], p[2] };
+                normal      = PackNormal( Normalize( normal ) );
+                p[0]        = normal.x;
+                p[1]        = normal.y;
+                p[2]        = normal.z;
             } );
     }
     std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( floatMips );
@@ -419,13 +419,14 @@ static void ConvertPGCubemapToVkCubemap( FloatImageCubemap& cubemap )
 
 static FloatImageCubemap CreateDebugCubemap( uint32_t size )
 {
-    const glm::vec3 faceColors[6] = {
-        glm::vec3( 0, 0, 1 ), // FACE_BACK
-        glm::vec3( 0, 1, 0 ), // FACE_LEFT
-        glm::vec3( 1, 0, 0 ), // FACE_FRONT
-        glm::vec3( 1, 1, 0 ), // FACE_RIGHT
-        glm::vec3( 0, 1, 1 ), // FACE_TOP
-        glm::vec3( 1, 0, 1 ), // FACE_BOTTOM
+    const vec3 faceColors[6] =
+    {
+        vec3( 0, 0, 1 ), // FACE_BACK
+        vec3( 0, 1, 0 ), // FACE_LEFT
+        vec3( 1, 0, 0 ), // FACE_FRONT
+        vec3( 1, 1, 0 ), // FACE_RIGHT
+        vec3( 0, 1, 1 ), // FACE_TOP
+        vec3( 1, 0, 1 ), // FACE_BOTTOM
     };
 
     FloatImageCubemap cubemap( 32, 3 );
@@ -435,12 +436,12 @@ static FloatImageCubemap CreateDebugCubemap( uint32_t size )
         {
             for ( int dstCol = 0; dstCol < (int)cubemap.size; ++dstCol )
             {
-                glm::vec2 faceUV = { ( dstCol + 0.5f ) / cubemap.size, ( dstRow + 0.5f ) / cubemap.size };
-                glm::vec3 vert   = faceColors[faceIdx];
-                glm::vec3 hori   = glm::vec3( 1 );
-                glm::vec3 b      = faceUV.x * hori + faceUV.y * vert;
+                vec2 faceUV = { ( dstCol + 0.5f ) / cubemap.size, ( dstRow + 0.5f ) / cubemap.size };
+                vec3 vert   = faceColors[faceIdx];
+                vec3 hori   = vec3( 1 );
+                vec3 b      = faceUV.x * hori + faceUV.y * vert;
                 b /= std::max( 1.0f, ( faceUV.x + faceUV.y ) );
-                cubemap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( b, 1 ) );
+                cubemap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, vec4( b, 1 ) );
             }
         }
     }
@@ -504,7 +505,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     if ( cubemap.size == 1 )
     {
         bool isConstantColor = true;
-        glm::vec4 color      = cubemap.faces[0].GetFloat4( 0 );
+        vec4 color           = cubemap.faces[0].GetFloat4( 0 );
         for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
         {
             isConstantColor = isConstantColor && cubemap.faces[faceIdx].GetFloat4( 0 ) == color;
@@ -535,54 +536,54 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
         {
             for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )
             {
-                glm::vec2 faceUV = { ( dstCol + 0.5f ) / irradianceMap.size, ( dstRow + 0.5f ) / irradianceMap.size };
+                vec2 faceUV = { ( dstCol + 0.5f ) / irradianceMap.size, ( dstRow + 0.5f ) / irradianceMap.size };
 
-                glm::vec3 normal    = CubemapFaceUVToDirection( faceIdx, faceUV );
-                glm::vec3 tangent   = normal.x < 0.99f ? glm::vec3( 1, 0, 0 ) : glm::vec3( 0, 1, 0 );
-                glm::vec3 bitangent = glm::normalize( glm::cross( normal, tangent ) );
-                tangent             = glm::normalize( glm::cross( bitangent, normal ) );
+                vec3 normal    = CubemapFaceUVToDirection( faceIdx, faceUV );
+                vec3 tangent   = normal.x < 0.99f ? vec3( 1, 0, 0 ) : vec3( 0, 1, 0 );
+                vec3 bitangent = Normalize( Cross( normal, tangent ) );
+                tangent        = Normalize( Cross( bitangent, normal ) );
 
                 uint32_t numSamples = 0;
-                glm::vec3 irradiance( 0 );
+                vec3 irradiance( 0 );
 
-            #if 0
+#if 0
                 for ( int skyFaceIdx = 0; skyFaceIdx < 6; ++skyFaceIdx )
                 {
                     for ( int skyRow = 0; skyRow < (int)cubemap.size; ++skyRow )
                     {
                         for ( int skyCol = 0; skyCol < (int)cubemap.size; ++skyCol )
                         {
-                            glm::vec2 skyFaceUV = { (skyCol + 0.5f) / cubemap.size, (skyRow + 0.5f) / cubemap.size };
-                            glm::vec3 skyDir = CubemapFaceUVToDirection( skyFaceIdx, skyFaceUV );
-                            float cosTheta = glm::dot( normal, skyDir );
+                            vec2 skyFaceUV = { (skyCol + 0.5f) / cubemap.size, (skyRow + 0.5f) / cubemap.size };
+                            vec3 skyDir = CubemapFaceUVToDirection( skyFaceIdx, skyFaceUV );
+                            float cosTheta = Dot( normal, skyDir );
                             if ( cosTheta <= 0.0f )
                                 continue;
 
-                            glm::vec3 radiance = cubemap.Sample( skyDir );
+                            vec3 radiance = cubemap.Sample( skyDir );
                             irradiance += radiance * cosTheta;
                             ++numSamples;
                         }
                     }
                 }
                 irradiance *= (PI / numSamples);
-                irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( irradiance, 0 ) );
-            #else
+                irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, vec4( irradiance, 0 ) );
+#else
                 constexpr float angleDelta = PI / 180.0f;
                 for ( float phi = 0; phi < 2 * PI; phi += angleDelta )
                 {
                     for ( float theta = 0; theta < PI / 2; theta += angleDelta )
                     {
-                        glm::vec3 tangentSpaceDir = { sinf( theta ) * cosf( phi ), sinf( theta ) * sinf( phi ), cosf( theta ) };
-                        glm::vec3 worldSpaceDir = tangentSpaceDir.x * tangent + tangentSpaceDir.y * bitangent + tangentSpaceDir.z * normal;
-                        glm::vec3 radiance      = cubemap.Sample( worldSpaceDir );
+                        vec3 tangentSpaceDir = { sinf( theta ) * cosf( phi ), sinf( theta ) * sinf( phi ), cosf( theta ) };
+                        vec3 worldSpaceDir   = tangentSpaceDir.x * tangent + tangentSpaceDir.y * bitangent + tangentSpaceDir.z * normal;
+                        vec3 radiance        = cubemap.Sample( worldSpaceDir );
                         irradiance += radiance * cosf( theta ) * sinf( theta );
                         ++numSamples;
                     }
                 }
 
                 irradiance *= ( PI / numSamples );
-                irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( irradiance, 0 ) );
-            #endif
+                irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, vec4( irradiance, 0 ) );
+#endif
             }
         }
         LOG( "Convolved face %d / 6...", faceIdx + 1 );
@@ -650,31 +651,31 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
             {
                 for ( int dstCol = 0; dstCol < MIP_SIZE; ++dstCol )
                 {
-                    glm::vec2 faceUV = { ( dstCol + 0.5f ) / MIP_SIZE, ( dstRow + 0.5f ) / MIP_SIZE };
+                    vec2 faceUV = { ( dstCol + 0.5f ) / MIP_SIZE, ( dstRow + 0.5f ) / MIP_SIZE };
 
-                    glm::vec3 N = CubemapFaceUVToDirection( faceIdx, faceUV );
-                    glm::vec3 R = N;
-                    glm::vec3 V = N;
+                    vec3 N = CubemapFaceUVToDirection( faceIdx, faceUV );
+                    vec3 R = N;
+                    vec3 V = N;
 
                     float totalWeight = 0;
-                    glm::vec3 prefilteredColor( 0 );
+                    vec3 prefilteredColor( 0 );
                     const uint32_t SAMPLE_COUNT = 1024u;
                     for ( uint32_t i = 0u; i < SAMPLE_COUNT; ++i )
                     {
-                        glm::vec2 Xi = glm::vec2( i / (float)SAMPLE_COUNT, Hammersley32( i ) );
-                        glm::vec3 H  = ImportanceSampleGGX_D( Xi, N, linearRoughness );
-                        glm::vec3 L  = normalize( 2.0f * glm::dot( V, H ) * H - V );
+                        vec2 Xi = vec2( i / (float)SAMPLE_COUNT, Hammersley32( i ) );
+                        vec3 H  = ImportanceSampleGGX_D( Xi, N, linearRoughness );
+                        vec3 L  = Normalize( 2.0f * Dot( V, H ) * H - V );
 
-                        float NdotL = std::max( glm::dot( N, L ), 0.0f );
+                        float NdotL = Max( Dot( N, L ), 0.0f );
                         if ( NdotL > 0.0f )
                         {
-                            glm::vec3 radiance = cubemap.Sample( L );
+                            vec3 radiance = cubemap.Sample( L );
                             prefilteredColor += radiance * NdotL;
                             totalWeight += NdotL;
                         }
                     }
                     prefilteredColor = prefilteredColor / totalWeight;
-                    outputMips[mipLevel].faces[faceIdx].SetFromFloat4( dstRow, dstCol, glm::vec4( prefilteredColor, 0 ) );
+                    outputMips[mipLevel].faces[faceIdx].SetFromFloat4( dstRow, dstCol, vec4( prefilteredColor, 0 ) );
                 }
             }
             LOG( "Convolved face %d / 6...", faceIdx + 1 );

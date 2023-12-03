@@ -1,8 +1,8 @@
 #pragma once
 
-#include "glm/vec4.hpp"
 #include "renderer/graphics_api/texture.hpp"
 #include "renderer/vulkan.hpp"
+#include "shared/math_vec.hpp"
 #include <array>
 
 namespace PG::Gfx
@@ -62,7 +62,7 @@ class ColorAttachmentDescriptor
 public:
     ColorAttachmentDescriptor() = default;
 
-    glm::vec4 clearColor      = glm::vec4( 0 );
+    vec4 clearColor           = vec4( 0 );
     LoadAction loadAction     = LoadAction::CLEAR;
     StoreAction storeAction   = StoreAction::STORE;
     PixelFormat format        = PixelFormat::INVALID;
@@ -89,7 +89,7 @@ public:
     RenderPassDescriptor() = default;
 
     void AddColorAttachment( PixelFormat format = PixelFormat::INVALID, LoadAction loadAction = LoadAction::CLEAR,
-        StoreAction storeAction = StoreAction::STORE, const glm::vec4& clearColor = glm::vec4( 0 ),
+        StoreAction storeAction = StoreAction::STORE, const vec4& clearColor = vec4( 0 ),
         ImageLayout initialLayout = ImageLayout::UNDEFINED, ImageLayout finalLayout = ImageLayout::UNDEFINED );
     void AddDepthAttachment( PixelFormat format = PixelFormat::INVALID, LoadAction loadAction = LoadAction::CLEAR,
         StoreAction storeAction = StoreAction::STORE, float clearValue = 1.0f, ImageLayout initialLayout = ImageLayout::UNDEFINED,

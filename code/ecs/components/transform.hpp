@@ -8,16 +8,16 @@ namespace PG
 struct Transform
 {
     Transform() = default;
-    Transform( glm::vec3 inPosition, glm::vec3 inRotation, glm::vec3 inScale );
+    Transform( vec3 inPosition, vec3 inRotation, vec3 inScale );
 
-    glm::mat4 Matrix() const;
-    glm::vec3 TransformPoint( glm::vec3 p ) const;
-    glm::vec3 TransformVector( glm::vec3 v ) const;
+    mat4 Matrix() const;
+    vec3 TransformPoint( vec3 p ) const;
+    vec3 TransformVector( vec3 v ) const;
     Ray operator*( const Ray& ray ) const;
 
-    glm::vec3 position = glm::vec3( 0 );
-    glm::vec3 rotation = glm::vec3( 0 );
-    glm::vec3 scale    = glm::vec3( 1 );
+    vec3 position = vec3( 0 );
+    vec3 rotation = vec3( 0 );
+    vec3 scale    = vec3( 1 );
 };
 
 } // namespace PG

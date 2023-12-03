@@ -38,8 +38,8 @@ static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
     static JSONFunctionMapper< Camera& > mapping(
     {
         { "position",    []( const rapidjson::Value& v, Camera& camera ) { camera.position    = ParseVec3( v ); } },
-        { "rotation",    []( const rapidjson::Value& v, Camera& camera ) { camera.rotation    = glm::radians( ParseVec3( v ) ); } },
-        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = glm::radians( ParseNumber< float >( v ) ); } },
+        { "rotation",    []( const rapidjson::Value& v, Camera& camera ) { camera.rotation    = DegToRad( ParseVec3( v ) ); } },
+        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = DegToRad( ParseNumber< float >( v ) ); } },
         { "aspectRatio", []( const rapidjson::Value& v, Camera& camera ) { camera.aspectRatio = ParseNumber< float >( v ); } },
         { "nearPlane",   []( const rapidjson::Value& v, Camera& camera ) { camera.nearPlane   = ParseNumber< float >( v ); } },
         { "farPlane",    []( const rapidjson::Value& v, Camera& camera ) { camera.farPlane    = ParseNumber< float >( v ); } },
@@ -60,7 +60,7 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
     {
         { "color",      [](const rapidjson::Value& v, DirectionalLight& l ) { l.color     = ParseVec3( v ); } },
         { "intensity",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.intensity = ParseNumber< float >( v ); } },
-        { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = glm::normalize( ParseVec3( v ) ); } }
+        { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } }
     });
 
     DirectionalLight& light = scene->directionalLights.emplace_back();
@@ -104,9 +104,9 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
         { "intensity",  []( const rapidjson::Value& v, SpotLight& l ) { l.intensity = ParseNumber< float >( v ); } },
         { "position",   []( const rapidjson::Value& v, SpotLight& l ) { l.position  = ParseVec3( v ); } },
         { "radius",     []( const rapidjson::Value& v, SpotLight& l ) { l.radius    = ParseNumber< float >( v ); } },
-        { "direction",  []( const rapidjson::Value& v, SpotLight& l ) { l.direction = glm::normalize( ParseVec3( v ) ); } },
-        { "innerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.innerAngle = glm::radians( ParseNumber< float >( v ) ); } },
-        { "outerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerAngle = glm::radians( ParseNumber< float >( v ) ); } },
+        { "direction",  []( const rapidjson::Value& v, SpotLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } },
+        { "innerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.innerAngle = DegToRad( ParseNumber< float >( v ) ); } },
+        { "outerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerAngle = DegToRad( ParseNumber< float >( v ) ); } },
     });
 
     SpotLight& light = scene->spotLights.emplace_back();
@@ -209,18 +209,18 @@ Scene* Scene::Load( const std::string& filename )
 #endif // #if USING( GAME )
 
     static JSONFunctionMapperBoolCheck<Scene*> mapping( {
-        {"AmbientColor",           ParseAmbientColor    },
-        { "Camera",                ParseCamera          },
-        { "Entity",                ParseEntity          },
-        { "DirectionalLight",      ParseDirectionalLight},
-        { "OfflineRenderSettings", ParseNull            },
-        { "PointLight",            ParsePointLight      },
-        { "SpotLight",             ParseSpotLight       },
-        { "Skybox",                ParseSkybox          },
-        { "SkyEVAdjust",           ParseSkyEVAdjust     },
-        { "SkyTint",               ParseSkyTint         },
-        { "StartupScript",         ParseStartupScript   },
-        { "Script",                ParseScript          },
+        { "AmbientColor",          ParseAmbientColor     },
+        { "Camera",                ParseCamera           },
+        { "Entity",                ParseEntity           },
+        { "DirectionalLight",      ParseDirectionalLight },
+        { "OfflineRenderSettings", ParseNull             },
+        { "PointLight",            ParsePointLight       },
+        { "SpotLight",             ParseSpotLight        },
+        { "Skybox",                ParseSkybox           },
+        { "SkyEVAdjust",           ParseSkyEVAdjust      },
+        { "SkyTint",               ParseSkyTint          },
+        { "StartupScript",         ParseStartupScript    },
+        { "Script",                ParseScript           },
     } );
 
     for ( rapidjson::Value::ConstValueIterator itr = document.Begin(); itr != document.End(); ++itr )

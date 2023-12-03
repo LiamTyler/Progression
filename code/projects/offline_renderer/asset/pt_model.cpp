@@ -22,9 +22,9 @@ MeshInstance::MeshInstance( Model* model, uint32_t meshIdx, const Transform& inL
     {
         uint32_t startVert = model->meshes[meshIdx].startVertex;
         positions[i]       = localToWorld.TransformPoint( model->positions[startVert + i] );
-        glm::mat4 N        = glm::inverse( glm::transpose( localToWorld.Matrix() ) );
-        normals[i]         = glm::normalize( glm::vec3( N * glm::vec4( model->normals[startVert + i], 0 ) ) );
-        tangents[i]        = glm::normalize( localToWorld.TransformVector( model->tangents[startVert + i] ) );
+        mat4 N             = Inverse( Transpose( localToWorld.Matrix() ) );
+        normals[i]         = Normalize( vec3( N * vec4( model->normals[startVert + i], 0 ) ) );
+        tangents[i]        = Normalize( localToWorld.TransformVector( model->tangents[startVert + i] ) );
     }
     if ( model->texCoords.size() )
     {
@@ -48,7 +48,7 @@ void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> material
 {
     if ( model->texCoords.empty() )
     {
-        model->texCoords.resize( model->positions.size(), glm::vec2( 0 ) );
+        model->texCoords.resize( model->positions.size(), vec2( 0 ) );
     }
     else if ( model->tangents.empty() )
     {
@@ -58,7 +58,7 @@ void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> material
 
     if ( model->tangents.empty() )
     {
-        model->tangents.resize( model->positions.size(), glm::vec4( 0 ) );
+        model->tangents.resize( model->positions.size(), vec4( 0 ) );
         for ( const Mesh& mesh : model->meshes )
         {
             for ( uint32_t i = 0; i < mesh.numIndices; i += 3 )
@@ -66,29 +66,29 @@ void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> material
                 const auto i0 = mesh.startVertex + model->indices[mesh.startIndex + i + 0];
                 const auto i1 = mesh.startVertex + model->indices[mesh.startIndex + i + 1];
                 const auto i2 = mesh.startVertex + model->indices[mesh.startIndex + i + 2];
-                glm::vec3 e   = model->positions[i1] - model->positions[i0];
-                glm::vec3 t   = glm::normalize( e );
-                glm::vec3 n   = model->normals[i0];
+                vec3 e        = model->positions[i1] - model->positions[i0];
+                vec3 t        = Normalize( e );
+                vec3 n        = model->normals[i0];
 
-                if ( model->tangents[i0] == glm::vec4( 0 ) )
-                    model->tangents[i0] = glm::vec4( glm::normalize( t - model->normals[i0] * glm::dot( model->normals[i0], t ) ), 1 );
-                if ( model->tangents[i1] == glm::vec4( 0 ) )
-                    model->tangents[i1] = glm::vec4( glm::normalize( t - model->normals[i1] * glm::dot( model->normals[i1], t ) ), 1 );
-                if ( model->tangents[i2] == glm::vec4( 0 ) )
-                    model->tangents[i2] = glm::vec4( glm::normalize( t - model->normals[i2] * glm::dot( model->normals[i2], t ) ), 1 );
+                if ( model->tangents[i0] == vec4( 0 ) )
+                    model->tangents[i0] = vec4( Normalize( t - model->normals[i0] * Dot( model->normals[i0], t ) ), 1 );
+                if ( model->tangents[i1] == vec4( 0 ) )
+                    model->tangents[i1] = vec4( Normalize( t - model->normals[i1] * Dot( model->normals[i1], t ) ), 1 );
+                if ( model->tangents[i2] == vec4( 0 ) )
+                    model->tangents[i2] = vec4( Normalize( t - model->normals[i2] * Dot( model->normals[i2], t ) ), 1 );
             }
         }
 
         for ( size_t i = 0; i < model->tangents.size(); ++i )
         {
-            glm::vec3 t = model->tangents[i];
-            if ( t == glm::vec3( 0 ) || glm::any( glm::isinf( t ) ) || glm::any( glm::isnan( t ) ) )
+            vec3 t = model->tangents[i];
+            if ( t == vec3( 0 ) || any( isinf( t ) ) || any( isnan( t ) ) )
             {
                 LOG_WARN( "Tangent %zu of model %s is bad, setting manually", i, model->name.c_str() );
-                model->tangents[i] = glm::vec4( 1, 0, 0, 1 );
-                if ( glm::vec3( t ) == model->normals[i] )
+                model->tangents[i] = vec4( 1, 0, 0, 1 );
+                if ( vec3( t ) == model->normals[i] )
                 {
-                    model->tangents[i] = glm::vec4( 0, 1, 0, 1 );
+                    model->tangents[i] = vec4( 0, 1, 0, 1 );
                 }
             }
         }
@@ -109,7 +109,7 @@ void EmitTrianglesForAllMeshes( std::vector<Shape*>& shapes, std::vector<Light*>
         const MeshInstance& mesh = g_meshInstances[meshHandle];
         const Material* material = GetMaterial( mesh.material );
         newShapes += mesh.indices.size() / 3;
-        if ( material && material->emissiveTint != glm::vec3( 0 ) )
+        if ( material && material->emissiveTint != vec3( 0 ) )
         {
             newLights += mesh.indices.size() / 3;
         }
@@ -121,7 +121,7 @@ void EmitTrianglesForAllMeshes( std::vector<Shape*>& shapes, std::vector<Light*>
     {
         const MeshInstance& mesh = g_meshInstances[meshHandle];
         const Material* material = GetMaterial( mesh.material );
-        const bool isEmissive    = material && material->emissiveTint != glm::vec3( 0 );
+        const bool isEmissive    = material && material->emissiveTint != vec3( 0 );
         for ( uint32_t face = 0; face < static_cast<uint32_t>( mesh.indices.size() / 3 ); ++face )
         {
             auto tri        = new Triangle;

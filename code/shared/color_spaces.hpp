@@ -1,6 +1,6 @@
 #pragma once
 
-#include "glm/vec4.hpp"
+#include "shared/math_vec.hpp"
 #include <cmath>
 
 namespace PG
@@ -18,12 +18,12 @@ inline float LinearToGammaSRGB( float x )
     }
 }
 
-inline glm::vec3 LinearToGammaSRGB( glm::vec3 v )
+inline vec3 LinearToGammaSRGB( vec3 v )
 {
     return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ) };
 }
 
-inline glm::vec4 LinearToGammaSRGB( glm::vec4 v )
+inline vec4 LinearToGammaSRGB( vec4 v )
 {
     return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ), v.a };
 }
@@ -40,12 +40,12 @@ inline float GammaSRGBToLinear( float x )
     }
 }
 
-inline glm::vec3 GammaSRGBToLinear( glm::vec3 v )
+inline vec3 GammaSRGBToLinear( vec3 v )
 {
     return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ) };
 }
 
-inline glm::vec4 GammaSRGBToLinear( glm::vec4 v )
+inline vec4 GammaSRGBToLinear( vec4 v )
 {
     return { GammaSRGBToLinear( v.x ), GammaSRGBToLinear( v.y ), GammaSRGBToLinear( v.z ), v.w };
 }

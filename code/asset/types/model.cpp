@@ -84,7 +84,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             normals[vIdx]           = v.normal;
             if ( anyMeshHasUVs )
             {
-                texCoords[vIdx] = pMesh.numUVChannels > 0 ? v.uvs[0] : glm::vec2( 0 );
+                texCoords[vIdx] = pMesh.numUVChannels > 0 ? v.uvs[0] : vec2( 0 );
                 if ( createInfo->flipTexCoordsVertically )
                     texCoords[vIdx].y = 1.0f - texCoords[vIdx].y;
             }
@@ -92,16 +92,16 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             {
                 if ( pMesh.hasTangents )
                 {
-                    glm::vec3 tangent   = v.tangent;
-                    glm::vec3 bitangent = v.bitangent;
-                    glm::vec3 tNormal   = glm::cross( tangent, bitangent );
-                    float bSign         = glm::dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
-                    glm::vec4 packed    = glm::vec4( tangent, bSign );
-                    tangents[vIdx]      = packed;
+                    vec3 tangent   = v.tangent;
+                    vec3 bitangent = v.bitangent;
+                    vec3 tNormal   = Cross( tangent, bitangent );
+                    float bSign    = Dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
+                    vec4 packed    = vec4( tangent, bSign );
+                    tangents[vIdx] = packed;
                 }
                 else
                 {
-                    tangents[vIdx] = glm::vec4( 0, 0, 0, 0 );
+                    tangents[vIdx] = vec4( 0, 0, 0, 0 );
                 }
             }
         }
@@ -189,8 +189,8 @@ bool Model::FastfileSave( Serializer* serializer ) const
 void Model::RecalculateNormals()
 {
     PG_ASSERT( positions.size() == normals.size() );
-    std::vector<glm::vec3> newNormals;
-    newNormals.resize( normals.size(), glm::vec3( 0 ) );
+    std::vector<vec3> newNormals;
+    newNormals.resize( normals.size(), vec3( 0 ) );
     for ( const Mesh& mesh : meshes )
     {
         for ( uint32_t i = 0; i < mesh.numIndices; i += 3 )
@@ -198,10 +198,10 @@ void Model::RecalculateNormals()
             const auto i0 = mesh.startVertex + indices[mesh.startIndex + i + 0];
             const auto i1 = mesh.startVertex + indices[mesh.startIndex + i + 1];
             const auto i2 = mesh.startVertex + indices[mesh.startIndex + i + 2];
-            glm::vec3 e01 = positions[i1] - positions[i0];
-            glm::vec3 e02 = positions[i2] - positions[i0];
-            auto N        = glm::cross( e01, e02 );
-            if ( glm::length( N ) <= 0.00001f )
+            vec3 e01      = positions[i1] - positions[i0];
+            vec3 e02      = positions[i2] - positions[i0];
+            auto N        = Cross( e01, e02 );
+            if ( Length( N ) <= 0.00001f )
             {
                 // degenerate tri, just use the existing normals
                 newNormals[i0] += normals[i0];
@@ -210,7 +210,7 @@ void Model::RecalculateNormals()
             }
             else
             {
-                glm::vec3 n = glm::normalize( N );
+                vec3 n = Normalize( N );
                 newNormals[i0] += n;
                 newNormals[i1] += n;
                 newNormals[i2] += n;
@@ -220,7 +220,7 @@ void Model::RecalculateNormals()
 
     for ( size_t i = 0; i < normals.size(); ++i )
     {
-        normals[i] = glm::normalize( newNormals[i] );
+        normals[i] = Normalize( newNormals[i] );
     }
 }
 
@@ -238,7 +238,7 @@ void Model::CreateBLAS()
     accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
     accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress    = vertexAddress;
     accelerationStructureGeometry.geometry.triangles.maxVertex                   = numVertices;
-    accelerationStructureGeometry.geometry.triangles.vertexStride                = sizeof( glm::vec3 );
+    accelerationStructureGeometry.geometry.triangles.vertexStride                = sizeof( vec3 );
     accelerationStructureGeometry.geometry.triangles.indexType                   = VK_INDEX_TYPE_UINT32;
     accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress     = indexAddress;
     accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
@@ -307,10 +307,10 @@ void Model::UploadToGPU()
     size_t tangentCount  = positions.size();
 
     size_t totalSize = 0;
-    totalSize += positions.size() * sizeof( glm::vec3 );
-    totalSize += normals.size() * sizeof( glm::vec3 );
-    totalSize += texCoordCount * sizeof( glm::vec2 );
-    totalSize += tangentCount * sizeof( glm::vec4 );
+    totalSize += positions.size() * sizeof( vec3 );
+    totalSize += normals.size() * sizeof( vec3 );
+    totalSize += texCoordCount * sizeof( vec2 );
+    totalSize += tangentCount * sizeof( vec4 );
     if ( totalSize == 0 && indices.size() == 0 )
     {
         return;
@@ -319,34 +319,34 @@ void Model::UploadToGPU()
     gpuPositionOffset     = 0;
     size_t offset         = 0;
     unsigned char* tmpMem = static_cast<unsigned char*>( malloc( totalSize ) );
-    memcpy( tmpMem + offset, positions.data(), positions.size() * sizeof( glm::vec3 ) );
-    offset += positions.size() * sizeof( glm::vec3 );
+    memcpy( tmpMem + offset, positions.data(), positions.size() * sizeof( vec3 ) );
+    offset += positions.size() * sizeof( vec3 );
 
     gpuNormalOffset = offset;
-    memcpy( tmpMem + offset, normals.data(), normals.size() * sizeof( glm::vec3 ) );
-    offset += normals.size() * sizeof( glm::vec3 );
+    memcpy( tmpMem + offset, normals.data(), normals.size() * sizeof( vec3 ) );
+    offset += normals.size() * sizeof( vec3 );
 
     gpuTexCoordOffset = offset;
     if ( texCoords.empty() )
     {
-        memset( tmpMem + offset, 0, texCoordCount * sizeof( glm::vec2 ) );
+        memset( tmpMem + offset, 0, texCoordCount * sizeof( vec2 ) );
     }
     else
     {
-        memcpy( tmpMem + offset, texCoords.data(), texCoordCount * sizeof( glm::vec2 ) );
+        memcpy( tmpMem + offset, texCoords.data(), texCoordCount * sizeof( vec2 ) );
     }
-    offset += texCoordCount * sizeof( glm::vec2 );
+    offset += texCoordCount * sizeof( vec2 );
 
     gpuTangentOffset = offset;
     if ( tangents.empty() )
     {
-        memset( tmpMem + offset, 0, tangentCount * sizeof( glm::vec4 ) );
+        memset( tmpMem + offset, 0, tangentCount * sizeof( vec4 ) );
     }
     else
     {
-        memcpy( tmpMem + offset, tangents.data(), tangentCount * sizeof( glm::vec4 ) );
+        memcpy( tmpMem + offset, tangents.data(), tangentCount * sizeof( vec4 ) );
     }
-    offset += tangentCount * sizeof( glm::vec4 );
+    offset += tangentCount * sizeof( vec4 );
 
     using namespace Gfx;
     BufferType rayTracingType = BUFFER_TYPE_DEVICE_ADDRESS | BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY | BUFFER_TYPE_STORAGE;

@@ -1,11 +1,10 @@
 #pragma once
 
+#include "shared/math_vec.hpp"
 #include "shared/platform_defines.hpp"
 #if USING( GAME )
     #include "c_shared/structs.h"
-#else // #if USING( GAME )
-    #include "glm/vec3.hpp"
-#endif // #else // #if USING( GAME )
+#endif // #if USING( GAME )
 #include "glm/trigonometric.hpp"
 
 namespace PG
@@ -13,28 +12,28 @@ namespace PG
 
 struct Light
 {
-    glm::vec3 color = glm::vec3( 1 );
+    vec3 color      = vec3( 1 );
     float intensity = 1;
 };
 
 struct DirectionalLight : public Light
 {
-    glm::vec3 direction = glm::vec3( 0, 0, -1 );
+    vec3 direction = vec3( 0, 0, -1 );
 };
 
 struct PointLight : public Light
 {
-    glm::vec3 position = glm::vec3( 0, 0, 0 );
-    float radius       = 10;
+    vec3 position = vec3( 0, 0, 0 );
+    float radius  = 10;
 };
 
 struct SpotLight : public Light
 {
-    glm::vec3 position  = glm::vec3( 0, 0, 0 );
-    float radius        = 10;
-    glm::vec3 direction = glm::vec3( 0, 0, -1 );
-    float innerAngle    = glm::radians( 20.0f );
-    float outerAngle    = glm::radians( 30.0f );
+    vec3 position    = vec3( 0, 0, 0 );
+    float radius     = 10;
+    vec3 direction   = vec3( 0, 0, -1 );
+    float innerAngle = DegToRad( 20.0f );
+    float outerAngle = DegToRad( 30.0f );
 };
 
 #if USING( GAME )

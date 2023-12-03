@@ -168,9 +168,7 @@ SET_LOCAL_AND_PARENT(IMAGELIB_EXT_FILES
 	${EXT_DIR}/ImageLib/image.cpp
     ${EXT_DIR}/ImageLib/image.hpp
 	${EXT_DIR}/ImageLib/image_load.cpp
-    ${EXT_DIR}/ImageLib/image_load.hpp
 	${EXT_DIR}/ImageLib/image_save.cpp
-    ${EXT_DIR}/ImageLib/image_save.hpp
 )
 
 #-------------------------------PUGIXML--------------------------------------------

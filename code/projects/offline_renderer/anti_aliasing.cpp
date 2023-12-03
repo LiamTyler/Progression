@@ -30,11 +30,11 @@ Algorithm AlgorithmFromString( const std::string& alg )
     return it->second;
 }
 
-glm::vec2 None( int iteration, RNG& rng ) { return { 0, 0 }; }
+vec2 None( int iteration, RNG& rng ) { return { 0, 0 }; }
 
-glm::vec2 Regular2x2Grid( int iteration, RNG& rng )
+vec2 Regular2x2Grid( int iteration, RNG& rng )
 {
-    static glm::vec2 offsets[] =
+    static vec2 offsets[] =
     {
         { -0.25, -0.25 },
         { 0.25,  -0.25 },
@@ -45,9 +45,9 @@ glm::vec2 Regular2x2Grid( int iteration, RNG& rng )
     return offsets[iteration % 4];
 }
 
-glm::vec2 Regular4x4Grid( int iteration, RNG& rng )
+vec2 Regular4x4Grid( int iteration, RNG& rng )
 {
-    static glm::vec2 offsets[] =
+    static vec2 offsets[] =
     {
         { -0.375, -0.375 },
         { -0.125, -0.375 },
@@ -70,9 +70,9 @@ glm::vec2 Regular4x4Grid( int iteration, RNG& rng )
     return offsets[iteration % 16];
 }
 
-glm::vec2 Rotated2x2Grid( int iteration, RNG& rng )
+vec2 Rotated2x2Grid( int iteration, RNG& rng )
 {
-    static glm::vec2 offsets[] =
+    static vec2 offsets[] =
     {
         { -0.375, -0.125 },
         { 0.125,  -0.375 },
@@ -83,7 +83,7 @@ glm::vec2 Rotated2x2Grid( int iteration, RNG& rng )
     return offsets[iteration % 4];
 }
 
-glm::vec2 Jitter( int iteration, RNG& rng ) { return { rng.UniformFloat() - 0.5f, rng.UniformFloat() - 0.5f }; }
+vec2 Jitter( int iteration, RNG& rng ) { return { rng.UniformFloat() - 0.5f, rng.UniformFloat() - 0.5f }; }
 
 int GetIterations( Algorithm alg )
 {

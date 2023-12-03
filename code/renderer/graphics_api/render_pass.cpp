@@ -12,7 +12,7 @@ void RenderPass::Free()
 }
 
 void RenderPassDescriptor::AddColorAttachment( PixelFormat format, LoadAction loadAction, StoreAction storeAction,
-    const glm::vec4& clearColor, ImageLayout initialLayout, ImageLayout finalLayout )
+    const vec4& clearColor, ImageLayout initialLayout, ImageLayout finalLayout )
 {
     PG_ASSERT( numColorAttachments < MAX_COLOR_ATTACHMENTS, "Can't add more than %u color attachments", MAX_COLOR_ATTACHMENTS );
     colorAttachmentDescriptors[numColorAttachments].format        = format;

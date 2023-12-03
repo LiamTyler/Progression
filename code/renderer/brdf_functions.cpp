@@ -1,7 +1,4 @@
 #include "renderer/brdf_functions.hpp"
-#include "shared/math.hpp"
-
-using namespace glm;
 
 namespace PG
 {
@@ -22,11 +19,11 @@ vec3 ImportanceSampleGGX_D( vec2 Xi, vec3 N, float linearRoughness )
 
     // from tangent-space vector to world-space sample vector
     vec3 up        = abs( N.z ) < 0.999f ? vec3( 0.0f, 0.0f, 1.0f ) : vec3( 1.0f, 0.0f, 0.0f );
-    vec3 tangent   = normalize( cross( up, N ) );
-    vec3 bitangent = cross( N, tangent );
+    vec3 tangent   = Normalize( Cross( up, N ) );
+    vec3 bitangent = Cross( N, tangent );
 
     vec3 sampleVec = tangent * H.x + bitangent * H.y + N * H.z;
-    return normalize( sampleVec );
+    return Normalize( sampleVec );
 }
 
 float GeometrySchlickGGX_IBL( float NdotV, float perceptualRoughness )
@@ -40,8 +37,8 @@ float GeometrySchlickGGX_IBL( float NdotV, float perceptualRoughness )
 
 float GeometrySmith_IBL( vec3 N, vec3 V, vec3 L, float perceptualRoughness )
 {
-    float NdotV = std::max( dot( N, V ), 0.0f );
-    float NdotL = std::max( dot( N, L ), 0.0f );
+    float NdotV = Max( Dot( N, V ), 0.0f );
+    float NdotL = Max( Dot( N, L ), 0.0f );
     float ggx2  = GeometrySchlickGGX_IBL( NdotV, perceptualRoughness );
     float ggx1  = GeometrySchlickGGX_IBL( NdotL, perceptualRoughness );
 
@@ -59,8 +56,8 @@ float GeometrySchlickGGX_Direct( float NdotV, float perceptualRoughness )
 
 float GeometrySmith_Direct( vec3 N, vec3 V, vec3 L, float perceptualRoughness )
 {
-    float NdotV = std::max( dot( N, V ), 0.0f );
-    float NdotL = std::max( dot( N, L ), 0.0f );
+    float NdotV = Max( Dot( N, V ), 0.0f );
+    float NdotL = Max( Dot( N, L ), 0.0f );
     float ggx2  = GeometrySchlickGGX_Direct( NdotV, perceptualRoughness );
     float ggx1  = GeometrySchlickGGX_Direct( NdotL, perceptualRoughness );
 

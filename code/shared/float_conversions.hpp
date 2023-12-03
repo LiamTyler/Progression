@@ -1,7 +1,6 @@
 #pragma once
 
-#include "glm/fwd.hpp"
-#include "glm/vec4.hpp"
+#include "shared/math_vec.hpp"
 #include <algorithm>
 
 using float16 = uint16_t;
@@ -85,7 +84,7 @@ inline uint16_t Float32ToFloat16( float f32 )
     return o.u;
 }
 
-inline glm::u16vec4 Float32ToFloat16( glm::vec4 v )
+inline u16vec4 Float32ToFloat16( vec4 v )
 {
     return { Float32ToFloat16( v.x ), Float32ToFloat16( v.y ), Float32ToFloat16( v.z ), Float32ToFloat16( v.w ) };
 }
@@ -124,21 +123,21 @@ inline float Float16ToFloat32( uint16_t f16 )
     return o.f;
 }
 
-inline glm::vec4 Float16ToFloat32( glm::u16vec4 v )
+inline vec4 Float16ToFloat32( u16vec4 v )
 {
     return { Float16ToFloat32( v.x ), Float16ToFloat32( v.y ), Float16ToFloat32( v.z ), Float16ToFloat32( v.w ) };
 }
 
 inline constexpr uint8_t UNormFloatToByte( float x ) { return static_cast<uint8_t>( 255.0f * x + 0.5f ); }
 
-inline glm::u8vec4 UNormFloatToByte( glm::vec4 v )
+inline u8vec4 UNormFloatToByte( vec4 v )
 {
     return { UNormFloatToByte( v.x ), UNormFloatToByte( v.y ), UNormFloatToByte( v.z ), v.w };
 }
 
 inline constexpr float UNormByteToFloat( uint8_t x ) { return x / 255.0f; }
 
-inline glm::vec4 UNormByteToFloat( glm::u8vec4 v )
+inline vec4 UNormByteToFloat( u8vec4 v )
 {
     return { UNormByteToFloat( v.x ), UNormByteToFloat( v.y ), UNormByteToFloat( v.z ), v.w };
 }

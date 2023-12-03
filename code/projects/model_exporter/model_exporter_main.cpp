@@ -8,6 +8,7 @@
 #include "shared/filesystem.hpp"
 #include "shared/hash.hpp"
 #include "shared/logger.hpp"
+#include "shared/math.hpp"
 #include "shared/string.hpp"
 #include <atomic>
 #include <filesystem>
@@ -16,7 +17,6 @@
 #include <unordered_set>
 
 using namespace PG;
-using namespace glm;
 
 static_assert( PMODEL_MAX_UVS_PER_VERT == AI_MAX_NUMBER_OF_TEXTURECOORDS );
 static_assert( PMODEL_MAX_COLORS_PER_VERT == AI_MAX_NUMBER_OF_COLOR_SETS );
@@ -57,7 +57,7 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
         }
     }
 
-    mat4 normalMatrix = inverse( transpose( localToWorldMat ) );
+    mat4 normalMatrix = Inverse( Transpose( localToWorldMat ) );
 
     uint32_t numVerts = paiMesh->mNumVertices;
     pgMesh.vertices.resize( numVerts );

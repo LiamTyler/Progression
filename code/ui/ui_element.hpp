@@ -60,9 +60,9 @@ struct UIElement
     UIElementUserFlags userFlags     = UIElementUserFlags::VISIBLE;
     UIElementScriptFlags scriptFlags = UIElementScriptFlags::NONE;
     UIElementBlendMode blendMode     = UIElementBlendMode::OPAQUE;
-    glm::vec2 pos;        // normalized 0 - 1
-    glm::vec2 dimensions; // normalized 0 - 1
-    glm::vec4 tint;
+    vec2 pos;        // normalized 0 - 1
+    vec2 dimensions; // normalized 0 - 1
+    vec4 tint;
     GfxImage* image = nullptr;
 
     UIElementHandle Handle() const;

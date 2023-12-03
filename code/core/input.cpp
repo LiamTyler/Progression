@@ -3,9 +3,9 @@
 #include "core/window.hpp"
 #include "shared/logger.hpp"
 
-static glm::vec2 s_lastCursorPos    = glm::ivec2( 0 );
-static glm::vec2 s_currentCursorPos = glm::ivec2( 0 );
-static glm::vec2 s_scrollOffset     = glm::ivec2( 0 );
+static vec2 s_lastCursorPos    = ivec2( 0 );
+static vec2 s_currentCursorPos = ivec2( 0 );
+static vec2 s_scrollOffset     = ivec2( 0 );
 
 enum KeyStatus : uint8_t
 {
@@ -42,7 +42,7 @@ static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, 
     }
 }
 
-static void CursorPositionCallback( GLFWwindow* window, double xpos, double ypos ) { s_currentCursorPos = glm::vec2( xpos, ypos ); }
+static void CursorPositionCallback( GLFWwindow* window, double xpos, double ypos ) { s_currentCursorPos = vec2( xpos, ypos ); }
 
 static void MouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
 {
@@ -58,7 +58,7 @@ static void MouseButtonCallback( GLFWwindow* window, int button, int action, int
     }
 }
 
-static void ScrollCallback( GLFWwindow* window, double xoffset, double yoffset ) { s_scrollOffset += glm::vec2( xoffset, yoffset ); }
+static void ScrollCallback( GLFWwindow* window, double xoffset, double yoffset ) { s_scrollOffset += vec2( xoffset, yoffset ); }
 
 namespace PG
 {
@@ -70,7 +70,7 @@ void Init()
     GLFWwindow* window = GetMainWindow()->GetGLFWHandle();
     double x, y;
     glfwGetCursorPos( window, &x, &y );
-    s_currentCursorPos = glm::vec2( x, y );
+    s_currentCursorPos = vec2( x, y );
     s_lastCursorPos    = s_currentCursorPos;
 
     glfwSetCursorPosCallback( window, CursorPositionCallback );
@@ -109,7 +109,7 @@ void PollEvents()
         s_mouseButtonStatus[i] += s_mouseButtonStatus[i] == KEY_RELEASED || s_mouseButtonStatus[i] == KEY_PRESSED;
     }
     s_lastCursorPos = s_currentCursorPos;
-    s_scrollOffset  = glm::vec2( 0 );
+    s_scrollOffset  = vec2( 0 );
     glfwPollEvents();
 }
 
@@ -136,11 +136,11 @@ bool GetMouseButtonHeld( MouseButton b )
     return s_mouseButtonStatus[static_cast<int>( b )] == KEY_PRESSED || s_mouseButtonStatus[static_cast<int>( b )] == KEY_HELD;
 }
 
-glm::vec2 GetMousePosition() { return s_currentCursorPos; }
+vec2 GetMousePosition() { return s_currentCursorPos; }
 
-glm::vec2 GetMouseChange() { return s_currentCursorPos - s_lastCursorPos; }
+vec2 GetMouseChange() { return s_currentCursorPos - s_lastCursorPos; }
 
-glm::vec2 GetScrollChange() { return s_scrollOffset; }
+vec2 GetScrollChange() { return s_scrollOffset; }
 
 void RegisterLuaFunctions( lua_State* L )
 {

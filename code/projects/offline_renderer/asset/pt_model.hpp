@@ -23,10 +23,10 @@ public:
 
     std::string name;
     MaterialHandle material;
-    std::vector<glm::vec3> positions;
-    std::vector<glm::vec3> normals;
-    std::vector<glm::vec2> uvs;
-    std::vector<glm::vec3> tangents;
+    std::vector<vec3> positions;
+    std::vector<vec3> normals;
+    std::vector<vec2> uvs;
+    std::vector<vec3> tangents;
     std::vector<uint32_t> indices;
 };
 

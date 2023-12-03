@@ -12,15 +12,15 @@ namespace PT
 SurfaceInfo Shape::SampleWithRespectToSolidAngle( const Interaction& it, PG::Random::RNG& rng ) const
 {
     SurfaceInfo info = SampleWithRespectToArea( rng );
-    glm::vec3 wi     = info.position - it.p;
-    if ( glm::length( wi ) == 0 )
+    vec3 wi          = info.position - it.p;
+    if ( Length( wi ) == 0 )
     {
         info.pdf = 0;
     }
     else
     {
-        float radiusSquared = glm::dot( wi, wi );
-        wi                  = glm::normalize( wi );
+        float radiusSquared = Dot( wi, wi );
+        wi                  = Normalize( wi );
         info.pdf *= radiusSquared / AbsDot( info.normal, -wi );
         if ( std::isinf( info.pdf ) )
         {
@@ -37,10 +37,10 @@ float Sphere::Area() const { return 4 * PI * radius * radius; }
 SurfaceInfo Sphere::SampleWithRespectToArea( PG::Random::RNG& rng ) const
 {
     SurfaceInfo info;
-    glm::vec3 randNormal = UniformSampleSphere( rng.UniformFloat(), rng.UniformFloat() );
-    info.position        = position + radius * randNormal;
-    info.normal          = randNormal;
-    info.pdf             = 1.0f / Area();
+    vec3 randNormal = UniformSampleSphere( rng.UniformFloat(), rng.UniformFloat() );
+    info.position   = position + radius * randNormal;
+    info.normal     = randNormal;
+    info.pdf        = 1.0f / Area();
     return info;
 }
 
@@ -48,7 +48,7 @@ bool Sphere::Intersect( const Ray& ray, IntersectionData* hitData ) const
 {
     float t;
     Ray localRay = worldToLocal * ray;
-    if ( !intersect::RaySphere( localRay.position, localRay.direction, glm::vec3( 0 ), 1, t, hitData->t ) )
+    if ( !intersect::RaySphere( localRay.position, localRay.direction, vec3( 0 ), 1, t, hitData->t ) )
     {
         return false;
     }
@@ -56,16 +56,16 @@ bool Sphere::Intersect( const Ray& ray, IntersectionData* hitData ) const
     hitData->t        = t;
     hitData->material = material.get();
     hitData->position = ray.Evaluate( t );
-    hitData->normal   = glm::normalize( hitData->position - position );
+    hitData->normal   = Normalize( hitData->position - position );
 
-    glm::vec3 localPos   = localRay.Evaluate( t );
+    vec3 localPos        = localRay.Evaluate( t );
     float theta          = atan2( localPos.z, localPos.x );
     float phi            = acosf( -localPos.y );
     hitData->texCoords.x = -0.5f * ( theta / PI + 1 );
     hitData->texCoords.y = phi / PI;
 
-    hitData->tangent   = glm::vec3( -sin( theta ), 0, cos( theta ) );
-    hitData->bitangent = glm::cross( hitData->normal, hitData->tangent );
+    hitData->tangent   = vec3( -sin( theta ), 0, cos( theta ) );
+    hitData->bitangent = Cross( hitData->normal, hitData->tangent );
 
     return true;
 }
@@ -78,7 +78,7 @@ bool Sphere::TestIfHit( const Ray& ray, float maxT ) const
 
 AABB Sphere::WorldSpaceAABB() const
 {
-    const glm::vec3 extent = glm::vec3( radius );
+    const vec3 extent = vec3( radius );
     return AABB( position - extent, position + extent );
 }
 
@@ -90,19 +90,19 @@ float Triangle::Area() const
     const auto& p0 = mesh->positions[i0];
     const auto& p1 = mesh->positions[i1];
     const auto& p2 = mesh->positions[i2];
-    return 0.5f * glm::length( glm::cross( p1 - p0, p2 - p0 ) );
+    return 0.5f * Length( Cross( p1 - p0, p2 - p0 ) );
 }
 
 SurfaceInfo Triangle::SampleWithRespectToArea( PG::Random::RNG& rng ) const
 {
     SurfaceInfo info;
-    glm::vec2 sample = UniformSampleTriangle( rng.UniformFloat(), rng.UniformFloat() );
-    float u          = sample.x;
-    float v          = sample.y;
-    auto mesh        = GetMeshInstance( meshHandle );
-    info.position    = u * mesh->positions[i0] + v * mesh->positions[i1] + ( 1 - u - v ) * mesh->positions[i2];
-    info.normal      = glm::normalize( u * mesh->normals[i0] + v * mesh->normals[i1] + ( 1 - u - v ) * mesh->normals[i2] );
-    info.pdf         = 1.0f / Area();
+    vec2 sample   = UniformSampleTriangle( rng.UniformFloat(), rng.UniformFloat() );
+    float u       = sample.x;
+    float v       = sample.y;
+    auto mesh     = GetMeshInstance( meshHandle );
+    info.position = u * mesh->positions[i0] + v * mesh->positions[i1] + ( 1 - u - v ) * mesh->positions[i2];
+    info.normal   = Normalize( u * mesh->normals[i0] + v * mesh->normals[i1] + ( 1 - u - v ) * mesh->normals[i2] );
+    info.pdf      = 1.0f / Area();
     return info;
 }
 
@@ -116,10 +116,10 @@ bool Triangle::Intersect( const Ray& ray, IntersectionData* hitData ) const
         hitData->t        = t;
         hitData->material = GetMaterial();
         hitData->position = ray.Evaluate( t );
-        hitData->normal   = glm::normalize( ( 1 - u - v ) * mesh->normals[i0] + u * mesh->normals[i1] + v * mesh->normals[i2] );
-        hitData->tangent  = glm::normalize( ( 1 - u - v ) * mesh->tangents[i0] + u * mesh->tangents[i1] + v * mesh->tangents[i2] );
+        hitData->normal   = Normalize( ( 1 - u - v ) * mesh->normals[i0] + u * mesh->normals[i1] + v * mesh->normals[i2] );
+        hitData->tangent  = Normalize( ( 1 - u - v ) * mesh->tangents[i0] + u * mesh->tangents[i1] + v * mesh->tangents[i2] );
 
-        hitData->bitangent = glm::cross( hitData->normal, hitData->tangent );
+        hitData->bitangent = Cross( hitData->normal, hitData->tangent );
         hitData->texCoords = ( 1 - u - v ) * mesh->uvs[i0] + u * mesh->uvs[i1] + v * mesh->uvs[i2];
         return true;
     }

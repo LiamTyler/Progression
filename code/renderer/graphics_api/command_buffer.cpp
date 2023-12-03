@@ -42,7 +42,7 @@ void CommandBuffer::BeginRenderPass( const RenderPass* renderPass, const Framebu
     uint8_t attachmentIndex     = 0;
     for ( ; attachmentIndex < renderPass->desc.numColorAttachments; ++attachmentIndex )
     {
-        const glm::vec4& col               = renderPass->desc.colorAttachmentDescriptors[attachmentIndex].clearColor;
+        const vec4& col               = renderPass->desc.colorAttachmentDescriptors[attachmentIndex].clearColor;
         clearValues[attachmentIndex].color = { col.r, col.g, col.b, col.a };
     }
     if ( renderPass->desc.numDepthAttachments > 0 )

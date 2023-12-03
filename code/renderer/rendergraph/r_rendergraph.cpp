@@ -4,6 +4,7 @@
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/logger.hpp"
+#include "shared/math_base.hpp"
 #include <climits>
 #include <cstring>
 #include <math.h>
@@ -25,7 +26,7 @@ void ResolveSizesAndSwapchain( RG_Element& element, const RenderGraphCompileInfo
     element.height = ResolveRelativeSize( info.sceneHeight, info.displayHeight, element.height );
     if ( element.mipLevels == AUTO_FULL_MIP_CHAIN() )
     {
-        element.mipLevels = 1 + static_cast<int>( log2f( static_cast<float>( std::max( element.width, element.height ) ) ) );
+        element.mipLevels = 1 + static_cast<int>( log2f( static_cast<float>( Max( element.width, element.height ) ) ) );
     }
     if ( IsSet( element.type, ResourceType::SWAPCHAIN_IMAGE ) )
         element.format = info.swapchainFormat;
@@ -43,8 +44,8 @@ void RG_TaskRenderTargetsDynamic::AddColorAttach(
     info.format                = element.format;
     info.imageLayout           = ImageLayout::COLOR_ATTACHMENT;
     ++numColorAttach;
-    renderAreaWidth  = std::min( renderAreaWidth, (uint16_t)element.width );
-    renderAreaHeight = std::min( renderAreaHeight, (uint16_t)element.height );
+    renderAreaWidth  = Min( renderAreaWidth, (uint16_t)element.width );
+    renderAreaHeight = Min( renderAreaHeight, (uint16_t)element.height );
 }
 
 void RG_TaskRenderTargetsDynamic::AddDepthAttach(
@@ -58,12 +59,12 @@ void RG_TaskRenderTargetsDynamic::AddDepthAttach(
     depthAttachInfo.format                = element.format;
     depthAttachInfo.imageLayout =
         PixelFormatHasStencil( element.format ) ? ImageLayout::DEPTH_STENCIL_ATTACHMENT : ImageLayout::DEPTH_ATTACHMENT;
-    renderAreaWidth  = std::min( renderAreaWidth, (uint16_t)element.width );
-    renderAreaHeight = std::min( renderAreaHeight, (uint16_t)element.height );
+    renderAreaWidth  = Min( renderAreaWidth, (uint16_t)element.width );
+    renderAreaHeight = Min( renderAreaHeight, (uint16_t)element.height );
 }
 
 void RenderTaskBuilder::AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-    uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor )
+    uint32_t arrayLayers, uint32_t mipLevels, const vec4& clearColor )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH;
     elements.push_back( { name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, clearColor, true } );
@@ -72,9 +73,9 @@ void RenderTaskBuilder::AddColorOutput(
     const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH;
-    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, glm::vec4( 0 ), false } );
+    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, vec4( 0 ), false } );
 }
-void RenderTaskBuilder::AddSwapChainOutput( const glm::vec4& clearColor )
+void RenderTaskBuilder::AddSwapChainOutput( const vec4& clearColor )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH | ResourceType::SWAPCHAIN_IMAGE;
     elements.push_back( { "$swapchain", type, ResourceState::WRITE, PixelFormat::INVALID, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
@@ -84,24 +85,24 @@ void RenderTaskBuilder::AddSwapChainOutput()
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH | ResourceType::SWAPCHAIN_IMAGE;
     elements.push_back( { "$swapchain", type, ResourceState::WRITE, PixelFormat::INVALID, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
-        glm::vec4( 0 ), false, true } );
+        vec4( 0 ), false, true } );
 }
 void RenderTaskBuilder::AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, float clearValue )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::DEPTH_ATTACH;
     if ( PixelFormatHasStencil( format ) )
         type |= ResourceType::STENCIL_ATTACH;
-    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, glm::vec4( clearValue ), true } );
+    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, vec4( clearValue ), true } );
 }
 void RenderTaskBuilder::AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::DEPTH_ATTACH;
     if ( PixelFormatHasStencil( format ) )
         type |= ResourceType::STENCIL_ATTACH;
-    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, glm::vec4( 0 ), false } );
+    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, vec4( 0 ), false } );
 }
 void RenderTaskBuilder::AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-    uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor )
+    uint32_t arrayLayers, uint32_t mipLevels, const vec4& clearColor )
 {
     elements.push_back(
         { name, ResourceType::TEXTURE, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, clearColor, true } );
@@ -109,16 +110,15 @@ void RenderTaskBuilder::AddTextureOutput( const std::string& name, PixelFormat f
 void RenderTaskBuilder::AddTextureOutput(
     const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
-    elements.push_back( { name, ResourceType::TEXTURE, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels,
-        glm::vec4( 0 ), false } );
+    elements.push_back(
+        { name, ResourceType::TEXTURE, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, vec4( 0 ), false } );
 }
 void RenderTaskBuilder::AddColorOutput( const std::string& name ) { AddColorOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0 ); }
 void RenderTaskBuilder::AddDepthOutput( const std::string& name ) { AddDepthOutput( name, PixelFormat::INVALID, 0, 0 ); }
 void RenderTaskBuilder::AddTextureOutput( const std::string& name ) { AddTextureOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0 ); }
 void RenderTaskBuilder::AddTextureInput( const std::string& name )
 {
-    elements.push_back(
-        { name, ResourceType::TEXTURE, ResourceState::READ_ONLY, PixelFormat::INVALID, 0, 0, 0, 0, 0, glm::vec4( 0 ), false } );
+    elements.push_back( { name, ResourceType::TEXTURE, ResourceState::READ_ONLY, PixelFormat::INVALID, 0, 0, 0, 0, 0, vec4( 0 ), false } );
 }
 void RenderTaskBuilder::SetRenderFunction( RenderFunction func ) { renderFunction = func; }
 
@@ -182,7 +182,7 @@ bool RenderGraphBuilder::Validate( const RenderGraphCompileInfo& compileInfo ) c
                             name.c_str(), task.name.c_str(), originalTask.c_str() );
                         return false;
                     }
-                    logicalOutputs[name] = it != logicalOutputs.end() ? std::min( it->second, taskIndex ) : taskIndex;
+                    logicalOutputs[name] = it != logicalOutputs.end() ? Min( it->second, taskIndex ) : taskIndex;
                 }
                 else
                 {
@@ -361,7 +361,7 @@ bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& 
             else if ( element.state == ResourceState::READ_ONLY )
             {
                 auto it                             = outputNameToLogicalMap.find( element.name );
-                logicalOutputs[it->second].lastTask = std::max( logicalOutputs[it->second].lastTask, taskIndex );
+                logicalOutputs[it->second].lastTask = Max( logicalOutputs[it->second].lastTask, taskIndex );
             }
         }
     }
@@ -383,8 +383,8 @@ bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& 
             {
                 if ( mergedOutput.Mergable( logicalOutput ) )
                 {
-                    mergedOutput.firstTask = std::min( mergedOutput.firstTask, logicalOutput.firstTask );
-                    mergedOutput.lastTask  = std::max( mergedOutput.lastTask, logicalOutput.lastTask );
+                    mergedOutput.firstTask = Min( mergedOutput.firstTask, logicalOutput.firstTask );
+                    mergedOutput.lastTask  = Max( mergedOutput.lastTask, logicalOutput.lastTask );
                     mergedOutput.name += "_" + logicalOutput.name;
                     logicalOutput.physicalResourceIndex = mergedOutput.physicalResourceIndex;
                     m_stats.numMergedResources++;
@@ -646,7 +646,7 @@ void RenderGraph::PrintAllInfo() const
             LOG( "  ColorAttachment[%u]: %s", i, m_physicalResources[attach.physicalResourceIndex][0].name.c_str() );
             if ( attach.loadAction == LoadAction::CLEAR )
             {
-                glm::vec4 c = attach.clearColor;
+                vec4 c = attach.clearColor;
                 LOG( "    Format: %s, Layout: %s, Load: %s, ClearColor: (%g %g %g %g), Store: %s", PixelFormatName( attach.format ).c_str(),
                     ImageLayoutToString( attach.imageLayout ).c_str(), LoadActionToString( attach.loadAction ).c_str(), c.r, c.g, c.b, c.a,
                     StoreActionToString( attach.storeAction ).c_str() );
@@ -750,7 +750,7 @@ void RenderGraph::Render( RG_RenderData& renderData )
             vkAttach.imageLayout                   = PGToVulkanImageLayout( info.imageLayout );
             vkAttach.loadOp                        = PGToVulkanLoadAction( info.loadAction );
             vkAttach.storeOp                       = PGToVulkanStoreAction( info.storeAction );
-            memcpy( &vkAttach.clearValue.color.float32[0], &info.clearColor.x, sizeof( glm::vec4 ) );
+            memcpy( &vkAttach.clearValue.color.float32[0], &info.clearColor.x, sizeof( vec4 ) );
         }
         if ( rtData->depthAttachInfo.format != PixelFormat::INVALID )
         {

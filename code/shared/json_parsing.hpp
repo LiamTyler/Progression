@@ -1,9 +1,9 @@
 #pragma once
 
-#include "glm/glm.hpp"
 #include "rapidjson/document.h"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
+#include "shared/math_vec.hpp"
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -17,29 +17,9 @@ T ParseNumber( const rapidjson::Value& v )
     return v.Get<T>();
 }
 
-template <typename ComponentType = float>
-glm::vec<2, ComponentType> ParseVec2( const rapidjson::Value& v )
-{
-    PG_ASSERT( v.IsArray() && v.Size() == 2 );
-    auto& GetF = ParseNumber<ComponentType>;
-    return glm::vec<2, ComponentType>( GetF( v[0] ), GetF( v[1] ) );
-}
-
-template <typename ComponentType = float>
-glm::vec<3, ComponentType> ParseVec3( const rapidjson::Value& v )
-{
-    PG_ASSERT( v.IsArray() && v.Size() == 3 );
-    auto& GetF = ParseNumber<ComponentType>;
-    return glm::vec<3, ComponentType>( GetF( v[0] ), GetF( v[1] ), GetF( v[2] ) );
-}
-
-template <typename ComponentType = float>
-glm::vec<4, ComponentType> ParseVec4( const rapidjson::Value& v )
-{
-    PG_ASSERT( v.IsArray() && v.Size() == 4 );
-    auto& GetF = ParseNumber<ComponentType>;
-    return glm::vec<4, ComponentType>( GetF( v[0] ), GetF( v[1] ), GetF( v[2] ), GetF( v[3] ) );
-}
+vec2 ParseVec2( const rapidjson::Value& v );
+vec3 ParseVec3( const rapidjson::Value& v );
+vec4 ParseVec4( const rapidjson::Value& v );
 
 template <typename... Args>
 class JSONFunctionMapper

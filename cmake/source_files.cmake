@@ -79,6 +79,11 @@ set(
     ${CODE_DIR}/shared/logger.hpp
     ${CODE_DIR}/shared/math.cpp
     ${CODE_DIR}/shared/math.hpp
+    ${CODE_DIR}/shared/math_base.hpp
+    ${CODE_DIR}/shared/math_matrix.cpp
+    ${CODE_DIR}/shared/math_matrix.hpp
+    ${CODE_DIR}/shared/math_vec.cpp
+    ${CODE_DIR}/shared/math_vec.hpp
     ${CODE_DIR}/shared/platform_defines.hpp
     ${CODE_DIR}/shared/random.cpp
     ${CODE_DIR}/shared/random.hpp

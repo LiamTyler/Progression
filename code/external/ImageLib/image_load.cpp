@@ -11,7 +11,6 @@
 
 static RawImage2D LoadBuiltInImage( const std::string& name )
 {
-    using namespace glm;
     u8vec4 pixel( 0, 0, 0, 0 );
     uint8_t numChannels = 4;
     if ( name == "$white" )

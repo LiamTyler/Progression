@@ -54,7 +54,7 @@ static void ParseTransform( const rapidjson::Value& value, entt::entity e, entt:
     static JSONFunctionMapper< Transform& > mapping(
     {
         { "position", []( const rapidjson::Value& v, Transform& t ) { t.position = ParseVec3( v ); } },
-        { "rotation", []( const rapidjson::Value& v, Transform& t ) { t.rotation = glm::radians( ParseVec3( v ) ); } },
+        { "rotation", []( const rapidjson::Value& v, Transform& t ) { t.rotation = DegToRad( ParseVec3( v ) ); } },
         { "scale",    []( const rapidjson::Value& v, Transform& t ) { t.scale    = ParseVec3( v ); } },
     });
 

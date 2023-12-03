@@ -1,5 +1,6 @@
 #include "dvars.hpp"
 #include "shared/assert.hpp"
+#include "shared/math_base.hpp"
 #include <cstring>
 #include <stdexcept>
 #if !USING( SHIP_BUILD )
@@ -136,22 +137,22 @@ void Dvar::SetFromString( const std::string& str )
         else if ( type == DvarType::INT )
         {
             value.iVal = std::stoi( str );
-            value.iVal = std::min( maxValue.iVal, std::max( minValue.iVal, value.iVal ) );
+            value.iVal = Min( maxValue.iVal, Max( minValue.iVal, value.iVal ) );
         }
         else if ( type == DvarType::UINT )
         {
             value.uVal = std::stoul( str );
-            value.uVal = std::min( maxValue.uVal, std::max( minValue.uVal, value.uVal ) );
+            value.uVal = Min( maxValue.uVal, Max( minValue.uVal, value.uVal ) );
         }
         else if ( type == DvarType::FLOAT )
         {
             value.fVal = std::stof( str );
-            value.fVal = std::min( maxValue.fVal, std::max( minValue.fVal, value.fVal ) );
+            value.fVal = Min( maxValue.fVal, Max( minValue.fVal, value.fVal ) );
         }
         else if ( type == DvarType::DOUBLE )
         {
             value.dVal = std::stod( str );
-            value.dVal = std::min( maxValue.dVal, std::max( minValue.dVal, value.dVal ) );
+            value.dVal = Min( maxValue.dVal, Max( minValue.dVal, value.dVal ) );
         }
     }
     catch ( const std::invalid_argument& )

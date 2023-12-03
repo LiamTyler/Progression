@@ -38,8 +38,8 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
             sourceColorSpaces[i] = sourceImages[i].numChannels > 2 ? ColorSpace::SRGB : ColorSpace::LINEAR;
         }
 
-        width  = std::max( width, sourceImages[i].width );
-        height = std::max( height, sourceImages[i].height );
+        width  = Max( width, sourceImages[i].width );
+        height = Max( height, sourceImages[i].height );
 
         for ( const Remap& remap : input.sourceImages[i].remaps )
         {
@@ -56,7 +56,7 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
         bool convertToSRGB    = sourceColorSpaces[i] == ColorSpace::LINEAR && outputColorSpace == ColorSpace::SRGB;
         for ( uint32_t pixelIndex = 0; pixelIndex < width * height; ++pixelIndex )
         {
-            glm::vec4 pixel = srcImage.GetFloat4( pixelIndex );
+            vec4 pixel = srcImage.GetFloat4( pixelIndex );
 
             // assume that the alpha channel is always linear, in both src and dst images
             for ( const Remap& remap : input.sourceImages[i].remaps )

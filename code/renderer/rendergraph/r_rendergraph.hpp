@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/pixel_formats.hpp"
-#include "glm/vec4.hpp"
 #include "renderer/graphics_api/framebuffer.hpp"
 #include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/texture.hpp"
@@ -82,14 +81,14 @@ struct RG_Element
     uint32_t depth       = 1;
     uint32_t arrayLayers = 1;
     uint32_t mipLevels   = 1;
-    glm::vec4 clearColor = glm::vec4( 0 );
+    vec4 clearColor      = vec4( 0 );
     bool isCleared       = false;
     bool isExternal      = false;
 };
 
 struct RG_AttachmentInfo
 {
-    glm::vec4 clearColor;
+    vec4 clearColor;
     LoadAction loadAction;
     StoreAction storeAction;
     PixelFormat format;
@@ -175,17 +174,17 @@ public:
     RenderTaskBuilder( const std::string& inName ) : name( inName ) {}
 
     void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers,
-        uint32_t mipLevels, const glm::vec4& clearColor );
+        uint32_t mipLevels, const vec4& clearColor );
     void AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers,
         uint32_t mipLevels );
     void AddColorOutput( const std::string& name );
-    void AddSwapChainOutput( const glm::vec4& clearColor );
+    void AddSwapChainOutput( const vec4& clearColor );
     void AddSwapChainOutput();
     void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, float clearValue );
     void AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height );
     void AddDepthOutput( const std::string& name );
     void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-        uint32_t arrayLayers, uint32_t mipLevels, const glm::vec4& clearColor );
+        uint32_t arrayLayers, uint32_t mipLevels, const vec4& clearColor );
     void AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
         uint32_t arrayLayers, uint32_t mipLevels );
     void AddTextureOutput( const std::string& name );

@@ -14,18 +14,18 @@ std::string GetAbsPath_UILayoutFilename( const std::string& filename ) { return 
 
 using namespace UI;
 
-static glm::vec2 ParseVec2( const char* str )
+static vec2 ParseVec2( const char* str )
 {
-    glm::vec2 v( 0 );
+    vec2 v( 0 );
     char* endPtr1;
     v.x = std::strtof( str, &endPtr1 );
     v.y = std::strtof( endPtr1, NULL );
     return v;
 }
 
-static glm::vec4 ParseVec4( const char* str )
+static vec4 ParseVec4( const char* str )
 {
-    glm::vec4 v( 0 );
+    vec4 v( 0 );
     char *endPtr1, *endPtr2;
     v.x = std::strtof( str, &endPtr1 );
     v.y = std::strtof( endPtr1, &endPtr2 );
@@ -105,7 +105,7 @@ static UIElementHandle ParseUIElement(
         }
         else if ( !strcmp( attrib.name(), "tint" ) )
         {
-            createInfos[idx].element.tint = glm::clamp( ParseVec4( val ), glm::vec4( 0 ), glm::vec4( 1 ) );
+            createInfos[idx].element.tint = clamp( ParseVec4( val ), vec4( 0 ), vec4( 1 ) );
         }
         else if ( !strcmp( attrib.name(), "blendMode" ) )
         {

@@ -33,9 +33,7 @@ set(
 	${CMAKE_CURRENT_SOURCE_DIR}/image.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/image.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/image_load.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/image_load.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/image_save.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/image_save.hpp
 	
 	${SHARED_DIR}/assert.hpp
 	${SHARED_DIR}/core_defines.hpp

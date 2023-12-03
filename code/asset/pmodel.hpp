@@ -1,8 +1,6 @@
 #pragma once
 
-#include "glm/vec2.hpp"
-#include "glm/vec3.hpp"
-#include "glm/vec4.hpp"
+#include "shared/math_vec.hpp"
 #include <cstdint>
 #include <fstream>
 #include <string>
@@ -30,12 +28,12 @@ class PModel
 public:
     struct Vertex
     {
-        glm::vec3 pos;
-        glm::vec3 normal;
-        glm::vec3 tangent;
-        glm::vec3 bitangent;
-        glm::vec2 uvs[PMODEL_MAX_UVS_PER_VERT];
-        glm::vec4 colors[PMODEL_MAX_COLORS_PER_VERT];
+        vec3 pos;
+        vec3 normal;
+        vec3 tangent;
+        vec3 bitangent;
+        vec2 uvs[PMODEL_MAX_UVS_PER_VERT];
+        vec4 colors[PMODEL_MAX_COLORS_PER_VERT];
         float boneWeights[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
         uint32_t boneIndices[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
         uint8_t numBones = 0;

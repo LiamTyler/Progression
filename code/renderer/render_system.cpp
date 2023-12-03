@@ -116,10 +116,10 @@ static void ShutdownPerFrameData()
 static void InitPipelines()
 {
     VertexBindingDescriptor bindingDescs[] = {
-        VertexBindingDescriptor( 0, sizeof( glm::vec3 ) ),
-        VertexBindingDescriptor( 1, sizeof( glm::vec3 ) ),
-        VertexBindingDescriptor( 2, sizeof( glm::vec4 ) ),
-        VertexBindingDescriptor( 3, sizeof( glm::vec2 ) ),
+        VertexBindingDescriptor( 0, sizeof( vec3 ) ),
+        VertexBindingDescriptor( 1, sizeof( vec3 ) ),
+        VertexBindingDescriptor( 2, sizeof( vec4 ) ),
+        VertexBindingDescriptor( 3, sizeof( vec2 ) ),
     };
 
     VertexAttributeDescriptor attribDescs[] = {
@@ -212,16 +212,16 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     // BUFFERS + IMAGES
     {
         // clang-format off
-        glm::vec3 verts[] =
+        vec3 verts[] =
         {
-            glm::vec3( -1, -1, -1 ),
-            glm::vec3( -1,  1, -1 ),
-            glm::vec3(  1, -1, -1 ),
-            glm::vec3(  1,  1, -1 ),
-            glm::vec3( -1, -1,  1 ),
-            glm::vec3( -1,  1,  1 ),
-            glm::vec3(  1, -1,  1 ),
-            glm::vec3(  1,  1,  1 ),
+            vec3( -1, -1, -1 ),
+            vec3( -1,  1, -1 ),
+            vec3(  1, -1, -1 ),
+            vec3(  1,  1, -1 ),
+            vec3( -1, -1,  1 ),
+            vec3( -1,  1,  1 ),
+            vec3(  1, -1,  1 ),
+            vec3(  1,  1,  1 ),
         };
         uint16_t indices[] =
         {
@@ -288,7 +288,7 @@ void CreateTLAS( Scene* scene )
         [&]( ModelRenderer& modelRenderer, Transform& transform )
         {
             VkAccelerationStructureInstanceKHR instance{};
-            auto M = glm::transpose( transform.Matrix() );
+            auto M = transpose( transform.Matrix() );
             std::memcpy( &instance.transform, &M[0][0], sizeof( VkTransformMatrixKHR ) );
             instance.instanceCustomIndex                    = 0;
             instance.mask                                   = 0xFF;
@@ -423,10 +423,10 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.V                        = scene->camera.GetV();
     globalData.P                        = scene->camera.GetP();
     globalData.VP                       = scene->camera.GetVP();
-    globalData.invVP                    = glm::inverse( scene->camera.GetVP() );
-    globalData.cameraPos                = glm::vec4( scene->camera.position, 1 );
+    globalData.invVP                    = Inverse( scene->camera.GetVP() );
+    globalData.cameraPos                = vec4( scene->camera.position, 1 );
     VEC3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
-    globalData.cameraExposureAndSkyTint = glm::vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
+    globalData.cameraExposureAndSkyTint = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
     globalData.lightCountAndPad3.x      = globalLightIdx;
     globalData.r_materialViz            = r_materialViz.GetUint();
     globalData.r_lightingViz            = r_lightingViz.GetUint();
@@ -547,14 +547,14 @@ static void RenderFunc_DepthPass( RenderTask* task, RG_RenderData& renderData )
     cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].sceneConstantDescSet, PG_SCENE_GLOBALS_DESCRIPTOR_SET );
     cmdBuf->SetViewport( SceneSizedViewport() );
     cmdBuf->SetScissor( SceneSizedScissor() );
-    glm::mat4 VP = renderData.scene->camera.GetVP();
+    mat4 VP = renderData.scene->camera.GetVP();
 
     renderData.scene->registry.view<ModelRenderer, Transform>().each(
         [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
         {
             const Model* model = modelRenderer.model;
             auto M             = transform.Matrix();
-            cmdBuf->PushConstants( 0, sizeof( glm::mat4 ), &M[0][0] );
+            cmdBuf->PushConstants( 0, sizeof( mat4 ), &M[0][0] );
             cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
             cmdBuf->BindIndexBuffer( model->indexBuffer );
 
@@ -565,7 +565,7 @@ static void RenderFunc_DepthPass( RenderTask* task, RG_RenderData& renderData )
                 if ( material->type == MaterialType::DECAL )
                     continue;
 
-                PG_DEBUG_MARKER_INSERT_CMDBUF( ( *cmdBuf ), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
+                PG_DEBUG_MARKER_INSERT_CMDBUF( ( *cmdBuf ), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", vec4( 0 ) );
                 cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
             }
         } );
@@ -590,7 +590,7 @@ static void RenderFunc_LitPass( RenderTask* task, RG_RenderData& renderData )
         {
             const Model* model = modelRenderer.model;
             auto M             = transform.Matrix();
-            auto N             = glm::transpose( glm::inverse( M ) );
+            auto N             = Transpose( Inverse( M ) );
             GpuData::PerObjectData perObjData{ M, N };
             cmdBuf->PushConstants( 0, sizeof( GpuData::PerObjectData ), &perObjData );
 
@@ -609,7 +609,7 @@ static void RenderFunc_LitPass( RenderTask* task, RG_RenderData& renderData )
 
                 GpuData::MaterialData gpuMaterial = CPUMaterialToGPU( material );
                 cmdBuf->PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
-                PG_DEBUG_MARKER_INSERT_CMDBUF( ( *cmdBuf ), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", glm::vec4( 0 ) );
+                PG_DEBUG_MARKER_INSERT_CMDBUF( ( *cmdBuf ), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", vec4( 0 ) );
                 cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
             }
         } );
@@ -629,7 +629,7 @@ static void RenderFunc_SkyboxPass( RenderTask* task, RG_RenderData& renderData )
     cmdBuf->BindVertexBuffer( s_cubeVertexBuffer );
     cmdBuf->BindIndexBuffer( s_cubeIndexBuffer, IndexType::UNSIGNED_SHORT );
     GpuData::SkyboxData data;
-    data.VP                         = renderData.scene->camera.GetP() * glm::mat4( glm::mat3( renderData.scene->camera.GetV() ) );
+    data.VP                         = renderData.scene->camera.GetP() * mat4( mat3( renderData.scene->camera.GetV() ) );
     data.hasTexture                 = s_skyboxTextures[rg.currentFrame] != nullptr;
     data.tint                       = renderData.scene->skyTint;
     data.scale                      = exp2f( renderData.scene->skyEVAdjust );
@@ -673,7 +673,7 @@ static bool InitRenderGraph( int width, int height )
     task->SetRenderFunction( RenderFunc_DepthPass );
 
     task = builder.AddTask( "lighting" );
-    task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1, 1, 1, glm::vec4( 0 ) );
+    task->AddColorOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1, 1, 1, vec4( 0 ) );
     task->AddDepthOutput( "depth" );
     task->SetRenderFunction( RenderFunc_LitPass );
 

@@ -13,7 +13,6 @@
 #include "renderer/render_system.hpp"
 #include "renderer/rendergraph/r_rendergraph.hpp"
 #include "shared/logger.hpp"
-#include "shared/math.hpp"
 #include "ui/ui_system.hpp"
 
 

@@ -17,16 +17,16 @@ public:
     void UpdateViewMatrix();
     void UpdateProjectionMatrix();
 
-    glm::mat4 GetV() const;
-    glm::mat4 GetP() const;
-    glm::mat4 GetVP() const;
-    glm::vec3 GetForwardDir() const;
-    glm::vec3 GetUpDir() const;
-    glm::vec3 GetRightDir() const;
+    mat4 GetV() const;
+    mat4 GetP() const;
+    mat4 GetVP() const;
+    vec3 GetForwardDir() const;
+    vec3 GetUpDir() const;
+    vec3 GetRightDir() const;
     Frustum GetFrustum() const;
 
-    glm::vec3 position;
-    glm::vec3 rotation;
+    vec3 position;
+    vec3 rotation;
     float vFov;
     float aspectRatio;
     float nearPlane;
@@ -34,11 +34,11 @@ public:
     float exposure; // in EVs. So the radiance is multiplied by pow( 2, exposure )
 
 protected:
-    glm::mat4 m_viewMatrix;
-    glm::mat4 m_projectionMatrix;
-    glm::vec3 m_currDir;
-    glm::vec3 m_currUp;
-    glm::vec3 m_currRight;
+    mat4 m_viewMatrix;
+    mat4 m_projectionMatrix;
+    vec3 m_currDir;
+    vec3 m_currUp;
+    vec3 m_currRight;
     Frustum m_frustum;
 };
 

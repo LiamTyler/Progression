@@ -9,8 +9,6 @@ using namespace std::chrono;
 using Clock     = high_resolution_clock;
 using TimePoint = time_point<Clock>;
 
-using namespace glm;
-
 namespace PG
 {
 

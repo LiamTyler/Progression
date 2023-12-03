@@ -28,10 +28,10 @@ public:
     void Update();
 
     Camera camera;
-    glm::vec3 skyTint      = glm::vec3( 1, 1, 1 );
-    float skyEVAdjust      = 0; // scales sky by pow( 2, skyEVAdjust )
-    glm::vec3 ambientColor = glm::vec3( .1f );
-    ;
+    vec3 skyTint      = vec3( 1, 1, 1 );
+    float skyEVAdjust = 0; // scales sky by pow( 2, skyEVAdjust )
+    vec3 ambientColor = vec3( .1f );
+
     std::vector<DirectionalLight> directionalLights;
     std::vector<PointLight> pointLights;
     std::vector<SpotLight> spotLights;

@@ -10,17 +10,16 @@ class Frustum
 public:
     Frustum() = default;
 
-    void Update( float fov, float np, float fp, float aspect, const glm::vec3& pos, const glm::vec3& forward, const glm::vec3& up,
-        const glm::vec3& right );
+    void Update( float fov, float np, float fp, float aspect, const vec3& pos, const vec3& forward, const vec3& up, const vec3& right );
 
     bool BoxInFrustum( const AABB& aabb ) const;
-    bool SameSide( const glm::vec3& point, const glm::vec4& plane ) const;
+    bool SameSide( const vec3& point, const vec4& plane ) const;
 
-    glm::vec4 planes[6];
-    glm::vec3 corners[8];
+    vec4 planes[6];
+    vec3 corners[8];
 
 private:
-    void SetPlane( int planeIndex, const glm::vec3& p1, const glm::vec3& p2, const glm::vec3& p3 );
+    void SetPlane( int planeIndex, const vec3& p1, const vec3& p2, const vec3& p3 );
 };
 
 } // namespace PG

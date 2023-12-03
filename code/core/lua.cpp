@@ -28,7 +28,6 @@ void RegisterLuaFunctions_Time( lua_State* L )
 
 void RegisterLuaFunctions_Math( lua_State* L )
 {
-    using namespace glm;
     sol::state_view lua( L );
 
     sol::usertype<vec2> vec2_type =
@@ -41,9 +40,9 @@ void RegisterLuaFunctions_Math( lua_State* L )
     vec2_type.set_function( sol::meta_function::division, []( const vec2& a, const vec2& b ) { return a / b; } );
     vec2_type.set_function( sol::meta_function::unary_minus, []( const vec2& a ) { return -a; } );
     vec2_type.set_function( "scale", []( float f, const vec2& a ) { return f * a; } );
-    vec2_type.set_function( "dot", []( const vec2& a, const vec2& b ) { return dot( a, b ); } );
-    vec2_type.set_function( "length", []( const vec2& a ) { return length( a ); } );
-    vec2_type.set_function( "normalize", []( const vec2& a ) { return normalize( a ); } );
+    vec2_type.set_function( "dot", []( const vec2& a, const vec2& b ) { return Dot( a, b ); } );
+    vec2_type.set_function( "length", []( const vec2& a ) { return Length( a ); } );
+    vec2_type.set_function( "normalize", []( const vec2& a ) { return Normalize( a ); } );
     lua["Vec2Lerp"] = []( const vec2& a, const vec2& b, float t ) { return ( 1 - t ) * a + t * b; };
 
     sol::usertype<vec3> vec3_type =
@@ -57,9 +56,9 @@ void RegisterLuaFunctions_Math( lua_State* L )
     vec3_type.set_function( sol::meta_function::division, []( const vec3& a, const vec3& b ) { return a / b; } );
     vec3_type.set_function( sol::meta_function::unary_minus, []( const vec3& a ) { return -a; } );
     vec3_type.set_function( "scale", []( float f, const vec3& a ) { return f * a; } );
-    vec3_type.set_function( "dot", []( const vec3& a, const vec3& b ) { return dot( a, b ); } );
-    vec3_type.set_function( "length", []( const vec3& a ) { return length( a ); } );
-    vec3_type.set_function( "normalize", []( const vec3& a ) { return normalize( a ); } );
+    vec3_type.set_function( "dot", []( const vec3& a, const vec3& b ) { return Dot( a, b ); } );
+    vec3_type.set_function( "length", []( const vec3& a ) { return Length( a ); } );
+    vec3_type.set_function( "normalize", []( const vec3& a ) { return Normalize( a ); } );
     lua["Vec3Lerp"] = []( const vec3& a, const vec3& b, float t ) { return ( 1 - t ) * a + t * b; };
 
     sol::usertype<vec4> vec4_type = lua.new_usertype<vec4>(
@@ -74,9 +73,9 @@ void RegisterLuaFunctions_Math( lua_State* L )
     vec4_type.set_function( sol::meta_function::division, []( const vec4& a, const vec4& b ) { return a / b; } );
     vec4_type.set_function( sol::meta_function::unary_minus, []( const vec4& a ) { return -a; } );
     vec4_type.set_function( "scale", []( float f, const vec4& a ) { return f * a; } );
-    vec4_type.set_function( "dot", []( const vec4& a, const vec4& b ) { return dot( a, b ); } );
-    vec4_type.set_function( "length", []( const vec4& a ) { return length( a ); } );
-    vec4_type.set_function( "normalize", []( const vec4& a ) { return normalize( a ); } );
+    vec4_type.set_function( "dot", []( const vec4& a, const vec4& b ) { return Dot( a, b ); } );
+    vec4_type.set_function( "length", []( const vec4& a ) { return Length( a ); } );
+    vec4_type.set_function( "normalize", []( const vec4& a ) { return Normalize( a ); } );
     lua["Vec4Lerp"] = []( const vec4& a, const vec4& b, float t ) { return ( 1 - t ) * a + t * b; };
 
     sol::usertype<mat3> mat3_type = lua.new_usertype<mat3>( "mat3", sol::constructors<mat3(), mat3( float ), mat3( const mat3& )>() );

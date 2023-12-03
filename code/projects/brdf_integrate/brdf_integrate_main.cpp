@@ -4,7 +4,6 @@
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 
-using namespace glm;
 using namespace PG;
 
 // https://learnopengl.com/PBR/IBL/Specular-IBL
@@ -27,11 +26,11 @@ vec2 IntegrateBRDF( float NdotV, float perceptualRoughness )
     {
         vec2 Xi = vec2( i / (float)SAMPLE_COUNT, Hammersley32( i ) );
         vec3 H  = ImportanceSampleGGX_D( Xi, N, linearRoughness );
-        vec3 L  = normalize( 2.0f * dot( V, H ) * H - V );
+        vec3 L  = Normalize( 2.0f * Dot( V, H ) * H - V );
 
-        float NdotL = max( L.z, 0.0f );
-        float NdotH = max( H.z, 0.0f );
-        float VdotH = max( dot( V, H ), 0.0f );
+        float NdotL = Max( L.z, 0.0f );
+        float NdotH = Max( H.z, 0.0f );
+        float VdotH = Max( Dot( V, H ), 0.0f );
 
         if ( NdotL > 0.0f )
         {

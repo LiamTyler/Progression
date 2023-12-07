@@ -5,7 +5,6 @@
 #if USING( GAME )
     #include "c_shared/structs.h"
 #endif // #if USING( GAME )
-#include "glm/trigonometric.hpp"
 
 namespace PG
 {

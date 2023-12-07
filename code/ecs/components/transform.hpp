@@ -13,7 +13,6 @@ struct Transform
     mat4 Matrix() const;
     vec3 TransformPoint( vec3 p ) const;
     vec3 TransformVector( vec3 v ) const;
-    Ray operator*( const Ray& ray ) const;
 
     vec3 position = vec3( 0 );
     vec3 rotation = vec3( 0 );

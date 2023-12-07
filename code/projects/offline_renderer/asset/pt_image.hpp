@@ -185,21 +185,21 @@ public:
     std::vector<std::unique_ptr<uint8_t[]>> mips;
 
     // variables below are just cached, and can be inferred from pixelFormat
-    int numChannels;
-    bool sRGB;
+    int numChannels = 0;
+    bool sRGB = false;
     enum class PixelType
     {
         UNORM8,
         FP16,
         FP32
     };
-    PixelType pixelType;
+    PixelType pixelType = PixelType::UNORM8;
 };
 
 class TextureCubeMap : public Texture
 {
 public:
-    TextureCubeMap( int w, int h, int mipLevels, PG::PixelFormat format, void* facePixelData[6] )
+    TextureCubeMap( int w, int h, int mipLevels, PG::PixelFormat format, void* facePixelData[6] ) : halfPixelDim( 0.0f )
     {
         for ( int face = 0; face < 6; ++face )
         {

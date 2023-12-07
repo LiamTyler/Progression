@@ -2,7 +2,6 @@
 #include "asset/asset_manager.hpp"
 #include "asset/pmodel.hpp"
 #include "asset/types/material.hpp"
-#include "glm/geometric.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"

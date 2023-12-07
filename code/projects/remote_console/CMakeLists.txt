@@ -11,8 +11,6 @@ set(SRC
 	
     ${CODE_DIR}/shared/logger.cpp
     ${CODE_DIR}/shared/logger.hpp
-    ${CODE_DIR}/shared/math.cpp
-    ${CODE_DIR}/shared/math.hpp
     ${CODE_DIR}/shared/string.cpp
     ${CODE_DIR}/shared/string.hpp
     ${CODE_DIR}/shared/platform_defines.hpp

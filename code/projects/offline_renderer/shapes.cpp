@@ -44,6 +44,16 @@ SurfaceInfo Sphere::SampleWithRespectToArea( PG::Random::RNG& rng ) const
     return info;
 }
 
+static Ray operator*( const Transform& transform, const Ray& ray )
+{
+    mat4 matrix = transform.Matrix();
+    Ray ret;
+    ret.direction = vec3( matrix * vec4( ray.direction, 0 ) );
+    ret.position  = vec3( matrix * vec4( ray.position, 1 ) );
+
+    return ret;
+}
+
 bool Sphere::Intersect( const Ray& ray, IntersectionData* hitData ) const
 {
     float t;

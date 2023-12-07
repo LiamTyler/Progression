@@ -1,7 +1,6 @@
 project(OfflineRenderer LANGUAGES CXX C)
 
 include(helpful_functions)
-#set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 set(CODE_DIR ${PROGRESSION_DIR}/code)
 include(source_files)
 
@@ -55,11 +54,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/asset/pt_material.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/asset/pt_model.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/asset/pt_model.hpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/resource/resource.hpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/resource/resource_manager.cpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/resource/resource_manager.hpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/resource/skybox.cpp
-    #${CMAKE_CURRENT_SOURCE_DIR}/resource/skybox.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/asset/pt_image.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/asset/pt_image.hpp
 	
@@ -69,12 +63,13 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/bvh.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/intersection_tests.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/intersection_tests.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/path_tracer.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/path_tracer.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/pt_lights.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/pt_lights.hpp
+	${CMAKE_CURRENT_SOURCE_DIR}/pt_math.hpp
 	${CMAKE_CURRENT_SOURCE_DIR}/pt_scene.cpp
 	${CMAKE_CURRENT_SOURCE_DIR}/pt_scene.hpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/path_tracer.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/path_tracer.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sampling.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/sampling.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/shapes.cpp

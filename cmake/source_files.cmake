@@ -77,7 +77,6 @@ set(
     ${CODE_DIR}/shared/filesystem.hpp
     ${CODE_DIR}/shared/logger.cpp
     ${CODE_DIR}/shared/logger.hpp
-    ${CODE_DIR}/shared/math.cpp
     ${CODE_DIR}/shared/math.hpp
     ${CODE_DIR}/shared/math_base.hpp
     ${CODE_DIR}/shared/math_matrix.cpp

@@ -12,13 +12,13 @@ inline constexpr float DegToRad( const float x ) { return x * ( PI / 180.0f ); }
 inline constexpr float RadToDeg( const float x ) { return x * ( 180.0f / PI ); }
 
 template <typename T>
-T Min( const T& a, const T& b )
+constexpr T Min( const T& a, const T& b )
 {
     return std::min( a, b );
 }
 
 template <typename T>
-T Max( const T& a, const T& b )
+constexpr T Max( const T& a, const T& b )
 {
     return std::max( a, b );
 }

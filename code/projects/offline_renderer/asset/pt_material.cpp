@@ -2,10 +2,10 @@
 #include "asset/types/material.hpp"
 #include "intersection_tests.hpp"
 #include "pt_image.hpp"
+#include "pt_math.hpp"
 #include "sampling.hpp"
 #include "shared/assert.hpp"
 #include "shared/color_spaces.hpp"
-#include "shared/math.hpp"
 #include "shared/random.hpp"
 #include <algorithm>
 #include <unordered_map>

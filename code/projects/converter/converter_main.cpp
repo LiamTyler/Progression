@@ -256,7 +256,7 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
         LOG( "Fastfile %s is missing. Building...", fastfileName.c_str() );
         createFastFile = true;
     }
-    else if ( ffTimestamp < GetLatestFastfileDependency() )
+    else if ( ffTimestamp < GetLatestFastfileDependency() || outOfDateAssets )
     {
         LOG( "Fastfile %s is out of date. Rebuilding...", fastfileName.c_str() );
         createFastFile = true;
@@ -296,7 +296,6 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
     }
     else
     {
-        PG_ASSERT( outOfDateAssets == 0 );
         LOG( "Fastfile %s is up to date already!", fastfileName.c_str() );
     }
 

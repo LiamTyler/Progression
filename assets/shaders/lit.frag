@@ -33,7 +33,7 @@ layout( set = PG_LIGHTING_AUX_DESCRIPTOR_SET, binding = 2 ) uniform sampler2D br
 
 layout( std430, push_constant ) uniform MaterialConstantBufferUniform
 {
-    layout( offset = 128 ) MaterialData material;
+    layout( offset = 16 ) MaterialData material;
 };
 
 

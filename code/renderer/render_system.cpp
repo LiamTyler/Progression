@@ -68,6 +68,17 @@ static void InitPerFrameData()
         };
         rg.device.UpdateDescriptorSets( writeDescriptorSets );
 
+        data.objectBuffer = rg.device.NewBuffer( MAX_OBJECTS_PER_FRAME * 2 * sizeof( mat4 ), BUFFER_TYPE_STORAGE,
+            MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "objectSSBO" + std::to_string( i ) );
+        data.objectBuffer.Map();
+
+        data.objectDescSet = rg.descriptorPool.NewDescriptorSet( litPipeline.GetResourceLayout()->sets[PG_OBJECT_DESCRIPTOR_SET] );
+        bufferDescriptors   = { DescriptorBufferInfo( data.objectBuffer ) };
+        writeDescriptorSets = {
+            WriteDescriptorSet_Buffer( data.objectDescSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 0, &bufferDescriptors[0] ),
+        };
+        rg.device.UpdateDescriptorSets( writeDescriptorSets );
+
         data.skyboxDescSet  = rg.descriptorPool.NewDescriptorSet( skyboxPipeline.GetResourceLayout()->sets[0] );
         imgDescriptors      = { DescriptorImageInfoNull(), DescriptorImageInfoNull(), DescriptorImageInfoNull() };
         writeDescriptorSets = WriteDescriptorSet_Images( data.skyboxDescSet, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, imgDescriptors );
@@ -110,6 +121,7 @@ static void ShutdownPerFrameData()
         FrameData& data = rg.frameData[i];
         data.sceneConstantBuffer.Free();
         data.lightBuffer.Free();
+        data.objectBuffer.Free();
     }
 }
 
@@ -419,6 +431,26 @@ static void UpdateGPUSceneData( Scene* scene )
     }
     // lightBuffer.FlushCpuWrites();
 
+    Buffer& objectMatricesBuffer = rg.frameData[rg.currentFrame].objectBuffer;
+    mat4* gpuObjectMatrices = reinterpret_cast<mat4*>( objectMatricesBuffer.MappedPtr() );
+    auto view = scene->registry.view<ModelRenderer, PG::Transform>();
+    uint32_t objectNum = 0;
+    for ( auto entity: view )
+    {
+        if ( objectNum == MAX_OBJECTS_PER_FRAME )
+        {
+            LOG_WARN( "Too many objects in the scene! Some objects may be missing when in final render" );
+            break;
+        }
+
+        PG::Transform& transform = view.get<PG::Transform>( entity );
+        mat4 M = transform.Matrix();
+        mat4 N = Transpose( Inverse( M ) );
+        gpuObjectMatrices[2 * objectNum + 0] = M;
+        gpuObjectMatrices[2 * objectNum + 1] = N;
+        ++objectNum;
+    }
+
     GpuData::SceneGlobals globalData;
     globalData.V                        = scene->camera.GetV();
     globalData.P                        = scene->camera.GetP();
@@ -549,9 +581,14 @@ static void RenderFunc_DepthPass( RenderTask* task, RG_RenderData& renderData )
     cmdBuf->SetScissor( SceneSizedScissor() );
     mat4 VP = renderData.scene->camera.GetVP();
 
+    uint32_t objectNum = 0;
     renderData.scene->registry.view<ModelRenderer, Transform>().each(
         [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
         {
+            if ( objectNum == MAX_OBJECTS_PER_FRAME )
+                return;
+            ++objectNum;
+
             const Model* model = modelRenderer.model;
             auto M             = transform.Matrix();
             cmdBuf->PushConstants( 0, sizeof( mat4 ), &M[0][0] );
@@ -584,14 +621,17 @@ static void RenderFunc_LitPass( RenderTask* task, RG_RenderData& renderData )
     cmdBuf->BindDescriptorSet( bindlessTexturesDescriptorSet, PG_BINDLESS_TEXTURE_DESCRIPTOR_SET );
     cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightsDescSet, PG_LIGHT_DESCRIPTOR_SET );
     cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].lightingAuxTexturesDescSet, PG_LIGHTING_AUX_DESCRIPTOR_SET );
+    cmdBuf->BindDescriptorSet( rg.frameData[rg.currentFrame].objectDescSet, PG_OBJECT_DESCRIPTOR_SET );
 
+    uint32_t objectNum = 0;
     renderData.scene->registry.view<ModelRenderer, Transform>().each(
         [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
         {
+            if ( objectNum == MAX_OBJECTS_PER_FRAME )
+                return;
+
             const Model* model = modelRenderer.model;
-            auto M             = transform.Matrix();
-            auto N             = Transpose( Inverse( M ) );
-            GpuData::PerObjectData perObjData{ M, N };
+            GpuData::PerObjectData perObjData{ objectNum };
             cmdBuf->PushConstants( 0, sizeof( GpuData::PerObjectData ), &perObjData );
 
             cmdBuf->BindVertexBuffer( model->vertexBuffer, model->gpuPositionOffset, 0 );
@@ -608,10 +648,12 @@ static void RenderFunc_LitPass( RenderTask* task, RG_RenderData& renderData )
                     continue;
 
                 GpuData::MaterialData gpuMaterial = CPUMaterialToGPU( material );
-                cmdBuf->PushConstants( 128, sizeof( gpuMaterial ), &gpuMaterial );
+                cmdBuf->PushConstants( 16, sizeof( gpuMaterial ), &gpuMaterial );
                 PG_DEBUG_MARKER_INSERT_CMDBUF( ( *cmdBuf ), "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", vec4( 0 ) );
                 cmdBuf->DrawIndexed( mesh.startIndex, mesh.numIndices, mesh.startVertex );
             }
+
+            ++objectNum;
         } );
 }
 

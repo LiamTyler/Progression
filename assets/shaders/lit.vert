@@ -8,6 +8,11 @@ layout( set = PG_SCENE_GLOBALS_DESCRIPTOR_SET, binding = 0 ) uniform SceneGlobal
 	SceneGlobals globals;
 };
 
+layout( std430, set = PG_OBJECT_DESCRIPTOR_SET, binding = 0 ) readonly buffer ObjectMatricesSSBO
+{
+    mat4 objectMatrices[];
+};
+
 layout( location = 0 ) in vec3 inPosition;
 layout( location = 1 ) in vec3 inNormal;
 layout( location = 2 ) in vec4 inTangentAndSign;
@@ -26,9 +31,11 @@ layout( push_constant ) uniform PushConsts
 
 void main()
 {
-    worldSpacePos = (perObjectData.M * vec4( inPosition, 1 )).xyz;
-    worldSpaceNormal = (perObjectData.N * vec4( inNormal, 0 )).xyz;
-    worldSpaceTangent = (perObjectData.M * vec4( inTangentAndSign.xyz, 0 )).xyz;
+    mat4 M = objectMatrices[2 * perObjectData.matrixIndex + 0];
+    mat4 N = objectMatrices[2 * perObjectData.matrixIndex + 1];
+    worldSpacePos = (M * vec4( inPosition, 1 )).xyz;
+    worldSpaceNormal = (N * vec4( inNormal, 0 )).xyz;
+    worldSpaceTangent = (M * vec4( inTangentAndSign.xyz, 0 )).xyz;
     worldSpaceBitangent = cross( worldSpaceNormal, worldSpaceTangent ) * inTangentAndSign.w;
     texCoords = inTexCoord;
     gl_Position = globals.VP * vec4( worldSpacePos, 1.0 );

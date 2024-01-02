@@ -239,7 +239,14 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 
     if ( !resources.push_constant_buffers.empty() )
     {
-        const SPIRType& type                = compiler.get_type( resources.push_constant_buffers.front().base_type_id );
+        const SPIRType& type = compiler.get_type( resources.push_constant_buffers.front().base_type_id );
+        //uint32_t lowestOffset = UINT32_MAX;
+	    //for ( uint32_t i = 0; i < (uint32_t)type.member_types.size(); ++i )
+	    //{
+		//    lowestOffset = Min( lowestOffset, compiler.type_struct_member_offset( type, i ) );
+	    //}
+        //uint32_t highestOffsetPlusSize = static_cast<uint32_t>( compiler.get_declared_struct_size( type ) );
+        //reflectData.layout.pushConstantSize = highestOffsetPlusSize - lowestOffset;
         reflectData.layout.pushConstantSize = static_cast<uint32_t>( compiler.get_declared_struct_size( type ) );
     }
 

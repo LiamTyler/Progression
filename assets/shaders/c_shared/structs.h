@@ -31,24 +31,26 @@ struct SceneGlobals
 
 struct PerObjectData
 {
-    MAT4 M;
-    MAT4 N;
+    UINT matrixIndex;
 };
 
 struct MaterialData
 {
     VEC3 albedoTint;
     float metalnessTint;
+
     float roughnessTint;
     UINT albedoMetalnessMapIndex;
     UINT normalRoughnessMapIndex;
     float pad;
+
     VEC3 emissiveTint;
     UINT emissiveMapIndex;
 };
 
 #ifndef PG_SHADER_CODE
-static_assert( sizeof( MaterialData ) <= 128, "Total push constant data has to be less than 256, and the first 128 is matrices" );
+static_assert( sizeof( PerObjectData ) + sizeof( MaterialData ) <= 128, "Total push constant data has to be less than 128 bytes (on some machines)" );
+static_assert( 16 + sizeof( MaterialData ) <= 128, "Total push constant data has to be less than 128 bytes (on some machines). Accounting for member alignment" );
 #endif // #ifndef PG_SHADER_CODE
 
 #define LIGHT_TYPE_POINT 0
@@ -83,5 +85,6 @@ struct SkyboxData
 #define PG_BINDLESS_TEXTURE_DESCRIPTOR_SET 1
 #define PG_LIGHT_DESCRIPTOR_SET 2
 #define PG_LIGHTING_AUX_DESCRIPTOR_SET 3
+#define PG_OBJECT_DESCRIPTOR_SET 4
 
 #endif // #ifndef _STRUCTS_H_

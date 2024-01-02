@@ -180,10 +180,10 @@ bool PhysicalDevice::ExtensionSupported( const std::string& extensionName ) cons
 
 int PhysicalDevice::RateDevice( bool headless, VkSurfaceKHR surface, bool logIfUnsuitable ) const
 {
-    if ( m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u || m_GCTQueueFamily == ~0u )
+    if ( m_GCTQueueFamily == ~0u )
     {
         if ( logIfUnsuitable )
-            LOG_ERR( "\t\tAt least one queue family was invalid" );
+            LOG_ERR( "\t\tNo combined queue available" );
         return false;
     }
 

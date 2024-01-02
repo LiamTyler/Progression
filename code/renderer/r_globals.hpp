@@ -18,16 +18,19 @@ enum : unsigned char
 };
 
 #define MAX_FRAMES_IN_FLIGHT 2
+#define MAX_OBJECTS_PER_FRAME (1024*256)
 
 struct FrameData
 {
     Buffer sceneConstantBuffer;
     Buffer lightBuffer;
+    Buffer objectBuffer;
     DescriptorSet sceneConstantDescSet;
     DescriptorSet skyboxDescSet;
     DescriptorSet lightsDescSet;
     DescriptorSet lightingAuxTexturesDescSet;
     DescriptorSet postProcessDescSet;
+    DescriptorSet objectDescSet;
 
     CommandBuffer graphicsCmdBuf;
     Fence inFlightFence;

@@ -68,6 +68,7 @@ std::string MaterialConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
     size_t hash           = Hash( info->albedoTint );
+    HashCombine( hash, info->type );
     HashCombine( hash, info->metalnessTint );
     HashCombine( hash, info->roughnessTint );
     HashCombine( hash, info->emissiveTint );
@@ -98,6 +99,7 @@ bool MaterialConverter::ConvertInternal( ConstDerivedInfoPtr& matInfo )
 
     Material material;
     material.name          = matInfo->name;
+    material.type          = matInfo->type;
     material.albedoTint    = matInfo->albedoTint;
     material.metalnessTint = matInfo->metalnessTint;
     material.roughnessTint = matInfo->roughnessTint;

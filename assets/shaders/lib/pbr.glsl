@@ -5,13 +5,13 @@
 
 vec3 PBR_FresnelSchlick( float NdotV, vec3 F0 )
 {
-    return F0 + (1.0 - F0) * pow( 1.0 - NdotV, 5.0 );
+    return F0 + (1.0f - F0) * pow( 1.0f - NdotV, 5.0f );
 }
 
 vec3 PBR_FresnelSchlickRoughness(float cosTheta, vec3 F0, float roughness)
 {
     vec3 Fr = max( vec3( 1.0f - roughness ), F0 ) - F0;
-    return F0 + Fr * pow( 1.0f - cosTheta, 5.0f);
+    return F0 + Fr * pow( 1.0f - cosTheta, 5.0f );
 }
 
 
@@ -19,7 +19,7 @@ float PBR_D_GGX( float NdotH, float roughness )
 {
     float a      = roughness * roughness;
     float a2     = a * a;
-    float denom = (NdotH * NdotH * (a2 - 1.0) + 1.0);
+    float denom = (NdotH * NdotH * (a2 - 1.0f) + 1.0f);
 
     return a2 / (PI * denom * denom);
 }
@@ -38,7 +38,7 @@ float PBR_GetRemappedRoughness_IBL( float roughness )
 
 float PBR_G_SchlickGGXInternal( float NdotV, float remappedRoughness )
 {
-    return NdotV / NdotV * (1.0 - remappedRoughness) + remappedRoughness;
+    return NdotV / NdotV * (1.0f - remappedRoughness) + remappedRoughness;
 }
 
 
@@ -69,7 +69,7 @@ vec3 BRDF_Lambertian( vec3 albedo )
 
 vec3 BRDF_CookTorrence( float D, vec3 F, float G, vec3 N, vec3 wo, vec3 wi )
 {
-    return (D * F * G) / (4 * dot( wo, N ) * dot( wi, N ));
+    return (D * F * G) / (4.0f * dot( wo, N ) * dot( wi, N ));
 }
 
 #endif // #ifndef __PBR_GLSL__

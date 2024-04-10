@@ -695,12 +695,21 @@ static void RenderFunc_PostProcessPass( RenderTask* task, RG_RenderData& renderD
     cmdBuf->Draw( 0, 6 );
 }
 
+static void RenderFunc_UI2D_DVars()
+{
+    //ImGui::SetNextWindowPos( { 100, 5 }, ImGuiCond_FirstUseEver );
+    ImGui::Begin( "Dvars" );
+    ImGui::InputInt( "r_materialViz", r_materialViz.GetRawPtr<int>() );
+    ImGui::End();
+}
+
 static void RenderFunc_UI2D( RenderTask* task, RG_RenderData& renderData )
 {
     CommandBuffer* cmdBuf = renderData.cmdBuf;
     UI::Render( cmdBuf, &bindlessTexturesDescriptorSet );
 #if USING( PG_DEBUG_UI )
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
+    UIOverlay::AddDrawFunction( RenderFunc_UI2D_DVars );
     UIOverlay::Render( *cmdBuf );
 #endif // #if USING( PG_DEBUG_UI )
 }

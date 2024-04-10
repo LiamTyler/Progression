@@ -68,6 +68,36 @@ public:
     uint32_t GetUint() const;
     float GetFloat() const;
     double GetDouble() const;
+     
+    template <typename T>
+    T* GetRawPtr()
+    {
+        using UT = relaxed_underlying_type<T>::type;
+        if constexpr ( std::is_same_v<UT, bool> )
+        {
+            return &value.bVal;
+        }
+        else if constexpr ( std::is_same_v<UT, short> || std::is_same_v<UT, int> )
+        {
+            return &value.iVal;
+        }
+        else if constexpr ( std::is_same_v<UT, uint8_t> || std::is_same_v<UT, uint16_t> || std::is_same_v<UT, uint32_t> )
+        {
+            return &value.uVal;
+        }
+        else if constexpr ( std::is_same_v<UT, float> )
+        {
+            return &value.fVal;
+        }
+        else if constexpr ( std::is_same_v<UT, double> )
+        {
+            return &value.dVal;
+        }
+        else
+        {
+            LOG_ERR( "Unknown type in Dvar::Set: %s vs %s", typeid( UT ).name(), typeid( T ).name() );
+        }
+    }
 
     template <typename T>
     void Set( const T& newVal )

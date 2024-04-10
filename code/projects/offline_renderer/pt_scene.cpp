@@ -257,7 +257,7 @@ void Scene::Start()
         if ( startFn.valid() )
         {
             // script.env["scene"] = this;
-            // CHECK_SOL_FUNCTION_CALL( startFn() );
+            CHECK_SOL_FUNCTION_CALL( startFn() );
         }
     }
 }
@@ -297,6 +297,13 @@ vec3 Scene::LEnvironment( const Ray& ray )
     }
 
     return vec3( 0 );
+}
+
+void RegisterLuaFunctions_PTScene( lua_State* L )
+{
+    sol::state_view lua( L );
+    sol::usertype<Scene> scene_type = lua.new_usertype<Scene>( "Scene" );
+    scene_type["camera"]            = &Scene::camera;
 }
 
 } // namespace PT

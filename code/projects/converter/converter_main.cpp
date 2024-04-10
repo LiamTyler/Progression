@@ -30,7 +30,7 @@ static void DisplayHelp()
         "  --force        Don't check asset file dependencies, just reconvert everything\n"
         "  --help         Print this message and exit\n"
         "  --single       Used to process a specific asset (and its referenced assets). Format: type name. Ex: '--single material "
-        "wood_floor\n";
+        "\n";
 
     LOG( "%s", msg );
 }

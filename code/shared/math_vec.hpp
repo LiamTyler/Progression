@@ -65,3 +65,7 @@ inline vec4 Min( const vec4& a, const vec4& b ) { return glm::min( a, b ); }
 inline vec2 Max( const vec2& a, const vec2& b ) { return glm::max( a, b ); }
 inline vec3 Max( const vec3& a, const vec3& b ) { return glm::max( a, b ); }
 inline vec4 Max( const vec4& a, const vec4& b ) { return glm::max( a, b ); }
+
+inline vec2 Lerp( const vec2& a, const vec2& b, float t ) { return glm::mix( a, b, t ); }
+inline vec3 Lerp( const vec3& a, const vec3& b, float t ) { return glm::mix( a, b, t ); }
+inline vec4 Lerp( const vec4& a, const vec4& b, float t ) { return glm::mix( a, b, t ); }

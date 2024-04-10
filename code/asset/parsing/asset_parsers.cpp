@@ -110,7 +110,9 @@ bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
     using namespace rapidjson;
     static JSONFunctionMapper< MaterialCreateInfo& > mapping(
     {
-        { "type", []( const Value& v, MaterialCreateInfo& i ) { i.type = MaterialType_StringToEnum( String( v ) ); } },
+        { "type", []( const Value& v, MaterialCreateInfo& i ) {
+            i.type = MaterialType_StringToEnum( String( v ) );
+        } },
         { "textureset", []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = String( v ); } },
         { "albedoTint", []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint = ParseVec3( v ); } },
         { "metalnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint = ParseNumber<float>( v ); } },

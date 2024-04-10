@@ -1,11 +1,11 @@
 [
     { "OfflineRenderSettings": {
-        "imageResolution": [ 800, 800 ],
+        "imageResolution": [ 1920, 1080 ],
         "maxDepth": 5,
         "outputImageFilename": "build/sponza.png",
-        "numSamplesPerPixel": [ 16 ],
+        "numSamplesPerPixel": [ 32 ],
         "antialiasMethod": "JITTER",
-        "tonemapMethod": "UNCHARTED2"
+        "tonemapMethod": "ACES"
     }},
     { "_Camera": { "position": [ -9, 2, 0 ], "rotation": [ 0, -90, 0 ], "aspectRatio": 1.0 } },
     { "Camera": { "position": [ 0, -3, 3 ], "rotation": [ 0, 0, 0 ] } },

@@ -48,4 +48,6 @@ public:
     std::vector<PG::Lua::ScriptInstance> nonEntityScripts;
 };
 
+void RegisterLuaFunctions_PTScene( lua_State* L );
+
 } // namespace PT

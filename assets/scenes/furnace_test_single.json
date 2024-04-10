@@ -2,9 +2,9 @@
     { "OfflineRenderSettings": {
         "imageResolution": [ 1280, 720 ],
         "maxDepth": 5,
-        "outputImageFilename": "build/furnace_test.png",
+        "outputImageFilename": "build/furnace_test_single.png",
         "numSamplesPerPixel": [ 64 ],
-        "antialiasMethod": "NONE",
+        "antialiasMethod": "JITTER",
         "tonemapMethod": "ACES"
     }},
     { "Camera": {

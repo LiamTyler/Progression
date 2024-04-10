@@ -21,59 +21,6 @@ using namespace PG;
 namespace PT
 {
 
-float Fresnel( const vec3& I, const vec3& N, const float& ior )
-{
-    // this happens when the material is reflective, but not refractive
-    if ( ior == 1 )
-    {
-        return 1;
-    }
-
-    float cosi = Min( 1.0f, Max( 1.0f, Dot( I, N ) ) );
-    float etai = 1, etat = ior;
-    if ( cosi > 0 )
-    {
-        std::swap( etai, etat );
-    }
-
-    float sint = etai / etat * sqrtf( Max( 0.0f, 1 - cosi * cosi ) );
-
-    float kr;
-    if ( sint >= 1 )
-    {
-        kr = 1;
-    }
-    else
-    {
-        float cost = sqrtf( Max( 0.0f, 1 - sint * sint ) );
-        cosi       = fabsf( cosi );
-        float Rs   = ( ( etat * cosi ) - ( etai * cost ) ) / ( ( etat * cosi ) + ( etai * cost ) );
-        float Rp   = ( ( etai * cosi ) - ( etat * cost ) ) / ( ( etai * cosi ) + ( etat * cost ) );
-        kr         = ( Rs * Rs + Rp * Rp ) / 2;
-    }
-
-    return kr;
-}
-
-vec3 Refract( const vec3& I, const vec3& N, const float& ior )
-{
-    float cosi = Min( 1.0f, Max( 1.0f, Dot( I, N ) ) );
-    float etai = 1, etat = ior;
-    vec3 n = N;
-    if ( cosi < 0 )
-    {
-        cosi = -cosi;
-    }
-    else
-    {
-        std::swap( etai, etat );
-        n = -N;
-    }
-    float eta = etai / etat;
-    float k   = 1 - eta * eta * ( 1 - cosi * cosi );
-    return k < 0 ? vec3( 0 ) : eta * I + ( eta * cosi - sqrtf( k ) ) * n;
-}
-
 vec3 EstimateSingleDirect( Light* light, const IntersectionData& hitData, Scene* scene, Random::RNG& rng, const BRDF& brdf )
 {
     Interaction it{ hitData.position, hitData.normal };
@@ -106,80 +53,6 @@ vec3 LDirect( const IntersectionData& hitData, Scene* scene, Random::RNG& rng, c
     return L;
 }
 
-bool SolveLinearSystem2x2( const float A[2][2], const float B[2], float& x0, float& x1 )
-{
-    float det = A[0][0] * A[1][1] - A[0][1] * A[1][0];
-    if ( std::abs( det ) < 1e-10f )
-    {
-        return false;
-    }
-
-    x0 = ( A[1][1] * B[0] - A[0][1] * B[1] ) / det;
-    x1 = ( A[0][0] * B[1] - A[1][0] * B[0] ) / det;
-
-    return !std::isnan( x0 ) && !std::isnan( x1 );
-}
-
-void ComputeDifferentials( const RayDifferential& ray, IntersectionData* surf )
-{
-    if ( !ray.hasDifferentials )
-    {
-        surf->du = surf->dv = vec2( 0 );
-        return;
-    }
-
-    constexpr float EPS = 0.000001f;
-    vec3 dpdx( 0 );
-    vec3 dpdy( 0 );
-    const vec3& N = surf->normal;
-    const vec3& P = surf->position;
-
-    float tx = Dot( N, ray.diffX.direction );
-    float ty = Dot( N, ray.diffY.direction );
-    if ( fabs( tx ) < EPS || fabs( ty ) < EPS )
-    {
-        surf->du = surf->dv = vec2( 0 );
-        return;
-    }
-
-    float d = Dot( surf->normal, surf->position );
-    tx      = -( Dot( N, ray.diffX.position ) - d ) / tx;
-    ty      = -( Dot( N, ray.diffY.position ) - d ) / ty;
-    vec3 px = ray.diffX.Evaluate( tx );
-    vec3 py = ray.diffY.Evaluate( ty );
-    dpdx    = px - P;
-    dpdy    = py - P;
-
-    // 2 unknowns, 3 equations. Choose 2 dimensions least likely to be degenerate
-    int dim[2];
-    if ( std::abs( N.x ) > std::abs( N.y ) && std::abs( N.x ) > std::abs( N.z ) )
-    {
-        dim[0] = 1;
-        dim[1] = 2;
-    }
-    else if ( std::abs( N.y ) > std::abs( N.z ) )
-    {
-        dim[0] = 0;
-        dim[1] = 2;
-    }
-    else
-    {
-        dim[0] = 0;
-        dim[1] = 1;
-    }
-
-    float A[2][2] = {
-        {surf->dpdu[dim[0]],  surf->dpdv[dim[0]]},
-        { surf->dpdu[dim[1]], surf->dpdv[dim[1]]}
-    };
-    float Bx[2] = { px[dim[0]] - P[dim[0]], px[dim[1]] - P[dim[1]] };
-    float By[2] = { py[dim[0]] - P[dim[0]], py[dim[1]] - P[dim[1]] };
-    if ( !SolveLinearSystem2x2( A, Bx, surf->du.x, surf->dv.x ) || !SolveLinearSystem2x2( A, By, surf->du.y, surf->dv.y ) )
-    {
-        surf->du = surf->dv = vec2( 0 );
-    }
-}
-
 vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
 {
     vec3 L              = vec3( 0 );
@@ -196,14 +69,13 @@ vec3 Li( RayDifferential ray, Random::RNG& rng, Scene* scene )
         }
 
         hitData.position += EPSILON * hitData.normal;
-        // ComputeDifferentials( ray, &hitData );
 
         BRDF brdf = hitData.material->ComputeBRDF( &hitData );
 
         // emitted light of current surface
         if ( bounce == 0 && Dot( hitData.wo, hitData.normal ) > 0 )
         {
-            L += pathThroughput * brdf.Ke;
+            L += pathThroughput * brdf.emissive;
         }
 
         // estimate direct

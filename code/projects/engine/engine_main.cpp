@@ -69,6 +69,11 @@ int main( int argc, char* argv[] )
             Dvar* debugUIDvar = GetDvar( "r_debugUI" );
             debugUIDvar->Set( !debugUIDvar->GetBool() );
         }
+        if ( Input::GetKeyDown( Key::F2 ) )
+        {
+            Dvar* debugUIDvar = GetDvar( "r_debugUI" );
+            debugUIDvar->Set( !debugUIDvar->GetBool() );
+        }
         if ( Input::GetKeyDown( Key::UP ) )
         {
             Dvar* r_debugInt = GetDvar( "r_debugInt" );

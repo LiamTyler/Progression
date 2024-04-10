@@ -5,6 +5,10 @@
 namespace PG
 {
 
+vec3 FresnelSchlick( float NdotV, vec3 F0 );
+
+float GGX_D( float NdotH, float roughness );
+
 // Samples just the distribution function D of GGX. Xi is a 2d random vec
 vec3 ImportanceSampleGGX_D( vec2 Xi, vec3 N, float linearRoughness );
 

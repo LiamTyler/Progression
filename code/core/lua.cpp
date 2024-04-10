@@ -9,6 +9,9 @@
     #include "core/input.hpp"
     #include "core/window.hpp"
 #endif // #if USING( GAME )
+#if USING( OFFLINE_RENDERER )
+    #include "pt_scene.hpp"
+#endif // USING( OFFLINE_RENDERER )
 
 static sol::state* g_LuaState = nullptr;
 
@@ -119,6 +122,9 @@ void SetupStateFunctions( lua_State* state )
 
     RegisterLuaFunctions_Math( state );
     RegisterLuaFunctions_Scene( state );
+#if USING( OFFLINE_RENDERER )
+    PT::RegisterLuaFunctions_PTScene( state );
+#endif // USING( OFFLINE_RENDERER )
     RegisterLuaFunctions_Camera( state );
     ECS::RegisterLuaFunctions( state );
     AssetManager::RegisterLuaFunctions( state );

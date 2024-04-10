@@ -3,6 +3,17 @@
 namespace PG
 {
 
+vec3 FresnelSchlick( float NdotV, vec3 F0 ) { return F0 + ( vec3( 1.0f ) - F0 ) * pow( 1.0f - NdotV, 5.0f ); }
+
+float GGX_D( float NdotH, float roughness )
+{
+    float a     = roughness * roughness;
+    float a2    = a * a;
+    float denom = ( NdotH * NdotH * ( a2 - 1.0f ) + 1.0f );
+
+    return a2 / ( PI * denom * denom );
+}
+
 vec3 ImportanceSampleGGX_D( vec2 Xi, vec3 N, float linearRoughness )
 {
     float a = linearRoughness;

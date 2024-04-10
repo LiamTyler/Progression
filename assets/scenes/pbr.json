@@ -1,15 +1,15 @@
 [
     { "OfflineRenderSettings": {
-        "imageResolution": [ 1280, 720 ],
+        "imageResolution": [ 1920, 1080  ],
         "maxDepth": 5,
         "outputImageFilename": "build/pbr.png",
-        "numSamplesPerPixel": [ 32 ],
+        "numSamplesPerPixel": [ 64 ],
         "antialiasMethod": "NONE",
         "tonemapMethod": "ACES"
     }},
     { "Camera": {
-        "position": [ 0, -5, 2 ],
-        "rotation": [ 0, 0, 0 ]
+        "position": [ 0, 0, 3 ],
+        "rotation": [ -90, 0, 0 ]
     }},
 	{ "Skybox": "white_sky" },
 	{ "Script": "cameraController" },

@@ -25,6 +25,8 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     GfxImage decompressedImg;
     if ( PixelFormatIsCompressed( image->pixelFormat ) )
     {
+        static uint32_t decompressedImages = 0;
+        LOG( "Decompressing image %u '%s'...", decompressedImages++, image->name.c_str() );
         decompressedImg = DecompressGfxImage( *image );
     }
 

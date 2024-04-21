@@ -15,7 +15,7 @@ namespace Gfx
     }
 
 
-    VertexAttributeDescriptor::VertexAttributeDescriptor( uint32_t loc, uint32_t bind, BufferDataType _format, uint32_t _offset ) :
+    VertexAttributeDescriptor::VertexAttributeDescriptor( uint32_t loc, uint32_t bind, BufferFormat _format, uint32_t _offset ) :
         location( loc ),
         binding( bind ),
         format( _format ),
@@ -39,7 +39,7 @@ namespace Gfx
         {
             desc.m_vkAttribDescs[i].location = attribDesc[i].location;
             desc.m_vkAttribDescs[i].binding  = attribDesc[i].binding;
-            desc.m_vkAttribDescs[i].format   = PGToVulkanBufferDataType( attribDesc[i].format );
+            desc.m_vkAttribDescs[i].format   = PGToVulkanBufferFormat( attribDesc[i].format );
             desc.m_vkAttribDescs[i].offset   = attribDesc[i].offset;
         }
 

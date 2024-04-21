@@ -113,6 +113,8 @@ set(
     ${CODE_DIR}/renderer/vulkan.hpp
 	${CODE_DIR}/renderer/rendergraph/r_rendergraph.cpp
     ${CODE_DIR}/renderer/rendergraph/r_rendergraph.hpp
+	${CODE_DIR}/renderer/rendergraph/r_rendergraph2.cpp
+    ${CODE_DIR}/renderer/rendergraph/r_rendergraph2.hpp
 	
 	${C_SHARED_SHADERS}
     
@@ -132,6 +134,9 @@ set(
 	EXTERNALS
     ${CODE_DIR}/external/memory_map/MemoryMapped.h
     ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
+	
+	${CODE_DIR}/external/vma/vk_mem_alloc.h
+    ${CODE_DIR}/external/vma/vma_usage.cpp
     
     ${CODE_DIR}/external/imgui/imgui.h
     ${CODE_DIR}/external/imgui/imgui.cpp

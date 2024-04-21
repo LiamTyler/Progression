@@ -75,7 +75,7 @@ constexpr VkIndexType PGToVulkanIndexType( IndexType indexType ) { return static
 
 constexpr VkBufferUsageFlags PGToVulkanBufferType( BufferType type ) { return static_cast<VkBufferUsageFlags>( type ); }
 
-constexpr VkFormat PGToVulkanBufferDataType( BufferDataType type )
+constexpr VkFormat PGToVulkanBufferFormat( BufferFormat type )
 {
     VkFormat convert[] =
     {
@@ -142,7 +142,7 @@ constexpr VkFormat PGToVulkanBufferDataType( BufferDataType type )
         VK_FORMAT_R32G32B32A32_UINT, // INT4
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( BufferDataType::NUM_BUFFER_DATA_TYPE ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( BufferFormat::NUM_BUFFER_FORMATS ) );
 
     return convert[static_cast<int>( type )];
 }

@@ -348,7 +348,11 @@ void Model::UploadToGPU()
     offset += tangentCount * sizeof( vec4 );
 
     using namespace Gfx;
+#if USING( PG_RTX )
     BufferType rayTracingType = BUFFER_TYPE_DEVICE_ADDRESS | BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY | BUFFER_TYPE_STORAGE;
+#else // #if USING( PG_RTX )
+    BufferType rayTracingType = BUFFER_TYPE_NONE;
+#endif // #else // #if USING( PG_RTX )
     vertexBuffer =
         rg.device.NewBuffer( totalSize, tmpMem, rayTracingType | BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name );
     indexBuffer = rg.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), rayTracingType | BUFFER_TYPE_INDEX,

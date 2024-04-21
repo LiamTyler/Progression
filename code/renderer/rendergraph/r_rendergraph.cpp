@@ -16,8 +16,15 @@ namespace PG::Gfx
 
 bool ElementsMergable( const RG_Element& a, const RG_Element& b )
 {
-    return a.type == b.type && a.format == b.format && a.width == b.width && a.height == b.height && a.depth == b.depth &&
+    if ( a.type == ResourceType::BUFFER )
+    {
+        return a.type == b.type && a.bufferFormat == b.bufferFormat && a.bufferType == b.bufferType && a.numElements == b.numElements;
+    }
+    else
+    {
+        return a.type == b.type && a.texFormat == b.texFormat && a.width == b.width && a.height == b.height && a.depth == b.depth &&
            a.arrayLayers == b.arrayLayers && a.mipLevels == b.mipLevels;
+    }
 }
 
 void ResolveSizesAndSwapchain( RG_Element& element, const RenderGraphCompileInfo& info )
@@ -29,7 +36,7 @@ void ResolveSizesAndSwapchain( RG_Element& element, const RenderGraphCompileInfo
         element.mipLevels = 1 + static_cast<int>( log2f( static_cast<float>( Max( element.width, element.height ) ) ) );
     }
     if ( IsSet( element.type, ResourceType::SWAPCHAIN_IMAGE ) )
-        element.format = info.swapchainFormat;
+        element.texFormat = info.swapchainFormat;
 }
 
 void RG_TaskRenderTargetsDynamic::AddColorAttach(
@@ -41,7 +48,7 @@ void RG_TaskRenderTargetsDynamic::AddColorAttach(
     info.physicalResourceIndex = phyRes;
     info.loadAction            = loadAction;
     info.storeAction           = storeAction;
-    info.format                = element.format;
+    info.format                = element.texFormat;
     info.imageLayout           = ImageLayout::COLOR_ATTACHMENT;
     ++numColorAttach;
     renderAreaWidth  = Min( renderAreaWidth, (uint16_t)element.width );
@@ -56,69 +63,100 @@ void RG_TaskRenderTargetsDynamic::AddDepthAttach(
     depthAttachInfo.physicalResourceIndex = phyRes;
     depthAttachInfo.loadAction            = loadAction;
     depthAttachInfo.storeAction           = storeAction;
-    depthAttachInfo.format                = element.format;
+    depthAttachInfo.format                = element.texFormat;
     depthAttachInfo.imageLayout =
-        PixelFormatHasStencil( element.format ) ? ImageLayout::DEPTH_STENCIL_ATTACHMENT : ImageLayout::DEPTH_ATTACHMENT;
+        PixelFormatHasStencil( element.texFormat ) ? ImageLayout::DEPTH_STENCIL_ATTACHMENT : ImageLayout::DEPTH_ATTACHMENT;
     renderAreaWidth  = Min( renderAreaWidth, (uint16_t)element.width );
     renderAreaHeight = Min( renderAreaHeight, (uint16_t)element.height );
 }
 
+#define SET_TEX( e, iName, iType, iState, iFormat, iWidth, iHeight, iDepth, iArrayLayers, iMipLevels, iClearColor, iIsCleared, iIsExternal ) \
+    e.name = iName; e.type = iType; e.state = iState; e.texFormat = iFormat; e.width = iWidth; e.height = iHeight; e.depth = iDepth; \
+    e.arrayLayers = iArrayLayers; e.mipLevels = iMipLevels; e.clearColor = iClearColor; e.isCleared = iIsCleared; e.isExternal = iIsExternal;
+
 void RenderTaskBuilder::AddColorOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
     uint32_t arrayLayers, uint32_t mipLevels, const vec4& clearColor )
 {
+    RG_Element& e = elements.emplace_back();
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH;
-    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, clearColor, true } );
+    SET_TEX( e, name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, clearColor, true, false );
 }
 void RenderTaskBuilder::AddColorOutput(
     const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
+    RG_Element& e = elements.emplace_back();
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH;
-    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, vec4( 0 ), false } );
+    SET_TEX( e, name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, vec4( 0 ), false, false );
 }
 void RenderTaskBuilder::AddSwapChainOutput( const vec4& clearColor )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH | ResourceType::SWAPCHAIN_IMAGE;
-    elements.push_back( { "$swapchain", type, ResourceState::WRITE, PixelFormat::INVALID, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
-        clearColor, true, true } );
+    RG_Element& e = elements.emplace_back();
+    SET_TEX( e, "$swapchain", type, ResourceState::WRITE, PixelFormat::INVALID, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, clearColor, true, true );
 }
 void RenderTaskBuilder::AddSwapChainOutput()
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::COLOR_ATTACH | ResourceType::SWAPCHAIN_IMAGE;
-    elements.push_back( { "$swapchain", type, ResourceState::WRITE, PixelFormat::INVALID, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
-        vec4( 0 ), false, true } );
+    RG_Element& e = elements.emplace_back();
+    SET_TEX( e, "$swapchain", type, ResourceState::WRITE, PixelFormat::INVALID, SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, vec4( 0 ), false, true );
 }
 void RenderTaskBuilder::AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, float clearValue )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::DEPTH_ATTACH;
     if ( PixelFormatHasStencil( format ) )
         type |= ResourceType::STENCIL_ATTACH;
-    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, vec4( clearValue ), true } );
+    RG_Element& e = elements.emplace_back();
+    SET_TEX( e, name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, vec4( clearValue ), true, false );
 }
 void RenderTaskBuilder::AddDepthOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height )
 {
     ResourceType type = ResourceType::TEXTURE | ResourceType::DEPTH_ATTACH;
     if ( PixelFormatHasStencil( format ) )
         type |= ResourceType::STENCIL_ATTACH;
-    elements.push_back( { name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, vec4( 0 ), false } );
+    RG_Element& e = elements.emplace_back();
+    SET_TEX( e, name, type, ResourceState::WRITE, format, width, height, 1, 1, 1, vec4( 0 ), false, false );
 }
 void RenderTaskBuilder::AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
     uint32_t arrayLayers, uint32_t mipLevels, const vec4& clearColor )
 {
-    elements.push_back(
-        { name, ResourceType::TEXTURE, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, clearColor, true } );
+    ResourceType type = ResourceType::TEXTURE;
+    RG_Element& e = elements.emplace_back();
+    SET_TEX( e, name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, clearColor, true, false );
 }
 void RenderTaskBuilder::AddTextureOutput(
     const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
-    elements.push_back(
-        { name, ResourceType::TEXTURE, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, vec4( 0 ), false } );
+    ResourceType type = ResourceType::TEXTURE;
+    RG_Element& e = elements.emplace_back();
+    SET_TEX( e, name, type, ResourceState::WRITE, format, width, height, depth, arrayLayers, mipLevels, vec4( 0 ), false, false );
 }
 void RenderTaskBuilder::AddColorOutput( const std::string& name ) { AddColorOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0 ); }
 void RenderTaskBuilder::AddDepthOutput( const std::string& name ) { AddDepthOutput( name, PixelFormat::INVALID, 0, 0 ); }
 void RenderTaskBuilder::AddTextureOutput( const std::string& name ) { AddTextureOutput( name, PixelFormat::INVALID, 0, 0, 0, 0, 0 ); }
 void RenderTaskBuilder::AddTextureInput( const std::string& name )
 {
-    elements.push_back( { name, ResourceType::TEXTURE, ResourceState::READ_ONLY, PixelFormat::INVALID, 0, 0, 0, 0, 0, vec4( 0 ), false } );
+    RG_Element& e = elements.emplace_back();
+    SET_TEX( e, name, ResourceType::TEXTURE, ResourceState::READ_ONLY, PixelFormat::INVALID, 0, 0, 0, 0, 0, vec4( 0 ), false, false );
+}
+void RenderTaskBuilder::AddBufferOutput( const std::string& name, BufferType type, BufferFormat format, uint32_t numElements )
+{
+    RG_Element e{};
+    e.name = name;
+    e.type = ResourceType::BUFFER;
+    e.bufferFormat = format;
+    e.bufferType = type;
+    e.numElements = numElements;
+    elements.push_back( e );
+}
+void RenderTaskBuilder::AddBufferInput( const std::string& name )
+{
+    RG_Element e{};
+    e.name = name;
+    e.type = ResourceType::BUFFER;
+    e.bufferFormat = BufferFormat::INVALID;
+    //e.bufferType = type;
+    //e.numElements = numElements;
+    elements.push_back( e );
 }
 void RenderTaskBuilder::SetRenderFunction( RenderFunction func ) { renderFunction = func; }
 
@@ -172,7 +210,7 @@ bool RenderGraphBuilder::Validate( const RenderGraphCompileInfo& compileInfo ) c
                 outputs.insert( name );
 
                 auto it = logicalOutputs.find( name );
-                if ( element.format != PixelFormat::INVALID )
+                if ( element.texFormat != PixelFormat::INVALID )
                 {
                     if ( it != logicalOutputs.end() && !element.isExternal )
                     {
@@ -276,13 +314,17 @@ struct RG_LogicalOutput
         if ( IsSet( element.type, ResourceType::TEXTURE ) )
         {
             TextureDescriptor texDesc;
-            texDesc.format      = element.format;
+            texDesc.format      = element.texFormat;
             texDesc.width       = element.width;
             texDesc.height      = element.height;
             texDesc.depth       = element.depth;
             texDesc.arrayLayers = element.arrayLayers;
             texDesc.mipLevels   = element.mipLevels;
             return texDesc.TotalSizeInBytes();
+        }
+        else if ( IsSet( element.type, ResourceType::BUFFER ) )
+        {
+            return element.numElements * NumBytesPerElement( element.bufferFormat );
         }
 
         return 0;
@@ -346,7 +388,7 @@ bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& 
                         logicalOutput.lastTask          = taskIndex;
                     }
                 }
-                else if ( element.format != PixelFormat::INVALID )
+                else if ( element.texFormat != PixelFormat::INVALID )
                 {
                     outputNameToLogicalMap[element.name] = static_cast<uint16_t>( logicalOutputs.size() );
                     logicalOutputs.emplace_back( element, taskIndex );
@@ -411,7 +453,6 @@ bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& 
         ImageLayout currentLayout   = ImageLayout::UNDEFINED;
         uint16_t lastWriteTask      = USHRT_MAX;
         uint16_t lastReadTask       = USHRT_MAX;
-        uint8_t lastAttachmentIndex = 255;
     };
 
     PG_ASSERT( mergedLogicalOutputs.size() < MAX_PHYSICAL_RESOURCES_PER_FRAME,
@@ -433,7 +474,7 @@ bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& 
             ResourceStateTrackingInfo& trackingInfo = resourceTrackingInfo[physicalIdx];
             const RG_LogicalOutput& logicalRes      = mergedLogicalOutputs[physicalIdx];
             ImageLayout dsLayout =
-                PixelFormatHasStencil( logicalRes.element.format ) ? ImageLayout::DEPTH_STENCIL_ATTACHMENT : ImageLayout::DEPTH_ATTACHMENT;
+                PixelFormatHasStencil( logicalRes.element.texFormat ) ? ImageLayout::DEPTH_STENCIL_ATTACHMENT : ImageLayout::DEPTH_ATTACHMENT;
 
             if ( element.state == ResourceState::WRITE )
             {
@@ -447,7 +488,6 @@ bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& 
                 if ( IsSet( element.type, ResourceType::COLOR_ATTACH ) )
                 {
                     rtData->AddColorAttach( logicalRes.element, physicalIdx, loadOp, StoreAction::STORE );
-                    trackingInfo.lastAttachmentIndex = rtData->numColorAttach;
                     trackingInfo.currentLayout       = ImageLayout::COLOR_ATTACHMENT;
                 }
                 else if ( IsSet( element.type, ResourceType::DEPTH_ATTACH ) )
@@ -481,59 +521,86 @@ bool RenderGraph::Compile( RenderGraphBuilder& builder, RenderGraphCompileInfo& 
 
     auto preAllocateTime = Time::GetTimePoint();
 
-    // 4. Create the gpu resources. RenderPasses, Textures
+    // 4. Create the gpu resources
     bool error             = false;
     m_numPhysicalResources = static_cast<uint16_t>( mergedLogicalOutputs.size() );
+    uint16_t numValidResources = 0;
     for ( uint16_t resIdx = 0; resIdx < m_numPhysicalResources && !error; ++resIdx )
     {
         const RG_LogicalOutput& lRes = mergedLogicalOutputs[resIdx];
-
-        TextureDescriptor texDesc;
-        texDesc.format             = lRes.element.format;
-        texDesc.width              = lRes.element.width;
-        texDesc.height             = lRes.element.height;
-        texDesc.depth              = lRes.element.depth;
-        texDesc.arrayLayers        = lRes.element.arrayLayers;
-        texDesc.mipLevels          = lRes.element.mipLevels;
-        texDesc.addToBindlessArray = true;
-        texDesc.type               = ImageType::TYPE_2D;
-        texDesc.usage              = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        if ( IsSet( lRes.element.type, ResourceType::COLOR_ATTACH ) )
-            texDesc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        else if ( IsSet( lRes.element.type, ResourceType::DEPTH_ATTACH ) || IsSet( lRes.element.type, ResourceType::STENCIL_ATTACH ) )
-            texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
-
-        if ( lRes.element.isExternal )
-        {
-            for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
-            {
-                RG_PhysicalResource& pRes = m_physicalResources[resIdx][frameInFlight];
-                pRes.name                 = lRes.name;
-                pRes.firstTask            = lRes.firstTask;
-                pRes.lastTask             = lRes.lastTask;
-                pRes.texture.m_desc       = texDesc;
-                pRes.isExternal           = true;
-            }
-            continue;
-        }
-
         for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
         {
             RG_PhysicalResource& pRes = m_physicalResources[resIdx][frameInFlight];
-            if ( pRes.isExternal )
-                continue;
-            pRes.name      = lRes.name;
-            pRes.firstTask = lRes.firstTask;
-            pRes.lastTask  = lRes.lastTask;
-            pRes.texture   = rg.device.NewTexture( texDesc, pRes.name );
-            error          = !pRes.texture;
+            pRes.name       = lRes.name;
+            pRes.firstTask  = lRes.firstTask;
+            pRes.lastTask   = lRes.lastTask;
+            pRes.type       = lRes.element.type;
+            pRes.isExternal = lRes.element.isExternal;
+        }
 
-            // only track numbers for a single frame
-            if ( frameInFlight == 0 )
+        bool isBuffer = IsSet( lRes.element.type, ResourceType::BUFFER );
+        if ( isBuffer )
+        {
+            PG_ASSERT( !lRes.element.isExternal );
+
+            for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
             {
-                m_stats.bytesUsed += pRes.texture.GetTotalBytes();
-                m_stats.numTextures++;
+                RG_PhysicalResource& pRes = m_physicalResources[resIdx][frameInFlight];
+                size_t length = lRes.element.numElements * NumBytesPerElement( lRes.element.bufferFormat );
+                pRes.buffer = rg.device.NewBuffer( length, lRes.element.bufferType, MEMORY_TYPE_DEVICE_LOCAL, lRes.name );
+                error = !pRes.buffer;
             }
+        }
+        else
+        {
+            TextureDescriptor texDesc;
+            texDesc.format             = lRes.element.texFormat;
+            texDesc.width              = lRes.element.width;
+            texDesc.height             = lRes.element.height;
+            texDesc.depth              = lRes.element.depth;
+            texDesc.arrayLayers        = lRes.element.arrayLayers;
+            texDesc.mipLevels          = lRes.element.mipLevels;
+            texDesc.addToBindlessArray = true;
+            texDesc.type               = ImageType::TYPE_2D;
+            texDesc.usage              = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+            if ( IsSet( lRes.element.type, ResourceType::COLOR_ATTACH ) )
+                texDesc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+            else if ( IsSet( lRes.element.type, ResourceType::DEPTH_ATTACH ) || IsSet( lRes.element.type, ResourceType::STENCIL_ATTACH ) )
+                texDesc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
+            for ( int frameInFlight = 0; frameInFlight < MAX_FRAMES_IN_FLIGHT; ++frameInFlight )
+            {
+                RG_PhysicalResource& pRes = m_physicalResources[resIdx][frameInFlight];
+                if ( pRes.isExternal )
+                {
+                    pRes.texture.m_desc = texDesc;
+                    continue;
+                }
+
+                pRes.texture = rg.device.NewTexture( texDesc, pRes.name );
+                error = !pRes.texture;
+            }
+        }
+
+        numValidResources += !error;
+    }
+
+    for ( uint16_t resIdx = 0; resIdx < numValidResources; ++resIdx )
+    {
+        // only track numbers for a single frame
+        RG_PhysicalResource& pRes = m_physicalResources[resIdx][0];
+        if ( pRes.isExternal )
+            continue;
+
+        if ( IsSet( pRes.type, ResourceType::BUFFER ) )
+        {
+            m_stats.bytesUsed += pRes.buffer.GetLength();
+            m_stats.numBuffers++;
+        }
+        else
+        {
+            m_stats.bytesUsed += pRes.texture.GetTotalBytes();
+            m_stats.numTextures++;
         }
     }
 
@@ -584,6 +651,8 @@ void RenderGraph::PrintStats() const
         MAX_FRAMES_IN_FLIGHT );
     LOG( "    Managed Physical Resources: %u (x %d)", m_numPhysicalResources, MAX_FRAMES_IN_FLIGHT );
     LOG( "    Managed Memory Used: %g MB (x %d)", m_stats.bytesUsed * toMB, MAX_FRAMES_IN_FLIGHT );
+    LOG( "    Num Buffers: %u (x %d)", m_stats.numBuffers, MAX_FRAMES_IN_FLIGHT );
+    LOG( "    Num Textures: %u (x %d)", m_stats.numTextures, MAX_FRAMES_IN_FLIGHT );
 }
 
 static std::string AspectToString( VkImageAspectFlags aspect )

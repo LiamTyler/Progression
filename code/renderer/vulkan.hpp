@@ -5,6 +5,7 @@
 #include <vector>
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
+#include "vma/vk_mem_alloc.h"
 
 #if USING( SHIP_BUILD )
 #define VK_CHECK_RESULT( f ) f
@@ -23,14 +24,24 @@
 namespace PG::Gfx
 {
 
-static constexpr const char* REQUIRED_VK_EXTENSIONS[] = {
+static constexpr const char* REQUIRED_VK_EXTENSIONS[] =
+{
 #if USING( PG_RTX )
-    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME, VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
+    VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
+    VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
     VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
 #endif // #if USING( PG_RTX )
-    VK_KHR_DYNAMIC_RENDERING_EXTENSION_NAME, NULL };
+#if USING( DEBUG_BUILD ) // perf hit
+    VK_EXT_ROBUSTNESS_2_EXTENSION_NAME,
+#endif // #if USING( DEBUG_BUILD )
+    NULL
+};
 
-static constexpr const char* REQUIRED_VK_NON_HEADLESS_EXTENSIONS[] = { VK_KHR_SWAPCHAIN_EXTENSION_NAME, NULL };
+static constexpr const char* REQUIRED_VK_NON_HEADLESS_EXTENSIONS[] =
+{
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME,
+    NULL
+};
 
 void LoadVulkanExtensions( VkDevice device );
 

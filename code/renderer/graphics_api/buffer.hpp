@@ -5,7 +5,7 @@
 namespace PG::Gfx
 {
 
-enum class BufferDataType
+enum class BufferFormat : uint8_t
 {
     INVALID = 0,
 
@@ -69,13 +69,15 @@ enum class BufferDataType
     INT3 = 47,
     INT4 = 48,
 
-    NUM_BUFFER_DATA_TYPE
+    NUM_BUFFER_FORMATS
 };
 
-enum class IndexType
+uint32_t NumBytesPerElement( BufferFormat format );
+
+enum class IndexType : uint8_t
 {
     UNSIGNED_SHORT = 0,
-    UNSIGNED_INT,
+    UNSIGNED_INT   = 1,
 
     NUM_INDEX_TYPE
 };
@@ -84,6 +86,7 @@ int SizeOfIndexType( IndexType type );
 
 typedef enum BufferTypeBits
 {
+    BUFFER_TYPE_NONE                                         = 0,
     BUFFER_TYPE_TRANSFER_SRC                                 = 1 << 0,
     BUFFER_TYPE_TRANSFER_DST                                 = 1 << 1,
     BUFFER_TYPE_UNIFORM_TEXEL                                = 1 << 2,
@@ -117,6 +120,7 @@ typedef uint32_t MemoryType;
 class Buffer
 {
     friend class Device;
+    friend class TaskGraph;
 
 public:
     void Free();
@@ -136,7 +140,7 @@ public:
     VkDeviceMemory GetMemoryHandle() const { return m_memory; }
     VkDeviceAddress GetDeviceAddress() const { return m_deviceAddress; }
 
-protected:
+private:
     BufferType m_type;
     MemoryType m_memoryType;
     mutable void* m_mappedPtr = nullptr;

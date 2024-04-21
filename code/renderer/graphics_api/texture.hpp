@@ -14,14 +14,15 @@ class Sampler;
 
 struct TextureDescriptor
 {
-    ImageType type          = ImageType::TYPE_2D;
-    PixelFormat format      = PixelFormat::NUM_PIXEL_FORMATS;
-    uint32_t mipLevels      = 1;
-    uint32_t arrayLayers    = 1;
-    uint32_t width          = 0;
-    uint32_t height         = 0;
-    uint32_t depth          = 1;
-    VkImageUsageFlags usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
+    ImageType type       = ImageType::TYPE_2D;
+    PixelFormat format   = PixelFormat::NUM_PIXEL_FORMATS;
+    uint32_t mipLevels   = 1;
+    uint32_t arrayLayers = 1;
+    uint32_t width       = 0;
+    uint32_t height      = 0;
+    uint32_t depth       = 1;
+    VkImageUsageFlags usage =
+        VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     std::string sampler     = "trilinear_wrapU_wrapV";
     bool addToBindlessArray = true;
 
@@ -32,6 +33,7 @@ class Texture
 {
     friend class Device;
     friend class RenderGraph;
+    friend class TaskGraph;
 
 public:
     Texture() = default;

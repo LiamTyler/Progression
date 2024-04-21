@@ -56,10 +56,10 @@ bool Device::Create( const PhysicalDevice& pDev, bool headless )
 #endif // #else // #if USING( PG_RTX )
 
     vkGetPhysicalDeviceFeatures2( pDev.GetHandle(), &deviceFeatures2 );
-#if !USING( DEBUG_BUILD )
+#if !USING( DEBUG_BUILD ) // perf hit
     vkFeatures2.robustBufferAccess2             = VK_FALSE;
-    deviceFeatures2.features.robustBufferAccess = VK_FALSE; // perf hit
-#endif                                                      // #if !USING( DEBUG_BUILD )
+    deviceFeatures2.features.robustBufferAccess = VK_FALSE;
+#endif // #if !USING( DEBUG_BUILD )
 
     const auto& features            = pDev.GetFeatures();
     VkDeviceCreateInfo createInfo   = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
@@ -106,11 +106,20 @@ bool Device::Create( const PhysicalDevice& pDev, bool headless )
     m_queue.queueIndex  = 0;
     vkGetDeviceQueue( m_handle, m_queue.familyIndex, m_queue.queueIndex, &m_queue.queue );
 
+    VmaAllocatorCreateInfo allocatorCreateInfo = {};
+    allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
+    allocatorCreateInfo.physicalDevice = pDev.GetHandle();
+    allocatorCreateInfo.device = m_handle;
+    allocatorCreateInfo.instance = rg.instance;
+    VK_CHECK_RESULT( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
+
     return true;
 }
 
 void Device::Free()
 {
+    vmaDestroyAllocator( m_vmaAllocator );
     if ( m_handle != VK_NULL_HANDLE )
     {
         vkDestroyDevice( m_handle, nullptr );
@@ -405,7 +414,7 @@ Buffer Device::NewBuffer( size_t length, void* data, BufferType type, MemoryType
 
     if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
     {
-        Buffer stagingBuffer = NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
+        Buffer stagingBuffer = NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
         stagingBuffer.Map();
         memcpy( stagingBuffer.MappedPtr(), data, length );
         stagingBuffer.UnMap();
@@ -1088,6 +1097,7 @@ void Device::SubmitFrameForPresentation( const Swapchain& swapChain, uint32_t sw
 
 VkDevice Device::GetHandle() const { return m_handle; }
 Queue Device::GetQueue() const { return m_queue; }
+VmaAllocator Device::GetAllocator() const { return m_vmaAllocator; }
 Device::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 
 } // namespace PG::Gfx

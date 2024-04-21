@@ -75,9 +75,25 @@ struct RG_Element
     std::string name;
     ResourceType type    = ResourceType::NONE;
     ResourceState state  = ResourceState::COUNT;
-    PixelFormat format   = PixelFormat::INVALID;
-    uint32_t width       = 0;
-    uint32_t height      = 0;
+    union
+    {
+        PixelFormat texFormat = PixelFormat::INVALID;
+        BufferFormat bufferFormat;
+    };
+    union
+    {
+        struct
+        {
+            uint32_t width;
+            uint32_t height;
+        };
+        struct
+        {
+            uint32_t numElements;
+            BufferType bufferType;
+        };
+        size_t _data = 0;
+    };
     uint32_t depth       = 1;
     uint32_t arrayLayers = 1;
     uint32_t mipLevels   = 1;
@@ -190,6 +206,9 @@ public:
     void AddTextureOutput( const std::string& name );
     void AddTextureInput( const std::string& name );
 
+    void AddBufferOutput( const std::string& name, BufferType type, BufferFormat format, uint32_t numElements );
+    void AddBufferInput( const std::string& name );
+
     void SetRenderFunction( RenderFunction func );
 
     std::string name;
@@ -217,9 +236,11 @@ struct RG_PhysicalResource
     ~RG_PhysicalResource() {}
 
     std::string name;
+    ResourceType type;
     union
     {
         Gfx::Texture texture;
+        Gfx::Buffer buffer;
     };
     uint16_t firstTask;
     uint16_t lastTask;
@@ -238,6 +259,7 @@ public:
     void Render( RG_RenderData& renderData );
 
     Texture* GetTexture( uint16_t idx );
+    Buffer* GetBuffer( uint16_t idx );
     RG_PhysicalResource* GetPhysicalResource( uint16_t idx );
     RG_PhysicalResource* GetPhysicalResource( const std::string& logicalName, uint8_t frameInFlight );
     RenderTask* GetRenderTask( const std::string& name );
@@ -246,6 +268,7 @@ public:
     struct Statistics
     {
         size_t bytesUsed;
+        uint16_t numBuffers;
         uint16_t numTextures;
         uint16_t numLogicalOutputs;
         uint16_t numMergedResources;

@@ -11,7 +11,7 @@
 #include "image.hpp"
 #include "renderer/graphics_api.hpp"
 #include "renderer/render_system.hpp"
-#include "renderer/rendergraph/r_rendergraph.hpp"
+#include "renderer/rendergraph/r_rendergraph2.hpp"
 #include "shared/logger.hpp"
 #include "ui/ui_system.hpp"
 
@@ -26,13 +26,50 @@ bool g_paused = false;
 int main( int argc, char* argv[] )
 {
     EngineInitInfo engineInitConfig;
-    engineInitConfig.windowWidth = engineInitConfig.sceneWidth = 1920;
-    engineInitConfig.windowHeight = engineInitConfig.sceneHeight = 1080;
+    engineInitConfig.windowWidth = engineInitConfig.sceneWidth = 1280;
+    engineInitConfig.windowHeight = engineInitConfig.sceneHeight = 720;
 	if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );
         return 1;
     }
+
+    TaskGraphBuilder2 builder;
+    auto task = builder.AddComputeTask( "task0" );
+    TGBBufferRef buf0 = task->AddBufferOutput( "buf0", BUFFER_TYPE_STORAGE, BufferFormat::FLOAT, 1024 );
+
+    task = builder.AddComputeTask( "task1" );
+    task->AddBufferInput( buf0 );
+    TGBBufferRef buf1 = task->AddBufferOutput( "buf1", BUFFER_TYPE_STORAGE, BufferFormat::FLOAT, 1024 );
+
+    task = builder.AddComputeTask( "task2" );
+    task->AddBufferInput( buf1 );
+    TGBBufferRef buf2 = task->AddBufferOutput( "buf2", BUFFER_TYPE_STORAGE, BufferFormat::FLOAT, 512 );
+    TGBBufferRef buf25 = task->AddBufferOutput( "buf25", BUFFER_TYPE_STORAGE, BufferFormat::FLOAT, 256 );
+
+    task = builder.AddComputeTask( "task3" );
+    task->AddBufferInput( buf2 );
+    task->AddBufferInput( buf25 );
+    TGBBufferRef buf3 = task->AddBufferOutput( "buf3", BUFFER_TYPE_STORAGE, BufferFormat::FLOAT, 1024 );
+
+    task = builder.AddComputeTask( "task4" );
+    task->AddBufferInput( buf3 );
+    TGBBufferRef buf4 = task->AddBufferOutput( "buf4", BUFFER_TYPE_STORAGE, BufferFormat::FLOAT, 1024 );
+
+    TaskGraphCompileInfo2 compileInfo
+    {
+        .sceneWidth = 1280,
+        .sceneHeight = 720,
+        .displayWidth = 1920,
+        .displayHeight = 1080,
+    };
+    TaskGraph taskGraph;
+    taskGraph.Compile( builder, compileInfo );
+    taskGraph.Free();
+
+    EngineShutdown();
+
+    return 0;
 
 #if USING( LOAD_SCENE_DIRECTLY )
     std::string sceneName = argc > 1 ? argv[1] : "";

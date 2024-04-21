@@ -26,10 +26,10 @@ class VertexAttributeDescriptor
 {
 public:
     VertexAttributeDescriptor() = default;
-    VertexAttributeDescriptor( uint32_t loc, uint32_t bind, BufferDataType _format, uint32_t _offset );
+    VertexAttributeDescriptor( uint32_t loc, uint32_t bind, BufferFormat _format, uint32_t _offset );
     uint32_t location;
     uint32_t binding;
-    BufferDataType format;
+    BufferFormat format;
     uint32_t offset;
 };
 

@@ -13,7 +13,7 @@
 #include "renderer/r_init.hpp"
 #include "renderer/r_texture_manager.hpp"
 #include "renderer/render_system.hpp"
-#include "renderer/rendergraph/r_rendergraph.hpp"
+#include "renderer/rendergraph/r_rendergraph2.hpp"
 #include "shaders/c_shared/limits.h"
 #include "shaders/c_shared/structs.h"
 #include "shared/assert.hpp"
@@ -37,7 +37,7 @@ DescriptorSetLayout bindlessTexturesDescriptorSetLayout;
 DescriptorSet bindlessTexturesDescriptorSet;
 Texture* s_skyboxTextures[MAX_FRAMES_IN_FLIGHT];
 
-RenderGraph s_renderGraph;
+TaskGraph s_renderGraph;
 
 namespace PG
 {
@@ -135,10 +135,10 @@ static void InitPipelines()
     };
 
     VertexAttributeDescriptor attribDescs[] = {
-        VertexAttributeDescriptor( 0, 0, BufferDataType::FLOAT3, 0 ),
-        VertexAttributeDescriptor( 1, 1, BufferDataType::FLOAT3, 0 ),
-        VertexAttributeDescriptor( 2, 2, BufferDataType::FLOAT4, 0 ),
-        VertexAttributeDescriptor( 3, 3, BufferDataType::FLOAT2, 0 ),
+        VertexAttributeDescriptor( 0, 0, BufferFormat::FLOAT3, 0 ),
+        VertexAttributeDescriptor( 1, 1, BufferFormat::FLOAT3, 0 ),
+        VertexAttributeDescriptor( 2, 2, BufferFormat::FLOAT4, 0 ),
+        VertexAttributeDescriptor( 3, 3, BufferFormat::FLOAT2, 0 ),
     };
 
     PipelineDescriptor pipelineDesc{};
@@ -716,6 +716,7 @@ static void RenderFunc_UI2D( RenderTask* task, RG_RenderData& renderData )
 
 static bool InitRenderGraph( int width, int height )
 {
+    /*
     RenderTaskBuilder* task;
     RenderGraphBuilder builder;
 
@@ -755,7 +756,8 @@ static bool InitRenderGraph( int width, int height )
         return false;
     }
 
-    s_renderGraph.PrintAllInfo();
+    //s_renderGraph.PrintAllInfo();
+    */
 
     return true;
 }

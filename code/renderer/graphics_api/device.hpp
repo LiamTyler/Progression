@@ -66,10 +66,12 @@ public:
 
     VkDevice GetHandle() const;
     Queue GetQueue() const;
+    VmaAllocator GetAllocator() const;
 
 private:
     VkDevice m_handle = VK_NULL_HANDLE;
     Queue m_queue     = {};
+    VmaAllocator m_vmaAllocator;
 };
 
 } // namespace PG::Gfx

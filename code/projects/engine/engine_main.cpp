@@ -23,6 +23,7 @@ bool g_paused = false;
 
 int main( int argc, char* argv[] )
 {
+    // 1024×576
     EngineInitInfo engineInitConfig;
     engineInitConfig.windowWidth = engineInitConfig.sceneWidth = 1280;
     engineInitConfig.windowHeight = engineInitConfig.sceneHeight = 720;

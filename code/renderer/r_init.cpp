@@ -1,5 +1,6 @@
 ﻿#include "renderer/r_init.hpp"
-#include "core/window.hpp" // must come after pg_to_vulkan_types.hpp for some reason
+#include "core/window.hpp"
+#include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/logger.hpp"
 #include "vk-bootstrap/VkBootstrap.h"
@@ -94,7 +95,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     rg.surface = VK_NULL_HANDLE;
     if ( !headless )
     {
-        VK_CHECK_RESULT( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetGLFWHandle(), nullptr, &rg.surface ) );
+        VK_CHECK( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetGLFWHandle(), nullptr, &rg.surface ) );
     }
 
     VkPhysicalDeviceVulkan13Features features{};
@@ -134,6 +135,10 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", rg.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor,
         pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
 
+#if !USING( SHIP_BUILD )
+    DebugMarker::Init( rg.instance );
+#endif // #if !USING( SHIP_BUILD )
+
     vkb::DeviceBuilder device_builder{ vkbPhysicalDevice };
     // std::vector<vkb::CustomQueueDescription> queue_descriptions;
     // const auto& queue_families = vkbPhysicalDevice.get_queue_families();
@@ -161,10 +166,14 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         return false;
     }
 
+    PG_DEBUG_MARKER_SET_INSTANCE_NAME( rg.instance, "Primary" );
+    PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( rg.physicalDevice, rg.physicalDevice.GetName() );
+
     if ( !headless )
     {
         if ( !rg.swapchain.Create( displayWidth, displayHeight ) )
             return false;
+        PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( rg.swapchain.GetHandle(), "Primary" );
     }
 
     if ( !InitCommands() )

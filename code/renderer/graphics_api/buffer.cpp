@@ -87,7 +87,7 @@ void Buffer::Free()
     m_handle = VK_NULL_HANDLE;
 }
 
-void Buffer::Map() const { VK_CHECK_RESULT( vkMapMemory( m_device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_mappedPtr ) ); }
+void Buffer::Map() const { VK_CHECK( vkMapMemory( m_device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_mappedPtr ) ); }
 
 void Buffer::UnMap() const
 {
@@ -95,7 +95,7 @@ void Buffer::UnMap() const
     m_mappedPtr = nullptr;
 }
 
-void Buffer::BindMemory( size_t offset ) const { VK_CHECK_RESULT( vkBindBufferMemory( m_device, m_handle, m_memory, offset ) ); }
+void Buffer::BindMemory( size_t offset ) const { VK_CHECK( vkBindBufferMemory( m_device, m_handle, m_memory, offset ) ); }
 
 void Buffer::FlushCpuWrites( size_t size, size_t offset ) const
 {
@@ -108,7 +108,7 @@ void Buffer::FlushCpuWrites( size_t size, size_t offset ) const
     {
         Map();
     }
-    VK_CHECK_RESULT( vkFlushMappedMemoryRanges( m_device, 1, &mappedRange ) );
+    VK_CHECK( vkFlushMappedMemoryRanges( m_device, 1, &mappedRange ) );
 }
 
 void Buffer::FlushGpuWrites( size_t size, size_t offset ) const
@@ -122,7 +122,7 @@ void Buffer::FlushGpuWrites( size_t size, size_t offset ) const
     {
         Map();
     }
-    VK_CHECK_RESULT( vkInvalidateMappedMemoryRanges( m_device, 1, &mappedRange ) );
+    VK_CHECK( vkInvalidateMappedMemoryRanges( m_device, 1, &mappedRange ) );
 }
 
 // TODO: barriers here or externally to ensure gpu buffer commands have been completed?

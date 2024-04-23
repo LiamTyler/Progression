@@ -1,4 +1,5 @@
 #include "physical_device.hpp"
+#include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/logger.hpp"
 

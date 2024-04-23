@@ -131,20 +131,20 @@ namespace PG::Gfx
 {
 
 #if USING( DEBUG_BUILD )
-#define LOAD_VK_FUNC( funcName ) pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );
+    #define LOAD_VK_FUNC( funcName ) pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );
 #else // #if !USING( DEBUG_BUILD )
-#define LOAD_VK_FUNC( funcName )                                                                            \
-    pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );                              \
-    if ( !pfn_##funcName )                                                                                  \
-    {                                                                                                       \
-        LOG_ERR( "Failed to load vulkan function '" #funcName "'. Did you forget to load the extension?" ); \
-    }
+    #define LOAD_VK_FUNC( funcName )                                                                            \
+        pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );                              \
+        if ( !pfn_##funcName )                                                                                  \
+        {                                                                                                       \
+            LOG_ERR( "Failed to load vulkan function '" #funcName "'. Did you forget to load the extension?" ); \
+        }
 #endif // #else // #if !USING( DEBUG_BUILD )
 
 void LoadVulkanExtensions( VkDevice device )
 {
 #if USING( PG_RTX )
-#ifdef VK_KHR_acceleration_structure
+    #ifdef VK_KHR_acceleration_structure
     LOAD_VK_FUNC( vkBuildAccelerationStructuresKHR );
     LOAD_VK_FUNC( vkCmdBuildAccelerationStructuresIndirectKHR );
     LOAD_VK_FUNC( vkCmdBuildAccelerationStructuresKHR );
@@ -161,8 +161,8 @@ void LoadVulkanExtensions( VkDevice device )
     LOAD_VK_FUNC( vkGetAccelerationStructureDeviceAddressKHR );
     LOAD_VK_FUNC( vkGetDeviceAccelerationStructureCompatibilityKHR );
     LOAD_VK_FUNC( vkWriteAccelerationStructuresPropertiesKHR );
-#endif // #ifdef VK_KHR_acceleration_structure
-#endif // #if USING( PG_RTX )
+    #endif // #ifdef VK_KHR_acceleration_structure
+#endif     // #if USING( PG_RTX )
 }
 
 uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )
@@ -184,51 +184,51 @@ uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )
 void TransitionImageLayoutImmediate(
     VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout, uint32_t mipLevels, uint32_t layers )
 {
-    //CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time TransitionImageLayout" );
-    //cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+    // CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time TransitionImageLayout" );
+    // cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
     //
-    //VkImageMemoryBarrier barrier            = {};
-    //barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    //barrier.oldLayout                       = oldLayout;
-    //barrier.newLayout                       = newLayout;
-    //barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    //barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
-    //barrier.image                           = image;
-    //barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    //barrier.subresourceRange.baseMipLevel   = 0;
-    //barrier.subresourceRange.levelCount     = mipLevels;
-    //barrier.subresourceRange.baseArrayLayer = 0;
-    //barrier.subresourceRange.layerCount     = layers;
-    //barrier.srcAccessMask                   = 0;
-    //barrier.dstAccessMask                   = 0;
+    // VkImageMemoryBarrier barrier            = {};
+    // barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+    // barrier.oldLayout                       = oldLayout;
+    // barrier.newLayout                       = newLayout;
+    // barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+    // barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+    // barrier.image                           = image;
+    // barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    // barrier.subresourceRange.baseMipLevel   = 0;
+    // barrier.subresourceRange.levelCount     = mipLevels;
+    // barrier.subresourceRange.baseArrayLayer = 0;
+    // barrier.subresourceRange.layerCount     = layers;
+    // barrier.srcAccessMask                   = 0;
+    // barrier.dstAccessMask                   = 0;
     //
-    //PipelineStageFlags srcStage;
-    //PipelineStageFlags dstStage;
-    //if ( oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL )
+    // PipelineStageFlags srcStage;
+    // PipelineStageFlags dstStage;
+    // if ( oldLayout == VK_IMAGE_LAYOUT_UNDEFINED && newLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL )
     //{
-    //    barrier.srcAccessMask = 0;
-    //    barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    //    srcStage              = PipelineStageFlags::TOP_OF_PIPE_BIT;
-    //    dstStage              = PipelineStageFlags::TRANSFER_BIT;
-    //}
-    //else if ( oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL )
+    //     barrier.srcAccessMask = 0;
+    //     barrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    //     srcStage              = PipelineStageFlags::TOP_OF_PIPE_BIT;
+    //     dstStage              = PipelineStageFlags::TRANSFER_BIT;
+    // }
+    // else if ( oldLayout == VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL && newLayout == VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL )
     //{
-    //    barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    //    barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    //    srcStage              = PipelineStageFlags::TRANSFER_BIT;
-    //    dstStage              = PipelineStageFlags::FRAGMENT_SHADER_BIT;
-    //}
-    //else
+    //     barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+    //     barrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+    //     srcStage              = PipelineStageFlags::TRANSFER_BIT;
+    //     dstStage              = PipelineStageFlags::FRAGMENT_SHADER_BIT;
+    // }
+    // else
     //{
-    //    PG_ASSERT( false, "The transition barriers are unknown for the given old and new layouts" );
-    //}
+    //     PG_ASSERT( false, "The transition barriers are unknown for the given old and new layouts" );
+    // }
     //
-    //cmdBuf.PipelineImageBarrier( srcStage, dstStage, barrier );
+    // cmdBuf.PipelineImageBarrier( srcStage, dstStage, barrier );
     //
-    //cmdBuf.EndRecording();
-    //rg.device.Submit( cmdBuf );
-    //rg.device.WaitForIdle();
-    //cmdBuf.Free();
+    // cmdBuf.EndRecording();
+    // rg.device.Submit( cmdBuf );
+    // rg.device.WaitForIdle();
+    // cmdBuf.Free();
 }
 
 bool FormatSupported( VkFormat format, VkFormatFeatureFlags requestedSupport )
@@ -240,58 +240,43 @@ bool FormatSupported( VkFormat format, VkFormatFeatureFlags requestedSupport )
 
 VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels, uint32_t layers )
 {
-    VkImageViewCreateInfo viewCreateInfo = {};
-    viewCreateInfo.sType                 = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-    viewCreateInfo.image                 = image;
     PG_ASSERT( layers == 1 || layers == 6 );
-    viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-    if ( layers == 6 )
-    {
-        viewCreateInfo.viewType = VK_IMAGE_VIEW_TYPE_CUBE;
-    }
-    viewCreateInfo.format       = format;
-    viewCreateInfo.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-    viewCreateInfo.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-
-    // specify image purpose and which part to access
-    viewCreateInfo.subresourceRange.aspectMask     = aspectFlags;
-    viewCreateInfo.subresourceRange.baseMipLevel   = 0;
-    viewCreateInfo.subresourceRange.levelCount     = mipLevels;
-    viewCreateInfo.subresourceRange.baseArrayLayer = 0;
-    viewCreateInfo.subresourceRange.layerCount     = layers;
+    VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
+    info.image                 = image;
+    info.format                = format;
+    info.subresourceRange      = ImageSubresourceRange( aspectFlags, 0, mipLevels, 0, layers );
+    info.viewType              = layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 
     VkImageView view;
-    VK_CHECK_RESULT( vkCreateImageView( rg.device.GetHandle(), &viewCreateInfo, nullptr, &view ) );
+    VK_CHECK( vkCreateImageView( rg.device.GetHandle(), &info, nullptr, &view ) );
 
     return view;
 }
 
-VkImageSubresourceRange ImageSubresourceRange( VkImageAspectFlags aspectFlags, uint32_t baseMipLevel,
-    uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount )
+VkImageSubresourceRange ImageSubresourceRange(
+    VkImageAspectFlags aspectFlags, uint32_t baseMipLevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount )
 {
     VkImageSubresourceRange subImage{};
-    subImage.aspectMask = aspectFlags;
-    subImage.baseMipLevel = baseMipLevel;
-    subImage.levelCount = levelCount;
+    subImage.aspectMask     = aspectFlags;
+    subImage.baseMipLevel   = baseMipLevel;
+    subImage.levelCount     = levelCount;
     subImage.baseArrayLayer = baseArrayLayer;
-    subImage.layerCount = layerCount;
+    subImage.layerCount     = layerCount;
 
     return subImage;
 }
 
 VkSemaphoreSubmitInfo SemaphoreSubmitInfo( VkPipelineStageFlags2 stageMask, VkSemaphore semaphore )
 {
-	VkSemaphoreSubmitInfo submitInfo{};
-	submitInfo.sType = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
-	submitInfo.pNext = nullptr;
-	submitInfo.semaphore = semaphore;
-	submitInfo.stageMask = stageMask;
-	submitInfo.deviceIndex = 0;
-	submitInfo.value = 1;
+    VkSemaphoreSubmitInfo submitInfo{};
+    submitInfo.sType       = VK_STRUCTURE_TYPE_SEMAPHORE_SUBMIT_INFO;
+    submitInfo.pNext       = nullptr;
+    submitInfo.semaphore   = semaphore;
+    submitInfo.stageMask   = stageMask;
+    submitInfo.deviceIndex = 0;
+    submitInfo.value       = 1;
 
-	return submitInfo;
+    return submitInfo;
 }
 
 } // namespace PG::Gfx

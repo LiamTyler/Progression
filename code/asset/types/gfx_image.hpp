@@ -62,13 +62,13 @@ struct GfxImage : public BaseAsset
     unsigned char* GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel = 0 ) const;
     void UploadToGpu();
 
+    size_t totalSizeInBytes = 0;
+    unsigned char* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
     uint32_t width          = 0;
     uint32_t height         = 0;
     uint32_t depth          = 0;
     uint32_t mipLevels      = 0;
     uint32_t numFaces       = 0;
-    size_t totalSizeInBytes = 0;
-    unsigned char* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
     PixelFormat pixelFormat;
     ImageType imageType;
     bool clampHorizontal;

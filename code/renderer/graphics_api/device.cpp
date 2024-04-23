@@ -21,6 +21,7 @@ namespace PG::Gfx
 bool Device::Create( const vkb::Device& vkbDevice )
 {
     m_handle = vkbDevice.device;
+    PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( *this, "Primary" );
 
     // TODO: actually ensure this queue supports all the operations we need
     auto queueRet = vkbDevice.get_queue( vkb::QueueType::graphics );
@@ -32,14 +33,15 @@ bool Device::Create( const vkb::Device& vkbDevice )
     m_queue.queue       = queueRet.value();
     m_queue.familyIndex = vkbDevice.get_queue_index( vkb::QueueType::graphics ).value();
     m_queue.queueIndex  = 0; // ?
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( m_queue.queue, "Primary GCT" );
 
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
-    allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     allocatorCreateInfo.vulkanApiVersion       = VK_API_VERSION_1_3;
     allocatorCreateInfo.physicalDevice         = rg.physicalDevice.GetHandle();
     allocatorCreateInfo.device                 = m_handle;
     allocatorCreateInfo.instance               = rg.instance;
-    VK_CHECK_RESULT( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
+    VK_CHECK( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
 
     return true;
 }
@@ -73,10 +75,10 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
     info.pCommandBufferInfos    = &cmdBufInfo;
 
     VkFence vkFence = fence ? fence->GetHandle() : VK_NULL_HANDLE;
-    VK_CHECK_RESULT( vkQueueSubmit2( m_queue.queue, 1, &info, vkFence ) );
+    VK_CHECK( vkQueueSubmit2( m_queue.queue, 1, &info, vkFence ) );
 }
 
-void Device::WaitForIdle() const { VK_CHECK_RESULT( vkQueueWaitIdle( m_queue.queue ) ); }
+void Device::WaitForIdle() const { VK_CHECK( vkQueueWaitIdle( m_queue.queue ) ); }
 
 CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, const std::string& name ) const
 {
@@ -113,7 +115,7 @@ DescriptorPool Device::NewDescriptorPool(
         poolInfo.flags |= VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     }
 
-    VK_CHECK_RESULT( vkCreateDescriptorPool( m_handle, &poolInfo, nullptr, &pool.m_handle ) );
+    VK_CHECK( vkCreateDescriptorPool( m_handle, &poolInfo, nullptr, &pool.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) );
 
     return pool;
@@ -262,7 +264,7 @@ Fence Device::NewFence( bool signaled, const std::string& name ) const
     fenceInfo.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags             = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
     fence.m_device              = m_handle;
-    VK_CHECK_RESULT( vkCreateFence( m_handle, &fenceInfo, nullptr, &fence.m_handle ) );
+    VK_CHECK( vkCreateFence( m_handle, &fenceInfo, nullptr, &fence.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name ) );
 
     return fence;
@@ -274,7 +276,7 @@ Semaphore Device::NewSemaphore( const std::string& name ) const
     VkSemaphoreCreateInfo info = {};
     info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     sem.m_device               = m_handle;
-    VK_CHECK_RESULT( vkCreateSemaphore( m_handle, &info, nullptr, &sem.m_handle ) );
+    VK_CHECK( vkCreateSemaphore( m_handle, &info, nullptr, &sem.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( sem, name ) );
 
     return sem;
@@ -292,8 +294,7 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
     accelerationStructureCreateInfo.buffer = accelerationStructure.m_buffer.GetHandle();
     accelerationStructureCreateInfo.size   = size;
     accelerationStructureCreateInfo.type   = PGToVulkanAccelerationStructureType( type );
-    VK_CHECK_RESULT(
-        vkCreateAccelerationStructureKHR( m_handle, &accelerationStructureCreateInfo, nullptr, &accelerationStructure.m_handle ) );
+    VK_CHECK( vkCreateAccelerationStructureKHR( m_handle, &accelerationStructureCreateInfo, nullptr, &accelerationStructure.m_handle ) );
 
     VkAccelerationStructureDeviceAddressInfoKHR accelerationDeviceAddressInfo{
         VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_DEVICE_ADDRESS_INFO_KHR };
@@ -316,7 +317,7 @@ Buffer Device::NewBuffer( size_t length, BufferType type, MemoryType memoryType,
     info.usage       = PGToVulkanBufferType( type );
     info.size        = length;
     info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    VK_CHECK_RESULT( vkCreateBuffer( m_handle, &info, nullptr, &buffer.m_handle ) );
+    VK_CHECK( vkCreateBuffer( m_handle, &info, nullptr, &buffer.m_handle ) );
 
     VkMemoryRequirements memRequirements;
     vkGetBufferMemoryRequirements( m_handle, buffer.m_handle, &memRequirements );
@@ -329,9 +330,9 @@ Buffer Device::NewBuffer( size_t length, BufferType type, MemoryType memoryType,
     allocInfo.allocationSize  = memRequirements.size;
     allocInfo.memoryTypeIndex = FindMemoryType( memRequirements.memoryTypeBits, memPropertyFlags );
     allocInfo.pNext           = &memoryAllocateFlagsInfo;
-    VK_CHECK_RESULT( vkAllocateMemory( m_handle, &allocInfo, nullptr, &buffer.m_memory ) );
+    VK_CHECK( vkAllocateMemory( m_handle, &allocInfo, nullptr, &buffer.m_memory ) );
 
-    VK_CHECK_RESULT( vkBindBufferMemory( m_handle, buffer.m_handle, buffer.m_memory, 0 ) );
+    VK_CHECK( vkBindBufferMemory( m_handle, buffer.m_handle, buffer.m_memory, 0 ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name ) );
 
     if ( type & BUFFER_TYPE_DEVICE_ADDRESS )
@@ -380,15 +381,12 @@ Buffer Device::NewBuffer( size_t length, void* data, BufferType type, MemoryType
     return dstBuffer;
 }
 
-Texture Device::NewTexture( const TextureDescriptor& desc, const std::string& name ) const
+Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& name ) const
 {
     bool isDepth                = PixelFormatHasDepthFormat( desc.format );
-    VkImageCreateInfo imageInfo = {};
-    imageInfo.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+    VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     imageInfo.imageType         = PGToVulkanImageType( desc.type );
-    imageInfo.extent.width      = desc.width;
-    imageInfo.extent.height     = desc.height;
-    imageInfo.extent.depth      = desc.depth;
+    imageInfo.extent            = { desc.width, desc.height, desc.depth };
     imageInfo.mipLevels         = desc.mipLevels;
     imageInfo.arrayLayers       = desc.arrayLayers;
     imageInfo.format            = PGToVulkanPixelFormat( desc.format );
@@ -399,32 +397,20 @@ Texture Device::NewTexture( const TextureDescriptor& desc, const std::string& na
     imageInfo.samples           = VK_SAMPLE_COUNT_1_BIT;
     if ( desc.arrayLayers == 6 )
     {
-        imageInfo.flags = VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
+        imageInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
     Texture tex;
     tex.m_device  = m_handle;
     tex.m_desc    = desc;
-    tex.m_sampler = nullptr;
-    if ( !desc.sampler.empty() )
-    {
-        tex.m_sampler = GetSampler( desc.sampler );
-    }
+    tex.m_sampler = GetSampler( desc.sampler );
 
-    VK_CHECK_RESULT( vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image ) );
-    // vkCreateImage( m_handle, &imageInfo, nullptr, &tex.m_image );
+    VmaAllocationCreateInfo allocInfo = {};
+    allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
+    allocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
+    VK_CHECK( vmaCreateImage( m_vmaAllocator, &imageInfo, &allocInfo, &tex.m_image, &tex.m_allocation, nullptr ) );
 
-    VkMemoryRequirements memRequirements;
-    vkGetImageMemoryRequirements( m_handle, tex.m_image, &memRequirements );
-
-    VkMemoryAllocateInfo allocInfo = {};
-    allocInfo.sType                = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
-    allocInfo.allocationSize       = memRequirements.size;
-    allocInfo.memoryTypeIndex      = FindMemoryType( memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT );
-    VK_CHECK_RESULT( vkAllocateMemory( m_handle, &allocInfo, nullptr, &tex.m_memory ) );
-    VK_CHECK_RESULT( vkBindImageMemory( m_handle, tex.m_image, tex.m_memory, 0 ) );
-
-    VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+    VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
     if ( isDepth )
     {
         features |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -433,16 +419,14 @@ Texture Device::NewTexture( const TextureDescriptor& desc, const std::string& na
     PG_ASSERT( FormatSupported( vkFormat, features ) );
     tex.m_imageView = CreateImageView(
         tex.m_image, vkFormat, isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, desc.mipLevels, desc.arrayLayers );
-    if ( desc.addToBindlessArray )
-    {
-        tex.m_bindlessArrayIndex = TextureManager::GetOpenSlot( &tex );
-    }
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_IMAGE_NAME( tex, name ) );
+
+    // tex.m_bindlessArrayIndex = TextureManager::GetOpenSlot( &tex );
 
     return tex;
 }
 
-Texture Device::NewTextureFromBuffer( TextureDescriptor& desc, void* data, const std::string& name ) const
+Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, const std::string& name ) const
 {
     desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     Texture tex          = NewTexture( desc, name );
@@ -455,10 +439,10 @@ Texture Device::NewTextureFromBuffer( TextureDescriptor& desc, void* data, const
     VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
     PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
 
-    TransitionImageLayoutImmediate( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
     CopyBufferToImage( stagingBuffer, tex );
-    TransitionImageLayoutImmediate( tex.GetHandle(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
 
     stagingBuffer.Free();
@@ -490,7 +474,7 @@ Sampler Device::NewSampler( const SamplerDescriptor& desc ) const
     info.minLod                  = 0.0f;
     info.maxLod                  = 100.0f;
 
-    VK_CHECK_RESULT( vkCreateSampler( m_handle, &info, nullptr, &sampler.m_handle ) );
+    VK_CHECK( vkCreateSampler( m_handle, &info, nullptr, &sampler.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( desc.name, PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, desc.name ) );
 
     return sampler;
@@ -638,7 +622,7 @@ Pipeline Device::NewGraphicsPipeline( const PipelineDescriptor& desc, const std:
         pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
         pipelineLayoutCreateInfo.pPushConstantRanges    = &layout.pushConstantRange;
     }
-    VK_CHECK_RESULT( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &p.m_pipelineLayout ) );
+    VK_CHECK( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &p.m_pipelineLayout ) );
 
     uint32_t dynamicStateCount       = 2;
     VkDynamicState vkDnamicStates[3] = { VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT };
@@ -783,7 +767,7 @@ Pipeline Device::NewComputePipeline( Shader* shader, const std::string& name ) c
     pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
     pipelineLayoutCreateInfo.setLayoutCount             = numActiveSets;
     pipelineLayoutCreateInfo.pSetLayouts                = activeLayouts;
-    VK_CHECK_RESULT( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &pipeline.m_pipelineLayout ) );
+    VK_CHECK( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &pipeline.m_pipelineLayout ) );
 
     VkComputePipelineCreateInfo createInfo = {};
     createInfo.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
@@ -793,7 +777,7 @@ Pipeline Device::NewComputePipeline( Shader* shader, const std::string& name ) c
     createInfo.stage.module                = shader->handle;
     createInfo.stage.pName                 = shader->entryPoint.c_str();
 
-    VK_CHECK_RESULT( vkCreateComputePipelines( m_handle, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline.m_pipeline ) );
+    VK_CHECK( vkCreateComputePipelines( m_handle, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline.m_pipeline ) );
     return pipeline;
 }
 
@@ -870,7 +854,7 @@ RenderPass Device::NewRenderPass( const RenderPassDescriptor& desc, const std::s
     renderPassInfo.dependencyCount        = 1;
     renderPassInfo.pDependencies          = &dependency;
 
-    VK_CHECK_RESULT( vkCreateRenderPass( m_handle, &renderPassInfo, nullptr, &pass.m_handle ) );
+    VK_CHECK( vkCreateRenderPass( m_handle, &renderPassInfo, nullptr, &pass.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_RENDER_PASS_NAME( pass, name ) );
 
     return pass;
@@ -905,7 +889,7 @@ Framebuffer Device::NewFramebuffer( const VkFramebufferCreateInfo& info, const s
     ret.m_height = info.height;
     ret.m_device = m_handle;
 
-    VK_CHECK_RESULT( vkCreateFramebuffer( m_handle, &info, nullptr, &ret.m_handle ) );
+    VK_CHECK( vkCreateFramebuffer( m_handle, &info, nullptr, &ret.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( ret, name ) );
 
     return ret;
@@ -999,7 +983,7 @@ void Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores    = &vkSemaphore;
 
-    VK_CHECK_RESULT( vkQueuePresentKHR( m_queue.queue, &presentInfo ) );
+    VK_CHECK( vkQueuePresentKHR( m_queue.queue, &presentInfo ) );
 }
 
 VkDevice Device::GetHandle() const { return m_handle; }

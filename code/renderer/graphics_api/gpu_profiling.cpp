@@ -112,7 +112,7 @@ bool Init()
     createInfo.queryCount            = MAX_NUM_QUERIES_PER_FRAME;
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        VK_CHECK_RESULT( vkCreateQueryPool( rg.device.GetHandle(), &createInfo, nullptr, &s_frameData[i].queryPool ) );
+        VK_CHECK( vkCreateQueryPool( rg.device.GetHandle(), &createInfo, nullptr, &s_frameData[i].queryPool ) );
         PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_frameData[i].queryPool, "GPU Profiling Timestamp Pool " + std::to_string( i ) );
         s_frameData[i].timestampsWritten = 0;
         s_frameData[i].waitingForResults = false;
@@ -204,7 +204,7 @@ static void GetOldestFramesResults()
         // LOG( "Waiting for profiling results" );
         return;
     }
-    VK_CHECK_RESULT( res );
+    VK_CHECK( res );
 
     // uint32_t numTimestampsAvailable = 0;
     for ( const auto& [name, qRecord] : frameData.nameToQueryRecordMap )

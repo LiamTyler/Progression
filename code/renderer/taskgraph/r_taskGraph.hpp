@@ -145,12 +145,12 @@ struct RGBTaskTextureClear
 
 using ComputeFunction = void (*)( void );
 
-class TaskGraphBuilder2;
+class TaskGraphBuilder;
 
 class ComputeTaskBuilder
 {
 public:
-    ComputeTaskBuilder( TaskGraphBuilder2* inBuilder, uint16_t taskIndex, const std::string& inName ) :
+    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName ) :
         builder( inBuilder ),
         taskHandle( taskIndex, TaskType::COMPUTE )
     #if USING( RG_DEBUG )
@@ -176,18 +176,18 @@ public:
     std::vector<RGBTaskBufferClear> buffers;
     std::vector<RGBTaskTextureClear> textures;
     ComputeFunction function;
-    TaskGraphBuilder2* const builder;
+    TaskGraphBuilder* const builder;
     const TaskHandle taskHandle;
 };
 
-class TaskGraphBuilder2
+class TaskGraphBuilder
 {
     static constexpr uint32_t MAX_TASKS = 128;
 
     friend class ComputeTaskBuilder;
     friend class TaskGraph;
 public:
-    TaskGraphBuilder2();
+    TaskGraphBuilder();
     ComputeTaskBuilder* AddComputeTask( const std::string& name );
 
     TGBTextureRef RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
@@ -219,7 +219,7 @@ private:
     uint16_t taskIndex;
 };
 
-struct TaskGraphCompileInfo2
+struct TaskGraphCompileInfo
 {
     uint32_t sceneWidth;
     uint32_t sceneHeight;
@@ -238,7 +238,7 @@ class TaskGraph
 {
 public:
 
-    bool Compile( TaskGraphBuilder2& builder, TaskGraphCompileInfo2& compileInfo );
+    bool Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compileInfo );
     void Free();
 
 private:

@@ -73,9 +73,28 @@ private:
     VkDevice m_device  = VK_NULL_HANDLE;
 };
 
+enum SamplerType : uint8_t
+{
+    SAMPLER_NEAREST                 = 0,
+    SAMPLER_NEAREST_WRAP_U          = 1,
+    SAMPLER_NEAREST_WRAP_V          = 2,
+    SAMPLER_NEAREST_WRAP_U_WRAP_V   = 3,
+    SAMPLER_BILINEAR                = 4,
+    SAMPLER_BILINEAR_WRAP_U         = 5,
+    SAMPLER_BILINEAR_WRAP_V         = 6,
+    SAMPLER_BILINEAR_WRAP_U_WRAP_V  = 7,
+    SAMPLER_TRILINEAR               = 8,
+    SAMPLER_TRILINEAR_WRAP_U        = 9,
+    SAMPLER_TRILINEAR_WRAP_V        = 10,
+    SAMPLER_TRILINEAR_WRAP_U_WRAP_V = 11,
+
+    NUM_SAMPLERS
+};
+
 void InitSamplers();
 void FreeSamplers();
-Gfx::Sampler* AddSampler( Gfx::SamplerDescriptor& desc );
-Gfx::Sampler* GetSampler( const std::string& name );
+Sampler* GetSampler( SamplerType samplerType );
+Sampler* AddCustomSampler( Gfx::SamplerDescriptor& desc );
+Sampler* GetCustomSampler( const std::string& name );
 
 } // namespace PG::Gfx

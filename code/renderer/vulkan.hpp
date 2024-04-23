@@ -8,9 +8,9 @@
 #include <vulkan/vulkan.h>
 
 #if USING( SHIP_BUILD )
-    #define VK_CHECK_RESULT( f ) f
+    #define VK_CHECK( f ) f
 #else // #if USING( SHIP_BUILD )
-    #define VK_CHECK_RESULT( f )                                                                                                 \
+    #define VK_CHECK( f )                                                                                                        \
         {                                                                                                                        \
             VkResult vkRes = ( f );                                                                                              \
             if ( vkRes != VK_SUCCESS )                                                                                           \

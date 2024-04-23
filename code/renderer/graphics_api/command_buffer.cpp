@@ -17,7 +17,7 @@ void CommandBuffer::Free()
     m_handle = VK_NULL_HANDLE;
 }
 
-void CommandBuffer::Reset() const { VK_CHECK_RESULT( vkResetCommandBuffer( m_handle, 0 ) ); }
+void CommandBuffer::Reset() const { VK_CHECK( vkResetCommandBuffer( m_handle, 0 ) ); }
 
 void CommandBuffer::BeginRecording( CommandBufferUsage flags ) const
 {
@@ -26,10 +26,10 @@ void CommandBuffer::BeginRecording( CommandBufferUsage flags ) const
     beginInfo.sType                    = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
     beginInfo.flags                    = PGToVulkanCommandBufferUsage( flags );
     beginInfo.pInheritanceInfo         = nullptr;
-    VK_CHECK_RESULT( vkBeginCommandBuffer( m_handle, &beginInfo ) );
+    VK_CHECK( vkBeginCommandBuffer( m_handle, &beginInfo ) );
 }
 
-void CommandBuffer::EndRecording() const { VK_CHECK_RESULT( vkEndCommandBuffer( m_handle ) ); }
+void CommandBuffer::EndRecording() const { VK_CHECK( vkEndCommandBuffer( m_handle ) ); }
 
 void CommandBuffer::BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const
 {
@@ -340,7 +340,7 @@ CommandBuffer CommandPool::NewCommandBuffer( const std::string& name )
     buf.m_device = m_device;
     buf.m_pool   = m_handle;
     VkCommandBuffer handle;
-    VK_CHECK_RESULT( vkAllocateCommandBuffers( m_device, &allocInfo, &handle ) );
+    VK_CHECK( vkAllocateCommandBuffers( m_device, &allocInfo, &handle ) );
     buf.m_handle = handle;
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( buf, name ) );
 

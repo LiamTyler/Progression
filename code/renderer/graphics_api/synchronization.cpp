@@ -17,14 +17,14 @@ namespace Gfx
     void Fence::WaitFor()
     {
         PG_ASSERT( m_device != VK_NULL_HANDLE && m_handle != VK_NULL_HANDLE );
-        VK_CHECK_RESULT( vkWaitForFences( m_device, 1, &m_handle, VK_TRUE, UINT64_MAX ) );
+        VK_CHECK( vkWaitForFences( m_device, 1, &m_handle, VK_TRUE, UINT64_MAX ) );
     }
 
 
     void Fence::Reset()
     {
         PG_ASSERT( m_device != VK_NULL_HANDLE && m_handle != VK_NULL_HANDLE );
-        VK_CHECK_RESULT( vkResetFences( m_device, 1, &m_handle ) );
+        VK_CHECK( vkResetFences( m_device, 1, &m_handle ) );
     }
 
 

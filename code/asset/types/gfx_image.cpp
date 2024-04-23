@@ -77,7 +77,7 @@ void GfxImage::UploadToGpu()
         gpuTexture.Free();
     }
 
-    TextureDescriptor desc;
+    TextureCreateInfo desc;
     desc.format             = pixelFormat;
     desc.type               = imageType;
     desc.width              = width;
@@ -85,12 +85,7 @@ void GfxImage::UploadToGpu()
     desc.depth              = depth;
     desc.arrayLayers        = numFaces;
     desc.mipLevels          = mipLevels;
-    desc.usage              = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-    desc.addToBindlessArray = imageType == ImageType::TYPE_2D || imageType == ImageType::TYPE_CUBEMAP;
-    desc.sampler            = filterMode == GfxImageFilterMode::NEAREST ? "nearest_"
-                                                                        : ( filterMode == GfxImageFilterMode::BILINEAR ? "bilinear_" : "trilinear_" );
-    desc.sampler += clampHorizontal ? "clampU_" : "wrapU_";
-    desc.sampler += clampVertical ? "clampV" : "wrapV";
+    desc.usage              = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     gpuTexture = rg.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );

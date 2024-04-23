@@ -48,7 +48,7 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
 
 uint32_t Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
 {
-    VK_CHECK_RESULT(
+    VK_CHECK(
         vkAcquireNextImageKHR( m_device, m_handle, UINT64_MAX, presentCompleteSemaphore.GetHandle(), VK_NULL_HANDLE, &m_currentImageIdx ) );
     return m_currentImageIdx;
 }

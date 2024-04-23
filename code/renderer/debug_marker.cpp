@@ -3,8 +3,7 @@
 #include <cstring>
 #include <vector>
 
-static vec4 s_regionColors[] =
-{
+static vec4 s_regionColors[] = {
     vec4( 213, 62, 79, 255 ) / 255.0f,
     vec4( 252, 141, 89, 255 ) / 255.0f,
     vec4( 254, 224, 139, 255 ) / 255.0f,
@@ -69,7 +68,7 @@ void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, c
         nameInfo.objectType   = objectType;
         nameInfo.objectHandle = object;
         nameInfo.pObjectName  = name.c_str();
-        VK_CHECK_RESULT( vkSetDebugUtilsObjectName( device, &nameInfo ) );
+        VK_CHECK( vkSetDebugUtilsObjectName( device, &nameInfo ) );
     }
 }
 
@@ -85,7 +84,7 @@ void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, ui
         tagInfo.tagName      = name;
         tagInfo.tagSize      = tagSize;
         tagInfo.pTag         = tag;
-        VK_CHECK_RESULT( vkSetDebugUtilsObjectTag( device, &tagInfo ) );
+        VK_CHECK( vkSetDebugUtilsObjectTag( device, &tagInfo ) );
     }
 }
 

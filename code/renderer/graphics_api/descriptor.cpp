@@ -65,7 +65,7 @@ VkDescriptorImageInfo DescriptorImageInfoNull( VkImageLayout imageLayout )
 {
     VkDescriptorImageInfo imageInfo;
     imageInfo.imageLayout = imageLayout;
-    imageInfo.sampler     = GetSampler( "nearest_clampU_clampV" )->GetHandle(); // has to be valid handle, but doesnt really matter which
+    //imageInfo.sampler     = GetSampler( "nearest_clampU_clampV" )->GetHandle(); // has to be valid handle, but doesnt really matter which
     imageInfo.imageView   = VK_NULL_HANDLE;
 
     return imageInfo;
@@ -75,7 +75,7 @@ VkDescriptorImageInfo DescriptorImageInfo( const Gfx::Texture& tex, VkImageLayou
 {
     VkDescriptorImageInfo imageInfo;
     imageInfo.imageLayout = imageLayout;
-    imageInfo.sampler     = tex.GetSampler()->GetHandle();
+    //imageInfo.sampler     = tex.GetSampler()->GetHandle();
     imageInfo.imageView   = tex.GetView();
 
     return imageInfo;
@@ -129,7 +129,7 @@ std::vector<DescriptorSet> DescriptorPool::NewDescriptorSets(
     allocInfo.pSetLayouts = vkLayouts.data();
 
     std::vector<DescriptorSet> descriptorSets( numLayouts );
-    VK_CHECK_RESULT( vkAllocateDescriptorSets( m_device, &allocInfo, (VkDescriptorSet*)descriptorSets.data() ) );
+    VK_CHECK( vkAllocateDescriptorSets( m_device, &allocInfo, (VkDescriptorSet*)descriptorSets.data() ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY(
         name, for ( uint32_t i = 0; i < numLayouts; ++i ) {
             PG_DEBUG_MARKER_SET_DESC_SET_NAME( descriptorSets[i], name + " " + std::to_string( i ) );
@@ -160,7 +160,7 @@ DescriptorSet DescriptorPool::NewDescriptorSet( const DescriptorSetLayout& layou
     }
 
     DescriptorSet descriptorSet;
-    VK_CHECK_RESULT( vkAllocateDescriptorSets( m_device, &allocInfo, (VkDescriptorSet*)&descriptorSet.m_handle ) );
+    VK_CHECK( vkAllocateDescriptorSets( m_device, &allocInfo, (VkDescriptorSet*)&descriptorSet.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_SET_NAME( descriptorSet, name ) );
 
     return descriptorSet;

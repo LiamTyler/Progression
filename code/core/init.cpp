@@ -53,11 +53,11 @@ bool EngineInitialize( EngineInitInfo info )
         LOG_ERR( "Could not initialize render system" );
         return false;
     }
-    if ( !UI::Init() )
-    {
-        LOG_ERR( "Could not initialize UI system" );
-        return false;
-    }
+    //if ( !UI::Init() )
+    //{
+    //    LOG_ERR( "Could not initialize UI system" );
+    //    return false;
+    //}
     #if !USING( SHIP_BUILD )
     ExportDvars();
     #endif // #if !USING( SHIP_BUILD )
@@ -71,7 +71,7 @@ void EngineShutdown()
 {
 #if USING( GAME )
     RemoteConsoleServer::Shutdown();
-    UI::Shutdown();
+    //UI::Shutdown();
     RenderSystem::Shutdown();
     if ( !g_headless )
     {

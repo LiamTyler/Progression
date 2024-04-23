@@ -10,6 +10,7 @@
 #include "renderer/graphics_api/swapchain.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
 #include "renderer/graphics_api/texture.hpp"
+#include "vk-bootstrap/VkBootstrap.h"
 
 namespace PG::Gfx
 {
@@ -29,14 +30,13 @@ class Device
 public:
     Device() = default;
 
-    bool Create( const PhysicalDevice& physicalDevice, bool headless );
+    bool Create( const vkb::Device& vkbDevice );
     void Free();
-    operator bool() const;
 
-    void Submit( const CommandBuffer& cmdBuf ) const;
+    void Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo = nullptr,
+        const VkSemaphoreSubmitInfo* signalSemaphoreInfo = nullptr, Fence* fence = nullptr ) const;
     void WaitForIdle() const;
-    CommandPool NewCommandPool( CommandPoolCreateFlags flags = 0, CommandPoolQueueFamily family = CommandPoolQueueFamily::GRAPHICS,
-        const std::string& name = "" ) const;
+    CommandPool NewCommandPool( CommandPoolCreateFlags flags = 0, const std::string& name = "" ) const;
     DescriptorPool NewDescriptorPool(
         int numPoolSizes, VkDescriptorPoolSize* poolSizes, bool bindless, uint32_t maxSets = 1, const std::string& name = "" ) const;
     bool RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uint32_t stagesForBindings[PG_MAX_NUM_DESCRIPTOR_SETS] ) const;
@@ -57,13 +57,12 @@ public:
     Framebuffer NewFramebuffer(
         const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name = "" ) const;
     Framebuffer NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name = "" ) const;
-    void SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs, const Semaphore& swapImgSem, const Semaphore& renderCompleteSem,
-        const Fence* finishedFence = nullptr ) const;
-    void SubmitFrameForPresentation( const Swapchain& swapChain, uint32_t swapImageIndex, const Semaphore& waitSemaphore ) const;
+    void Present( const Swapchain& swapChain, const Semaphore& waitSemaphore ) const;
 
     void Copy( Buffer dst, Buffer src ) const;
     void CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips = true ) const;
 
+    operator bool() const;
     VkDevice GetHandle() const;
     Queue GetQueue() const;
     VmaAllocator GetAllocator() const;

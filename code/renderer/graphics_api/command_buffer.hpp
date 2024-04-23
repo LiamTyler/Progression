@@ -28,6 +28,7 @@ public:
     VkCommandBuffer GetHandle() const;
 
     void Free();
+    void Reset() const;
     void BeginRecording( CommandBufferUsage flags = 0 ) const;
     void EndRecording() const;
     void BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const;
@@ -38,10 +39,9 @@ public:
     void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, uint32_t firstBinding = 0 ) const;
     void BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding = 0 ) const;
     void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;
-    void PipelineBufferBarrier(
-        PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkBufferMemoryBarrier& barrier ) const;
-    void PipelineImageBarrier(
-        PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkImageMemoryBarrier& barrier ) const;
+    // void PipelineBufferBarrier(
+    //     PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkBufferMemoryBarrier& barrier ) const;
+    void PipelineImageBarrier2( const VkImageMemoryBarrier2& barrier ) const;
     void SetViewport( const Viewport& viewport ) const;
     void SetScissor( const Scissor& scissor ) const;
     void SetDepthBias( float constant, float clamp, float slope ) const;
@@ -50,9 +50,9 @@ public:
 
     void CopyBuffer( const Buffer& dst, const Buffer& src, size_t size = VK_WHOLE_SIZE, size_t srcOffset = 0, size_t dstOffset = 0 ) const;
     void BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, ImageLayout dstLayout, const VkImageBlit& region ) const;
-    void TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkImageSubresourceRange subresourceRange,
-        PipelineStageFlags srcStageMask = PipelineStageFlags::ALL_COMMANDS_BIT,
-        PipelineStageFlags dstStageMask = PipelineStageFlags::ALL_COMMANDS_BIT ) const;
+    void TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout,
+        VkPipelineStageFlags2 srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
+        VkPipelineStageFlags2 dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT ) const;
 
     void Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount = 1, uint32_t firstInstance = 0 ) const;
     void DrawIndexed(
@@ -73,12 +73,6 @@ typedef enum CommandPoolCreateFlagBits
 } CommandPoolCreateFlagBits;
 
 typedef uint32_t CommandPoolCreateFlags;
-
-enum class CommandPoolQueueFamily
-{
-    GRAPHICS,
-    COMPUTE
-};
 
 class CommandPool
 {

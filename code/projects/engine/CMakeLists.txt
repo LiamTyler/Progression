@@ -111,10 +111,8 @@ set(
     ${CODE_DIR}/renderer/r_texture_manager.hpp
     ${CODE_DIR}/renderer/vulkan.cpp
     ${CODE_DIR}/renderer/vulkan.hpp
-	${CODE_DIR}/renderer/rendergraph/r_rendergraph.cpp
-    ${CODE_DIR}/renderer/rendergraph/r_rendergraph.hpp
-	${CODE_DIR}/renderer/rendergraph/r_rendergraph2.cpp
-    ${CODE_DIR}/renderer/rendergraph/r_rendergraph2.hpp
+	${CODE_DIR}/renderer/taskgraph/r_taskGraph.cpp
+    ${CODE_DIR}/renderer/taskgraph/r_taskGraph.hpp
 	
 	${C_SHARED_SHADERS}
     
@@ -135,6 +133,9 @@ set(
     ${CODE_DIR}/external/memory_map/MemoryMapped.h
     ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
 	
+	${CODE_DIR}/external/vk-bootstrap/VkBootstrapDispatch.h
+    ${CODE_DIR}/external/vk-bootstrap/VkBootstrap.cpp
+    ${CODE_DIR}/external/vk-bootstrap/VkBootstrap.h
 	${CODE_DIR}/external/vma/vk_mem_alloc.h
     ${CODE_DIR}/external/vma/vma_usage.cpp
     

@@ -87,7 +87,7 @@ struct PerFrameData
     std::unordered_map<std::string, QueryRecord> nameToQueryRecordMap;
 };
 
-static PerFrameData s_frameData[MAX_FRAMES_IN_FLIGHT];
+static PerFrameData s_frameData[NUM_FRAME_OVERLAP];
 static uint8_t s_frameIndex;
 
 namespace PG::Gfx::Profile
@@ -110,7 +110,7 @@ bool Init()
     createInfo.pNext                 = nullptr;
     createInfo.queryType             = VK_QUERY_TYPE_TIMESTAMP;
     createInfo.queryCount            = MAX_NUM_QUERIES_PER_FRAME;
-    for ( int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
+    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         VK_CHECK_RESULT( vkCreateQueryPool( rg.device.GetHandle(), &createInfo, nullptr, &s_frameData[i].queryPool ) );
         PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_frameData[i].queryPool, "GPU Profiling Timestamp Pool " + std::to_string( i ) );
@@ -126,7 +126,7 @@ bool Init()
 
 void Shutdown()
 {
-    for ( int i = 0; i < MAX_FRAMES_IN_FLIGHT; ++i )
+    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         if ( s_frameData[i].queryPool != VK_NULL_HANDLE )
             vkDestroyQueryPool( rg.device.GetHandle(), s_frameData[i].queryPool, nullptr );
@@ -187,7 +187,7 @@ void Reset( const CommandBuffer& cmdbuf )
 
 static void GetOldestFramesResults()
 {
-    PerFrameData& frameData = s_frameData[( s_frameIndex + 1 ) % MAX_FRAMES_IN_FLIGHT]; // oldest frame
+    PerFrameData& frameData = s_frameData[( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP]; // oldest frame
     if ( frameData.timestampsWritten == 0 )
     {
         frameData.waitingForResults = false;
@@ -242,7 +242,7 @@ void EndFrame()
 {
     s_frameData[s_frameIndex].waitingForResults = true;
     GetOldestFramesResults();
-    s_frameIndex = ( s_frameIndex + 1 ) % MAX_FRAMES_IN_FLIGHT;
+    s_frameIndex = ( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP;
 }
 
 static uint16_t GetProfileEntryIndex( const std::string& name )

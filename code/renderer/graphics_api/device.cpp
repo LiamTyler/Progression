@@ -18,100 +18,27 @@
 namespace PG::Gfx
 {
 
-bool Device::Create( const PhysicalDevice& pDev, bool headless )
+bool Device::Create( const vkb::Device& vkbDevice )
 {
-    std::set<uint32_t> uniqueQueueFamilies = { pDev.GetGCTQueueFamily() };
+    m_handle = vkbDevice.device;
 
-    float queuePriority = 1.0f;
-    std::vector<VkDeviceQueueCreateInfo> queueCreateInfos;
-    for ( uint32_t queueFamily : uniqueQueueFamilies )
+    // TODO: actually ensure this queue supports all the operations we need
+    auto queueRet = vkbDevice.get_queue( vkb::QueueType::graphics );
+    if ( !queueRet )
     {
-        VkDeviceQueueCreateInfo queueCreateInfo = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-        queueCreateInfo.queueFamilyIndex        = queueFamily;
-        queueCreateInfo.queueCount              = 1;
-        queueCreateInfo.pQueuePriorities        = &queuePriority;
-        queueCreateInfos.push_back( queueCreateInfo );
-    }
-
-    // Since the physical device is only chosen if it is known to support all the features we need, we can simply use
-    // vkGetPhysicalDeviceFeatures2() to fill out the features the device supports (will contain all features we want to enable) and pass
-    // that to the device create info
-    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures{
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_BUFFER_DEVICE_ADDRESS_FEATURES };
-    VkPhysicalDeviceDescriptorIndexingFeatures indexingFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_INDEXING_FEATURES_EXT };
-    VkPhysicalDeviceRobustness2FeaturesEXT vkFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ROBUSTNESS_2_FEATURES_EXT };
-    VkPhysicalDeviceFeatures2 deviceFeatures2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
-    VkPhysicalDeviceDynamicRenderingFeaturesKHR dynRendering{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DYNAMIC_RENDERING_FEATURES_KHR };
-
-#if USING( PG_RTX )
-    VkPhysicalDeviceRayTracingPipelineFeaturesKHR rayTracingPipelineFeatures{
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_RAY_TRACING_PIPELINE_FEATURES_KHR };
-    VkPhysicalDeviceAccelerationStructureFeaturesKHR accelerationStructureFeatures{
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_ACCELERATION_STRUCTURE_FEATURES_KHR };
-
-    deviceFeatures2.pNext = MakePNextChain( { &dynRendering, &bufferDeviceAddressFeatures, &indexingFeatures, &vkFeatures2,
-        &rayTracingPipelineFeatures, &accelerationStructureFeatures } );
-#else  // #if USING( PG_RTX )
-    deviceFeatures2.pNext = MakePNextChain( { &dynRendering, &bufferDeviceAddressFeatures, &indexingFeatures, &vkFeatures2 } );
-#endif // #else // #if USING( PG_RTX )
-
-    vkGetPhysicalDeviceFeatures2( pDev.GetHandle(), &deviceFeatures2 );
-#if !USING( DEBUG_BUILD ) // perf hit
-    vkFeatures2.robustBufferAccess2             = VK_FALSE;
-    deviceFeatures2.features.robustBufferAccess = VK_FALSE;
-#endif // #if !USING( DEBUG_BUILD )
-
-    const auto& features            = pDev.GetFeatures();
-    VkDeviceCreateInfo createInfo   = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
-    createInfo.queueCreateInfoCount = static_cast<uint32_t>( queueCreateInfos.size() );
-    createInfo.pQueueCreateInfos    = queueCreateInfos.data();
-    createInfo.pEnabledFeatures     = nullptr;
-    createInfo.pNext                = &deviceFeatures2;
-
-    std::vector<const char*> extensions;
-    for ( int i = 0; i < ARRAY_COUNT( REQUIRED_VK_EXTENSIONS ) - 1; ++i )
-    {
-        extensions.push_back( REQUIRED_VK_EXTENSIONS[i] );
-    }
-    if ( !headless )
-    {
-        for ( int i = 0; i < ARRAY_COUNT( REQUIRED_VK_NON_HEADLESS_EXTENSIONS ) - 1; ++i )
-        {
-            extensions.push_back( REQUIRED_VK_NON_HEADLESS_EXTENSIONS[i] );
-        }
-    }
-    createInfo.enabledExtensionCount   = static_cast<uint32_t>( extensions.size() );
-    createInfo.ppEnabledExtensionNames = extensions.data();
-
-    // Specify device specific validation layers (ignored after v1.1.123?)
-    std::vector<const char*> validationLayers = {
-#if !USING( SHIP_BUILD )
-        "VK_LAYER_KHRONOS_validation"
-#endif // #if !USING( SHIP_BUILD )
-    };
-    createInfo.enabledLayerCount   = static_cast<uint32_t>( validationLayers.size() );
-    createInfo.ppEnabledLayerNames = validationLayers.data();
-
-    VkResult res = vkCreateDevice( pDev.GetHandle(), &createInfo, nullptr, &m_handle );
-    if ( res != VK_SUCCESS )
-    {
-        if ( res == VK_ERROR_EXTENSION_NOT_PRESENT )
-        {
-            LOG_ERR( "Device could not be created, missing extensions!" );
-        }
+        LOG_ERR( "Could not get graphics queue. Error: %s", queueRet.error().message().c_str() );
         return false;
     }
-
-    m_queue.familyIndex = pDev.GetGCTQueueFamily();
-    m_queue.queueIndex  = 0;
-    vkGetDeviceQueue( m_handle, m_queue.familyIndex, m_queue.queueIndex, &m_queue.queue );
+    m_queue.queue       = queueRet.value();
+    m_queue.familyIndex = vkbDevice.get_queue_index( vkb::QueueType::graphics ).value();
+    m_queue.queueIndex  = 0; // ?
 
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
-    allocatorCreateInfo.flags = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
-    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_3;
-    allocatorCreateInfo.physicalDevice = pDev.GetHandle();
-    allocatorCreateInfo.device = m_handle;
-    allocatorCreateInfo.instance = rg.instance;
+    allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_EXT_MEMORY_BUDGET_BIT;
+    allocatorCreateInfo.vulkanApiVersion       = VK_API_VERSION_1_3;
+    allocatorCreateInfo.physicalDevice         = rg.physicalDevice.GetHandle();
+    allocatorCreateInfo.device                 = m_handle;
+    allocatorCreateInfo.instance               = rg.instance;
     VK_CHECK_RESULT( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
 
     return true;
@@ -127,20 +54,31 @@ void Device::Free()
     }
 }
 
-void Device::Submit( const CommandBuffer& cmdBuf ) const
+void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo,
+    const VkSemaphoreSubmitInfo* signalSemaphoreInfo, Fence* fence ) const
 {
-    VkSubmitInfo submitInfo       = {};
-    submitInfo.sType              = VK_STRUCTURE_TYPE_SUBMIT_INFO;
-    submitInfo.commandBufferCount = 1;
-    VkCommandBuffer vkCmdBuf      = cmdBuf.GetHandle();
-    submitInfo.pCommandBuffers    = &vkCmdBuf;
+    VkCommandBufferSubmitInfo cmdBufInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
+    cmdBufInfo.commandBuffer = cmdBuf.GetHandle();
+    cmdBufInfo.deviceMask    = 0;
 
-    VK_CHECK_RESULT( vkQueueSubmit( m_queue.queue, 1, &submitInfo, VK_NULL_HANDLE ) );
+    VkSubmitInfo2 info = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
+
+    info.waitSemaphoreInfoCount = waitSemaphoreInfo == nullptr ? 0 : 1;
+    info.pWaitSemaphoreInfos    = waitSemaphoreInfo;
+
+    info.signalSemaphoreInfoCount = signalSemaphoreInfo == nullptr ? 0 : 1;
+    info.pSignalSemaphoreInfos    = signalSemaphoreInfo;
+
+    info.commandBufferInfoCount = 1;
+    info.pCommandBufferInfos    = &cmdBufInfo;
+
+    VkFence vkFence = fence ? fence->GetHandle() : VK_NULL_HANDLE;
+    VK_CHECK_RESULT( vkQueueSubmit2( m_queue.queue, 1, &info, vkFence ) );
 }
 
 void Device::WaitForIdle() const { VK_CHECK_RESULT( vkQueueWaitIdle( m_queue.queue ) ); }
 
-CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, CommandPoolQueueFamily family, const std::string& name ) const
+CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, const std::string& name ) const
 {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -273,7 +211,6 @@ bool Device::RegisterDescriptorSetLayout( DescriptorSetLayout& layout, const uin
     {
         if ( bindless )
         {
-            PG_ASSERT( rg.physicalDevice.GetFeatures().bindless, "Current device doesn't support bindless descriptors!" );
             if ( bindings.size() != 1 )
             {
                 LOG_ERR( "Using bindless, but binding count != 1" );
@@ -414,7 +351,8 @@ Buffer Device::NewBuffer( size_t length, void* data, BufferType type, MemoryType
 
     if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
     {
-        Buffer stagingBuffer = NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
+        Buffer stagingBuffer =
+            NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
         stagingBuffer.Map();
         memcpy( stagingBuffer.MappedPtr(), data, length );
         stagingBuffer.UnMap();
@@ -975,122 +913,91 @@ Framebuffer Device::NewFramebuffer( const VkFramebufferCreateInfo& info, const s
 
 void Device::Copy( Buffer dst, Buffer src ) const
 {
-    CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
-
-    cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    cmdBuf.CopyBuffer( dst, src );
-    cmdBuf.EndRecording();
-
-    Submit( cmdBuf );
-    WaitForIdle(); // TODO: use barrier
-
-    cmdBuf.Free();
+    // CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
+    //
+    // cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+    // cmdBuf.CopyBuffer( dst, src );
+    // cmdBuf.EndRecording();
+    //
+    // Submit( cmdBuf );
+    // WaitForIdle(); // TODO: use barrier
+    //
+    // cmdBuf.Free();
 }
 
 void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips ) const
 {
-    PG_ASSERT( tex.GetDepth() == 1 );
-    CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
-    cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-
-    std::vector<VkBufferImageCopy> bufferCopyRegions;
-    uint32_t offset = 0;
-
-    uint32_t numMips = tex.GetMipLevels();
-    if ( !copyAllMips )
-    {
-        numMips = 1;
-    }
-
-    uint32_t width  = tex.GetWidth();
-    uint32_t height = tex.GetHeight();
-    for ( uint32_t mip = 0; mip < numMips; ++mip )
-    {
-        for ( uint32_t face = 0; face < tex.GetArrayLayers(); ++face )
-        {
-            VkBufferImageCopy region               = {};
-            region.bufferOffset                    = offset;
-            region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.mipLevel       = mip;
-            region.imageSubresource.baseArrayLayer = face;
-            region.imageSubresource.layerCount     = 1;
-            region.imageExtent.width               = width;
-            region.imageExtent.height              = height;
-            region.imageExtent.depth               = 1;
-
-            bufferCopyRegions.push_back( region );
-            uint32_t size = NumBytesPerPixel( tex.GetPixelFormat() );
-            if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
-            {
-                uint32_t roundedWidth  = ( width + 3 ) & ~3u;
-                uint32_t roundedHeight = ( height + 3 ) & ~3u;
-                uint32_t numBlocksX    = roundedWidth / 4;
-                uint32_t numBlocksY    = roundedHeight / 4;
-                size *= numBlocksX * numBlocksY;
-            }
-            else
-            {
-                size *= width * height;
-            }
-            offset += size;
-        }
-        width  = Max( width >> 1, 1u );
-        height = Max( height >> 1, 1u );
-    }
-
-    vkCmdCopyBufferToImage( cmdBuf.GetHandle(), buffer.GetHandle(), tex.GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        static_cast<uint32_t>( bufferCopyRegions.size() ), bufferCopyRegions.data() );
-
-    cmdBuf.EndRecording();
-    Submit( cmdBuf );
-    WaitForIdle();
-    cmdBuf.Free();
+    // PG_ASSERT( tex.GetDepth() == 1 );
+    // CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
+    // cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+    //
+    // std::vector<VkBufferImageCopy> bufferCopyRegions;
+    // uint32_t offset = 0;
+    //
+    // uint32_t numMips = tex.GetMipLevels();
+    // if ( !copyAllMips )
+    //{
+    //     numMips = 1;
+    // }
+    //
+    // uint32_t width  = tex.GetWidth();
+    // uint32_t height = tex.GetHeight();
+    // for ( uint32_t mip = 0; mip < numMips; ++mip )
+    //{
+    //     for ( uint32_t face = 0; face < tex.GetArrayLayers(); ++face )
+    //     {
+    //         VkBufferImageCopy region               = {};
+    //         region.bufferOffset                    = offset;
+    //         region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+    //         region.imageSubresource.mipLevel       = mip;
+    //         region.imageSubresource.baseArrayLayer = face;
+    //         region.imageSubresource.layerCount     = 1;
+    //         region.imageExtent.width               = width;
+    //         region.imageExtent.height              = height;
+    //         region.imageExtent.depth               = 1;
+    //
+    //         bufferCopyRegions.push_back( region );
+    //         uint32_t size = NumBytesPerPixel( tex.GetPixelFormat() );
+    //         if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
+    //         {
+    //             uint32_t roundedWidth  = ( width + 3 ) & ~3u;
+    //             uint32_t roundedHeight = ( height + 3 ) & ~3u;
+    //             uint32_t numBlocksX    = roundedWidth / 4;
+    //             uint32_t numBlocksY    = roundedHeight / 4;
+    //             size *= numBlocksX * numBlocksY;
+    //         }
+    //         else
+    //         {
+    //             size *= width * height;
+    //         }
+    //         offset += size;
+    //     }
+    //     width  = Max( width >> 1, 1u );
+    //     height = Max( height >> 1, 1u );
+    // }
+    //
+    // vkCmdCopyBufferToImage( cmdBuf.GetHandle(), buffer.GetHandle(), tex.GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //     static_cast<uint32_t>( bufferCopyRegions.size() ), bufferCopyRegions.data() );
+    //
+    // cmdBuf.EndRecording();
+    // Submit( cmdBuf );
+    // WaitForIdle();
+    // cmdBuf.Free();
 }
 
-void Device::SubmitCommandBuffers( int numBuffers, CommandBuffer* cmdBufs, const Semaphore& swapImgSem, const Semaphore& renderCompleteSem,
-    const Fence* finishedFence ) const
+void Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore ) const
 {
-    PG_ASSERT( 0 <= numBuffers && numBuffers <= 5 );
-    VkCommandBuffer vkCmdBufs[5];
-    for ( int i = 0; i < numBuffers; ++i )
-    {
-        vkCmdBufs[i] = cmdBufs[i].GetHandle();
-    }
+    VkSwapchainKHR vkSwapchain   = swapchain.GetHandle();
+    VkSemaphore vkSemaphore      = waitSemaphore.GetHandle(); // wait until the rendering work is all done
+    uint32_t swapchainImageIndex = swapchain.GetCurrentImageIndex();
 
-    VkSubmitInfo submitInfo = {};
-    submitInfo.sType        = VK_STRUCTURE_TYPE_SUBMIT_INFO;
+    VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
+    presentInfo.pSwapchains      = &vkSwapchain;
+    presentInfo.swapchainCount   = 1;
+    presentInfo.pImageIndices    = &swapchainImageIndex;
 
-    VkSemaphore vkSemaphores[] = { swapImgSem.GetHandle() };
-    // Can be VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, but then we need a way to make sure
-    // that the image layout transition happens *after* the swapchain actually acquires the image.
-    // Can use VkSubpassDependency to do this
-    VkPipelineStageFlags waitStages[] = { VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT };
-    submitInfo.waitSemaphoreCount     = 1;
-    submitInfo.pWaitSemaphores        = vkSemaphores;
-    submitInfo.pWaitDstStageMask      = waitStages;
-    submitInfo.commandBufferCount     = numBuffers;
-    submitInfo.pCommandBuffers        = vkCmdBufs;
-
-    VkSemaphore signalSemaphores[]  = { renderCompleteSem.GetHandle() };
-    submitInfo.signalSemaphoreCount = 1;
-    submitInfo.pSignalSemaphores    = signalSemaphores;
-
-    VkFence vkFence = finishedFence ? finishedFence->GetHandle() : VK_NULL_HANDLE;
-    VK_CHECK_RESULT( vkQueueSubmit( m_queue.queue, 1, &submitInfo, vkFence ) );
-}
-
-void Device::SubmitFrameForPresentation( const Swapchain& swapChain, uint32_t swapImageIndex, const Semaphore& rdyForPresentSem ) const
-{
-    VkSemaphore vkSemaphores[]     = { rdyForPresentSem.GetHandle() };
-    VkPresentInfoKHR presentInfo   = {};
-    presentInfo.sType              = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
     presentInfo.waitSemaphoreCount = 1;
-    presentInfo.pWaitSemaphores    = vkSemaphores;
-
-    VkSwapchainKHR vkSwapChains[] = { swapChain.GetHandle() };
-    presentInfo.swapchainCount    = 1;
-    presentInfo.pSwapchains       = vkSwapChains;
-    presentInfo.pImageIndices     = &swapImageIndex;
+    presentInfo.pWaitSemaphores    = &vkSemaphore;
 
     VK_CHECK_RESULT( vkQueuePresentKHR( m_queue.queue, &presentInfo ) );
 }

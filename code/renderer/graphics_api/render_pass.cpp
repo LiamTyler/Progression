@@ -11,8 +11,8 @@ void RenderPass::Free()
     m_handle = VK_NULL_HANDLE;
 }
 
-void RenderPassDescriptor::AddColorAttachment( PixelFormat format, LoadAction loadAction, StoreAction storeAction,
-    const vec4& clearColor, ImageLayout initialLayout, ImageLayout finalLayout )
+void RenderPassDescriptor::AddColorAttachment( PixelFormat format, LoadAction loadAction, StoreAction storeAction, const vec4& clearColor,
+    ImageLayout initialLayout, ImageLayout finalLayout )
 {
     PG_ASSERT( numColorAttachments < MAX_COLOR_ATTACHMENTS, "Can't add more than %u color attachments", MAX_COLOR_ATTACHMENTS );
     colorAttachmentDescriptors[numColorAttachments].format        = format;
@@ -59,6 +59,26 @@ std::string StoreActionToString( StoreAction action )
     case StoreAction::DONT_CARE: return "DONT_CARE";
     default: PG_ASSERT( false, "Invalid store action %d", Underlying( action ) );
     }
+}
+
+bool ImageLayoutHasDepthAspect( ImageLayout layout )
+{
+    if ( layout == ImageLayout::DEPTH_STENCIL_ATTACHMENT || layout == ImageLayout::DEPTH_STENCIL_READ_ONLY ||
+         layout == ImageLayout::DEPTH_READ_ONLY_STENCIL_ATTACHMENT || layout == ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY ||
+         layout == ImageLayout::DEPTH_ATTACHMENT || layout == ImageLayout::DEPTH_READ_ONLY )
+        return true;
+
+    return false;
+}
+
+bool ImageLayoutHasStencilAspect( ImageLayout layout )
+{
+    if ( layout == ImageLayout::DEPTH_STENCIL_ATTACHMENT || layout == ImageLayout::DEPTH_STENCIL_READ_ONLY ||
+         layout == ImageLayout::DEPTH_READ_ONLY_STENCIL_ATTACHMENT || layout == ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY ||
+         layout == ImageLayout::STENCIL_ATTACHMENT || layout == ImageLayout::STENCIL_READ_ONLY )
+        return true;
+
+    return false;
 }
 
 std::string ImageLayoutToString( ImageLayout layout )

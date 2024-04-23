@@ -17,6 +17,8 @@ void CommandBuffer::Free()
     m_handle = VK_NULL_HANDLE;
 }
 
+void CommandBuffer::Reset() const { VK_CHECK_RESULT( vkResetCommandBuffer( m_handle, 0 ) ); }
+
 void CommandBuffer::BeginRecording( CommandBufferUsage flags ) const
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
@@ -42,7 +44,7 @@ void CommandBuffer::BeginRenderPass( const RenderPass* renderPass, const Framebu
     uint8_t attachmentIndex     = 0;
     for ( ; attachmentIndex < renderPass->desc.numColorAttachments; ++attachmentIndex )
     {
-        const vec4& col               = renderPass->desc.colorAttachmentDescriptors[attachmentIndex].clearColor;
+        const vec4& col                    = renderPass->desc.colorAttachmentDescriptors[attachmentIndex].clearColor;
         clearValues[attachmentIndex].color = { col.r, col.g, col.b, col.a };
     }
     if ( renderPass->desc.numDepthAttachments > 0 )
@@ -99,22 +101,22 @@ void CommandBuffer::BindIndexBuffer( const Buffer& buffer, IndexType indexType, 
     vkCmdBindIndexBuffer( m_handle, buffer.GetHandle(), offset, PGToVulkanIndexType( indexType ) );
 }
 
-void CommandBuffer::PipelineBufferBarrier(
-    PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkBufferMemoryBarrier& barrier ) const
-{
-    vkCmdPipelineBarrier( m_handle, PGToVulkanPipelineStageFlags( srcStageMask ), PGToVulkanPipelineStageFlags( dstStageMask ), 0, 0,
-        nullptr,      // memory barriers
-        1, &barrier,  // buffer memory barriers
-        0, nullptr ); // image memory barriers
-}
+// void CommandBuffer::PipelineBufferBarrier(
+//     PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkBufferMemoryBarrier& barrier ) const
+//{
+//     vkCmdPipelineBarrier( m_handle, PGToVulkanPipelineStageFlags( srcStageMask ), PGToVulkanPipelineStageFlags( dstStageMask ), 0, 0,
+//         nullptr,      // memory barriers
+//         1, &barrier,  // buffer memory barriers
+//         0, nullptr ); // image memory barriers
+// }
 
-void CommandBuffer::PipelineImageBarrier(
-    PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkImageMemoryBarrier& barrier ) const
+void CommandBuffer::PipelineImageBarrier2( const VkImageMemoryBarrier2& imageBarrier ) const
 {
-    vkCmdPipelineBarrier( m_handle, PGToVulkanPipelineStageFlags( srcStageMask ), PGToVulkanPipelineStageFlags( dstStageMask ), 0, 0,
-        nullptr,       // memory barriers
-        0, nullptr,    // buffer memory barriers
-        1, &barrier ); // image memory barriers
+    VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    depInfo.imageMemoryBarrierCount = 1;
+    depInfo.pImageMemoryBarriers    = &imageBarrier;
+
+    vkCmdPipelineBarrier2( m_handle, &depInfo );
 }
 
 void CommandBuffer::SetViewport( const Viewport& viewport ) const
@@ -168,19 +170,30 @@ void CommandBuffer::BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, 
         m_handle, src, PGToVulkanImageLayout( srcLayout ), dst, PGToVulkanImageLayout( dstLayout ), 1, &region, VK_FILTER_LINEAR );
 }
 
-void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout,
-    VkImageSubresourceRange subresourceRange, PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask ) const
+void CommandBuffer::TransitionImageLayout(
+    VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkPipelineStageFlags2 srcStageMask, VkPipelineStageFlags2 dstStageMask ) const
 {
-    VkImageLayout vkOldLayout               = PGToVulkanImageLayout( oldLayout );
-    VkImageLayout vkNewLayout               = PGToVulkanImageLayout( newLayout );
-    VkImageMemoryBarrier imageMemoryBarrier = {};
-    imageMemoryBarrier.sType                = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
-    imageMemoryBarrier.oldLayout            = vkOldLayout;
-    imageMemoryBarrier.newLayout            = vkNewLayout;
-    imageMemoryBarrier.srcQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-    imageMemoryBarrier.dstQueueFamilyIndex  = VK_QUEUE_FAMILY_IGNORED;
-    imageMemoryBarrier.image                = image;
-    imageMemoryBarrier.subresourceRange     = subresourceRange;
+    VkImageLayout vkOldLayout          = PGToVulkanImageLayout( oldLayout );
+    VkImageLayout vkNewLayout          = PGToVulkanImageLayout( newLayout );
+    VkImageMemoryBarrier2 imageBarrier = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+    imageBarrier.srcStageMask          = srcStageMask;
+    imageBarrier.srcAccessMask         = 0;
+    imageBarrier.dstStageMask          = dstStageMask;
+    imageBarrier.dstAccessMask         = 0;
+
+    imageBarrier.oldLayout = vkOldLayout;
+    imageBarrier.newLayout = vkNewLayout;
+    imageBarrier.image     = image;
+
+    VkImageAspectFlags aspectMask = 0;
+    if ( ImageLayoutHasDepthAspect( newLayout ) )
+        aspectMask |= VK_IMAGE_ASPECT_DEPTH_BIT;
+    if ( ImageLayoutHasDepthAspect( newLayout ) )
+        aspectMask |= VK_IMAGE_ASPECT_STENCIL_BIT;
+    if ( !aspectMask )
+        aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+
+    imageBarrier.subresourceRange = ImageSubresourceRange( aspectMask );
 
     // https://github.com/SaschaWillems/Vulkan/blob/master/base/VulkanTools.cpp
     // Source access mask controls actions that have to be finished on the old layout before it will be transitioned to the new layout
@@ -190,35 +203,35 @@ void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout,
         // Image layout is undefined (or does not matter)
         // Only valid as initial layout
         // No flags required, listed only for completeness
-        imageMemoryBarrier.srcAccessMask = 0;
+        imageBarrier.srcAccessMask = VK_ACCESS_2_NONE;
         break;
     case VK_IMAGE_LAYOUT_PREINITIALIZED:
         // Image is preinitialized
         // Only valid as initial layout for linear images, preserves memory contents
         // Make sure host writes have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT;
+        imageBarrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT;
         break;
     case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
         // Image is a color attachment
         // Make sure any writes to the color buffer have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        imageBarrier.srcAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
         break;
     case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
     case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
     case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
         // Image is a depth/stencil attachment
         // Make sure any writes to the depth/stencil buffer have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        imageBarrier.srcAccessMask = VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         break;
     case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
         // Image is a transfer source
         // Make sure any reads from the image have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        imageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
         break;
     case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
         // Image is a transfer destination
         // Make sure any writes to the image have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        imageBarrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         break;
     case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
     case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
@@ -227,15 +240,15 @@ void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout,
     case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
         // Image is read by a shader
         // Make sure any shader reads from the image have been finished
-        imageMemoryBarrier.srcAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        imageBarrier.srcAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
         break;
     case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
         // Image was already presented, and should not have to wait for anything before being written to
-        imageMemoryBarrier.srcAccessMask = 0;
+        imageBarrier.srcAccessMask = 0;
         break;
     default:
         // Other source layouts aren't handled (yet)
-        PG_ASSERT( false, "TransitionImageLayout: unknown oldLayout %d", vkOldLayout );
+        imageBarrier.srcAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT;
         break;
     }
 
@@ -245,24 +258,24 @@ void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout,
     case VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL:
         // Image will be used as a transfer destination
         // Make sure any writes to the image have been finished
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        imageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
         break;
     case VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL:
         // Image will be used as a transfer source
         // Make sure any reads from the image have been finished
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        imageBarrier.dstAccessMask = VK_ACCESS_2_TRANSFER_READ_BIT;
         break;
     case VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL:
         // Image will be used as a color attachment
         // Make sure any writes to the color buffer have been finished
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
+        imageBarrier.dstAccessMask = VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
         break;
     case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_OPTIMAL:
     case VK_IMAGE_LAYOUT_STENCIL_ATTACHMENT_OPTIMAL:
     case VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL:
         // Image layout will be used as a depth/stencil attachment
         // Make sure any writes to depth/stencil buffer have been finished
-        imageMemoryBarrier.dstAccessMask = imageMemoryBarrier.dstAccessMask | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+        imageBarrier.dstAccessMask = imageBarrier.dstAccessMask | VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
         break;
     case VK_IMAGE_LAYOUT_DEPTH_ATTACHMENT_STENCIL_READ_ONLY_OPTIMAL:
     case VK_IMAGE_LAYOUT_DEPTH_READ_ONLY_OPTIMAL:
@@ -271,23 +284,22 @@ void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout,
     case VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL:
         // Image will be read in a shader (sampler, input attachment)
         // Make sure any writes to the image have been finished
-        if ( imageMemoryBarrier.srcAccessMask == 0 )
+        if ( imageBarrier.srcAccessMask == 0 )
         {
-            imageMemoryBarrier.srcAccessMask = VK_ACCESS_HOST_WRITE_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
+            imageBarrier.srcAccessMask = VK_ACCESS_2_HOST_WRITE_BIT | VK_ACCESS_2_TRANSFER_WRITE_BIT;
         }
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
+        imageBarrier.dstAccessMask = VK_ACCESS_2_SHADER_READ_BIT;
         break;
     case VK_IMAGE_LAYOUT_PRESENT_SRC_KHR:
         // Not sure what presentation counts as?
-        imageMemoryBarrier.dstAccessMask = VK_ACCESS_MEMORY_READ_BIT;
+        imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
         break;
     default:
-        // Other source layouts aren't handled (yet)
-        PG_ASSERT( false, "TransitionImageLayout: unknown newLayout %d", vkNewLayout );
+        imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
         break;
     }
 
-    PipelineImageBarrier( srcStageMask, dstStageMask, imageMemoryBarrier );
+    PipelineImageBarrier2( imageBarrier );
 }
 
 void CommandBuffer::Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount, uint32_t firstInstance ) const
@@ -328,11 +340,7 @@ CommandBuffer CommandPool::NewCommandBuffer( const std::string& name )
     buf.m_device = m_device;
     buf.m_pool   = m_handle;
     VkCommandBuffer handle;
-    if ( vkAllocateCommandBuffers( m_device, &allocInfo, &handle ) != VK_SUCCESS )
-    {
-        PG_ASSERT( false, "Could not allocate command buffers" );
-        return buf;
-    }
+    VK_CHECK_RESULT( vkAllocateCommandBuffers( m_device, &allocInfo, &handle ) );
     buf.m_handle = handle;
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( buf, name ) );
 

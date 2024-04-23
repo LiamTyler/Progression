@@ -17,25 +17,15 @@ enum : unsigned char
     GFX_CMD_POOL_TOTAL
 };
 
-#define MAX_FRAMES_IN_FLIGHT 2
-#define MAX_OBJECTS_PER_FRAME (1024*256)
+#define NUM_FRAME_OVERLAP 2
 
 struct FrameData
 {
-    Buffer sceneConstantBuffer;
-    Buffer lightBuffer;
-    Buffer objectBuffer;
-    DescriptorSet sceneConstantDescSet;
-    DescriptorSet skyboxDescSet;
-    DescriptorSet lightsDescSet;
-    DescriptorSet lightingAuxTexturesDescSet;
-    DescriptorSet postProcessDescSet;
-    DescriptorSet objectDescSet;
+    Semaphore swapchainSemaphore, renderingCompleteSemaphore;
+    Fence renderingCompleteFence;
 
-    CommandBuffer graphicsCmdBuf;
-    Fence inFlightFence;
-    Semaphore swapchainImgAvailableSemaphore;
-    Semaphore renderCompleteSemaphore;
+    CommandPool cmdPool;
+    CommandBuffer primaryCmdBuffer;
 };
 
 struct R_Globals
@@ -46,13 +36,14 @@ struct R_Globals
     PhysicalDevice physicalDevice;
     Swapchain swapchain;
     uint32_t swapchainImageIndex;
-    CommandPool commandPools[GFX_CMD_POOL_TOTAL];
     DescriptorPool descriptorPool;
-    FrameData frameData[MAX_FRAMES_IN_FLIGHT];
-    uint32_t currentFrame;
-    bool headless;
+    FrameData frameData[NUM_FRAME_OVERLAP];
+    uint32_t currentFrameIdx;
     uint32_t sceneWidth;
     uint32_t sceneHeight;
+    bool headless;
+
+    FrameData& GetFrameData() { return frameData[currentFrameIdx % NUM_FRAME_OVERLAP]; }
 };
 
 Viewport DisplaySizedViewport( bool vulkanFlipViewport = true );

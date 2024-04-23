@@ -111,7 +111,7 @@ static void ProcessPendingFrees()
         return;
 
     size_t slotsToFree = 0;
-    while ( slotsToFree < s_pendingFrees.size() && s_pendingFrees[slotsToFree].pendingFor < MAX_FRAMES_IN_FLIGHT )
+    while ( slotsToFree < s_pendingFrees.size() && s_pendingFrees[slotsToFree].pendingFor < NUM_FRAME_OVERLAP )
         ++slotsToFree;
 
     if ( slotsToFree == 0 )

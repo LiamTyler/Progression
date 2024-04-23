@@ -52,7 +52,7 @@ bool Init( PixelFormat colorAttachmentFormat )
     init_info.Instance                  = rg.instance;
     init_info.PhysicalDevice            = rg.physicalDevice.GetHandle();
     init_info.Device                    = rg.device.GetHandle();
-    init_info.QueueFamily               = rg.physicalDevice.GetGraphicsQueueFamily();
+    init_info.QueueFamily               = rg.device.GetQueue().familyIndex;
     init_info.Queue                     = rg.device.GetQueue();
     init_info.PipelineCache             = VK_NULL_HANDLE;
     init_info.DescriptorPool            = rg.descriptorPool.GetHandle();

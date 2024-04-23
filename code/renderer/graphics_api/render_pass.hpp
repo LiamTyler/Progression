@@ -55,6 +55,8 @@ enum class ImageLayout
     NUM_IMAGE_LAYOUT = 18
 };
 
+bool ImageLayoutHasDepthAspect( ImageLayout layout );
+bool ImageLayoutHasStencilAspect( ImageLayout layout );
 std::string ImageLayoutToString( ImageLayout layout );
 
 class ColorAttachmentDescriptor

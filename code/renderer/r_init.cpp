@@ -52,7 +52,7 @@ static bool InitCommands()
 
         rg.frameData[i].primaryCmdBuffer = rg.frameData[i].cmdPool.NewCommandBuffer( "primary" + std::to_string( i ) );
     }
-    
+
     return true;
 }
 
@@ -60,18 +60,18 @@ static void InitSyncObjects()
 {
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        std::string iStr = std::to_string( i );
-        rg.frameData[i].swapchainSemaphore = rg.device.NewSemaphore( "swapchainSemaphore" + iStr );
+        std::string iStr                           = std::to_string( i );
+        rg.frameData[i].swapchainSemaphore         = rg.device.NewSemaphore( "swapchainSemaphore" + iStr );
         rg.frameData[i].renderingCompleteSemaphore = rg.device.NewSemaphore( "renderingCompleteSemaphore" + iStr );
-        rg.frameData[i].renderingCompleteFence = rg.device.NewFence( true, "renderingCompleteFence" + iStr );
+        rg.frameData[i].renderingCompleteFence     = rg.device.NewFence( true, "renderingCompleteFence" + iStr );
     }
 }
 
 bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 {
-    rg.headless = headless;
+    rg.headless        = headless;
     rg.currentFrameIdx = 0;
-    
+
     vkb::InstanceBuilder builder;
 
     // make the vulkan instance, with basic debug features
@@ -98,24 +98,28 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         VK_CHECK( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetGLFWHandle(), nullptr, &rg.surface ) );
     }
 
-    VkPhysicalDeviceVulkan13Features features{};
-    features.dynamicRendering = true;
-    features.synchronization2 = true;
+    VkPhysicalDeviceVulkan13Features features13{};
+    features13.dynamicRendering = true;
+    features13.synchronization2 = true;
 
     VkPhysicalDeviceVulkan12Features features12{};
-    features12.bufferDeviceAddress = true;
-    features12.descriptorIndexing  = true;
+    features12.bufferDeviceAddress                      = true;
+    features12.descriptorIndexing                       = true;
+    features12.descriptorBindingPartiallyBound          = true;
+    features12.descriptorBindingVariableDescriptorCount = true;
+    features12.runtimeDescriptorArray                   = true;
+    features12.
 
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
     pDevSelector.set_minimum_version( 1, 3 )
-        .set_required_features_13( features )
+        .set_required_features_13( features13 )
         .set_required_features_12( features12 )
         .require_present( !headless );
 #if USING( PG_RTX )
     pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
-#endif // #if USING( PG_RTX )
+#endif                   // #if USING( PG_RTX )
 #if USING( DEBUG_BUILD ) // perf hit
     pDevSelector.add_required_extension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
 #endif // #if USING( DEBUG_BUILD )
@@ -189,11 +193,11 @@ void R_Shutdown()
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         FrameData& frameData = rg.frameData[i];
-		frameData.cmdPool.Free();
+        frameData.cmdPool.Free();
         frameData.swapchainSemaphore.Free();
         frameData.renderingCompleteSemaphore.Free();
         frameData.renderingCompleteFence.Free();
-	}
+    }
 
     rg.swapchain.Free();
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );

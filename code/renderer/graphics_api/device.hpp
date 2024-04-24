@@ -63,6 +63,7 @@ public:
     void CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips = true ) const;
 
     operator bool() const;
+    operator VkDevice() const { return m_handle; }
     VkDevice GetHandle() const;
     Queue GetQueue() const;
     VmaAllocator GetAllocator() const;

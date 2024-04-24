@@ -1,4 +1,5 @@
 #pragma once
+#pragma once
 
 #include "graphics_api/pipeline.hpp"
 #include <string>

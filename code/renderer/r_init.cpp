@@ -108,13 +108,20 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.descriptorBindingPartiallyBound          = true;
     features12.descriptorBindingVariableDescriptorCount = true;
     features12.runtimeDescriptorArray                   = true;
-    features12.
+
+    VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{};
+    mutableExt.sType                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT;
+    mutableExt.mutableDescriptorType = true;
+
+    features12.pNext = &mutableExt;
 
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
     pDevSelector.set_minimum_version( 1, 3 )
         .set_required_features_13( features13 )
         .set_required_features_12( features12 )
         .require_present( !headless );
+    pDevSelector.add_required_extension( VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME );
+    pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
 #if USING( PG_RTX )
     pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );

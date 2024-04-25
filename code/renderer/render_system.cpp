@@ -39,19 +39,32 @@ struct DescriptorLayoutBuilder
             b.stageFlags |= shaderStages;
         }
 
-        VkDescriptorSetLayoutCreateInfo info = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        info.pBindings                       = bindings.data();
-        info.bindingCount                    = (uint32_t)bindings.size();
-        info.flags                           = 0; // VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        VkDescriptorSetLayoutCreateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
+        info.pBindings    = bindings.data();
+        info.bindingCount = (uint32_t)bindings.size();
+        info.flags        = 0;
+        // info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+        // info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
         VkDescriptorBindingFlags bindFlag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
         // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
         // bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
-        VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-        extendedInfo.bindingCount                                = 1;
-        extendedInfo.pBindingFlags                               = &bindFlag;
-        info.pNext                                               = &extendedInfo;
+        VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
+        extendedInfo.bindingCount  = 1;
+        extendedInfo.pBindingFlags = &bindFlag;
+        info.pNext                 = &extendedInfo;
+
+        VkDescriptorType mutableTexTypes[] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE };
+
+        VkMutableDescriptorTypeListVALVE descTypeList{};
+        descTypeList.descriptorTypeCount = ARRAY_COUNT( mutableTexTypes );
+        descTypeList.pDescriptorTypes    = mutableTexTypes;
+
+        VkMutableDescriptorTypeCreateInfoEXT mutableTypeInfo{ VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT };
+        mutableTypeInfo.mutableDescriptorTypeListCount = 1;
+        mutableTypeInfo.pMutableDescriptorTypeLists    = &descTypeList;
+        extendedInfo.pNext                             = &mutableTypeInfo;
 
         VkDescriptorSetLayout setLayout;
         VK_CHECK( vkCreateDescriptorSetLayout( device, &info, nullptr, &setLayout ) );
@@ -69,11 +82,11 @@ struct DescriptorAllocator
     {
         device = inDevice;
 
-        VkDescriptorPoolCreateInfo pool_info = { .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-        pool_info.flags                      = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-        pool_info.maxSets                    = maxSets;
-        pool_info.poolSizeCount              = (uint32_t)poolSizes.size();
-        pool_info.pPoolSizes                 = poolSizes.data();
+        VkDescriptorPoolCreateInfo pool_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+        pool_info.flags         = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+        pool_info.maxSets       = maxSets;
+        pool_info.poolSizeCount = (uint32_t)poolSizes.size();
+        pool_info.pPoolSizes    = poolSizes.data();
 
         vkCreateDescriptorPool( device, &pool_info, nullptr, &pool );
     }
@@ -117,11 +130,11 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     static constexpr uint32_t MAX_TEXTURES = 1024;
 
     DescriptorLayoutBuilder setLayoutBuilder;
-    setLayoutBuilder.add_binding( 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES );
+    // setLayoutBuilder.add_binding( 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES );
+    setLayoutBuilder.add_binding( 0, VK_DESCRIPTOR_TYPE_MUTABLE_EXT, MAX_TEXTURES );
     s_setLayout = setLayoutBuilder.build( rg.device.GetHandle() );
 
     std::vector<VkDescriptorPoolSize> poolSizes = {
-  //{VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, MAX_TEXTURES},
         {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES},
     };
     s_descriptorAllocator.init_pool( rg.device.GetHandle(), 1, poolSizes );

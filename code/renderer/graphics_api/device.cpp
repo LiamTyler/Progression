@@ -284,11 +284,15 @@ Semaphore Device::NewSemaphore( const std::string& name ) const
 
 AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureType type, size_t size ) const
 {
+    BufferCreateInfo bufferCreateInfo = {};
+    bufferCreateInfo.size = size;
+    bufferCreateInfo.bufferUsage |= BufferUsage::AS_STORAGE;
+    bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
     AccelerationStructure accelerationStructure;
     accelerationStructure.m_device = m_handle;
     accelerationStructure.m_type   = type;
-    accelerationStructure.m_buffer =
-        NewBuffer( size, BUFFER_TYPE_ACCELERATION_STRUCTURE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
+    accelerationStructure.m_buffer = NewBuffer( bufferCreateInfo );
 
     VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR };
     accelerationStructureCreateInfo.buffer = accelerationStructure.m_buffer.GetHandle();
@@ -304,82 +308,71 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
     return accelerationStructure;
 }
 
-Buffer Device::NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name ) const
+Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, const std::string& name ) const
 {
-    type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
+
+    VkBufferCreateInfo vkBufInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    vkBufInfo.usage       = PGToVulkanBufferType( createInfo.bufferUsage );
+    vkBufInfo.size        = createInfo.size;
+    vkBufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    VmaAllocationCreateInfo vmaAllocInfo = {};
+    vmaAllocInfo.usage = createInfo.memoryUsage;
+    vmaAllocInfo.flags = createInfo.flags;
+ 
     Buffer buffer;
-    buffer.m_device     = m_handle;
-    buffer.m_type       = type;
-    buffer.m_memoryType = memoryType;
-    buffer.m_length     = length;
+    buffer.m_size = createInfo.size;
+    buffer.m_bufferUsage = createInfo.bufferUsage;
+    buffer.m_memoryUsage = createInfo.memoryUsage;
+    VmaAllocationInfo allocReturnInfo;
+    vmaCreateBuffer( m_vmaAllocator, &vkBufInfo, &vmaAllocInfo, &buffer.m_handle, &buffer.m_allocation, &allocReturnInfo );
+    buffer.m_persistent = (createInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT) && allocReturnInfo.pMappedData != nullptr;
 
-    VkBufferCreateInfo info{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    info.usage       = PGToVulkanBufferType( type );
-    info.size        = length;
-    info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-    VK_CHECK( vkCreateBuffer( m_handle, &info, nullptr, &buffer.m_handle ) );
+    VkMemoryPropertyFlags vkMemProperties;
+	vmaGetAllocationMemoryProperties( m_vmaAllocator, buffer.m_allocation, &vkMemProperties );
+	buffer.m_coherent = (vkMemProperties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    PG_ASSERT( !(buffer.m_persistent && !buffer.m_coherent), "Persistently mapped buffers should be coherent" );
 
-    VkMemoryRequirements memRequirements;
-    vkGetBufferMemoryRequirements( m_handle, buffer.m_handle, &memRequirements );
-
-    VkMemoryAllocateFlagsInfo memoryAllocateFlagsInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_FLAGS_INFO };
-    memoryAllocateFlagsInfo.flags = ( type & BUFFER_TYPE_DEVICE_ADDRESS ) ? VK_MEMORY_ALLOCATE_DEVICE_ADDRESS_BIT_KHR : 0;
-
-    VkMemoryPropertyFlags memPropertyFlags = PGToVulkanMemoryType( memoryType );
-    VkMemoryAllocateInfo allocInfo{ VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
-    allocInfo.allocationSize  = memRequirements.size;
-    allocInfo.memoryTypeIndex = FindMemoryType( memRequirements.memoryTypeBits, memPropertyFlags );
-    allocInfo.pNext           = &memoryAllocateFlagsInfo;
-    VK_CHECK( vkAllocateMemory( m_handle, &allocInfo, nullptr, &buffer.m_memory ) );
-
-    VK_CHECK( vkBindBufferMemory( m_handle, buffer.m_handle, buffer.m_memory, 0 ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name ) );
-
-    if ( type & BUFFER_TYPE_DEVICE_ADDRESS )
-    {
-        VkBufferDeviceAddressInfo bufferAddressInfo{ VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO };
-        bufferAddressInfo.buffer = buffer.m_handle;
-        buffer.m_deviceAddress   = vkGetBufferDeviceAddress( m_handle, &bufferAddressInfo );
-    }
+    buffer.m_mappedPtr = buffer.m_persistent ? allocReturnInfo.pMappedData : nullptr;
 
     return buffer;
 }
 
-Buffer Device::NewBuffer( size_t length, void* data, BufferType type, MemoryType memoryType, const std::string& name ) const
-{
-    Buffer dstBuffer;
-    type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
-
-    if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
-    {
-        Buffer stagingBuffer =
-            NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
-        stagingBuffer.Map();
-        memcpy( stagingBuffer.MappedPtr(), data, length );
-        stagingBuffer.UnMap();
-
-        dstBuffer = NewBuffer( length, type, memoryType, name );
-        Copy( dstBuffer, stagingBuffer );
-        stagingBuffer.Free();
-    }
-    else if ( memoryType & MEMORY_TYPE_HOST_VISIBLE )
-    {
-        dstBuffer = NewBuffer( length, type, memoryType, name );
-        dstBuffer.Map();
-        memcpy( dstBuffer.MappedPtr(), data, length );
-        if ( ( memoryType & MEMORY_TYPE_HOST_COHERENT ) == 0 )
-        {
-            dstBuffer.FlushCpuWrites();
-        }
-        dstBuffer.UnMap();
-    }
-    else
-    {
-        PG_ASSERT( false, "Unknown MemoryType passed into NewBuffer. Not copying data into buffer" );
-    }
-
-    return dstBuffer;
-}
+//Buffer Device::NewBuffer( size_t length, void* data, BufferUsage type, MemoryType memoryType, const std::string& name ) const
+//{
+//    Buffer dstBuffer;
+//    type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
+//
+//    if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
+//    {
+//        Buffer stagingBuffer =
+//            NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
+//        stagingBuffer.Map();
+//        memcpy( stagingBuffer.MappedPtr(), data, length );
+//        stagingBuffer.UnMap();
+//
+//        dstBuffer = NewBuffer( length, type, memoryType, name );
+//        Copy( dstBuffer, stagingBuffer );
+//        stagingBuffer.Free();
+//    }
+//    else if ( memoryType & MEMORY_TYPE_HOST_VISIBLE )
+//    {
+//        dstBuffer = NewBuffer( length, type, memoryType, name );
+//        dstBuffer.Map();
+//        memcpy( dstBuffer.MappedPtr(), data, length );
+//        if ( ( memoryType & MEMORY_TYPE_HOST_COHERENT ) == 0 )
+//        {
+//            dstBuffer.FlushCpuWrites();
+//        }
+//        dstBuffer.UnMap();
+//    }
+//    else
+//    {
+//        PG_ASSERT( false, "Unknown MemoryType passed into NewBuffer. Not copying data into buffer" );
+//    }
+//
+//    return dstBuffer;
+//}
 
 Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& name ) const
 {
@@ -428,26 +421,27 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& na
 
 Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, const std::string& name ) const
 {
-    desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    Texture tex          = NewTexture( desc, name );
-    size_t imSize        = desc.TotalSizeInBytes();
-    Buffer stagingBuffer = NewBuffer( imSize, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
-    stagingBuffer.Map();
-    memcpy( stagingBuffer.MappedPtr(), data, imSize );
-    stagingBuffer.UnMap();
-
-    VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
-    PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
-
-    TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
-    CopyBufferToImage( stagingBuffer, tex );
-    TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-        VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
-
-    stagingBuffer.Free();
-
-    return tex;
+    //desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    //Texture tex          = NewTexture( desc, name );
+    //size_t imSize        = desc.TotalSizeInBytes();
+    //Buffer stagingBuffer = NewBuffer( imSize, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
+    //stagingBuffer.Map();
+    //memcpy( stagingBuffer.MappedPtr(), data, imSize );
+    //stagingBuffer.UnMap();
+    //
+    //VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
+    //PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
+    //
+    //TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //    tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+    //CopyBufferToImage( stagingBuffer, tex );
+    //TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+    //
+    //stagingBuffer.Free();
+    //
+    //return tex;
+    return {};
 }
 
 Sampler Device::NewSampler( const SamplerDescriptor& desc ) const

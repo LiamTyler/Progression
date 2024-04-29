@@ -84,38 +84,44 @@ enum class IndexType : uint8_t
 
 int SizeOfIndexType( IndexType type );
 
-typedef enum BufferTypeBits
+enum class BufferUsage : uint32_t
 {
-    BUFFER_TYPE_NONE                                         = 0,
-    BUFFER_TYPE_TRANSFER_SRC                                 = 1 << 0,
-    BUFFER_TYPE_TRANSFER_DST                                 = 1 << 1,
-    BUFFER_TYPE_UNIFORM_TEXEL                                = 1 << 2,
-    BUFFER_TYPE_STORAGE_TEXEL                                = 1 << 3,
-    BUFFER_TYPE_UNIFORM                                      = 1 << 4,
-    BUFFER_TYPE_STORAGE                                      = 1 << 5,
-    BUFFER_TYPE_INDEX                                        = 1 << 6,
-    BUFFER_TYPE_VERTEX                                       = 1 << 7,
-    BUFFER_TYPE_INDIRECT                                     = 1 << 8,
-    BUFFER_TYPE_DEVICE_ADDRESS                               = 0x00020000,
-    BUFFER_TYPE_TRANSFORM_FEEDBACK                           = 0x00000800,
-    BUFFER_TYPE_TRANSFORM_FEEDBACK_COUNTER                   = 0x00001000,
-    BUFFER_TYPE_CONDITIONAL_RENDERING                        = 0x00000200,
-    BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY = 0x00080000,
-    BUFFER_TYPE_ACCELERATION_STRUCTURE_STORAGE               = 0x00100000,
-    BUFFER_TYPE_SHADER_BINDING_TABLE                         = 0x00000400,
-} BufferTypeBits;
+    NONE          = 0,
+    TRANSFER_SRC  = 1 << 0,
+    TRANSFER_DST  = 1 << 1,
+    UNIFORM_TEXEL = 1 << 2,
+    STORAGE_TEXEL = 1 << 3,
+    UNIFORM       = 1 << 4,
+    STORAGE       = 1 << 5,
+    INDEX         = 1 << 6,
+    VERTEX        = 1 << 7,
+    INDIRECT      = 1 << 8,
 
-typedef uint32_t BufferType;
+    // VK_KHR_buffer_device_address
+    DEVICE_ADDRESS = 0x00020000,
 
-typedef enum MemoryTypeBits
+    // Provided by VK_KHR_acceleration_structure
+    AS_BUILD_INPUT_READ_ONLY = 0x00080000,
+    AS_STORAGE               = 0x00100000,
+
+    // Provided by VK_KHR_ray_tracing_pipeline
+    SHADER_BINDING_TABLE = 0x00000400,
+
+    // Provided VK_EXT_descriptor_buffer
+    SAMPLER_DESCRIPTOR          = 0x00200000,
+    RESOURCE_DESCRIPTOR         = 0x00400000,
+    PUSH_DESCRIPTORS_DESCRIPTOR = 0x04000000,
+};
+PG_DEFINE_ENUM_OPS( BufferUsage );
+
+struct BufferCreateInfo
 {
-    MEMORY_TYPE_DEVICE_LOCAL  = 1 << 0,
-    MEMORY_TYPE_HOST_VISIBLE  = 1 << 1,
-    MEMORY_TYPE_HOST_COHERENT = 1 << 2,
-    MEMORY_TYPE_HOST_CACHED   = 1 << 3,
-} MemoryTypeBits;
-
-typedef uint32_t MemoryType;
+    size_t size; // in bytes
+    void* initalData               = nullptr;
+    BufferUsage bufferUsage        = BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
+    VmaMemoryUsage memoryUsage     = VMA_MEMORY_USAGE_AUTO;
+    VmaAllocationCreateFlags flags = 0;
+};
 
 class Buffer
 {
@@ -124,31 +130,28 @@ class Buffer
 
 public:
     void Free();
-    void Map() const;
-    void UnMap() const;
-    void BindMemory( size_t offset = 0 ) const;
-    void FlushCpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
-    void FlushGpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
-    void ReadToCpu( void* dst, size_t size = VK_WHOLE_SIZE, size_t offset = 0 ) const;
+    char* Map();
+    void UnMap();
+    void FlushCpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
+    void FlushGpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
+    VkDeviceAddress GetDeviceAddress() const;
 
     operator bool() const { return m_handle != VK_NULL_HANDLE; }
-    char* MappedPtr() const { return static_cast<char*>( m_mappedPtr ); }
-    size_t GetLength() const { return m_length; }
-    BufferType GetType() const { return m_type; }
-    MemoryType GetMemoryType() const { return m_memoryType; }
+    size_t GetSize() const { return m_size; }
     VkBuffer GetHandle() const { return m_handle; }
-    VkDeviceMemory GetMemoryHandle() const { return m_memory; }
-    VkDeviceAddress GetDeviceAddress() const { return m_deviceAddress; }
+    VmaAllocation GetAllocation() const { return m_allocation; }
+    char* GetMappedPtr() const { return static_cast<char*>( m_mappedPtr ); }
 
 private:
-    BufferType m_type;
-    MemoryType m_memoryType;
-    mutable void* m_mappedPtr = nullptr;
-    size_t m_length           = 0; // in bytes
-    VkBuffer m_handle         = VK_NULL_HANDLE;
-    VkDeviceMemory m_memory;
-    VkDeviceAddress m_deviceAddress = 0;
-    VkDevice m_device;
+    size_t m_size; // in bytes
+    BufferUsage m_bufferUsage;
+    VmaMemoryUsage m_memoryUsage;
+
+    VkBuffer m_handle;
+    VmaAllocation m_allocation;
+    void* m_mappedPtr = nullptr;
+    bool m_persistent = false;
+    bool m_coherent = false;
 };
 
 } // namespace PG::Gfx

@@ -73,7 +73,7 @@ constexpr VkPolygonMode PGToVulkanPolygonMode( PolygonMode mode ) { return stati
 
 constexpr VkIndexType PGToVulkanIndexType( IndexType indexType ) { return static_cast<VkIndexType>( indexType ); }
 
-constexpr VkBufferUsageFlags PGToVulkanBufferType( BufferType type ) { return static_cast<VkBufferUsageFlags>( type ); }
+constexpr VkBufferUsageFlags PGToVulkanBufferType( BufferUsage type ) { return static_cast<VkBufferUsageFlags>( type ); }
 
 constexpr VkFormat PGToVulkanBufferFormat( BufferFormat type )
 {
@@ -146,8 +146,6 @@ constexpr VkFormat PGToVulkanBufferFormat( BufferFormat type )
 
     return convert[static_cast<int>( type )];
 }
-
-constexpr VkMemoryPropertyFlags PGToVulkanMemoryType( MemoryType type ) { return static_cast<VkMemoryPropertyFlags>( type ); }
 
 constexpr VkVertexInputRate PGToVulkanVertexInputRate( VertexInputRate inputRate ) { return static_cast<VkVertexInputRate>( inputRate ); }
 

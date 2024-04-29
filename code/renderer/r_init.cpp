@@ -109,11 +109,17 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.descriptorBindingVariableDescriptorCount = true;
     features12.runtimeDescriptorArray                   = true;
 
-    VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{};
-    mutableExt.sType                 = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT;
+    VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
     mutableExt.mutableDescriptorType = true;
 
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
+    descriptorBufferExt.descriptorBuffer = true;
+    //descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
+
+    VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer_properties{};
+
     features12.pNext = &mutableExt;
+    mutableExt.pNext = &descriptorBufferExt;
 
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
     pDevSelector.set_minimum_version( 1, 3 )
@@ -176,6 +182,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         LOG_ERR( "Failed to create logical device" );
         return false;
     }
+    LoadVulkanExtensions( rg.device );
 
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( rg.instance, "Primary" );
     PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( rg.physicalDevice, rg.physicalDevice.GetName() );

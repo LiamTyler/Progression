@@ -96,9 +96,9 @@ struct TGBTexture
 struct TGBBuffer
 {
     RG_DEBUG_ONLY( std::string debugName );
-    size_t length;
-    BufferType bufferType;
-    BufferFormat format;
+    size_t size;
+    BufferUsage bufferUsage;
+    VmaMemoryUsage memoryUsage;
     ExtBufferFunc externalFunc;
 };
 
@@ -165,8 +165,8 @@ public:
     void AddTextureOutput( TGBTextureRef& texture );
     void AddTextureInput( TGBTextureRef& texture );
 
-    TGBBufferRef AddBufferOutput( const std::string& name, BufferType type, BufferFormat format, uint32_t numElements, uint32_t clearVal );
-    TGBBufferRef AddBufferOutput( const std::string& name, BufferType type, BufferFormat format, uint32_t numElements );
+    TGBBufferRef AddBufferOutput( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal );
+    TGBBufferRef AddBufferOutput( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size );
     void AddBufferOutput( TGBBufferRef& buffer );
     void AddBufferInput( TGBBufferRef& buffer );
 
@@ -192,13 +192,12 @@ public:
 
     TGBTextureRef RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
         uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
-    TGBBufferRef RegisterExternalBuffer( const std::string& name, BufferType type, BufferFormat format,
-        uint32_t numElements, ExtBufferFunc func );
+    TGBBufferRef RegisterExternalBuffer( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
 private:
     TGBTextureRef AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
         uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
-    TGBBufferRef AddBuffer( const std::string& name, BufferType type, BufferFormat format, uint32_t numElements, ExtBufferFunc func );
+    TGBBufferRef AddBuffer( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
     std::vector<ComputeTaskBuilder> computeTasks;
     std::vector<TGBTexture> textures;

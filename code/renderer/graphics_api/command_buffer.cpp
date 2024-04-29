@@ -159,7 +159,7 @@ void CommandBuffer::CopyBuffer( const Buffer& dst, const Buffer& src, size_t siz
     copyRegion.size      = size;
     if ( size == VK_WHOLE_SIZE )
     {
-        copyRegion.size = src.GetLength();
+        copyRegion.size = src.GetSize();
     }
     vkCmdCopyBuffer( m_handle, src.GetHandle(), dst.GetHandle(), 1, &copyRegion );
 }

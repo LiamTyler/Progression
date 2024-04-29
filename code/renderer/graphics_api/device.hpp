@@ -44,10 +44,11 @@ public:
     void UpdateDescriptorSets( const std::vector<VkWriteDescriptorSet>& writeList ) const;
     void UpdateDescriptorSet( const VkWriteDescriptorSet& write ) const;
     AccelerationStructure NewAccelerationStructure( AccelerationStructureType type, size_t size ) const;
-    Buffer NewBuffer( size_t length, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
-    Buffer NewBuffer( size_t length, void* data, BufferType type, MemoryType memoryType, const std::string& name = "" ) const;
+    
+    Buffer NewBuffer( const BufferCreateInfo& info, const std::string& name = "" ) const;
     Texture NewTexture( const TextureCreateInfo& desc, const std::string& name = "" ) const;
     Texture NewTextureFromBuffer( TextureCreateInfo& desc, void* data, const std::string& name = "" ) const;
+    
     Sampler NewSampler( const SamplerDescriptor& desc ) const;
     Fence NewFence( bool signaled = false, const std::string& name = "" ) const;
     Semaphore NewSemaphore( const std::string& name = "" ) const;

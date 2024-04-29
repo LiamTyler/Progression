@@ -26,16 +26,17 @@ TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
 void ComputeTaskBuilder::AddTextureOutput( TGBTextureRef& texture ) { builder->MarkTextureWrite( texture, taskHandle ); }
 void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& texture ) { builder->MarkTextureRead( texture, taskHandle ); }
 TGBBufferRef ComputeTaskBuilder::AddBufferOutput(
-    const std::string& name, BufferType type, BufferFormat format, uint32_t numElements, uint32_t clearVal )
+    const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal )
 {
-    TGBBufferRef ref = builder->AddBuffer( name, type, format, numElements, nullptr );
+    TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr );
     builder->MarkBufferWrite( ref, taskHandle );
     buffers.emplace_back( clearVal, ref, true );
     return ref;
 }
-TGBBufferRef ComputeTaskBuilder::AddBufferOutput( const std::string& name, BufferType type, BufferFormat format, uint32_t numElements )
+TGBBufferRef ComputeTaskBuilder::AddBufferOutput(
+    const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size )
 {
-    TGBBufferRef ref = builder->AddBuffer( name, type, format, numElements, nullptr );
+    TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr );
     builder->MarkBufferWrite( ref, taskHandle );
     buffers.emplace_back( 0, ref, false );
     return ref;
@@ -65,9 +66,9 @@ TGBTextureRef TaskGraphBuilder::RegisterExternalTexture( const std::string& name
 }
 
 TGBBufferRef TaskGraphBuilder::RegisterExternalBuffer(
-    const std::string& name, BufferType type, BufferFormat format, uint32_t numElements, ExtBufferFunc func )
+    const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func )
 {
-    return AddBuffer( name, type, format, numElements, func );
+    return AddBuffer( name, bufferUsage, memoryUsage, size, func );
 }
 
 TGBTextureRef TaskGraphBuilder::AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
@@ -89,12 +90,11 @@ TGBTextureRef TaskGraphBuilder::AddTexture( const std::string& name, PixelFormat
 }
 
 TGBBufferRef TaskGraphBuilder::AddBuffer(
-    const std::string& name, BufferType type, BufferFormat format, uint32_t numElements, ExtBufferFunc func )
+    const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func )
 {
     ResourceIndexHandle index = static_cast<ResourceIndexHandle>( buffers.size() );
-    size_t length             = numElements * NumBytesPerElement( format );
 #if USING( RG_DEBUG )
-    buffers.emplace_back( name, length, type, format, func );
+    buffers.emplace_back( name, size, bufferUsage, memoryUsage, func );
 #else  // #if USING( RG_DEBUG )
     buffers.emplace_back( length, type, format, func );
 #endif // #else // #if USING( RG_DEBUG )
@@ -168,15 +168,15 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         TGBTexture& tex = builder.textures[i];
         ResolveSizes( tex, compileInfo );
 
-        Texture& gfxTex         = textures[i];
-        TextureCreateInfo desc  = {};
-        desc.type               = ImageType::TYPE_2D;
-        desc.format             = tex.format;
-        desc.width              = tex.width;
-        desc.height             = tex.height;
-        desc.depth              = tex.depth;
-        desc.arrayLayers        = tex.arrayLayers;
-        desc.mipLevels          = tex.mipLevels;
+        Texture& gfxTex        = textures[i];
+        TextureCreateInfo desc = {};
+        desc.type              = ImageType::TYPE_2D;
+        desc.format            = tex.format;
+        desc.width             = tex.width;
+        desc.height            = tex.height;
+        desc.depth             = tex.depth;
+        desc.arrayLayers       = tex.arrayLayers;
+        desc.mipLevels         = tex.mipLevels;
         // if ( IsSet( lRes.element.type, ResourceType::COLOR_ATTACH ) )
         //     desc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
         // else if ( IsSet( lRes.element.type, ResourceType::DEPTH_ATTACH ) || IsSet( lRes.element.type, ResourceType::STENCIL_ATTACH ) )
@@ -233,18 +233,15 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
     buffers.resize( builder.buffers.size() );
     for ( size_t i = 0; i < builder.buffers.size(); ++i )
     {
-        TGBBuffer& buffer         = builder.buffers[i];
+        TGBBuffer& buildBuffer    = builder.buffers[i];
         Buffer& gfxBuffer         = buffers[i];
-        gfxBuffer.m_type          = buffer.bufferType;
-        gfxBuffer.m_memoryType    = MEMORY_TYPE_DEVICE_LOCAL; // TODO: support others?
+        gfxBuffer.m_bufferUsage   = buildBuffer.bufferUsage;
+        gfxBuffer.m_memoryUsage   = buildBuffer.memoryUsage; // TODO: support others?
         gfxBuffer.m_mappedPtr     = nullptr;
-        gfxBuffer.m_length        = buffer.length;
+        gfxBuffer.m_size          = buildBuffer.size;
         gfxBuffer.m_handle        = VK_NULL_HANDLE;
-        gfxBuffer.m_memory        = VK_NULL_HANDLE;
-        gfxBuffer.m_deviceAddress = 0;
-        gfxBuffer.m_device        = rg.device.GetHandle();
 
-        if ( buffer.externalFunc )
+        if ( buildBuffer.externalFunc )
             continue;
 
         tgbBufferToResourceData[i] = (uint16_t)resourceDatas.size();
@@ -255,12 +252,11 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         data.lastTask              = builder.bufferAccesses[i].lastTask;
 
         VkBufferCreateInfo info{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-        info.usage       = PGToVulkanBufferType( buffer.bufferType ) | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
-        info.size        = buffer.length;
-        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        VK_CHECK( vkCreateBuffer( rg.device.GetHandle(), &info, nullptr, &data.buffer ) );
+        info.usage = PGToVulkanBufferType( gfxBuffer.m_bufferUsage ) | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+        info.size  = buildBuffer.size;
+        VK_CHECK( vkCreateBuffer( rg.device, &info, nullptr, &data.buffer ) );
         gfxBuffer.m_handle = data.buffer;
-        vkGetBufferMemoryRequirements( rg.device.GetHandle(), data.buffer, &data.memoryReq );
+        vkGetBufferMemoryRequirements( rg.device, data.buffer, &data.memoryReq );
     }
 
     std::sort( resourceDatas.begin(), resourceDatas.end(),
@@ -553,12 +549,12 @@ void TaskGraph::Free()
     for ( Buffer& buf : buffers )
     {
         vmaDestroyBuffer( allocator, buf.m_handle, nullptr );
-        //vkDestroyBuffer( rg.device.GetHandle(), buf.m_handle, nullptr );
+        // vkDestroyBuffer( rg.device.GetHandle(), buf.m_handle, nullptr );
     }
     for ( Texture& tex : textures )
     {
         vmaDestroyImage( allocator, tex.m_image, nullptr );
-        //vkDestroyImage( rg.device.GetHandle(), tex.m_image, nullptr );
+        // vkDestroyImage( rg.device.GetHandle(), tex.m_image, nullptr );
         vkDestroyImageView( rg.device.GetHandle(), tex.m_imageView, nullptr );
     }
 }

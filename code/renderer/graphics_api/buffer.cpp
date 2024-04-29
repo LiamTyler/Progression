@@ -9,8 +9,7 @@ namespace PG::Gfx
 
 uint32_t NumBytesPerElement( BufferFormat format )
 {
-    uint8_t sizes[] =
-    {
+    uint8_t sizes[] = {
         0,  // INVALID = 0,
         1,  // UCHAR  = 1,
         2,  // UCHAR2 = 2,
@@ -68,8 +67,7 @@ uint32_t NumBytesPerElement( BufferFormat format )
 
 int SizeOfIndexType( IndexType type )
 {
-    int8_t sizes[] =
-    {
+    int8_t sizes[] = {
         2, // UNSIGNED_SHORT
         4, // UNSIGNED_INT
     };
@@ -82,96 +80,44 @@ int SizeOfIndexType( IndexType type )
 void Buffer::Free()
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
-    vkDestroyBuffer( m_device, m_handle, nullptr );
-    vkFreeMemory( m_device, m_memory, nullptr );
+    vmaDestroyBuffer( rg.device.GetAllocator(), m_handle, m_allocation );
     m_handle = VK_NULL_HANDLE;
 }
 
-void Buffer::Map() const { VK_CHECK( vkMapMemory( m_device, m_memory, 0, VK_WHOLE_SIZE, 0, &m_mappedPtr ) ); }
-
-void Buffer::UnMap() const
+char* Buffer::Map()
 {
-    vkUnmapMemory( m_device, m_memory );
-    m_mappedPtr = nullptr;
+    if ( !m_persistent )
+        vmaMapMemory( rg.device.GetAllocator(), m_allocation, &m_mappedPtr );
+    return GetMappedPtr();
 }
 
-void Buffer::BindMemory( size_t offset ) const { VK_CHECK( vkBindBufferMemory( m_device, m_handle, m_memory, offset ) ); }
-
-void Buffer::FlushCpuWrites( size_t size, size_t offset ) const
+void Buffer::UnMap()
 {
-    VkMappedMemoryRange mappedRange = {};
-    mappedRange.sType               = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    mappedRange.memory              = m_memory;
-    mappedRange.offset              = offset;
-    mappedRange.size                = size;
-    if ( !m_mappedPtr )
+    if ( !m_persistent )
     {
-        Map();
+        vmaUnmapMemory( rg.device.GetAllocator(), m_allocation );
+        m_mappedPtr = nullptr;
     }
-    VK_CHECK( vkFlushMappedMemoryRanges( m_device, 1, &mappedRange ) );
 }
 
-void Buffer::FlushGpuWrites( size_t size, size_t offset ) const
+void Buffer::FlushCpuWrites( size_t size, size_t offset )
 {
-    VkMappedMemoryRange mappedRange = {};
-    mappedRange.sType               = VK_STRUCTURE_TYPE_MAPPED_MEMORY_RANGE;
-    mappedRange.memory              = m_memory;
-    mappedRange.offset              = offset;
-    mappedRange.size                = size;
-    if ( !m_mappedPtr )
-    {
-        Map();
-    }
-    VK_CHECK( vkInvalidateMappedMemoryRanges( m_device, 1, &mappedRange ) );
+    if ( !m_coherent )
+        vmaFlushAllocation( rg.device.GetAllocator(), m_allocation, offset, size );
 }
 
-// TODO: barriers here or externally to ensure gpu buffer commands have been completed?
-void Buffer::ReadToCpu( void* dst, size_t size, size_t offset ) const
+void Buffer::FlushGpuWrites( size_t size, size_t offset )
 {
-    if ( m_memoryType & MEMORY_TYPE_DEVICE_LOCAL )
-    {
-        PG_ASSERT( false, "implement me" );
-        // Read back to host visible buffer first, then copy to host
-        // Device& device = rg.device;
-        //
-        // Buffer hostVisibleBuffer = device.NewBuffer( size, BUFFER_TYPE_TRANSFER_DST, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT
-        // );
-        //
-        // CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
-        // cmdBuf.CopyBuffer( hostVisibleBuffer, *this, size, 0, offset );
-        //
-        // // Barrier to ensure that buffer copy is finished before host reading from it
-        // VkBufferMemoryBarrier bufferBarrier = {};
-        // bufferBarrier.sType = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
-        // bufferBarrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        // bufferBarrier.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-        // bufferBarrier.buffer = hostVisibleBuffer.GetHandle();
-        // bufferBarrier.size = VK_WHOLE_SIZE;
-        // bufferBarrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        // bufferBarrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
-        //
-        // cmdBuf.PipelineBufferBarrier( VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_HOST_BIT, bufferBarrier );
-        // cmdBuf.EndRecording();
-        // device.Submit();
-        //
-        // hostVisibleBuffer.Map();
-        // memcpy( dst, hostVisibleBuffer.MappedPtr(), size == VK_WHOLE_SIZE ? m_length : size );
-        // hostVisibleBuffer.Free();
-    }
-    else
-    {
-        bool isMappedAlready = m_mappedPtr != nullptr;
-        Map();
-        if ( ( m_memoryType & MEMORY_TYPE_HOST_COHERENT ) == 0 )
-        {
-            FlushGpuWrites( size, offset );
-        }
-        memcpy( dst, m_mappedPtr, size == VK_WHOLE_SIZE ? m_length : size );
-        if ( !isMappedAlready )
-        {
-            UnMap();
-        }
-    }
+    if ( !m_coherent )
+        vmaInvalidateAllocation( rg.device.GetAllocator(), m_allocation, offset, size );
+}
+
+VkDeviceAddress Buffer::GetDeviceAddress() const
+{
+    VkBufferDeviceAddressInfo info{};
+	info.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+	info.buffer = m_handle;
+	return vkGetBufferDeviceAddress( rg.device, &info );
 }
 
 } // namespace PG::Gfx

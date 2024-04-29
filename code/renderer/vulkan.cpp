@@ -127,19 +127,99 @@ VKAPI_ATTR VkResult VKAPI_CALL vkWriteAccelerationStructuresPropertiesKHR( VkDev
 }
 #endif // #ifdef VK_KHR_acceleration_structure
 
+#if defined( VK_EXT_descriptor_buffer )
+static PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT pfn_vkCmdBindDescriptorBufferEmbeddedSamplersEXT;
+static PFN_vkCmdBindDescriptorBuffersEXT pfn_vkCmdBindDescriptorBuffersEXT;
+static PFN_vkCmdSetDescriptorBufferOffsetsEXT pfn_vkCmdSetDescriptorBufferOffsetsEXT;
+static PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT pfn_vkGetBufferOpaqueCaptureDescriptorDataEXT;
+static PFN_vkGetDescriptorEXT pfn_vkGetDescriptorEXT;
+static PFN_vkGetDescriptorSetLayoutBindingOffsetEXT pfn_vkGetDescriptorSetLayoutBindingOffsetEXT;
+static PFN_vkGetDescriptorSetLayoutSizeEXT pfn_vkGetDescriptorSetLayoutSizeEXT;
+static PFN_vkGetImageOpaqueCaptureDescriptorDataEXT pfn_vkGetImageOpaqueCaptureDescriptorDataEXT;
+static PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT pfn_vkGetImageViewOpaqueCaptureDescriptorDataEXT;
+static PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT pfn_vkGetSamplerOpaqueCaptureDescriptorDataEXT;
+static PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT pfn_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT;
+
+VKAPI_ATTR void VKAPI_CALL vkGetDescriptorSetLayoutSizeEXT(
+    VkDevice device, VkDescriptorSetLayout layout, VkDeviceSize* pLayoutSizeInBytes )
+{
+    pfn_vkGetDescriptorSetLayoutSizeEXT( device, layout, pLayoutSizeInBytes );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetDescriptorSetLayoutBindingOffsetEXT(
+    VkDevice device, VkDescriptorSetLayout layout, uint32_t binding, VkDeviceSize* pOffset )
+{
+    pfn_vkGetDescriptorSetLayoutBindingOffsetEXT( device, layout, binding, pOffset );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkGetDescriptorEXT(
+    VkDevice device, const VkDescriptorGetInfoEXT* pDescriptorInfo, size_t dataSize, void* pDescriptor )
+{
+    pfn_vkGetDescriptorEXT( device, pDescriptorInfo, dataSize, pDescriptor );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdBindDescriptorBuffersEXT(
+    VkCommandBuffer commandBuffer, uint32_t bufferCount, const VkDescriptorBufferBindingInfoEXT* pBindingInfos )
+{
+    pfn_vkCmdBindDescriptorBuffersEXT( commandBuffer, bufferCount, pBindingInfos );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdSetDescriptorBufferOffsetsEXT( VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
+    VkPipelineLayout layout, uint32_t firstSet, uint32_t setCount, const uint32_t* pBufferIndices, const VkDeviceSize* pOffsets )
+{
+    pfn_vkCmdSetDescriptorBufferOffsetsEXT( commandBuffer, pipelineBindPoint, layout, firstSet, setCount, pBufferIndices, pOffsets );
+}
+
+VKAPI_ATTR void VKAPI_CALL vkCmdBindDescriptorBufferEmbeddedSamplersEXT(
+    VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set )
+{
+    pfn_vkCmdBindDescriptorBufferEmbeddedSamplersEXT( commandBuffer, pipelineBindPoint, layout, set );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetBufferOpaqueCaptureDescriptorDataEXT(
+    VkDevice device, const VkBufferCaptureDescriptorDataInfoEXT* pInfo, void* pData )
+{
+    return pfn_vkGetBufferOpaqueCaptureDescriptorDataEXT( device, pInfo, pData );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetImageOpaqueCaptureDescriptorDataEXT(
+    VkDevice device, const VkImageCaptureDescriptorDataInfoEXT* pInfo, void* pData )
+{
+    return pfn_vkGetImageOpaqueCaptureDescriptorDataEXT( device, pInfo, pData );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetImageViewOpaqueCaptureDescriptorDataEXT(
+    VkDevice device, const VkImageViewCaptureDescriptorDataInfoEXT* pInfo, void* pData )
+{
+    return pfn_vkGetImageViewOpaqueCaptureDescriptorDataEXT( device, pInfo, pData );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetSamplerOpaqueCaptureDescriptorDataEXT(
+    VkDevice device, const VkSamplerCaptureDescriptorDataInfoEXT* pInfo, void* pData )
+{
+    return pfn_vkGetSamplerOpaqueCaptureDescriptorDataEXT( device, pInfo, pData );
+}
+
+VKAPI_ATTR VkResult VKAPI_CALL vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT(
+    VkDevice device, const VkAccelerationStructureCaptureDescriptorDataInfoEXT* pInfo, void* pData )
+{
+    return pfn_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT( device, pInfo, pData );
+}
+#endif // #if defined( VK_EXT_descriptor_buffer )
+
 namespace PG::Gfx
 {
 
-#if USING( DEBUG_BUILD )
+#if USING( SHIP_BUILD )
     #define LOAD_VK_FUNC( funcName ) pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );
-#else // #if !USING( DEBUG_BUILD )
+#else // #if USING( SHIP_BUILD )
     #define LOAD_VK_FUNC( funcName )                                                                            \
         pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );                              \
         if ( !pfn_##funcName )                                                                                  \
         {                                                                                                       \
             LOG_ERR( "Failed to load vulkan function '" #funcName "'. Did you forget to load the extension?" ); \
         }
-#endif // #else // #if !USING( DEBUG_BUILD )
+#endif // #else // #if USING( SHIP_BUILD )
 
 void LoadVulkanExtensions( VkDevice device )
 {
@@ -163,6 +243,20 @@ void LoadVulkanExtensions( VkDevice device )
     LOAD_VK_FUNC( vkWriteAccelerationStructuresPropertiesKHR );
     #endif // #ifdef VK_KHR_acceleration_structure
 #endif     // #if USING( PG_RTX )
+
+#if defined( VK_EXT_descriptor_buffer )
+    LOAD_VK_FUNC( vkGetDescriptorSetLayoutSizeEXT );
+    LOAD_VK_FUNC( vkGetDescriptorSetLayoutBindingOffsetEXT );
+    LOAD_VK_FUNC( vkGetDescriptorEXT );
+    LOAD_VK_FUNC( vkCmdBindDescriptorBuffersEXT );
+    LOAD_VK_FUNC( vkCmdSetDescriptorBufferOffsetsEXT );
+    LOAD_VK_FUNC( vkCmdBindDescriptorBufferEmbeddedSamplersEXT );
+    LOAD_VK_FUNC( vkGetBufferOpaqueCaptureDescriptorDataEXT );
+    LOAD_VK_FUNC( vkGetImageOpaqueCaptureDescriptorDataEXT );
+    LOAD_VK_FUNC( vkGetImageViewOpaqueCaptureDescriptorDataEXT );
+    LOAD_VK_FUNC( vkGetSamplerOpaqueCaptureDescriptorDataEXT );
+    LOAD_VK_FUNC( vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT );
+#endif // #if defined( VK_EXT_descriptor_buffer )
 }
 
 uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )

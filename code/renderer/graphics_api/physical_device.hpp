@@ -14,6 +14,7 @@ struct PhysicalDeviceProperties
     uint16_t apiVersionMinor;
     uint16_t apiVersionPatch;
     bool isDiscrete;
+    VkPhysicalDeviceDescriptorBufferPropertiesEXT dbProps;
 };
 
 class PhysicalDevice
@@ -26,7 +27,7 @@ public:
 
     std::string GetName() const;
     VkPhysicalDevice GetHandle() const;
-    PhysicalDeviceProperties GetProperties() const;
+    const PhysicalDeviceProperties& GetProperties() const;
     VkPhysicalDeviceMemoryProperties GetMemoryProperties() const;
 private:
     VkPhysicalDevice m_handle = VK_NULL_HANDLE;

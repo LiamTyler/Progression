@@ -7,8 +7,19 @@
 using namespace PG;
 using namespace Gfx;
 
+constexpr int TEX_SLOT = 7;
+
 namespace PG::RenderSystem
 {
+
+struct DescriptorBuffer
+{
+    VkDeviceSize layoutSize;
+    VkDeviceSize offset;
+    Buffer buffer;
+};
+
+DescriptorBuffer s_descriptorBuffer;
 
 Texture s_drawImg;
 VkDescriptorSetLayout s_setLayout;
@@ -44,7 +55,7 @@ struct DescriptorLayoutBuilder
         info.bindingCount = (uint32_t)bindings.size();
         info.flags        = 0;
         // info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
-        // info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+        info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 
         VkDescriptorBindingFlags bindFlag = VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
         // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
@@ -73,44 +84,44 @@ struct DescriptorLayoutBuilder
     }
 };
 
-struct DescriptorAllocator
-{
-    VkDescriptorPool pool;
-    VkDevice device;
-
-    void init_pool( VkDevice inDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes )
-    {
-        device = inDevice;
-
-        VkDescriptorPoolCreateInfo pool_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-        pool_info.flags         = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-        pool_info.maxSets       = maxSets;
-        pool_info.poolSizeCount = (uint32_t)poolSizes.size();
-        pool_info.pPoolSizes    = poolSizes.data();
-
-        vkCreateDescriptorPool( device, &pool_info, nullptr, &pool );
-    }
-
-    void clear_descriptors() { vkResetDescriptorPool( device, pool, 0 ); }
-
-    void destroy_pool() { vkDestroyDescriptorPool( device, pool, nullptr ); }
-
-    VkDescriptorSet allocate( VkDescriptorSetLayout layout )
-    {
-        VkDescriptorSetAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-        allocInfo.pNext                       = nullptr;
-        allocInfo.descriptorPool              = pool;
-        allocInfo.descriptorSetCount          = 1;
-        allocInfo.pSetLayouts                 = &layout;
-
-        VkDescriptorSet ds;
-        VK_CHECK( vkAllocateDescriptorSets( device, &allocInfo, &ds ) );
-
-        return ds;
-    }
-};
-
-DescriptorAllocator s_descriptorAllocator;
+// struct DescriptorAllocator
+//{
+//     VkDescriptorPool pool;
+//     VkDevice device;
+//
+//     void init_pool( VkDevice inDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes )
+//     {
+//         device = inDevice;
+//
+//         VkDescriptorPoolCreateInfo pool_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+//         pool_info.flags         = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+//         pool_info.maxSets       = maxSets;
+//         pool_info.poolSizeCount = (uint32_t)poolSizes.size();
+//         pool_info.pPoolSizes    = poolSizes.data();
+//
+//         vkCreateDescriptorPool( device, &pool_info, nullptr, &pool );
+//     }
+//
+//     void clear_descriptors() { vkResetDescriptorPool( device, pool, 0 ); }
+//
+//     void destroy_pool() { vkDestroyDescriptorPool( device, pool, nullptr ); }
+//
+//     VkDescriptorSet allocate( VkDescriptorSetLayout layout )
+//     {
+//         VkDescriptorSetAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
+//         allocInfo.pNext                       = nullptr;
+//         allocInfo.descriptorPool              = pool;
+//         allocInfo.descriptorSetCount          = 1;
+//         allocInfo.pSetLayouts                 = &layout;
+//
+//         VkDescriptorSet ds;
+//         VK_CHECK( vkAllocateDescriptorSets( device, &allocInfo, &ds ) );
+//
+//         return ds;
+//     }
+// };
+//
+// DescriptorAllocator s_descriptorAllocator;
 
 bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 {
@@ -127,33 +138,55 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     texInfo.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
     s_drawImg = rg.device.NewTexture( texInfo, "sceneTex" );
 
-    static constexpr uint32_t MAX_TEXTURES = 1024;
+    static constexpr uint32_t MAX_TEXTURES = 1;
 
     DescriptorLayoutBuilder setLayoutBuilder;
     // setLayoutBuilder.add_binding( 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES );
     setLayoutBuilder.add_binding( 0, VK_DESCRIPTOR_TYPE_MUTABLE_EXT, MAX_TEXTURES );
     s_setLayout = setLayoutBuilder.build( rg.device.GetHandle() );
 
-    std::vector<VkDescriptorPoolSize> poolSizes = {
-        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES},
-    };
-    s_descriptorAllocator.init_pool( rg.device.GetHandle(), 1, poolSizes );
+    const auto& dbProps = rg.physicalDevice.GetProperties().dbProps;
+    vkGetDescriptorSetLayoutSizeEXT( rg.device, s_setLayout, &s_descriptorBuffer.layoutSize );
+    s_descriptorBuffer.layoutSize = ALIGN_UP_POW_2( s_descriptorBuffer.layoutSize, dbProps.descriptorBufferOffsetAlignment );
+    vkGetDescriptorSetLayoutBindingOffsetEXT( rg.device, s_setLayout, 0u, &s_descriptorBuffer.offset );
 
-    s_bindlessSet = s_descriptorAllocator.allocate( s_setLayout );
+    BufferCreateInfo bCI = {};
+    bCI.size             = s_descriptorBuffer.layoutSize;
+    bCI.bufferUsage |= BufferUsage::RESOURCE_DESCRIPTOR;
+    bCI.flags |= VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    s_descriptorBuffer.buffer = rg.device.NewBuffer( bCI, "bindless textures descriptor buffer" );
 
     VkDescriptorImageInfo imgInfo{};
     imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
     imgInfo.imageView   = s_drawImg.GetView();
 
-    VkWriteDescriptorSet drawImageWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-    drawImageWrite.dstSet          = s_bindlessSet;
-    drawImageWrite.dstBinding      = 0;
-    drawImageWrite.descriptorCount = 1;
-    drawImageWrite.dstArrayElement = 7;
-    drawImageWrite.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    drawImageWrite.pImageInfo      = &imgInfo;
+    VkDescriptorGetInfoEXT image_descriptor_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_GET_INFO_EXT };
+    image_descriptor_info.type               = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    image_descriptor_info.data.pSampledImage = &imgInfo;
+    size_t mutableDescSize                   = Max( dbProps.sampledImageDescriptorSize, dbProps.storageImageDescriptorSize );
+    char* dbPtr                              = s_descriptorBuffer.buffer.GetMappedPtr();
+    vkGetDescriptorEXT(
+        rg.device, &image_descriptor_info, mutableDescSize, dbPtr + s_descriptorBuffer.offset + TEX_SLOT * mutableDescSize );
 
-    vkUpdateDescriptorSets( rg.device, 1, &drawImageWrite, 0, nullptr );
+    // std::vector<VkDescriptorPoolSize> poolSizes = {
+    //     {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES},
+    // };
+    // s_descriptorAllocator.init_pool( rg.device.GetHandle(), 1, poolSizes );
+    // s_bindlessSet = s_descriptorAllocator.allocate( s_setLayout );
+    //
+    // VkDescriptorImageInfo imgInfo{};
+    // imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
+    // imgInfo.imageView   = s_drawImg.GetView();
+    //
+    // VkWriteDescriptorSet drawImageWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+    // drawImageWrite.dstSet          = s_bindlessSet;
+    // drawImageWrite.dstBinding      = 0;
+    // drawImageWrite.descriptorCount = 1;
+    // drawImageWrite.dstArrayElement = 7;
+    // drawImageWrite.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+    // drawImageWrite.pImageInfo      = &imgInfo;
+    //
+    // vkUpdateDescriptorSets( rg.device, 1, &drawImageWrite, 0, nullptr );
 
     Shader* shader = AssetManager::Get<Shader>( "gradient" );
 
@@ -171,6 +204,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     stageinfo.pName  = shader->entryPoint.c_str();
 
     VkComputePipelineCreateInfo computePipelineCreateInfo{};
+    computePipelineCreateInfo.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
     computePipelineCreateInfo.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     computePipelineCreateInfo.pNext  = nullptr;
     computePipelineCreateInfo.layout = s_gradientPipelineLayout;
@@ -181,28 +215,15 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     return true;
 }
 
-static void SetupBindlessDescriptorSet()
-{
-    // DescriptorSetLayout bindlessTexturesDescriptorSetLayout;
-    // bindlessTexturesDescriptorSetLayout = {};
-    // bindlessTexturesDescriptorSetLayout.sampledImageMask |= ( 1u << 0 );
-    // bindlessTexturesDescriptorSetLayout.arraySizes[0] = UINT32_MAX;
-    //
-    // uint32_t bindingStages[8] = {};
-    // bindingStages[0]          = 1;
-    //
-    // rg.device.RegisterDescriptorSetLayout( bindlessTexturesDescriptorSetLayout, bindingStages );
-    // bindlessTexturesDescriptorSet = rg.descriptorPool.NewDescriptorSet( bindlessTexturesDescriptorSetLayout, "bindless textures" );
-}
-
 void Shutdown()
 {
     rg.device.WaitForIdle();
     vkDestroyPipelineLayout( rg.device, s_gradientPipelineLayout, nullptr );
     vkDestroyPipeline( rg.device, s_gradientPipeline, nullptr );
     vkDestroyDescriptorSetLayout( rg.device.GetHandle(), s_setLayout, nullptr );
-    s_descriptorAllocator.destroy_pool();
+    // s_descriptorAllocator.destroy_pool();
 
+    s_descriptorBuffer.buffer.Free();
     s_drawImg.Free();
     AssetManager::FreeRemainingGpuResources();
     R_Shutdown();
@@ -257,10 +278,23 @@ void Render()
     cmdBuf.TransitionImageLayout( s_drawImg.GetImage(), ImageLayout::UNDEFINED, ImageLayout::GENERAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         VK_PIPELINE_STAGE_2_TRANSFER_BIT );
 
+
+    VkDescriptorBufferBindingInfoEXT pBindingInfos{};
+    pBindingInfos.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
+    pBindingInfos.address = s_descriptorBuffer.buffer.GetDeviceAddress();
+    pBindingInfos.usage   = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
+    vkCmdBindDescriptorBuffersEXT( cmdBuf.GetHandle(), 1, &pBindingInfos );
+
+    uint32_t bufferIndex      = 0; // index into pBindingInfos for vkCmdBindDescriptorBuffersEXT?
+    VkDeviceSize bufferOffset = 0;
+    vkCmdSetDescriptorBufferOffsetsEXT(
+        cmdBuf.GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, s_gradientPipelineLayout, 0, 1, &bufferIndex, &bufferOffset );
+
     vkCmdBindPipeline( cmdBuf.GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, s_gradientPipeline );
 
-    vkCmdBindDescriptorSets(
-        cmdBuf.GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, s_gradientPipelineLayout, 0, 1, &s_bindlessSet, 0, nullptr );
+
+    // vkCmdBindDescriptorSets(
+    //     cmdBuf.GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, s_gradientPipelineLayout, 0, 1, &s_bindlessSet, 0, nullptr );
 
     struct ComputePushConstants
     {

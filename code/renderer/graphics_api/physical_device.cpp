@@ -18,6 +18,13 @@ static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDe
     p.isDiscrete               = vkProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
     p.nanosecondsPerTick       = vkProperties.limits.timestampPeriod;
 
+    p.dbProps = {};
+    p.dbProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
+
+    VkPhysicalDeviceProperties2 vkProperties2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+    vkProperties2.pNext = &p.dbProps;
+    vkGetPhysicalDeviceProperties2( physicalDevice, &vkProperties2 );
+
     return p;
 }
 
@@ -30,7 +37,7 @@ void PhysicalDevice::Create( VkPhysicalDevice pDev )
 
 std::string PhysicalDevice::GetName() const { return m_properties.name; }
 VkPhysicalDevice PhysicalDevice::GetHandle() const { return m_handle; }
-PhysicalDeviceProperties PhysicalDevice::GetProperties() const { return m_properties; }
+const PhysicalDeviceProperties& PhysicalDevice::GetProperties() const { return m_properties; }
 VkPhysicalDeviceMemoryProperties PhysicalDevice::GetMemoryProperties() const { return m_memProperties; }
 
 } // namespace PG::Gfx

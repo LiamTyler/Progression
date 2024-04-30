@@ -4,7 +4,7 @@
 #include <cstring>
 #include <stdexcept>
 #if !USING( SHIP_BUILD )
-    #include <fstream>
+#include <fstream>
 #endif // #if !USING( SHIP_BUILD )
 
 namespace PG

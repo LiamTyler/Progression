@@ -24,8 +24,7 @@ enum : uint32_t
     PIPELINE_COUNT
 };
 
-static const std::string s_uiPipelineNames[PIPELINE_COUNT] =
-{
+static const std::string s_uiPipelineNames[PIPELINE_COUNT] = {
     "ui2D_opaque",   // PIPELINE_OPAQUE
     "ui2D_blend",    // PIPELINE_BLEND
     "ui2D_additive", // PIPELINE_ADDITIVE

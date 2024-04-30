@@ -211,20 +211,20 @@ namespace PG::Gfx
 {
 
 #if USING( SHIP_BUILD )
-    #define LOAD_VK_FUNC( funcName ) pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );
+#define LOAD_VK_FUNC( funcName ) pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );
 #else // #if USING( SHIP_BUILD )
-    #define LOAD_VK_FUNC( funcName )                                                                            \
-        pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );                              \
-        if ( !pfn_##funcName )                                                                                  \
-        {                                                                                                       \
-            LOG_ERR( "Failed to load vulkan function '" #funcName "'. Did you forget to load the extension?" ); \
-        }
+#define LOAD_VK_FUNC( funcName )                                                                            \
+    pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );                              \
+    if ( !pfn_##funcName )                                                                                  \
+    {                                                                                                       \
+        LOG_ERR( "Failed to load vulkan function '" #funcName "'. Did you forget to load the extension?" ); \
+    }
 #endif // #else // #if USING( SHIP_BUILD )
 
 void LoadVulkanExtensions( VkDevice device )
 {
 #if USING( PG_RTX )
-    #ifdef VK_KHR_acceleration_structure
+#ifdef VK_KHR_acceleration_structure
     LOAD_VK_FUNC( vkBuildAccelerationStructuresKHR );
     LOAD_VK_FUNC( vkCmdBuildAccelerationStructuresIndirectKHR );
     LOAD_VK_FUNC( vkCmdBuildAccelerationStructuresKHR );
@@ -241,8 +241,8 @@ void LoadVulkanExtensions( VkDevice device )
     LOAD_VK_FUNC( vkGetAccelerationStructureDeviceAddressKHR );
     LOAD_VK_FUNC( vkGetDeviceAccelerationStructureCompatibilityKHR );
     LOAD_VK_FUNC( vkWriteAccelerationStructuresPropertiesKHR );
-    #endif // #ifdef VK_KHR_acceleration_structure
-#endif     // #if USING( PG_RTX )
+#endif // #ifdef VK_KHR_acceleration_structure
+#endif // #if USING( PG_RTX )
 
 #if defined( VK_EXT_descriptor_buffer )
     LOAD_VK_FUNC( vkGetDescriptorSetLayoutSizeEXT );

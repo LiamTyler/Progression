@@ -233,13 +233,13 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
     buffers.resize( builder.buffers.size() );
     for ( size_t i = 0; i < builder.buffers.size(); ++i )
     {
-        TGBBuffer& buildBuffer    = builder.buffers[i];
-        Buffer& gfxBuffer         = buffers[i];
-        gfxBuffer.m_bufferUsage   = buildBuffer.bufferUsage;
-        gfxBuffer.m_memoryUsage   = buildBuffer.memoryUsage; // TODO: support others?
-        gfxBuffer.m_mappedPtr     = nullptr;
-        gfxBuffer.m_size          = buildBuffer.size;
-        gfxBuffer.m_handle        = VK_NULL_HANDLE;
+        TGBBuffer& buildBuffer  = builder.buffers[i];
+        Buffer& gfxBuffer       = buffers[i];
+        gfxBuffer.m_bufferUsage = buildBuffer.bufferUsage;
+        gfxBuffer.m_memoryUsage = buildBuffer.memoryUsage; // TODO: support others?
+        gfxBuffer.m_mappedPtr   = nullptr;
+        gfxBuffer.m_size        = buildBuffer.size;
+        gfxBuffer.m_handle      = VK_NULL_HANDLE;
 
         if ( buildBuffer.externalFunc )
             continue;

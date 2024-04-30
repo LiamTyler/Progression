@@ -151,7 +151,7 @@ private:
     VmaAllocation m_allocation;
     void* m_mappedPtr = nullptr;
     bool m_persistent = false;
-    bool m_coherent = false;
+    bool m_coherent   = false;
 };
 
 } // namespace PG::Gfx

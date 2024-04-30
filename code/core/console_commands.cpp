@@ -29,9 +29,8 @@ struct RegisteredCommand
     std::function<void( std::string*, uint32_t )> func;
 };
 
-static RegisteredCommand s_commands[] =
-{
-    { "loadFF", Process_loadFF }
+static RegisteredCommand s_commands[] = {
+    {"loadFF", Process_loadFF}
 };
 static_assert( ARRAY_COUNT( s_commands ) == 1, "Update remote_console_main.cpp with the new command for auto-completion" );
 

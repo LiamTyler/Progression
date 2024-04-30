@@ -114,7 +114,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 
     VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
     descriptorBufferExt.descriptorBuffer = true;
-    //descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
+    // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
 
     VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer_properties{};
 

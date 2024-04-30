@@ -6,9 +6,9 @@
 #include <stdarg.h>
 #include <stdio.h>
 #if USING( WINDOWS_PROGRAM )
-    #define WIN32_LEAN_AND_MEAN
-    #include <Windows.h>
-    #include <io.h>
+#define WIN32_LEAN_AND_MEAN
+#include <Windows.h>
+#include <io.h>
 #endif // #if USING( WINDOWS_PROGRAM )
 
 // foreground colors only
@@ -34,8 +34,7 @@ enum class TerminalEmphasisCode
 // For special windows consoles like cmd.exe that use the SetConsoleTextAttribute function for coloring
 int TerminalCodesToWindowsCodes( TerminalColorCode color, TerminalEmphasisCode emphasis )
 {
-    static int colorToWindows[] =
-    {
+    static int colorToWindows[] = {
         0, // BLACK
         4, // RED
         2, // GREEN

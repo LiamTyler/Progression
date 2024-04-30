@@ -8,7 +8,7 @@
 #include "shared/math_vec.hpp"
 #include "shared/serializer.hpp"
 #if USING( GPU_DATA )
-    #include "renderer/r_globals.hpp"
+#include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
 
 static constexpr CompressionQuality COMPRESSOR_QUALITY = CompressionQuality::MEDIUM;
@@ -78,14 +78,14 @@ void GfxImage::UploadToGpu()
     }
 
     TextureCreateInfo desc;
-    desc.format             = pixelFormat;
-    desc.type               = imageType;
-    desc.width              = width;
-    desc.height             = height;
-    desc.depth              = depth;
-    desc.arrayLayers        = numFaces;
-    desc.mipLevels          = mipLevels;
-    desc.usage              = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    desc.format      = pixelFormat;
+    desc.type        = imageType;
+    desc.width       = width;
+    desc.height      = height;
+    desc.depth       = depth;
+    desc.arrayLayers = numFaces;
+    desc.mipLevels   = mipLevels;
+    desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     gpuTexture = rg.device.NewTextureFromBuffer( desc, pixels, name );
     PG_ASSERT( gpuTexture );
@@ -414,8 +414,7 @@ static void ConvertPGCubemapToVkCubemap( FloatImageCubemap& cubemap )
 
 static FloatImageCubemap CreateDebugCubemap( uint32_t size )
 {
-    const vec3 faceColors[6] =
-    {
+    const vec3 faceColors[6] = {
         vec3( 0, 0, 1 ), // FACE_BACK
         vec3( 0, 1, 0 ), // FACE_LEFT
         vec3( 1, 0, 0 ), // FACE_FRONT
@@ -526,7 +525,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
-        #pragma omp parallel for
+#pragma omp parallel for
         for ( int dstRow = 0; dstRow < (int)irradianceMap.size; ++dstRow )
         {
             for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )
@@ -641,7 +640,7 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
         float linearRoughness     = perceptualRoughness * perceptualRoughness;
         for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
         {
-            #pragma omp parallel for
+#pragma omp parallel for
             for ( int dstRow = 0; dstRow < MIP_SIZE; ++dstRow )
             {
                 for ( int dstCol = 0; dstCol < MIP_SIZE; ++dstCol )

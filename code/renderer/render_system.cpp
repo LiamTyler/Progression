@@ -84,45 +84,6 @@ struct DescriptorLayoutBuilder
     }
 };
 
-// struct DescriptorAllocator
-//{
-//     VkDescriptorPool pool;
-//     VkDevice device;
-//
-//     void init_pool( VkDevice inDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes )
-//     {
-//         device = inDevice;
-//
-//         VkDescriptorPoolCreateInfo pool_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-//         pool_info.flags         = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-//         pool_info.maxSets       = maxSets;
-//         pool_info.poolSizeCount = (uint32_t)poolSizes.size();
-//         pool_info.pPoolSizes    = poolSizes.data();
-//
-//         vkCreateDescriptorPool( device, &pool_info, nullptr, &pool );
-//     }
-//
-//     void clear_descriptors() { vkResetDescriptorPool( device, pool, 0 ); }
-//
-//     void destroy_pool() { vkDestroyDescriptorPool( device, pool, nullptr ); }
-//
-//     VkDescriptorSet allocate( VkDescriptorSetLayout layout )
-//     {
-//         VkDescriptorSetAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
-//         allocInfo.pNext                       = nullptr;
-//         allocInfo.descriptorPool              = pool;
-//         allocInfo.descriptorSetCount          = 1;
-//         allocInfo.pSetLayouts                 = &layout;
-//
-//         VkDescriptorSet ds;
-//         VK_CHECK( vkAllocateDescriptorSets( device, &allocInfo, &ds ) );
-//
-//         return ds;
-//     }
-// };
-//
-// DescriptorAllocator s_descriptorAllocator;
-
 bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
 {
     rg.sceneWidth  = sceneWidth;
@@ -168,32 +129,12 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     vkGetDescriptorEXT(
         rg.device, &image_descriptor_info, mutableDescSize, dbPtr + s_descriptorBuffer.offset + TEX_SLOT * mutableDescSize );
 
-    // std::vector<VkDescriptorPoolSize> poolSizes = {
-    //     {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, MAX_TEXTURES},
-    // };
-    // s_descriptorAllocator.init_pool( rg.device.GetHandle(), 1, poolSizes );
-    // s_bindlessSet = s_descriptorAllocator.allocate( s_setLayout );
-    //
-    // VkDescriptorImageInfo imgInfo{};
-    // imgInfo.imageLayout = VK_IMAGE_LAYOUT_GENERAL;
-    // imgInfo.imageView   = s_drawImg.GetView();
-    //
-    // VkWriteDescriptorSet drawImageWrite{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-    // drawImageWrite.dstSet          = s_bindlessSet;
-    // drawImageWrite.dstBinding      = 0;
-    // drawImageWrite.descriptorCount = 1;
-    // drawImageWrite.dstArrayElement = 7;
-    // drawImageWrite.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
-    // drawImageWrite.pImageInfo      = &imgInfo;
-    //
-    // vkUpdateDescriptorSets( rg.device, 1, &drawImageWrite, 0, nullptr );
-
     Shader* shader = AssetManager::Get<Shader>( "gradient" );
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
     pipelineLayoutCreateInfo.setLayoutCount         = 1;
     pipelineLayoutCreateInfo.pSetLayouts            = &s_setLayout;
-    VkPushConstantRange pRange                      = { VK_SHADER_STAGE_COMPUTE_BIT, 0, shader->resourceLayout.pushConstantSize };
+    VkPushConstantRange pRange                      = { VK_SHADER_STAGE_COMPUTE_BIT, 0, shader->reflectionData.pushConstantSize };
     pipelineLayoutCreateInfo.pushConstantRangeCount = pRange.size ? 1 : 0;
     pipelineLayoutCreateInfo.pPushConstantRanges    = pRange.size ? &pRange : nullptr;
     VK_CHECK( vkCreatePipelineLayout( rg.device, &pipelineLayoutCreateInfo, NULL, &s_gradientPipelineLayout ) );
@@ -201,10 +142,10 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, bool headless )
     VkPipelineShaderStageCreateInfo stageinfo{ VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
     stageinfo.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
     stageinfo.module = shader->handle;
-    stageinfo.pName  = shader->entryPoint.c_str();
+    stageinfo.pName  = "main";
 
     VkComputePipelineCreateInfo computePipelineCreateInfo{};
-    computePipelineCreateInfo.flags = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
+    computePipelineCreateInfo.flags  = VK_PIPELINE_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
     computePipelineCreateInfo.sType  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
     computePipelineCreateInfo.pNext  = nullptr;
     computePipelineCreateInfo.layout = s_gradientPipelineLayout;
@@ -221,7 +162,6 @@ void Shutdown()
     vkDestroyPipelineLayout( rg.device, s_gradientPipelineLayout, nullptr );
     vkDestroyPipeline( rg.device, s_gradientPipeline, nullptr );
     vkDestroyDescriptorSetLayout( rg.device.GetHandle(), s_setLayout, nullptr );
-    // s_descriptorAllocator.destroy_pool();
 
     s_descriptorBuffer.buffer.Free();
     s_drawImg.Free();
@@ -278,7 +218,6 @@ void Render()
     cmdBuf.TransitionImageLayout( s_drawImg.GetImage(), ImageLayout::UNDEFINED, ImageLayout::GENERAL, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         VK_PIPELINE_STAGE_2_TRANSFER_BIT );
 
-
     VkDescriptorBufferBindingInfoEXT pBindingInfos{};
     pBindingInfos.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
     pBindingInfos.address = s_descriptorBuffer.buffer.GetDeviceAddress();
@@ -292,35 +231,19 @@ void Render()
 
     vkCmdBindPipeline( cmdBuf.GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, s_gradientPipeline );
 
-
-    // vkCmdBindDescriptorSets(
-    //     cmdBuf.GetHandle(), VK_PIPELINE_BIND_POINT_COMPUTE, s_gradientPipelineLayout, 0, 1, &s_bindlessSet, 0, nullptr );
-
     struct ComputePushConstants
     {
         vec4 topColor;
         vec4 botColor;
         uint32_t imageIndex;
     };
-    ComputePushConstants push{ vec4( 1, 0, 0, 1 ), vec4( 0, 0, 1, 1 ), 7 };
+    ComputePushConstants push{ vec4( 1, 0, 0, 1 ), vec4( 0, 0, 1, 1 ), TEX_SLOT };
     vkCmdPushConstants(
         cmdBuf.GetHandle(), s_gradientPipelineLayout, VK_SHADER_STAGE_COMPUTE_BIT, 0, sizeof( ComputePushConstants ), &push );
 
-    // execute the compute pipeline dispatch. We are using 16x16 workgroup size so we need to divide by it
-    vkCmdDispatch(
-        cmdBuf.GetHandle(), (uint32_t)std::ceil( s_drawImg.GetWidth() / 16.0 ), (uint32_t)std::ceil( s_drawImg.GetHeight() / 16.0 ), 1 );
-
-    // make a clear-color from frame number. This will flash with a 120 frame period.
-    // VkClearColorValue clearValue;
-    // float flash = abs( sin( rg.currentFrameIdx / 120.f ) );
-    // clearValue  = {
-    //    {0.0f, 0.0f, flash, 1.0f}
-    //};
-    //
-    // VkImageSubresourceRange clearRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
-    //
-    //// clear image
-    // vkCmdClearColorImage( cmdBuf.GetHandle(), s_drawImg.GetImage(), VK_IMAGE_LAYOUT_GENERAL, &clearValue, 1, &clearRange );
+    Shader* shader = AssetManager::Get<Shader>( "gradient" );
+    vkCmdDispatch( cmdBuf.GetHandle(), (uint32_t)std::ceil( s_drawImg.GetWidth() / (float)shader->reflectionData.workgroupSize.x ),
+        (uint32_t)std::ceil( s_drawImg.GetHeight() / (float)shader->reflectionData.workgroupSize.y ), 1 );
 
     cmdBuf.TransitionImageLayout( s_drawImg.GetImage(), ImageLayout::GENERAL, ImageLayout::TRANSFER_SRC, VK_PIPELINE_STAGE_2_CLEAR_BIT,
         VK_PIPELINE_STAGE_2_TRANSFER_BIT );

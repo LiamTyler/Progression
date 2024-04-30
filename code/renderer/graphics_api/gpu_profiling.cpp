@@ -5,10 +5,10 @@ namespace PG::Gfx::Profile
 {
 
 bool Init() { return true; }
-void Shutdown() { }
+void Shutdown() {}
 void StartFrame( const CommandBuffer& cmdbuf ) { PG_UNUSED( cmdbuf ); }
 void Reset( const CommandBuffer& cmdbuf ) { PG_UNUSED( cmdbuf ); }
-void EndFrame() { }
+void EndFrame() {}
 
 void StartTimestamp( const CommandBuffer& cmdbuf, const std::string& name )
 {
@@ -287,6 +287,6 @@ void EndTimestamp( const CommandBuffer& cmdbuf, const std::string& name )
     vkCmdWriteTimestamp( cmdbuf.GetHandle(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, frameData.queryPool, vkQueryVal );
 }
 
-} // PG::Gfx::Profile
+} // namespace PG::Gfx::Profile
 
 #endif // #else // #if !USING( PG_GPU_PROFILING )

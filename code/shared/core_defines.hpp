@@ -50,7 +50,7 @@
 // clang-format on
 
 // Only if alignment is a power of 2
-#define ALIGN_UP_POW_2( val, alignment ) ((val + alignment - 1) & ~(alignment - 1))
+#define ALIGN_UP_POW_2( val, alignment ) ( ( val + alignment - 1 ) & ~( alignment - 1 ) )
 
 // https://stackoverflow.com/questions/36568050/sfinae-not-happening-with-stdunderlying-type
 // since std::underlying_type is undefined for non-enums

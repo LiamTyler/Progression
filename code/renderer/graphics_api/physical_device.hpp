@@ -29,6 +29,7 @@ public:
     VkPhysicalDevice GetHandle() const;
     const PhysicalDeviceProperties& GetProperties() const;
     VkPhysicalDeviceMemoryProperties GetMemoryProperties() const;
+
 private:
     VkPhysicalDevice m_handle = VK_NULL_HANDLE;
     PhysicalDeviceProperties m_properties;

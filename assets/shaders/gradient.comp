@@ -14,26 +14,26 @@ layout( std430, set = 0, binding = 1 ) buffer UintData { uint uintData[]; };
 
 layout( push_constant ) uniform constants
 {
-	vec4 topColor;
-	vec4 botColor;
-	uint imageIndex;
+    vec4 topColor;
+    vec4 botColor;
+    uint imageIndex;
 } PushConstants;
 
 
 void main() 
 {
-    ivec2 texelCoord = ivec2(gl_GlobalInvocationID.xy);
-
-	ivec2 size = imageSize(images[PushConstants.imageIndex]);
-
+    ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
+    
+    ivec2 size = imageSize( images[PushConstants.imageIndex] );
+    
     vec4 topColor = PushConstants.topColor;
     vec4 bottomColor = PushConstants.botColor;
-
-    if(texelCoord.x < size.x && texelCoord.y < size.y)
+    
+    if ( texelCoord.x < size.x && texelCoord.y < size.y )
     {
         float blend = float(texelCoord.y)/(size.y); 
-    
-        imageStore(images[PushConstants.imageIndex], texelCoord, mix(topColor,bottomColor, blend));
-		//floatData[gl_GlobalInvocationID.x] = topColor.x;
+        
+        imageStore( images[PushConstants.imageIndex], texelCoord, mix( topColor,bottomColor, blend ) );
+        //floatData[gl_GlobalInvocationID.x] = topColor.x;
     }
 }

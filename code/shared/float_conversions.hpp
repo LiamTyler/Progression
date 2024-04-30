@@ -130,17 +130,11 @@ inline vec4 Float16ToFloat32( u16vec4 v )
 
 inline constexpr uint8_t UNormFloatToByte( float x ) { return static_cast<uint8_t>( 255.0f * x + 0.5f ); }
 
-inline u8vec4 UNormFloatToByte( vec4 v )
-{
-    return { UNormFloatToByte( v.x ), UNormFloatToByte( v.y ), UNormFloatToByte( v.z ), v.w };
-}
+inline u8vec4 UNormFloatToByte( vec4 v ) { return { UNormFloatToByte( v.x ), UNormFloatToByte( v.y ), UNormFloatToByte( v.z ), v.w }; }
 
 inline constexpr float UNormByteToFloat( uint8_t x ) { return x / 255.0f; }
 
-inline vec4 UNormByteToFloat( u8vec4 v )
-{
-    return { UNormByteToFloat( v.x ), UNormByteToFloat( v.y ), UNormByteToFloat( v.z ), v.w };
-}
+inline vec4 UNormByteToFloat( u8vec4 v ) { return { UNormByteToFloat( v.x ), UNormByteToFloat( v.y ), UNormByteToFloat( v.z ), v.w }; }
 
 inline constexpr float UNorm16ToFloat( uint16_t x ) { return float( x ) / 65535.0f; }
 

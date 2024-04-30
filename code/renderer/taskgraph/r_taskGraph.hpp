@@ -78,8 +78,8 @@ constexpr uint32_t ResolveRelativeSize( uint32_t scene, uint32_t display, uint32
     }
 }
 
-using ExtTextureFunc = VkImageView (*)( void );
-using ExtBufferFunc = VkBufferView (*)( void );
+using ExtTextureFunc = VkImageView ( * )( void );
+using ExtBufferFunc  = VkBufferView ( * )( void );
 
 struct TGBTexture
 {
@@ -143,29 +143,31 @@ struct RGBTaskTextureClear
     bool isCleared;
 };
 
-using ComputeFunction = void (*)( void );
+using ComputeFunction = void ( * )( void );
 
 class TaskGraphBuilder;
 
 class ComputeTaskBuilder
 {
 public:
-    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName ) :
-        builder( inBuilder ),
-        taskHandle( taskIndex, TaskType::COMPUTE )
-    #if USING( RG_DEBUG )
-        , debugName( inName )
-    #endif // #if USING( RG_DEBUG )
-    {}
+    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
+        : builder( inBuilder ), taskHandle( taskIndex, TaskType::COMPUTE )
+#if USING( RG_DEBUG )
+          ,
+          debugName( inName )
+#endif // #if USING( RG_DEBUG )
+    {
+    }
 
-    TGBTextureRef AddTextureOutput( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width,
-        uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
-    TGBTextureRef AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
+    TGBTextureRef AddTextureOutput( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
         uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+    TGBTextureRef AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
+        uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
     void AddTextureOutput( TGBTextureRef& texture );
     void AddTextureInput( TGBTextureRef& texture );
 
-    TGBBufferRef AddBufferOutput( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal );
+    TGBBufferRef AddBufferOutput(
+        const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal );
     TGBBufferRef AddBufferOutput( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size );
     void AddBufferOutput( TGBBufferRef& buffer );
     void AddBufferInput( TGBBufferRef& buffer );
@@ -186,17 +188,19 @@ class TaskGraphBuilder
 
     friend class ComputeTaskBuilder;
     friend class TaskGraph;
+
 public:
     TaskGraphBuilder();
     ComputeTaskBuilder* AddComputeTask( const std::string& name );
 
-    TGBTextureRef RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
-        uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
-    TGBBufferRef RegisterExternalBuffer( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
+    TGBTextureRef RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
+        uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
+    TGBBufferRef RegisterExternalBuffer(
+        const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
 private:
-    TGBTextureRef AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
-        uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
+    TGBTextureRef AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
+        uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
     TGBBufferRef AddBuffer( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
     std::vector<ComputeTaskBuilder> computeTasks;
@@ -206,7 +210,7 @@ private:
     struct Accesses
     {
         uint16_t firstTask = UINT16_MAX;
-        uint16_t lastTask = 0;
+        uint16_t lastTask  = 0;
     };
     std::vector<Accesses> textureAccesses;
     std::vector<Accesses> bufferAccesses;
@@ -236,7 +240,6 @@ struct Task
 class TaskGraph
 {
 public:
-
     bool Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compileInfo );
     void Free();
 

@@ -213,8 +213,7 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         COLOR,
         BONE
     };
-    std::string fmtStrings[] =
-    {
+    std::string fmtStrings[] = {
         "V %u\np %.6g %.6g %.6g\nn %.6g %.6g %.6g\n",
         "t %.6g %.6g %.6g\nb %.6g %.6g %.6g\n",
         "uv %.6g %.6g\n",

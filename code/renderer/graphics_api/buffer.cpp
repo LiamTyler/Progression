@@ -115,9 +115,9 @@ void Buffer::FlushGpuWrites( size_t size, size_t offset )
 VkDeviceAddress Buffer::GetDeviceAddress() const
 {
     VkBufferDeviceAddressInfo info{};
-	info.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-	info.buffer = m_handle;
-	return vkGetBufferDeviceAddress( rg.device, &info );
+    info.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    info.buffer = m_handle;
+    return vkGetBufferDeviceAddress( rg.device, &info );
 }
 
 } // namespace PG::Gfx

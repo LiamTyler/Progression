@@ -9,14 +9,14 @@
 #define DVAR_DEBUGGING USE_IF( USING( DEBUG_BUILD ) )
 
 #if USING( DVAR_DEBUGGING )
-    #include "shared/assert.hpp"
-    #include <typeinfo>
-    #define DVAR_ASSERT( ... ) PG_ASSERT( __VA_ARGS__ )
+#include "shared/assert.hpp"
+#include <typeinfo>
+#define DVAR_ASSERT( ... ) PG_ASSERT( __VA_ARGS__ )
 #else // #if USING( DVAR_DEBUGGING )
-    #define DVAR_ASSERT( ... ) \
-        do                     \
-        {                      \
-        } while ( 0 )
+#define DVAR_ASSERT( ... ) \
+    do                     \
+    {                      \
+    } while ( 0 )
 #endif // #if USING( DVAR_DEBUGGING )
 
 namespace PG
@@ -68,7 +68,7 @@ public:
     uint32_t GetUint() const;
     float GetFloat() const;
     double GetDouble() const;
-     
+
     template <typename T>
     T* GetRawPtr()
     {
@@ -157,5 +157,5 @@ void ExportDvars();
 } // namespace PG
 
 #if USING( DVAR_DEBUGGING )
-    #undef DVAR_ASSERT
+#undef DVAR_ASSERT
 #endif // #if USING( DVAR_DEBUGGING )

@@ -5,7 +5,7 @@
 #include "core/lua.hpp"
 #include "ecs/ecs.hpp"
 #if USING( GPU_DATA )
-    #include "renderer/graphics_api/acceleration_structure.hpp"
+#include "renderer/graphics_api/acceleration_structure.hpp"
 #endif // #if USING( GPU_DATA )
 #include <string>
 #include <vector>

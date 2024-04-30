@@ -5,8 +5,7 @@ namespace PG
 
 static_assert( ASSET_TYPE_COUNT == 7 );
 
-const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] =
-{
+const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     std::make_shared<GfxImageParser>(),   // ASSET_TYPE_GFX_IMAGE
     std::make_shared<MaterialParser>(),   // ASSET_TYPE_MATERIAL
     std::make_shared<ScriptParser>(),     // ASSET_TYPE_SCRIPT

@@ -18,7 +18,7 @@ static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDe
     p.isDiscrete               = vkProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
     p.nanosecondsPerTick       = vkProperties.limits.timestampPeriod;
 
-    p.dbProps = {};
+    p.dbProps       = {};
     p.dbProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;
 
     VkPhysicalDeviceProperties2 vkProperties2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };

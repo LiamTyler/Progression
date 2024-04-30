@@ -20,13 +20,12 @@ enum AssetType : unsigned int
     ASSET_TYPE_COUNT
 };
 
-constexpr unsigned int g_assetVersions[] =
-{
+constexpr unsigned int g_assetVersions[] = {
     8, // ASSET_TYPE_GFX_IMAGE, "Changed how alpha is handled during mipmapping"
     9, // ASSET_TYPE_MATERIAL, "Fixed material type"
     0, // ASSET_TYPE_SCRIPT
     1, // ASSET_TYPE_MODEL
-    0, // ASSET_TYPE_SHADER
+    2, // ASSET_TYPE_SHADER,    "deleted descriptor reflection stuff, added workgroup size reflection"
     7, // ASSET_TYPE_UI_LAYOUT, "mouse button down/up callbacks"
 
     // put all assets that don't actually have a struct below.
@@ -38,8 +37,7 @@ constexpr unsigned int g_assetVersions[] =
 
 constexpr uint32_t PG_FASTFILE_VERSION = 8 + ARRAY_SUM( g_assetVersions ); // mouse button down/up callbacks
 
-inline const char* const g_assetNames[] =
-{
+inline const char* const g_assetNames[] = {
     "Image",      // ASSET_TYPE_GFX_IMAGE
     "Material",   // ASSET_TYPE_MATERIAL
     "Script",     // ASSET_TYPE_SCRIPT

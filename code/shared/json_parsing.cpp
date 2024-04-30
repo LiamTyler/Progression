@@ -23,7 +23,6 @@ vec4 ParseVec4( const rapidjson::Value& v )
     return vec4( ParseNumber<float>( v[0] ), ParseNumber<float>( v[1] ), ParseNumber<float>( v[2] ), ParseNumber<float>( v[3] ) );
 }
 
-
 bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
 {
     FILE* fp = fopen( filename.c_str(), "rb" );

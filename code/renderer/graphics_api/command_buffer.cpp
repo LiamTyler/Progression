@@ -170,8 +170,8 @@ void CommandBuffer::BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, 
         m_handle, src, PGToVulkanImageLayout( srcLayout ), dst, PGToVulkanImageLayout( dstLayout ), 1, &region, VK_FILTER_LINEAR );
 }
 
-void CommandBuffer::TransitionImageLayout(
-    VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkPipelineStageFlags2 srcStageMask, VkPipelineStageFlags2 dstStageMask ) const
+void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkPipelineStageFlags2 srcStageMask,
+    VkPipelineStageFlags2 dstStageMask ) const
 {
     VkImageLayout vkOldLayout          = PGToVulkanImageLayout( oldLayout );
     VkImageLayout vkNewLayout          = PGToVulkanImageLayout( newLayout );
@@ -294,9 +294,7 @@ void CommandBuffer::TransitionImageLayout(
         // Not sure what presentation counts as?
         imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT;
         break;
-    default:
-        imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT;
-        break;
+    default: imageBarrier.dstAccessMask = VK_ACCESS_2_MEMORY_WRITE_BIT | VK_ACCESS_2_MEMORY_READ_BIT; break;
     }
 
     PipelineImageBarrier2( imageBarrier );

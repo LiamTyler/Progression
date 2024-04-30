@@ -8,8 +8,7 @@ namespace PG
 
 uint32_t NumChannelsInPixelFromat( PixelFormat format )
 {
-    uint8_t components[] =
-    {
+    uint8_t components[] = {
         0, // INVALID
         1, // R8_UNORM
         1, // R8_SNORM
@@ -105,8 +104,7 @@ uint32_t NumChannelsInPixelFromat( PixelFormat format )
 
 uint32_t NumBytesPerPixel( PixelFormat format )
 {
-    uint8_t size[] =
-    {
+    uint8_t size[] = {
         0, // INVALID
 
         1, // R8_UNORM
@@ -259,8 +257,7 @@ bool PixelFormatIsNormalized( PixelFormat format )
     case PixelFormat::R16_G16_B16_SNORM:
 
     case PixelFormat::R16_G16_B16_A16_UNORM:
-    case PixelFormat::R16_G16_B16_A16_SNORM:
-        isNormalized = true;
+    case PixelFormat::R16_G16_B16_A16_SNORM: isNormalized = true;
     }
 
     return isNormalized;
@@ -310,8 +307,7 @@ bool PixelFormatIsUnsigned( PixelFormat format )
     case PixelFormat::R32_UINT:
     case PixelFormat::R32_G32_UINT:
     case PixelFormat::R32_G32_B32_UINT:
-    case PixelFormat::R32_G32_B32_A32_UINT:
-        isUnsigned = true;
+    case PixelFormat::R32_G32_B32_A32_UINT: isUnsigned = true;
     }
 
     return isUnsigned;
@@ -390,8 +386,7 @@ void GetRGBAOrder( PixelFormat format, int channelRemap[4] )
 
 std::string PixelFormatName( PixelFormat format )
 {
-    const char* names[] =
-    {
+    const char* names[] = {
         "INVALID",                       // INVALID
         "R8_UNORM",                      // R8_UNORM
         "R8_SNORM",                      // R8_SNORM
@@ -484,9 +479,8 @@ std::string PixelFormatName( PixelFormat format )
 
 PixelFormat PixelFormatFromString( const std::string& format )
 {
-    std::unordered_map<std::string, PixelFormat> pixelFormatMap =
-    {
-        { "R8_UNORM",                      PixelFormat::R8_UNORM                     },
+    std::unordered_map<std::string, PixelFormat> pixelFormatMap = {
+        {"R8_UNORM",                       PixelFormat::R8_UNORM                     },
         { "R8_SNORM",                      PixelFormat::R8_SNORM                     },
         { "R8_UINT",                       PixelFormat::R8_UINT                      },
         { "R8_SINT",                       PixelFormat::R8_SINT                      },

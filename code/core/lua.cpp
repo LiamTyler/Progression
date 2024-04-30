@@ -6,11 +6,11 @@
 #include "shared/filesystem.hpp"
 #include "shared/math.hpp"
 #if USING( GAME )
-    #include "core/input.hpp"
-    #include "core/window.hpp"
+#include "core/input.hpp"
+#include "core/window.hpp"
 #endif // #if USING( GAME )
 #if USING( OFFLINE_RENDERER )
-    #include "pt_scene.hpp"
+#include "pt_scene.hpp"
 #endif // USING( OFFLINE_RENDERER )
 
 static sol::state* g_LuaState = nullptr;

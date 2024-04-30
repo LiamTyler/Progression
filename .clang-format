@@ -19,7 +19,7 @@ BreakStringLiterals: 'true'
 ColumnLimit: '140'
 CompactNamespaces: 'true'
 IndentAccessModifiers: false
-IndentPPDirectives: BeforeHash
+IndentPPDirectives: None
 InsertNewlineAtEOF: true
 MaxEmptyLinesToKeep: 1
 NamespaceIndentation: None

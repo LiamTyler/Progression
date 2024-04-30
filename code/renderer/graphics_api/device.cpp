@@ -285,7 +285,7 @@ Semaphore Device::NewSemaphore( const std::string& name ) const
 AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureType type, size_t size ) const
 {
     BufferCreateInfo bufferCreateInfo = {};
-    bufferCreateInfo.size = size;
+    bufferCreateInfo.size             = size;
     bufferCreateInfo.bufferUsage |= BufferUsage::AS_STORAGE;
     bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
@@ -317,62 +317,62 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, const std::string&
     vkBufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     VmaAllocationCreateInfo vmaAllocInfo = {};
-    vmaAllocInfo.usage = createInfo.memoryUsage;
-    vmaAllocInfo.flags = createInfo.flags;
- 
+    vmaAllocInfo.usage                   = createInfo.memoryUsage;
+    vmaAllocInfo.flags                   = createInfo.flags;
+
     Buffer buffer;
-    buffer.m_size = createInfo.size;
+    buffer.m_size        = createInfo.size;
     buffer.m_bufferUsage = createInfo.bufferUsage;
     buffer.m_memoryUsage = createInfo.memoryUsage;
     VmaAllocationInfo allocReturnInfo;
     vmaCreateBuffer( m_vmaAllocator, &vkBufInfo, &vmaAllocInfo, &buffer.m_handle, &buffer.m_allocation, &allocReturnInfo );
-    buffer.m_persistent = (createInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT) && allocReturnInfo.pMappedData != nullptr;
+    buffer.m_persistent = ( createInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT ) && allocReturnInfo.pMappedData != nullptr;
 
     VkMemoryPropertyFlags vkMemProperties;
-	vmaGetAllocationMemoryProperties( m_vmaAllocator, buffer.m_allocation, &vkMemProperties );
-	buffer.m_coherent = (vkMemProperties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT) == VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
-    PG_ASSERT( !(buffer.m_persistent && !buffer.m_coherent), "Persistently mapped buffers should be coherent" );
+    vmaGetAllocationMemoryProperties( m_vmaAllocator, buffer.m_allocation, &vkMemProperties );
+    buffer.m_coherent = ( vkMemProperties & VK_MEMORY_PROPERTY_HOST_COHERENT_BIT ) == VK_MEMORY_PROPERTY_HOST_COHERENT_BIT;
+    PG_ASSERT( !( buffer.m_persistent && !buffer.m_coherent ), "Persistently mapped buffers should be coherent" );
 
     buffer.m_mappedPtr = buffer.m_persistent ? allocReturnInfo.pMappedData : nullptr;
 
     return buffer;
 }
 
-//Buffer Device::NewBuffer( size_t length, void* data, BufferUsage type, MemoryType memoryType, const std::string& name ) const
+// Buffer Device::NewBuffer( size_t length, void* data, BufferUsage type, MemoryType memoryType, const std::string& name ) const
 //{
-//    Buffer dstBuffer;
-//    type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
+//     Buffer dstBuffer;
+//     type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
 //
-//    if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
-//    {
-//        Buffer stagingBuffer =
-//            NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
-//        stagingBuffer.Map();
-//        memcpy( stagingBuffer.MappedPtr(), data, length );
-//        stagingBuffer.UnMap();
+//     if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
+//     {
+//         Buffer stagingBuffer =
+//             NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
+//         stagingBuffer.Map();
+//         memcpy( stagingBuffer.MappedPtr(), data, length );
+//         stagingBuffer.UnMap();
 //
-//        dstBuffer = NewBuffer( length, type, memoryType, name );
-//        Copy( dstBuffer, stagingBuffer );
-//        stagingBuffer.Free();
-//    }
-//    else if ( memoryType & MEMORY_TYPE_HOST_VISIBLE )
-//    {
-//        dstBuffer = NewBuffer( length, type, memoryType, name );
-//        dstBuffer.Map();
-//        memcpy( dstBuffer.MappedPtr(), data, length );
-//        if ( ( memoryType & MEMORY_TYPE_HOST_COHERENT ) == 0 )
-//        {
-//            dstBuffer.FlushCpuWrites();
-//        }
-//        dstBuffer.UnMap();
-//    }
-//    else
-//    {
-//        PG_ASSERT( false, "Unknown MemoryType passed into NewBuffer. Not copying data into buffer" );
-//    }
+//         dstBuffer = NewBuffer( length, type, memoryType, name );
+//         Copy( dstBuffer, stagingBuffer );
+//         stagingBuffer.Free();
+//     }
+//     else if ( memoryType & MEMORY_TYPE_HOST_VISIBLE )
+//     {
+//         dstBuffer = NewBuffer( length, type, memoryType, name );
+//         dstBuffer.Map();
+//         memcpy( dstBuffer.MappedPtr(), data, length );
+//         if ( ( memoryType & MEMORY_TYPE_HOST_COHERENT ) == 0 )
+//         {
+//             dstBuffer.FlushCpuWrites();
+//         }
+//         dstBuffer.UnMap();
+//     }
+//     else
+//     {
+//         PG_ASSERT( false, "Unknown MemoryType passed into NewBuffer. Not copying data into buffer" );
+//     }
 //
-//    return dstBuffer;
-//}
+//     return dstBuffer;
+// }
 
 Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& name ) const
 {
@@ -421,26 +421,26 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& na
 
 Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, const std::string& name ) const
 {
-    //desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    //Texture tex          = NewTexture( desc, name );
-    //size_t imSize        = desc.TotalSizeInBytes();
-    //Buffer stagingBuffer = NewBuffer( imSize, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
-    //stagingBuffer.Map();
-    //memcpy( stagingBuffer.MappedPtr(), data, imSize );
-    //stagingBuffer.UnMap();
+    // desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    // Texture tex          = NewTexture( desc, name );
+    // size_t imSize        = desc.TotalSizeInBytes();
+    // Buffer stagingBuffer = NewBuffer( imSize, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
+    // stagingBuffer.Map();
+    // memcpy( stagingBuffer.MappedPtr(), data, imSize );
+    // stagingBuffer.UnMap();
     //
-    //VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
-    //PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
+    // VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
+    // PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
     //
-    //TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //    tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
-    //CopyBufferToImage( stagingBuffer, tex );
-    //TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //    VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+    // TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //     tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+    // CopyBufferToImage( stagingBuffer, tex );
+    // TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    //     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
     //
-    //stagingBuffer.Free();
+    // stagingBuffer.Free();
     //
-    //return tex;
+    // return tex;
     return {};
 }
 
@@ -474,305 +474,49 @@ Sampler Device::NewSampler( const SamplerDescriptor& desc ) const
     return sampler;
 }
 
-static PipelineResourceLayout CombineShaderResourceLayouts( Shader* const* shaders, int numShaders )
-{
-    PipelineResourceLayout combinedLayout = {};
-
-    for ( int shaderIndex = 0; shaderIndex < numShaders; ++shaderIndex )
-    {
-        uint32_t stageMask                       = 1u << static_cast<uint32_t>( shaders[shaderIndex]->shaderStage );
-        const ShaderResourceLayout& shaderLayout = shaders[shaderIndex]->resourceLayout;
-        for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; set++ )
-        {
-            combinedLayout.sets[set].sampledImageMask |= shaderLayout.sets[set].sampledImageMask;
-            combinedLayout.sets[set].separateImageMask |= shaderLayout.sets[set].separateImageMask;
-            combinedLayout.sets[set].storageImageMask |= shaderLayout.sets[set].storageImageMask;
-            combinedLayout.sets[set].uniformBufferMask |= shaderLayout.sets[set].uniformBufferMask;
-            combinedLayout.sets[set].storageBufferMask |= shaderLayout.sets[set].storageBufferMask;
-            combinedLayout.sets[set].uniformTexelBufferMask |= shaderLayout.sets[set].uniformTexelBufferMask;
-            combinedLayout.sets[set].storageTexelBufferMask |= shaderLayout.sets[set].storageTexelBufferMask;
-            combinedLayout.sets[set].samplerMask |= shaderLayout.sets[set].samplerMask;
-            combinedLayout.sets[set].inputAttachmentMask |= shaderLayout.sets[set].inputAttachmentMask;
-
-            uint32_t activeShaderBinds = shaderLayout.sets[set].sampledImageMask | shaderLayout.sets[set].separateImageMask |
-                                         shaderLayout.sets[set].storageImageMask | shaderLayout.sets[set].uniformBufferMask |
-                                         shaderLayout.sets[set].storageBufferMask | shaderLayout.sets[set].uniformTexelBufferMask |
-                                         shaderLayout.sets[set].storageTexelBufferMask | shaderLayout.sets[set].samplerMask |
-                                         shaderLayout.sets[set].inputAttachmentMask;
-
-            if ( activeShaderBinds )
-            {
-                combinedLayout.setStages[set] |= stageMask;
-                ForEachBit( activeShaderBinds,
-                    [&]( uint32_t bit )
-                    {
-                        combinedLayout.bindingStages[set][bit] |= stageMask;
-
-                        uint32_t& combinedSize = combinedLayout.sets[set].arraySizes[bit];
-                        uint32_t shaderSize    = shaderLayout.sets[set].arraySizes[bit];
-                        if ( combinedSize && combinedSize != shaderSize )
-                        {
-                            LOG_ERR( "Mismatch between array sizes in different shaders." );
-                        }
-                        else
-                        {
-                            combinedSize = shaderSize;
-                        }
-                    } );
-            }
-        }
-
-        // Merge push constant ranges into one range. No obvious gain for actually doing multiple ranges.
-        if ( shaderLayout.pushConstantSize != 0 )
-        {
-            combinedLayout.pushConstantRange.stageFlags |= stageMask;
-            combinedLayout.pushConstantRange.size = std::max( combinedLayout.pushConstantRange.size, shaderLayout.pushConstantSize );
-        }
-    }
-
-    combinedLayout.descriptorSetMask = 0;
-    for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; ++set )
-    {
-        if ( combinedLayout.setStages[set] != 0 )
-        {
-            combinedLayout.descriptorSetMask |= 1u << set;
-
-            for ( unsigned binding = 0; binding < PG_MAX_NUM_BINDINGS_PER_SET; ++binding )
-            {
-                auto& arraySize = combinedLayout.sets[set].arraySizes[binding];
-                if ( arraySize == 0 )
-                {
-                    arraySize = 1;
-                }
-                else if ( arraySize != UINT32_MAX )
-                {
-                    for ( unsigned i = 1; i < arraySize; ++i )
-                    {
-                        if ( combinedLayout.bindingStages[set][binding + i] != 0 )
-                        {
-                            LOG_ERR(
-                                "Detected binding aliasing for (%u, %u). Binding array with %u elements starting at (%u, %u) overlaps.",
-                                set, binding + i, arraySize, set, binding );
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    return combinedLayout;
-}
-
 Pipeline Device::NewGraphicsPipeline( const PipelineDescriptor& desc, const std::string& name ) const
 {
-    Pipeline p;
-    p.m_desc   = desc;
-    p.m_device = m_handle;
-
-    VkPipelineShaderStageCreateInfo shaderStages[3];
-    uint32_t numShaderStages = 0;
-    for ( size_t i = 0; i < 3 && desc.shaders[i]; ++i )
-    {
-        ++numShaderStages;
-        shaderStages[i]        = {};
-        shaderStages[i].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-        shaderStages[i].stage  = PGToVulkanShaderStage( desc.shaders[i]->shaderStage );
-        shaderStages[i].module = desc.shaders[i]->handle;
-        shaderStages[i].pName  = desc.shaders[i]->entryPoint.c_str();
-    }
-    PG_ASSERT( numShaderStages > 0 );
-
-    p.m_resourceLayout = CombineShaderResourceLayouts( &desc.shaders[0], numShaderStages );
-    p.m_isCompute      = false;
-    auto& layout       = p.m_resourceLayout;
-    VkDescriptorSetLayout vkLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
-    uint32_t numSetLayouts = 0;
-    if ( p.m_resourceLayout.descriptorSetMask )
-    {
-        uint32_t highestUsedSet = 0;
-        for ( unsigned set = 0; set < PG_MAX_NUM_DESCRIPTOR_SETS; ++set )
-        {
-            if ( p.m_resourceLayout.descriptorSetMask & ( 1u << set ) )
-            {
-                RegisterDescriptorSetLayout( layout.sets[set], layout.bindingStages[set] );
-                vkLayouts[set] = layout.sets[set].GetHandle();
-                highestUsedSet = set;
-            }
-            else
-            {
-                vkLayouts[set] = GetEmptyDescriptorSetLayout();
-            }
-        }
-        numSetLayouts = highestUsedSet + 1;
-    }
-
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-    pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount             = numSetLayouts;
-    pipelineLayoutCreateInfo.pSetLayouts                = vkLayouts;
-    pipelineLayoutCreateInfo.pushConstantRangeCount     = 0;
-    if ( layout.pushConstantRange.size > 0 )
-    {
-        pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-        pipelineLayoutCreateInfo.pPushConstantRanges    = &layout.pushConstantRange;
-    }
-    VK_CHECK( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &p.m_pipelineLayout ) );
-
-    uint32_t dynamicStateCount       = 2;
-    VkDynamicState vkDnamicStates[3] = { VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT };
-    if ( desc.rasterizerInfo.depthBiasEnable )
-    {
-        vkDnamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BIAS;
-    }
-    VkPipelineDynamicStateCreateInfo dynamicState = {};
-    dynamicState.sType                            = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-    dynamicState.dynamicStateCount                = dynamicStateCount;
-    dynamicState.pDynamicStates                   = vkDnamicStates;
-
-    VkPipelineViewportStateCreateInfo viewportState = {};
-    viewportState.sType                             = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount                     = 1; // don't need to give actual viewport or scissor upfront, since they're dynamic
-    viewportState.scissorCount                      = 1;
-
-    // specify topology and if primitive restart is on
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-    inputAssembly.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology                               = PGToVulkanPrimitiveType( desc.primitiveType );
-    inputAssembly.primitiveRestartEnable                 = VK_FALSE;
-
-    // rasterizer does rasterization, depth testing, face culling, and scissor test
-    VkPipelineRasterizationStateCreateInfo rasterizer = {};
-    rasterizer.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    rasterizer.depthClampEnable                       = VK_FALSE;
-    rasterizer.rasterizerDiscardEnable                = VK_FALSE;
-    rasterizer.polygonMode                            = PGToVulkanPolygonMode( desc.rasterizerInfo.polygonMode );
-    rasterizer.lineWidth                              = 1.0f; // to be higher than 1 needs the wideLines GPU feature
-    rasterizer.cullMode                               = PGToVulkanCullFace( desc.rasterizerInfo.cullFace );
-    rasterizer.frontFace                              = PGToVulkanWindingOrder( desc.rasterizerInfo.winding );
-    rasterizer.depthBiasEnable                        = desc.rasterizerInfo.depthBiasEnable;
-
-    VkPipelineMultisampleStateCreateInfo multisampling = {};
-    multisampling.sType                                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    multisampling.sampleShadingEnable                  = VK_FALSE;
-    multisampling.rasterizationSamples                 = VK_SAMPLE_COUNT_1_BIT;
-
-    bool dynamicRendering = desc.renderPass == nullptr && desc.dynamicAttachmentInfo.HasInfo();
-    uint8_t numColorAttachments =
-        dynamicRendering ? desc.dynamicAttachmentInfo.numColorAttachments : desc.renderPass->desc.numColorAttachments;
-    VkPipelineColorBlendAttachmentState colorBlendAttachment[8] = {};
-    for ( uint8_t i = 0; i < numColorAttachments; ++i )
-    {
-        colorBlendAttachment[i].colorWriteMask =
-            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment[i].blendEnable         = desc.colorAttachmentInfos[i].blendingEnabled;
-        colorBlendAttachment[i].srcColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcColorBlendFactor );
-        colorBlendAttachment[i].dstColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].dstColorBlendFactor );
-        colorBlendAttachment[i].srcAlphaBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcAlphaBlendFactor );
-        colorBlendAttachment[i].dstAlphaBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].dstAlphaBlendFactor );
-        colorBlendAttachment[i].colorBlendOp        = PGToVulkanBlendEquation( desc.colorAttachmentInfos[i].colorBlendEquation );
-        colorBlendAttachment[i].alphaBlendOp        = PGToVulkanBlendEquation( desc.colorAttachmentInfos[i].alphaBlendEquation );
-    }
-
-    // blending for all attachments / global settings
-    VkPipelineColorBlendStateCreateInfo colorBlending = {};
-    colorBlending.sType                               = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    colorBlending.logicOpEnable                       = VK_FALSE;
-    colorBlending.logicOp                             = VK_LOGIC_OP_COPY;
-    colorBlending.attachmentCount                     = numColorAttachments;
-    colorBlending.pAttachments                        = colorBlendAttachment;
-
-    VkPipelineDepthStencilStateCreateInfo depthStencil = {};
-    depthStencil.sType                                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable                       = desc.depthInfo.depthTestEnabled;
-    depthStencil.depthWriteEnable                      = desc.depthInfo.depthWriteEnabled;
-    depthStencil.depthCompareOp                        = PGToVulkanCompareFunction( desc.depthInfo.compareFunc );
-    depthStencil.depthBoundsTestEnable                 = VK_FALSE;
-    depthStencil.stencilTestEnable                     = VK_FALSE;
-
-    VkGraphicsPipelineCreateInfo pipelineInfo = {};
-    pipelineInfo.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
-    pipelineInfo.stageCount                   = numShaderStages;
-    pipelineInfo.pStages                      = shaderStages;
-    pipelineInfo.pVertexInputState            = &p.m_desc.vertexDescriptor.GetHandle();
-    pipelineInfo.pInputAssemblyState          = &inputAssembly;
-    pipelineInfo.pViewportState               = &viewportState;
-    pipelineInfo.pRasterizationState          = &rasterizer;
-    pipelineInfo.pMultisampleState            = &multisampling;
-    pipelineInfo.pDepthStencilState           = &depthStencil;
-    pipelineInfo.pColorBlendState             = &colorBlending;
-    pipelineInfo.pDynamicState                = &dynamicState;
-    pipelineInfo.layout                       = p.m_pipelineLayout;
-    pipelineInfo.renderPass                   = dynamicRendering ? nullptr : desc.renderPass->GetHandle();
-    pipelineInfo.subpass                      = 0;
-    pipelineInfo.basePipelineHandle           = VK_NULL_HANDLE;
-
-    VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo;
-    VkFormat dynRenderingFormats[MAX_COLOR_ATTACHMENTS];
-    if ( dynamicRendering )
-    {
-        dynRenderingCreateInfo                         = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
-        dynRenderingCreateInfo.colorAttachmentCount    = desc.dynamicAttachmentInfo.numColorAttachments;
-        dynRenderingCreateInfo.pColorAttachmentFormats = &dynRenderingFormats[1];
-        for ( uint8_t i = 0; i < numColorAttachments; ++i )
-            dynRenderingFormats[1 + i] = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.colorAttachmentFormats[i] );
-
-        if ( desc.dynamicAttachmentInfo.depthAttachmentFormat != PixelFormat::INVALID )
-        {
-            VkFormat fmt                                 = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.depthAttachmentFormat );
-            dynRenderingCreateInfo.depthAttachmentFormat = fmt;
-            if ( PixelFormatHasStencil( desc.dynamicAttachmentInfo.depthAttachmentFormat ) )
-                dynRenderingCreateInfo.stencilAttachmentFormat = fmt;
-        }
-
-        pipelineInfo.pNext = &dynRenderingCreateInfo;
-    }
-
-    if ( vkCreateGraphicsPipelines( m_handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &p.m_pipeline ) != VK_SUCCESS )
-    {
-        LOG_ERR( "Failed to create graphics pipeline '%s'", name.c_str() );
-        vkDestroyPipelineLayout( m_handle, p.m_pipelineLayout, nullptr );
-        p.m_pipeline = VK_NULL_HANDLE;
-    }
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_PIPELINE_NAME( p, name ) );
-
-    return p;
+    PG_ASSERT( false, "todo" );
+    return {};
 }
 
 Pipeline Device::NewComputePipeline( Shader* shader, const std::string& name ) const
 {
-    PG_ASSERT( shader && shader->shaderStage == ShaderStage::COMPUTE );
-
-    Pipeline pipeline;
-    pipeline.m_device          = m_handle;
-    pipeline.m_desc.shaders[0] = shader;
-    pipeline.m_resourceLayout  = CombineShaderResourceLayouts( &shader, 1 );
-    pipeline.m_isCompute       = true;
-    auto& layouts              = pipeline.m_resourceLayout;
-    VkDescriptorSetLayout activeLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
-    uint32_t numActiveSets = 0;
-    ForEachBit( pipeline.m_resourceLayout.descriptorSetMask,
-        [&]( uint32_t set )
-        {
-            RegisterDescriptorSetLayout( layouts.sets[set], layouts.bindingStages[set] );
-            activeLayouts[numActiveSets++] = layouts.sets[set].GetHandle();
-        } );
-
-    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
-    pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount             = numActiveSets;
-    pipelineLayoutCreateInfo.pSetLayouts                = activeLayouts;
-    VK_CHECK( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &pipeline.m_pipelineLayout ) );
-
-    VkComputePipelineCreateInfo createInfo = {};
-    createInfo.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
-    createInfo.layout                      = pipeline.m_pipelineLayout;
-    createInfo.stage.sType                 = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    createInfo.stage.stage                 = VK_SHADER_STAGE_COMPUTE_BIT;
-    createInfo.stage.module                = shader->handle;
-    createInfo.stage.pName                 = shader->entryPoint.c_str();
-
-    VK_CHECK( vkCreateComputePipelines( m_handle, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline.m_pipeline ) );
-    return pipeline;
+    PG_ASSERT( false, "todo" );
+    return {};
+    // PG_ASSERT( shader && shader->shaderStage == ShaderStage::COMPUTE );
+    //
+    // Pipeline pipeline;
+    // pipeline.m_device          = m_handle;
+    // pipeline.m_desc.shaders[0] = shader;
+    // pipeline.m_resourceLayout  = CombineShaderResourceLayouts( &shader, 1 );
+    // pipeline.m_isCompute       = true;
+    // auto& layouts              = pipeline.m_resourceLayout;
+    // VkDescriptorSetLayout activeLayouts[PG_MAX_NUM_DESCRIPTOR_SETS];
+    // uint32_t numActiveSets = 0;
+    // ForEachBit( pipeline.m_resourceLayout.descriptorSetMask,
+    //     [&]( uint32_t set )
+    //     {
+    //         RegisterDescriptorSetLayout( layouts.sets[set], layouts.bindingStages[set] );
+    //         activeLayouts[numActiveSets++] = layouts.sets[set].GetHandle();
+    //     } );
+    //
+    // VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+    // pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    // pipelineLayoutCreateInfo.setLayoutCount             = numActiveSets;
+    // pipelineLayoutCreateInfo.pSetLayouts                = activeLayouts;
+    // VK_CHECK( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &pipeline.m_pipelineLayout ) );
+    //
+    // VkComputePipelineCreateInfo createInfo = {};
+    // createInfo.sType                       = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
+    // createInfo.layout                      = pipeline.m_pipelineLayout;
+    // createInfo.stage.sType                 = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    // createInfo.stage.stage                 = VK_SHADER_STAGE_COMPUTE_BIT;
+    // createInfo.stage.module                = shader->handle;
+    // createInfo.stage.pName                 = shader->entryPoint.c_str();
+    //
+    // VK_CHECK( vkCreateComputePipelines( m_handle, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline.m_pipeline ) );
+    // return pipeline;
 }
 
 RenderPass Device::NewRenderPass( const RenderPassDescriptor& desc, const std::string& name ) const

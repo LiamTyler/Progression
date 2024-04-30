@@ -9,10 +9,7 @@ namespace PG::Gfx
 static Sampler s_builtInSamplers[NUM_SAMPLERS];
 static std::unordered_map<std::string, Sampler> s_customSamplers;
 
-Sampler* GetSampler( SamplerType samplerType )
-{
-    return &s_builtInSamplers[samplerType];
-}
+Sampler* GetSampler( SamplerType samplerType ) { return &s_builtInSamplers[samplerType]; }
 
 Sampler* AddCustomSampler( SamplerDescriptor& desc )
 {
@@ -44,11 +41,11 @@ static void AddWrapSamplers( SamplerType type, const SamplerDescriptor& samplerT
 {
     SamplerDescriptor samplerDesc = samplerTemplate;
 
-    samplerDesc.name        = samplerTemplate.name + "clampU_clampV";
-    samplerDesc.wrapModeU   = WrapMode::CLAMP_TO_EDGE;
-    samplerDesc.wrapModeV   = WrapMode::CLAMP_TO_EDGE;
-    samplerDesc.wrapModeW   = WrapMode::CLAMP_TO_EDGE;
-    //s_builtInSamplers[type] = rg.device.NewSampler( samplerDesc );
+    samplerDesc.name      = samplerTemplate.name + "clampU_clampV";
+    samplerDesc.wrapModeU = WrapMode::CLAMP_TO_EDGE;
+    samplerDesc.wrapModeV = WrapMode::CLAMP_TO_EDGE;
+    samplerDesc.wrapModeW = WrapMode::CLAMP_TO_EDGE;
+    // s_builtInSamplers[type] = rg.device.NewSampler( samplerDesc );
 
     samplerDesc.name      = samplerTemplate.name + "wrapU_clampV";
     samplerDesc.wrapModeU = WrapMode::REPEAT;

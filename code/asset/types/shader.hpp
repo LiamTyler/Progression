@@ -2,17 +2,18 @@
 
 #include "asset/types/base_asset.hpp"
 #include "core/feature_defines.hpp"
+#include "shared/math_vec.hpp"
 #include <vector>
 
 // ShaderCreateInfo is needed for asset parsing + tools that don't need any rendering + gpu code
 #if USING( GPU_STRUCTS )
-    #include "renderer/graphics_api/descriptor.hpp"
+#include "renderer/graphics_api/descriptor.hpp"
 #endif // #if USING( GPU_STRUCTS )
 
 namespace PG
 {
 
-enum class ShaderStage
+enum class ShaderStage : uint8_t
 {
     VERTEX                  = 0,
     TESSELLATION_CONTROL    = 1,
@@ -34,14 +35,11 @@ struct ShaderCreateInfo : public BaseAssetCreateInfo
 
 std::string GetAbsPath_ShaderFilename( const std::string& filename );
 
-struct ShaderResourceLayout
+struct ShaderReflectData
 {
-    uint32_t inputMask        = 0;
-    uint32_t outputMask       = 0;
-    uint32_t pushConstantSize = 0;
-#if USING( GPU_STRUCTS )
-    Gfx::DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS];
-#endif // #if USING( GPU_STRUCTS )
+    uvec3 workgroupSize         = uvec3( 0 );
+    uint16_t pushConstantSize   = 0;
+    uint16_t pushConstantOffset = 0;
 };
 
 struct Shader : public BaseAsset
@@ -51,12 +49,11 @@ struct Shader : public BaseAsset
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
 
-    ShaderStage shaderStage;
-    std::string entryPoint;
+    ShaderReflectData reflectionData;
 #if USING( GPU_DATA )
     VkShaderModule handle = VK_NULL_HANDLE;
 #endif // #if USING( GPU_DATA )
-    ShaderResourceLayout resourceLayout;
+    ShaderStage shaderStage;
 
 #if USING( CONVERTER )
     std::vector<uint32_t> savedSpirv;

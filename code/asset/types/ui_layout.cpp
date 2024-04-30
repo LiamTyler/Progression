@@ -36,8 +36,7 @@ static vec4 ParseVec4( const char* str )
 
 static UIElementBlendMode ParseBlendMode( const char* str )
 {
-    static const char* blendStrs[] =
-    {
+    static const char* blendStrs[] = {
         "opaque",
         "blend",
         "additive",
@@ -58,8 +57,7 @@ static UIElementBlendMode ParseBlendMode( const char* str )
 
 static UIElementType ParseElementType( const char* str )
 {
-    static const char* strs[] =
-    {
+    static const char* strs[] = {
         "regular",
         "mkdd_diag_tint",
     };
@@ -242,7 +240,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     return true;
-#else // #if USING( CONVERTER )
+#else  // #if USING( CONVERTER )
     return false;
 #endif // #else // #if USING( CONVERTER )
 }

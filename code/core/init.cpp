@@ -4,11 +4,11 @@
 #include "core/lua.hpp"
 #include "core/time.hpp"
 #if USING( GAME )
-    #include "core/input.hpp"
-    #include "core/window.hpp"
-    #include "projects/engine/remote_console_server.hpp"
-    #include "renderer/render_system.hpp"
-    #include "ui/ui_system.hpp"
+#include "core/input.hpp"
+#include "core/window.hpp"
+#include "projects/engine/remote_console_server.hpp"
+#include "renderer/render_system.hpp"
+#include "ui/ui_system.hpp"
 #endif // #if USING( GAME )
 #include "shared/logger.hpp"
 #include "shared/random.hpp"
@@ -53,14 +53,14 @@ bool EngineInitialize( EngineInitInfo info )
         LOG_ERR( "Could not initialize render system" );
         return false;
     }
-    //if ( !UI::Init() )
-    //{
-    //    LOG_ERR( "Could not initialize UI system" );
-    //    return false;
-    //}
-    #if !USING( SHIP_BUILD )
+// if ( !UI::Init() )
+//{
+//     LOG_ERR( "Could not initialize UI system" );
+//     return false;
+// }
+#if !USING( SHIP_BUILD )
     ExportDvars();
-    #endif // #if !USING( SHIP_BUILD )
+#endif // #if !USING( SHIP_BUILD )
     RemoteConsoleServer::Init();
 #endif // #if USING( GAME )
 
@@ -71,7 +71,7 @@ void EngineShutdown()
 {
 #if USING( GAME )
     RemoteConsoleServer::Shutdown();
-    //UI::Shutdown();
+    // UI::Shutdown();
     RenderSystem::Shutdown();
     if ( !g_headless )
     {

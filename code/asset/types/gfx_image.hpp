@@ -4,7 +4,7 @@
 #include "core/image_types.hpp"
 #include "core/pixel_formats.hpp"
 #if USING( GPU_DATA )
-    #include "renderer/graphics_api/texture.hpp"
+#include "renderer/graphics_api/texture.hpp"
 #endif // #if USING( GPU_DATA )
 #include "ImageLib/image.hpp"
 

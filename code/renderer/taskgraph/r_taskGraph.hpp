@@ -5,15 +5,19 @@
 #include "renderer/graphics_api/texture.hpp"
 #include "renderer/r_globals.hpp"
 #include <bitset>
+#include <functional>
+#include <utility>
 #include <vector>
 
-#define RG_DEBUG USE_IF( USING( DEBUG_BUILD ) )
+#define TG_DEBUG USE_IF( USING( DEBUG_BUILD ) )
 
-#if USING( RG_DEBUG )
-#define RG_DEBUG_ONLY( x ) x
-#else // #if USING( RG_DEBUG )
-#define RG_DEBUG_ONLY( x )
-#endif // #else // #if USING( RG_DEBUG )
+#if USING( TG_DEBUG )
+#define TG_DEBUG_ONLY( x ) x
+#define TG_ASSERT( ... ) PG_ASSERT( __VA_ARGS__ )
+#else // #if USING( TG_DEBUG )
+#define TG_DEBUG_ONLY( x )
+#define TG_ASSERT( ... )
+#endif // #else // #if USING( TG_DEBUG )
 
 namespace PG
 {
@@ -41,7 +45,7 @@ PG_DEFINE_ENUM_OPS( ResourceType )
 
 enum class ResourceState : uint8_t
 {
-    READ_ONLY  = 0,
+    READ       = 0,
     WRITE      = 1,
     READ_WRITE = 2,
 
@@ -78,12 +82,12 @@ constexpr uint32_t ResolveRelativeSize( uint32_t scene, uint32_t display, uint32
     }
 }
 
-using ExtTextureFunc = VkImageView ( * )( void );
-using ExtBufferFunc  = VkBufferView ( * )( void );
+using ExtTextureFunc = std::function<void( VkImage&, VkImageView& )>;
+using ExtBufferFunc  = std::function<VkBuffer()>;
 
 struct TGBTexture
 {
-    RG_DEBUG_ONLY( std::string debugName );
+    TG_DEBUG_ONLY( std::string debugName );
     uint32_t width;
     uint32_t height;
     uint32_t depth;
@@ -95,7 +99,7 @@ struct TGBTexture
 
 struct TGBBuffer
 {
-    RG_DEBUG_ONLY( std::string debugName );
+    TG_DEBUG_ONLY( std::string debugName );
     size_t size;
     BufferUsage bufferUsage;
     VmaMemoryUsage memoryUsage;
@@ -117,45 +121,67 @@ struct TaskHandle
     TaskHandle( uint16_t inIndex, TaskType inType ) : index( inIndex ), type( inType ) {}
 };
 
-using ResourceIndexHandle = uint16_t;
+using ResourceHandle = uint16_t;
 
 struct TGBTextureRef
 {
-    ResourceIndexHandle index;
+    ResourceHandle index;
+
+    bool operator==( const TGBTextureRef& o ) const { return index == o.index; }
 };
 
 struct TGBBufferRef
 {
-    ResourceIndexHandle index;
+    ResourceHandle index;
+
+    bool operator==( const TGBBufferRef& o ) const { return index == o.index; }
 };
 
-struct RGBTaskBufferClear
+struct TGBBufferInfo
 {
     uint32_t clearVal;
     TGBBufferRef ref;
     bool isCleared;
+    ResourceState state;
 };
 
-struct RGBTaskTextureClear
+struct TGBTextureInfo
 {
     vec4 clearColor;
     TGBTextureRef ref;
     bool isCleared;
+    ResourceState state;
 };
-
-using ComputeFunction = void ( * )( void );
 
 class TaskGraphBuilder;
 
-class ComputeTaskBuilder
+class TaskBuilder
+{
+public:
+    TaskBuilder( TaskGraphBuilder* inBuilder, TaskHandle inTaskHandle, const std::string& inName )
+        : builder( inBuilder ), taskHandle( inTaskHandle )
+#if USING( TG_DEBUG )
+          ,
+          debugName( inName )
+#endif // #if USING( TG_DEBUG )
+    {
+    }
+
+    virtual ~TaskBuilder() = default;
+
+    TG_DEBUG_ONLY( std::string debugName );
+    TaskGraphBuilder* const builder;
+    const TaskHandle taskHandle;
+};
+
+struct TGExecuteData;
+using ComputeFunction = std::function<void( TGExecuteData* )>;
+
+class ComputeTaskBuilder : public TaskBuilder
 {
 public:
     ComputeTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
-        : builder( inBuilder ), taskHandle( taskIndex, TaskType::COMPUTE )
-#if USING( RG_DEBUG )
-          ,
-          debugName( inName )
-#endif // #if USING( RG_DEBUG )
+        : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::COMPUTE ), inName )
     {
     }
 
@@ -174,12 +200,28 @@ public:
 
     void SetFunction( ComputeFunction func );
 
-    RG_DEBUG_ONLY( std::string debugName );
-    std::vector<RGBTaskBufferClear> buffers;
-    std::vector<RGBTaskTextureClear> textures;
+    std::vector<TGBBufferInfo> buffers;
+    std::vector<TGBTextureInfo> textures;
     ComputeFunction function;
-    TaskGraphBuilder* const builder;
-    const TaskHandle taskHandle;
+};
+
+struct TGBTextureTransfer
+{
+    TGBTextureRef dst;
+    TGBTextureRef src;
+};
+
+class TransferTaskBuilder : public TaskBuilder
+{
+public:
+    TransferTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
+        : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::TRANSFER ), inName )
+    {
+    }
+
+    void BlitTexture( TGBTextureRef dst, TGBTextureRef src ) { textureBlits.emplace_back( dst, src ); }
+
+    std::vector<TGBTextureTransfer> textureBlits;
 };
 
 class TaskGraphBuilder
@@ -191,7 +233,9 @@ class TaskGraphBuilder
 
 public:
     TaskGraphBuilder();
+    ~TaskGraphBuilder();
     ComputeTaskBuilder* AddComputeTask( const std::string& name );
+    TransferTaskBuilder* AddTransferTask( const std::string& name );
 
     TGBTextureRef RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
         uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
@@ -203,23 +247,21 @@ private:
         uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
     TGBBufferRef AddBuffer( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
-    std::vector<ComputeTaskBuilder> computeTasks;
+    std::vector<TaskBuilder*> tasks;
     std::vector<TGBTexture> textures;
     std::vector<TGBBuffer> buffers;
 
-    struct Accesses
+    struct ResLifetime
     {
         uint16_t firstTask = UINT16_MAX;
         uint16_t lastTask  = 0;
     };
-    std::vector<Accesses> textureAccesses;
-    std::vector<Accesses> bufferAccesses;
-    void MarkTextureRead( TGBTextureRef ref, TaskHandle task );
-    void MarkTextureWrite( TGBTextureRef ref, TaskHandle task );
-    void MarkBufferRead( TGBBufferRef ref, TaskHandle task );
-    void MarkBufferWrite( TGBBufferRef ref, TaskHandle task );
+    std::vector<ResLifetime> textureLifetimes;
+    std::vector<ResLifetime> bufferLifetimes;
+    void UpdateTextureLifetime( TGBTextureRef ref, TaskHandle task );
+    void UpdateBufferLifetime( TGBBufferRef ref, TaskHandle task );
 
-    uint16_t taskIndex;
+    uint16_t numTasks;
 };
 
 struct TaskGraphCompileInfo
@@ -232,9 +274,65 @@ struct TaskGraphCompileInfo
     bool showStats      = true;
 };
 
-struct Task
+struct BufferClearSubTask
 {
-    RG_DEBUG_ONLY( std::string debugName );
+    ResourceHandle bufferHandle;
+    uint32_t clearVal;
+};
+
+struct TextureClearSubTask
+{
+    ResourceHandle textureHandle;
+    vec4 clearVal;
+};
+
+struct TGExecuteData
+{
+    Scene* scene;
+    FrameData* frameData;
+    CommandBuffer* cmdBuf;
+    TaskGraph* taskGraph;
+
+    std::vector<VkImageMemoryBarrier2> scratchImageBarriers;
+    std::vector<VkBufferMemoryBarrier2> scratchBufferBarriers;
+};
+
+class Task
+{
+public:
+    TG_DEBUG_ONLY( std::string debugName );
+    std::vector<VkImageMemoryBarrier2> imageBarriers;
+    std::vector<VkBufferMemoryBarrier2> bufferBarriers;
+
+    virtual ~Task()                                    = default;
+    virtual void Execute( TGExecuteData& executeData ) = 0;
+    virtual void SubmitBarriers( TGExecuteData& executeData );
+};
+
+class ComputeTask : public Task
+{
+public:
+    void Execute( TGExecuteData& data ) override;
+
+    std::vector<BufferClearSubTask> bufferClears;
+    std::vector<TextureClearSubTask> textureClears;
+    std::vector<VkImageMemoryBarrier2> imageBarriersPreClears;
+
+    ComputeFunction function;
+};
+
+struct TextureTransfer
+{
+    ResourceHandle dst;
+    ResourceHandle src;
+};
+
+class TransferTask : public Task
+{
+public:
+    void Execute( TGExecuteData& data ) override;
+
+    std::vector<TextureTransfer> textureBlits;
 };
 
 class TaskGraph
@@ -243,11 +341,19 @@ public:
     bool Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compileInfo );
     void Free();
 
+    void Execute( TGExecuteData& data );
+
+    // only to be used by tasks internally, during Execute()
+    Buffer* GetBuffer( ResourceHandle handle );
+    Texture* GetTexture( ResourceHandle handle );
+
 private:
-    std::vector<Task> tasks;
+    std::vector<Task*> tasks;
     std::vector<Buffer> buffers;
     std::vector<Texture> textures;
     std::vector<VmaAllocation> vmaAllocations;
+    std::vector<std::pair<Buffer*, ExtBufferFunc>> externalBuffers;
+    std::vector<std::pair<Texture*, ExtTextureFunc>> externalTextures;
 };
 
 } // namespace PG::Gfx

@@ -25,6 +25,7 @@ public:
     CommandBuffer() = default;
 
     operator bool() const;
+    operator VkCommandBuffer() const;
     VkCommandBuffer GetHandle() const;
 
     void Free();

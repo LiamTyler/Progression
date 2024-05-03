@@ -8,6 +8,7 @@ namespace PG::Gfx
 {
 
 CommandBuffer::operator bool() const { return m_handle != VK_NULL_HANDLE; }
+CommandBuffer::operator VkCommandBuffer() const { return m_handle; }
 VkCommandBuffer CommandBuffer::GetHandle() const { return m_handle; }
 
 void CommandBuffer::Free()
@@ -100,15 +101,6 @@ void CommandBuffer::BindIndexBuffer( const Buffer& buffer, IndexType indexType, 
 {
     vkCmdBindIndexBuffer( m_handle, buffer.GetHandle(), offset, PGToVulkanIndexType( indexType ) );
 }
-
-// void CommandBuffer::PipelineBufferBarrier(
-//     PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkBufferMemoryBarrier& barrier ) const
-//{
-//     vkCmdPipelineBarrier( m_handle, PGToVulkanPipelineStageFlags( srcStageMask ), PGToVulkanPipelineStageFlags( dstStageMask ), 0, 0,
-//         nullptr,      // memory barriers
-//         1, &barrier,  // buffer memory barriers
-//         0, nullptr ); // image memory barriers
-// }
 
 void CommandBuffer::PipelineImageBarrier2( const VkImageMemoryBarrier2& imageBarrier ) const
 {

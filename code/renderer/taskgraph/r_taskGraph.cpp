@@ -1,4 +1,5 @@
 #include "r_taskGraph.hpp"
+#include "internal/r_tg_resource_packing.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_texture_manager.hpp"
@@ -11,52 +12,115 @@ TGBTextureRef ComputeTaskBuilder::AddTextureOutput( const std::string& name, Pix
     uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
     TGBTextureRef ref = builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr );
-    builder->MarkTextureWrite( ref, taskHandle );
-    textures.emplace_back( clearColor, ref, true );
+    builder->UpdateTextureLifetime( ref, taskHandle );
+    textures.emplace_back( clearColor, ref, true, ResourceState::WRITE );
     return ref;
 }
 TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
     const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
     TGBTextureRef ref = builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr );
-    builder->MarkTextureWrite( ref, taskHandle );
-    textures.emplace_back( vec4( 0 ), ref, false );
+    builder->UpdateTextureLifetime( ref, taskHandle );
+    textures.emplace_back( vec4( 0 ), ref, false, ResourceState::WRITE );
     return ref;
 }
-void ComputeTaskBuilder::AddTextureOutput( TGBTextureRef& texture ) { builder->MarkTextureWrite( texture, taskHandle ); }
-void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& texture ) { builder->MarkTextureRead( texture, taskHandle ); }
+void ComputeTaskBuilder::AddTextureOutput( TGBTextureRef& ref )
+{
+    builder->UpdateTextureLifetime( ref, taskHandle );
+    for ( TGBTextureInfo& tInfo : textures )
+    {
+        if ( tInfo.ref == ref )
+        {
+            TG_ASSERT( tInfo.state == ResourceState::READ, "Don't output the same texture twice" );
+            tInfo.state = ResourceState::READ_WRITE;
+            return;
+        }
+    }
+    textures.emplace_back( vec4( 0 ), ref, false, ResourceState::WRITE );
+}
+void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& ref )
+{
+    builder->UpdateTextureLifetime( ref, taskHandle );
+#if USING( TG_DEBUG )
+    for ( TGBTextureInfo& tInfo : textures )
+    {
+        PG_ASSERT( tInfo.ref != ref, "If a resource is RW for this task, the call to AddTextureInput must come before the corresponding "
+                                     "AddTextureOutput for this texture" );
+    }
+#endif // #if USING( TG_DEBUG )
+    textures.emplace_back( vec4( 0 ), ref, false, ResourceState::READ );
+}
 TGBBufferRef ComputeTaskBuilder::AddBufferOutput(
     const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal )
 {
     TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr );
-    builder->MarkBufferWrite( ref, taskHandle );
-    buffers.emplace_back( clearVal, ref, true );
+    builder->UpdateBufferLifetime( ref, taskHandle );
+    buffers.emplace_back( clearVal, ref, true, ResourceState::WRITE );
     return ref;
 }
 TGBBufferRef ComputeTaskBuilder::AddBufferOutput(
     const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size )
 {
     TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr );
-    builder->MarkBufferWrite( ref, taskHandle );
-    buffers.emplace_back( 0, ref, false );
+    builder->UpdateBufferLifetime( ref, taskHandle );
+    buffers.emplace_back( 0, ref, false, ResourceState::WRITE );
     return ref;
 }
-void ComputeTaskBuilder::AddBufferOutput( TGBBufferRef& buffer ) { builder->MarkBufferWrite( buffer, taskHandle ); }
-void ComputeTaskBuilder::AddBufferInput( TGBBufferRef& buffer ) { builder->MarkBufferRead( buffer, taskHandle ); }
+void ComputeTaskBuilder::AddBufferOutput( TGBBufferRef& ref )
+{
+    builder->UpdateBufferLifetime( ref, taskHandle );
+    for ( TGBBufferInfo& bInfo : buffers )
+    {
+        if ( bInfo.ref == ref )
+        {
+            TG_ASSERT( bInfo.state == ResourceState::READ, "Don't output the same buffer twice" );
+            bInfo.state = ResourceState::READ_WRITE;
+            return;
+        }
+    }
+    buffers.emplace_back( 0, ref, false, ResourceState::WRITE );
+}
+void ComputeTaskBuilder::AddBufferInput( TGBBufferRef& ref )
+{
+    builder->UpdateBufferLifetime( ref, taskHandle );
+#if USING( TG_DEBUG )
+    for ( TGBBufferInfo& bInfo : buffers )
+    {
+        PG_ASSERT( bInfo.ref != ref, "If a resource is RW for this task, the call to AddBufferInput must come before the corresponding "
+                                     "AddBufferOutput for this texture" );
+    }
+#endif // #if USING( TG_DEBUG )
+    buffers.emplace_back( 0, ref, false, ResourceState::READ );
+}
 void ComputeTaskBuilder::SetFunction( ComputeFunction func ) { function = func; }
 
-TaskGraphBuilder::TaskGraphBuilder() : taskIndex( 0 )
+TaskGraphBuilder::TaskGraphBuilder() : numTasks( 0 )
 {
-    computeTasks.reserve( MAX_TASKS );
+    tasks.reserve( MAX_TASKS );
     textures.reserve( 256 );
     buffers.reserve( 256 );
-    textureAccesses.reserve( 256 );
-    bufferAccesses.reserve( 256 );
+    textureLifetimes.reserve( 256 );
+    bufferLifetimes.reserve( 256 );
+}
+
+TaskGraphBuilder::~TaskGraphBuilder()
+{
+    for ( TaskBuilder* task : tasks )
+        delete task;
 }
 
 ComputeTaskBuilder* TaskGraphBuilder::AddComputeTask( const std::string& name )
 {
-    return &computeTasks.emplace_back( this, taskIndex++, name );
+    ComputeTaskBuilder* task = new ComputeTaskBuilder( this, numTasks++, name );
+    tasks.push_back( task );
+    return task;
+}
+
+TransferTaskBuilder* TaskGraphBuilder::AddTransferTask( const std::string& name )
+{
+    TransferTaskBuilder* task = new TransferTaskBuilder( this, numTasks++, name );
+    tasks.push_back( task );
+    return task;
 }
 
 TGBTextureRef TaskGraphBuilder::RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
@@ -74,14 +138,14 @@ TGBBufferRef TaskGraphBuilder::RegisterExternalBuffer(
 TGBTextureRef TaskGraphBuilder::AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
     uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func )
 {
-    ResourceIndexHandle index = static_cast<ResourceIndexHandle>( textures.size() );
+    ResourceHandle index = static_cast<ResourceHandle>( textures.size() );
 
-#if USING( RG_DEBUG )
+#if USING( TG_DEBUG )
     textures.emplace_back( name, width, height, depth, arrayLayers, mipLevels, format, func );
-#else  // #if USING( RG_DEBUG )
+#else  // #if USING( TG_DEBUG )
     textures.emplace_back( width, height, depth, arrayLayers, mipLevels, format, func );
-#endif // #else // #if USING( RG_DEBUG )
-    textureAccesses.emplace_back();
+#endif // #else // #if USING( TG_DEBUG )
+    textureLifetimes.emplace_back();
 
     TGBTextureRef ref;
     ref.index = index;
@@ -92,13 +156,13 @@ TGBTextureRef TaskGraphBuilder::AddTexture( const std::string& name, PixelFormat
 TGBBufferRef TaskGraphBuilder::AddBuffer(
     const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func )
 {
-    ResourceIndexHandle index = static_cast<ResourceIndexHandle>( buffers.size() );
-#if USING( RG_DEBUG )
+    ResourceHandle index = static_cast<ResourceHandle>( buffers.size() );
+#if USING( TG_DEBUG )
     buffers.emplace_back( name, size, bufferUsage, memoryUsage, func );
-#else  // #if USING( RG_DEBUG )
+#else  // #if USING( TG_DEBUG )
     buffers.emplace_back( length, type, format, func );
-#endif // #else // #if USING( RG_DEBUG )
-    bufferAccesses.emplace_back();
+#endif // #else // #if USING( TG_DEBUG )
+    bufferLifetimes.emplace_back();
 
     TGBBufferRef ref;
     ref.index = index;
@@ -106,25 +170,18 @@ TGBBufferRef TaskGraphBuilder::AddBuffer(
     return ref;
 }
 
-void TaskGraphBuilder::MarkTextureRead( TGBTextureRef ref, TaskHandle task )
+void TaskGraphBuilder::UpdateTextureLifetime( TGBTextureRef ref, TaskHandle task )
 {
-    textureAccesses[ref.index].firstTask = Min( task.index, textureAccesses[ref.index].firstTask );
-    textureAccesses[ref.index].lastTask  = Max( task.index, textureAccesses[ref.index].lastTask );
+    ResLifetime& lifetime = textureLifetimes[ref.index];
+    lifetime.firstTask    = Min( lifetime.firstTask, task.index );
+    lifetime.lastTask     = Max( lifetime.lastTask, task.index );
 }
-void TaskGraphBuilder::MarkTextureWrite( TGBTextureRef ref, TaskHandle task )
+
+void TaskGraphBuilder::UpdateBufferLifetime( TGBBufferRef ref, TaskHandle task )
 {
-    textureAccesses[ref.index].firstTask = Min( task.index, textureAccesses[ref.index].firstTask );
-    textureAccesses[ref.index].lastTask  = Max( task.index, textureAccesses[ref.index].lastTask );
-}
-void TaskGraphBuilder::MarkBufferRead( TGBBufferRef ref, TaskHandle task )
-{
-    bufferAccesses[ref.index].firstTask = Min( task.index, bufferAccesses[ref.index].firstTask );
-    bufferAccesses[ref.index].lastTask  = Max( task.index, bufferAccesses[ref.index].lastTask );
-}
-void TaskGraphBuilder::MarkBufferWrite( TGBBufferRef ref, TaskHandle task )
-{
-    bufferAccesses[ref.index].firstTask = Min( task.index, bufferAccesses[ref.index].firstTask );
-    bufferAccesses[ref.index].lastTask  = Max( task.index, bufferAccesses[ref.index].lastTask );
+    ResLifetime& lifetime = bufferLifetimes[ref.index];
+    lifetime.firstTask    = Min( lifetime.firstTask, task.index );
+    lifetime.lastTask     = Max( lifetime.lastTask, task.index );
 }
 
 static void ResolveSizes( TGBTexture& tex, const TaskGraphCompileInfo& info )
@@ -137,31 +194,113 @@ static void ResolveSizes( TGBTexture& tex, const TaskGraphCompileInfo& info )
     }
 }
 
+// if we knew the specific shader stages the buffer was used in, we could a lot more specific with the stages here
+static VkPipelineStageFlags2 GetSrcStageFlags( TaskType taskType )
+{
+    switch ( taskType )
+    {
+    case TaskType::COMPUTE: return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    case TaskType::GRAPHICS: return VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+    case TaskType::TRANSFER: return VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
+    }
+
+    return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+}
+
+static VkPipelineStageFlags2 GetSrcStageFlags( TaskType taskType, BufferUsage bufUsage )
+{
+    switch ( taskType )
+    {
+    case TaskType::COMPUTE: return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    case TaskType::GRAPHICS: return VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+    case TaskType::TRANSFER: return VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
+    }
+
+    return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+}
+
+static VkPipelineStageFlags2 GetDstStageFlags( TaskType taskType, BufferUsage bufUsage )
+{
+    switch ( taskType )
+    {
+    case TaskType::COMPUTE: return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    case TaskType::GRAPHICS:
+    {
+        VkPipelineStageFlags2 ret = 0;
+        if ( IsSet( bufUsage, BufferUsage::INDEX ) )
+            ret |= VK_PIPELINE_STAGE_2_INDEX_INPUT_BIT;
+        if ( IsSet( bufUsage, BufferUsage::VERTEX ) )
+            ret |= VK_PIPELINE_STAGE_2_VERTEX_ATTRIBUTE_INPUT_BIT;
+        if ( IsSet( bufUsage, BufferUsage::INDIRECT ) )
+            ret |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+
+        return ret ? ret : VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
+    }
+    case TaskType::TRANSFER: return VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
+    }
+
+    return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+}
+
+static VkAccessFlags2 GetSrcAccessFlags( TaskType taskType, ResourceState resState )
+{
+    switch ( taskType )
+    {
+    case TaskType::COMPUTE:
+    {
+        if ( resState == ResourceState::READ )
+            return VK_ACCESS_2_SHADER_READ_BIT;
+        else if ( resState == ResourceState::READ )
+            return VK_ACCESS_2_SHADER_WRITE_BIT;
+        else
+            return VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+    }
+    case TaskType::GRAPHICS:
+    {
+        PG_ASSERT( false, "todo" );
+    }
+    case TaskType::TRANSFER:
+    {
+        TG_ASSERT( resState != ResourceState::READ_WRITE );
+        return resState == ResourceState::READ ? VK_ACCESS_2_TRANSFER_READ_BIT : VK_ACCESS_2_TRANSFER_WRITE_BIT;
+    }
+    }
+
+    return VK_ACCESS_2_NONE;
+}
+
+static VkAccessFlags2 GetDstAccessFlags( TaskType taskType, ResourceState resState )
+{
+    switch ( taskType )
+    {
+    case TaskType::COMPUTE:
+    {
+        if ( resState == ResourceState::READ )
+            return VK_ACCESS_2_SHADER_READ_BIT;
+        else if ( resState == ResourceState::READ )
+            return VK_ACCESS_2_SHADER_WRITE_BIT;
+        else
+            return VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+    }
+    case TaskType::GRAPHICS:
+    {
+        PG_ASSERT( false, "todo" );
+    }
+    case TaskType::TRANSFER:
+    {
+        TG_ASSERT( resState != ResourceState::READ_WRITE );
+        return resState == ResourceState::READ ? VK_ACCESS_2_TRANSFER_READ_BIT : VK_ACCESS_2_TRANSFER_WRITE_BIT;
+    }
+    }
+
+    return VK_ACCESS_2_NONE;
+}
+
 bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compileInfo )
 {
-    struct ResourceData
-    {
-        VkMemoryRequirements memoryReq;
-        union
-        {
-            struct
-            {
-                VkImage img;
-                TGBTextureRef texRef;
-            };
-            struct
-            {
-                VkBuffer buffer;
-                TGBBufferRef bufRef;
-            };
-        };
-        uint16_t firstTask;
-        uint16_t lastTask;
-        ResourceType resType;
-    };
     std::vector<ResourceData> resourceDatas;
     resourceDatas.reserve( builder.textures.size() + builder.buffers.size() );
-    std::vector<uint16_t> tgbTextureToResourceData( builder.textures.size(), UINT16_MAX );
+
     textures.resize( builder.textures.size() );
     for ( size_t i = 0; i < builder.textures.size(); ++i )
     {
@@ -177,10 +316,6 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         desc.depth             = tex.depth;
         desc.arrayLayers       = tex.arrayLayers;
         desc.mipLevels         = tex.mipLevels;
-        // if ( IsSet( lRes.element.type, ResourceType::COLOR_ATTACH ) )
-        //     desc.usage |= VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
-        // else if ( IsSet( lRes.element.type, ResourceType::DEPTH_ATTACH ) || IsSet( lRes.element.type, ResourceType::STENCIL_ATTACH ) )
-        //     desc.usage |= VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
         gfxTex.m_desc               = desc;
         gfxTex.m_image              = VK_NULL_HANDLE;
@@ -192,12 +327,11 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         if ( tex.externalFunc )
             continue;
 
-        tgbTextureToResourceData[i] = (uint16_t)resourceDatas.size();
-        ResourceData& data          = resourceDatas.emplace_back();
-        data.resType                = ResourceType::TEXTURE;
-        data.texRef                 = { (ResourceIndexHandle)i };
-        data.firstTask              = builder.textureAccesses[i].firstTask;
-        data.lastTask               = builder.textureAccesses[i].lastTask;
+        ResourceData& data = resourceDatas.emplace_back();
+        data.resType       = ResourceType::TEXTURE;
+        data.texRef        = { (ResourceHandle)i };
+        data.firstTask     = builder.textureLifetimes[i].firstTask;
+        data.lastTask      = builder.textureLifetimes[i].lastTask;
 
         VkImageCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
         info.imageType         = VK_IMAGE_TYPE_2D;
@@ -212,24 +346,12 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         info.samples     = VK_SAMPLE_COUNT_1_BIT;
 
-        VK_CHECK( vkCreateImage( rg.device.GetHandle(), &info, nullptr, &data.img ) );
-        gfxTex.m_image = data.img;
-        vkGetImageMemoryRequirements( rg.device.GetHandle(), data.img, &data.memoryReq );
-        VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-        //      | VK_FORMAT_FEATURE_TRANSFER_DST_BIT | VK_FORMAT_FEATURE_TRANSFER_SRC_BIT;
-        // if ( isDepth )
-        //{
-        //    features |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
-        //}
-        VkFormat vkFormat = PGToVulkanPixelFormat( tex.format );
-        PG_ASSERT( FormatSupported( vkFormat, features ) );
-        gfxTex.m_imageView = CreateImageView( gfxTex.m_image, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, desc.mipLevels, desc.arrayLayers );
-        // tex.m_imageView = CreateImageView(
-        //     tex.m_image, vkFormat, isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, desc.mipLevels, desc.arrayLayers );
+        VK_CHECK( vkCreateImage( rg.device, &info, nullptr, &data.img ) );
+        vkGetImageMemoryRequirements( rg.device, data.img, &data.memoryReq );
+        gfxTex.m_image              = data.img;
         gfxTex.m_bindlessArrayIndex = TextureManager::GetOpenSlot( &gfxTex );
     }
 
-    std::vector<uint16_t> tgbBufferToResourceData( builder.buffers.size(), UINT16_MAX );
     buffers.resize( builder.buffers.size() );
     for ( size_t i = 0; i < builder.buffers.size(); ++i )
     {
@@ -244,12 +366,11 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         if ( buildBuffer.externalFunc )
             continue;
 
-        tgbBufferToResourceData[i] = (uint16_t)resourceDatas.size();
-        ResourceData& data         = resourceDatas.emplace_back();
-        data.resType               = ResourceType::BUFFER;
-        data.bufRef                = { (ResourceIndexHandle)i };
-        data.firstTask             = builder.bufferAccesses[i].firstTask;
-        data.lastTask              = builder.bufferAccesses[i].lastTask;
+        ResourceData& data = resourceDatas.emplace_back();
+        data.resType       = ResourceType::BUFFER;
+        data.bufRef        = { (ResourceHandle)i };
+        data.firstTask     = builder.textureLifetimes[i].firstTask;
+        data.lastTask      = builder.textureLifetimes[i].lastTask;
 
         VkBufferCreateInfo info{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         info.usage = PGToVulkanBufferType( gfxBuffer.m_bufferUsage ) | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -259,252 +380,7 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         vkGetBufferMemoryRequirements( rg.device, data.buffer, &data.memoryReq );
     }
 
-    std::sort( resourceDatas.begin(), resourceDatas.end(),
-        []( const auto& lhs, const auto& rhs ) { return lhs.memoryReq.size > rhs.memoryReq.size; } );
-
-// assumes alignment is a power of 2
-#define ALIGN( offset, alignment ) ( ( offset + alignment - 1 ) & ~( alignment - 1 ) )
-
-    struct ResHandle
-    {
-        uint16_t index : 15;
-        uint16_t isTex : 1;
-
-        ResHandle( TGBBufferRef buf ) : index( buf.index ), isTex( 0 ) {}
-        ResHandle( TGBTextureRef tex ) : index( tex.index ), isTex( 1 ) {}
-    };
-
-    struct Block
-    {
-        size_t offset;
-        size_t size;
-
-        Block Overlap( const Block& b ) const
-        {
-            Block o;
-            o.offset        = Max( offset, b.offset );
-            size_t lastByte = Min( offset + size, b.offset + b.size );
-            o.size          = lastByte < o.offset ? 0 : lastByte - o.offset;
-            return o;
-        }
-
-        bool CanFit( const ResourceData& res ) const
-        {
-            size_t alignedOffset = ALIGN( offset, res.memoryReq.alignment );
-            size_t padding       = alignedOffset - offset;
-            return ( res.memoryReq.size + padding ) <= size;
-        }
-    };
-
-    struct TimeSlice
-    {
-        TimeSlice( const ResourceData& res, size_t totalSize ) : TimeSlice( res, totalSize, res.firstTask, res.lastTask, 0 ) {}
-
-        TimeSlice( const ResourceData& res, size_t totalSize, uint16_t inFirstTask, uint16_t inLastTask, size_t offset )
-            : firstTask( inFirstTask ), lastTask( inLastTask )
-        {
-            RG_DEBUG_ONLY( PG_ASSERT( firstTask <= lastTask ) ); // really only 1-off external outputs that should have firstTask==lastTask
-            size_t remainingSize = totalSize - res.memoryReq.size;
-            if ( remainingSize > 0 )
-            {
-                localFreeBlocks.emplace_back( 0, totalSize );
-                Add( res, offset );
-            }
-        }
-
-        bool AnyTimeOverlap( const ResourceData& res ) const { return lastTask >= res.firstTask && res.lastTask >= firstTask; }
-
-        void FindFittableRegions(
-            const ResourceData& res, std::vector<Block>& globalFreeBlocks, std::vector<Block>& combinedFreeBlocks ) const
-        {
-            size_t globalIdx = 0;
-            size_t localIdx  = 0;
-            while ( globalIdx < globalFreeBlocks.size() && localIdx < localFreeBlocks.size() )
-            {
-                const Block& gBlock = globalFreeBlocks[globalIdx];
-                if ( !gBlock.CanFit( res ) )
-                {
-                    ++globalIdx;
-                    continue;
-                }
-
-                const Block& lBlock = localFreeBlocks[localIdx];
-                if ( !lBlock.CanFit( res ) )
-                {
-                    ++localIdx;
-                    continue;
-                }
-                Block o = gBlock.Overlap( lBlock );
-                if ( o.CanFit( res ) )
-                    combinedFreeBlocks.push_back( o );
-
-                size_t gEnd = gBlock.offset + gBlock.size;
-                size_t lEnd = lBlock.offset + lBlock.size;
-                if ( gEnd < lEnd )
-                    ++globalIdx;
-                else if ( lEnd < gEnd )
-                    ++localIdx;
-                else
-                {
-                    ++globalIdx;
-                    ++localIdx;
-                }
-            }
-        }
-
-        void Add( const ResourceData& res, size_t alignedOffset )
-        {
-            Block newUsedBlock = { alignedOffset, res.memoryReq.size };
-            for ( size_t i = 0; i < localFreeBlocks.size(); ++i )
-            {
-                Block& freeBlock = localFreeBlocks[i];
-                Block overlap    = freeBlock.Overlap( newUsedBlock );
-                if ( overlap.size == 0 )
-                    continue;
-
-                if ( freeBlock.size == newUsedBlock.size )
-                {
-                    localFreeBlocks.erase( localFreeBlocks.begin() + i );
-                    return;
-                }
-                size_t usedEnd = newUsedBlock.offset + newUsedBlock.size;
-                size_t freeEnd = newUsedBlock.offset + newUsedBlock.size;
-                Block beginningFreeBlock{ freeBlock.offset, newUsedBlock.offset - freeBlock.offset };
-                Block endingFreeBlock{ usedEnd, freeEnd - usedEnd };
-                if ( freeBlock.offset < newUsedBlock.offset )
-                {
-                    freeBlock = beginningFreeBlock;
-                    if ( usedEnd < freeEnd )
-                        localFreeBlocks.insert( localFreeBlocks.begin() + i + 1, endingFreeBlock );
-                }
-                else
-                {
-                    RG_DEBUG_ONLY( PG_ASSERT( usedEnd < freeEnd ) );
-                    freeBlock = endingFreeBlock;
-                }
-            }
-        }
-
-        std::vector<Block> localFreeBlocks;
-        const uint16_t firstTask;
-        const uint16_t lastTask;
-    };
-
-    struct MemoryBucket
-    {
-        MemoryBucket( const ResourceData& res )
-            : bucketSize( res.memoryReq.size ), initialAlignment( res.memoryReq.alignment ), memoryTypeBits( res.memoryReq.memoryTypeBits )
-        {
-            occupiedTimeSlices.emplace_back( res, bucketSize );
-            if ( res.resType == ResourceType::BUFFER )
-                resources.emplace_back( ResHandle( res.bufRef ), 0 );
-            else
-                resources.emplace_back( ResHandle( res.texRef ), 0 );
-        }
-
-        bool AddResource( const ResourceData& res )
-        {
-            if ( res.memoryReq.size > bucketSize )
-                return false;
-            if ( !( memoryTypeBits & res.memoryReq.memoryTypeBits ) )
-                return false;
-            // since the first region is always the size of the entire allocation
-            if ( occupiedTimeSlices.front().AnyTimeOverlap( res ) )
-                return false;
-
-            std::vector<Block> globalFreeBlocks, newGlobalFreeBlocks;
-            globalFreeBlocks.reserve( 32 );
-            newGlobalFreeBlocks.reserve( 32 );
-            globalFreeBlocks.emplace_back( 0, bucketSize );
-            for ( auto it = occupiedTimeSlices.begin(); it != occupiedTimeSlices.end(); ++it )
-            {
-                if ( !it->AnyTimeOverlap( res ) )
-                    continue;
-                it->FindFittableRegions( res, globalFreeBlocks, newGlobalFreeBlocks );
-                if ( newGlobalFreeBlocks.empty() )
-                    return false;
-
-                std::swap( globalFreeBlocks, newGlobalFreeBlocks );
-                newGlobalFreeBlocks.clear();
-            }
-            RG_DEBUG_ONLY( PG_ASSERT( globalFreeBlocks.size() > 0 ) );
-
-            // use the smallest available free region
-            size_t smallestSize = globalFreeBlocks[0].size;
-            size_t smallestIdx  = 0;
-            for ( size_t i = 1; i < globalFreeBlocks.size(); ++i )
-            {
-                const Block& b = globalFreeBlocks[i];
-                if ( b.size < smallestSize )
-                {
-                    smallestIdx  = i;
-                    smallestSize = b.size;
-                }
-            }
-            size_t dstOffset = globalFreeBlocks[smallestIdx].offset;
-            if ( res.resType == ResourceType::BUFFER )
-                resources.emplace_back( ResHandle( res.bufRef ), dstOffset );
-            else
-                resources.emplace_back( ResHandle( res.texRef ), dstOffset );
-
-            int freeBegin = 0; // track gaps between memory regions
-            for ( auto it = occupiedTimeSlices.begin(); it != occupiedTimeSlices.end(); ++it )
-            {
-                int freeEnd = it->firstTask - 1;
-                if ( freeBegin < freeEnd )
-                {
-                    TimeSlice freeRegion( res, bucketSize, freeBegin, freeEnd, dstOffset );
-                    occupiedTimeSlices.insert( it, freeRegion );
-                }
-                if ( it->AnyTimeOverlap( res ) )
-                    it->Add( res, dstOffset );
-
-                freeBegin = it->lastTask + 1;
-            }
-            if ( freeBegin <= res.lastTask )
-            {
-                uint16_t start = Max( (uint16_t)freeBegin, res.firstTask );
-                TimeSlice endingFreeRegion( res, bucketSize, start, res.lastTask, dstOffset );
-                occupiedTimeSlices.emplace_back( endingFreeRegion );
-            }
-            memoryTypeBits = memoryTypeBits & res.memoryReq.memoryTypeBits;
-
-            return true;
-        }
-
-        std::list<TimeSlice> occupiedTimeSlices;
-        std::vector<std::pair<ResHandle, size_t>> resources;
-        const size_t bucketSize;
-        const size_t initialAlignment;
-        decltype( VkMemoryRequirements::memoryTypeBits ) memoryTypeBits; // uint32_t
-    };
-
-    std::vector<MemoryBucket> buckets;
-    std::vector<bool> resHasBucket( resourceDatas.size(), false );
-    RG_DEBUG_ONLY( size_t addedResources = 0 );
-    for ( size_t resIdx = 0; resIdx < resourceDatas.size(); ++resIdx )
-    {
-        if ( resHasBucket[resIdx] )
-            continue;
-
-        MemoryBucket& currentBucket = buckets.emplace_back( resourceDatas[resIdx] );
-        resHasBucket[resIdx]        = true;
-        RG_DEBUG_ONLY( ++addedResources );
-
-        for ( size_t i = resIdx + 1; i < resourceDatas.size(); ++i )
-        {
-            if ( resHasBucket[i] )
-                continue;
-            if ( currentBucket.AddResource( resourceDatas[i] ) )
-            {
-                resHasBucket[i] = true;
-                RG_DEBUG_ONLY( ++addedResources );
-            }
-        }
-    }
-    RG_DEBUG_ONLY( PG_ASSERT( addedResources == resourceDatas.size() ) );
-
-    printf( "" );
+    std::vector<MemoryBucket> buckets = PackResources( resourceDatas );
 
     VmaAllocator allocator = rg.device.GetAllocator();
     vmaAllocations.resize( buckets.size() );
@@ -536,11 +412,326 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         }
     }
 
+    // Vulkan doesn't allow you to make image views until the memory is bound
+    for ( size_t i = 0; i < textures.size(); ++i )
+    {
+        TGBTexture& tex = builder.textures[i];
+        if ( tex.externalFunc )
+            continue;
+
+        Texture& gfxTex = textures[i];
+
+        VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+        VkFormat vkFormat             = PGToVulkanPixelFormat( tex.format );
+        PG_ASSERT( FormatSupported( vkFormat, features ) );
+        gfxTex.m_imageView =
+            CreateImageView( gfxTex.m_image, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, gfxTex.GetMipLevels(), gfxTex.GetArrayLayers() );
+    }
+
+    // create tasks + figure out synchronization barriers needed
+    static constexpr uint16_t NO_TASK = UINT16_MAX;
+    struct ResourceTrackingInfo
+    {
+        ImageLayout currLayout = ImageLayout::UNDEFINED;
+        uint16_t prevTask      = NO_TASK;
+        TaskType prevTaskType;
+        ResourceState prevState;
+    };
+    std::vector<ResourceTrackingInfo> texTracking( builder.textures.size() );
+    std::vector<ResourceTrackingInfo> bufTracking( builder.buffers.size() );
+
+    tasks.reserve( builder.tasks.size() );
+    for ( uint16_t taskIndex = 0; taskIndex < (uint16_t)builder.tasks.size(); ++taskIndex )
+    {
+        TaskBuilder* builderTask = builder.tasks[taskIndex];
+        Task* task               = nullptr;
+
+        TaskType taskType = builderTask->taskHandle.type;
+        if ( taskType == TaskType::COMPUTE )
+        {
+            ComputeTaskBuilder* bcTask = static_cast<ComputeTaskBuilder*>( builderTask );
+            ComputeTask* cTask         = new ComputeTask;
+            task                       = cTask;
+
+            for ( const TGBBufferInfo& bufInfo : bcTask->buffers )
+            {
+                const TGBBuffer& buildBuffer    = builder.buffers[bufInfo.ref.index];
+                ResourceTrackingInfo& trackInfo = bufTracking[bufInfo.ref.index];
+                if ( bufInfo.isCleared )
+                {
+                    TG_ASSERT(
+                        trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
+                        "Shouldn't be clearing a texture you just wrote to" );
+                    TG_ASSERT( bufInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
+                    cTask->bufferClears.emplace_back( bufInfo.ref.index, bufInfo.clearVal );
+
+                    // barrier to wait for the clear to be done before running the actual task
+                    VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+                    barrier.srcStageMask  = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
+                    barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                    barrier.dstStageMask  = GetDstStageFlags( taskType, buildBuffer.bufferUsage );
+                    barrier.dstAccessMask = GetDstAccessFlags( taskType, bufInfo.state );
+                    barrier.size          = VK_WHOLE_SIZE;
+                    barrier.buffer        = reinterpret_cast<VkBuffer>( bufInfo.ref.index );
+                    task->bufferBarriers.push_back( barrier );
+                }
+                else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )
+                {
+                    // barrier to wait for any previous writes to be complete
+                    VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+                    barrier.srcStageMask  = GetSrcStageFlags( trackInfo.prevTaskType );
+                    barrier.srcAccessMask = GetSrcAccessFlags( trackInfo.prevTaskType, trackInfo.prevState );
+                    barrier.dstStageMask  = GetDstStageFlags( taskType, buildBuffer.bufferUsage );
+                    barrier.dstAccessMask = GetDstAccessFlags( taskType, bufInfo.state );
+                    barrier.size          = VK_WHOLE_SIZE;
+                    reinterpret_cast<VkBuffer>( bufInfo.ref.index );
+                    task->bufferBarriers.push_back( barrier );
+                }
+
+                trackInfo.prevTask     = taskIndex;
+                trackInfo.prevState    = bufInfo.state;
+                trackInfo.prevTaskType = taskType;
+            }
+
+            for ( const TGBTextureInfo& texInfo : bcTask->textures )
+            {
+                const TGBTexture& buildTexture  = builder.textures[texInfo.ref.index];
+                ResourceTrackingInfo& trackInfo = texTracking[texInfo.ref.index];
+                if ( texInfo.isCleared )
+                {
+                    TG_ASSERT(
+                        trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
+                        "Shouldn't be clearing a texture you just wrote to" );
+                    TG_ASSERT( texInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
+                    cTask->textureClears.emplace_back( texInfo.ref.index, texInfo.clearColor );
+
+                    // image layout transition, if necessary
+                    if ( trackInfo.currLayout != ImageLayout::TRANSFER_DST )
+                    {
+                        VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+                        barrier.srcStageMask     = VK_PIPELINE_STAGE_2_NONE;
+                        barrier.srcAccessMask    = VK_ACCESS_2_NONE;
+                        barrier.dstStageMask     = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+                        barrier.dstAccessMask    = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                        barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
+                        barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
+                        barrier.image            = reinterpret_cast<VkImage>( texInfo.ref.index );
+                        barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
+                        cTask->imageBarriersPreClears.push_back( barrier );
+                    }
+
+                    // barrier to wait for the clear to be done before running the actual task
+                    VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+                    barrier.srcStageMask     = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
+                    barrier.srcAccessMask    = VK_ACCESS_2_TRANSFER_WRITE_BIT;
+                    barrier.dstStageMask     = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+                    barrier.dstAccessMask    = VK_ACCESS_2_SHADER_WRITE_BIT;
+                    barrier.oldLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
+                    barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
+                    barrier.image            = reinterpret_cast<VkImage>( texInfo.ref.index );
+                    barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
+                    task->imageBarriers.push_back( barrier );
+                }
+                else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )
+                {
+                    // barrier to wait for any previous writes to be complete
+                    VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+                    barrier.srcStageMask     = GetSrcStageFlags( trackInfo.prevTaskType );
+                    barrier.srcAccessMask    = GetSrcAccessFlags( trackInfo.prevTaskType, trackInfo.prevState );
+                    barrier.dstStageMask     = GetSrcStageFlags( taskType );
+                    barrier.dstAccessMask    = GetDstAccessFlags( taskType, texInfo.state );
+                    barrier.oldLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
+                    barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
+                    barrier.image            = reinterpret_cast<VkImage>( texInfo.ref.index );
+                    barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
+                    task->imageBarriers.push_back( barrier );
+                }
+
+                trackInfo.currLayout   = ImageLayout::GENERAL;
+                trackInfo.prevTask     = taskIndex;
+                trackInfo.prevState    = texInfo.state;
+                trackInfo.prevTaskType = taskType;
+            }
+        }
+        else if ( taskType == TaskType::GRAPHICS )
+        {
+            PG_ASSERT( false, "todo" );
+        }
+        else if ( taskType == TaskType::TRANSFER )
+        {
+            TransferTaskBuilder* btTask = static_cast<TransferTaskBuilder*>( builderTask );
+            TransferTask* tTask         = new TransferTask;
+            task                        = tTask;
+
+            for ( const TGBTextureTransfer& transfer : btTask->textureBlits )
+            {
+                ResourceTrackingInfo& srcTrackInfo = texTracking[transfer.src.index];
+                ResourceTrackingInfo& dstTrackInfo = texTracking[transfer.dst.index];
+                PG_ASSERT( srcTrackInfo.prevTask != NO_TASK && srcTrackInfo.currLayout != ImageLayout::UNDEFINED,
+                    "Need valid data to blit to another image!" );
+
+                VkImageMemoryBarrier2 srcBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+                srcBarrier.srcStageMask     = GetSrcStageFlags( srcTrackInfo.prevTaskType );
+                srcBarrier.srcAccessMask    = GetSrcAccessFlags( srcTrackInfo.prevTaskType, srcTrackInfo.prevState );
+                srcBarrier.dstStageMask     = GetSrcStageFlags( taskType );
+                srcBarrier.dstAccessMask    = GetDstAccessFlags( taskType, ResourceState::READ );
+                srcBarrier.oldLayout        = PGToVulkanImageLayout( srcTrackInfo.currLayout );
+                srcBarrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_SRC );
+                srcBarrier.image            = reinterpret_cast<VkImage>( transfer.src.index );
+                srcBarrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
+                tTask->imageBarriers.push_back( srcBarrier );
+
+                VkImageMemoryBarrier2 dstBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+                dstBarrier.srcStageMask     = GetSrcStageFlags( dstTrackInfo.prevTaskType );
+                dstBarrier.srcAccessMask    = GetSrcAccessFlags( dstTrackInfo.prevTaskType, dstTrackInfo.prevState );
+                dstBarrier.dstStageMask     = GetSrcStageFlags( taskType );
+                dstBarrier.dstAccessMask    = GetDstAccessFlags( taskType, ResourceState::WRITE );
+                dstBarrier.oldLayout        = PGToVulkanImageLayout( dstTrackInfo.currLayout );
+                dstBarrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
+                dstBarrier.image            = reinterpret_cast<VkImage>( transfer.dst.index );
+                dstBarrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
+                task->imageBarriers.push_back( dstBarrier );
+
+                srcTrackInfo.currLayout   = ImageLayout::TRANSFER_SRC;
+                srcTrackInfo.prevTask     = taskIndex;
+                srcTrackInfo.prevState    = ResourceState::READ;
+                srcTrackInfo.prevTaskType = taskType;
+
+                dstTrackInfo.currLayout   = ImageLayout::TRANSFER_DST;
+                dstTrackInfo.prevTask     = taskIndex;
+                dstTrackInfo.prevState    = ResourceState::WRITE;
+                dstTrackInfo.prevTaskType = taskType;
+
+                tTask->textureBlits.emplace_back( transfer.dst.index, transfer.src.index );
+            }
+        }
+
+        tasks.push_back( task );
+    }
+
+    PG_ASSERT( false, "fill me out: externalTextures & externalBuffers" );
+
     return true;
+}
+
+static void FillBufferBarriers(
+    TaskGraph* taskGraph, std::vector<VkBufferMemoryBarrier2>& scratch, std::vector<VkBufferMemoryBarrier2>& source )
+{
+    scratch = source;
+    for ( VkBufferMemoryBarrier2& barrier : scratch )
+    {
+        ResourceHandle bufHandle;
+        memcpy( &bufHandle, &barrier.buffer, sizeof( ResourceHandle ) );
+        barrier.buffer = taskGraph->GetBuffer( bufHandle )->GetHandle();
+    }
+}
+
+static void FillImageBarriers(
+    TaskGraph* taskGraph, std::vector<VkImageMemoryBarrier2>& scratch, std::vector<VkImageMemoryBarrier2>& source )
+{
+    scratch = source;
+    for ( VkImageMemoryBarrier2& barrier : scratch )
+    {
+        ResourceHandle imgHandle;
+        memcpy( &imgHandle, &barrier.image, sizeof( ResourceHandle ) );
+        barrier.image = taskGraph->GetTexture( imgHandle )->GetImage();
+    }
+}
+
+void Task::SubmitBarriers( TGExecuteData& data )
+{
+    if ( imageBarriers.empty() && bufferBarriers.empty() )
+        return;
+
+    FillImageBarriers( data.taskGraph, data.scratchImageBarriers, imageBarriers );
+    FillBufferBarriers( data.taskGraph, data.scratchBufferBarriers, bufferBarriers );
+
+    VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    depInfo.imageMemoryBarrierCount  = (uint32_t)data.scratchImageBarriers.size();
+    depInfo.pImageMemoryBarriers     = data.scratchImageBarriers.data();
+    depInfo.bufferMemoryBarrierCount = (uint32_t)data.scratchBufferBarriers.size();
+    depInfo.pBufferMemoryBarriers    = data.scratchBufferBarriers.data();
+
+    vkCmdPipelineBarrier2( *data.cmdBuf, &depInfo );
+}
+
+void ComputeTask::Execute( TGExecuteData& data )
+{
+    if ( !imageBarriersPreClears.empty() )
+    {
+        FillImageBarriers( data.taskGraph, data.scratchImageBarriers, imageBarriersPreClears );
+        VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+        depInfo.imageMemoryBarrierCount = (uint32_t)data.scratchImageBarriers.size();
+        depInfo.pImageMemoryBarriers    = data.scratchImageBarriers.data();
+
+        vkCmdPipelineBarrier2( *data.cmdBuf, &depInfo );
+    }
+
+    for ( const BufferClearSubTask& clear : bufferClears )
+    {
+        Buffer* buf = data.taskGraph->GetBuffer( clear.bufferHandle );
+        vkCmdFillBuffer( *data.cmdBuf, buf->GetHandle(), 0, VK_WHOLE_SIZE, clear.clearVal );
+    }
+    for ( const TextureClearSubTask& clear : textureClears )
+    {
+        Texture* tex = data.taskGraph->GetTexture( clear.textureHandle );
+        VkClearColorValue clearColor;
+        memcpy( &clearColor, &clear.clearVal.x, sizeof( vec4 ) );
+        VkImageSubresourceRange range = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
+        vkCmdClearColorImage( *data.cmdBuf, tex->GetImage(), PGToVulkanImageLayout( ImageLayout::TRANSFER_DST ), &clearColor, 1, &range );
+    }
+
+    SubmitBarriers( data );
+
+    function( &data );
+}
+
+void TransferTask::Execute( TGExecuteData& data )
+{
+    SubmitBarriers( data );
+
+    for ( const TextureTransfer& texBlit : textureBlits )
+    {
+        Texture* srcTex = data.taskGraph->GetTexture( texBlit.src );
+        Texture* dstTex = data.taskGraph->GetTexture( texBlit.dst );
+
+        VkImageBlit2 blitRegion{ VK_STRUCTURE_TYPE_IMAGE_BLIT_2 };
+        blitRegion.srcOffsets[1].x = srcTex->GetWidth();
+        blitRegion.srcOffsets[1].y = srcTex->GetHeight();
+        blitRegion.srcOffsets[1].z = 1;
+
+        blitRegion.dstOffsets[1].x = dstTex->GetWidth();
+        blitRegion.dstOffsets[1].y = dstTex->GetHeight();
+        blitRegion.dstOffsets[1].z = 1;
+
+        blitRegion.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        blitRegion.srcSubresource.baseArrayLayer = 0;
+        blitRegion.srcSubresource.layerCount     = 1;
+        blitRegion.srcSubresource.mipLevel       = 0;
+
+        blitRegion.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        blitRegion.dstSubresource.baseArrayLayer = 0;
+        blitRegion.dstSubresource.layerCount     = 1;
+        blitRegion.dstSubresource.mipLevel       = 0;
+
+        VkBlitImageInfo2 blitInfo{ VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2 };
+        blitInfo.dstImage       = dstTex->GetImage();
+        blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        blitInfo.srcImage       = srcTex->GetImage();
+        blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        blitInfo.filter         = VK_FILTER_LINEAR;
+        blitInfo.regionCount    = 1;
+        blitInfo.pRegions       = &blitRegion;
+
+        vkCmdBlitImage2( *data.cmdBuf, &blitInfo );
+    }
 }
 
 void TaskGraph::Free()
 {
+    for ( Task* task : tasks )
+        delete task;
+
     VmaAllocator allocator = rg.device.GetAllocator();
     for ( VmaAllocation& alloc : vmaAllocations )
     {
@@ -549,14 +740,33 @@ void TaskGraph::Free()
     for ( Buffer& buf : buffers )
     {
         vmaDestroyBuffer( allocator, buf.m_handle, nullptr );
-        // vkDestroyBuffer( rg.device.GetHandle(), buf.m_handle, nullptr );
     }
     for ( Texture& tex : textures )
     {
         vmaDestroyImage( allocator, tex.m_image, nullptr );
-        // vkDestroyImage( rg.device.GetHandle(), tex.m_image, nullptr );
-        vkDestroyImageView( rg.device.GetHandle(), tex.m_imageView, nullptr );
+        vkDestroyImageView( rg.device, tex.m_imageView, nullptr );
     }
 }
+
+void TaskGraph::Execute( TGExecuteData& data )
+{
+    data.taskGraph = this;
+    for ( auto& [bufPtr, extBufFunc] : externalBuffers )
+    {
+        bufPtr->m_handle = extBufFunc();
+    }
+    for ( auto& [texPtr, extTexFunc] : externalTextures )
+    {
+        extTexFunc( texPtr->m_image, texPtr->m_imageView );
+    }
+
+    for ( Task* task : tasks )
+    {
+        task->Execute( data );
+    }
+}
+
+Buffer* TaskGraph::GetBuffer( ResourceHandle handle ) { return &buffers[handle]; }
+Texture* TaskGraph::GetTexture( ResourceHandle handle ) { return &textures[handle]; }
 
 } // namespace PG::Gfx

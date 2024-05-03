@@ -48,7 +48,7 @@ bool EngineInitialize( EngineInitInfo info )
         InitWindowSystem( winCreate );
         Input::Init();
     }
-    if ( !RenderSystem::Init( info.sceneWidth, info.sceneHeight, g_headless ) )
+    if ( !RenderSystem::Init( info.sceneWidth, info.sceneHeight, info.windowWidth, info.windowHeight, g_headless ) )
     {
         LOG_ERR( "Could not initialize render system" );
         return false;

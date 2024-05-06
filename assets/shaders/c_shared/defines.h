@@ -38,7 +38,8 @@
 
 #endif // #else // #ifdef PG_SHADER_CODE
 
-#define PG_MAX_BINDLESS_TEXTURES 65535
+// slot 0 is reserved for invalid textures, so really only indices [1, 65535] are valid
+#define PG_MAX_BINDLESS_TEXTURES 65536
 #define PG_INVALID_TEXTURE_INDEX 0
 
 #endif // #ifndef _SHADER_DEFINES_H_

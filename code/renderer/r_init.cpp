@@ -112,34 +112,40 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.descriptorBindingVariableDescriptorCount = true;
     features12.runtimeDescriptorArray                   = true;
 
-    VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
-    mutableExt.mutableDescriptorType = true;
-
-    features12.pNext = &mutableExt;
-
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
-    pDevSelector.set_minimum_version( 1, 3 )
-        .set_required_features_13( features13 )
-        .set_required_features_12( features12 )
-        .require_present( !headless );
-    pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
 #if USING( PG_RTX )
     pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
-#endif                   // #if USING( PG_RTX )
+#endif // #if USING( PG_RTX )
+
 #if USING( DEBUG_BUILD ) // perf hit
     pDevSelector.add_required_extension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
 #endif // #if USING( DEBUG_BUILD )
+
+#if USING( PG_MUTABLE_DESCRIPTORS )
+    pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
+    VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
+    mutableExt.mutableDescriptorType = true;
+
+    mutableExt.pNext = features12.pNext;
+    features12.pNext = &mutableExt;
+#endif // #if USING( PG_MUTABLE_DESCRIPTORS )
 
 #if USING( PG_DESCRIPTOR_BUFFER )
     pDevSelector.add_required_extension( VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME );
     VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
     descriptorBufferExt.descriptorBuffer = USING( PG_DESCRIPTOR_BUFFER );
     // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
-
-    mutableExt.pNext = &descriptorBufferExt;
+    
+    descriptorBufferExt.pNext = features12.pNext;
+    features12.pNext = &descriptorBufferExt;
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
+
+    pDevSelector.set_minimum_version( 1, 3 );
+    pDevSelector.require_present( !headless );
+    pDevSelector.set_required_features_13( features13 );
+    pDevSelector.set_required_features_12( features12 );
 
     if ( !headless )
         pDevSelector.set_surface( rg.surface );

@@ -96,7 +96,7 @@ void ComputeTaskBuilder::SetFunction( ComputeFunction func ) { function = func; 
 
 TaskGraphBuilder::TaskGraphBuilder() : numTasks( 0 )
 {
-    tasks.reserve( MAX_TASKS );
+    tasks.reserve( 128 );
     textures.reserve( 256 );
     buffers.reserve( 256 );
     textureLifetimes.reserve( 256 );
@@ -356,8 +356,7 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
 
         VK_CHECK( vkCreateImage( rg.device, &info, nullptr, &data.img ) );
         vkGetImageMemoryRequirements( rg.device, data.img, &data.memoryReq );
-        gfxTex.m_image              = data.img;
-        //gfxTex.m_bindlessArrayIndex = TextureManager::GetOpenSlot( &gfxTex );
+        gfxTex.m_image = data.img;
     }
 
     buffers.resize( builder.buffers.size() );
@@ -442,6 +441,8 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
         gfxTex.m_imageView =
             CreateImageView( gfxTex.m_image, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, gfxTex.GetMipLevels(), gfxTex.GetArrayLayers() );
 
+        gfxTex.m_bindlessArrayIndex = TextureManager::AddTexture( gfxTex.m_imageView );
+
 #if USING( TG_DEBUG )
         PG_DEBUG_MARKER_SET_IMAGE_NAME( gfxTex.m_image, buildTex.debugName );
         PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( gfxTex.m_imageView, buildTex.debugName );
@@ -473,19 +474,20 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
             ComputeTask* cTask         = new ComputeTask;
             task                       = cTask;
             cTask->function            = bcTask->function;
-            TG_ASSERT( cTask->function, "Comput tasks are required to have a function!" );
+            TG_ASSERT( cTask->function, "Compute tasks are required to have a function!" );
 
             for ( const TGBBufferInfo& bufInfo : bcTask->buffers )
             {
-                const TGBBuffer& buildBuffer    = builder.buffers[bufInfo.ref.index];
-                ResourceTrackingInfo& trackInfo = bufTracking[bufInfo.ref.index];
+                ResourceHandle index            = bufInfo.ref.index;
+                const TGBBuffer& buildBuffer    = builder.buffers[index];
+                ResourceTrackingInfo& trackInfo = bufTracking[index];
                 if ( bufInfo.isCleared )
                 {
                     TG_ASSERT(
                         trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
                         "Shouldn't be clearing a texture you just wrote to" );
                     TG_ASSERT( bufInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
-                    cTask->bufferClears.emplace_back( bufInfo.ref.index, bufInfo.clearVal );
+                    cTask->bufferClears.emplace_back( index, bufInfo.clearVal );
 
                     // barrier to wait for the clear to be done before running the actual task
                     VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
@@ -494,7 +496,7 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
                     barrier.dstStageMask  = GetDstStageFlags( taskType, buildBuffer.bufferUsage );
                     barrier.dstAccessMask = GetDstAccessFlags( taskType, bufInfo.state );
                     barrier.size          = VK_WHOLE_SIZE;
-                    barrier.buffer        = reinterpret_cast<VkBuffer>( bufInfo.ref.index );
+                    barrier.buffer        = reinterpret_cast<VkBuffer>( index );
                     task->bufferBarriers.push_back( barrier );
                 }
                 else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )
@@ -506,9 +508,14 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
                     barrier.dstStageMask  = GetDstStageFlags( taskType, buildBuffer.bufferUsage );
                     barrier.dstAccessMask = GetDstAccessFlags( taskType, bufInfo.state );
                     barrier.size          = VK_WHOLE_SIZE;
-                    reinterpret_cast<VkBuffer>( bufInfo.ref.index );
+                    barrier.buffer        = reinterpret_cast<VkBuffer>( index );
                     task->bufferBarriers.push_back( barrier );
                 }
+
+                if ( bufInfo.state == ResourceState::READ || bufInfo.state == ResourceState::READ_WRITE )
+                    cTask->inputBuffers.push_back( index );
+                if ( bufInfo.state == ResourceState::WRITE || bufInfo.state == ResourceState::READ_WRITE )
+                    cTask->outputBuffers.push_back( index );
 
                 trackInfo.prevTask     = taskIndex;
                 trackInfo.prevState    = bufInfo.state;
@@ -517,15 +524,16 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
 
             for ( const TGBTextureInfo& texInfo : bcTask->textures )
             {
-                const TGBTexture& buildTexture  = builder.textures[texInfo.ref.index];
-                ResourceTrackingInfo& trackInfo = texTracking[texInfo.ref.index];
+                ResourceHandle index = texInfo.ref.index;
+                const TGBTexture& buildTexture  = builder.textures[index];
+                ResourceTrackingInfo& trackInfo = texTracking[index];
                 if ( texInfo.isCleared )
                 {
                     TG_ASSERT(
                         trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
                         "Shouldn't be clearing a texture you just wrote to" );
                     TG_ASSERT( texInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
-                    cTask->textureClears.emplace_back( texInfo.ref.index, texInfo.clearColor );
+                    cTask->textureClears.emplace_back( index, texInfo.clearColor );
 
                     // image layout transition, if necessary
                     if ( trackInfo.currLayout != ImageLayout::TRANSFER_DST )
@@ -537,7 +545,7 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
                         barrier.dstAccessMask    = VK_ACCESS_2_TRANSFER_WRITE_BIT;
                         barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
                         barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
-                        barrier.image            = reinterpret_cast<VkImage>( texInfo.ref.index );
+                        barrier.image            = reinterpret_cast<VkImage>( index );
                         barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
                         cTask->imageBarriersPreClears.push_back( barrier );
                     }
@@ -550,7 +558,7 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
                     barrier.dstAccessMask    = VK_ACCESS_2_SHADER_WRITE_BIT;
                     barrier.oldLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
                     barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
-                    barrier.image            = reinterpret_cast<VkImage>( texInfo.ref.index );
+                    barrier.image            = reinterpret_cast<VkImage>( index );
                     barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
                     task->imageBarriers.push_back( barrier );
                 }
@@ -564,7 +572,7 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
                     barrier.dstAccessMask    = GetDstAccessFlags( taskType, texInfo.state );
                     barrier.oldLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
                     barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
-                    barrier.image            = reinterpret_cast<VkImage>( texInfo.ref.index );
+                    barrier.image            = reinterpret_cast<VkImage>( index );
                     barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
                     task->imageBarriers.push_back( barrier );
                 }
@@ -578,10 +586,15 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, TaskGraphCompileInfo& compil
                     barrier.dstAccessMask    = GetDstAccessFlags( taskType, texInfo.state );
                     barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
                     barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
-                    barrier.image            = reinterpret_cast<VkImage>( texInfo.ref.index );
+                    barrier.image            = reinterpret_cast<VkImage>( index );
                     barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
                     task->imageBarriers.push_back( barrier );
                 }
+
+                if ( texInfo.state == ResourceState::READ || texInfo.state == ResourceState::READ_WRITE )
+                    cTask->inputTextures.push_back( index );
+                if ( texInfo.state == ResourceState::WRITE || texInfo.state == ResourceState::READ_WRITE )
+                    cTask->outputTextures.push_back( index );
 
                 trackInfo.currLayout   = ImageLayout::GENERAL;
                 trackInfo.prevTask     = taskIndex;
@@ -717,7 +730,7 @@ void ComputeTask::Execute( TGExecuteData& data )
 
     SubmitBarriers( data );
 
-    function( &data );
+    function( this, &data );
 }
 
 void TransferTask::Execute( TGExecuteData& data )

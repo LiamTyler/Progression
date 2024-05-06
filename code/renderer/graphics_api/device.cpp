@@ -256,7 +256,7 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& na
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_IMAGE_NAME( tex.m_image, name ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name ) );
 
-    // tex.m_bindlessArrayIndex = TextureManager::GetOpenSlot( &tex );
+    tex.m_bindlessArrayIndex = TextureManager::AddTexture( tex.m_imageView );
 
     return tex;
 }

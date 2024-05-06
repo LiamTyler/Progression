@@ -176,7 +176,8 @@ public:
 };
 
 struct TGExecuteData;
-using ComputeFunction = std::function<void( TGExecuteData* )>;
+class ComputeTask;
+using ComputeFunction = std::function<void( ComputeTask*, TGExecuteData* )>;
 
 class ComputeTaskBuilder : public TaskBuilder
 {
@@ -227,8 +228,6 @@ public:
 
 class TaskGraphBuilder
 {
-    static constexpr uint32_t MAX_TASKS = 128;
-
     friend class ComputeTaskBuilder;
     friend class TaskGraph;
 
@@ -318,6 +317,11 @@ public:
     std::vector<BufferClearSubTask> bufferClears;
     std::vector<TextureClearSubTask> textureClears;
     std::vector<VkImageMemoryBarrier2> imageBarriersPreClears;
+
+    std::vector<ResourceHandle> inputBuffers;
+    std::vector<ResourceHandle> outputBuffers;
+    std::vector<ResourceHandle> inputTextures;
+    std::vector<ResourceHandle> outputTextures;
 
     ComputeFunction function;
 };

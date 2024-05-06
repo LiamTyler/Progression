@@ -2,6 +2,7 @@
 #include "core/window.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
+#include "renderer/r_texture_manager.hpp"
 #include "shared/logger.hpp"
 #include "vk-bootstrap/VkBootstrap.h"
 #include <cstring>
@@ -188,6 +189,8 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     }
     LoadVulkanExtensions( rg.device );
 
+    TextureManager::Init();
+
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( rg.instance, "Primary" );
     PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( rg.physicalDevice, rg.physicalDevice.GetName() );
 
@@ -219,6 +222,7 @@ void R_Shutdown()
 
     rg.swapchain.Free();
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
+    TextureManager::Shutdown();
     rg.device.Free();
     vkb::destroy_debug_utils_messenger( rg.instance, s_debugMessenger );
     vkDestroyInstance( rg.instance, nullptr );

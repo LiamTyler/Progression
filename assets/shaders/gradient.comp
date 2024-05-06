@@ -7,9 +7,15 @@
 //size of a workgroup for compute
 layout (local_size_x = 16, local_size_y = 16) in;
 
+#define BINDLESS 1
+
 //descriptor bindings for the pipeline
-//layout( set = 0, binding = 0 ) uniform image2D images[];
+
+#if BINDLESS
+layout( set = 0, binding = 0 ) uniform image2D images[];
+#else
 layout( set = 0, binding = 0) uniform image2D rwImage;
+#endif
 
 layout( push_constant ) uniform constants
 {
@@ -23,20 +29,30 @@ void main()
 {
     ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
     
-    //ivec2 size = imageSize( images[PushConstants.imageIndex] );
+#if BINDLESS
+    ivec2 size = imageSize( images[PushConstants.imageIndex] );
+#else
     ivec2 size = imageSize( rwImage );
+#endif
     
     vec4 topColor = PushConstants.topColor;
     vec4 bottomColor = PushConstants.botColor;
     
-    if ( texelCoord.x < size.x && texelCoord.y < size.y )
+    if ( texelCoord.x < size.x && texelCoord.y < size.y && (texelCoord.x % 10) != 0 )
     {
-        float blend = float(texelCoord.y)/(1 + size.y); 
-        //imageStore( images[PushConstants.imageIndex], texelCoord, mix( topColor, bottomColor, blend ) );
-        imageStore( rwImage, texelCoord, mix( topColor, bottomColor, blend ) );
+        float blend = float(texelCoord.y)/(size.y);
+        #if BINDLESS
+            imageStore( images[PushConstants.imageIndex], texelCoord, mix( topColor, bottomColor, blend ) );
+        #else
+            imageStore( rwImage, texelCoord, mix( topColor, bottomColor, blend ) );
+        #endif
     }
-    else
-    {
-        imageStore( rwImage, texelCoord, vec4( 0, 1, 0, 1 ) );
-    }
+    //else
+    //{
+    //#if BINDLESS
+    //    imageStore( images[PushConstants.imageIndex], texelCoord, vec4( 0, 1, 0, 1 ) );
+    //#else
+    //    imageStore( rwImage, texelCoord, vec4( 0, 1, 0, 1 ) );
+    //#endif
+    //}
 }

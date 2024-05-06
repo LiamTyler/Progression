@@ -108,9 +108,10 @@ struct TGBBuffer
 
 enum class TaskType : uint16_t
 {
-    COMPUTE  = 0,
-    GRAPHICS = 1,
-    TRANSFER = 2,
+    NONE     = 0, // only valid internally for signaling a resource has no previous task yet (first usage)
+    COMPUTE  = 1,
+    GRAPHICS = 2,
+    TRANSFER = 3,
 };
 
 struct TaskHandle
@@ -352,8 +353,8 @@ private:
     std::vector<Buffer> buffers;
     std::vector<Texture> textures;
     std::vector<VmaAllocation> vmaAllocations;
-    std::vector<std::pair<Buffer*, ExtBufferFunc>> externalBuffers;
-    std::vector<std::pair<Texture*, ExtTextureFunc>> externalTextures;
+    std::vector<std::pair<ResourceHandle, ExtBufferFunc>> externalBuffers;
+    std::vector<std::pair<ResourceHandle, ExtTextureFunc>> externalTextures;
 };
 
 } // namespace PG::Gfx

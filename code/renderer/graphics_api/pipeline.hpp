@@ -214,17 +214,6 @@ struct PipelineDescriptor
     std::array<PipelineColorAttachmentInfo, 8> colorAttachmentInfos;
 };
 
-struct PipelineResourceLayout
-{
-    // uint32_t attributeMask = 0;
-    // uint32_t renderTargetMask = 0;
-    DescriptorSetLayout sets[PG_MAX_NUM_DESCRIPTOR_SETS]                            = {};
-    uint32_t bindingStages[PG_MAX_NUM_DESCRIPTOR_SETS][PG_MAX_NUM_BINDINGS_PER_SET] = {};
-    uint32_t setStages[PG_MAX_NUM_DESCRIPTOR_SETS]                                  = {};
-    VkPushConstantRange pushConstantRange                                           = {};
-    uint32_t descriptorSetMask                                                      = 0;
-};
-
 class Pipeline
 {
     friend class Device;
@@ -236,15 +225,12 @@ public:
     VkPipeline GetHandle() const;
     VkPipelineLayout GetLayoutHandle() const;
     VkPipelineBindPoint GetPipelineBindPoint() const;
-    VkShaderStageFlags GetPushConstantShaderStages() const;
-    const PipelineResourceLayout* GetResourceLayout() const;
-    const DescriptorSetLayout* GetDescriptorSetLayout( int set ) const;
+    VkShaderStageFlags GetPushConstantShaderStages() const { return VK_SHADER_STAGE_ALL; }
 
     operator bool() const;
 
 private:
     PipelineDescriptor m_desc;
-    PipelineResourceLayout m_resourceLayout;
     VkPipeline m_pipeline             = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     VkDevice m_device                 = VK_NULL_HANDLE;

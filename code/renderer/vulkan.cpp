@@ -4,24 +4,26 @@
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 
+#define DECLARE_VK_FUNC( name ) static PFN_##name pfn_##name = VK_NULL_HANDLE
+
 #ifdef VK_KHR_acceleration_structure
 
-static PFN_vkBuildAccelerationStructuresKHR pfn_vkBuildAccelerationStructuresKHR                                 = VK_NULL_HANDLE;
-static PFN_vkCmdBuildAccelerationStructuresIndirectKHR pfn_vkCmdBuildAccelerationStructuresIndirectKHR           = VK_NULL_HANDLE;
-static PFN_vkCmdBuildAccelerationStructuresKHR pfn_vkCmdBuildAccelerationStructuresKHR                           = VK_NULL_HANDLE;
-static PFN_vkCmdCopyAccelerationStructureKHR pfn_vkCmdCopyAccelerationStructureKHR                               = VK_NULL_HANDLE;
-static PFN_vkCmdCopyAccelerationStructureToMemoryKHR pfn_vkCmdCopyAccelerationStructureToMemoryKHR               = VK_NULL_HANDLE;
-static PFN_vkCmdCopyMemoryToAccelerationStructureKHR pfn_vkCmdCopyMemoryToAccelerationStructureKHR               = VK_NULL_HANDLE;
-static PFN_vkCmdWriteAccelerationStructuresPropertiesKHR pfn_vkCmdWriteAccelerationStructuresPropertiesKHR       = VK_NULL_HANDLE;
-static PFN_vkCopyAccelerationStructureKHR pfn_vkCopyAccelerationStructureKHR                                     = VK_NULL_HANDLE;
-static PFN_vkCopyAccelerationStructureToMemoryKHR pfn_vkCopyAccelerationStructureToMemoryKHR                     = VK_NULL_HANDLE;
-static PFN_vkCopyMemoryToAccelerationStructureKHR pfn_vkCopyMemoryToAccelerationStructureKHR                     = VK_NULL_HANDLE;
-static PFN_vkCreateAccelerationStructureKHR pfn_vkCreateAccelerationStructureKHR                                 = VK_NULL_HANDLE;
-static PFN_vkDestroyAccelerationStructureKHR pfn_vkDestroyAccelerationStructureKHR                               = VK_NULL_HANDLE;
-static PFN_vkGetAccelerationStructureBuildSizesKHR pfn_vkGetAccelerationStructureBuildSizesKHR                   = VK_NULL_HANDLE;
-static PFN_vkGetAccelerationStructureDeviceAddressKHR pfn_vkGetAccelerationStructureDeviceAddressKHR             = VK_NULL_HANDLE;
-static PFN_vkGetDeviceAccelerationStructureCompatibilityKHR pfn_vkGetDeviceAccelerationStructureCompatibilityKHR = VK_NULL_HANDLE;
-static PFN_vkWriteAccelerationStructuresPropertiesKHR pfn_vkWriteAccelerationStructuresPropertiesKHR             = VK_NULL_HANDLE;
+DECLARE_VK_FUNC( vkBuildAccelerationStructuresKHR );
+DECLARE_VK_FUNC( vkCmdBuildAccelerationStructuresIndirectKHR );
+DECLARE_VK_FUNC( vkCmdBuildAccelerationStructuresKHR );
+DECLARE_VK_FUNC( vkCmdCopyAccelerationStructureKHR );
+DECLARE_VK_FUNC( vkCmdCopyAccelerationStructureToMemoryKHR );
+DECLARE_VK_FUNC( vkCmdCopyMemoryToAccelerationStructureKHR );
+DECLARE_VK_FUNC( vkCmdWriteAccelerationStructuresPropertiesKHR );
+DECLARE_VK_FUNC( vkCopyAccelerationStructureKHR );
+DECLARE_VK_FUNC( vkCopyAccelerationStructureToMemoryKHR );
+DECLARE_VK_FUNC( vkCopyMemoryToAccelerationStructureKHR );
+DECLARE_VK_FUNC( vkCreateAccelerationStructureKHR );
+DECLARE_VK_FUNC( vkDestroyAccelerationStructureKHR );
+DECLARE_VK_FUNC( vkGetAccelerationStructureBuildSizesKHR );
+DECLARE_VK_FUNC( vkGetAccelerationStructureDeviceAddressKHR );
+DECLARE_VK_FUNC( vkGetDeviceAccelerationStructureCompatibilityKHR );
+DECLARE_VK_FUNC( vkWriteAccelerationStructuresPropertiesKHR );
 
 VKAPI_ATTR VkResult VKAPI_CALL vkBuildAccelerationStructuresKHR( VkDevice device, VkDeferredOperationKHR deferredOperation,
     uint32_t infoCount, const VkAccelerationStructureBuildGeometryInfoKHR* pInfos,
@@ -127,18 +129,19 @@ VKAPI_ATTR VkResult VKAPI_CALL vkWriteAccelerationStructuresPropertiesKHR( VkDev
 }
 #endif // #ifdef VK_KHR_acceleration_structure
 
+#if USING( PG_DESCRIPTOR_BUFFER )
 #if defined( VK_EXT_descriptor_buffer )
-static PFN_vkCmdBindDescriptorBufferEmbeddedSamplersEXT pfn_vkCmdBindDescriptorBufferEmbeddedSamplersEXT;
-static PFN_vkCmdBindDescriptorBuffersEXT pfn_vkCmdBindDescriptorBuffersEXT;
-static PFN_vkCmdSetDescriptorBufferOffsetsEXT pfn_vkCmdSetDescriptorBufferOffsetsEXT;
-static PFN_vkGetBufferOpaqueCaptureDescriptorDataEXT pfn_vkGetBufferOpaqueCaptureDescriptorDataEXT;
-static PFN_vkGetDescriptorEXT pfn_vkGetDescriptorEXT;
-static PFN_vkGetDescriptorSetLayoutBindingOffsetEXT pfn_vkGetDescriptorSetLayoutBindingOffsetEXT;
-static PFN_vkGetDescriptorSetLayoutSizeEXT pfn_vkGetDescriptorSetLayoutSizeEXT;
-static PFN_vkGetImageOpaqueCaptureDescriptorDataEXT pfn_vkGetImageOpaqueCaptureDescriptorDataEXT;
-static PFN_vkGetImageViewOpaqueCaptureDescriptorDataEXT pfn_vkGetImageViewOpaqueCaptureDescriptorDataEXT;
-static PFN_vkGetSamplerOpaqueCaptureDescriptorDataEXT pfn_vkGetSamplerOpaqueCaptureDescriptorDataEXT;
-static PFN_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT pfn_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT;
+DECLARE_VK_FUNC( vkCmdBindDescriptorBufferEmbeddedSamplersEXT );
+DECLARE_VK_FUNC( vkCmdBindDescriptorBuffersEXT );
+DECLARE_VK_FUNC( vkCmdSetDescriptorBufferOffsetsEXT );
+DECLARE_VK_FUNC( vkGetBufferOpaqueCaptureDescriptorDataEXT );
+DECLARE_VK_FUNC( vkGetDescriptorEXT );
+DECLARE_VK_FUNC( vkGetDescriptorSetLayoutBindingOffsetEXT );
+DECLARE_VK_FUNC( vkGetDescriptorSetLayoutSizeEXT );
+DECLARE_VK_FUNC( vkGetImageOpaqueCaptureDescriptorDataEXT );
+DECLARE_VK_FUNC( vkGetImageViewOpaqueCaptureDescriptorDataEXT );
+DECLARE_VK_FUNC( vkGetSamplerOpaqueCaptureDescriptorDataEXT );
+DECLARE_VK_FUNC( vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT );
 
 VKAPI_ATTR void VKAPI_CALL vkGetDescriptorSetLayoutSizeEXT(
     VkDevice device, VkDescriptorSetLayout layout, VkDeviceSize* pLayoutSizeInBytes )
@@ -206,6 +209,7 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetAccelerationStructureOpaqueCaptureDescriptor
     return pfn_vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT( device, pInfo, pData );
 }
 #endif // #if defined( VK_EXT_descriptor_buffer )
+#endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
 namespace PG::Gfx
 {
@@ -244,6 +248,7 @@ void LoadVulkanExtensions( VkDevice device )
 #endif // #ifdef VK_KHR_acceleration_structure
 #endif // #if USING( PG_RTX )
 
+#if USING( PG_DESCRIPTOR_BUFFER )
 #if defined( VK_EXT_descriptor_buffer )
     LOAD_VK_FUNC( vkGetDescriptorSetLayoutSizeEXT );
     LOAD_VK_FUNC( vkGetDescriptorSetLayoutBindingOffsetEXT );
@@ -257,6 +262,7 @@ void LoadVulkanExtensions( VkDevice device )
     LOAD_VK_FUNC( vkGetSamplerOpaqueCaptureDescriptorDataEXT );
     LOAD_VK_FUNC( vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT );
 #endif // #if defined( VK_EXT_descriptor_buffer )
+#endif // #if USING( PG_DESCRIPTOR_BUFFER )
 }
 
 uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )

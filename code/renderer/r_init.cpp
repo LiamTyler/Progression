@@ -6,6 +6,8 @@
 #include "vk-bootstrap/VkBootstrap.h"
 #include <cstring>
 
+#include <iostream>
+
 VkDebugUtilsMessengerEXT s_debugMessenger;
 VkDescriptorSetLayout s_emptyDescriptSetLayout;
 
@@ -112,21 +114,13 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
     mutableExt.mutableDescriptorType = true;
 
-    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
-    descriptorBufferExt.descriptorBuffer = true;
-    // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
-
-    VkPhysicalDeviceDescriptorBufferPropertiesEXT descriptor_buffer_properties{};
-
     features12.pNext = &mutableExt;
-    mutableExt.pNext = &descriptorBufferExt;
 
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
     pDevSelector.set_minimum_version( 1, 3 )
         .set_required_features_13( features13 )
         .set_required_features_12( features12 )
         .require_present( !headless );
-    pDevSelector.add_required_extension( VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
 #if USING( PG_RTX )
     pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
@@ -136,13 +130,23 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 #if USING( DEBUG_BUILD ) // perf hit
     pDevSelector.add_required_extension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
 #endif // #if USING( DEBUG_BUILD )
+
+#if USING( PG_DESCRIPTOR_BUFFER )
+    pDevSelector.add_required_extension( VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME );
+    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
+    descriptorBufferExt.descriptorBuffer = USING( PG_DESCRIPTOR_BUFFER );
+    // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
+
+    mutableExt.pNext = &descriptorBufferExt;
+#endif // #if USING( PG_DESCRIPTOR_BUFFER )
+
     if ( !headless )
         pDevSelector.set_surface( rg.surface );
 
     auto pDevSelectorRet = pDevSelector.select();
     if ( !pDevSelectorRet )
     {
-        LOG_ERR( "No compatible physical device found!" );
+        LOG_ERR( "No compatible physical device found! " );
         return false;
     }
 

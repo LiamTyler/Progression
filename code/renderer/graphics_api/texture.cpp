@@ -19,7 +19,7 @@ void Texture::Free()
     vmaDestroyImage( rg.device.GetAllocator(), m_image, m_allocation );
     if ( m_bindlessArrayIndex != PG_INVALID_TEXTURE_INDEX )
     {
-        TextureManager::FreeSlot( m_bindlessArrayIndex );
+        //TextureManager::FreeSlot( m_bindlessArrayIndex );
         m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
     }
     m_image      = VK_NULL_HANDLE;

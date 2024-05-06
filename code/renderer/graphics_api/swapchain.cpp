@@ -40,7 +40,7 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
     for ( size_t i = 0; i < m_images.size(); ++i )
     {
         PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( m_imageViews[i], "swapchain " + std::to_string( i ) );
-        PG_DEBUG_MARKER_SET_IMAGE_ONLY_NAME( m_images[i], "swapchain " + std::to_string( i ) );
+        PG_DEBUG_MARKER_SET_IMAGE_NAME( m_images[i], "swapchain " + std::to_string( i ) );
     }
 
     return true;

@@ -36,7 +36,6 @@ struct R_Globals
     PhysicalDevice physicalDevice;
     Swapchain swapchain;
     uint32_t swapchainImageIndex;
-    DescriptorPool descriptorPool;
     FrameData frameData[NUM_FRAME_OVERLAP];
     uint32_t currentFrameIdx;
     uint32_t sceneWidth;

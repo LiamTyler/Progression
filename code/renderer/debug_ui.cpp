@@ -55,7 +55,8 @@ bool Init( PixelFormat colorAttachmentFormat )
     init_info.QueueFamily               = rg.device.GetQueue().familyIndex;
     init_info.Queue                     = rg.device.GetQueue();
     init_info.PipelineCache             = VK_NULL_HANDLE;
-    init_info.DescriptorPool            = rg.descriptorPool.GetHandle();
+    PG_ASSERT( false, "todo" );
+    //init_info.DescriptorPool            = rg.descriptorPool.GetHandle();
     init_info.Subpass                   = 0;
     init_info.MinImageCount             = 2;                           // ?
     init_info.ImageCount                = rg.swapchain.GetNumImages(); // ?

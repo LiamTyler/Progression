@@ -10,78 +10,26 @@
 namespace PG::Gfx
 {
 
-class DescriptorSet
+struct DescriptorLayoutBuilder
 {
-    friend class DescriptorPool;
+    std::vector<VkDescriptorSetLayoutBinding> bindings;
+    bool bindlessSupport = true;
+    bool mutableSupport  = true;
 
-public:
-    DescriptorSet() = default;
-
-    VkDescriptorSet GetHandle() const;
-    operator bool() const;
-
-private:
-    VkDescriptorSet m_handle = VK_NULL_HANDLE;
+    void add_binding( uint32_t binding, VkDescriptorType type, uint32_t count );
+    void clear();
+    VkDescriptorSetLayout build( VkDevice device, VkShaderStageFlags shaderStages = VK_SHADER_STAGE_ALL );
 };
 
-static_assert( sizeof( DescriptorSet ) == sizeof( VkDescriptorSet ), "Some functions, like BindDescriptorSet rely on this" );
-
-VkWriteDescriptorSet WriteDescriptorSet_Buffer( const DescriptorSet& set, VkDescriptorType type, uint32_t binding,
-    VkDescriptorBufferInfo* bufferInfo, uint32_t descriptorCount = 1, uint32_t arrayElement = 0 );
-VkWriteDescriptorSet WriteDescriptorSet_Image( const DescriptorSet& set, VkDescriptorType type, uint32_t binding,
-    VkDescriptorImageInfo* imageInfo, uint32_t descriptorCount = 1, uint32_t arrayElement = 0 );
-std::vector<VkWriteDescriptorSet> WriteDescriptorSet_Images(
-    const DescriptorSet& set, VkDescriptorType type, const std::vector<VkDescriptorImageInfo>& imageInfos );
-VkDescriptorImageInfo DescriptorImageInfoNull( VkImageLayout imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL );
-VkDescriptorImageInfo DescriptorImageInfo( const Gfx::Texture& tex, VkImageLayout imageLayout );
-VkDescriptorBufferInfo DescriptorBufferInfo( const Gfx::Buffer& buffer, VkDeviceSize offset = 0, VkDeviceSize range = VK_WHOLE_SIZE );
-
-class DescriptorSetLayout
+struct DescriptorAllocator
 {
-    friend class Device;
+    VkDescriptorPool pool;
+    VkDevice device;
 
-public:
-    DescriptorSetLayout() = default;
-
-    void Free();
-    VkDescriptorSetLayout GetHandle() const;
-    operator bool() const;
-
-    uint32_t sampledImageMask                        = 0; // VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER
-    uint32_t separateImageMask                       = 0; // VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE
-    uint32_t storageImageMask                        = 0; // VK_DESCRIPTOR_TYPE_STORAGE_IMAGE
-    uint32_t uniformBufferMask                       = 0; // VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER
-    uint32_t storageBufferMask                       = 0; // VK_DESCRIPTOR_TYPE_STORAGE_BUFFER
-    uint32_t uniformTexelBufferMask                  = 0; // VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER
-    uint32_t storageTexelBufferMask                  = 0; // VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER
-    uint32_t samplerMask                             = 0; // VK_DESCRIPTOR_TYPE_SAMPLER
-    uint32_t inputAttachmentMask                     = 0; // VK_DESCRIPTOR_TYPE_INPUT_ATTACHMENT
-    uint32_t arraySizes[PG_MAX_NUM_BINDINGS_PER_SET] = {};
-
-private:
-    VkDescriptorSetLayout m_handle = VK_NULL_HANDLE;
-    VkDevice m_device              = VK_NULL_HANDLE;
-};
-
-void FreeDescriptorSetLayouts( size_t numLayouts, DescriptorSetLayout* layouts );
-
-class DescriptorPool
-{
-    friend class Device;
-
-public:
-    DescriptorPool() = default;
-
-    void Free();
-    std::vector<DescriptorSet> NewDescriptorSets(
-        uint32_t numLayouts, const DescriptorSetLayout& layout, const std::string& name = "" ) const;
-    DescriptorSet NewDescriptorSet( const DescriptorSetLayout& layout, const std::string& name = "" ) const;
-    VkDescriptorPool GetHandle() const;
-    operator bool() const;
-
-private:
-    VkDescriptorPool m_handle = VK_NULL_HANDLE;
-    VkDevice m_device         = VK_NULL_HANDLE;
+    void init_pool( VkDevice inDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes );
+    void clear_descriptors();
+    void destroy_pool();
+    VkDescriptorSet allocate( VkDescriptorSetLayout layout );
 };
 
 } // namespace PG::Gfx

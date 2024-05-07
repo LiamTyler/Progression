@@ -1,6 +1,6 @@
 #pragma once
 
-#include "renderer/taskgraph/r_taskGraph.hpp"
+#include "r_tg_builder.hpp"
 #include <list>
 
 namespace PG::Gfx

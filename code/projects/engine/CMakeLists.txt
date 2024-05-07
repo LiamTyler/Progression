@@ -113,8 +113,13 @@ set(
     ${CODE_DIR}/renderer/vulkan.hpp
 	${CODE_DIR}/renderer/taskgraph/r_taskGraph.cpp
     ${CODE_DIR}/renderer/taskgraph/r_taskGraph.hpp
+    ${CODE_DIR}/renderer/taskgraph/internal/r_tg_builder.cpp
+    ${CODE_DIR}/renderer/taskgraph/internal/r_tg_builder.hpp
+    ${CODE_DIR}/renderer/taskgraph/internal/r_tg_common.hpp
     ${CODE_DIR}/renderer/taskgraph/internal/r_tg_resource_packing.cpp
     ${CODE_DIR}/renderer/taskgraph/internal/r_tg_resource_packing.hpp
+    ${CODE_DIR}/renderer/taskgraph/internal/r_tg_tasks.cpp
+    ${CODE_DIR}/renderer/taskgraph/internal/r_tg_tasks.hpp
 	
 	${C_SHARED_SHADERS}
     

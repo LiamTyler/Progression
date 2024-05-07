@@ -106,7 +106,10 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     TransferTaskBuilder* tTask = builder.AddTransferTask( "copyToSwapchain" );
     tTask->BlitTexture( swapImg, gradientImg );
 
-    TaskGraphCompileInfo compileInfo;
+    PresentTaskBuilder* pTask = builder.AddPresentTask();
+    pTask->SetPresentationImage( swapImg );
+
+    TaskGraph::CompileInfo compileInfo;
     compileInfo.sceneWidth    = sceneWidth;
     compileInfo.sceneHeight   = sceneHeight;
     compileInfo.displayWidth  = displayWidth;
@@ -132,8 +135,7 @@ void Render()
     FrameData& frameData = rg.GetFrameData();
     frameData.renderingCompleteFence.WaitFor();
     frameData.renderingCompleteFence.Reset();
-    if ( !rg.headless )
-        rg.swapchain.AcquireNextImage( frameData.swapchainSemaphore );
+    rg.swapchain.AcquireNextImage( frameData.swapchainSemaphore );
 
     TextureManager::Update();
 
@@ -145,19 +147,17 @@ void Render()
     tgData.frameData = &frameData;
     tgData.cmdBuf    = &cmdBuf;
     s_taskGraph.Execute( tgData );
-    cmdBuf.TransitionImageLayout( rg.swapchain.GetImage(), ImageLayout::TRANSFER_DST, ImageLayout::PRESENT_SRC_KHR,
-        VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_BOTTOM_OF_PIPE_BIT );
 
     cmdBuf.EndRecording();
 
-    VkSemaphoreSubmitInfo waitInfo =
-        SemaphoreSubmitInfo( VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT, frameData.swapchainSemaphore.GetHandle() );
+    VkPipelineStageFlags2 waitStages =
+        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    VkSemaphoreSubmitInfo waitInfo = SemaphoreSubmitInfo( waitStages, frameData.swapchainSemaphore.GetHandle() );
     VkSemaphoreSubmitInfo signalInfo =
         SemaphoreSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, frameData.renderingCompleteSemaphore.GetHandle() );
     rg.device.Submit( cmdBuf, &waitInfo, &signalInfo, &frameData.renderingCompleteFence );
 
-    if ( !rg.headless )
-        rg.device.Present( rg.swapchain, frameData.renderingCompleteSemaphore );
+    rg.device.Present( rg.swapchain, frameData.renderingCompleteSemaphore );
 
     ++rg.currentFrameIdx;
 }

@@ -1,13 +1,12 @@
 # Progression [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Description
-A rewrite of a C++ game engine I have been developing for Linux and Windows. See [here](https://liamtyler.github.io/portfolio/Progression/) for more details.
-Note: The older version of this engine can be found here: https://github.com/LiamTyler/Progression-Vulkan-Old. If you go way back in the commits, like to Dec 7th 2018 (80b7b20bfb3d3b499b4236cd65550474ec27f846) the old opengl tiled deferred renderer is there
+A rewrite of a C++ game engine I have been developing for Linux and Windows. Note: The older version of this engine can be found here: https://github.com/LiamTyler/Progression-Vulkan-Old. If you go way back in the commits, like to Dec 7th 2018 (80b7b20bfb3d3b499b4236cd65550474ec27f846) the old opengl tiled deferred renderer is there
 
 ## Prerequisites
 ### Operating Systems and Compilers
 This engine requires at least C++ 20, and has only been tested on the following platforms and compilers:
-- Windows 10 with MSVC 2019
+- Windows 10 or 11 with MSVC 2022
 - Ubuntu 22 with GCC 12 and Clang 15
 
 ### Libraries and SDKs
@@ -28,7 +27,7 @@ git clone --recursive https://github.com/LiamTyler/Progression.git
 cd Progression 
 mkdir build
 cd build
-cmake -G "Visual Studio 16 2016" -A x64 ..
+cmake -G "Visual Studio 17 2022" -A x64 ..
 ```
 Then either open the Visual Studio .sln file and build there (ctrl-shift-B) or you can build same git bash command line with `cmake --build . --config [Debug/Release]`
 

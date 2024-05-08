@@ -121,11 +121,11 @@ void SetQueryPoolName( VkDevice device, VkQueryPool pool, const std::string& nam
     PG::Gfx::DebugMarker::SetPhysicalDeviceName(               \
         PG::Gfx::rg.device, ( pDev ).GetHandle(), PG_DEBUG_MARKER_NAME( "Physical Device: ", name ) )
 #define PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( dev, name ) \
-    PG::Gfx::DebugMarker::SetLogicalDeviceName( ( dev ).GetHandle(), PG_DEBUG_MARKER_NAME( "Logical Device: ", name ) )
+    PG::Gfx::DebugMarker::SetLogicalDeviceName( dev, PG_DEBUG_MARKER_NAME( "Logical Device: ", name ) )
 #define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name ) \
     PG::Gfx::DebugMarker::SetInstanceName( PG::Gfx::rg.device, instance, PG_DEBUG_MARKER_NAME( "Instance: ", name ) )
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) \
-    PG::Gfx::DebugMarker::SetDescriptorPoolName( PG::Gfx::rg.device, pool.GetHandle(), PG_DEBUG_MARKER_NAME( "DescPool: ", name ) )
+    PG::Gfx::DebugMarker::SetDescriptorPoolName( PG::Gfx::rg.device, pool, PG_DEBUG_MARKER_NAME( "DescPool: ", name ) )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name ) \
     PG::Gfx::DebugMarker::SetQueryPoolName( PG::Gfx::rg.device, pool, PG_DEBUG_MARKER_NAME( "QueryPool: ", name ) )
 

@@ -49,6 +49,7 @@ struct TGBTexture
     uint8_t arrayLayers;
     uint8_t mipLevels;
     PixelFormat format;
+    VkImageUsageFlags usage;
     ExtTextureFunc externalFunc;
 };
 
@@ -157,6 +158,34 @@ public:
     ComputeFunction function;
 };
 
+struct TGBAttachmentInfo
+{
+    vec4 clearColor;
+    TGBTextureRef ref;
+    ResourceType type;
+    bool isCleared;
+};
+
+class GraphicsTaskBuilder : public TaskBuilder
+{
+public:
+    GraphicsTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
+        : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::GRAPHICS ), inName )
+    {
+    }
+
+    TGBTextureRef AddColorAttachment( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
+        uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+    TGBTextureRef AddColorAttachment( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
+        uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+    void AddColorAttachment( TGBTextureRef tex );
+
+    void SetFunction( GraphicsFunction func );
+
+    std::vector<TGBAttachmentInfo> attachments;
+    GraphicsFunction function;
+};
+
 struct TGBTextureTransfer
 {
     TGBTextureRef dst;
@@ -192,12 +221,16 @@ public:
 class TaskGraphBuilder
 {
     friend class ComputeTaskBuilder;
+    friend class GraphicsTaskBuilder;
+    friend class TransferTaskBuilder;
+    friend class PresentTaskBuilder;
     friend class TaskGraph;
 
 public:
     TaskGraphBuilder();
     ~TaskGraphBuilder();
     ComputeTaskBuilder* AddComputeTask( const std::string& name );
+    GraphicsTaskBuilder* AddGraphicsTask( const std::string& name );
     TransferTaskBuilder* AddTransferTask( const std::string& name );
     PresentTaskBuilder* AddPresentTask();
 
@@ -208,7 +241,7 @@ public:
 
 private:
     TGBTextureRef AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-        uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
+        uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func, VkImageUsageFlags usage );
     TGBBufferRef AddBuffer( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
     std::vector<TaskBuilder*> tasks;
@@ -222,7 +255,7 @@ private:
     };
     std::vector<ResLifetime> textureLifetimes;
     std::vector<ResLifetime> bufferLifetimes;
-    void UpdateTextureLifetime( TGBTextureRef ref, TaskHandle task );
+    void UpdateTextureLifetimeAndUsage( TGBTextureRef ref, TaskHandle task, VkImageUsageFlags flags = 0 );
     void UpdateBufferLifetime( TGBBufferRef ref, TaskHandle task );
 
     uint16_t numTasks;

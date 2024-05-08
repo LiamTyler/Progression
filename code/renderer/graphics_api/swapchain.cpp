@@ -32,11 +32,12 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
 
     vkb::Swapchain vkbSwapchain = swap_ret.value();
 
-    m_width      = vkbSwapchain.extent.width;
-    m_height     = vkbSwapchain.extent.height;
-    m_handle     = vkbSwapchain.swapchain;
-    m_images     = vkbSwapchain.get_images().value();
-    m_imageViews = vkbSwapchain.get_image_views().value();
+    m_imageFormat = VulkanToPGPixelFormat( vkbSwapchain.image_format );
+    m_width       = vkbSwapchain.extent.width;
+    m_height      = vkbSwapchain.extent.height;
+    m_handle      = vkbSwapchain.swapchain;
+    m_images      = vkbSwapchain.get_images().value();
+    m_imageViews  = vkbSwapchain.get_image_views().value();
     for ( size_t i = 0; i < m_images.size(); ++i )
     {
         PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( m_imageViews[i], "swapchain " + std::to_string( i ) );
@@ -67,7 +68,7 @@ void Swapchain::Free()
 
 Swapchain::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 uint32_t Swapchain::GetCurrentImageIndex() const { return m_currentImageIdx; }
-PixelFormat Swapchain::GetFormat() const { return VulkanToPGPixelFormat( m_imageFormat ); }
+PixelFormat Swapchain::GetFormat() const { return m_imageFormat; }
 uint32_t Swapchain::GetWidth() const { return m_width; }
 uint32_t Swapchain::GetHeight() const { return m_height; }
 VkSwapchainKHR Swapchain::GetHandle() const { return m_handle; }

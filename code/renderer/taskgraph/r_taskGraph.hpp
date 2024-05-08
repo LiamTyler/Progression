@@ -26,6 +26,7 @@ struct TGExecuteData
 
     std::vector<VkImageMemoryBarrier2> scratchImageBarriers;
     std::vector<VkBufferMemoryBarrier2> scratchBufferBarriers;
+    std::vector<VkRenderingAttachmentInfo> scratchAttachmentInfos;
 };
 
 class TaskGraph
@@ -51,9 +52,9 @@ public:
     Texture* GetTexture( TGResourceHandle handle );
 
 private:
-    std::vector<ResourceData> Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& compileInfo );
+    void Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& compileInfo, std::vector<ResourceData>& resourceDatas );
     void Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& compileInfo, std::vector<ResourceData>& resourceDatas );
-    void Compile_Synchronization( TaskGraphBuilder& builder, CompileInfo& compileInfo );
+    void Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, CompileInfo& compileInfo );
 
     std::vector<Task*> tasks;
     std::vector<Buffer> buffers;

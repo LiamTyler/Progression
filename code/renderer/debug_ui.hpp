@@ -1,7 +1,6 @@
 #pragma once
 
 #include "core/feature_defines.hpp"
-#if USING( PG_DEBUG_UI )
 
 #include "imgui/imgui.h"
 #include "renderer/graphics_api/command_buffer.hpp"
@@ -33,4 +32,3 @@ void Text( const char* formatstr, ... );
 bool Updated();
 
 } // namespace PG::Gfx::UIOverlay
-#endif // #if USING( PG_DEBUG_UI )

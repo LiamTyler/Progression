@@ -53,6 +53,19 @@ public:
     ComputeFunction function;
 };
 
+class GraphicsTask;
+using GraphicsFunction = std::function<void( GraphicsTask*, TGExecuteData* )>;
+
+class GraphicsTask : public Task
+{
+public:
+    void Execute( TGExecuteData* data ) override;
+
+    std::vector<VkRenderingAttachmentInfo> attachments; // all attachments. If there is a depth/stencil image, it's always in attachments[0]
+    VkRenderingInfo renderingInfo;
+    GraphicsFunction function;
+};
+
 struct TextureTransfer
 {
     TGResourceHandle dst;

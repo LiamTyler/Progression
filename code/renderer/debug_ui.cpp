@@ -1,6 +1,83 @@
 #include "renderer/debug_ui.hpp"
 
-#if USING( PG_DEBUG_UI )
+#if !USING( PG_DEBUG_UI )
+
+namespace PG::Gfx::UIOverlay
+{
+
+bool Init( PixelFormat colorAttachmentFormat )
+{
+    PG_UNUSED( colorAttachmentFormat );
+    return true;
+}
+void Shutdown() {}
+
+void BeginFrame() {}
+void Render( CommandBuffer& cmdBuf ) { PG_UNUSED( cmdBuf ); }
+void EndFrame() {}
+
+void AddDrawFunction( const std::function<void()>& func ) { PG_UNUSED( func ); }
+bool CapturingMouse() { return false; }
+
+bool Header( const char* caption )
+{
+    PG_UNUSED( caption );
+    return false;
+}
+bool CheckBox( const char* caption, bool* value )
+{
+    PG_UNUSED( caption );
+    PG_UNUSED( value );
+    return false;
+}
+bool CheckBox( const char* caption, int* value )
+{
+    PG_UNUSED( caption );
+    PG_UNUSED( value );
+    return false;
+}
+bool InputFloat( const char* caption, float* value, float step )
+{
+    PG_UNUSED( caption );
+    PG_UNUSED( value );
+    PG_UNUSED( step );
+    return false;
+}
+bool SliderFloat( const char* caption, float* value, float min, float max )
+{
+    PG_UNUSED( caption );
+    PG_UNUSED( value );
+    PG_UNUSED( min );
+    PG_UNUSED( max );
+    return false;
+}
+bool SliderInt( const char* caption, int* value, int min, int max )
+{
+    PG_UNUSED( caption );
+    PG_UNUSED( value );
+    PG_UNUSED( min );
+    PG_UNUSED( max );
+    return false;
+}
+bool ComboBox( const char* caption, int* itemindex, const std::vector<std::string>& items )
+{
+    PG_UNUSED( caption );
+    PG_UNUSED( itemindex );
+    PG_UNUSED( items );
+    return false;
+}
+bool Button( const char* caption )
+{
+    PG_UNUSED( caption );
+    return false;
+}
+void Text( const char* formatstr, ... ) { PG_UNUSED( formatstr ); }
+bool Updated() { return false; }
+
+} // namespace PG::Gfx::UIOverlay
+
+#else // #if !USING( PG_DEBUG_UI )
+
 #include "core/dvars.hpp"
 #include "core/input.hpp"
 #include "core/time.hpp"
@@ -12,13 +89,14 @@
 #include "renderer/vulkan.hpp"
 #include "shared/logger.hpp"
 
+static PG::Dvar dvarDebugUI( "r_debugUI", true, "Controls whether to allow any 2D debug UI elements (those that use ImGUI) to be drawn" );
+
 namespace PG::Gfx::UIOverlay
 {
 
-static Dvar dvarDebugUI( "r_debugUI", false, "Controls whether to allow any 2D debug UI elements (those that use ImGUI) to be drawn" );
-
 static bool s_updated;
 static std::vector<std::function<void()>> s_drawFunctions;
+static VkDescriptorPool s_descriptorPool;
 
 static void CheckVkResult( VkResult err )
 {
@@ -35,6 +113,20 @@ bool Init( PixelFormat colorAttachmentFormat )
     s_updated = false;
     s_drawFunctions.reserve( 64 );
 
+    VkDescriptorPoolSize poolSizes[] = {
+        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64},
+    };
+
+    VkDescriptorPoolCreateInfo poolInfo = {};
+    poolInfo.sType                      = VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO;
+    poolInfo.flags                      = VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT;
+    poolInfo.maxSets                    = 1000;
+    poolInfo.poolSizeCount              = ARRAY_COUNT( poolSizes );
+    poolInfo.pPoolSizes                 = poolSizes;
+
+    VK_CHECK( vkCreateDescriptorPool( rg.device, &poolInfo, nullptr, &s_descriptorPool ) );
+    PG_DEBUG_MARKER_SET_DESC_POOL_NAME( s_descriptorPool, "ImGui pool" );
+
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
     ImGuiIO& io = ImGui::GetIO();
@@ -42,9 +134,7 @@ bool Init( PixelFormat colorAttachmentFormat )
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
 
-    // Setup Dear ImGui style
     ImGui::StyleColorsDark();
-    // ImGui::StyleColorsLight();
 
     // Setup Platform/Renderer backends
     ImGui_ImplGlfw_InitForVulkan( GetMainWindow()->GetGLFWHandle(), true );
@@ -55,10 +145,9 @@ bool Init( PixelFormat colorAttachmentFormat )
     init_info.QueueFamily               = rg.device.GetQueue().familyIndex;
     init_info.Queue                     = rg.device.GetQueue();
     init_info.PipelineCache             = VK_NULL_HANDLE;
-    PG_ASSERT( false, "todo" );
-    //init_info.DescriptorPool            = rg.descriptorPool.GetHandle();
+    init_info.DescriptorPool            = s_descriptorPool;
     init_info.Subpass                   = 0;
-    init_info.MinImageCount             = 2;                           // ?
+    init_info.MinImageCount             = rg.swapchain.GetNumImages(); // ?
     init_info.ImageCount                = rg.swapchain.GetNumImages(); // ?
     init_info.MSAASamples               = VK_SAMPLE_COUNT_1_BIT;
     init_info.Allocator                 = nullptr;
@@ -75,8 +164,8 @@ void Shutdown()
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+    vkDestroyDescriptorPool( rg.device, s_descriptorPool, nullptr );
     s_drawFunctions.clear();
-    s_drawFunctions.shrink_to_fit();
 }
 
 void AddDrawFunction( const std::function<void()>& func ) { s_drawFunctions.push_back( func ); }
@@ -99,7 +188,7 @@ void Render( CommandBuffer& cmdBuf )
     }
     s_drawFunctions.clear();
 
-    // ImGui::ShowDemoWindow();
+    ImGui::ShowDemoWindow();
 
     ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -193,4 +282,4 @@ bool Updated() { return s_updated; }
 
 } // namespace PG::Gfx::UIOverlay
 
-#endif // #if USING( PG_DEBUG_UI )
+#endif // #else // #if !USING( PG_DEBUG_UI )

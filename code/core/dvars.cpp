@@ -10,7 +10,11 @@
 namespace PG
 {
 
-static std::unordered_map<std::string_view, Dvar*> s_dvars;
+static std::unordered_map<std::string_view, Dvar*>& DvarMap()
+{
+    static std::unordered_map<std::string_view, Dvar*> s_dvars;
+    return s_dvars;
+};
 
 static bool IsNameValid( const char* const inName )
 {
@@ -26,9 +30,9 @@ static bool IsNameValid( const char* const inName )
 static void RegisterDvar( Dvar* dvar )
 {
     PG_ASSERT( IsNameValid( dvar->GetName() ), "dvar name '%s' cannot contain any whitespace", dvar->GetName() );
-    PG_ASSERT( !s_dvars.contains( dvar->GetName() ), "Trying to register dvar '%s' multiple times! Make sure it's only defined once",
+    PG_ASSERT( !DvarMap().contains( dvar->GetName() ), "Trying to register dvar '%s' multiple times! Make sure it's only defined once",
         dvar->GetName() );
-    s_dvars.emplace( dvar->GetName(), dvar );
+    DvarMap().emplace( dvar->GetName(), dvar );
 }
 
 const char* Dvar::TypeToString( DvarType t )
@@ -166,9 +170,9 @@ void Dvar::SetFromString( const std::string& str )
     }
 }
 
-Dvar* GetDvar( std::string_view name ) { return s_dvars.contains( name ) ? s_dvars[name] : nullptr; }
+Dvar* GetDvar( std::string_view name ) { return DvarMap().contains( name ) ? DvarMap()[name] : nullptr; }
 
-const std::unordered_map<std::string_view, Dvar*>& GetAllDvars() { return s_dvars; }
+const std::unordered_map<std::string_view, Dvar*>& GetAllDvars() { return DvarMap(); }
 
 #if !USING( SHIP_BUILD )
 // Make sure this filename lines up with the filename in remote_console_main.cpp
@@ -181,9 +185,10 @@ void ExportDvars()
         return;
     }
 
-    int numDvars = static_cast<int>( s_dvars.size() );
+    const auto& dvars = DvarMap();
+    int numDvars = static_cast<int>( dvars.size() );
     outFile.write( (char*)&numDvars, sizeof( numDvars ) );
-    for ( const auto& [_, dvar] : s_dvars )
+    for ( const auto& [_, dvar] : dvars )
     {
         int l = (int)strlen( dvar->GetName() );
         outFile.write( (char*)&l, sizeof( l ) );

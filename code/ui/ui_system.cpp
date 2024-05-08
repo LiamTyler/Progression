@@ -83,42 +83,42 @@ bool Init()
         return false;
     }
 
-    using namespace Gfx;
-    PipelineDescriptor pipelineDesc;
-    pipelineDesc.dynamicAttachmentInfo       = RenderSystem::GetPipelineAttachmentInfo( "UI_2D" );
-    pipelineDesc.depthInfo.depthTestEnabled  = false;
-    pipelineDesc.depthInfo.depthWriteEnabled = false;
-    pipelineDesc.rasterizerInfo.winding      = WindingOrder::COUNTER_CLOCKWISE;
-    pipelineDesc.rasterizerInfo.cullFace     = CullFace::NONE;
-    pipelineDesc.vertexDescriptor            = VertexInputDescriptor::Create( 0, nullptr, 0, nullptr );
-    pipelineDesc.shaders[0]                  = AssetManager::Get<Shader>( "uiVert" );
-    pipelineDesc.shaders[1]                  = AssetManager::Get<Shader>( "uiFrag" );
-    for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
-    {
-        UIElementBlendMode blendMode                         = static_cast<UIElementBlendMode>( i );
-        pipelineDesc.colorAttachmentInfos[0].blendingEnabled = blendMode != UIElementBlendMode::OPAQUE;
-        if ( blendMode == UIElementBlendMode::BLEND )
-        {
-            pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::SRC_ALPHA;
-            pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
-            pipelineDesc.colorAttachmentInfos[0].srcAlphaBlendFactor = BlendFactor::SRC_ALPHA;
-            pipelineDesc.colorAttachmentInfos[0].dstAlphaBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
-            pipelineDesc.colorAttachmentInfos[0].colorBlendEquation  = BlendEquation::ADD;
-            pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation  = BlendEquation::ADD;
-        }
-        else if ( blendMode == UIElementBlendMode::ADDITIVE )
-        {
-            pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::ONE;
-            pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE;
-            pipelineDesc.colorAttachmentInfos[0].srcAlphaBlendFactor = BlendFactor::ONE;
-            pipelineDesc.colorAttachmentInfos[0].dstAlphaBlendFactor = BlendFactor::ONE;
-            pipelineDesc.colorAttachmentInfos[0].colorBlendEquation  = BlendEquation::ADD;
-            pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation  = BlendEquation::ADD;
-        }
-        s_uiPipelines[i] = rg.device.NewGraphicsPipeline( pipelineDesc, s_uiPipelineNames[i] );
-        if ( !s_uiPipelines[i] )
-            return false;
-    }
+    //using namespace Gfx;
+    //PipelineDescriptor pipelineDesc;
+    //pipelineDesc.dynamicAttachmentInfo       = RenderSystem::GetPipelineAttachmentInfo( "UI_2D" );
+    //pipelineDesc.depthInfo.depthTestEnabled  = false;
+    //pipelineDesc.depthInfo.depthWriteEnabled = false;
+    //pipelineDesc.rasterizerInfo.winding      = WindingOrder::COUNTER_CLOCKWISE;
+    //pipelineDesc.rasterizerInfo.cullFace     = CullFace::NONE;
+    //pipelineDesc.vertexDescriptor            = VertexInputDescriptor::Create( 0, nullptr, 0, nullptr );
+    //pipelineDesc.shaders[0]                  = AssetManager::Get<Shader>( "uiVert" );
+    //pipelineDesc.shaders[1]                  = AssetManager::Get<Shader>( "uiFrag" );
+    //for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
+    //{
+    //    UIElementBlendMode blendMode                         = static_cast<UIElementBlendMode>( i );
+    //    pipelineDesc.colorAttachmentInfos[0].blendingEnabled = blendMode != UIElementBlendMode::OPAQUE;
+    //    if ( blendMode == UIElementBlendMode::BLEND )
+    //    {
+    //        pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::SRC_ALPHA;
+    //        pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
+    //        pipelineDesc.colorAttachmentInfos[0].srcAlphaBlendFactor = BlendFactor::SRC_ALPHA;
+    //        pipelineDesc.colorAttachmentInfos[0].dstAlphaBlendFactor = BlendFactor::ONE_MINUS_SRC_ALPHA;
+    //        pipelineDesc.colorAttachmentInfos[0].colorBlendEquation  = BlendEquation::ADD;
+    //        pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation  = BlendEquation::ADD;
+    //    }
+    //    else if ( blendMode == UIElementBlendMode::ADDITIVE )
+    //    {
+    //        pipelineDesc.colorAttachmentInfos[0].srcColorBlendFactor = BlendFactor::ONE;
+    //        pipelineDesc.colorAttachmentInfos[0].dstColorBlendFactor = BlendFactor::ONE;
+    //        pipelineDesc.colorAttachmentInfos[0].srcAlphaBlendFactor = BlendFactor::ONE;
+    //        pipelineDesc.colorAttachmentInfos[0].dstAlphaBlendFactor = BlendFactor::ONE;
+    //        pipelineDesc.colorAttachmentInfos[0].colorBlendEquation  = BlendEquation::ADD;
+    //        pipelineDesc.colorAttachmentInfos[0].alphaBlendEquation  = BlendEquation::ADD;
+    //    }
+    //    s_uiPipelines[i] = rg.device.NewGraphicsPipeline( pipelineDesc, s_uiPipelineNames[i] );
+    //    if ( !s_uiPipelines[i] )
+    //        return false;
+    //}
 
     Clear();
 
@@ -136,10 +136,10 @@ void Shutdown()
 {
     Clear();
     Gfx::rg.device.WaitForIdle();
-    for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
-    {
-        s_uiPipelines[i].Free();
-    }
+    //for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
+    //{
+    //    s_uiPipelines[i].Free();
+    //}
     delete s_uiLuaState;
 }
 

@@ -8,22 +8,24 @@ namespace PG::Gfx
 TGBTextureRef ComputeTaskBuilder::AddTextureOutput( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width,
     uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
-    TGBTextureRef ref = builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr );
-    builder->UpdateTextureLifetime( ref, taskHandle );
+    TGBTextureRef ref =
+        builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_STORAGE_BIT );
     textures.emplace_back( clearColor, ref, true, ResourceState::WRITE );
     return ref;
 }
+
 TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
     const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
 {
-    TGBTextureRef ref = builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr );
-    builder->UpdateTextureLifetime( ref, taskHandle );
+    TGBTextureRef ref =
+        builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_STORAGE_BIT );
     textures.emplace_back( vec4( 0 ), ref, false, ResourceState::WRITE );
     return ref;
 }
+
 void ComputeTaskBuilder::AddTextureOutput( TGBTextureRef& ref )
 {
-    builder->UpdateTextureLifetime( ref, taskHandle );
+    builder->UpdateTextureLifetimeAndUsage( ref, taskHandle, VK_IMAGE_USAGE_STORAGE_BIT );
     for ( TGBTextureInfo& tInfo : textures )
     {
         if ( tInfo.ref == ref )
@@ -35,9 +37,10 @@ void ComputeTaskBuilder::AddTextureOutput( TGBTextureRef& ref )
     }
     textures.emplace_back( vec4( 0 ), ref, false, ResourceState::WRITE );
 }
+
 void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& ref )
 {
-    builder->UpdateTextureLifetime( ref, taskHandle );
+    builder->UpdateTextureLifetimeAndUsage( ref, taskHandle, VK_IMAGE_USAGE_SAMPLED_BIT );
 #if USING( TG_DEBUG )
     for ( TGBTextureInfo& tInfo : textures )
     {
@@ -47,6 +50,7 @@ void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& ref )
 #endif // #if USING( TG_DEBUG )
     textures.emplace_back( vec4( 0 ), ref, false, ResourceState::READ );
 }
+
 TGBBufferRef ComputeTaskBuilder::AddBufferOutput(
     const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal )
 {
@@ -91,9 +95,44 @@ void ComputeTaskBuilder::AddBufferInput( TGBBufferRef& ref )
 }
 void ComputeTaskBuilder::SetFunction( ComputeFunction func ) { function = func; }
 
-void TransferTaskBuilder::BlitTexture( TGBTextureRef dst, TGBTextureRef src ) { textureBlits.emplace_back( dst, src ); }
+TGBTextureRef GraphicsTaskBuilder::AddColorAttachment( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width,
+    uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
+{
+    TGBTextureRef ref =
+        builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT );
+    attachments.emplace_back( clearColor, ref, ResourceType::COLOR_ATTACH, true );
+    return ref;
+}
 
-void PresentTaskBuilder::SetPresentationImage( TGBTextureRef tex ) { presentationTex = tex; }
+TGBTextureRef GraphicsTaskBuilder::AddColorAttachment(
+    const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
+{
+    TGBTextureRef ref =
+        builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT );
+    attachments.emplace_back( vec4( 0 ), ref, ResourceType::COLOR_ATTACH, false );
+    return ref;
+}
+
+void GraphicsTaskBuilder::AddColorAttachment( TGBTextureRef tex )
+{
+    builder->UpdateTextureLifetimeAndUsage( tex, taskHandle, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT );
+    attachments.emplace_back( vec4( 0 ), tex, ResourceType::COLOR_ATTACH, false );
+}
+
+void GraphicsTaskBuilder::SetFunction( GraphicsFunction func ) { function = func; }
+
+void TransferTaskBuilder::BlitTexture( TGBTextureRef dst, TGBTextureRef src )
+{
+    textureBlits.emplace_back( dst, src );
+    builder->UpdateTextureLifetimeAndUsage( src, taskHandle, VK_IMAGE_USAGE_TRANSFER_SRC_BIT );
+    builder->UpdateTextureLifetimeAndUsage( dst, taskHandle, VK_IMAGE_USAGE_TRANSFER_DST_BIT );
+}
+
+void PresentTaskBuilder::SetPresentationImage( TGBTextureRef tex )
+{
+    presentationTex = tex;
+    builder->UpdateTextureLifetimeAndUsage( tex, taskHandle );
+}
 
 TaskGraphBuilder::TaskGraphBuilder() : numTasks( 0 )
 {
@@ -117,6 +156,13 @@ ComputeTaskBuilder* TaskGraphBuilder::AddComputeTask( const std::string& name )
     return task;
 }
 
+GraphicsTaskBuilder* TaskGraphBuilder::AddGraphicsTask( const std::string& name )
+{
+    GraphicsTaskBuilder* task = new GraphicsTaskBuilder( this, numTasks++, name );
+    tasks.push_back( task );
+    return task;
+}
+
 TransferTaskBuilder* TaskGraphBuilder::AddTransferTask( const std::string& name )
 {
     TransferTaskBuilder* task = new TransferTaskBuilder( this, numTasks++, name );
@@ -134,7 +180,7 @@ PresentTaskBuilder* TaskGraphBuilder::AddPresentTask()
 TGBTextureRef TaskGraphBuilder::RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
     uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func )
 {
-    return AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, func );
+    return AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, func, 0 );
 }
 
 TGBBufferRef TaskGraphBuilder::RegisterExternalBuffer(
@@ -144,14 +190,14 @@ TGBBufferRef TaskGraphBuilder::RegisterExternalBuffer(
 }
 
 TGBTextureRef TaskGraphBuilder::AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-    uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func )
+    uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func, VkImageUsageFlags usage )
 {
     TGResourceHandle index = static_cast<TGResourceHandle>( textures.size() );
 
 #if USING( TG_DEBUG )
-    textures.emplace_back( name, width, height, depth, arrayLayers, mipLevels, format, func );
+    textures.emplace_back( name, width, height, depth, arrayLayers, mipLevels, format, usage, func );
 #else  // #if USING( TG_DEBUG )
-    textures.emplace_back( width, height, depth, arrayLayers, mipLevels, format, func );
+    textures.emplace_back( width, height, depth, arrayLayers, mipLevels, format, usage, func );
 #endif // #else // #if USING( TG_DEBUG )
     textureLifetimes.emplace_back();
 
@@ -178,11 +224,12 @@ TGBBufferRef TaskGraphBuilder::AddBuffer(
     return ref;
 }
 
-void TaskGraphBuilder::UpdateTextureLifetime( TGBTextureRef ref, TaskHandle task )
+void TaskGraphBuilder::UpdateTextureLifetimeAndUsage( TGBTextureRef ref, TaskHandle task, VkImageUsageFlags flags )
 {
     ResLifetime& lifetime = textureLifetimes[ref.index];
     lifetime.firstTask    = Min( lifetime.firstTask, task.index );
     lifetime.lastTask     = Max( lifetime.lastTask, task.index );
+    textures[ref.index].usage |= flags;
 }
 
 void TaskGraphBuilder::UpdateBufferLifetime( TGBBufferRef ref, TaskHandle task )

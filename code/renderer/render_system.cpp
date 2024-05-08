@@ -4,6 +4,7 @@
 #include "r_globals.hpp"
 #include "r_init.hpp"
 #include "r_texture_manager.hpp"
+#include "renderer/debug_ui.hpp"
 #include "shared/logger.hpp"
 #include "taskgraph/r_taskGraph.hpp"
 
@@ -89,6 +90,9 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
 
     VK_CHECK( vkCreateComputePipelines( rg.device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &s_gradientPipeline ) );
 
+    if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
+        return false;
+
     TaskGraphBuilder builder;
     ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
     TGBTextureRef gradientImg =
@@ -106,6 +110,10 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     TransferTaskBuilder* tTask = builder.AddTransferTask( "copyToSwapchain" );
     tTask->BlitTexture( swapImg, gradientImg );
 
+    GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_2D" );
+    gTask->AddColorAttachment( swapImg );
+    gTask->SetFunction( []( GraphicsTask* task, TGExecuteData* data ) { UIOverlay::Render( *data->cmdBuf ); } );
+
     PresentTaskBuilder* pTask = builder.AddPresentTask();
     pTask->SetPresentationImage( swapImg );
 
@@ -114,7 +122,11 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     compileInfo.sceneHeight   = sceneHeight;
     compileInfo.displayWidth  = displayWidth;
     compileInfo.displayHeight = displayHeight;
-    s_taskGraph.Compile( builder, compileInfo );
+    if ( !s_taskGraph.Compile( builder, compileInfo ) )
+    {
+        LOG_ERR( "Could not compile the task graph" );
+        return false;
+    }
 
     return true;
 }
@@ -123,6 +135,7 @@ void Shutdown()
 {
     rg.device.WaitForIdle();
     s_taskGraph.Free();
+    UIOverlay::Shutdown();
     vkDestroyPipelineLayout( rg.device, s_gradientPipelineLayout, nullptr );
     vkDestroyPipeline( rg.device, s_gradientPipeline, nullptr );
 
@@ -138,6 +151,7 @@ void Render()
     rg.swapchain.AcquireNextImage( frameData.swapchainSemaphore );
 
     TextureManager::Update();
+    UIOverlay::BeginFrame();
 
     CommandBuffer& cmdBuf = frameData.primaryCmdBuffer;
     cmdBuf.Reset();
@@ -147,6 +161,8 @@ void Render()
     tgData.frameData = &frameData;
     tgData.cmdBuf    = &cmdBuf;
     s_taskGraph.Execute( tgData );
+
+    UIOverlay::EndFrame();
 
     cmdBuf.EndRecording();
 

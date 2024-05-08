@@ -29,6 +29,17 @@ static void FillImageBarriers( TaskGraph* taskGraph, vector<VkImageMemoryBarrier
     }
 }
 
+static void FillAttachmentInfos( TaskGraph* taskGraph, vector<VkRenderingAttachmentInfo>& scratch, vector<VkRenderingAttachmentInfo>& source )
+{
+    scratch = source;
+    for ( VkRenderingAttachmentInfo& attach : scratch )
+    {
+        TGResourceHandle imgHandle;
+        memcpy( &imgHandle, &attach.imageView, sizeof( TGResourceHandle ) );
+        attach.imageView = taskGraph->GetTexture( imgHandle )->GetView();
+    }
+}
+
 void Task::SubmitBarriers( TGExecuteData* data )
 {
     if ( imageBarriers.empty() && bufferBarriers.empty() )
@@ -75,6 +86,18 @@ void ComputeTask::Execute( TGExecuteData* data )
     SubmitBarriers( data );
 
     function( this, data );
+}
+
+void GraphicsTask::Execute( TGExecuteData* data )
+{
+    SubmitBarriers( data );
+    
+    FillAttachmentInfos( data->taskGraph, data->scratchAttachmentInfos, attachments );
+    renderingInfo.pColorAttachments = data->scratchAttachmentInfos.data();
+
+    vkCmdBeginRendering( *data->cmdBuf, &renderingInfo );
+    function( this, data );
+    vkCmdEndRendering( *data->cmdBuf );
 }
 
 void TransferTask::Execute( TGExecuteData* data )

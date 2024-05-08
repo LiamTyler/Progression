@@ -33,7 +33,7 @@ public:
 private:
     VkDevice m_device;
     VkSwapchainKHR m_handle = VK_NULL_HANDLE;
-    VkFormat m_imageFormat;
+    PixelFormat m_imageFormat;
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_currentImageIdx;

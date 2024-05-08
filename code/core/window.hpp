@@ -32,17 +32,21 @@ public:
     GLFWwindow* GetGLFWHandle() const { return m_window; }
     int Width() const { return m_width; }
     int Height() const { return m_height; }
+    int FramebufferWidth() const { return m_framebufferWidth; }
+    int FramebufferHeight() const { return m_framebufferHeight; }
     void SetRelativeMouse( bool b );
     bool IsRelativeMouse() const { return m_relativeMouse; }
     void SetTitle( const std::string& title );
 
 protected:
-    GLFWwindow* m_window = nullptr;
-    std::string m_title  = "";
-    int m_width          = 0;
-    int m_height         = 0;
-    bool m_visible       = false;
-    bool m_relativeMouse = false;
+    GLFWwindow* m_window    = nullptr;
+    std::string m_title     = "";
+    int m_width             = 0;
+    int m_height            = 0;
+    int m_framebufferWidth  = 0;
+    int m_framebufferHeight = 0;
+    bool m_visible          = false;
+    bool m_relativeMouse    = false;
 };
 
 void RegisterLuaFunctions_Window( lua_State* state );

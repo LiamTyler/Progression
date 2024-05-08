@@ -1,4 +1,5 @@
 #include "core/window.hpp"
+#include "core/init.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
 #include "shared/logger.hpp"
@@ -61,6 +62,9 @@ Window::~Window()
 extern bool g_engineShutdown;
 static void WindowCloseCallback( GLFWwindow* window ) { g_engineShutdown = true; }
 
+void FramebufferResizeCallback( Window* w, GLFWwindow* window, int width, int height ) { LOG( "New width" ); }
+
+using namespace std::placeholders;
 void Window::Init( const WindowCreateInfo& createInfo )
 {
     m_title   = createInfo.title;
@@ -70,7 +74,7 @@ void Window::Init( const WindowCreateInfo& createInfo )
 
     glfwWindowHint( GLFW_VISIBLE, m_visible );
     glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
-    glfwWindowHint( GLFW_RESIZABLE, GLFW_FALSE );
+    glfwWindowHint( GLFW_RESIZABLE, GLFW_TRUE );
     m_window = glfwCreateWindow( m_width, m_height, m_title.c_str(), nullptr, nullptr );
     if ( !m_window )
     {
@@ -82,15 +86,23 @@ void Window::Init( const WindowCreateInfo& createInfo )
     glfwSetWindowCloseCallback( m_window, WindowCloseCallback );
     glfwSetErrorCallback( ErrorCallback );
 
-#if !USING( SHIP_BUILD )
-    if ( createInfo.debugContext ) {}
-#endif // #if !USING( SHIP_BUILD )
-
     s_framesDrawnSinceLastFPSUpdate = 0;
     s_lastFPSUpdateTime             = Time::GetTimePoint();
+    glfwGetFramebufferSize( m_window, &m_framebufferWidth, &m_framebufferHeight );
 }
 
-void Window::StartFrame() { Time::StartFrame(); }
+void Window::StartFrame()
+{
+    Time::StartFrame();
+    int fW, fH;
+    glfwGetFramebufferSize( m_window, &fW, &fH );
+    if ( fW != m_framebufferWidth || fH != m_framebufferHeight )
+    {
+        g_resizeRequested   = true;
+        m_framebufferWidth  = fW;
+        m_framebufferHeight = fH;
+    }
+}
 
 void Window::EndFrame()
 {

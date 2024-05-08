@@ -6,6 +6,7 @@ namespace PG
 {
 
 extern bool g_engineShutdown;
+extern bool g_resizeRequested;
 extern bool g_headless;
 extern bool g_offlineRenderer;
 

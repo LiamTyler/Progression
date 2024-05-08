@@ -19,6 +19,7 @@ namespace PG
 {
 
 bool g_engineShutdown  = false;
+bool g_resizeRequested = false;
 bool g_headless        = false;
 bool g_offlineRenderer = false;
 
@@ -37,6 +38,8 @@ bool EngineInitialize( EngineInitInfo info )
     Time::Reset();
     AssetManager::Init();
 #if USING( GAME )
+    uint32_t framebufferWidth  = info.windowWidth;
+    uint32_t framebufferHeight = info.windowHeight;
     if ( !g_headless )
     {
         WindowCreateInfo winCreate;
@@ -47,8 +50,10 @@ bool EngineInitialize( EngineInitInfo info )
         winCreate.vsync   = false;
         InitWindowSystem( winCreate );
         Input::Init();
+        framebufferWidth  = GetMainWindow()->FramebufferWidth();
+        framebufferHeight = GetMainWindow()->FramebufferHeight();
     }
-    if ( !RenderSystem::Init( info.sceneWidth, info.sceneHeight, info.windowWidth, info.windowHeight, g_headless ) )
+    if ( !RenderSystem::Init( info.sceneWidth, info.sceneHeight, framebufferWidth, framebufferHeight, g_headless ) )
     {
         LOG_ERR( "Could not initialize render system" );
         return false;

@@ -35,9 +35,10 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
     m_imageFormat = VulkanToPGPixelFormat( vkbSwapchain.image_format );
     m_width       = vkbSwapchain.extent.width;
     m_height      = vkbSwapchain.extent.height;
-    m_handle      = vkbSwapchain.swapchain;
-    m_images      = vkbSwapchain.get_images().value();
-    m_imageViews  = vkbSwapchain.get_image_views().value();
+    PG_ASSERT( m_width == width && m_height == height, "Later textures (r_globals) are allocated assuming this" );
+    m_handle     = vkbSwapchain.swapchain;
+    m_images     = vkbSwapchain.get_images().value();
+    m_imageViews = vkbSwapchain.get_image_views().value();
     for ( size_t i = 0; i < m_images.size(); ++i )
     {
         PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( m_imageViews[i], "swapchain " + std::to_string( i ) );
@@ -47,11 +48,20 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
     return true;
 }
 
-uint32_t Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
+bool Swapchain::Recreate( uint32_t preferredWidth, uint32_t preferredHeight )
 {
-    VK_CHECK(
-        vkAcquireNextImageKHR( m_device, m_handle, UINT64_MAX, presentCompleteSemaphore.GetHandle(), VK_NULL_HANDLE, &m_currentImageIdx ) );
-    return m_currentImageIdx;
+    rg.device.WaitForIdle();
+    Free();
+    return Create( preferredWidth, preferredHeight );
+}
+
+bool Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
+{
+    VkSemaphore vkSem = presentCompleteSemaphore.GetHandle();
+    VkResult res      = vkAcquireNextImageKHR( m_device, m_handle, UINT64_MAX, vkSem, VK_NULL_HANDLE, &m_currentImageIdx );
+    bool resizeNeeded = res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR;
+    PG_ASSERT( res == VK_SUCCESS || resizeNeeded, "vkAcquireNextImageKHR failed with error %d", res );
+    return !resizeNeeded;
 }
 
 void Swapchain::Free()

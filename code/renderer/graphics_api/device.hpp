@@ -52,7 +52,8 @@ public:
     Framebuffer NewFramebuffer(
         const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name = "" ) const;
     Framebuffer NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name = "" ) const;
-    void Present( const Swapchain& swapChain, const Semaphore& waitSemaphore ) const;
+    // returns false if present failed because the swapchain needs to be recreated
+    bool Present( const Swapchain& swapChain, const Semaphore& waitSemaphore ) const;
 
     void Copy( Buffer dst, Buffer src ) const;
     void CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips = true ) const;

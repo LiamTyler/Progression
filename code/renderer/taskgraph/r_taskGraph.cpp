@@ -595,6 +595,13 @@ void TaskGraph::Free()
             vkDestroyImageView( rg.device, tex.m_imageView, nullptr );
         }
     }
+
+    tasks.clear();
+    buffers.clear();
+    textures.clear();
+    vmaAllocations.clear();
+    externalBuffers.clear();
+    externalTextures.clear();
 }
 
 void TaskGraph::Execute( TGExecuteData& data )

@@ -1,5 +1,6 @@
 #include "render_system.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/init.hpp"
 #include "core/window.hpp"
 #include "r_globals.hpp"
 #include "r_init.hpp"
@@ -55,10 +56,52 @@ void NewDrawFunctionTG( ComputeTask* task, TGExecuteData* data )
         (uint32_t)std::ceil( tex->GetHeight() / (float)shader->reflectionData.workgroupSize.y ), 1 );
 }
 
+bool Init_TaskGraph()
+{
+    TaskGraphBuilder builder;
+    ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
+    TGBTextureRef gradientImg =
+        cTask->AddTextureOutput( "gradientImg", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 1, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
+    cTask->SetFunction( NewDrawFunctionTG );
+
+    TGBTextureRef swapImg =
+        builder.RegisterExternalTexture( "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
+            []( VkImage& img, VkImageView& view )
+            {
+                img  = rg.swapchain.GetImage();
+                view = rg.swapchain.GetImageView();
+            } );
+
+    TransferTaskBuilder* tTask = builder.AddTransferTask( "copyToSwapchain" );
+    tTask->BlitTexture( swapImg, gradientImg );
+
+    GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_2D" );
+    gTask->AddColorAttachment( swapImg );
+    gTask->SetFunction( []( GraphicsTask* task, TGExecuteData* data ) { UIOverlay::Render( *data->cmdBuf ); } );
+
+    PresentTaskBuilder* pTask = builder.AddPresentTask();
+    pTask->SetPresentationImage( swapImg );
+
+    TaskGraph::CompileInfo compileInfo;
+    compileInfo.sceneWidth    = rg.sceneWidth;
+    compileInfo.sceneHeight   = rg.sceneHeight;
+    compileInfo.displayWidth  = rg.displayWidth;
+    compileInfo.displayHeight = rg.displayHeight;
+    if ( !s_taskGraph.Compile( builder, compileInfo ) )
+    {
+        LOG_ERR( "Could not compile the task graph" );
+        return false;
+    }
+
+    return true;
+}
+
 bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uint32_t displayHeight, bool headless )
 {
-    rg.sceneWidth  = sceneWidth;
-    rg.sceneHeight = sceneHeight;
+    rg.sceneWidth    = sceneWidth;
+    rg.sceneHeight   = sceneHeight;
+    rg.displayWidth  = displayWidth;
+    rg.displayHeight = displayHeight;
 
     if ( !R_Init( headless, displayWidth, displayHeight ) )
         return false;
@@ -93,42 +136,28 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
         return false;
 
-    TaskGraphBuilder builder;
-    ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
-    TGBTextureRef gradientImg =
-        cTask->AddTextureOutput( "gradientImg", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 1, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
-    cTask->SetFunction( NewDrawFunctionTG );
-
-    TGBTextureRef swapImg =
-        builder.RegisterExternalTexture( "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
-            []( VkImage& img, VkImageView& view )
-            {
-                img  = rg.swapchain.GetImage();
-                view = rg.swapchain.GetImageView();
-            } );
-
-    TransferTaskBuilder* tTask = builder.AddTransferTask( "copyToSwapchain" );
-    tTask->BlitTexture( swapImg, gradientImg );
-
-    GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_2D" );
-    gTask->AddColorAttachment( swapImg );
-    gTask->SetFunction( []( GraphicsTask* task, TGExecuteData* data ) { UIOverlay::Render( *data->cmdBuf ); } );
-
-    PresentTaskBuilder* pTask = builder.AddPresentTask();
-    pTask->SetPresentationImage( swapImg );
-
-    TaskGraph::CompileInfo compileInfo;
-    compileInfo.sceneWidth    = sceneWidth;
-    compileInfo.sceneHeight   = sceneHeight;
-    compileInfo.displayWidth  = displayWidth;
-    compileInfo.displayHeight = displayHeight;
-    if ( !s_taskGraph.Compile( builder, compileInfo ) )
-    {
-        LOG_ERR( "Could not compile the task graph" );
+    if ( !Init_TaskGraph() )
         return false;
-    }
 
     return true;
+}
+
+void Resize( uint32_t displayWidth, uint32_t displayHeight )
+{
+    float oldRatioX  = rg.sceneWidth / (float)rg.displayWidth;
+    float oldRatioY  = rg.sceneHeight / (float)rg.displayHeight;
+    uint32_t oldDW   = rg.displayWidth;
+    uint32_t oldDH   = rg.displayHeight;
+    rg.displayWidth  = displayWidth;
+    rg.displayHeight = displayHeight;
+    rg.sceneWidth    = static_cast<uint32_t>( displayWidth * oldRatioX + 0.5f );
+    rg.sceneHeight   = static_cast<uint32_t>( displayHeight * oldRatioY + 0.5f );
+    rg.swapchain.Recreate( displayWidth, displayHeight );
+    s_taskGraph.Free();
+    Init_TaskGraph();
+    LOG( "Old size (%u x %u), new (%u x %u)", oldDW, oldDH, rg.displayWidth, rg.displayHeight );
+
+    g_resizeRequested = false;
 }
 
 void Shutdown()
@@ -148,7 +177,11 @@ void Render()
     FrameData& frameData = rg.GetFrameData();
     frameData.renderingCompleteFence.WaitFor();
     frameData.renderingCompleteFence.Reset();
-    rg.swapchain.AcquireNextImage( frameData.swapchainSemaphore );
+    if ( !rg.swapchain.AcquireNextImage( frameData.swapchainSemaphore ) )
+    {
+        g_resizeRequested = true;
+        return;
+    }
 
     TextureManager::Update();
     UIOverlay::BeginFrame();
@@ -173,7 +206,10 @@ void Render()
         SemaphoreSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, frameData.renderingCompleteSemaphore.GetHandle() );
     rg.device.Submit( cmdBuf, &waitInfo, &signalInfo, &frameData.renderingCompleteFence );
 
-    rg.device.Present( rg.swapchain, frameData.renderingCompleteSemaphore );
+    if ( !rg.device.Present( rg.swapchain, frameData.renderingCompleteSemaphore ) )
+    {
+        g_resizeRequested = true;
+    }
 
     ++rg.currentFrameIdx;
 }

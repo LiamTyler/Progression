@@ -15,7 +15,9 @@ class Swapchain
 {
 public:
     bool Create( uint32_t preferredWidth, uint32_t preferredHeight );
-    uint32_t AcquireNextImage( const Semaphore& presentCompleteSemaphore );
+    bool Recreate( uint32_t preferredWidth, uint32_t preferredHeight );
+    // returns false when a resize is needed
+    bool AcquireNextImage( const Semaphore& presentCompleteSemaphore );
     void Free();
     operator bool() const;
 

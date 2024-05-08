@@ -549,7 +549,7 @@ void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool c
     // cmdBuf.Free();
 }
 
-void Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore ) const
+bool Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore ) const
 {
     VkSwapchainKHR vkSwapchain   = swapchain.GetHandle();
     VkSemaphore vkSemaphore      = waitSemaphore.GetHandle(); // wait until the rendering work is all done
@@ -563,7 +563,10 @@ void Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores    = &vkSemaphore;
 
-    VK_CHECK( vkQueuePresentKHR( m_queue.queue, &presentInfo ) );
+    VkResult res      = vkQueuePresentKHR( m_queue.queue, &presentInfo );
+    bool resizeNeeded = res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR;
+    PG_ASSERT( res == VK_SUCCESS || resizeNeeded, "vkQueuePresentKHR failed with error %d", res );
+    return !resizeNeeded;
 }
 
 VkDevice Device::GetHandle() const { return m_handle; }

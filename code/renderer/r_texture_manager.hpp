@@ -1,7 +1,7 @@
 #pragma once
 
-#include "vulkan.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
+#include "vulkan.hpp"
 
 namespace PG::Gfx::TextureManager
 {
@@ -15,7 +15,7 @@ void RemoveTexture( uint16_t index );
 const VkDescriptorSetLayout& GetBindlessSetLayout();
 #if USING( PG_DESCRIPTOR_BUFFER )
 const DescriptorBuffer& GetBindlessDescriptorBuffer();
-#else // #if USING( PG_DESCRIPTOR_BUFFER )
+#else  // #if USING( PG_DESCRIPTOR_BUFFER )
 const VkDescriptorSet& GetBindlessSet();
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 

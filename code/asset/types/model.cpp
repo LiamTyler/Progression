@@ -2,12 +2,15 @@
 #include "asset/asset_manager.hpp"
 #include "asset/pmodel.hpp"
 #include "asset/types/material.hpp"
-#include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include <cstring>
+
+#if USING( GPU_DATA )
+#include "renderer/r_globals.hpp"
+#endif // #if USING( GPU_DATA )
 
 namespace PG
 {

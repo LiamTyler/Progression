@@ -23,8 +23,7 @@ using namespace PG;
 std::string ImageTypeToString( ImageType type )
 {
     PG_ASSERT( Underlying( type ) <= Underlying( ImageType::NUM_IMAGE_TYPES ) );
-    static const char* names[] =
-    {
+    static const char* names[] = {
         "TYPE_1D",
         "TYPE_1D_ARRAY",
         "TYPE_2D",

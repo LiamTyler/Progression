@@ -186,7 +186,7 @@ public:
 
     // variables below are just cached, and can be inferred from pixelFormat
     int numChannels = 0;
-    bool sRGB = false;
+    bool sRGB       = false;
     enum class PixelType
     {
         UNORM8,

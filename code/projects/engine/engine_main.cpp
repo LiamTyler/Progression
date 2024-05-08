@@ -13,7 +13,6 @@
 #include "shared/logger.hpp"
 #include "ui/ui_system.hpp"
 
-
 using namespace PG;
 using namespace Gfx;
 
@@ -27,7 +26,7 @@ int main( int argc, char* argv[] )
     EngineInitInfo engineInitConfig;
     engineInitConfig.windowWidth = engineInitConfig.sceneWidth = 1280;
     engineInitConfig.windowHeight = engineInitConfig.sceneHeight = 720;
-	if ( !EngineInitialize( engineInitConfig ) )
+    if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );
         return 1;
@@ -49,7 +48,7 @@ int main( int argc, char* argv[] )
     */
 
     Window* window = GetMainWindow();
-    //window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
+    // window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
     window->SetRelativeMouse( false );
 
     Input::PollEvents();
@@ -91,17 +90,17 @@ int main( int argc, char* argv[] )
         {
             primaryScenePtr->Update();
         }
-        //UI::Update();
+        // UI::Update();
 
         RenderSystem::Render();
 
-        //std::this_thread::sleep_for( (std::chrono::milliseconds)30 );
+        // std::this_thread::sleep_for( (std::chrono::milliseconds)30 );
 
         window->EndFrame();
     }
-//#if USING( LOAD_SCENE_DIRECTLY )
-//    delete scene;
-//#endif // #if USING( LOAD_SCENE_DIRECTLY )
+    // #if USING( LOAD_SCENE_DIRECTLY )
+    //     delete scene;
+    // #endif // #if USING( LOAD_SCENE_DIRECTLY )
 
     EngineShutdown();
 

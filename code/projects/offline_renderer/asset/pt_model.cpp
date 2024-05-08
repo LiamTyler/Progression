@@ -127,7 +127,7 @@ void EmitTrianglesForAllMeshes( std::vector<Shape*>& shapes, std::vector<Light*>
         if ( material->isDecal )
             continue;
 
-        const bool isEmissive    = material && material->emissiveTint != vec3( 0 );
+        const bool isEmissive = material && material->emissiveTint != vec3( 0 );
         for ( uint32_t face = 0; face < static_cast<uint32_t>( mesh.indices.size() / 3 ); ++face )
         {
             auto tri        = new Triangle;
@@ -136,13 +136,13 @@ void EmitTrianglesForAllMeshes( std::vector<Shape*>& shapes, std::vector<Light*>
             tri->i1         = mesh.indices[3 * face + 1];
             tri->i2         = mesh.indices[3 * face + 2];
             shapes.push_back( tri );
-            //if ( isEmissive )
+            // if ( isEmissive )
             //{
-            //    auto areaLight   = new AreaLight;
-            //    areaLight->Lemit = material->emissiveTint;
-            //    areaLight->shape = tri;
-            //    lights.push_back( areaLight );
-            //}
+            //     auto areaLight   = new AreaLight;
+            //     areaLight->Lemit = material->emissiveTint;
+            //     areaLight->shape = tri;
+            //     lights.push_back( areaLight );
+            // }
         }
     }
 }

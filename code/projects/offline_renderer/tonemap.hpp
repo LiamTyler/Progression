@@ -18,8 +18,8 @@ enum class TonemapOperator
 
 TonemapOperator TonemapOperatorFromString( const std::string& name );
 
-using TonemapFunc = vec3(*)( const vec3& v );
+using TonemapFunc = vec3 ( * )( const vec3& v );
 
 TonemapFunc GetTonemapFunction( TonemapOperator op );
 
-} // namepsace PT
+} // namespace PT

@@ -17,7 +17,7 @@ namespace PG
 class BaseAssetParser
 {
 public:
-    using BaseInfoPtr = std::shared_ptr<BaseAssetCreateInfo>;
+    using BaseInfoPtr      = std::shared_ptr<BaseAssetCreateInfo>;
     using ConstBaseInfoPtr = const std::shared_ptr<const BaseAssetCreateInfo>&;
 
     const AssetType assetType;
@@ -28,8 +28,7 @@ public:
     virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value ) = 0;
 };
 
-
-template<typename DerivedInfo>
+template <typename DerivedInfo>
 class BaseAssetParserTemplate : public BaseAssetParser
 {
 public:
@@ -40,9 +39,9 @@ public:
 
     virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value ) override
     {
-        auto info = std::make_shared<DerivedInfo>();
+        auto info                   = std::make_shared<DerivedInfo>();
         const std::string assetName = value["name"].GetString();
-        info->name = assetName;
+        info->name                  = assetName;
 
         if ( !ParseInternal( value, info ) )
         {
@@ -55,16 +54,15 @@ protected:
     virtual bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) = 0;
 };
 
-
-#define PG_DECLARE_ASSET_PARSER( AssetName, AssetType, CreateInfo ) \
-    class AssetName##Parser : public BaseAssetParserTemplate<CreateInfo> \
-    { \
-    public: \
-        AssetName##Parser() : BaseAssetParserTemplate( AssetType ) {} \
-    protected: \
+#define PG_DECLARE_ASSET_PARSER( AssetName, AssetType, CreateInfo )                        \
+    class AssetName##Parser : public BaseAssetParserTemplate<CreateInfo>                   \
+    {                                                                                      \
+    public:                                                                                \
+        AssetName##Parser() : BaseAssetParserTemplate( AssetType ) {}                      \
+                                                                                           \
+    protected:                                                                             \
         bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override; \
     }
-
 
 PG_DECLARE_ASSET_PARSER( GfxImage, ASSET_TYPE_GFX_IMAGE, GfxImageCreateInfo );
 PG_DECLARE_ASSET_PARSER( Material, ASSET_TYPE_MATERIAL, MaterialCreateInfo );

@@ -1,15 +1,11 @@
 #include "shared/lz4_compressor.hpp"
-#include "shared/assert.hpp"
-#include "shared/logger.hpp"
 #include "lz4/lz4.h"
 #include "memory_map/MemoryMapped.h"
+#include "shared/assert.hpp"
+#include "shared/logger.hpp"
 #include <fstream>
 
-
-char* LZ4CompressBuffer( const char* uncompressedData, size_t size, int& compressedSize )
-{
-    return nullptr;
-}
+char* LZ4CompressBuffer( const char* uncompressedData, size_t size, int& compressedSize ) { return nullptr; }
 
 char* LZ4DecompressBuffer( const char* compressedData, int compressedSize, int uncompressedSize )
 {
@@ -27,11 +23,11 @@ bool LZ4CompressFile( const std::string& inputFilename, const std::string& outpu
         return false;
     }
 
-    char* src = (char*) memMappedFile.getData();
-    const int srcSize = (int) memMappedFile.size();
+    char* src            = (char*)memMappedFile.getData();
+    const int srcSize    = (int)memMappedFile.size();
     const int maxDstSize = LZ4_compressBound( srcSize );
 
-    char* compressedData = (char*) malloc( maxDstSize );
+    char* compressedData         = (char*)malloc( maxDstSize );
     const int compressedDataSize = LZ4_compress_default( src, compressedData, srcSize, maxDstSize );
 
     memMappedFile.close();
@@ -44,7 +40,7 @@ bool LZ4CompressFile( const std::string& inputFilename, const std::string& outpu
 
     if ( compressedDataSize > 0 )
     {
-        LOG( "Compressed file size ratio: %.3f", (float) compressedDataSize / srcSize );
+        LOG( "Compressed file size ratio: %.3f", (float)compressedDataSize / srcSize );
     }
 
     std::ofstream out( outputFilename, std::ios::binary );

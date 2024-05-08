@@ -126,7 +126,7 @@ void PathTracer::Render( int samplesPerPixelIteration )
     int width  = static_cast<int>( renderedImage.width );
     int height = static_cast<int>( renderedImage.height );
 
-    #pragma omp parallel for schedule( dynamic )
+#pragma omp parallel for schedule( dynamic )
     for ( int row = 0; row < height; ++row )
     {
         for ( int col = 0; col < width; ++col )

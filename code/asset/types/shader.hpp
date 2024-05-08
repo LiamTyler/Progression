@@ -5,10 +5,9 @@
 #include "shared/math_vec.hpp"
 #include <vector>
 
-// ShaderCreateInfo is needed for asset parsing + tools that don't need any rendering + gpu code
-#if USING( GPU_STRUCTS )
-#include "renderer/graphics_api/descriptor.hpp"
-#endif // #if USING( GPU_STRUCTS )
+#if USING( GPU_DATA )
+#include "renderer/vulkan.hpp"
+#endif // #if USING( GPU_DATA )
 
 namespace PG
 {

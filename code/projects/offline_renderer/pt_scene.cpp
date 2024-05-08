@@ -212,16 +212,16 @@ bool Scene::Load( const std::string& filename )
     }
 
     static JSONFunctionMapperBoolCheck<Scene*> mapping( {
-        { "Camera",                ParseCamera                },
-        { "Entity",                ParseEntity                },
-        { "DirectionalLight",      ParseDirectionalLight      },
-        { "PointLight",            ParsePointLight            },
-        { "OfflineRenderSettings", ParseOfflineRenderSettings },
-        { "Skybox",                ParseSkybox                },
-        { "SkyEVAdjust",           ParseSkyEVAdjust           },
-        { "SkyTint",               ParseSkyTint               },
-        { "StartupScript",         ParseStartupScript         },
-        { "Script",                ParseScript                },
+        {"Camera",                 ParseCamera               },
+        { "Entity",                ParseEntity               },
+        { "DirectionalLight",      ParseDirectionalLight     },
+        { "PointLight",            ParsePointLight           },
+        { "OfflineRenderSettings", ParseOfflineRenderSettings},
+        { "Skybox",                ParseSkybox               },
+        { "SkyEVAdjust",           ParseSkyEVAdjust          },
+        { "SkyTint",               ParseSkyTint              },
+        { "StartupScript",         ParseStartupScript        },
+        { "Script",                ParseScript               },
     } );
 
     Scene* scene  = this;

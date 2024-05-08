@@ -66,7 +66,7 @@ int main( int argc, char* argv[] )
     constexpr int LUT_RESOLUTION = 1024;
     FloatImage2D lut( LUT_RESOLUTION, LUT_RESOLUTION, 3 );
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for ( int row = 0; row < LUT_RESOLUTION; ++row )
     {
         for ( int col = 0; col < LUT_RESOLUTION; ++col )

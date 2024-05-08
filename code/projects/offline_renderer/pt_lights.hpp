@@ -21,13 +21,10 @@ struct Light
 {
     virtual ~Light() = default;
 
-    vec3 Lemit = vec3( 0 );
-    int nSamples    = 1;
+    vec3 Lemit   = vec3( 0 );
+    int nSamples = 1;
 
-    virtual vec3 Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
-    {
-        return vec3( 0 );
-    }
+    virtual vec3 Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const { return vec3( 0 ); }
 };
 
 struct PointLight : public Light

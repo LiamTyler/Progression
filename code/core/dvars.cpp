@@ -186,7 +186,7 @@ void ExportDvars()
     }
 
     const auto& dvars = DvarMap();
-    int numDvars = static_cast<int>( dvars.size() );
+    int numDvars      = static_cast<int>( dvars.size() );
     outFile.write( (char*)&numDvars, sizeof( numDvars ) );
     for ( const auto& [_, dvar] : dvars )
     {

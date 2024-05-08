@@ -1,9 +1,9 @@
 #pragma once
 
+#include "c_shared/defines.h"
 #include "core/image_types.hpp"
 #include "core/pixel_formats.hpp"
 #include "renderer/graphics_api/sampler.hpp"
-#include "c_shared/defines.h"
 
 namespace PG::Gfx
 {

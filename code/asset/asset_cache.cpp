@@ -1,13 +1,12 @@
 #include "asset_cache.hpp"
 #include "core/feature_defines.hpp"
-#include "shared/filesystem.hpp"
 #include "shared/file_dependency.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/serializer.hpp"
 
 #define ROOT_DIR std::string( PG_ASSET_DIR "cache/" )
 
-std::string assetCacheFolders[ASSET_TYPE_COUNT] =
-{
+std::string assetCacheFolders[ASSET_TYPE_COUNT] = {
     "images/",      // ASSET_TYPE_GFX_IMAGE
     "materials/",   // ASSET_TYPE_MATERIAL
     "scripts/",     // ASSET_TYPE_SCRIPT
@@ -17,8 +16,7 @@ std::string assetCacheFolders[ASSET_TYPE_COUNT] =
     "texturesets/", // ASSET_TYPE_TEXTURESET
 };
 
-std::string assetCacheFileExtensions[ASSET_TYPE_COUNT] =
-{
+std::string assetCacheFileExtensions[ASSET_TYPE_COUNT] = {
     ".pgi", // ASSET_TYPE_GFX_IMAGE
     ".ffi", // ASSET_TYPE_MATERIAL
     ".ffi", // ASSET_TYPE_SCRIPT
@@ -31,7 +29,8 @@ static_assert( ASSET_TYPE_COUNT == 7 );
 
 static std::string GetCachedPath( AssetType assetType, const std::string& assetCacheName )
 {
-    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + "_v" + std::to_string( g_assetVersions[assetType] ) + assetCacheFileExtensions[assetType];
+    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + "_v" + std::to_string( g_assetVersions[assetType] ) +
+           assetCacheFileExtensions[assetType];
 }
 
 namespace PG::AssetCache
@@ -48,12 +47,10 @@ void Init()
     CreateDirectory( ROOT_DIR + "shader_preproc/" );
 }
 
-
 time_t GetAssetTimestamp( AssetType assetType, const std::string& assetCacheName )
 {
     return GetFileTimestamp( GetCachedPath( assetType, assetCacheName ) );
 }
-
 
 bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAsset* asset )
 {
@@ -82,10 +79,9 @@ bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAss
     return true;
 }
 
-
 std::unique_ptr<char[]> GetCachedAssetRaw( AssetType assetType, const std::string& assetCacheName, size_t& numBytes )
 {
-    numBytes = 0;
+    numBytes         = 0;
     std::string path = GetCachedPath( assetType, assetCacheName );
     Serializer in;
     if ( !in.OpenForRead( path ) )

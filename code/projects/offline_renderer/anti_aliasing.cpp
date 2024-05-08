@@ -11,13 +11,12 @@ namespace PT::AntiAlias
 
 Algorithm AlgorithmFromString( const std::string& alg )
 {
-    std::unordered_map<std::string, Algorithm> map =
-    {
-        { "NONE",             Algorithm::NONE             },
-        { "REGULAR_2X2_GRID", Algorithm::REGULAR_2X2_GRID },
-        { "REGULAR_4X4_GRID", Algorithm::REGULAR_4X4_GRID },
-        { "ROTATED_2X2_GRID", Algorithm::ROTATED_2X2_GRID },
-        { "JITTER",           Algorithm::JITTER           },
+    std::unordered_map<std::string, Algorithm> map = {
+        {"NONE",              Algorithm::NONE            },
+        { "REGULAR_2X2_GRID", Algorithm::REGULAR_2X2_GRID},
+        { "REGULAR_4X4_GRID", Algorithm::REGULAR_4X4_GRID},
+        { "ROTATED_2X2_GRID", Algorithm::ROTATED_2X2_GRID},
+        { "JITTER",           Algorithm::JITTER          },
     };
 
     auto it = map.find( alg );
@@ -34,12 +33,11 @@ vec2 None( int iteration, RNG& rng ) { return { 0, 0 }; }
 
 vec2 Regular2x2Grid( int iteration, RNG& rng )
 {
-    static vec2 offsets[] =
-    {
-        { -0.25, -0.25 },
-        { 0.25,  -0.25 },
-        { 0.25,  0.25  },
-        { -0.25, 0.25  },
+    static vec2 offsets[] = {
+        {-0.25,  -0.25},
+        { 0.25,  -0.25},
+        { 0.25,  0.25 },
+        { -0.25, 0.25 },
     };
 
     return offsets[iteration % 4];
@@ -47,24 +45,23 @@ vec2 Regular2x2Grid( int iteration, RNG& rng )
 
 vec2 Regular4x4Grid( int iteration, RNG& rng )
 {
-    static vec2 offsets[] =
-    {
-        { -0.375, -0.375 },
-        { -0.125, -0.375 },
-        { 0.125,  -0.375 },
-        { 0.375,  -0.375 },
-        { -0.375, -0.125 },
-        { -0.125, -0.125 },
-        { 0.125,  -0.125 },
-        { 0.375,  -0.125 },
-        { -0.375,  0.125 },
-        { -0.125,  0.125 },
-        { 0.125,   0.125 },
-        { 0.375,   0.125 },
-        { -0.375,  0.375 },
-        { -0.125,  0.375 },
-        { 0.125,   0.375 },
-        { 0.375,   0.375 },
+    static vec2 offsets[] = {
+        {-0.375,  -0.375},
+        { -0.125, -0.375},
+        { 0.125,  -0.375},
+        { 0.375,  -0.375},
+        { -0.375, -0.125},
+        { -0.125, -0.125},
+        { 0.125,  -0.125},
+        { 0.375,  -0.125},
+        { -0.375, 0.125 },
+        { -0.125, 0.125 },
+        { 0.125,  0.125 },
+        { 0.375,  0.125 },
+        { -0.375, 0.375 },
+        { -0.125, 0.375 },
+        { 0.125,  0.375 },
+        { 0.375,  0.375 },
     };
 
     return offsets[iteration % 16];
@@ -72,12 +69,11 @@ vec2 Regular4x4Grid( int iteration, RNG& rng )
 
 vec2 Rotated2x2Grid( int iteration, RNG& rng )
 {
-    static vec2 offsets[] =
-    {
-        { -0.375, -0.125 },
-        { 0.125,  -0.375 },
-        { 0.375,   0.125 },
-        { -0.125,  0.375 },
+    static vec2 offsets[] = {
+        {-0.375,  -0.125},
+        { 0.125,  -0.375},
+        { 0.375,  0.125 },
+        { -0.125, 0.375 },
     };
 
     return offsets[iteration % 4];
@@ -87,8 +83,7 @@ vec2 Jitter( int iteration, RNG& rng ) { return { rng.UniformFloat() - 0.5f, rng
 
 int GetIterations( Algorithm alg )
 {
-    static int iterations[] =
-    {
+    static int iterations[] = {
         1,  // NONE
         4,  // REGULAR_2X2_GRID
         16, // REGULAR_4X4_GRID
@@ -102,8 +97,7 @@ int GetIterations( Algorithm alg )
 
 AAFuncPointer GetAlgorithm( Algorithm alg )
 {
-    static AAFuncPointer functions[] =
-    {
+    static AAFuncPointer functions[] = {
         None,           // NONE
         Regular2x2Grid, // REGULAR_2X2_GRID
         Regular4x4Grid, // REGULAR_4X4_GRID

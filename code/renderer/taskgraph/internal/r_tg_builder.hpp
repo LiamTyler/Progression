@@ -176,8 +176,8 @@ public:
 
     TGBTextureRef AddColorAttachment( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
         uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
-    TGBTextureRef AddColorAttachment( const std::string& name, PixelFormat format, uint32_t width, uint32_t height,
-        uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+    TGBTextureRef AddColorAttachment( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
+        uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
     void AddColorAttachment( TGBTextureRef tex );
 
     void SetFunction( GraphicsFunction func );

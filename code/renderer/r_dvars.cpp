@@ -1,7 +1,7 @@
 #pragma once
 
 #include "renderer/r_dvars.hpp"
-#include "shaders/c_shared/dvar_defines.h"
+#include "c_shared/dvar_defines.h"
 
 namespace PG
 {

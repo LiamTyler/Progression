@@ -2,14 +2,15 @@
 
 #include "asset/types/base_asset.hpp"
 #include "core/feature_defines.hpp"
+#include "shared/math_vec.hpp"
+#include <vector>
+
 #if USING( GPU_DATA )
 #include "renderer/graphics_api/buffer.hpp"
 #if USING( PG_RTX )
 #include "renderer/graphics_api/acceleration_structure.hpp"
 #endif // #if USING( PG_RTX )
 #endif // #if USING( GPU_DATA )
-#include "shared/math_vec.hpp"
-#include <vector>
 
 namespace PG
 {

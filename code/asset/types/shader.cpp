@@ -1,8 +1,6 @@
 #include "asset/types/shader.hpp"
 #include "asset/shader_preprocessor.hpp"
 #include "core/feature_defines.hpp"
-#include "renderer/debug_marker.hpp"
-#include "renderer/r_globals.hpp"
 #include "shaderc/shaderc.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
@@ -10,10 +8,15 @@
 #include "shared/serializer.hpp"
 #include "spirv-tools/optimizer.hpp"
 #include "spirv_cross/spirv_cross.hpp"
+#include <fstream>
+
 #if USING( CONVERTER )
 #include "converters/shader_converter.hpp"
 #endif // #if USING( CONVERTER )
-#include <fstream>
+#if USING( GPU_DATA )
+#include "renderer/debug_marker.hpp"
+#include "renderer/r_globals.hpp"
+#endif // #if USING( GPU_DATA )
 
 namespace PG
 {

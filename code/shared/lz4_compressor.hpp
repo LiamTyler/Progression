@@ -2,7 +2,6 @@
 
 #include <string>
 
-
 // returns the malloc'd buffer filled with the compressed data on success, nullptr on failure
 // outputs compressSize
 char* LZ4CompressBuffer( const char* uncompressedData, size_t size, int& compressedSize );

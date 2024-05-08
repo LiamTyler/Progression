@@ -6,13 +6,13 @@
 #include "shared/logger.hpp"
 #include <thread>
 #if USING( WINDOWS_PROGRAM )
-    #define WIN32_LEAN_AND_MEAN
-    #include <windows.h>
-    #include <winsock2.h>
-    #include <ws2tcpip.h>
-    #pragma comment( lib, "Ws2_32.lib" )
+#define WIN32_LEAN_AND_MEAN
+#include <windows.h>
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#pragma comment( lib, "Ws2_32.lib" )
 #else // #if USING ( WINDOWS_PROGRAM )
-    #error "Need to implement socket code for linux"
+#error "Need to implement socket code for linux"
 #endif // #else // #if USING ( WINDOWS_PROGRAM )
 
 static bool s_serverShouldStop;

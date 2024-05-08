@@ -10,7 +10,7 @@ namespace PG::RemoteConsoleServer
 #if USING( REMOTE_CONSOLE )
 bool Init();
 void Shutdown();
-#else // #if USING( REMOTE_CONSOLE )
+#else  // #if USING( REMOTE_CONSOLE )
 inline bool Init() { return true; }
 inline void Shutdown() {}
 #endif // #else // #if USING( REMOTE_CONSOLE )

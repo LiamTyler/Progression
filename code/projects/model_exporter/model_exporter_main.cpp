@@ -336,13 +336,12 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
         return false;
     }
 
-    static struct option long_options[] =
-    {
-        { "floatPrecision",   required_argument, 0, 'f' },
-        { "ignoreCollisions", no_argument,       0, 'i' },
-        { "help",             no_argument,       0, 'h' },
-        { "texDir",           required_argument, 0, 't' },
-        { 0,                  0,                 0, 0   }
+    static struct option long_options[] = {
+        {"floatPrecision",    required_argument, 0, 'f'},
+        { "ignoreCollisions", no_argument,       0, 'i'},
+        { "help",             no_argument,       0, 'h'},
+        { "texDir",           required_argument, 0, 't'},
+        { 0,                  0,                 0, 0  }
     };
 
     int option_index = 0;

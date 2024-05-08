@@ -29,7 +29,8 @@ static void FillImageBarriers( TaskGraph* taskGraph, vector<VkImageMemoryBarrier
     }
 }
 
-static void FillAttachmentInfos( TaskGraph* taskGraph, vector<VkRenderingAttachmentInfo>& scratch, vector<VkRenderingAttachmentInfo>& source )
+static void FillAttachmentInfos(
+    TaskGraph* taskGraph, vector<VkRenderingAttachmentInfo>& scratch, vector<VkRenderingAttachmentInfo>& source )
 {
     scratch = source;
     for ( VkRenderingAttachmentInfo& attach : scratch )
@@ -91,7 +92,7 @@ void ComputeTask::Execute( TGExecuteData* data )
 void GraphicsTask::Execute( TGExecuteData* data )
 {
     SubmitBarriers( data );
-    
+
     FillAttachmentInfos( data->taskGraph, data->scratchAttachmentInfos, attachments );
     renderingInfo.pColorAttachments = data->scratchAttachmentInfos.data();
 
@@ -141,9 +142,6 @@ void TransferTask::Execute( TGExecuteData* data )
     }
 }
 
-void PresentTask::Execute( TGExecuteData* data )
-{
-    SubmitBarriers( data );
-}
+void PresentTask::Execute( TGExecuteData* data ) { SubmitBarriers( data ); }
 
 } // namespace PG::Gfx

@@ -5,8 +5,7 @@
 
 using namespace PG;
 
-Options g_options =
-{
+Options g_options = {
     .rootDir              = "",
     .ignoreNameCollisions = false,
     .floatPrecision       = 6,

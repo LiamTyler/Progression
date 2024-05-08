@@ -1,13 +1,12 @@
 #include "asset_file_database.hpp"
-//#include "asset/parsing/base_asset_parse.hpp"
+// #include "asset/parsing/base_asset_parse.hpp"
 #include "asset/parsing/asset_parsers.hpp"
 #include "core/feature_defines.hpp"
 #include "core/time.hpp"
-#include "shared/filesystem.hpp"
 #include "shared/file_dependency.hpp"
+#include "shared/filesystem.hpp"
 #include <fstream>
 #include <unordered_map>
-
 
 namespace PG::AssetDatabase
 {
@@ -50,7 +49,7 @@ static bool ParseAssetFile( const std::string& filename )
                     {
                         return false;
                     }
-                    info->name = assetName;
+                    info->name                         = assetName;
                     s_assetInfos[typeIndex][assetName] = info;
                 }
 
@@ -62,10 +61,9 @@ static bool ParseAssetFile( const std::string& filename )
     return true;
 }
 
-
 bool Init()
 {
-    //Time::Point startTime = Time::GetTimePoint();
+    // Time::Point startTime = Time::GetTimePoint();
 
     namespace fs = std::filesystem;
     for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )
@@ -80,10 +78,9 @@ bool Init()
         }
     }
 
-    //LOG( "Asset Database Initialized in %.2f seconds.", Time::GetTimeSince( startTime ) / 1000.0f );
+    // LOG( "Asset Database Initialized in %.2f seconds.", Time::GetTimeSince( startTime ) / 1000.0f );
     return true;
 }
-
 
 std::shared_ptr<BaseAssetCreateInfo> FindAssetInfo( AssetType type, const std::string& name )
 {

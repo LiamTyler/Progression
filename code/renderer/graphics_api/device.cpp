@@ -1,4 +1,5 @@
 #include "renderer/graphics_api/device.hpp"
+#include "c_shared/defines.h"
 #include "core/feature_defines.hpp"
 #include "core/pixel_formats.hpp"
 #include "renderer/debug_marker.hpp"
@@ -6,7 +7,6 @@
 #include "renderer/r_texture_manager.hpp"
 #include "renderer/render_system.hpp"
 #include "renderer/vulkan.hpp"
-#include "shaders/c_shared/defines.h"
 #include "shared/assert.hpp"
 #include "shared/bitops.hpp"
 #include "shared/logger.hpp"

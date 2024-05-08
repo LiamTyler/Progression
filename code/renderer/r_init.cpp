@@ -77,10 +77,8 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 
     vkb::InstanceBuilder builder;
 
-    // make the vulkan instance, with basic debug features
     auto inst_ret = builder.request_validation_layers( !USING( SHIP_BUILD ) )
                         .set_debug_callback( DebugCallback )
-                        //.use_default_debug_messenger()
                         .require_api_version( 1, 3, 0 )
                         .build();
 
@@ -137,9 +135,9 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
     descriptorBufferExt.descriptorBuffer = USING( PG_DESCRIPTOR_BUFFER );
     // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
-    
+
     descriptorBufferExt.pNext = features12.pNext;
-    features12.pNext = &descriptorBufferExt;
+    features12.pNext          = &descriptorBufferExt;
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
     pDevSelector.set_minimum_version( 1, 3 );

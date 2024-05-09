@@ -2,6 +2,7 @@
 #include "asset/asset_manager.hpp"
 #include "core/init.hpp"
 #include "core/window.hpp"
+#include "debug_marker.hpp"
 #include "r_globals.hpp"
 #include "r_init.hpp"
 #include "r_texture_manager.hpp"
@@ -132,6 +133,8 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     computePipelineCreateInfo.stage  = stageinfo;
 
     VK_CHECK( vkCreateComputePipelines( rg.device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &s_gradientPipeline ) );
+    PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( s_gradientPipelineLayout, "gradient" );
+    PG_DEBUG_MARKER_SET_PIPELINE_NAME( s_gradientPipeline, "gradient" );
 
     if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
         return false;

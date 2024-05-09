@@ -101,6 +101,11 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         info.usage = PGToVulkanBufferType( gfxBuffer.m_bufferUsage ) | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
         info.size  = buildBuffer.size;
         VK_CHECK( vkCreateBuffer( rg.device, &info, nullptr, &data.buffer ) );
+#if USING( TG_DEBUG )
+        PG_DEBUG_MARKER_SET_BUFFER_NAME( data.buffer, buildBuffer.debugName );
+#else  // #if USING( TG_DEBUG )
+        PG_DEBUG_MARKER_SET_BUFFER_NAME( data.buffer, "tgBuf_" + std::to_string( i ) );
+#endif // #else // #if USING( TG_DEBUG )
         gfxBuffer.m_handle = data.buffer;
         vkGetBufferMemoryRequirements( rg.device, data.buffer, &data.memoryReq );
 
@@ -164,7 +169,10 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
 #if USING( TG_DEBUG )
         PG_DEBUG_MARKER_SET_IMAGE_NAME( gfxTex.m_image, buildTex.debugName );
         PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( gfxTex.m_imageView, buildTex.debugName );
-#endif // #if USING( TG_DEBUG )
+#else  // #if USING( TG_DEBUG )
+        PG_DEBUG_MARKER_SET_IMAGE_NAME( gfxTex.m_image, "tgImg_" + std::to_string( i ) );
+        PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( gfxTex.m_imageView, "tgImgView_" + std::to_string( i ) );
+#endif // #else // #if USING( TG_DEBUG )
     }
 }
 

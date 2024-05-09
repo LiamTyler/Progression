@@ -65,7 +65,7 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
     info.pNext = &extendedInfo;
     VkDescriptorSetLayout setLayout;
     VK_CHECK( vkCreateDescriptorSetLayout( rg.device, &info, nullptr, &setLayout ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( setLayout, name ) );
+    PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( setLayout, name );
 
     return setLayout;
 }
@@ -79,7 +79,7 @@ void DescriptorAllocator::Init( uint32_t maxSets, const std::vector<VkDescriptor
     poolInfo.pPoolSizes    = poolSizes.data();
 
     vkCreateDescriptorPool( rg.device, &poolInfo, nullptr, &pool );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) );
+    PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name );
 }
 
 void DescriptorAllocator::ClearDescriptors() { vkResetDescriptorPool( rg.device, pool, 0 ); }
@@ -96,7 +96,7 @@ VkDescriptorSet DescriptorAllocator::Allocate( VkDescriptorSetLayout layout, con
 
     VkDescriptorSet ds;
     VK_CHECK( vkAllocateDescriptorSets( rg.device, &allocInfo, &ds ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_SET_NAME( ds, name ) );
+    PG_DEBUG_MARKER_SET_DESC_SET_NAME( ds, name );
 
     return ds;
 }

@@ -35,18 +35,18 @@ public:
     void Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo = nullptr,
         const VkSemaphoreSubmitInfo* signalSemaphoreInfo = nullptr, Fence* fence = nullptr ) const;
     void WaitForIdle() const;
-    CommandPool NewCommandPool( CommandPoolCreateFlags flags = 0, const std::string& name = "" ) const;
+    CommandPool NewCommandPool( CommandPoolCreateFlags flags = 0, std::string_view name = "" ) const;
     AccelerationStructure NewAccelerationStructure( AccelerationStructureType type, size_t size ) const;
 
-    Buffer NewBuffer( const BufferCreateInfo& info, const std::string& name = "" ) const;
-    Texture NewTexture( const TextureCreateInfo& desc, const std::string& name = "" ) const;
-    Texture NewTextureFromBuffer( TextureCreateInfo& desc, void* data, const std::string& name = "" ) const;
+    Buffer NewBuffer( const BufferCreateInfo& info, std::string_view name = "" ) const;
+    Texture NewTexture( const TextureCreateInfo& desc, std::string_view name = "" ) const;
+    Texture NewTextureFromBuffer( TextureCreateInfo& desc, void* data, std::string_view name = "" ) const;
 
     Sampler NewSampler( const SamplerDescriptor& desc ) const;
-    Fence NewFence( bool signaled = false, const std::string& name = "" ) const;
-    Semaphore NewSemaphore( const std::string& name = "" ) const;
-    Pipeline NewGraphicsPipeline( const PipelineDescriptor& desc, const std::string& name = "" ) const;
-    Pipeline NewComputePipeline( Shader* shader, const std::string& name = "" ) const;
+    Fence NewFence( bool signaled = false, std::string_view name = "" ) const;
+    Semaphore NewSemaphore( std::string_view name = "" ) const;
+    Pipeline NewGraphicsPipeline( const PipelineDescriptor& desc, std::string_view name = "" ) const;
+    Pipeline NewComputePipeline( Shader* shader, std::string_view name = "" ) const;
 
     // returns false if present failed because the swapchain needs to be recreated
     bool Present( const Swapchain& swapChain, const Semaphore& waitSemaphore ) const;

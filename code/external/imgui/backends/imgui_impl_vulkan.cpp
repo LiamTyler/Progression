@@ -1568,4 +1568,66 @@ void ImGui_ImplVulkanH_DestroyWindowRenderBuffers(VkDevice device, ImGui_ImplVul
 
 //-----------------------------------------------------------------------------
 
+VkShaderModule ImGui_ImplVulkan_GetVertShaderModule()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->ShaderModuleVert;
+}
+VkShaderModule ImGui_ImplVulkan_GetFragShaderModule()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->ShaderModuleFrag;
+}
+VkDescriptorSetLayout ImGui_ImplVulkan_GetDescSetLayout()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->DescriptorSetLayout;
+}
+VkPipelineLayout ImGui_ImplVulkan_GetPipelineLayout()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->PipelineLayout;
+}
+VkPipeline ImGui_ImplVulkan_GetPipeline()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->Pipeline;
+}
+
+VkCommandPool ImGui_ImplVulkan_GetFontCommandPool()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->FontCommandPool;
+}
+VkCommandBuffer ImGui_ImplVulkan_GetFontCommandBuffer()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->FontCommandBuffer;
+}
+VkSampler ImGui_ImplVulkan_GetFontSampler()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->FontSampler;
+}
+VkImage ImGui_ImplVulkan_GetFontImage()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->FontImage;
+}
+VkImageView ImGui_ImplVulkan_GetFontImageView()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->FontView;
+}
+VkDeviceMemory ImGui_ImplVulkan_GetFontMemory()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->FontMemory;
+}
+VkDescriptorSet ImGui_ImplVulkan_GetFontDescSet()
+{
+    ImGui_ImplVulkan_Data* bd = ImGui_ImplVulkan_GetBackendData();
+    return bd->FontDescriptorSet;
+}
+
 #endif // #ifndef IMGUI_DISABLE

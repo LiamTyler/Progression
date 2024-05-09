@@ -166,4 +166,42 @@ struct ImGui_ImplVulkanH_Window
     }
 };
 
+/*
+*     ImGui_ImplVulkan_InitInfo   VulkanInitInfo;
+    VkRenderPass                RenderPass;
+    VkDeviceSize                BufferMemoryAlignment;
+    VkPipelineCreateFlags       PipelineCreateFlags;
+    VkDescriptorSetLayout       DescriptorSetLayout;
+    VkPipelineLayout            PipelineLayout;
+    VkPipeline                  Pipeline;
+    uint32_t                    Subpass;
+    VkShaderModule              ShaderModuleVert;
+    VkShaderModule              ShaderModuleFrag;
+
+    // Font data
+    VkSampler                   FontSampler;
+    VkDeviceMemory              FontMemory;
+    VkImage                     FontImage;
+    VkImageView                 FontView;
+    VkDescriptorSet             FontDescriptorSet;
+    VkCommandPool               FontCommandPool;
+    VkCommandBuffer             FontCommandBuffer;
+
+    */
+
+// CUSTOM CODE ADDED BY LIAM, JUST FOR NAMING THE GPU OBJECTS IN RENDERDOC
+IMGUI_IMPL_API VkShaderModule ImGui_ImplVulkan_GetVertShaderModule();
+IMGUI_IMPL_API VkShaderModule ImGui_ImplVulkan_GetFragShaderModule();
+IMGUI_IMPL_API VkDescriptorSetLayout ImGui_ImplVulkan_GetDescSetLayout();
+IMGUI_IMPL_API VkPipelineLayout ImGui_ImplVulkan_GetPipelineLayout();
+IMGUI_IMPL_API VkPipeline ImGui_ImplVulkan_GetPipeline();
+
+IMGUI_IMPL_API VkCommandPool ImGui_ImplVulkan_GetFontCommandPool();
+IMGUI_IMPL_API VkCommandBuffer ImGui_ImplVulkan_GetFontCommandBuffer();
+IMGUI_IMPL_API VkSampler ImGui_ImplVulkan_GetFontSampler();
+IMGUI_IMPL_API VkImage ImGui_ImplVulkan_GetFontImage();
+IMGUI_IMPL_API VkImageView ImGui_ImplVulkan_GetFontImageView();
+IMGUI_IMPL_API VkDeviceMemory ImGui_ImplVulkan_GetFontMemory();
+IMGUI_IMPL_API VkDescriptorSet ImGui_ImplVulkan_GetFontDescSet();
+
 #endif // #ifndef IMGUI_DISABLE

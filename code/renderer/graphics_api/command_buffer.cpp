@@ -301,7 +301,7 @@ CommandBuffer CommandPool::NewCommandBuffer( const std::string& name )
     VkCommandBuffer handle;
     VK_CHECK( vkAllocateCommandBuffers( rg.device, &allocInfo, &handle ) );
     buf.m_handle = handle;
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( buf, name ) );
+    PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( buf, name );
 
     return buf;
 }

@@ -156,6 +156,25 @@ bool Init( PixelFormat colorAttachmentFormat )
     init_info.ColorAttachmentFormat     = PGToVulkanPixelFormat( colorAttachmentFormat );
     ImGui_ImplVulkan_Init( &init_info, VK_NULL_HANDLE );
 
+    PG_DEBUG_MARKER_SET_SHADER_NAME( ImGui_ImplVulkan_GetVertShaderModule(), "ImGui Vert" );
+    PG_DEBUG_MARKER_SET_SHADER_NAME( ImGui_ImplVulkan_GetFragShaderModule(), "ImGui Frag" );
+    PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( ImGui_ImplVulkan_GetDescSetLayout(), "ImGui" );
+    PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( ImGui_ImplVulkan_GetPipelineLayout(), "ImGui" );
+    PG_DEBUG_MARKER_SET_PIPELINE_NAME( ImGui_ImplVulkan_GetPipeline(), "ImGui" );
+
+    ImGui_ImplVulkan_CreateFontsTexture();
+
+    PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( ImGui_ImplVulkan_GetFontCommandPool(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( ImGui_ImplVulkan_GetFontCommandBuffer(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_SAMPLER_NAME( ImGui_ImplVulkan_GetFontSampler(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_IMAGE_NAME( ImGui_ImplVulkan_GetFontImage(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( ImGui_ImplVulkan_GetFontImageView(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_MEMORY_NAME( ImGui_ImplVulkan_GetFontMemory(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_DESC_SET_NAME( ImGui_ImplVulkan_GetFontDescSet(), "ImGui Font" );
+
+    // there are also 2 buffers and 2 buffer memories that ImGui uses (the vertex and index buffers), but they are re-created as needed
+    // during ImGui_ImplVulkan_RenderDrawData, so we aren't bothering to update their names each time
+
     return true;
 }
 

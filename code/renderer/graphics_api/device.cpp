@@ -21,7 +21,7 @@ namespace PG::Gfx
 bool Device::Create( const vkb::Device& vkbDevice )
 {
     m_handle = vkbDevice.device;
-    PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( *this, "Primary" );
+    PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( m_handle, "Primary" );
 
     // TODO: actually ensure this queue supports all the operations we need
     auto queueRet = vkbDevice.get_queue( vkb::QueueType::graphics );
@@ -80,7 +80,7 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
 
 void Device::WaitForIdle() const { VK_CHECK( vkQueueWaitIdle( m_queue.queue ) ); }
 
-CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, const std::string& name ) const
+CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, std::string_view name ) const
 {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
@@ -92,30 +92,30 @@ CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, const std::str
     {
         cmdPool.m_handle = VK_NULL_HANDLE;
     }
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( cmdPool, name ) );
+    PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( cmdPool, name );
 
     return cmdPool;
 }
 
-Fence Device::NewFence( bool signaled, const std::string& name ) const
+Fence Device::NewFence( bool signaled, std::string_view name ) const
 {
     Fence fence;
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags             = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
     VK_CHECK( vkCreateFence( m_handle, &fenceInfo, nullptr, &fence.m_handle ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name ) );
+    PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name );
 
     return fence;
 }
 
-Semaphore Device::NewSemaphore( const std::string& name ) const
+Semaphore Device::NewSemaphore( std::string_view name ) const
 {
     Semaphore sem;
     VkSemaphoreCreateInfo info = {};
     info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
     VK_CHECK( vkCreateSemaphore( m_handle, &info, nullptr, &sem.m_handle ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( sem, name ) );
+    PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( sem, name );
 
     return sem;
 }
@@ -145,7 +145,7 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
     return accelerationStructure;
 }
 
-Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, const std::string& name ) const
+Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view name ) const
 {
 
     VkBufferCreateInfo vkBufInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
@@ -163,6 +163,7 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, const std::string&
     buffer.m_memoryUsage = createInfo.memoryUsage;
     VmaAllocationInfo allocReturnInfo;
     vmaCreateBuffer( m_vmaAllocator, &vkBufInfo, &vmaAllocInfo, &buffer.m_handle, &buffer.m_allocation, &allocReturnInfo );
+    PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer.m_handle, name );
     buffer.m_persistent = ( createInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT ) && allocReturnInfo.pMappedData != nullptr;
 
     VkMemoryPropertyFlags vkMemProperties;
@@ -175,7 +176,7 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, const std::string&
     return buffer;
 }
 
-// Buffer Device::NewBuffer( size_t length, void* data, BufferUsage type, MemoryType memoryType, const std::string& name ) const
+// Buffer Device::NewBuffer( size_t length, void* data, BufferUsage type, MemoryType memoryType, std::string_view name ) const
 //{
 //     Buffer dstBuffer;
 //     type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
@@ -211,7 +212,7 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, const std::string&
 //     return dstBuffer;
 // }
 
-Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& name ) const
+Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name ) const
 {
     bool isDepth                = PixelFormatHasDepthFormat( desc.format );
     VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
@@ -248,15 +249,15 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& na
     PG_ASSERT( FormatSupported( vkFormat, features ) );
     tex.m_imageView = CreateImageView(
         tex.m_image, vkFormat, isDepth ? VK_IMAGE_ASPECT_DEPTH_BIT : VK_IMAGE_ASPECT_COLOR_BIT, desc.mipLevels, desc.arrayLayers );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_IMAGE_NAME( tex.m_image, name ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name ) );
+    PG_DEBUG_MARKER_SET_IMAGE_NAME( tex.m_image, name );
+    PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name );
 
     tex.m_bindlessArrayIndex = TextureManager::AddTexture( tex.m_imageView );
 
     return tex;
 }
 
-Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, const std::string& name ) const
+Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, std::string_view name ) const
 {
     // desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     // Texture tex          = NewTexture( desc, name );
@@ -305,18 +306,18 @@ Sampler Device::NewSampler( const SamplerDescriptor& desc ) const
     info.maxLod                  = 100.0f;
 
     VK_CHECK( vkCreateSampler( m_handle, &info, nullptr, &sampler.m_handle ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( desc.name, PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, desc.name ) );
+    PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, desc.name );
 
     return sampler;
 }
 
-Pipeline Device::NewGraphicsPipeline( const PipelineDescriptor& desc, const std::string& name ) const
+Pipeline Device::NewGraphicsPipeline( const PipelineDescriptor& desc, std::string_view name ) const
 {
     PG_ASSERT( false, "todo" );
     return {};
 }
 
-Pipeline Device::NewComputePipeline( Shader* shader, const std::string& name ) const
+Pipeline Device::NewComputePipeline( Shader* shader, std::string_view name ) const
 {
     PG_ASSERT( false, "todo" );
     return {};

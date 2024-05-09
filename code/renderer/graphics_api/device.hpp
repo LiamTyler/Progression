@@ -42,10 +42,10 @@ public:
     Texture NewTexture( const TextureCreateInfo& desc, std::string_view name = "" ) const;
     Texture NewTextureFromBuffer( TextureCreateInfo& desc, void* data, std::string_view name = "" ) const;
 
-    Sampler NewSampler( const SamplerDescriptor& desc ) const;
+    Sampler NewSampler( const SamplerCreateInfo& desc ) const;
     Fence NewFence( bool signaled = false, std::string_view name = "" ) const;
     Semaphore NewSemaphore( std::string_view name = "" ) const;
-    Pipeline NewGraphicsPipeline( const PipelineDescriptor& desc, std::string_view name = "" ) const;
+    Pipeline NewGraphicsPipeline( const PipelineCreateInfo& desc, std::string_view name = "" ) const;
     Pipeline NewComputePipeline( Shader* shader, std::string_view name = "" ) const;
 
     // returns false if present failed because the swapchain needs to be recreated

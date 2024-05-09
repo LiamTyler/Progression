@@ -38,7 +38,7 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         desc.mipLevels         = buildTex.mipLevels;
         desc.usage             = buildTex.usage;
 
-        gfxTex.m_desc               = desc;
+        gfxTex.m_info               = desc;
         gfxTex.m_image              = VK_NULL_HANDLE;
         gfxTex.m_imageView          = VK_NULL_HANDLE;
         gfxTex.m_sampler            = GetSampler( desc.sampler );

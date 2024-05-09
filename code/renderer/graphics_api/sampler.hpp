@@ -36,7 +36,7 @@ enum class BorderColor : uint8_t
     OPAQUE_WHITE_INT        = 5,
 };
 
-struct SamplerDescriptor
+struct SamplerCreateInfo
 {
     std::string name        = "default";
     FilterMode minFilter    = FilterMode::LINEAR;
@@ -69,7 +69,7 @@ public:
     operator VkSampler() const;
 
 private:
-    SamplerDescriptor m_desc;
+    SamplerCreateInfo m_info;
     VkSampler m_handle = VK_NULL_HANDLE;
 };
 
@@ -94,7 +94,7 @@ enum SamplerType : uint8_t
 void InitSamplers();
 void FreeSamplers();
 Sampler* GetSampler( SamplerType samplerType );
-Sampler* AddCustomSampler( Gfx::SamplerDescriptor& desc );
+Sampler* AddCustomSampler( Gfx::SamplerCreateInfo& desc );
 Sampler* GetCustomSampler( const std::string& name );
 
 } // namespace PG::Gfx

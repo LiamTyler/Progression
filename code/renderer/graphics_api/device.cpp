@@ -232,7 +232,7 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     }
 
     Texture tex;
-    tex.m_desc    = desc;
+    tex.m_info    = desc;
     tex.m_sampler = GetSampler( desc.sampler );
 
     VmaAllocationCreateInfo allocInfo = {};
@@ -271,10 +271,10 @@ Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, std::
     // PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
     //
     // TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //     tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+    //     tex.GetMipLevels(), tex.GetArrayLayers() );
     // CopyBufferToImage( stagingBuffer, tex );
     // TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.m_desc.mipLevels, tex.m_desc.arrayLayers );
+    //     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.GetMipLevels(), tex.GetArrayLayers() );
     //
     // stagingBuffer.Free();
     //
@@ -282,10 +282,10 @@ Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, std::
     return {};
 }
 
-Sampler Device::NewSampler( const SamplerDescriptor& desc ) const
+Sampler Device::NewSampler( const SamplerCreateInfo& desc ) const
 {
     Sampler sampler;
-    sampler.m_desc = desc;
+    sampler.m_info = desc;
 
     VkSamplerCreateInfo info     = {};
     info.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -311,7 +311,7 @@ Sampler Device::NewSampler( const SamplerDescriptor& desc ) const
     return sampler;
 }
 
-Pipeline Device::NewGraphicsPipeline( const PipelineDescriptor& desc, std::string_view name ) const
+Pipeline Device::NewGraphicsPipeline( const PipelineCreateInfo& desc, std::string_view name ) const
 {
     PG_ASSERT( false, "todo" );
     return {};
@@ -325,7 +325,7 @@ Pipeline Device::NewComputePipeline( Shader* shader, std::string_view name ) con
     //
     // Pipeline pipeline;
     // pipeline.m_device          = m_handle;
-    // pipeline.m_desc.shaders[0] = shader;
+    // pipeline.m_info.shaders[0] = shader;
     // pipeline.m_resourceLayout  = CombineShaderResourceLayouts( &shader, 1 );
     // pipeline.m_isCompute       = true;
     // auto& layouts              = pipeline.m_resourceLayout;

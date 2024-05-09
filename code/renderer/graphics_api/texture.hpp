@@ -55,7 +55,7 @@ public:
     operator bool() const;
 
 private:
-    TextureCreateInfo m_desc;
+    TextureCreateInfo m_info;
     VkImage m_image               = VK_NULL_HANDLE;
     VkImageView m_imageView       = VK_NULL_HANDLE;
     VmaAllocation m_allocation    = nullptr;

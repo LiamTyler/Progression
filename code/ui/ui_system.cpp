@@ -84,7 +84,7 @@ bool Init()
     }
 
     // using namespace Gfx;
-    // PipelineDescriptor pipelineDesc;
+    // PipelineCreateInfo pipelineDesc;
     // pipelineDesc.dynamicAttachmentInfo       = RenderSystem::GetPipelineAttachmentInfo( "UI_2D" );
     // pipelineDesc.depthInfo.depthTestEnabled  = false;
     // pipelineDesc.depthInfo.depthWriteEnabled = false;

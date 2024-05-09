@@ -201,7 +201,7 @@ struct PipelineAttachmentInfo
     bool HasInfo() const { return numColorAttachments > 0 || depthAttachmentFormat != PixelFormat::INVALID; }
 };
 
-struct PipelineDescriptor
+struct PipelineCreateInfo
 {
     std::array<Shader*, 3> shaders = {};
     VertexInputDescriptor vertexDescriptor;
@@ -229,7 +229,7 @@ public:
     operator VkPipeline() const;
 
 private:
-    PipelineDescriptor m_desc;
+    PipelineCreateInfo m_info;
     VkPipeline m_pipeline             = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
     bool m_isCompute                  = false;

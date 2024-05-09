@@ -11,7 +11,7 @@ static std::unordered_map<std::string, Sampler> s_customSamplers;
 
 Sampler* GetSampler( SamplerType samplerType ) { return &s_builtInSamplers[samplerType]; }
 
-Sampler* AddCustomSampler( SamplerDescriptor& desc )
+Sampler* AddCustomSampler( SamplerCreateInfo& desc )
 {
     auto it = s_customSamplers.find( desc.name );
     if ( it != s_customSamplers.end() )
@@ -37,9 +37,9 @@ Sampler* GetCustomSampler( const std::string& name )
 }
 
 // helper for adding the 4 wrap variants, 2 in U and 2 in V
-static void AddWrapSamplers( SamplerType type, const SamplerDescriptor& samplerTemplate )
+static void AddWrapSamplers( SamplerType type, const SamplerCreateInfo& samplerTemplate )
 {
-    SamplerDescriptor samplerDesc = samplerTemplate;
+    SamplerCreateInfo samplerDesc = samplerTemplate;
 
     samplerDesc.name      = samplerTemplate.name + "clampU_clampV";
     samplerDesc.wrapModeU = WrapMode::CLAMP_TO_EDGE;
@@ -65,7 +65,7 @@ static void AddWrapSamplers( SamplerType type, const SamplerDescriptor& samplerT
 
 void InitSamplers()
 {
-    SamplerDescriptor samplerDesc;
+    SamplerCreateInfo samplerDesc;
     samplerDesc.maxAnisotropy = 16.0f;
 
     samplerDesc.name      = "nearest_";
@@ -106,14 +106,14 @@ void Sampler::Free()
     m_handle = VK_NULL_HANDLE;
 }
 
-std::string Sampler::GetName() const { return m_desc.name; }
-FilterMode Sampler::GetMinFilter() const { return m_desc.minFilter; }
-FilterMode Sampler::GetMagFilter() const { return m_desc.magFilter; }
-WrapMode Sampler::GetWrapModeU() const { return m_desc.wrapModeU; }
-WrapMode Sampler::GetWrapModeV() const { return m_desc.wrapModeV; }
-WrapMode Sampler::GetWrapModeW() const { return m_desc.wrapModeW; }
-float Sampler::GetMaxAnisotropy() const { return m_desc.maxAnisotropy; }
-BorderColor Sampler::GetBorderColor() const { return m_desc.borderColor; }
+std::string Sampler::GetName() const { return m_info.name; }
+FilterMode Sampler::GetMinFilter() const { return m_info.minFilter; }
+FilterMode Sampler::GetMagFilter() const { return m_info.magFilter; }
+WrapMode Sampler::GetWrapModeU() const { return m_info.wrapModeU; }
+WrapMode Sampler::GetWrapModeV() const { return m_info.wrapModeV; }
+WrapMode Sampler::GetWrapModeW() const { return m_info.wrapModeW; }
+float Sampler::GetMaxAnisotropy() const { return m_info.maxAnisotropy; }
+BorderColor Sampler::GetBorderColor() const { return m_info.borderColor; }
 VkSampler Sampler::GetHandle() const { return m_handle; }
 Sampler::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 Sampler::operator VkSampler() const { return m_handle; }

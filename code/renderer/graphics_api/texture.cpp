@@ -27,22 +27,22 @@ void Texture::Free()
     m_allocation = nullptr;
 }
 
-ImageType Texture::GetType() const { return m_desc.type; }
-PixelFormat Texture::GetPixelFormat() const { return m_desc.format; }
-uint32_t Texture::GetMipLevels() const { return m_desc.mipLevels; }
-uint32_t Texture::GetArrayLayers() const { return m_desc.arrayLayers; }
-uint32_t Texture::GetWidth() const { return m_desc.width; }
-uint32_t Texture::GetHeight() const { return m_desc.height; }
-uint32_t Texture::GetDepth() const { return m_desc.depth; }
-VkExtent2D Texture::GetExtent2D() const { return { m_desc.width, m_desc.height }; }
-VkExtent3D Texture::GetExtent3D() const { return { m_desc.width, m_desc.height, m_desc.depth }; }
+ImageType Texture::GetType() const { return m_info.type; }
+PixelFormat Texture::GetPixelFormat() const { return m_info.format; }
+uint32_t Texture::GetMipLevels() const { return m_info.mipLevels; }
+uint32_t Texture::GetArrayLayers() const { return m_info.arrayLayers; }
+uint32_t Texture::GetWidth() const { return m_info.width; }
+uint32_t Texture::GetHeight() const { return m_info.height; }
+uint32_t Texture::GetDepth() const { return m_info.depth; }
+VkExtent2D Texture::GetExtent2D() const { return { m_info.width, m_info.height }; }
+VkExtent3D Texture::GetExtent3D() const { return { m_info.width, m_info.height, m_info.depth }; }
 VkImage Texture::GetImage() const { return m_image; }
 VkImageView Texture::GetView() const { return m_imageView; }
 VmaAllocation Texture::GetAllocation() const { return m_allocation; }
 uint16_t Texture::GetBindlessArrayIndex() const { return m_bindlessArrayIndex; }
 Sampler* Texture::GetSampler() const { return m_sampler; }
 Texture::operator bool() const { return m_image != VK_NULL_HANDLE; }
-size_t Texture::GetTotalBytes() const { return m_desc.TotalSizeInBytes(); }
+size_t Texture::GetTotalBytes() const { return m_info.TotalSizeInBytes(); }
 size_t TextureCreateInfo::TotalSizeInBytes() const
 {
     return CalculateTotalImageBytes( format, width, height, depth, arrayLayers, mipLevels );

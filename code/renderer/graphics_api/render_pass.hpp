@@ -85,40 +85,4 @@ public:
     ImageLayout finalLayout   = ImageLayout::UNDEFINED;
 };
 
-class RenderPassDescriptor
-{
-public:
-    RenderPassDescriptor() = default;
-
-    void AddColorAttachment( PixelFormat format = PixelFormat::INVALID, LoadAction loadAction = LoadAction::CLEAR,
-        StoreAction storeAction = StoreAction::STORE, const vec4& clearColor = vec4( 0 ),
-        ImageLayout initialLayout = ImageLayout::UNDEFINED, ImageLayout finalLayout = ImageLayout::UNDEFINED );
-    void AddDepthAttachment( PixelFormat format = PixelFormat::INVALID, LoadAction loadAction = LoadAction::CLEAR,
-        StoreAction storeAction = StoreAction::STORE, float clearValue = 1.0f, ImageLayout initialLayout = ImageLayout::UNDEFINED,
-        ImageLayout finalLayout = ImageLayout::UNDEFINED );
-
-    std::array<ColorAttachmentDescriptor, MAX_COLOR_ATTACHMENTS> colorAttachmentDescriptors;
-    DepthAttachmentDescriptor depthAttachmentDescriptor;
-    uint8_t numColorAttachments = 0;
-    uint8_t numDepthAttachments = 0;
-};
-
-class RenderPass
-{
-    friend class Device;
-
-public:
-    RenderPass() = default;
-
-    void Free();
-    VkRenderPass GetHandle() const;
-    operator bool() const;
-
-    RenderPassDescriptor desc;
-
-private:
-    VkRenderPass m_handle = VK_NULL_HANDLE;
-    VkDevice m_device     = VK_NULL_HANDLE;
-};
-
 } // namespace PG::Gfx

@@ -11,8 +11,7 @@ namespace PG::Gfx
 
 bool Swapchain::Create( uint32_t width, uint32_t height )
 {
-    m_device = rg.device.GetHandle();
-    vkb::SwapchainBuilder swapchainBuilder{ rg.physicalDevice.GetHandle(), rg.device.GetHandle(), rg.surface };
+    vkb::SwapchainBuilder swapchainBuilder{ rg.physicalDevice, rg.device, rg.surface };
 
     swapchainBuilder
         //.use_default_format_selection()
@@ -57,8 +56,7 @@ bool Swapchain::Recreate( uint32_t preferredWidth, uint32_t preferredHeight )
 
 bool Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
 {
-    VkSemaphore vkSem = presentCompleteSemaphore.GetHandle();
-    VkResult res      = vkAcquireNextImageKHR( m_device, m_handle, UINT64_MAX, vkSem, VK_NULL_HANDLE, &m_currentImageIdx );
+    VkResult res = vkAcquireNextImageKHR( rg.device, m_handle, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, &m_currentImageIdx );
     bool resizeNeeded = res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR;
     PG_ASSERT( res == VK_SUCCESS || resizeNeeded, "vkAcquireNextImageKHR failed with error %d", res );
     return !resizeNeeded;
@@ -69,14 +67,15 @@ void Swapchain::Free()
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
     for ( size_t i = 0; i < m_imageViews.size(); ++i )
     {
-        vkDestroyImageView( m_device, m_imageViews[i], nullptr );
+        vkDestroyImageView( rg.device, m_imageViews[i], nullptr );
     }
 
-    vkDestroySwapchainKHR( m_device, m_handle, nullptr );
+    vkDestroySwapchainKHR( rg.device, m_handle, nullptr );
     m_handle = VK_NULL_HANDLE;
 }
 
 Swapchain::operator bool() const { return m_handle != VK_NULL_HANDLE; }
+Swapchain::operator VkSwapchainKHR() const { return m_handle; }
 uint32_t Swapchain::GetCurrentImageIndex() const { return m_currentImageIdx; }
 PixelFormat Swapchain::GetFormat() const { return m_imageFormat; }
 uint32_t Swapchain::GetWidth() const { return m_width; }

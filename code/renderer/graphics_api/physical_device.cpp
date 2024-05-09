@@ -37,6 +37,8 @@ void PhysicalDevice::Create( VkPhysicalDevice pDev )
 
 std::string PhysicalDevice::GetName() const { return m_properties.name; }
 VkPhysicalDevice PhysicalDevice::GetHandle() const { return m_handle; }
+PhysicalDevice::operator bool() const { return m_handle != VK_NULL_HANDLE; }
+PhysicalDevice::operator VkPhysicalDevice() const { return m_handle; }
 const PhysicalDeviceProperties& PhysicalDevice::GetProperties() const { return m_properties; }
 VkPhysicalDeviceMemoryProperties PhysicalDevice::GetMemoryProperties() const { return m_memProperties; }
 

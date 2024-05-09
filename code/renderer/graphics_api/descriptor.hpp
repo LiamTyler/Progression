@@ -18,18 +18,17 @@ struct DescriptorLayoutBuilder
 
     void AddBinding( uint32_t binding, VkDescriptorType type, uint32_t count );
     void Clear();
-    VkDescriptorSetLayout Build( VkDevice device, VkShaderStageFlags shaderStages = VK_SHADER_STAGE_ALL );
+    VkDescriptorSetLayout Build( VkShaderStageFlags shaderStages = VK_SHADER_STAGE_ALL, const std::string& name = "" );
 };
 
 struct DescriptorAllocator
 {
     VkDescriptorPool pool;
-    VkDevice device;
 
-    void Init( VkDevice inDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes );
+    void Init( uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, const std::string& name = "" );
     void ClearDescriptors();
     void Free();
-    VkDescriptorSet Allocate( VkDescriptorSetLayout layout );
+    VkDescriptorSet Allocate( VkDescriptorSetLayout layout, const std::string& name = "" );
 };
 
 struct DescriptorBuffer

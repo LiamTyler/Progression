@@ -41,7 +41,6 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         gfxTex.m_desc               = desc;
         gfxTex.m_image              = VK_NULL_HANDLE;
         gfxTex.m_imageView          = VK_NULL_HANDLE;
-        gfxTex.m_device             = rg.device.GetHandle();
         gfxTex.m_sampler            = GetSampler( desc.sampler );
         gfxTex.m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
 

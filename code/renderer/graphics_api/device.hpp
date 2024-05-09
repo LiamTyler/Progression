@@ -3,7 +3,6 @@
 #include "renderer/graphics_api/acceleration_structure.hpp"
 #include "renderer/graphics_api/command_buffer.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
-#include "renderer/graphics_api/framebuffer.hpp"
 #include "renderer/graphics_api/physical_device.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
 #include "renderer/graphics_api/sampler.hpp"
@@ -48,10 +47,7 @@ public:
     Semaphore NewSemaphore( const std::string& name = "" ) const;
     Pipeline NewGraphicsPipeline( const PipelineDescriptor& desc, const std::string& name = "" ) const;
     Pipeline NewComputePipeline( Shader* shader, const std::string& name = "" ) const;
-    RenderPass NewRenderPass( const RenderPassDescriptor& desc, const std::string& name = "" ) const;
-    Framebuffer NewFramebuffer(
-        const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name = "" ) const;
-    Framebuffer NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name = "" ) const;
+
     // returns false if present failed because the swapchain needs to be recreated
     bool Present( const Swapchain& swapChain, const Semaphore& waitSemaphore ) const;
 

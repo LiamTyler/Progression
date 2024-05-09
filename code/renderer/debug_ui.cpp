@@ -140,8 +140,8 @@ bool Init( PixelFormat colorAttachmentFormat )
     ImGui_ImplGlfw_InitForVulkan( GetMainWindow()->GetGLFWHandle(), true );
     ImGui_ImplVulkan_InitInfo init_info = {};
     init_info.Instance                  = rg.instance;
-    init_info.PhysicalDevice            = rg.physicalDevice.GetHandle();
-    init_info.Device                    = rg.device.GetHandle();
+    init_info.PhysicalDevice            = rg.physicalDevice;
+    init_info.Device                    = rg.device;
     init_info.QueueFamily               = rg.device.GetQueue().familyIndex;
     init_info.Queue                     = rg.device.GetQueue();
     init_info.PipelineCache             = VK_NULL_HANDLE;
@@ -192,7 +192,7 @@ void Render( CommandBuffer& cmdBuf )
 
     ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();
-    ImGui_ImplVulkan_RenderDrawData( draw_data, cmdBuf.GetHandle() );
+    ImGui_ImplVulkan_RenderDrawData( draw_data, cmdBuf );
 }
 
 void EndFrame() { ImGui::EndFrame(); }

@@ -27,6 +27,8 @@ public:
 
     std::string GetName() const;
     VkPhysicalDevice GetHandle() const;
+    operator bool() const;
+    operator VkPhysicalDevice() const;
     const PhysicalDeviceProperties& GetProperties() const;
     VkPhysicalDeviceMemoryProperties GetMemoryProperties() const;
 

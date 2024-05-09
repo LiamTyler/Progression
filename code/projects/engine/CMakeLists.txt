@@ -69,8 +69,6 @@ set(
     ${CODE_DIR}/renderer/graphics_api/descriptor.hpp
     ${CODE_DIR}/renderer/graphics_api/device.cpp
     ${CODE_DIR}/renderer/graphics_api/device.hpp
-    ${CODE_DIR}/renderer/graphics_api/framebuffer.cpp
-    ${CODE_DIR}/renderer/graphics_api/framebuffer.hpp
     ${CODE_DIR}/renderer/graphics_api/gpu_profiling.cpp
     ${CODE_DIR}/renderer/graphics_api/gpu_profiling.hpp
     ${CODE_DIR}/renderer/graphics_api/limits.hpp

@@ -59,7 +59,6 @@ private:
     VkImage m_image               = VK_NULL_HANDLE;
     VkImageView m_imageView       = VK_NULL_HANDLE;
     VmaAllocation m_allocation    = nullptr;
-    VkDevice m_device             = VK_NULL_HANDLE;
     Sampler* m_sampler            = nullptr;
     uint16_t m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
 };

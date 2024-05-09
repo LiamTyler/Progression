@@ -206,7 +206,6 @@ struct PipelineDescriptor
 {
     std::array<Shader*, 3> shaders = {};
     VertexInputDescriptor vertexDescriptor;
-    RenderPass* renderPass = nullptr;
     PipelineAttachmentInfo dynamicAttachmentInfo;
     RasterizerInfo rasterizerInfo;
     PrimitiveType primitiveType = PrimitiveType::TRIANGLES;
@@ -228,12 +227,12 @@ public:
     VkShaderStageFlags GetPushConstantShaderStages() const { return VK_SHADER_STAGE_ALL; }
 
     operator bool() const;
+    operator VkPipeline() const;
 
 private:
     PipelineDescriptor m_desc;
     VkPipeline m_pipeline             = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    VkDevice m_device                 = VK_NULL_HANDLE;
     bool m_isCompute                  = false;
 };
 

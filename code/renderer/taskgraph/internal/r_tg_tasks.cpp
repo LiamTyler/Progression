@@ -14,7 +14,7 @@ static void FillBufferBarriers( TaskGraph* taskGraph, vector<VkBufferMemoryBarri
     {
         TGResourceHandle bufHandle;
         memcpy( &bufHandle, &barrier.buffer, sizeof( TGResourceHandle ) );
-        barrier.buffer = taskGraph->GetBuffer( bufHandle )->GetHandle();
+        barrier.buffer = *taskGraph->GetBuffer( bufHandle );
     }
 }
 
@@ -73,7 +73,7 @@ void ComputeTask::Execute( TGExecuteData* data )
     for ( const BufferClearSubTask& clear : bufferClears )
     {
         Buffer* buf = data->taskGraph->GetBuffer( clear.bufferHandle );
-        vkCmdFillBuffer( *data->cmdBuf, buf->GetHandle(), 0, VK_WHOLE_SIZE, clear.clearVal );
+        vkCmdFillBuffer( *data->cmdBuf, *buf, 0, VK_WHOLE_SIZE, clear.clearVal );
     }
     for ( const TextureClearSubTask& clear : textureClears )
     {

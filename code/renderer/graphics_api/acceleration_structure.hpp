@@ -31,7 +31,6 @@ protected:
     AccelerationStructureType m_type;
     VkAccelerationStructureKHR m_handle = VK_NULL_HANDLE;
     VkDeviceAddress m_deviceAddress;
-    VkDevice m_device;
 };
 
 } // namespace PG::Gfx

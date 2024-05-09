@@ -38,7 +38,7 @@ bool Device::Create( const vkb::Device& vkbDevice )
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
     allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     allocatorCreateInfo.vulkanApiVersion       = VK_API_VERSION_1_3;
-    allocatorCreateInfo.physicalDevice         = rg.physicalDevice.GetHandle();
+    allocatorCreateInfo.physicalDevice         = rg.physicalDevice;
     allocatorCreateInfo.device                 = m_handle;
     allocatorCreateInfo.instance               = rg.instance;
     VK_CHECK( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
@@ -60,7 +60,7 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
     const VkSemaphoreSubmitInfo* signalSemaphoreInfo, Fence* fence ) const
 {
     VkCommandBufferSubmitInfo cmdBufInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
-    cmdBufInfo.commandBuffer = cmdBuf.GetHandle();
+    cmdBufInfo.commandBuffer = cmdBuf;
     cmdBufInfo.deviceMask    = 0;
 
     VkSubmitInfo2 info = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
@@ -74,7 +74,7 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
     info.commandBufferInfoCount = 1;
     info.pCommandBufferInfos    = &cmdBufInfo;
 
-    VkFence vkFence = fence ? fence->GetHandle() : VK_NULL_HANDLE;
+    VkFence vkFence = fence ? *fence : VK_NULL_HANDLE;
     VK_CHECK( vkQueueSubmit2( m_queue.queue, 1, &info, vkFence ) );
 }
 
@@ -88,7 +88,6 @@ CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, const std::str
     poolInfo.queueFamilyIndex        = m_queue.familyIndex;
 
     CommandPool cmdPool;
-    cmdPool.m_device = m_handle;
     if ( vkCreateCommandPool( m_handle, &poolInfo, nullptr, &cmdPool.m_handle ) != VK_SUCCESS )
     {
         cmdPool.m_handle = VK_NULL_HANDLE;
@@ -104,7 +103,6 @@ Fence Device::NewFence( bool signaled, const std::string& name ) const
     VkFenceCreateInfo fenceInfo = {};
     fenceInfo.sType             = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fenceInfo.flags             = signaled ? VK_FENCE_CREATE_SIGNALED_BIT : 0;
-    fence.m_device              = m_handle;
     VK_CHECK( vkCreateFence( m_handle, &fenceInfo, nullptr, &fence.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name ) );
 
@@ -116,7 +114,6 @@ Semaphore Device::NewSemaphore( const std::string& name ) const
     Semaphore sem;
     VkSemaphoreCreateInfo info = {};
     info.sType                 = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
-    sem.m_device               = m_handle;
     VK_CHECK( vkCreateSemaphore( m_handle, &info, nullptr, &sem.m_handle ) );
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( sem, name ) );
 
@@ -131,12 +128,11 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
     bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
     AccelerationStructure accelerationStructure;
-    accelerationStructure.m_device = m_handle;
     accelerationStructure.m_type   = type;
     accelerationStructure.m_buffer = NewBuffer( bufferCreateInfo );
 
     VkAccelerationStructureCreateInfoKHR accelerationStructureCreateInfo{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_CREATE_INFO_KHR };
-    accelerationStructureCreateInfo.buffer = accelerationStructure.m_buffer.GetHandle();
+    accelerationStructureCreateInfo.buffer = accelerationStructure.m_buffer;
     accelerationStructureCreateInfo.size   = size;
     accelerationStructureCreateInfo.type   = PGToVulkanAccelerationStructureType( type );
     VK_CHECK( vkCreateAccelerationStructureKHR( m_handle, &accelerationStructureCreateInfo, nullptr, &accelerationStructure.m_handle ) );
@@ -235,7 +231,6 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, const std::string& na
     }
 
     Texture tex;
-    tex.m_device  = m_handle;
     tex.m_desc    = desc;
     tex.m_sampler = GetSampler( desc.sampler );
 
@@ -289,8 +284,7 @@ Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, const
 Sampler Device::NewSampler( const SamplerDescriptor& desc ) const
 {
     Sampler sampler;
-    sampler.m_desc   = desc;
-    sampler.m_device = m_handle;
+    sampler.m_desc = desc;
 
     VkSamplerCreateInfo info     = {};
     info.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
@@ -340,7 +334,7 @@ Pipeline Device::NewComputePipeline( Shader* shader, const std::string& name ) c
     //     [&]( uint32_t set )
     //     {
     //         RegisterDescriptorSetLayout( layouts.sets[set], layouts.bindingStages[set] );
-    //         activeLayouts[numActiveSets++] = layouts.sets[set].GetHandle();
+    //         activeLayouts[numActiveSets++] = layouts.sets[set];
     //     } );
     //
     // VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
@@ -359,120 +353,6 @@ Pipeline Device::NewComputePipeline( Shader* shader, const std::string& name ) c
     //
     // VK_CHECK( vkCreateComputePipelines( m_handle, VK_NULL_HANDLE, 1, &createInfo, nullptr, &pipeline.m_pipeline ) );
     // return pipeline;
-}
-
-RenderPass Device::NewRenderPass( const RenderPassDescriptor& desc, const std::string& name ) const
-{
-    RenderPass pass;
-    pass.desc     = desc;
-    pass.m_device = m_handle;
-
-    VkAttachmentDescription attachments[9];
-    VkAttachmentReference attachmentRefs[9];
-    uint8_t numAttachments = 0;
-    for ( uint8_t i = 0; i < desc.numColorAttachments; ++i )
-    {
-        const ColorAttachmentDescriptor& attach = desc.colorAttachmentDescriptors[i];
-        attachments[i].flags                    = 0;
-        attachments[i].format                   = PGToVulkanPixelFormat( attach.format );
-        attachments[i].samples                  = VK_SAMPLE_COUNT_1_BIT;
-        attachments[i].loadOp                   = PGToVulkanLoadAction( attach.loadAction );
-        attachments[i].storeOp                  = PGToVulkanStoreAction( attach.storeAction );
-        attachments[i].stencilLoadOp            = PGToVulkanLoadAction( LoadAction::DONT_CARE );
-        attachments[i].stencilStoreOp           = PGToVulkanStoreAction( StoreAction::DONT_CARE );
-        attachments[i].initialLayout            = PGToVulkanImageLayout( attach.initialLayout );
-        attachments[i].finalLayout              = PGToVulkanImageLayout( attach.finalLayout );
-
-        attachmentRefs[i].attachment = i;
-        attachmentRefs[i].layout     = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
-        ++numAttachments;
-    }
-
-    VkSubpassDescription subpass = {};
-    subpass.pipelineBindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-    subpass.colorAttachmentCount = numAttachments;
-    subpass.pColorAttachments    = attachmentRefs;
-
-    VkAttachmentReference depthAttachmentRef = {};
-    if ( desc.numDepthAttachments != 0 )
-    {
-        const DepthAttachmentDescriptor& attach = desc.depthAttachmentDescriptor;
-        VkAttachmentDescription depthAttachment;
-        depthAttachment.flags   = 0;
-        depthAttachment.format  = PGToVulkanPixelFormat( attach.format );
-        depthAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
-        depthAttachment.loadOp  = PGToVulkanLoadAction( attach.loadAction );
-        depthAttachment.storeOp = PGToVulkanStoreAction( attach.storeAction );
-        PG_ASSERT( !PixelFormatHasStencil( attach.format ), "Stencil formats not implemented yet" );
-        depthAttachment.stencilLoadOp  = PGToVulkanLoadAction( LoadAction::DONT_CARE );
-        depthAttachment.stencilStoreOp = PGToVulkanStoreAction( StoreAction::DONT_CARE );
-        depthAttachment.initialLayout  = PGToVulkanImageLayout( attach.initialLayout );
-        depthAttachment.finalLayout    = PGToVulkanImageLayout( attach.finalLayout );
-
-        depthAttachmentRef.attachment = numAttachments;
-        depthAttachmentRef.layout     = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
-
-        subpass.pDepthStencilAttachment = &depthAttachmentRef;
-        attachments[numAttachments]     = depthAttachment;
-        ++numAttachments;
-    }
-
-    VkSubpassDependency dependency = {};
-    dependency.srcSubpass          = VK_SUBPASS_EXTERNAL;
-    dependency.dstSubpass          = 0;
-    dependency.srcStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.srcAccessMask       = 0;
-    dependency.dstStageMask        = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask       = VK_ACCESS_COLOR_ATTACHMENT_READ_BIT | VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
-    VkRenderPassCreateInfo renderPassInfo = {};
-    renderPassInfo.sType                  = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    renderPassInfo.attachmentCount        = numAttachments;
-    renderPassInfo.pAttachments           = attachments;
-    renderPassInfo.subpassCount           = 1;
-    renderPassInfo.pSubpasses             = &subpass;
-    renderPassInfo.dependencyCount        = 1;
-    renderPassInfo.pDependencies          = &dependency;
-
-    VK_CHECK( vkCreateRenderPass( m_handle, &renderPassInfo, nullptr, &pass.m_handle ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_RENDER_PASS_NAME( pass, name ) );
-
-    return pass;
-}
-
-Framebuffer Device::NewFramebuffer( const std::vector<Texture*>& attachments, const RenderPass& renderPass, const std::string& name ) const
-{
-    PG_ASSERT( 0 < attachments.size() && attachments.size() <= 9 );
-    VkImageView frameBufferAttachments[9];
-    for ( size_t i = 0; i < attachments.size(); ++i )
-    {
-        PG_ASSERT( attachments[i] );
-        frameBufferAttachments[i] = attachments[i]->GetView();
-    }
-
-    VkFramebufferCreateInfo framebufferInfo = {};
-    framebufferInfo.sType                   = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-    framebufferInfo.renderPass              = renderPass.GetHandle();
-    framebufferInfo.attachmentCount         = static_cast<uint32_t>( attachments.size() );
-    framebufferInfo.pAttachments            = frameBufferAttachments;
-    framebufferInfo.width                   = attachments[0]->GetWidth();
-    framebufferInfo.height                  = attachments[0]->GetHeight();
-    framebufferInfo.layers                  = 1;
-
-    return NewFramebuffer( framebufferInfo, name );
-}
-
-Framebuffer Device::NewFramebuffer( const VkFramebufferCreateInfo& info, const std::string& name ) const
-{
-    Framebuffer ret;
-    ret.m_width  = info.width;
-    ret.m_height = info.height;
-    ret.m_device = m_handle;
-
-    VK_CHECK( vkCreateFramebuffer( m_handle, &info, nullptr, &ret.m_handle ) );
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_FRAMEBUFFER_NAME( ret, name ) );
-
-    return ret;
 }
 
 void Device::Copy( Buffer dst, Buffer src ) const
@@ -540,7 +420,7 @@ void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool c
     //     height = Max( height >> 1, 1u );
     // }
     //
-    // vkCmdCopyBufferToImage( cmdBuf.GetHandle(), buffer.GetHandle(), tex.GetHandle(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+    // vkCmdCopyBufferToImage( cmdBuf.GetHandle(), buffer, tex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
     //     static_cast<uint32_t>( bufferCopyRegions.size() ), bufferCopyRegions.data() );
     //
     // cmdBuf.EndRecording();
@@ -551,8 +431,8 @@ void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool c
 
 bool Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore ) const
 {
-    VkSwapchainKHR vkSwapchain   = swapchain.GetHandle();
-    VkSemaphore vkSemaphore      = waitSemaphore.GetHandle(); // wait until the rendering work is all done
+    VkSwapchainKHR vkSwapchain   = swapchain;
+    VkSemaphore vkSemaphore      = waitSemaphore;
     uint32_t swapchainImageIndex = swapchain.GetCurrentImageIndex();
 
     VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };

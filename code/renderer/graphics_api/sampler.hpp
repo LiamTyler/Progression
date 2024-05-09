@@ -66,11 +66,11 @@ public:
     BorderColor GetBorderColor() const;
     VkSampler GetHandle() const;
     operator bool() const;
+    operator VkSampler() const;
 
 private:
     SamplerDescriptor m_desc;
     VkSampler m_handle = VK_NULL_HANDLE;
-    VkDevice m_device  = VK_NULL_HANDLE;
 };
 
 enum SamplerType : uint8_t

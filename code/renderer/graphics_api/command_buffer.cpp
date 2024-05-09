@@ -14,7 +14,7 @@ VkCommandBuffer CommandBuffer::GetHandle() const { return m_handle; }
 void CommandBuffer::Free()
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
-    vkFreeCommandBuffers( m_device, m_pool, 1, &m_handle );
+    vkFreeCommandBuffers( rg.device, m_pool, 1, &m_handle );
     m_handle = VK_NULL_HANDLE;
 }
 
@@ -31,36 +31,6 @@ void CommandBuffer::BeginRecording( CommandBufferUsage flags ) const
 }
 
 void CommandBuffer::EndRecording() const { VK_CHECK( vkEndCommandBuffer( m_handle ) ); }
-
-void CommandBuffer::BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const
-{
-    VkRenderPassBeginInfo renderPassInfo = {};
-    renderPassInfo.sType                 = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    renderPassInfo.renderPass            = renderPass->GetHandle();
-    renderPassInfo.framebuffer           = framebuffer.GetHandle();
-    renderPassInfo.renderArea.offset     = { 0, 0 };
-    renderPassInfo.renderArea.extent     = { framebuffer.GetWidth(), framebuffer.GetHeight() };
-
-    VkClearValue clearValues[9] = {};
-    uint8_t attachmentIndex     = 0;
-    for ( ; attachmentIndex < renderPass->desc.numColorAttachments; ++attachmentIndex )
-    {
-        const vec4& col                    = renderPass->desc.colorAttachmentDescriptors[attachmentIndex].clearColor;
-        clearValues[attachmentIndex].color = { col.r, col.g, col.b, col.a };
-    }
-    if ( renderPass->desc.numDepthAttachments > 0 )
-    {
-        clearValues[attachmentIndex].depthStencil = { renderPass->desc.depthAttachmentDescriptor.clearValue, 0 };
-        ++attachmentIndex;
-    }
-
-    renderPassInfo.clearValueCount = attachmentIndex;
-    renderPassInfo.pClearValues    = clearValues;
-
-    vkCmdBeginRenderPass( m_handle, &renderPassInfo, VK_SUBPASS_CONTENTS_INLINE );
-}
-
-void CommandBuffer::EndRenderPass() const { vkCmdEndRenderPass( m_handle ); }
 
 void CommandBuffer::BindPipeline( Pipeline* pipeline )
 {
@@ -82,8 +52,8 @@ void CommandBuffer::BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, u
 
 void CommandBuffer::BindVertexBuffer( const Buffer& buffer, size_t offset, uint32_t firstBinding ) const
 {
-    VkBuffer vertexBuffers[] = { buffer.GetHandle() };
-    vkCmdBindVertexBuffers( m_handle, firstBinding, 1, vertexBuffers, &offset );
+    VkBuffer vkBuffer = buffer;
+    vkCmdBindVertexBuffers( m_handle, firstBinding, 1, &vkBuffer, &offset );
 }
 
 void CommandBuffer::BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding ) const
@@ -91,7 +61,7 @@ void CommandBuffer::BindVertexBuffers( uint32_t numBuffers, const Buffer* buffer
     std::vector<VkBuffer> vertexBuffers( numBuffers );
     for ( uint32_t i = 0; i < numBuffers; ++i )
     {
-        vertexBuffers[i] = buffers[i].GetHandle();
+        vertexBuffers[i] = buffers[i];
     }
 
     vkCmdBindVertexBuffers( m_handle, firstBinding, numBuffers, vertexBuffers.data(), offsets );
@@ -99,7 +69,7 @@ void CommandBuffer::BindVertexBuffers( uint32_t numBuffers, const Buffer* buffer
 
 void CommandBuffer::BindIndexBuffer( const Buffer& buffer, IndexType indexType, size_t offset ) const
 {
-    vkCmdBindIndexBuffer( m_handle, buffer.GetHandle(), offset, PGToVulkanIndexType( indexType ) );
+    vkCmdBindIndexBuffer( m_handle, buffer, offset, PGToVulkanIndexType( indexType ) );
 }
 
 void CommandBuffer::PipelineImageBarrier2( const VkImageMemoryBarrier2& imageBarrier ) const
@@ -153,7 +123,7 @@ void CommandBuffer::CopyBuffer( const Buffer& dst, const Buffer& src, size_t siz
     {
         copyRegion.size = src.GetSize();
     }
-    vkCmdCopyBuffer( m_handle, src.GetHandle(), dst.GetHandle(), 1, &copyRegion );
+    vkCmdCopyBuffer( m_handle, src, dst, 1, &copyRegion );
 }
 
 void CommandBuffer::BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, ImageLayout dstLayout, const VkImageBlit& region ) const
@@ -312,7 +282,7 @@ void CommandPool::Free()
 {
     if ( m_handle != VK_NULL_HANDLE )
     {
-        vkDestroyCommandPool( m_device, m_handle, nullptr );
+        vkDestroyCommandPool( rg.device, m_handle, nullptr );
         m_handle = VK_NULL_HANDLE;
     }
 }
@@ -327,10 +297,9 @@ CommandBuffer CommandPool::NewCommandBuffer( const std::string& name )
     allocInfo.commandBufferCount          = 1;
 
     CommandBuffer buf;
-    buf.m_device = m_device;
-    buf.m_pool   = m_handle;
+    buf.m_pool = m_handle;
     VkCommandBuffer handle;
-    VK_CHECK( vkAllocateCommandBuffers( m_device, &allocInfo, &handle ) );
+    VK_CHECK( vkAllocateCommandBuffers( rg.device, &allocInfo, &handle ) );
     buf.m_handle = handle;
     PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( buf, name ) );
 
@@ -339,5 +308,6 @@ CommandBuffer CommandPool::NewCommandBuffer( const std::string& name )
 
 VkCommandPool CommandPool::GetHandle() const { return m_handle; }
 CommandPool::operator bool() const { return m_handle != VK_NULL_HANDLE; }
+CommandPool::operator VkCommandPool() const { return m_handle; }
 
 } // namespace PG::Gfx

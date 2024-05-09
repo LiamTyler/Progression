@@ -1,8 +1,6 @@
 #pragma once
 
-#include "renderer/graphics_api/framebuffer.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
-#include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/vulkan.hpp"
 
 namespace PG::Gfx
@@ -32,8 +30,6 @@ public:
     void Reset() const;
     void BeginRecording( CommandBufferUsage flags = 0 ) const;
     void EndRecording() const;
-    void BeginRenderPass( const RenderPass* renderPass, const Framebuffer& framebuffer ) const;
-    void EndRenderPass() const;
     void BindPipeline( Pipeline* pipeline );
     void BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber ) const;
     void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet ) const;
@@ -61,10 +57,9 @@ public:
     void Dispatch( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const;
 
 private:
-    VkDevice m_device        = VK_NULL_HANDLE;
-    VkCommandPool m_pool     = VK_NULL_HANDLE;
-    VkCommandBuffer m_handle = VK_NULL_HANDLE;
-    Pipeline* m_boundPipeline;
+    VkCommandPool m_pool      = VK_NULL_HANDLE;
+    VkCommandBuffer m_handle  = VK_NULL_HANDLE;
+    Pipeline* m_boundPipeline = nullptr;
 };
 
 typedef enum CommandPoolCreateFlagBits
@@ -85,11 +80,11 @@ public:
     void Free();
     CommandBuffer NewCommandBuffer( const std::string& name = "" );
     operator bool() const;
+    operator VkCommandPool() const;
     VkCommandPool GetHandle() const;
 
 private:
     VkCommandPool m_handle = VK_NULL_HANDLE;
-    VkDevice m_device      = VK_NULL_HANDLE;
 };
 
 } // namespace PG::Gfx

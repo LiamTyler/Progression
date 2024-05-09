@@ -15,7 +15,7 @@ void Texture::Free()
     PG_ASSERT( m_imageView != VK_NULL_HANDLE );
     PG_ASSERT( m_allocation != nullptr );
 
-    vkDestroyImageView( m_device, m_imageView, nullptr );
+    vkDestroyImageView( rg.device, m_imageView, nullptr );
     vmaDestroyImage( rg.device.GetAllocator(), m_image, m_allocation );
     if ( m_bindlessArrayIndex != PG_INVALID_TEXTURE_INDEX )
     {

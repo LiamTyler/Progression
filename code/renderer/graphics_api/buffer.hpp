@@ -137,6 +137,7 @@ public:
     VkDeviceAddress GetDeviceAddress() const;
 
     operator bool() const { return m_handle != VK_NULL_HANDLE; }
+    operator VkBuffer() const { return m_handle; }
     size_t GetSize() const { return m_size; }
     VkBuffer GetHandle() const { return m_handle; }
     VmaAllocation GetAllocation() const { return m_allocation; }

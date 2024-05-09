@@ -34,8 +34,8 @@ PipelineStageFlags GetPipelineStageFlags( ImageLayout imageLayout )
 void Pipeline::Free()
 {
     PG_ASSERT( m_pipeline != VK_NULL_HANDLE && m_pipelineLayout != VK_NULL_HANDLE );
-    vkDestroyPipeline( m_device, m_pipeline, nullptr );
-    vkDestroyPipelineLayout( m_device, m_pipelineLayout, nullptr );
+    vkDestroyPipeline( rg.device, m_pipeline, nullptr );
+    vkDestroyPipelineLayout( rg.device, m_pipelineLayout, nullptr );
     m_pipeline       = VK_NULL_HANDLE;
     m_pipelineLayout = VK_NULL_HANDLE;
 }
@@ -48,5 +48,6 @@ VkPipelineBindPoint Pipeline::GetPipelineBindPoint() const
 };
 
 Pipeline::operator bool() const { return m_pipeline != VK_NULL_HANDLE; }
+Pipeline::operator VkPipeline() const { return m_pipeline; }
 
 } // namespace PG::Gfx

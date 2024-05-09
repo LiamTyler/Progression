@@ -20,6 +20,7 @@ public:
     bool AcquireNextImage( const Semaphore& presentCompleteSemaphore );
     void Free();
     operator bool() const;
+    operator VkSwapchainKHR() const;
 
     uint32_t GetCurrentImageIndex() const;
     PixelFormat GetFormat() const;
@@ -33,7 +34,6 @@ public:
     VkImageView GetImageViewAt( uint32_t index ) const;
 
 private:
-    VkDevice m_device;
     VkSwapchainKHR m_handle = VK_NULL_HANDLE;
     PixelFormat m_imageFormat;
     uint32_t m_width;

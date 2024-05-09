@@ -255,7 +255,7 @@ void Model::CreateBLAS()
 
     VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{
         VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
-    vkGetAccelerationStructureBuildSizesKHR( Gfx::rg.device.GetHandle(), VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
+    vkGetAccelerationStructureBuildSizesKHR( Gfx::rg.device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
         &accelerationStructureBuildGeometryInfo, &numTriangles, &accelerationStructureBuildSizesInfo );
 
     using namespace Gfx;
@@ -270,7 +270,7 @@ void Model::CreateBLAS()
     accelerationBuildGeometryInfo.type                      = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
     accelerationBuildGeometryInfo.flags                     = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
     accelerationBuildGeometryInfo.mode                      = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    accelerationBuildGeometryInfo.dstAccelerationStructure  = blas.GetHandle();
+    accelerationBuildGeometryInfo.dstAccelerationStructure  = blas;
     accelerationBuildGeometryInfo.geometryCount             = 1;
     accelerationBuildGeometryInfo.pGeometries               = &accelerationStructureGeometry;
     accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.GetDeviceAddress();
@@ -284,8 +284,7 @@ void Model::CreateBLAS()
 
     CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time Build AS" );
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    vkCmdBuildAccelerationStructuresKHR(
-        cmdBuf.GetHandle(), 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data() );
+    vkCmdBuildAccelerationStructuresKHR( cmdBuf, 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data() );
     cmdBuf.EndRecording();
     rg.device.Submit( cmdBuf );
     rg.device.WaitForIdle();

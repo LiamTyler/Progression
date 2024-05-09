@@ -112,7 +112,7 @@ bool Init()
     createInfo.queryCount            = MAX_NUM_QUERIES_PER_FRAME;
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        VK_CHECK( vkCreateQueryPool( rg.device.GetHandle(), &createInfo, nullptr, &s_frameData[i].queryPool ) );
+        VK_CHECK( vkCreateQueryPool( rg.device, &createInfo, nullptr, &s_frameData[i].queryPool ) );
         PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_frameData[i].queryPool, "GPU Profiling Timestamp Pool " + std::to_string( i ) );
         s_frameData[i].timestampsWritten = 0;
         s_frameData[i].waitingForResults = false;
@@ -129,7 +129,7 @@ void Shutdown()
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         if ( s_frameData[i].queryPool != VK_NULL_HANDLE )
-            vkDestroyQueryPool( rg.device.GetHandle(), s_frameData[i].queryPool, nullptr );
+            vkDestroyQueryPool( rg.device, s_frameData[i].queryPool, nullptr );
     }
 
     LOG( "Profiling results (ms)" );
@@ -181,7 +181,7 @@ void Reset( const CommandBuffer& cmdbuf )
     if ( frameData.waitingForResults )
         return;
 
-    vkCmdResetQueryPool( cmdbuf.GetHandle(), frameData.queryPool, 0, MAX_NUM_QUERIES_PER_FRAME );
+    vkCmdResetQueryPool( cmdbuf, frameData.queryPool, 0, MAX_NUM_QUERIES_PER_FRAME );
     frameData.timestampsWritten = 0;
 }
 
@@ -194,10 +194,10 @@ static void GetOldestFramesResults()
         return;
     }
 
-    // VkResult res = vkGetQueryPoolResults( rg.device.GetHandle(), s_queryPool, 0, s_timestampsWritten, sizeof( s_cpuQueries ),
+    // VkResult res = vkGetQueryPoolResults( rg.device, s_queryPool, 0, s_timestampsWritten, sizeof( s_cpuQueries ),
     // s_cpuQueries, sizeof( QueryResult ), VK_QUERY_RESULT_WITH_AVAILABILITY_BIT | VK_QUERY_RESULT_64_BIT );
-    VkResult res = vkGetQueryPoolResults( rg.device.GetHandle(), frameData.queryPool, 0, frameData.timestampsWritten,
-        sizeof( s_cpuQueries ), s_cpuQueries, sizeof( QueryResult ), VK_QUERY_RESULT_64_BIT );
+    VkResult res = vkGetQueryPoolResults( rg.device, frameData.queryPool, 0, frameData.timestampsWritten, sizeof( s_cpuQueries ),
+        s_cpuQueries, sizeof( QueryResult ), VK_QUERY_RESULT_64_BIT );
     if ( res == VK_NOT_READY )
     {
         frameData.waitingForResults = true;
@@ -271,7 +271,7 @@ void StartTimestamp( const CommandBuffer& cmdbuf, const std::string& name )
         "Calling StartTimestamp multiple times for tag '%s'", name.c_str() );
     frameData.nameToQueryRecordMap[name] = { GetProfileEntryIndex( name ), frameData.timestampsWritten, 0 };
     uint32_t vkQueryVal                  = frameData.timestampsWritten++;
-    vkCmdWriteTimestamp( cmdbuf.GetHandle(), VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, frameData.queryPool, vkQueryVal );
+    vkCmdWriteTimestamp( cmdbuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, frameData.queryPool, vkQueryVal );
 }
 
 void EndTimestamp( const CommandBuffer& cmdbuf, const std::string& name )
@@ -284,7 +284,7 @@ void EndTimestamp( const CommandBuffer& cmdbuf, const std::string& name )
         "Forgot to call StartTimestamp for timestamp '%s'", name.c_str() );
     frameData.nameToQueryRecordMap[name].endIndex = frameData.timestampsWritten;
     uint32_t vkQueryVal                           = frameData.timestampsWritten++;
-    vkCmdWriteTimestamp( cmdbuf.GetHandle(), VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, frameData.queryPool, vkQueryVal );
+    vkCmdWriteTimestamp( cmdbuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, frameData.queryPool, vkQueryVal );
 }
 
 } // namespace PG::Gfx::Profile

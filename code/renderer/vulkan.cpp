@@ -334,7 +334,7 @@ void TransitionImageLayoutImmediate(
 bool FormatSupported( VkFormat format, VkFormatFeatureFlags requestedSupport )
 {
     VkFormatProperties props;
-    vkGetPhysicalDeviceFormatProperties( rg.physicalDevice.GetHandle(), format, &props );
+    vkGetPhysicalDeviceFormatProperties( rg.physicalDevice, format, &props );
     return ( props.optimalTilingFeatures & requestedSupport ) == requestedSupport;
 }
 
@@ -348,7 +348,7 @@ VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags 
     info.viewType              = layers == 6 ? VK_IMAGE_VIEW_TYPE_CUBE : VK_IMAGE_VIEW_TYPE_2D;
 
     VkImageView view;
-    VK_CHECK( vkCreateImageView( rg.device.GetHandle(), &info, nullptr, &view ) );
+    VK_CHECK( vkCreateImageView( rg.device, &info, nullptr, &view ) );
 
     return view;
 }

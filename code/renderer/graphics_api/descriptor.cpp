@@ -19,7 +19,7 @@ void DescriptorLayoutBuilder::AddBinding( uint32_t binding, VkDescriptorType typ
 
 void DescriptorLayoutBuilder::Clear() { bindings.clear(); }
 
-VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkDevice device, VkShaderStageFlags shaderStages )
+VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderStages, const std::string& name )
 {
     for ( auto& b : bindings )
     {
@@ -64,29 +64,29 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkDevice device, VkShaderS
 
     info.pNext = &extendedInfo;
     VkDescriptorSetLayout setLayout;
-    VK_CHECK( vkCreateDescriptorSetLayout( device, &info, nullptr, &setLayout ) );
+    VK_CHECK( vkCreateDescriptorSetLayout( rg.device, &info, nullptr, &setLayout ) );
+    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( setLayout, name ) );
 
     return setLayout;
 }
 
-void DescriptorAllocator::Init( VkDevice inDevice, uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes )
+void DescriptorAllocator::Init( uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, const std::string& name )
 {
-    device = inDevice;
+    VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
+    poolInfo.flags         = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    poolInfo.maxSets       = maxSets;
+    poolInfo.poolSizeCount = (uint32_t)poolSizes.size();
+    poolInfo.pPoolSizes    = poolSizes.data();
 
-    VkDescriptorPoolCreateInfo pool_info{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-    pool_info.flags         = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
-    pool_info.maxSets       = maxSets;
-    pool_info.poolSizeCount = (uint32_t)poolSizes.size();
-    pool_info.pPoolSizes    = poolSizes.data();
-
-    vkCreateDescriptorPool( device, &pool_info, nullptr, &pool );
+    vkCreateDescriptorPool( rg.device, &poolInfo, nullptr, &pool );
+    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) );
 }
 
-void DescriptorAllocator::ClearDescriptors() { vkResetDescriptorPool( device, pool, 0 ); }
+void DescriptorAllocator::ClearDescriptors() { vkResetDescriptorPool( rg.device, pool, 0 ); }
 
-void DescriptorAllocator::Free() { vkDestroyDescriptorPool( device, pool, nullptr ); }
+void DescriptorAllocator::Free() { vkDestroyDescriptorPool( rg.device, pool, nullptr ); }
 
-VkDescriptorSet DescriptorAllocator::Allocate( VkDescriptorSetLayout layout )
+VkDescriptorSet DescriptorAllocator::Allocate( VkDescriptorSetLayout layout, const std::string& name )
 {
     VkDescriptorSetAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
     allocInfo.pNext                       = nullptr;
@@ -95,7 +95,8 @@ VkDescriptorSet DescriptorAllocator::Allocate( VkDescriptorSetLayout layout )
     allocInfo.pSetLayouts                 = &layout;
 
     VkDescriptorSet ds;
-    VK_CHECK( vkAllocateDescriptorSets( device, &allocInfo, &ds ) );
+    VK_CHECK( vkAllocateDescriptorSets( rg.device, &allocInfo, &ds ) );
+    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_DESC_SET_NAME( ds, name ) );
 
     return ds;
 }

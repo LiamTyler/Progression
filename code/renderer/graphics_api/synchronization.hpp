@@ -17,10 +17,10 @@ public:
     void Reset();
     VkFence GetHandle() const;
     operator bool() const;
+    operator VkFence() const;
 
 private:
     VkFence m_handle = VK_NULL_HANDLE;
-    VkDevice m_device;
 };
 
 class Semaphore
@@ -33,10 +33,10 @@ public:
     void Free();
     VkSemaphore GetHandle() const;
     operator bool() const;
+    operator VkSemaphore() const;
 
 private:
     VkSemaphore m_handle = VK_NULL_HANDLE;
-    VkDevice m_device;
 };
 
 } // namespace PG::Gfx

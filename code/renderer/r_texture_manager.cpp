@@ -56,7 +56,7 @@ void Init()
 
     DescriptorLayoutBuilder setLayoutBuilder;
     setLayoutBuilder.AddBinding( 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
-    s_descriptorSetLayout = setLayoutBuilder.Build( rg.device );
+    s_descriptorSetLayout = setLayoutBuilder.Build( VK_SHADER_STAGE_ALL, "bindless" );
 #if USING( PG_DESCRIPTOR_BUFFER )
     s_dbProps = rg.physicalDevice.GetProperties().dbProps;
     s_descriptorBuffer.Create( s_descriptorSetLayout );
@@ -64,9 +64,9 @@ void Init()
     vector<VkDescriptorPoolSize> poolSizes = {
         {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES},
     };
-    s_descriptorAllocator.Init( rg.device, 1, poolSizes );
+    s_descriptorAllocator.Init( 1, poolSizes, "bindless" );
 
-    s_descriptorSet = s_descriptorAllocator.Allocate( s_descriptorSetLayout );
+    s_descriptorSet = s_descriptorAllocator.Allocate( s_descriptorSetLayout, "bindless" );
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 }
 

@@ -63,4 +63,32 @@ private:
     uint16_t m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
 };
 
+enum class ImageLayout
+{
+    UNDEFINED                          = 0,
+    GENERAL                            = 1,
+    COLOR_ATTACHMENT                   = 2,
+    DEPTH_STENCIL_ATTACHMENT           = 3,
+    DEPTH_STENCIL_READ_ONLY            = 4,
+    SHADER_READ_ONLY                   = 5,
+    TRANSFER_SRC                       = 6,
+    TRANSFER_DST                       = 7,
+    PREINITIALIZED                     = 8,
+    DEPTH_READ_ONLY_STENCIL_ATTACHMENT = 1000117000,
+    DEPTH_ATTACHMENT_STENCIL_READ_ONLY = 1000117001,
+    DEPTH_ATTACHMENT                   = 1000241000,
+    DEPTH_READ_ONLY                    = 1000241001,
+    STENCIL_ATTACHMENT                 = 1000241002,
+    STENCIL_READ_ONLY                  = 1000241003,
+    READ_ONLY                          = 1000314000,
+    ATTACHMENT                         = 1000314001,
+    PRESENT_SRC_KHR                    = 1000001002,
+
+    NUM_IMAGE_LAYOUT = 18
+};
+
+bool ImageLayoutHasDepthAspect( ImageLayout layout );
+bool ImageLayoutHasStencilAspect( ImageLayout layout );
+std::string ImageLayoutToString( ImageLayout layout );
+
 } // namespace PG::Gfx

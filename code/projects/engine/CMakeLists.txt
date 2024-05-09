@@ -77,8 +77,6 @@ set(
     ${CODE_DIR}/renderer/graphics_api/physical_device.hpp
     ${CODE_DIR}/renderer/graphics_api/pipeline.cpp
     ${CODE_DIR}/renderer/graphics_api/pipeline.hpp
-    ${CODE_DIR}/renderer/graphics_api/render_pass.cpp
-    ${CODE_DIR}/renderer/graphics_api/render_pass.hpp
     ${CODE_DIR}/renderer/graphics_api/sampler.cpp
     ${CODE_DIR}/renderer/graphics_api/sampler.hpp
     ${CODE_DIR}/renderer/graphics_api/swapchain.cpp

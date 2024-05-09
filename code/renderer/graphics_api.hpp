@@ -8,7 +8,6 @@
 #include "renderer/graphics_api/device.hpp"
 #include "renderer/graphics_api/gpu_profiling.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
-#include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/sampler.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
 #include "renderer/graphics_api/texture.hpp"

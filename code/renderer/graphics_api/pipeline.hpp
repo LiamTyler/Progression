@@ -2,7 +2,6 @@
 
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/graphics_api/limits.hpp"
-#include "renderer/graphics_api/render_pass.hpp"
 #include "renderer/graphics_api/vertex_descriptor.hpp"
 #include "renderer/vulkan.hpp"
 
@@ -195,7 +194,7 @@ enum class PrimitiveType : uint8_t
 
 struct PipelineAttachmentInfo
 {
-    PixelFormat colorAttachmentFormats[MAX_COLOR_ATTACHMENTS];
+    PixelFormat colorAttachmentFormats[MAX_NUM_COLOR_ATTACHMENTS];
     uint8_t numColorAttachments       = 0;
     PixelFormat depthAttachmentFormat = PixelFormat::INVALID;
 

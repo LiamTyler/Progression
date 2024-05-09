@@ -403,10 +403,6 @@ constexpr VkCommandPoolCreateFlags PGToVulkanCommandPoolCreateFlags( CommandPool
     return static_cast<VkCommandPoolCreateFlags>( flags );
 }
 
-constexpr VkAttachmentLoadOp PGToVulkanLoadAction( LoadAction op ) { return static_cast<VkAttachmentLoadOp>( op ); }
-
-constexpr VkAttachmentStoreOp PGToVulkanStoreAction( StoreAction op ) { return static_cast<VkAttachmentStoreOp>( op ); }
-
 constexpr VkImageLayout PGToVulkanImageLayout( ImageLayout op ) { return static_cast<VkImageLayout>( op ); }
 
 constexpr VkAccessFlags PGToVulkanAccessFlags( AccessFlags flags ) { return static_cast<VkAccessFlags>( flags ); }

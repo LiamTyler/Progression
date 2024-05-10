@@ -31,9 +31,9 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         TextureCreateInfo desc = {};
         desc.type              = ImageType::TYPE_2D;
         desc.format            = buildTex.format;
-        desc.width             = buildTex.width;
-        desc.height            = buildTex.height;
-        desc.depth             = buildTex.depth;
+        desc.width             = static_cast<uint16_t>( buildTex.width );
+        desc.height            = static_cast<uint16_t>( buildTex.height );
+        desc.depth             = static_cast<uint16_t>( buildTex.depth );
         desc.arrayLayers       = buildTex.arrayLayers;
         desc.mipLevels         = buildTex.mipLevels;
         desc.usage             = buildTex.usage;

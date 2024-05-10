@@ -80,11 +80,11 @@ void GfxImage::UploadToGpu()
     TextureCreateInfo desc;
     desc.format      = pixelFormat;
     desc.type        = imageType;
-    desc.width       = width;
-    desc.height      = height;
-    desc.depth       = depth;
-    desc.arrayLayers = numFaces;
-    desc.mipLevels   = mipLevels;
+    desc.width       = static_cast<uint16_t>( width );
+    desc.height      = static_cast<uint16_t>( height );
+    desc.depth       = static_cast<uint16_t>( depth );
+    desc.arrayLayers = static_cast<uint16_t>( numFaces );
+    desc.mipLevels   = static_cast<uint8_t>( mipLevels );
     desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     gpuTexture = rg.device.NewTextureFromBuffer( desc, pixels, name );

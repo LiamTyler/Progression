@@ -72,7 +72,6 @@ static void InitSyncObjects()
 
 bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 {
-    rg.headless        = headless;
     rg.currentFrameIdx = 0;
 
     vkb::InstanceBuilder builder;

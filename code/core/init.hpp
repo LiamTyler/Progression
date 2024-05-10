@@ -1,19 +1,21 @@
 #pragma once
 
-#include <string>
+#include "asset/asset_manager.hpp"
+#include "core/dvars.hpp"
+#include "core/time.hpp"
+#include "shared/platform_defines.hpp"
+
+#if USING( GAME )
+#include "core/input.hpp"
+#include "core/window.hpp"
+#endif // #if USING( GAME )
 
 namespace PG
 {
 
-extern bool g_engineShutdown;
-extern bool g_resizeRequested;
-extern bool g_headless;
-extern bool g_offlineRenderer;
-
 struct EngineInitInfo
 {
     bool headless           = false;
-    bool offlineRenderer    = false;
     std::string windowTitle = "Untitled";
     uint32_t windowWidth    = 1920;
     uint32_t windowHeight   = 1080;

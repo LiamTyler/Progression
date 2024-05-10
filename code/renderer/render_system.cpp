@@ -1,6 +1,6 @@
 #include "render_system.hpp"
 #include "asset/asset_manager.hpp"
-#include "core/init.hpp"
+#include "core/engine_globals.hpp"
 #include "core/window.hpp"
 #include "debug_marker.hpp"
 #include "r_globals.hpp"
@@ -173,7 +173,7 @@ void Resize( uint32_t displayWidth, uint32_t displayHeight )
     Init_TaskGraph();
     LOG( "Old size (%u x %u), new (%u x %u)", oldDW, oldDH, rg.displayWidth, rg.displayHeight );
 
-    g_resizeRequested = false;
+    eg.resizeRequested = false;
 }
 
 void Shutdown()
@@ -195,7 +195,7 @@ void Render()
     frameData.renderingCompleteFence.Reset();
     if ( !rg.swapchain.AcquireNextImage( frameData.swapchainSemaphore ) )
     {
-        g_resizeRequested = true;
+        eg.resizeRequested = true;
         return;
     }
 
@@ -223,7 +223,7 @@ void Render()
 
     if ( !rg.device.Present( rg.swapchain, frameData.renderingCompleteSemaphore ) )
     {
-        g_resizeRequested = true;
+        eg.resizeRequested = true;
     }
 
     ++rg.currentFrameIdx;

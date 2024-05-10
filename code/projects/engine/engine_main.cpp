@@ -1,13 +1,9 @@
-#include "asset/asset_manager.hpp"
 #include "asset/types/model.hpp"
 #include "asset/types/shader.hpp"
 #include "core/console_commands.hpp"
-#include "core/dvars.hpp"
+#include "core/engine_globals.hpp"
 #include "core/init.hpp"
-#include "core/input.hpp"
 #include "core/scene.hpp"
-#include "core/time.hpp"
-#include "core/window.hpp"
 #include "image.hpp"
 #include "renderer/render_system.hpp"
 #include "shared/logger.hpp"
@@ -54,21 +50,21 @@ int main( int argc, char* argv[] )
     Input::PollEvents();
     Time::Reset();
 
-    while ( !g_engineShutdown )
+    while ( !eg.shutdown )
     {
         window->StartFrame();
         ProcessPendingConsoleCommands();
         AssetManager::ProcessPendingLiveUpdates();
         Input::PollEvents();
 
-        if ( g_resizeRequested )
+        if ( eg.resizeRequested )
         {
             RenderSystem::Resize( window->FramebufferWidth(), window->FramebufferHeight() );
         }
 
         if ( Input::GetKeyDown( Key::ESC ) )
         {
-            g_engineShutdown = true;
+            eg.shutdown = true;
         }
         if ( Input::GetKeyDown( Key::F1 ) )
         {

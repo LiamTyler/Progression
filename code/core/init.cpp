@@ -1,6 +1,7 @@
 #include "init.hpp"
 #include "asset/asset_manager.hpp"
 #include "core/dvars.hpp"
+#include "core/engine_globals.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
 #if USING( GAME )
@@ -13,15 +14,13 @@
 #include "shared/logger.hpp"
 #include "shared/random.hpp"
 #include <ctime>
+
+#if !USING( GAME )
 #include <omp.h>
+#endif // #if !USING( GAME )
 
 namespace PG
 {
-
-bool g_engineShutdown  = false;
-bool g_resizeRequested = false;
-bool g_headless        = false;
-bool g_offlineRenderer = false;
 
 bool EngineInitialize( EngineInitInfo info )
 {
@@ -29,8 +28,7 @@ bool EngineInitialize( EngineInitInfo info )
     omp_set_nested( 1 );
 #endif // #if !USING( GAME )
 
-    g_headless        = info.headless;
-    g_offlineRenderer = info.offlineRenderer;
+    eg.headless = info.headless;
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
     Logger_AddLogLocation( "logfile", "log_engine.txt" );
@@ -40,7 +38,7 @@ bool EngineInitialize( EngineInitInfo info )
 #if USING( GAME )
     uint32_t framebufferWidth  = info.windowWidth;
     uint32_t framebufferHeight = info.windowHeight;
-    if ( !g_headless )
+    if ( !eg.headless )
     {
         WindowCreateInfo winCreate;
         winCreate.title   = info.windowTitle;
@@ -53,7 +51,7 @@ bool EngineInitialize( EngineInitInfo info )
         framebufferWidth  = GetMainWindow()->FramebufferWidth();
         framebufferHeight = GetMainWindow()->FramebufferHeight();
     }
-    if ( !RenderSystem::Init( info.sceneWidth, info.sceneHeight, framebufferWidth, framebufferHeight, g_headless ) )
+    if ( !RenderSystem::Init( info.sceneWidth, info.sceneHeight, framebufferWidth, framebufferHeight, eg.headless ) )
     {
         LOG_ERR( "Could not initialize render system" );
         return false;
@@ -78,7 +76,7 @@ void EngineShutdown()
     RemoteConsoleServer::Shutdown();
     // UI::Shutdown();
     RenderSystem::Shutdown();
-    if ( !g_headless )
+    if ( !eg.headless )
     {
         Input::Shutdown();
         ShutdownWindowSystem();

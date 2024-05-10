@@ -10,9 +10,7 @@ using namespace PG;
 
 int main( int argc, char** argv )
 {
-    EngineInitInfo engineInitConfig;
-    engineInitConfig.offlineRenderer = true;
-    if ( !EngineInitialize( engineInitConfig ) )
+    if ( !EngineInitialize() )
     {
         LOG_ERR( "Failed to initialize the engine" );
         return 1;

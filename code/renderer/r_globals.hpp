@@ -40,7 +40,6 @@ struct R_Globals
     uint32_t sceneHeight;
     uint32_t displayWidth;
     uint32_t displayHeight;
-    bool headless;
 
     FrameData& GetFrameData() { return frameData[currentFrameIdx % NUM_FRAME_OVERLAP]; }
 };

@@ -1,18 +1,16 @@
 #include "core/window.hpp"
-#include "core/init.hpp"
+#include "core/engine_globals.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
 #include "shared/logger.hpp"
 #include <unordered_set>
 
 static std::unordered_set<size_t> s_debugMessages;
-
 static std::chrono::high_resolution_clock::time_point s_lastFPSUpdateTime;
-static unsigned int s_framesDrawnSinceLastFPSUpdate = 0;
+static unsigned int s_framesDrawnSinceLastFPSUpdate;
+static PG::Window* s_mainWindow;
 
 static void ErrorCallback( int err, const char* description ) { LOG_ERR( "GLFW ERROR %d: '%s'", err, description ); }
-
-static PG::Window* s_mainWindow = nullptr;
 
 namespace PG
 {
@@ -59,12 +57,8 @@ Window::~Window()
     }
 }
 
-extern bool g_engineShutdown;
-static void WindowCloseCallback( GLFWwindow* window ) { g_engineShutdown = true; }
+static void WindowCloseCallback( GLFWwindow* window ) { eg.shutdown = true; }
 
-void FramebufferResizeCallback( Window* w, GLFWwindow* window, int width, int height ) { LOG( "New width" ); }
-
-using namespace std::placeholders;
 void Window::Init( const WindowCreateInfo& createInfo )
 {
     m_title   = createInfo.title;
@@ -98,7 +92,7 @@ void Window::StartFrame()
     glfwGetFramebufferSize( m_window, &fW, &fH );
     if ( fW != m_framebufferWidth || fH != m_framebufferHeight )
     {
-        g_resizeRequested   = true;
+        eg.resizeRequested  = true;
         m_framebufferWidth  = fW;
         m_framebufferHeight = fH;
     }

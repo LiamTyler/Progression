@@ -21,13 +21,14 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
     resourceDatas.clear();
     resourceDatas.reserve( builder.textures.size() + builder.buffers.size() );
 
-    textures.resize( builder.textures.size() );
+    TG_STAT( m_stats.numTextures = (uint32_t)builder.textures.size() );
+    m_textures.resize( builder.textures.size() );
     for ( size_t i = 0; i < builder.textures.size(); ++i )
     {
         TGBTexture& buildTex = builder.textures[i];
         ResolveSizes( buildTex, compileInfo );
 
-        Texture& gfxTex        = textures[i];
+        Texture& gfxTex        = m_textures[i];
         TextureCreateInfo desc = {};
         desc.type              = ImageType::TYPE_2D;
         desc.format            = buildTex.format;
@@ -46,7 +47,7 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
 
         if ( buildTex.externalFunc )
         {
-            externalTextures.emplace_back( (TGResourceHandle)i, buildTex.externalFunc );
+            m_externalTextures.emplace_back( (TGResourceHandle)i, buildTex.externalFunc );
             continue;
         }
 
@@ -72,13 +73,15 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         VK_CHECK( vkCreateImage( rg.device, &info, nullptr, &data.img ) );
         vkGetImageMemoryRequirements( rg.device, data.img, &data.memoryReq );
         gfxTex.m_image = data.img;
+        TG_STAT( m_stats.unAliasedTextureMem += data.memoryReq.size );
     }
 
-    buffers.resize( builder.buffers.size() );
+    TG_STAT( m_stats.numBuffers = (uint32_t)builder.buffers.size() );
+    m_buffers.resize( builder.buffers.size() );
     for ( size_t i = 0; i < builder.buffers.size(); ++i )
     {
         TGBBuffer& buildBuffer  = builder.buffers[i];
-        Buffer& gfxBuffer       = buffers[i];
+        Buffer& gfxBuffer       = m_buffers[i];
         gfxBuffer.m_bufferUsage = buildBuffer.bufferUsage;
         gfxBuffer.m_memoryUsage = buildBuffer.memoryUsage; // TODO: support others?
         gfxBuffer.m_mappedPtr   = nullptr;
@@ -87,9 +90,10 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
 
         if ( buildBuffer.externalFunc )
         {
-            externalBuffers.emplace_back( (TGResourceHandle)i, buildBuffer.externalFunc );
+            m_externalBuffers.emplace_back( (TGResourceHandle)i, buildBuffer.externalFunc );
             continue;
         }
+        TG_STAT( m_stats.unAliasedBufferMem += gfxBuffer.GetSize() );
 
         ResourceData& data = resourceDatas.emplace_back();
         data.resType       = ResourceType::BUFFER;
@@ -108,10 +112,7 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
 #endif // #else // #if USING( TG_DEBUG )
         gfxBuffer.m_handle = data.buffer;
         vkGetBufferMemoryRequirements( rg.device, data.buffer, &data.memoryReq );
-
-#if USING( TG_DEBUG )
-        PG_DEBUG_MARKER_SET_BUFFER_NAME( gfxBuffer, buildBuffer.debugName );
-#endif // #if USING( TG_DEBUG )
+        TG_STAT( m_stats.unAliasedBufferMem += data.memoryReq.size );
     }
 }
 
@@ -120,7 +121,7 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
     std::vector<MemoryBucket> buckets = PackResources( resourceDatas );
 
     VmaAllocator allocator = rg.device.GetAllocator();
-    vmaAllocations.resize( buckets.size() );
+    m_vmaAllocations.resize( buckets.size() );
     for ( size_t bucketIdx = 0; bucketIdx < buckets.size(); ++bucketIdx )
     {
         const MemoryBucket& bucket       = buckets[bucketIdx];
@@ -128,35 +129,36 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         finalMemReq.size                 = bucket.bucketSize;
         finalMemReq.alignment            = bucket.initialAlignment;
         finalMemReq.memoryTypeBits       = bucket.memoryTypeBits;
+        TG_STAT( m_stats.totalMemoryPostAliasing += bucket.bucketSize );
 
         VmaAllocationCreateInfo allocCreateInfo = {};
         allocCreateInfo.preferredFlags          = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
-        VmaAllocation& alloc                    = vmaAllocations[bucketIdx];
+        VmaAllocation& alloc                    = m_vmaAllocations[bucketIdx];
         VK_CHECK( vmaAllocateMemory( allocator, &finalMemReq, &allocCreateInfo, &alloc, nullptr ) );
 
         for ( const auto& [resHandle, offset] : bucket.resources )
         {
             if ( resHandle.isTex )
             {
-                VkImage img = textures[resHandle.index].m_image;
+                VkImage img = m_textures[resHandle.index].m_image;
                 VK_CHECK( vmaBindImageMemory2( allocator, alloc, offset, img, nullptr ) );
             }
             else
             {
-                VkBuffer buf = buffers[resHandle.index].m_handle;
+                VkBuffer buf = m_buffers[resHandle.index].m_handle;
                 VK_CHECK( vmaBindBufferMemory2( allocator, alloc, offset, buf, nullptr ) );
             }
         }
     }
 
     // Vulkan doesn't allow you to make image views until the memory is bound
-    for ( size_t i = 0; i < textures.size(); ++i )
+    for ( size_t i = 0; i < m_textures.size(); ++i )
     {
         TGBTexture& buildTex = builder.textures[i];
         if ( buildTex.externalFunc )
             continue;
 
-        Texture& gfxTex = textures[i];
+        Texture& gfxTex = m_textures[i];
 
         VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
         VkFormat vkFormat             = PGToVulkanPixelFormat( gfxTex.GetPixelFormat() );
@@ -270,7 +272,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
     std::vector<ResourceTrackingInfo> texTracking( builder.textures.size() );
     std::vector<ResourceTrackingInfo> bufTracking( builder.buffers.size() );
 
-    tasks.reserve( builder.tasks.size() );
+    m_tasks.reserve( builder.tasks.size() );
     for ( uint16_t taskIndex = 0; taskIndex < (uint16_t)builder.tasks.size(); ++taskIndex )
     {
         TaskBuilder* builderTask = builder.tasks[taskIndex];
@@ -279,6 +281,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
         TaskType taskType = builderTask->taskHandle.type;
         if ( taskType == TaskType::COMPUTE )
         {
+            TG_STAT( m_stats.numComputeTasks++ );
             ComputeTaskBuilder* bcTask = static_cast<ComputeTaskBuilder*>( builderTask );
             ComputeTask* cTask         = new ComputeTask;
             task                       = cTask;
@@ -410,9 +413,12 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 trackInfo.prevState    = texInfo.state;
                 trackInfo.prevTaskType = taskType;
             }
+
+            TG_STAT( m_stats.numBarriers_Image += (uint32_t)cTask->imageBarriersPreClears.size() );
         }
         else if ( taskType == TaskType::GRAPHICS )
         {
+            TG_STAT( m_stats.numGraphicsTasks++ );
             GraphicsTaskBuilder* bgTask = static_cast<GraphicsTaskBuilder*>( builderTask );
             GraphicsTask* gTask         = new GraphicsTask;
             task                        = gTask;
@@ -456,8 +462,8 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 vkAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
                 memcpy( vkAttach.clearValue.color.float32, &bAttachInfo.clearColor.x, sizeof( vec4 ) );
 
-                minAttachWidth  = Min( minAttachWidth, textures[texHandle].GetWidth() );
-                minAttachHeight = Min( minAttachHeight, textures[texHandle].GetHeight() );
+                minAttachWidth  = Min( minAttachWidth, m_textures[texHandle].GetWidth() );
+                minAttachHeight = Min( minAttachHeight, m_textures[texHandle].GetHeight() );
 
                 trackInfo.currLayout   = desiredLayout;
                 trackInfo.prevTask     = taskIndex;
@@ -478,6 +484,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
         }
         else if ( taskType == TaskType::TRANSFER )
         {
+            TG_STAT( m_stats.numTransferTasks++ );
             TransferTaskBuilder* btTask = static_cast<TransferTaskBuilder*>( builderTask );
             TransferTask* tTask         = new TransferTask;
             task                        = tTask;
@@ -555,46 +562,52 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             PG_ASSERT( false, "Need to handle this new task type!" );
         }
 
-        tasks.push_back( task );
+        TG_STAT( m_stats.numBarriers_Buffer += (uint32_t)task->bufferBarriers.size() );
+        TG_STAT( m_stats.numBarriers_Image += (uint32_t)task->imageBarriers.size() );
+
+        m_tasks.push_back( task );
     }
 }
 
 bool TaskGraph::Compile( TaskGraphBuilder& builder, CompileInfo& compileInfo )
 {
+    TG_STAT( m_stats = {} );
     std::vector<ResourceData> resourceDatas;
     Compile_BuildResources( builder, compileInfo, resourceDatas );
     Compile_MemoryAliasing( builder, compileInfo, resourceDatas );
     Compile_SynchronizationAndTasks( builder, compileInfo );
+
+    TG_STAT( if ( compileInfo.showStats ) DisplayStats() );
 
     return true;
 }
 
 void TaskGraph::Free()
 {
-    for ( Task* task : tasks )
+    for ( Task* task : m_tasks )
         delete task;
 
     // remove the external buffers and textures first
-    for ( const auto& [resHandle, _] : externalBuffers )
+    for ( const auto& [resHandle, _] : m_externalBuffers )
     {
-        buffers[resHandle].m_handle = VK_NULL_HANDLE;
+        m_buffers[resHandle].m_handle = VK_NULL_HANDLE;
     }
-    for ( const auto& [resHandle, _] : externalTextures )
+    for ( const auto& [resHandle, _] : m_externalTextures )
     {
-        textures[resHandle].m_image = VK_NULL_HANDLE;
+        m_textures[resHandle].m_image = VK_NULL_HANDLE;
     }
 
     VmaAllocator allocator = rg.device.GetAllocator();
-    for ( VmaAllocation& alloc : vmaAllocations )
+    for ( VmaAllocation& alloc : m_vmaAllocations )
     {
         vmaFreeMemory( allocator, alloc );
     }
-    for ( Buffer& buf : buffers )
+    for ( Buffer& buf : m_buffers )
     {
         if ( buf.m_handle != VK_NULL_HANDLE )
             vmaDestroyBuffer( allocator, buf.m_handle, nullptr );
     }
-    for ( Texture& tex : textures )
+    for ( Texture& tex : m_textures )
     {
         if ( tex.m_image != VK_NULL_HANDLE )
         {
@@ -603,34 +616,52 @@ void TaskGraph::Free()
         }
     }
 
-    tasks.clear();
-    buffers.clear();
-    textures.clear();
-    vmaAllocations.clear();
-    externalBuffers.clear();
-    externalTextures.clear();
+    m_tasks.clear();
+    m_buffers.clear();
+    m_textures.clear();
+    m_vmaAllocations.clear();
+    m_externalBuffers.clear();
+    m_externalTextures.clear();
+}
+
+void TaskGraph::DisplayStats()
+{
+#if USING( TG_STATS )
+    float toMB    = 1.0f / ( 1024 * 1024 );
+    const auto& s = m_stats;
+    LOG( "Task Graph Stats:" );
+    LOG( "    Num Tasks: %u", s.numComputeTasks + s.numGraphicsTasks + s.numTransferTasks );
+    LOG( "        Compute: %u, Graphics: %u, Transfer: %u", s.numComputeTasks, s.numGraphicsTasks, s.numTransferTasks );
+    LOG( "    Num Pipeline Barriers: %u", s.numBarriers_Buffer + s.numBarriers_Image + s.numBarriers_Global );
+    LOG( "        Buffer: %u, Image: %u, Global: %u", s.numBarriers_Buffer, s.numBarriers_Image, s.numBarriers_Global );
+    LOG( "Textures: %u (%.3f MB unaliased)", s.numTextures, s.unAliasedTextureMem * toMB );
+    LOG( "Buffers: %u (%.3f MB unaliased)", s.numBuffers, s.unAliasedBufferMem * toMB );
+    size_t preAliasMem = s.unAliasedTextureMem + s.unAliasedBufferMem;
+    LOG( "Total memory post-aliasing: %.3f MB (aliasing saved %.3f MB)", s.totalMemoryPostAliasing * toMB,
+        ( preAliasMem - s.totalMemoryPostAliasing ) * toMB );
+#endif // #if USING( TG_STATS )
 }
 
 void TaskGraph::Execute( TGExecuteData& data )
 {
     data.taskGraph = this;
-    for ( auto& [bufHandle, extBufFunc] : externalBuffers )
+    for ( auto& [bufHandle, extBufFunc] : m_externalBuffers )
     {
-        buffers[bufHandle].m_handle = extBufFunc();
+        m_buffers[bufHandle].m_handle = extBufFunc();
     }
-    for ( auto& [texHandle, extTexFunc] : externalTextures )
+    for ( auto& [texHandle, extTexFunc] : m_externalTextures )
     {
-        Texture& tex = textures[texHandle];
+        Texture& tex = m_textures[texHandle];
         extTexFunc( tex.m_image, tex.m_imageView );
     }
 
-    for ( Task* task : tasks )
+    for ( Task* task : m_tasks )
     {
         task->Execute( &data );
     }
 }
 
-Buffer* TaskGraph::GetBuffer( TGResourceHandle handle ) { return &buffers[handle]; }
-Texture* TaskGraph::GetTexture( TGResourceHandle handle ) { return &textures[handle]; }
+Buffer* TaskGraph::GetBuffer( TGResourceHandle handle ) { return &m_buffers[handle]; }
+Texture* TaskGraph::GetTexture( TGResourceHandle handle ) { return &m_textures[handle]; }
 
 } // namespace PG::Gfx

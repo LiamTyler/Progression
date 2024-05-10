@@ -7,13 +7,16 @@
 #include <vector>
 
 #define TG_DEBUG USE_IF( USING( DEBUG_BUILD ) )
+#define TG_STATS USE_IF( !USING( SHIP_BUILD ) )
 
 #if USING( TG_DEBUG )
 #define TG_DEBUG_ONLY( x ) x
 #define TG_ASSERT( ... ) PG_ASSERT( __VA_ARGS__ )
+#define TG_STAT( x ) x
 #else // #if USING( TG_DEBUG )
 #define TG_DEBUG_ONLY( x )
 #define TG_ASSERT( ... )
+#define TG_STAT( x )
 #endif // #else // #if USING( TG_DEBUG )
 
 namespace PG::Gfx

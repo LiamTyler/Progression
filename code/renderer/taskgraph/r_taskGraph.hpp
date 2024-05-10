@@ -29,6 +29,24 @@ struct TGExecuteData
     std::vector<VkRenderingAttachmentInfo> scratchAttachmentInfos;
 };
 
+struct TGStats
+{
+    // all the sizes are in bytes
+    size_t unAliasedTextureMem;
+    uint32_t numTextures;
+    size_t unAliasedBufferMem;
+    uint32_t numBuffers;
+    size_t totalMemoryPostAliasing;
+
+    uint32_t numComputeTasks;
+    uint32_t numGraphicsTasks;
+    uint32_t numTransferTasks;
+
+    uint32_t numBarriers_Buffer;
+    uint32_t numBarriers_Image;
+    uint32_t numBarriers_Global;
+};
+
 class TaskGraph
 {
 public:
@@ -39,11 +57,12 @@ public:
         uint32_t displayWidth;
         uint32_t displayHeight;
         bool mergeResources = true;
-        bool showStats      = true;
+        bool showStats      = true; // only works if TG_STATS is enabled
     };
 
     bool Compile( TaskGraphBuilder& builder, CompileInfo& compileInfo );
     void Free();
+    void DisplayStats();
 
     void Execute( TGExecuteData& data );
 
@@ -56,12 +75,15 @@ private:
     void Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& compileInfo, std::vector<ResourceData>& resourceDatas );
     void Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, CompileInfo& compileInfo );
 
-    std::vector<Task*> tasks;
-    std::vector<Buffer> buffers;
-    std::vector<Texture> textures;
-    std::vector<VmaAllocation> vmaAllocations;
-    std::vector<std::pair<TGResourceHandle, ExtBufferFunc>> externalBuffers;
-    std::vector<std::pair<TGResourceHandle, ExtTextureFunc>> externalTextures;
+    std::vector<Task*> m_tasks;
+    std::vector<Buffer> m_buffers;
+    std::vector<Texture> m_textures;
+    std::vector<VmaAllocation> m_vmaAllocations;
+    std::vector<std::pair<TGResourceHandle, ExtBufferFunc>> m_externalBuffers;
+    std::vector<std::pair<TGResourceHandle, ExtTextureFunc>> m_externalTextures;
+#if USING( TG_STATS )
+    TGStats m_stats;
+#endif // #if USING( TG_STATS )
 };
 
 } // namespace PG::Gfx

@@ -132,7 +132,20 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     computePipelineCreateInfo.layout = s_gradientPipelineLayout;
     computePipelineCreateInfo.stage  = stageinfo;
 
-    VK_CHECK( vkCreateComputePipelines( rg.device, VK_NULL_HANDLE, 1, &computePipelineCreateInfo, nullptr, &s_gradientPipeline ) );
+    {
+        VkResult pgVkRes = ( vkCreateComputePipelines( rg.device, nullptr, 1, &computePipelineCreateInfo, nullptr, &s_gradientPipeline ) );
+        if ( !( pgVkRes == VK_SUCCESS ) )
+        {
+            Logger_Log( LogSeverity::ERR, "Failed assertion: (%s) at line %d in file %s\n", "pgVkRes == VK_SUCCESS", 135,
+                "C:\\Users\\Liam Tyler\\Documents\\Progression\\code\\renderer\\render_system.cpp" );
+            Logger_Log( LogSeverity::ERR,
+                "Assert message: "
+                "Fatal : VkResult is %d (%s) in %s at line %d",
+                pgVkRes, string_VkResult( pgVkRes ), "C:\\Users\\Liam Tyler\\Documents\\Progression\\code\\renderer\\render_system.cpp",
+                135 );
+            abort();
+        };
+    };
     PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( s_gradientPipelineLayout, "gradient" );
     PG_DEBUG_MARKER_SET_PIPELINE_NAME( s_gradientPipeline, "gradient" );
 

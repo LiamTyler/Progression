@@ -59,7 +59,7 @@ class LoggerOutputLocation
 public:
     LoggerOutputLocation() = default;
 
-    LoggerOutputLocation( const std::string& name, std::FILE* out, bool useColors = true )
+    LoggerOutputLocation( std::string_view name, std::FILE* out, bool useColors = true )
         : m_name( name ), m_outputStream( out ), m_colored( useColors )
     {
         m_windowsConsole = false;
@@ -72,12 +72,12 @@ public:
 #endif // #if USING( WINDOWS_PROGRAM )
     }
 
-    LoggerOutputLocation( const std::string& name, const std::string& filename )
-        : m_name( name ), m_outputStream( fopen( filename.c_str(), "w" ) ), m_colored( false ), m_windowsConsole( false )
+    LoggerOutputLocation( std::string_view name, std::string_view filename )
+        : m_name( name ), m_outputStream( fopen( filename.data(), "w" ) ), m_colored( false ), m_windowsConsole( false )
     {
         if ( m_outputStream == nullptr )
         {
-            printf( "Could not open file '%s'\n", filename.c_str() );
+            printf( "Could not open file '%s'\n", filename.data() );
         }
     }
 
@@ -111,7 +111,7 @@ public:
         }
     }
 
-    std::string GetName() const { return m_name; }
+    std::string_view GetName() const { return m_name; }
     std::FILE* GetOutputFile() const { return m_outputStream; }
     bool IsOutputColored() const { return m_colored; }
     void SetOutputColored( bool color ) { m_colored = color; };
@@ -140,7 +140,7 @@ void Logger_Shutdown()
     s_numLogs = 0;
 }
 
-void Logger_AddLogLocation( const std::string& name, FILE* file, bool useColors )
+void Logger_AddLogLocation( std::string_view name, FILE* file, bool useColors )
 {
     PG_ASSERT( s_numLogs != MAX_NUM_LOGGER_OUTPUT_LOCATIONS );
     s_loggerLock.lock();
@@ -149,7 +149,7 @@ void Logger_AddLogLocation( const std::string& name, FILE* file, bool useColors 
     s_loggerLock.unlock();
 }
 
-void Logger_AddLogLocation( const std::string& name, const std::string& filename )
+void Logger_AddLogLocation( std::string_view name, std::string_view filename )
 {
     PG_ASSERT( s_numLogs != MAX_NUM_LOGGER_OUTPUT_LOCATIONS );
     s_loggerLock.lock();
@@ -158,7 +158,7 @@ void Logger_AddLogLocation( const std::string& name, const std::string& filename
     s_loggerLock.unlock();
 }
 
-void Logger_RemoveLogLocation( const std::string& name )
+void Logger_RemoveLogLocation( std::string_view name )
 {
     s_loggerLock.lock();
     for ( int i = 0; i < s_numLogs; ++i )
@@ -178,7 +178,7 @@ void Logger_RemoveLogLocation( const std::string& name )
     s_loggerLock.unlock();
 }
 
-void Logger_ChangeLocationColored( const std::string& name, bool colored )
+void Logger_ChangeLocationColored( std::string_view name, bool colored )
 {
     s_loggerLock.lock();
     for ( int i = 0; i < s_numLogs; ++i )
@@ -194,7 +194,7 @@ void Logger_ChangeLocationColored( const std::string& name, bool colored )
 
 void Logger_Log( LogSeverity severity, const char* fmt, ... )
 {
-    std::string severityText          = "";
+    std::string_view severityText     = "";
     TerminalColorCode colorCode       = TerminalColorCode::GREEN;
     TerminalEmphasisCode emphasisCode = TerminalEmphasisCode::NONE;
     if ( severity == LogSeverity::WARN )
@@ -213,7 +213,7 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
     char fullFormat[512];
     size_t formatLen  = strlen( fmt );
     char* currentSpot = fullFormat;
-    memcpy( currentSpot, severityText.c_str(), severityText.length() );
+    memcpy( currentSpot, severityText.data(), severityText.length() );
     currentSpot += severityText.length();
     memcpy( currentSpot, fmt, formatLen );
     currentSpot += formatLen;

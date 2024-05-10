@@ -15,13 +15,13 @@ void Logger_Init();
 
 void Logger_Shutdown();
 
-void Logger_AddLogLocation( const std::string& name, FILE* file, bool useColors = true );
+void Logger_AddLogLocation( std::string_view name, FILE* file, bool useColors = true );
 
-void Logger_AddLogLocation( const std::string& name, const std::string& filename );
+void Logger_AddLogLocation( std::string_view name, std::string_view filename );
 
-void Logger_RemoveLogLocation( const std::string& name );
+void Logger_RemoveLogLocation( std::string_view name );
 
-void Logger_ChangeLocationColored( const std::string& name, bool colored );
+void Logger_ChangeLocationColored( std::string_view name, bool colored );
 
 void Logger_Log( LogSeverity sev, const char* fmt, ... );
 
@@ -192,7 +192,7 @@ consteval FormatCheckError CheckIntegralLength( LengthSpecifier fmtLen, size_t t
 
 template <typename... Args>
     requires( sizeof...( Args ) == 0 )
-consteval FormatCheckError CheckFromat( std::string_view fmt )
+consteval FormatCheckError CheckFormat( std::string_view fmt )
 {
     const size_t pos = GetNextFormatSpecifier( fmt );
     if ( fmt.size() > 0 && pos < fmt.size() )
@@ -203,7 +203,7 @@ consteval FormatCheckError CheckFromat( std::string_view fmt )
 }
 
 template <typename T, typename... Args>
-consteval FormatCheckError CheckFromat( std::string_view fmt )
+consteval FormatCheckError CheckFormat( std::string_view fmt )
 {
     using UT = relaxed_underlying_type<std::remove_cvref_t<std::remove_pointer_t<std::decay_t<T>>>>::type;
 
@@ -328,43 +328,66 @@ consteval FormatCheckError CheckFromat( std::string_view fmt )
     if ( error != FormatCheckError::NONE )
         return error;
 
-    return CheckFromat<Args...>( fmt.substr( pos ) );
+    return CheckFormat<Args...>( fmt.substr( pos ) );
 }
 
-#define CHECK_FORMAT( fmt, ... )                                                                                                          \
-    constexpr FormatCheckError error = CheckFromat<PG_WRAP_VARGS( __VA_ARGS__ )>( std::string_view( fmt ) );                              \
-    static_assert( error != FormatCheckError::TODO_NOT_IMPLEMENTED_YET,                                                                   \
-        "TODO: haven't implemented the format check for this specifier yet (* or n)" );                                                   \
-    static_assert( error != FormatCheckError::TOO_FEW_ARGS, "Expected more arguments" );                                                  \
-    static_assert( error != FormatCheckError::TOO_MANY_ARGS, "Expected fewer arguments" );                                                \
-    static_assert( error != FormatCheckError::INVALID_FORMAT_STRING, "Invalid format string" );                                           \
-    static_assert( error != FormatCheckError::EXPECTED_UNSIGNED_INTEGRAL, "Expected unsigned integral argument" );                        \
-    static_assert( error != FormatCheckError::EXPECTED_SIGNED_INTEGRAL, "Expected signed integral argument" );                            \
-    static_assert( error != FormatCheckError::INVALID_INTEGRAL_LENGTH, "'L' specifier not allowed on integral arguments" );               \
-    static_assert( error != FormatCheckError::EXPECTED_FLOAT_OR_DOUBLE, "Expected a float, double, or long double arg" );                 \
-    static_assert( error != FormatCheckError::INVALID_FLOAT_LENGTH, "Only the long double 'L' specifier is allowed for floating types" ); \
-    static_assert( error != FormatCheckError::EXPECTED_LONG_DOUBLE, "Expected long double arg" );                                         \
-    static_assert( error != FormatCheckError::EXPECTED_CHAR_TYPE, "Expected char arg" );                                                  \
-    static_assert( error != FormatCheckError::EXPECTED_WIDE_CHAR_TYPE, "Expected wchar_t arg" );                                          \
-    static_assert( error != FormatCheckError::INVALID_CHAR_LENGTH, "Only wide char length specifier 'l' allowed for chars" );             \
-    static_assert( error != FormatCheckError::EXPECTED_CHAR_POINTER, "Expected char pointer" );                                           \
-    static_assert( error != FormatCheckError::EXPECTED_WIDE_CHAR_POINTER, "Expected wchar_t pointer" );                                   \
-    static_assert( error != FormatCheckError::INVALID_STRING_LENGTH, "Only wide char length specifier 'l' allowed for strings" );         \
-    static_assert( error != FormatCheckError::EXPECTED_POINTER, "Expected pointer arg" );                                                 \
-    static_assert( error != FormatCheckError::INVALID_POINTER_LENGTH, "No length specifiers are allowed for pointers" );                  \
-    static_assert( error != FormatCheckError::EXPECTED_CHAR_LENGTH, "Expected char sized arg" );                                          \
-    static_assert( error != FormatCheckError::EXPECTED_SHORT_LENGTH, "Expected short sized arg" );                                        \
-    static_assert( error != FormatCheckError::EXPECTED_LONG_LENGTH, "Expected long sized arg" );                                          \
-    static_assert( error != FormatCheckError::EXPECTED_LONG_LONG_LENGTH, "Expected long long sized arg" );                                \
-    static_assert( error != FormatCheckError::EXPECTED_INTMAX_LENGTH, "Expected intmax_t sized arg" );                                    \
-    static_assert( error != FormatCheckError::EXPECTED_SIZE_T_LENGTH, "Expected size_t sized arg" );                                      \
-    static_assert( error != FormatCheckError::EXPECTED_PTRDIFF_LENGTH, "Expected ptrdiff_t sized arg" );                                  \
-    static_assert( error != FormatCheckError::EXPECTED_LONG_DOUBLE_LENGTH, "Expected long double sized arg" )
+#define HANDLE_FORMAT_ERROR()                                                                                                           \
+    static_assert( _pgFmtError != FormatCheckError::TODO_NOT_IMPLEMENTED_YET,                                                           \
+        "TODO: haven't implemented the format check for this specifier yet (* or n)" );                                                 \
+    static_assert( _pgFmtError != FormatCheckError::TOO_FEW_ARGS, "Expected more arguments" );                                          \
+    static_assert( _pgFmtError != FormatCheckError::TOO_MANY_ARGS, "Expected fewer arguments" );                                        \
+    static_assert( _pgFmtError != FormatCheckError::INVALID_FORMAT_STRING, "Invalid format string" );                                   \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_UNSIGNED_INTEGRAL, "Expected unsigned integral argument" );                \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_SIGNED_INTEGRAL, "Expected signed integral argument" );                    \
+    static_assert( _pgFmtError != FormatCheckError::INVALID_INTEGRAL_LENGTH, "'L' specifier not allowed on integral arguments" );       \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_FLOAT_OR_DOUBLE, "Expected a float, double, or long double arg" );         \
+    static_assert(                                                                                                                      \
+        _pgFmtError != FormatCheckError::INVALID_FLOAT_LENGTH, "Only the long double 'L' specifier is allowed for floating types" );    \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_LONG_DOUBLE, "Expected long double arg" );                                 \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_CHAR_TYPE, "Expected char arg" );                                          \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_WIDE_CHAR_TYPE, "Expected wchar_t arg" );                                  \
+    static_assert( _pgFmtError != FormatCheckError::INVALID_CHAR_LENGTH, "Only wide char length specifier 'l' allowed for chars" );     \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_CHAR_POINTER, "Expected char pointer" );                                   \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_WIDE_CHAR_POINTER, "Expected wchar_t pointer" );                           \
+    static_assert( _pgFmtError != FormatCheckError::INVALID_STRING_LENGTH, "Only wide char length specifier 'l' allowed for strings" ); \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_POINTER, "Expected pointer arg" );                                         \
+    static_assert( _pgFmtError != FormatCheckError::INVALID_POINTER_LENGTH, "No length specifiers are allowed for pointers" );          \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_CHAR_LENGTH, "Expected char sized arg" );                                  \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_SHORT_LENGTH, "Expected short sized arg" );                                \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_LONG_LENGTH, "Expected long sized arg" );                                  \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_LONG_LONG_LENGTH, "Expected long long sized arg" );                        \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_INTMAX_LENGTH, "Expected intmax_t sized arg" );                            \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_SIZE_T_LENGTH, "Expected size_t sized arg" );                              \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_PTRDIFF_LENGTH, "Expected ptrdiff_t sized arg" );                          \
+    static_assert( _pgFmtError != FormatCheckError::EXPECTED_LONG_DOUBLE_LENGTH, "Expected long double sized arg" )
+
+// clang-format off
+#define PG_DWRAP_VARGS( ... ) _PG_VA_SELECT( _PG_DWRAP, __VA_ARGS__ )
+
+// requires /Zc:preprocessor flag in MSVC for standard conforming preprocessor
+#define _PG_DWRAP0( )
+#define _PG_DWRAP1( _1 ) decltype(_1)
+#define _PG_DWRAP2( _1,_2 ) decltype(_1),decltype(_2)
+#define _PG_DWRAP3( _1,_2,_3 ) decltype(_1),decltype(_2),decltype(_3)
+#define _PG_DWRAP4( _1,_2,_3,_4 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4)
+#define _PG_DWRAP5( _1,_2,_3,_4,_5 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5)
+#define _PG_DWRAP6( _1,_2,_3,_4,_5,_6 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5),decltype(_6)
+#define _PG_DWRAP7( _1,_2,_3,_4,_5,_6,_7 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5),decltype(_6),decltype(_7)
+#define _PG_DWRAP8( _1,_2,_3,_4,_5,_6,_7,_8 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5),decltype(_6),decltype(_7),decltype(_8)
+#define _PG_DWRAP9( _1,_2,_3,_4,_5,_6,_7,_8,_9 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5),decltype(_6),decltype(_7),decltype(_8),decltype(_9)
+#define _PG_DWRAP10( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5),decltype(_6),decltype(_7),decltype(_8),decltype(_9),decltype(_10)
+#define _PG_DWRAP11( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5),decltype(_6),decltype(_7),decltype(_8),decltype(_9),decltype(_10),decltype(_11)
+#define _PG_DWRAP12( _1,_2,_3,_4,_5,_6,_7,_8,_9,_10,_11,_12 ) decltype(_1),decltype(_2),decltype(_3),decltype(_4),decltype(_5),decltype(_6),decltype(_7),decltype(_8),decltype(_9),decltype(_10),decltype(_11),decltype(_12)
+// clang-format on
+
+#define CHECK_FORMAT( fmt, ... ) \
+    constexpr FormatCheckError _pgFmtError = CheckFormat<PG_DWRAP_VARGS( __VA_ARGS__ )>( std::string_view( fmt ) );
 
 #define LOG( fmt, ... )                                                   \
     do                                                                    \
     {                                                                     \
         CHECK_FORMAT( fmt, __VA_ARGS__ );                                 \
+        HANDLE_FORMAT_ERROR();                                            \
         Logger_Log( LogSeverity::DEBUG, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
     } while ( false )
 
@@ -372,6 +395,7 @@ consteval FormatCheckError CheckFromat( std::string_view fmt )
     do                                                                   \
     {                                                                    \
         CHECK_FORMAT( fmt, __VA_ARGS__ );                                \
+        HANDLE_FORMAT_ERROR();                                           \
         Logger_Log( LogSeverity::WARN, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
     } while ( false )
 
@@ -379,7 +403,10 @@ consteval FormatCheckError CheckFromat( std::string_view fmt )
     do                                                                  \
     {                                                                   \
         CHECK_FORMAT( fmt, __VA_ARGS__ );                               \
+        HANDLE_FORMAT_ERROR();                                          \
         Logger_Log( LogSeverity::ERR, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
     } while ( false )
+
+// #undef WRAPF
 
 #endif // #else // #if USING( SHIP_BUILD )

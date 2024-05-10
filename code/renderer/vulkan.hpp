@@ -10,14 +10,11 @@
 #if USING( SHIP_BUILD )
 #define VK_CHECK( f ) f
 #else // #if USING( SHIP_BUILD )
-#define VK_CHECK( f )                                                                                                        \
-    {                                                                                                                        \
-        VkResult vkRes = ( f );                                                                                              \
-        if ( vkRes != VK_SUCCESS )                                                                                           \
-        {                                                                                                                    \
-            printf( "Fatal : VkResult is %d (%s) in %s at line %d\n", vkRes, string_VkResult( vkRes ), __FILE__, __LINE__ ); \
-            PG_ASSERT( vkRes == VK_SUCCESS );                                                                                \
-        }                                                                                                                    \
+#define VK_CHECK( f )                                                                                                                 \
+    {                                                                                                                                 \
+        VkResult pgVkRes = ( f );                                                                                                     \
+        PG_ASSERT(                                                                                                                    \
+            pgVkRes == VK_SUCCESS, "VkResult is %d (%s) in %s at line %d", pgVkRes, string_VkResult( pgVkRes ), __FILE__, __LINE__ ); \
     }
 #endif // #else // #if USING( SHIP_BUILD )
 

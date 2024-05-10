@@ -45,6 +45,9 @@ struct TGStats
     uint32_t numBarriers_Buffer;
     uint32_t numBarriers_Image;
     uint32_t numBarriers_Global;
+
+    float compileTimeMSec;
+    float resAllocTimeMSec;
 };
 
 class TaskGraph

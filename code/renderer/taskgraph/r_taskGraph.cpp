@@ -2,6 +2,9 @@
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_texture_manager.hpp"
+#if USING( TG_STATS )
+#include "core/time.hpp"
+#endif // #if USING( TG_STATS )
 
 namespace PG::Gfx
 {
@@ -120,6 +123,7 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
 {
     std::vector<MemoryBucket> buckets = PackResources( resourceDatas );
 
+    TG_STAT( auto allocStartTime = Time::GetTimePoint() );
     VmaAllocator allocator = rg.device.GetAllocator();
     m_vmaAllocations.resize( buckets.size() );
     for ( size_t bucketIdx = 0; bucketIdx < buckets.size(); ++bucketIdx )
@@ -150,6 +154,7 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
             }
         }
     }
+    TG_STAT( m_stats.resAllocTimeMSec = (float)Time::GetTimeSince( allocStartTime ) );
 
     // Vulkan doesn't allow you to make image views until the memory is bound
     for ( size_t i = 0; i < m_textures.size(); ++i )
@@ -572,11 +577,14 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
 bool TaskGraph::Compile( TaskGraphBuilder& builder, CompileInfo& compileInfo )
 {
     TG_STAT( m_stats = {} );
+    TG_STAT( auto compileStartTime = Time::GetTimePoint() );
+
     std::vector<ResourceData> resourceDatas;
     Compile_BuildResources( builder, compileInfo, resourceDatas );
     Compile_MemoryAliasing( builder, compileInfo, resourceDatas );
     Compile_SynchronizationAndTasks( builder, compileInfo );
 
+    TG_STAT( m_stats.compileTimeMSec = (float)Time::GetTimeSince( compileStartTime ) );
     TG_STAT( if ( compileInfo.showStats ) DisplayStats() );
 
     return true;
@@ -630,14 +638,16 @@ void TaskGraph::DisplayStats()
     float toMB    = 1.0f / ( 1024 * 1024 );
     const auto& s = m_stats;
     LOG( "Task Graph Stats:" );
+    LOG( "    Compiled in %.2fms", s.compileTimeMSec );
+    LOG( "        Res allocation took %.2fms (%.0f%% of total)", s.resAllocTimeMSec, 100 * s.resAllocTimeMSec / s.compileTimeMSec );
     LOG( "    Num Tasks: %u", s.numComputeTasks + s.numGraphicsTasks + s.numTransferTasks );
     LOG( "        Compute: %u, Graphics: %u, Transfer: %u", s.numComputeTasks, s.numGraphicsTasks, s.numTransferTasks );
     LOG( "    Num Pipeline Barriers: %u", s.numBarriers_Buffer + s.numBarriers_Image + s.numBarriers_Global );
     LOG( "        Buffer: %u, Image: %u, Global: %u", s.numBarriers_Buffer, s.numBarriers_Image, s.numBarriers_Global );
-    LOG( "Textures: %u (%.3f MB unaliased)", s.numTextures, s.unAliasedTextureMem * toMB );
-    LOG( "Buffers: %u (%.3f MB unaliased)", s.numBuffers, s.unAliasedBufferMem * toMB );
+    LOG( "    Textures: %u (%.3f MB unaliased)", s.numTextures, s.unAliasedTextureMem * toMB );
+    LOG( "    Buffers: %u (%.3f MB unaliased)", s.numBuffers, s.unAliasedBufferMem * toMB );
     size_t preAliasMem = s.unAliasedTextureMem + s.unAliasedBufferMem;
-    LOG( "Total memory post-aliasing: %.3f MB (aliasing saved %.3f MB)", s.totalMemoryPostAliasing * toMB,
+    LOG( "    Total memory post-aliasing: %.3f MB (aliasing saved %.3f MB)", s.totalMemoryPostAliasing * toMB,
         ( preAliasMem - s.totalMemoryPostAliasing ) * toMB );
 #endif // #if USING( TG_STATS )
 }

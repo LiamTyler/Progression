@@ -1,5 +1,6 @@
 #pragma once
 
+#include "core/console_commands.hpp"
 #include "core/feature_defines.hpp"
 #include "imgui/imgui.h"
 #include <string>
@@ -10,25 +11,23 @@ namespace PG::Gfx::UIOverlay
 
 class Console
 {
-    enum CmdType
+    enum LogType : uint8_t
     {
-        LOCAL,
-        REGULAR_CMD,
-        DVAR
+        LOG,
+        WARN,
+        ERR
     };
 
-    struct Command
+    struct LogItem
     {
-        std::string_view name;
-        std::string_view desc;
-        CmdType type;
+        char* text;
+        LogType type;
     };
 
 public:
     char m_inputBuffer[256];
-    std::vector<char*> m_items;
-    std::vector<const char*> m_commandNames; // just for the auto completer
-    std::vector<Command> m_commands;
+    std::vector<LogItem> m_logItems;
+    std::vector<ConsoleCmd> m_commands;
     std::vector<char*> m_history;
     int m_historyPos; // -1: new line, 0..History.Size-1 browsing history.
     ImGuiTextFilter m_filter;
@@ -41,8 +40,8 @@ public:
 
     void ToggleVisibility();
     void ClearLog();
-    void HelpCommand( std::string_view cmd ) const;
-    void AddLog( const char* fmt, ... ) IM_FMTARGS( 2 );
+    void HelpCommand( std::string_view cmd );
+    void AddLog( LogType type, const char* fmt, ... ) IM_FMTARGS( 2 );
     void Draw();
     void ExecCommand( const char* command_line );
     static int TextEditCallbackStub( ImGuiInputTextCallbackData* data );

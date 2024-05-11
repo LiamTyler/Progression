@@ -53,18 +53,9 @@ Console::Console()
     ClearLog();
     memset( m_inputBuffer, 0, sizeof( m_inputBuffer ) );
     m_historyPos = -1;
-    m_items.reserve( 256 );
+    m_logItems.reserve( 256 );
 
-    m_commands.emplace_back( "clear", "clears this log window", CmdType::LOCAL );
-    m_commands.emplace_back( "help", "usage: help [commandName]", CmdType::LOCAL );
-
-    std::vector<ConsoleCmd> cmds = GetConsoleCommands();
-    for ( const ConsoleCmd& cmd : cmds )
-        m_commands.emplace_back( cmd.name, cmd.usage, CmdType::REGULAR_CMD );
-
-    m_commandNames.resize( m_commands.size() );
-    for ( size_t i = 0; i < m_commands.size(); ++i )
-        m_commandNames[i] = m_commands[i].name.data();
+    m_commands = GetConsoleCommands();
 
     m_autoScroll     = true;
     m_scrollToBottom = false;
@@ -82,23 +73,49 @@ void Console::ToggleVisibility() { m_visible = !m_visible; }
 
 void Console::ClearLog()
 {
-    for ( size_t i = 0; i < m_items.size(); i++ )
-        free( m_items[i] );
-    m_items.clear();
+    for ( size_t i = 0; i < m_logItems.size(); i++ )
+        free( m_logItems[i].text );
+    m_logItems.clear();
 }
 
-void Console::HelpCommand( std::string_view cmd ) const {}
-
-void Console::AddLog( const char* fmt, ... )
+void Console::HelpCommand( std::string_view cmdName )
 {
-    // FIXME-OPT
+    if ( cmdName == "clear" )
+        AddLog( LogType::LOG, "  clears this log window\n" );
+    else if ( cmdName == "help" )
+        AddLog( LogType::LOG, "  usage: help [commandName]\n" );
+    else
+    {
+        const auto& dvarMap = GetAllDvars();
+        auto it             = dvarMap.find( cmdName );
+        if ( it != dvarMap.end() )
+        {
+            AddLog( LogType::LOG, "  %s\n", it->second->GetDescription() );
+            return;
+        }
+        for ( size_t i = 0; i < m_commands.size(); ++i )
+        {
+            const ConsoleCmd& cmd = m_commands[i];
+            if ( cmd.name == cmdName )
+            {
+                AddLog( LogType::LOG, "  %s\n", cmd.usage.data() );
+                return;
+            }
+        }
+
+        AddLog( LogType::WARN, "  Unknown command '%s'\n", cmdName.data() );
+    }
+}
+
+void Console::AddLog( LogType type, const char* fmt, ... )
+{
     char buf[1024];
     va_list args;
     va_start( args, fmt );
     vsnprintf( buf, IM_ARRAYSIZE( buf ), fmt, args );
     buf[IM_ARRAYSIZE( buf ) - 1] = 0;
     va_end( args );
-    m_items.push_back( Strdup( buf ) );
+    m_logItems.emplace_back( Strdup( buf ), type );
 }
 
 void Console::Draw()
@@ -106,10 +123,11 @@ void Console::Draw()
     if ( !m_visible )
         return;
 
+    float pad           = 10;
     float consoleHeight = 200;
     Window* appWindow   = GetMainWindow();
-    ImGui::SetNextWindowSize( ImVec2( appWindow->Width() - 20.0f, consoleHeight ) );
-    ImGui::SetNextWindowPos( ImVec2( 10.0f, appWindow->Height() - consoleHeight ) );
+    ImGui::SetNextWindowSize( ImVec2( appWindow->Width() - 2 * pad, consoleHeight ) );
+    ImGui::SetNextWindowPos( ImVec2( pad, appWindow->Height() - consoleHeight - pad ) );
     if ( !ImGui::Begin( "console" ) )
     {
         ImGui::End();
@@ -152,30 +170,21 @@ void Console::Draw()
         }
 
         ImGui::PushStyleVar( ImGuiStyleVar_ItemSpacing, ImVec2( 4, 1 ) ); // Tighten spacing
-        for ( const char* item : m_items )
+        for ( const LogItem& item : m_logItems )
         {
-            if ( !m_filter.PassFilter( item ) )
+            if ( !m_filter.PassFilter( item.text ) )
                 continue;
 
-            // Normally you would store more information in your item than just a string.
-            // (e.g. make Items[] an array of structure, store color/type etc.)
-            ImVec4 color;
-            bool has_color = false;
-            if ( strstr( item, "[error]" ) )
+            if ( item.type == LogType::LOG )
             {
-                color     = ImVec4( 1.0f, 0.4f, 0.4f, 1.0f );
-                has_color = true;
+                ImGui::TextUnformatted( item.text );
+                continue;
             }
-            else if ( strncmp( item, "# ", 2 ) == 0 )
-            {
-                color     = ImVec4( 1.0f, 0.8f, 0.6f, 1.0f );
-                has_color = true;
-            }
-            if ( has_color )
-                ImGui::PushStyleColor( ImGuiCol_Text, color );
-            ImGui::TextUnformatted( item );
-            if ( has_color )
-                ImGui::PopStyleColor();
+
+            ImVec4 color = item.type == LogType::ERR ? ImVec4( 1.0f, 0.4f, 0.4f, 1.0f ) : ImVec4( 1.0f, 0.8f, 0.6f, 1.0f );
+            ImGui::PushStyleColor( ImGuiCol_Text, color );
+            ImGui::TextUnformatted( item.text );
+            ImGui::PopStyleColor();
         }
 
         // Keep up at the bottom of the scroll region if we were already at the bottom at the beginning of the frame.
@@ -215,7 +224,7 @@ void Console::Draw()
 
 void Console::ExecCommand( const char* fullCommand )
 {
-    AddLog( "# %s\n", fullCommand );
+    AddLog( LogType::LOG, "# %s\n", fullCommand );
     m_scrollToBottom = true;
 
     // Insert into history. First find match and delete it so it can be pushed to the back.
@@ -223,7 +232,7 @@ void Console::ExecCommand( const char* fullCommand )
     m_historyPos = -1;
     for ( int i = (int)m_history.size() - 1; i >= 0; i-- )
     {
-        if ( Stricmp( m_history[i], fullCommand ) == 0 )
+        if ( !strcmp( m_history[i], fullCommand ) )
         {
             free( m_history[i] );
             m_history.erase( m_history.begin() + i );
@@ -242,7 +251,7 @@ void Console::ExecCommand( const char* fullCommand )
         if ( it != dvarMap.end() )
         {
             Dvar* dvar = it->second;
-            AddLog( "  %s\n", dvar->GetValueAsString().c_str() );
+            AddLog( LogType::LOG, "  Dvar %s = %s\n", dvar->GetName(), dvar->GetValueAsString().c_str() );
             return;
         }
     }
@@ -254,7 +263,7 @@ void Console::ExecCommand( const char* fullCommand )
     else if ( cmd == "help" )
     {
         if ( args.size() < 2 )
-            AddLog( "  Usage: help [commandName]\n" );
+            AddLog( LogType::WARN, "  Usage: help [commandName]\n" );
         else
             HelpCommand( args[1] );
     }
@@ -262,21 +271,30 @@ void Console::ExecCommand( const char* fullCommand )
     {
         if ( args.size() != 3 )
         {
-            AddLog( "  Usage: set [commandName] [value]\n" );
+            AddLog( LogType::WARN, "  Usage: set [commandName] [value]\n" );
             return;
         }
         auto it = dvarMap.find( args[1] );
         if ( it == dvarMap.end() )
-            AddLog( "  No dvar named '%s' found\n", args[1].data() );
-        else
-            AddLog( "  Dvar %s = %s\n", args[1].data(), it->second->GetValueAsString().c_str() );
+        {
+            AddLog( LogType::WARN, "  No dvar named '%s' found\n", args[1].data() );
+            return;
+        }
+        Dvar* dvar = it->second;
+        dvar->SetFromString( std::string( args[2] ) );
+        AddLog( LogType::LOG, "  Dvar %s = %s\n", dvar->GetName(), args[2].data() );
     }
     else
     {
-        // for ( size_t i = 0; i < m_commands.size(); ++i )
-        //{
-        // }
-        AddLog( "Unknown command: '%s'\n", cmd.data() );
+        for ( size_t i = 0; i < m_commands.size(); ++i )
+        {
+            if ( cmd == m_commands[i].name )
+            {
+                AddConsoleCommand( fullCommand );
+                return;
+            }
+        }
+        AddLog( LogType::WARN, "Unknown command: '%s'\n", cmd.data() );
     }
 }
 
@@ -288,7 +306,6 @@ int Console::TextEditCallbackStub( ImGuiInputTextCallbackData* data )
 
 int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
 {
-    // AddLog("cursor: %d, selection: %d-%d", data->CursorPos, data->SelectionStart, data->SelectionEnd);
     switch ( data->EventFlag )
     {
     case ImGuiInputTextFlags_CallbackCompletion:
@@ -309,19 +326,25 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
         // Build a list of candidates
         ImVector<const char*> candidates;
         candidates.reserve( 32 );
-        for ( size_t i = 0; i < m_commandNames.size(); i++ )
-            if ( Strnicmp( m_commandNames[i], word_start, (int)( word_end - word_start ) ) == 0 )
-                candidates.push_back( m_commandNames[i] );
+        int wordLen = (int)( word_end - word_start );
+        for ( size_t i = 0; i < m_commands.size(); i++ )
+            if ( Strncmp( m_commands[i].name.data(), word_start, wordLen ) == 0 )
+                candidates.push_back( m_commands[i].name.data() );
+        const auto& dvarMap = GetAllDvars();
+        for ( const auto& [dvarName, _] : dvarMap )
+        {
+            if ( Strncmp( dvarName.data(), word_start, wordLen ) == 0 )
+                candidates.push_back( dvarName.data() );
+        }
 
         if ( candidates.Size == 0 )
         {
-            // No match
-            AddLog( "No match for \"%.*s\"!\n", (int)( word_end - word_start ), word_start );
+            AddLog( LogType::LOG, "No match for \"%.*s\"!\n", wordLen, word_start );
         }
         else if ( candidates.Size == 1 )
         {
             // Single match. Delete the beginning of the word and replace it entirely so we've got nice casing.
-            data->DeleteChars( (int)( word_start - data->Buf ), (int)( word_end - word_start ) );
+            data->DeleteChars( (int)( word_start - data->Buf ), wordLen );
             data->InsertChars( data->CursorPos, candidates[0] );
             data->InsertChars( data->CursorPos, " " );
         }
@@ -329,7 +352,7 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
         {
             // Multiple matches. Complete as much as we can..
             // So inputing "C"+Tab will complete to "CL" then display "CLEAR" and "CLASSIFY" as matches.
-            int match_len = (int)( word_end - word_start );
+            int match_len = wordLen;
             for ( ;; )
             {
                 int c                       = 0;
@@ -346,14 +369,14 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
 
             if ( match_len > 0 )
             {
-                data->DeleteChars( (int)( word_start - data->Buf ), (int)( word_end - word_start ) );
+                data->DeleteChars( (int)( word_start - data->Buf ), wordLen );
                 data->InsertChars( data->CursorPos, candidates[0], candidates[0] + match_len );
             }
 
             // List matches
-            AddLog( "Possible matches:\n" );
+            AddLog( LogType::LOG, "Possible matches:\n" );
             for ( int i = 0; i < candidates.Size; i++ )
-                AddLog( "- %s\n", candidates[i] );
+                AddLog( LogType::LOG, "- %s\n", candidates[i] );
         }
 
         break;

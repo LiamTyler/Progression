@@ -133,7 +133,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             {
                 if ( assetTypeName == g_assetNames[assetTypeIdx] )
                 {
-                    auto createInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
+                    auto createInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, std::string( assetName ) );
                     if ( !createInfo )
                     {
                         LOG_ERR( "Could not find AssetInfo for AssetType: %s, name '%s'", assetTypeName.data(), assetName.data() );

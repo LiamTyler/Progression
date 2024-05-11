@@ -30,7 +30,7 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
     info.pBindings    = bindings.data();
     info.bindingCount = (uint32_t)bindings.size();
     info.flags        = 0;
-    // info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
+    info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 #if USING( PG_DESCRIPTOR_BUFFER )
     info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_DESCRIPTOR_BUFFER_BIT_EXT;
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
@@ -41,7 +41,7 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
     {
         bindFlag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
         // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-        // bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
 
         extendedInfo.bindingCount  = 1;
         extendedInfo.pBindingFlags = &bindFlag;
@@ -73,7 +73,10 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
 void DescriptorAllocator::Init( uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, const std::string& name )
 {
     VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-    poolInfo.flags         = 0; // VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
+    // Even if we can update all the descriptors before the command buffer, the limit counts are much higher with it.
+    // Ex: VkPhysicalDeviceVulkan12Properties::maxDescriptorSetUpdateAfterBindStorageImages = 1048576
+    // vs VkPhysicalDeviceLimits::maxDescriptorSetStorageImages = 144 on my Intel computer
+    poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.maxSets       = maxSets;
     poolInfo.poolSizeCount = (uint32_t)poolSizes.size();
     poolInfo.pPoolSizes    = poolSizes.data();

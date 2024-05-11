@@ -1,3 +1,4 @@
+#include "core/console_commands.hpp"
 #include "core/time.hpp"
 #include "isocline/include/isocline.h"
 #include "shared/logger.hpp"
@@ -151,7 +152,7 @@ int main( int argc, char* argv[] )
             if ( sInput.empty() )
                 continue;
 
-            std::vector<std::string> words = SplitString( sInput, " " );
+            std::vector<std::string_view> words = SplitString( sInput, " " );
             if ( words.size() && words[0] == "help" )
             {
                 if ( words.size() < 2 )
@@ -173,7 +174,7 @@ int main( int argc, char* argv[] )
 
                 if ( !found )
                 {
-                    ic_printf( "Help: no command with name '%s' found\n", words[1].c_str() );
+                    ic_printf( "Help: no command with name '%s' found\n", words[1].data() );
                 }
                 continue;
             }
@@ -205,8 +206,15 @@ int main( int argc, char* argv[] )
 
 static bool LoadCommands()
 {
-    // baked in commands, from console_commands.cpp
-    s_commands.push_back( { "loadFF", "one argument expected: the name of the fastfile to load/reload" } );
+    const std::vector<ConsoleCmd> consoleCmds = GetConsoleCommands();
+    s_commands.reserve( consoleCmds.size() );
+    for ( const ConsoleCmd& cmd : consoleCmds )
+    {
+        Command c;
+        c.name        = cmd.name;
+        c.description = cmd.usage;
+        s_commands.emplace_back( c );
+    }
 
     // dvars
     // Make sure this filename lines up with the filename in dvars.cpp

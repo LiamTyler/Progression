@@ -25,19 +25,6 @@ namespace PG
 class Dvar
 {
 private:
-    enum class DvarType : uint8_t
-    {
-        BOOL,
-        INT,
-        UINT,
-        FLOAT,
-        DOUBLE,
-
-        COUNT
-    };
-
-    static const char* TypeToString( DvarType t );
-
     union DvarValue
     {
         bool bVal;
@@ -55,6 +42,19 @@ private:
     };
 
 public:
+    enum class Type : uint8_t
+    {
+        BOOL,
+        INT,
+        UINT,
+        FLOAT,
+        DOUBLE,
+
+        COUNT
+    };
+
+    static const char* TypeToString( Type t );
+
     explicit Dvar( const char* const inName, bool defaultVal, const char* const desc );
     explicit Dvar( const char* const inName, int defaultVal, int minVal, int maxVal, const char* const desc );
     explicit Dvar( const char* const inName, uint32_t defaultVal, uint32_t minVal, uint32_t maxVal, const char* const desc );
@@ -68,6 +68,8 @@ public:
     uint32_t GetUint() const;
     float GetFloat() const;
     double GetDouble() const;
+    Type GetType() const;
+    std::string GetValueAsString() const;
 
     template <typename T>
     T* GetRawPtr()
@@ -105,27 +107,27 @@ public:
         using UT = relaxed_underlying_type<T>::type;
         if constexpr ( std::is_same_v<UT, bool> )
         {
-            DVAR_ASSERT( type == DvarType::BOOL, "Trying to set a BOOL dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == Type::BOOL, "Trying to set a BOOL dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.bVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, short> || std::is_same_v<UT, int> )
         {
-            DVAR_ASSERT( type == DvarType::INT, "Trying to set an INT dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == Type::INT, "Trying to set an INT dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.iVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, uint8_t> || std::is_same_v<UT, uint16_t> || std::is_same_v<UT, uint32_t> )
         {
-            DVAR_ASSERT( type == DvarType::UINT, "Trying to set a UINT dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == Type::UINT, "Trying to set a UINT dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.uVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, float> )
         {
-            DVAR_ASSERT( type == DvarType::FLOAT, "Trying to set a FLOAT dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == Type::FLOAT, "Trying to set a FLOAT dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.fVal = newVal;
         }
         else if constexpr ( std::is_same_v<UT, double> )
         {
-            DVAR_ASSERT( type == DvarType::DOUBLE, "Trying to set a DOUBLE dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            DVAR_ASSERT( type == Type::DOUBLE, "Trying to set a DOUBLE dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.dVal = newVal;
         }
         else
@@ -139,7 +141,7 @@ public:
     void SetFromString( const std::string& str );
 
 private:
-    const DvarType type;
+    const Type type;
     DvarValue value;
     const DvarValue minValue = { 0 };
     const DvarValue maxValue = { 0 };

@@ -1,7 +1,7 @@
 #include "remote_console_server.hpp"
 #include "core/console_commands.hpp"
 
-#if USING( REMOTE_CONSOLE )
+#if USING( REMOTE_CONSOLE_SERVER )
 
 #include "shared/logger.hpp"
 #include <thread>
@@ -190,4 +190,4 @@ static void ListenForCommands()
     }
 }
 
-#endif // #if USING( REMOTE_CONSOLE )
+#endif // #if USING( REMOTE_CONSOLE_SERVER )

@@ -35,23 +35,22 @@ static void RegisterDvar( Dvar* dvar )
     DvarMap().emplace( dvar->GetName(), dvar );
 }
 
-const char* Dvar::TypeToString( DvarType t )
+const char* Dvar::TypeToString( Type t )
 {
-    static_assert( Underlying( DvarType::COUNT ) == 5 );
+    static_assert( Underlying( Type::COUNT ) == 5 );
     switch ( t )
     {
-    case DvarType::BOOL: return "BOOL";
-    case DvarType::INT: return "INT";
-    case DvarType::UINT: return "UINT";
-    case DvarType::FLOAT: return "FLOAT";
-    case DvarType::DOUBLE: return "DOUBLE";
+    case Type::BOOL: return "BOOL";
+    case Type::INT: return "INT";
+    case Type::UINT: return "UINT";
+    case Type::FLOAT: return "FLOAT";
+    case Type::DOUBLE: return "DOUBLE";
     }
 
     return "_ERR";
 }
 
-Dvar::Dvar( const char* const inName, bool defaultVal, const char* const desc )
-    : type( DvarType::BOOL ), name( inName ), description( desc )
+Dvar::Dvar( const char* const inName, bool defaultVal, const char* const desc ) : type( Type::BOOL ), name( inName ), description( desc )
 {
     PG_ASSERT( IsNameValid( inName ) );
     value.bVal = defaultVal;
@@ -59,28 +58,28 @@ Dvar::Dvar( const char* const inName, bool defaultVal, const char* const desc )
 }
 
 Dvar::Dvar( const char* const inName, int defaultVal, int minVal, int maxVal, const char* const desc )
-    : type( DvarType::INT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
+    : type( Type::INT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.iVal = defaultVal;
     RegisterDvar( this );
 }
 
 Dvar::Dvar( const char* const inName, uint32_t defaultVal, uint32_t minVal, uint32_t maxVal, const char* const desc )
-    : type( DvarType::UINT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
+    : type( Type::UINT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.uVal = defaultVal;
     RegisterDvar( this );
 }
 
 Dvar::Dvar( const char* const inName, float defaultVal, float minVal, float maxVal, const char* const desc )
-    : type( DvarType::FLOAT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
+    : type( Type::FLOAT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.fVal = defaultVal;
     RegisterDvar( this );
 }
 
 Dvar::Dvar( const char* const inName, double defaultVal, double minVal, double maxVal, const char* const desc )
-    : type( DvarType::DOUBLE ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
+    : type( Type::DOUBLE ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.dVal = defaultVal;
     RegisterDvar( this );
@@ -93,7 +92,7 @@ const char* const Dvar::GetDescription() const { return description; }
 bool Dvar::GetBool() const
 {
 #if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == DvarType::BOOL, "Calling GetBool() on a non-bool dvar. Name %s, type %s", name, TypeToString( type ) );
+    PG_ASSERT( type == Type::BOOL, "Calling GetBool() on a non-bool dvar. Name %s, type %s", name, TypeToString( type ) );
 #endif // #if USING( DVAR_DEBUGGING )
     return value.bVal;
 }
@@ -101,7 +100,7 @@ bool Dvar::GetBool() const
 int Dvar::GetInt() const
 {
 #if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == DvarType::INT, "Calling GetInt() on a non-int dvar. Name %s, type %s", name, TypeToString( type ) );
+    PG_ASSERT( type == Type::INT, "Calling GetInt() on a non-int dvar. Name %s, type %s", name, TypeToString( type ) );
 #endif // #if USING( DVAR_DEBUGGING )
     return value.iVal;
 }
@@ -109,7 +108,7 @@ int Dvar::GetInt() const
 uint32_t Dvar::GetUint() const
 {
 #if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == DvarType::UINT, "Calling GetUint() on a non-uint dvar. Name %s, type %s", name, TypeToString( type ) );
+    PG_ASSERT( type == Type::UINT, "Calling GetUint() on a non-uint dvar. Name %s, type %s", name, TypeToString( type ) );
 #endif // #if USING( DVAR_DEBUGGING )
     return value.uVal;
 }
@@ -117,7 +116,7 @@ uint32_t Dvar::GetUint() const
 float Dvar::GetFloat() const
 {
 #if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == DvarType::FLOAT, "Calling GetFloat() on a non-float dvar. Name %s, type %s", name, TypeToString( type ) );
+    PG_ASSERT( type == Type::FLOAT, "Calling GetFloat() on a non-float dvar. Name %s, type %s", name, TypeToString( type ) );
 #endif // #if USING( DVAR_DEBUGGING )
     return value.fVal;
 }
@@ -125,35 +124,51 @@ float Dvar::GetFloat() const
 double Dvar::GetDouble() const
 {
 #if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == DvarType::INT, "Calling GetDouble() on a non-double dvar. Name %s, type %s", name, TypeToString( type ) );
+    PG_ASSERT( type == Type::INT, "Calling GetDouble() on a non-double dvar. Name %s, type %s", name, TypeToString( type ) );
 #endif // #if USING( DVAR_DEBUGGING )
     return value.dVal;
+}
+
+Dvar::Type Dvar::GetType() const { return type; }
+
+std::string Dvar::GetValueAsString() const
+{
+    if ( type == Type::BOOL )
+        return value.bVal ? "true" : "false";
+    else if ( type == Type::INT )
+        return std::to_string( value.iVal );
+    else if ( type == Type::UINT )
+        return std::to_string( value.uVal );
+    else if ( type == Type::FLOAT )
+        return std::to_string( value.fVal );
+    else
+        return std::to_string( value.dVal );
 }
 
 void Dvar::SetFromString( const std::string& str )
 {
     try
     {
-        if ( type == DvarType::BOOL )
+        if ( type == Type::BOOL )
         {
             value.bVal = std::stoi( str );
         }
-        else if ( type == DvarType::INT )
+        else if ( type == Type::INT )
         {
             value.iVal = std::stoi( str );
             value.iVal = Min( maxValue.iVal, Max( minValue.iVal, value.iVal ) );
         }
-        else if ( type == DvarType::UINT )
+        else if ( type == Type::UINT )
         {
             value.uVal = std::stoul( str );
             value.uVal = Min( maxValue.uVal, Max( minValue.uVal, value.uVal ) );
         }
-        else if ( type == DvarType::FLOAT )
+        else if ( type == Type::FLOAT )
         {
             value.fVal = std::stof( str );
             value.fVal = Min( maxValue.fVal, Max( minValue.fVal, value.fVal ) );
         }
-        else if ( type == DvarType::DOUBLE )
+        else if ( type == Type::DOUBLE )
         {
             value.dVal = std::stod( str );
             value.dVal = Min( maxValue.dVal, Max( minValue.dVal, value.dVal ) );

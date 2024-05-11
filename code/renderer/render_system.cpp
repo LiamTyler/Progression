@@ -171,7 +171,7 @@ void Resize( uint32_t displayWidth, uint32_t displayHeight )
     rg.swapchain.Recreate( displayWidth, displayHeight );
     s_taskGraph.Free();
     Init_TaskGraph();
-    LOG( "Old size (%u x %u), new (%u x %u)", oldDW, oldDH, rg.displayWidth, rg.displayHeight );
+    LOG( "Resizing swapchain. Old size (%u x %u), new (%u x %u)", oldDW, oldDH, rg.displayWidth, rg.displayHeight );
 
     eg.resizeRequested = false;
 }

@@ -60,9 +60,7 @@ static void MouseButtonCallback( GLFWwindow* window, int button, int action, int
 
 static void ScrollCallback( GLFWwindow* window, double xoffset, double yoffset ) { s_scrollOffset += vec2( xoffset, yoffset ); }
 
-namespace PG
-{
-namespace Input
+namespace PG::Input
 {
 
 void Init()
@@ -264,5 +262,4 @@ void RegisterLuaFunctions( lua_State* L )
     lua.new_enum<MouseButton, false>( "MouseButton", mouseItems );
 }
 
-} // namespace Input
-} // namespace PG
+} // namespace PG::Input

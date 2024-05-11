@@ -5,6 +5,7 @@
 #include "core/init.hpp"
 #include "core/scene.hpp"
 #include "image.hpp"
+#include "renderer/debug_ui.hpp"
 #include "renderer/render_system.hpp"
 #include "shared/logger.hpp"
 #include "ui/ui_system.hpp"
@@ -65,6 +66,10 @@ int main( int argc, char* argv[] )
         if ( Input::GetKeyDown( Key::ESC ) )
         {
             eg.shutdown = true;
+        }
+        if ( Input::GetKeyDown( Key::BACK_TICK ) )
+        {
+            Gfx::UIOverlay::ToggleConsoleVisibility();
         }
         if ( Input::GetKeyDown( Key::F1 ) )
         {

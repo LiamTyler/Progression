@@ -1,18 +1,40 @@
-#include "core/console_commands.hpp"
+#include "console_commands.hpp"
+#include "shared/platform_defines.hpp"
+
+using namespace PG;
+
+static ConsoleCmd s_commands[] = {
+    {"loadFF", "one argument expected: the name of the fastfile to load/reload"},
+    { "exit",  "exit the application"                                          },
+    { "quit",  "exit the application"                                          },
+};
+
+std::vector<ConsoleCmd> PG::GetConsoleCommands()
+{
+    std::vector<ConsoleCmd> ret;
+    ret.resize( ARRAY_COUNT( s_commands ) );
+    for ( int i = 0; i < ARRAY_COUNT( s_commands ); ++i )
+    {
+        ret[i] = { s_commands[i].name, s_commands[i].usage };
+    }
+
+    return ret;
+}
+
+#if !USING( REMOTE_CONSOLE_CLIENT )
 #include "asset/asset_manager.hpp"
 #include "core/dvars.hpp"
+#include "core/engine_globals.hpp"
 #include "shared/logger.hpp"
 #include "shared/platform_defines.hpp"
 #include "shared/string.hpp"
 #include <functional>
 #include <mutex>
 
-using namespace PG;
-
 static std::mutex s_lock;
 std::vector<std::string> s_pendingCommands;
 
-static void Process_loadFF( std::string* args, uint32_t numArgs )
+static void Process_loadFF( std::string_view* args, uint32_t numArgs )
 {
     if ( numArgs != 1 )
     {
@@ -20,35 +42,31 @@ static void Process_loadFF( std::string* args, uint32_t numArgs )
         return;
     }
 
-    AssetManager::LoadFastFile( args[0] );
+    AssetManager::LoadFastFile( std::string( args[0] ) );
 }
 
-struct RegisteredCommand
-{
-    const char* const name;
-    std::function<void( std::string*, uint32_t )> func;
-};
+static void Process_quit( std::string_view* args, uint32_t numArgs ) { eg.shutdown = true; }
 
-static RegisteredCommand s_commands[] = {
-    {"loadFF", Process_loadFF}
-};
-static_assert( ARRAY_COUNT( s_commands ) == 1, "Update remote_console_main.cpp with the new command for auto-completion" );
+using CommandFunc = std::function<void( std::string_view*, uint32_t )>;
+
+static CommandFunc s_commandFunctions[] = { Process_loadFF, Process_quit, Process_quit };
+static_assert( ARRAY_COUNT( s_commands ) == ARRAY_COUNT( s_commandFunctions ) );
 
 static void ProcessCommand( const std::string& cmdStr )
 {
-    std::vector<std::string> subStrs = SplitString( cmdStr, " " );
-    uint32_t numArgs                 = subStrs.empty() ? 0 : static_cast<uint32_t>( subStrs.size() - 1 );
-    const std::string& cmd           = subStrs.empty() ? "" : subStrs[0];
+    std::vector<std::string_view> subStrs = SplitString( cmdStr, " " );
+    uint32_t numArgs                      = subStrs.empty() ? 0 : static_cast<uint32_t>( subStrs.size() - 1 );
+    std::string_view cmd                  = subStrs.empty() ? "" : subStrs[0];
     for ( int i = 0; i < ARRAY_COUNT( s_commands ); ++i )
     {
-        if ( !strcmp( cmd.c_str(), s_commands[i].name ) )
+        if ( !strcmp( cmd.data(), s_commands[i].name.data() ) )
         {
-            s_commands[i].func( subStrs.data() + 1, numArgs );
+            s_commandFunctions[i]( subStrs.data() + 1, numArgs );
             return;
         }
     }
-    const auto& dvars = GetAllDvars();
-    for ( const auto& [dvarName, dvarPtr] : dvars )
+    const auto& dvarMap = GetAllDvars();
+    for ( const auto& [dvarName, dvarPtr] : dvarMap )
     {
         if ( cmd == dvarName )
         {
@@ -58,7 +76,7 @@ static void ProcessCommand( const std::string& cmdStr )
                 return;
             }
 
-            dvarPtr->SetFromString( subStrs[1] );
+            dvarPtr->SetFromString( std::string( subStrs[1] ) );
             return;
         }
     }
@@ -66,7 +84,10 @@ static void ProcessCommand( const std::string& cmdStr )
     LOG_ERR( "Unknown console command '%s'", cmdStr.c_str() );
 }
 
-void PG::ProcessPendingConsoleCommands()
+namespace PG
+{
+
+void ProcessPendingConsoleCommands()
 {
     s_lock.lock();
     const auto pendingCmds = s_pendingCommands;
@@ -79,8 +100,12 @@ void PG::ProcessPendingConsoleCommands()
     }
 }
 
-void PG::AddConsoleCommand( const std::string& cmd )
+void AddConsoleCommand( const std::string& cmd )
 {
     std::scoped_lock lock( s_lock );
     s_pendingCommands.push_back( cmd );
 }
+
+} // namespace PG
+
+#endif // #if !USING( REMOTE_CONSOLE_CLIENT )

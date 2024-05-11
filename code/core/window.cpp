@@ -88,6 +88,7 @@ void Window::Init( const WindowCreateInfo& createInfo )
 void Window::StartFrame()
 {
     Time::StartFrame();
+    glfwGetWindowSize( m_window, &m_width, &m_height );
     int fW, fH;
     glfwGetFramebufferSize( m_window, &fW, &fH );
     if ( fW != m_framebufferWidth || fH != m_framebufferHeight )

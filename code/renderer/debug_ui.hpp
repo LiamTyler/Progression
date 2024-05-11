@@ -18,6 +18,7 @@ void EndFrame();
 
 void AddDrawFunction( const std::function<void()>& func );
 bool CapturingMouse(); // true if cursor is ontop of UI element
+void ToggleConsoleVisibility();
 
 bool Header( const char* caption );
 bool CheckBox( const char* caption, bool* value );

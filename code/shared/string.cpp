@@ -24,6 +24,7 @@ std::string StripWhitespace( const std::string& s )
     return s.substr( start, end - start + 1 );
 }
 
+/*
 std::vector<std::string> SplitString( const std::string& str, const std::string delim )
 {
     if ( str.empty() )
@@ -33,6 +34,33 @@ std::vector<std::string> SplitString( const std::string& str, const std::string 
     size_t start_index = 0;
     size_t index       = 0;
     while ( ( index = str.find_first_of( delim, start_index ) ) != std::string::npos )
+    {
+        ret.push_back( str.substr( start_index, index - start_index ) );
+        start_index = index + 1;
+
+        if ( index == str.size() - 1 )
+        {
+            ret.emplace_back();
+        }
+    }
+
+    if ( start_index < str.size() )
+    {
+        ret.push_back( str.substr( start_index ) );
+    }
+    return ret;
+}
+*/
+
+std::vector<std::string_view> SplitString( std::string_view str, std::string_view delim )
+{
+    if ( str.empty() )
+        return {};
+
+    std::vector<std::string_view> ret;
+    size_t start_index = 0;
+    size_t index       = 0;
+    while ( ( index = str.find_first_of( delim, start_index ) ) != std::string_view::npos )
     {
         ret.push_back( str.substr( start_index, index - start_index ) );
         start_index = index + 1;

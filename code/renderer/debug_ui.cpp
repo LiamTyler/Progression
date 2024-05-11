@@ -1,4 +1,5 @@
 #include "renderer/debug_ui.hpp"
+#include "renderer/debug_ui_console.hpp"
 
 #if !USING( PG_DEBUG_UI )
 
@@ -18,6 +19,7 @@ void EndFrame() {}
 
 void AddDrawFunction( const std::function<void()>& func ) { PG_UNUSED( func ); }
 bool CapturingMouse() { return false; }
+void ToggleConsoleVisibility() {}
 
 bool Header( const char* caption )
 {
@@ -97,6 +99,7 @@ namespace PG::Gfx::UIOverlay
 static bool s_updated;
 static std::vector<std::function<void()>> s_drawFunctions;
 static VkDescriptorPool s_descriptorPool;
+static Console* s_console;
 
 static void CheckVkResult( VkResult err )
 {
@@ -175,11 +178,14 @@ bool Init( PixelFormat colorAttachmentFormat )
     // there are also 2 buffers and 2 buffer memories that ImGui uses (the vertex and index buffers), but they are re-created as needed
     // during ImGui_ImplVulkan_RenderDrawData, so we aren't bothering to update their names each time
 
+    s_console = new Console;
+
     return true;
 }
 
 void Shutdown()
 {
+    delete s_console;
     ImGui_ImplVulkan_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
@@ -207,7 +213,18 @@ void Render( CommandBuffer& cmdBuf )
     }
     s_drawFunctions.clear();
 
-    ImGui::ShowDemoWindow();
+    // if ( ImGui::IsWindowFocused( ImGuiFocusedFlags_AnyWindow ) )
+    //{
+    //     LOG( "IMGUI WINDOW FOCUSED" );
+    // }
+    // else
+    //{
+    //     LOG_ERR( "no focus" );
+    // }
+
+    s_console->Draw();
+
+    // ImGui::ShowDemoWindow();
 
     ImGui::Render();
     ImDrawData* draw_data = ImGui::GetDrawData();
@@ -217,6 +234,8 @@ void Render( CommandBuffer& cmdBuf )
 void EndFrame() { ImGui::EndFrame(); }
 
 bool CapturingMouse() { return dvarDebugUI.GetBool() && ImGui::GetIO().WantCaptureMouse; }
+
+void ToggleConsoleVisibility() { s_console->ToggleVisibility(); }
 
 bool Header( const char* caption ) { return ImGui::CollapsingHeader( caption, ImGuiTreeNodeFlags_DefaultOpen ); }
 

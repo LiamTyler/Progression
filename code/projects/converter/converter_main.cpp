@@ -125,10 +125,10 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                 LOG_ERR( "Asset CSV %s: Invalid line %d '%s'", sceneFile.c_str(), lineIdx, line.c_str() );
                 continue;
             }
-            bool found                = false;
-            uint32_t assetTypeIdx     = 0;
-            std::string assetTypeName = vec[0];
-            std::string assetName     = vec[1];
+            bool found                     = false;
+            uint32_t assetTypeIdx          = 0;
+            std::string_view assetTypeName = vec[0];
+            std::string_view assetName     = vec[1];
             for ( ; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
             {
                 if ( assetTypeName == g_assetNames[assetTypeIdx] )
@@ -136,7 +136,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                     auto createInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, assetName );
                     if ( !createInfo )
                     {
-                        LOG_ERR( "Could not find AssetInfo for AssetType: %s, name '%s'", assetTypeName.c_str(), assetName.c_str() );
+                        LOG_ERR( "Could not find AssetInfo for AssetType: %s, name '%s'", assetTypeName.data(), assetName.data() );
                     }
                     g_converters[assetTypeIdx]->AddReferencedAssets( createInfo );
                     AddUsedAsset( (AssetType)assetTypeIdx, createInfo );
@@ -146,7 +146,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             }
             if ( !found )
             {
-                LOG_ERR( "Asset CSV %s: No asset type '%s' line %d", sceneFile.c_str(), vec[0].c_str(), lineIdx );
+                LOG_ERR( "Asset CSV %s: No asset type '%s' line %d", sceneFile.c_str(), assetTypeName.data(), lineIdx );
                 return false;
             }
         }

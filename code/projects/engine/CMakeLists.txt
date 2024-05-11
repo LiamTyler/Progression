@@ -96,6 +96,8 @@ set(
     ${CODE_DIR}/renderer/debug_marker.hpp
     ${CODE_DIR}/renderer/debug_ui.cpp
     ${CODE_DIR}/renderer/debug_ui.hpp
+    ${CODE_DIR}/renderer/debug_ui_console.cpp
+    ${CODE_DIR}/renderer/debug_ui_console.hpp
     ${CODE_DIR}/renderer/graphics_api.hpp
     ${CODE_DIR}/renderer/render_system.cpp
     ${CODE_DIR}/renderer/render_system.hpp

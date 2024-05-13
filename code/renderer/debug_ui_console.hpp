@@ -41,7 +41,7 @@ public:
     void ToggleVisibility();
     void ClearLog();
     void HelpCommand( std::string_view cmd );
-    void AddLog( LogType type, const char* fmt, ... ) IM_FMTARGS( 2 );
+    void AddLog( LogType type, const char* fmt, ... );
     void Draw();
     void ExecCommand( const char* command_line );
     static int TextEditCallbackStub( ImGuiInputTextCallbackData* data );

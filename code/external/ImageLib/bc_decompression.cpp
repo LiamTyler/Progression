@@ -4,6 +4,7 @@
 #include "shared/assert.hpp"
 #include "shared/bitops.hpp"
 #include "shared/logger.hpp"
+#include <cstring>
 
 struct BC1Block
 {

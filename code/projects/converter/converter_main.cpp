@@ -49,10 +49,10 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
     }
 
     static struct option long_options[] = {
-        {"force",   no_argument,       0, 'f'},
-        { "help",   no_argument,       0, 'h'},
-        { "single", required_argument, 0, 's'},
-        { 0,        0,                 0, 0  }
+        {"force",  no_argument,       0, 'f'},
+        {"help",   no_argument,       0, 'h'},
+        {"single", required_argument, 0, 's'},
+        {0,        0,                 0, 0  }
     };
 
     s_singleAssetType = ASSET_TYPE_COUNT;
@@ -211,7 +211,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
 
     if ( !convertErrors )
     {
-#pragma omp parallel for schedule( dynamic )
+        // #pragma omp parallel for schedule( dynamic )
         for ( int i = 0; i < (int)outOfDateAssetList.size(); ++i )
         {
             uint32_t assetTypeIdx                                  = outOfDateAssetList[i].first;

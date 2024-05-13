@@ -5,8 +5,8 @@ using namespace PG;
 
 static ConsoleCmd s_commands[] = {
     {"loadFF", "one argument expected: the name of the fastfile to load/reload"},
-    { "exit",  "exit the application"                                          },
-    { "quit",  "exit the application"                                          },
+    {"exit",   "exit the application"                                          },
+    {"quit",   "exit the application"                                          },
 };
 
 std::vector<ConsoleCmd> PG::GetConsoleCommands()

@@ -93,7 +93,6 @@ endif()
 set(LUA_INCLUDES ${PROGRESSION_DIR}/code/external/lua/ PARENT_SCOPE)
 
 #-------------------------------SHADERC + SPIRVCROSS--------------------------------------------
-set(VULKAN_LIBS ${Vulkan_LIBRARIES} shaderc_combined spirv-cross-core PARENT_SCOPE)
 if(MSVC)
 	set(VULKAN_LIBS
 		${Vulkan_LIBRARIES}
@@ -101,6 +100,15 @@ if(MSVC)
 		${Vulkan_INCLUDE_DIR}/../Lib/spirv-cross-core.lib
 		PARENT_SCOPE
 	)
+    file(GLOB tmpFiles ${Vulkan_INCLUDE_DIR}/shaderc/* ${Vulkan_INCLUDE_DIR}/spirv_cross/*)
+    SET_LOCAL_AND_PARENT(VULKAN_EXT_FILES ${tmpFiles})
+else()
+    set(VULKAN_LIBS
+        ${Vulkan_LIBRARIES}
+        ${Vulkan_INCLUDE_DIR}/../lib/libshaderc_combined.a
+        ${Vulkan_INCLUDE_DIR}/../lib/libspirv-cross-core.a
+        PARENT_SCOPE
+    )
     file(GLOB tmpFiles ${Vulkan_INCLUDE_DIR}/shaderc/* ${Vulkan_INCLUDE_DIR}/spirv_cross/*)
     SET_LOCAL_AND_PARENT(VULKAN_EXT_FILES ${tmpFiles})
 endif()

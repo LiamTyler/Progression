@@ -17,6 +17,8 @@ class Scene;
 namespace PG::Gfx
 {
 
+class TaskGraph;
+
 struct TGExecuteData
 {
     Scene* scene;

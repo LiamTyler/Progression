@@ -74,7 +74,7 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
     info.commandBufferInfoCount = 1;
     info.pCommandBufferInfos    = &cmdBufInfo;
 
-    VkFence vkFence = fence ? *fence : VK_NULL_HANDLE;
+    VkFence vkFence = fence ? fence->GetHandle() : VK_NULL_HANDLE;
     VK_CHECK( vkQueueSubmit2( m_queue.queue, 1, &info, vkFence ) );
 }
 

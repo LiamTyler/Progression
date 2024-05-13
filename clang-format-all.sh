@@ -1,6 +1,10 @@
 #!/bin/bash
 
-fmtExe='C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/x64/bin/clang-format.exe'
+if [[ "$OSTYPE" == "linux-gnu" ]]; then
+    fmtExe='clang-format-18'
+else
+    fmtExe='C:/Program Files/Microsoft Visual Studio/2022/Community/VC/Tools/Llvm/x64/bin/clang-format.exe'
+fi
 
 declare -a arr=("./code/asset/" "./code/core/" "./code/data_structures/" "./code/ecs/" "./code/projects/" "./code/renderer/" "./code/shared/" "./code/ui/" )
 

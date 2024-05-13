@@ -8,10 +8,10 @@ namespace PT
 TonemapOperator TonemapOperatorFromString( const std::string& name )
 {
     std::unordered_map<std::string, TonemapOperator> map = {
-        {"NONE",        TonemapOperator::NONE      },
-        { "REINHARD",   TonemapOperator::REINHARD  },
-        { "UNCHARTED2", TonemapOperator::UNCHARTED2},
-        { "ACES",       TonemapOperator::ACES      },
+        {"NONE",       TonemapOperator::NONE      },
+        {"REINHARD",   TonemapOperator::REINHARD  },
+        {"UNCHARTED2", TonemapOperator::UNCHARTED2},
+        {"ACES",       TonemapOperator::ACES      },
     };
 
     auto it = map.find( name );

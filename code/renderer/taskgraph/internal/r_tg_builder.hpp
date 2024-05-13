@@ -125,9 +125,9 @@ public:
 
     virtual ~TaskBuilder() = default;
 
-    TG_DEBUG_ONLY( std::string debugName );
     TaskGraphBuilder* const builder;
     const TaskHandle taskHandle;
+    TG_DEBUG_ONLY( std::string debugName );
 };
 
 class ComputeTaskBuilder : public TaskBuilder

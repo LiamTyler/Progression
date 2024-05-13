@@ -209,18 +209,18 @@ Scene* Scene::Load( const std::string& filename )
 #endif // #if USING( GAME )
 
     static JSONFunctionMapperBoolCheck<Scene*> mapping( {
-        {"AmbientColor",           ParseAmbientColor    },
-        { "Camera",                ParseCamera          },
-        { "Entity",                ParseEntity          },
-        { "DirectionalLight",      ParseDirectionalLight},
-        { "OfflineRenderSettings", ParseNull            },
-        { "PointLight",            ParsePointLight      },
-        { "SpotLight",             ParseSpotLight       },
-        { "Skybox",                ParseSkybox          },
-        { "SkyEVAdjust",           ParseSkyEVAdjust     },
-        { "SkyTint",               ParseSkyTint         },
-        { "StartupScript",         ParseStartupScript   },
-        { "Script",                ParseScript          },
+        {"AmbientColor",          ParseAmbientColor    },
+        {"Camera",                ParseCamera          },
+        {"Entity",                ParseEntity          },
+        {"DirectionalLight",      ParseDirectionalLight},
+        {"OfflineRenderSettings", ParseNull            },
+        {"PointLight",            ParsePointLight      },
+        {"SpotLight",             ParseSpotLight       },
+        {"Skybox",                ParseSkybox          },
+        {"SkyEVAdjust",           ParseSkyEVAdjust     },
+        {"SkyTint",               ParseSkyTint         },
+        {"StartupScript",         ParseStartupScript   },
+        {"Script",                ParseScript          },
     } );
 
     for ( rapidjson::Value::ConstValueIterator itr = document.Begin(); itr != document.End(); ++itr )

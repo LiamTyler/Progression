@@ -117,7 +117,7 @@ bool Init( PixelFormat colorAttachmentFormat )
     s_drawFunctions.reserve( 64 );
 
     VkDescriptorPoolSize poolSizes[] = {
-        {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64},
+        { VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64 },
     };
 
     VkDescriptorPoolCreateInfo poolInfo = {};

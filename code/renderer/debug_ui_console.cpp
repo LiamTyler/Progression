@@ -8,27 +8,6 @@
 #include <cstdlib>
 
 // Portable helpers
-static int Stricmp( const char* s1, const char* s2 )
-{
-    int d;
-    while ( ( d = toupper( *s2 ) - toupper( *s1 ) ) == 0 && *s1 )
-    {
-        s1++;
-        s2++;
-    }
-    return d;
-}
-static int Strnicmp( const char* s1, const char* s2, int n )
-{
-    int d = 0;
-    while ( n > 0 && ( d = toupper( *s2 ) - toupper( *s1 ) ) == 0 && *s1 )
-    {
-        s1++;
-        s2++;
-        n--;
-    }
-    return d;
-}
 static char* Strdup( const char* s )
 {
     IM_ASSERT( s );

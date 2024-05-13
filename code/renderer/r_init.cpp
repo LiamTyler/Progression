@@ -214,6 +214,8 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         if ( !rg.swapchain.Create( displayWidth, displayHeight ) )
             return false;
         PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( rg.swapchain, "Primary" );
+        rg.displayWidth  = rg.swapchain.GetWidth();
+        rg.displayHeight = rg.swapchain.GetHeight();
     }
 
     if ( !InitCommands() )

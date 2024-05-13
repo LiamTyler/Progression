@@ -5,6 +5,7 @@
 #include "shared/assert.hpp"
 #include "shared/color_spaces.hpp"
 #include "shared/float_conversions.hpp"
+#include <cstring>
 #include <stdexcept>
 #include <vector>
 

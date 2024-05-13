@@ -88,6 +88,7 @@ bool Init_TaskGraph()
     compileInfo.sceneHeight   = rg.sceneHeight;
     compileInfo.displayWidth  = rg.displayWidth;
     compileInfo.displayHeight = rg.displayHeight;
+    compileInfo.showStats     = false;
     if ( !s_taskGraph.Compile( builder, compileInfo ) )
     {
         LOG_ERR( "Could not compile the task graph" );
@@ -155,6 +156,8 @@ void Resize( uint32_t displayWidth, uint32_t displayHeight )
     rg.sceneWidth    = static_cast<uint32_t>( displayWidth * oldRatioX + 0.5f );
     rg.sceneHeight   = static_cast<uint32_t>( displayHeight * oldRatioY + 0.5f );
     rg.swapchain.Recreate( displayWidth, displayHeight );
+    rg.displayWidth  = rg.swapchain.GetWidth();
+    rg.displayHeight = rg.swapchain.GetHeight();
     s_taskGraph.Free();
     Init_TaskGraph();
     LOG( "Resizing swapchain. Old size (%u x %u), new (%u x %u)", oldDW, oldDH, rg.displayWidth, rg.displayHeight );

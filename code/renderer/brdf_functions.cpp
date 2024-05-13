@@ -3,7 +3,7 @@
 namespace PG
 {
 
-vec3 FresnelSchlick( float NdotV, vec3 F0 ) { return F0 + ( vec3( 1.0f ) - F0 ) * pow( 1.0f - NdotV, 5.0f ); }
+vec3 FresnelSchlick( float NdotV, vec3 F0 ) { return F0 + ( vec3( 1.0f ) - F0 ) * powf( 1.0f - NdotV, 5.0f ); }
 
 float GGX_D( float NdotH, float roughness )
 {

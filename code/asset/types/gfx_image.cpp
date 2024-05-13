@@ -10,6 +10,7 @@
 #if USING( GPU_DATA )
 #include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
+#include <cstring>
 
 static constexpr CompressionQuality COMPRESSOR_QUALITY = CompressionQuality::MEDIUM;
 

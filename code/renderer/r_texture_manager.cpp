@@ -62,7 +62,7 @@ void Init()
     s_descriptorBuffer.Create( s_descriptorSetLayout );
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
     vector<VkDescriptorPoolSize> poolSizes = {
-        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES},
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES },
     };
     s_descriptorAllocator.Init( 1, poolSizes, "bindless" );
 

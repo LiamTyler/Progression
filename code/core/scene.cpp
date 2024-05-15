@@ -9,11 +9,14 @@
 #include "shared/logger.hpp"
 #include <algorithm>
 #include <fstream>
+#include <mutex>
 #include <sstream>
 
 using namespace PG;
 
-Scene* s_primaryScene = nullptr;
+static Scene* s_primaryScene = nullptr;
+static std::vector<Scene*> s_scenes;
+static std::mutex s_scenesLock;
 
 // clang-format off
 
@@ -186,7 +189,7 @@ Scene::~Scene()
 Scene* Scene::Load( const std::string& filename )
 {
     Scene* scene = new Scene;
-
+    scene->name  = GetFilenameStem( filename );
     rapidjson::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
@@ -232,6 +235,9 @@ Scene* Scene::Load( const std::string& filename )
             return nullptr;
         }
     }
+    s_scenesLock.lock();
+    s_scenes.push_back( scene );
+    s_scenesLock.unlock();
 
     scene->Start();
     return scene;
@@ -268,15 +274,47 @@ void Scene::Update()
     }
 }
 
-Scene* GetPrimaryScene() { return s_primaryScene; }
-
-void SetPrimaryScene( Scene* scene ) { s_primaryScene = scene; }
-
 void RegisterLuaFunctions_Scene( lua_State* L )
 {
     sol::state_view lua( L );
     sol::usertype<Scene> scene_type = lua.new_usertype<Scene>( "Scene" );
     scene_type["camera"]            = &Scene::camera;
+}
+
+Scene* GetPrimaryScene() { return s_primaryScene; }
+
+Scene* GetScene( std::string_view name )
+{
+    for ( Scene* scene : s_scenes )
+    {
+        if ( scene->name == name )
+            return scene;
+    }
+
+    return nullptr;
+}
+
+void SetPrimaryScene( Scene* scene ) { s_primaryScene = scene; }
+
+void FreeScene( Scene* toDeleteScene )
+{
+    s_scenesLock.lock();
+    if ( toDeleteScene == s_primaryScene )
+        s_primaryScene = nullptr;
+    size_t numElementsErased = std::erase( s_scenes, toDeleteScene );
+    delete toDeleteScene;
+    s_scenesLock.unlock();
+    PG_ASSERT( numElementsErased == 1, "Trying to free a scene that doesn't exist in the managed list" );
+}
+
+void FreeAllScenes()
+{
+    s_scenesLock.lock();
+    for ( Scene* scene : s_scenes )
+        delete scene;
+    s_scenes.clear();
+    s_primaryScene = nullptr;
+    s_scenesLock.unlock();
 }
 
 } // namespace PG

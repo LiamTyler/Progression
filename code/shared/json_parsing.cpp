@@ -23,12 +23,12 @@ vec4 ParseVec4( const rapidjson::Value& v )
     return vec4( ParseNumber<float>( v[0] ), ParseNumber<float>( v[1] ), ParseNumber<float>( v[2] ), ParseNumber<float>( v[3] ) );
 }
 
-bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
+bool ParseJSONFile( std::string_view filename, rapidjson::Document& document )
 {
-    FILE* fp = fopen( filename.c_str(), "rb" );
+    FILE* fp = fopen( filename.data(), "rb" );
     if ( fp == NULL )
     {
-        LOG_ERR( "Could not open json file '%s'", filename.c_str() );
+        LOG_ERR( "Could not open json file '%s'", filename.data() );
         return false;
     }
     fseek( fp, 0L, SEEK_END );
@@ -41,7 +41,7 @@ bool ParseJSONFile( const std::string& filename, rapidjson::Document& document )
     if ( !ok )
     {
         LOG_ERR(
-            "Failed to parse json file '%s'. Error: '%s' (%zu)", filename.c_str(), rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
+            "Failed to parse json file '%s'. Error: '%s' (%zu)", filename.data(), rapidjson::GetParseError_En( ok.Code() ), ok.Offset() );
         return false;
     }
 

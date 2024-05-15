@@ -36,15 +36,19 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-    VkDescriptorBindingFlags bindFlag = 0;
+    VkDescriptorBindingFlags bindFlags[2] = { 0 };
     if ( bindlessSupport )
     {
-        bindFlag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-        // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-        bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        for ( int i = 0; i < 2; ++i )
+        {
+            VkDescriptorBindingFlags& bindFlag = bindFlags[i];
+            bindFlag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+            // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+            bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+        }
 
-        extendedInfo.bindingCount  = 1;
-        extendedInfo.pBindingFlags = &bindFlag;
+        extendedInfo.bindingCount  = (uint32_t)bindings.size();
+        extendedInfo.pBindingFlags = bindFlags;
     }
 
 #if USING( PG_MUTABLE_DESCRIPTORS )

@@ -1,6 +1,7 @@
 #include "render_system.hpp"
 #include "asset/asset_manager.hpp"
 #include "core/engine_globals.hpp"
+#include "core/scene.hpp"
 #include "core/window.hpp"
 #include "debug_marker.hpp"
 #include "r_globals.hpp"
@@ -147,20 +148,17 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
 
 void Resize( uint32_t displayWidth, uint32_t displayHeight )
 {
-    float oldRatioX  = rg.sceneWidth / (float)rg.displayWidth;
-    float oldRatioY  = rg.sceneHeight / (float)rg.displayHeight;
-    uint32_t oldDW   = rg.displayWidth;
-    uint32_t oldDH   = rg.displayHeight;
-    rg.displayWidth  = displayWidth;
-    rg.displayHeight = displayHeight;
-    rg.sceneWidth    = static_cast<uint32_t>( displayWidth * oldRatioX + 0.5f );
-    rg.sceneHeight   = static_cast<uint32_t>( displayHeight * oldRatioY + 0.5f );
+    float oldRatioX = rg.sceneWidth / (float)rg.displayWidth;
+    float oldRatioY = rg.sceneHeight / (float)rg.displayHeight;
+    rg.sceneWidth   = static_cast<uint32_t>( displayWidth * oldRatioX + 0.5f );
+    rg.sceneHeight  = static_cast<uint32_t>( displayHeight * oldRatioY + 0.5f );
     rg.swapchain.Recreate( displayWidth, displayHeight );
+    LOG( "Resizing swapchain. Old size (%u x %u), new (%u x %u)", rg.displayWidth, rg.displayHeight, rg.swapchain.GetWidth(),
+        rg.swapchain.GetHeight() );
     rg.displayWidth  = rg.swapchain.GetWidth();
     rg.displayHeight = rg.swapchain.GetHeight();
     s_taskGraph.Free();
     Init_TaskGraph();
-    LOG( "Resizing swapchain. Old size (%u x %u), new (%u x %u)", oldDW, oldDH, rg.displayWidth, rg.displayHeight );
 
     eg.resizeRequested = false;
 }
@@ -196,6 +194,7 @@ void Render()
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
 
     TGExecuteData tgData;
+    tgData.scene     = GetPrimaryScene();
     tgData.frameData = &frameData;
     tgData.cmdBuf    = &cmdBuf;
     s_taskGraph.Execute( tgData );

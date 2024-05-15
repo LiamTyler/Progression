@@ -176,7 +176,7 @@ bool PModel::Load( const std::string& filename )
             LOG_WARN( "Not every vertex in mesh %s specified the expected vertex colors!", mesh.name.c_str() );
         if ( meshNumTangents && meshNumTangents != mesh.vertices.size() )
             LOG_WARN( "Only some, but not all of the vertices in mesh %s specified tangents!", mesh.name.c_str() );
-        if ( meshNumBitangents != mesh.vertices.size() )
+        if ( meshNumBitangents && meshNumBitangents != mesh.vertices.size() )
             LOG_WARN( "Only some, but not all of the vertices in mesh %s specified bitangents!", mesh.name.c_str() );
 
         mesh.hasTangents = meshNumTangents > 0 && meshNumBitangents > 0;

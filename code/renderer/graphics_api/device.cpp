@@ -61,7 +61,6 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
 {
     VkCommandBufferSubmitInfo cmdBufInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
     cmdBufInfo.commandBuffer = cmdBuf;
-    cmdBufInfo.deviceMask    = 0;
 
     VkSubmitInfo2 info = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
 
@@ -88,10 +87,7 @@ CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, std::string_vi
     poolInfo.queueFamilyIndex        = m_queue.familyIndex;
 
     CommandPool cmdPool;
-    if ( vkCreateCommandPool( m_handle, &poolInfo, nullptr, &cmdPool.m_handle ) != VK_SUCCESS )
-    {
-        cmdPool.m_handle = VK_NULL_HANDLE;
-    }
+    VK_CHECK( vkCreateCommandPool( m_handle, &poolInfo, nullptr, &cmdPool.m_handle ) );
     PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( cmdPool, name );
 
     return cmdPool;
@@ -147,7 +143,6 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
 
 Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view name ) const
 {
-
     VkBufferCreateInfo vkBufInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
     vkBufInfo.usage       = PGToVulkanBufferType( createInfo.bufferUsage );
     vkBufInfo.size        = createInfo.size;
@@ -176,41 +171,17 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
     return buffer;
 }
 
-// Buffer Device::NewBuffer( size_t length, void* data, BufferUsage type, MemoryType memoryType, std::string_view name ) const
-//{
-//     Buffer dstBuffer;
-//     type |= BUFFER_TYPE_TRANSFER_SRC | BUFFER_TYPE_TRANSFER_DST;
-//
-//     if ( memoryType & MEMORY_TYPE_DEVICE_LOCAL )
-//     {
-//         Buffer stagingBuffer =
-//             NewBuffer( length, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT, "staging" );
-//         stagingBuffer.Map();
-//         memcpy( stagingBuffer.MappedPtr(), data, length );
-//         stagingBuffer.UnMap();
-//
-//         dstBuffer = NewBuffer( length, type, memoryType, name );
-//         Copy( dstBuffer, stagingBuffer );
-//         stagingBuffer.Free();
-//     }
-//     else if ( memoryType & MEMORY_TYPE_HOST_VISIBLE )
-//     {
-//         dstBuffer = NewBuffer( length, type, memoryType, name );
-//         dstBuffer.Map();
-//         memcpy( dstBuffer.MappedPtr(), data, length );
-//         if ( ( memoryType & MEMORY_TYPE_HOST_COHERENT ) == 0 )
-//         {
-//             dstBuffer.FlushCpuWrites();
-//         }
-//         dstBuffer.UnMap();
-//     }
-//     else
-//     {
-//         PG_ASSERT( false, "Unknown MemoryType passed into NewBuffer. Not copying data into buffer" );
-//     }
-//
-//     return dstBuffer;
-// }
+Buffer Device::NewStagingBuffer( size_t size ) const
+{
+    BufferCreateInfo info{};
+    info.size        = size;
+    info.bufferUsage = BufferUsage::TRANSFER_SRC;
+    info.memoryUsage = VMA_MEMORY_USAGE_AUTO;
+    info.flags       = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    Buffer buf       = NewBuffer( info, "staging" );
+    PG_ASSERT( buf.m_persistent && buf.m_coherent, "staging buffers assumed host visible + mapped, without any need for flush commands" );
+    return buf;
+}
 
 Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name ) const
 {
@@ -240,11 +211,21 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     allocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VK_CHECK( vmaCreateImage( m_vmaAllocator, &imageInfo, &allocInfo, &tex.m_image, &tex.m_allocation, nullptr ) );
 
-    VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-    if ( isDepth )
+    TextureManager::Usage tmUsage = TextureManager::Usage::NONE;
+    VkFormatFeatureFlags features = 0;
+    if ( desc.usage & VK_IMAGE_USAGE_SAMPLED_BIT )
     {
-        features |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
+        tmUsage |= TextureManager::Usage::READ;
     }
+    if ( desc.usage & VK_IMAGE_USAGE_STORAGE_BIT )
+    {
+        features |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
+        tmUsage |= TextureManager::Usage::WRITE;
+    }
+    if ( isDepth )
+        features |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
+
     VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
     PG_ASSERT( FormatSupported( vkFormat, features ) );
     tex.m_imageView = CreateImageView(
@@ -252,34 +233,76 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     PG_DEBUG_MARKER_SET_IMAGE_NAME( tex.m_image, name );
     PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name );
 
-    tex.m_bindlessArrayIndex = TextureManager::AddTexture( tex.m_imageView );
+    tex.m_bindlessArrayIndex = TextureManager::AddTexture( tex.m_imageView, tmUsage );
 
     return tex;
 }
 
-Texture Device::NewTextureFromBuffer( TextureCreateInfo& desc, void* data, std::string_view name ) const
+Texture Device::NewTextureWithData( TextureCreateInfo& desc, void* data, std::string_view name ) const
 {
-    // desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-    // Texture tex          = NewTexture( desc, name );
-    // size_t imSize        = desc.TotalSizeInBytes();
-    // Buffer stagingBuffer = NewBuffer( imSize, BUFFER_TYPE_TRANSFER_SRC, MEMORY_TYPE_HOST_VISIBLE | MEMORY_TYPE_HOST_COHERENT );
-    // stagingBuffer.Map();
-    // memcpy( stagingBuffer.MappedPtr(), data, imSize );
-    // stagingBuffer.UnMap();
-    //
-    // VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
-    // PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
-    //
-    // TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //     tex.GetMipLevels(), tex.GetArrayLayers() );
-    // CopyBufferToImage( stagingBuffer, tex );
-    // TransitionImageLayoutImmediate( tex.GetImage(), vkFormat, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //     VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL, tex.GetMipLevels(), tex.GetArrayLayers() );
-    //
-    // stagingBuffer.Free();
-    //
-    // return tex;
-    return {};
+    desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    Texture tex          = NewTexture( desc, name );
+    size_t imSize        = desc.TotalSizeInBytes();
+    Buffer stagingBuffer = NewStagingBuffer( imSize );
+    memcpy( stagingBuffer.GetMappedPtr(), data, imSize );
+
+    VkFormat vkFormat = PGToVulkanPixelFormat( desc.format );
+    PG_ASSERT( FormatSupported( vkFormat, VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT ) );
+
+    rg.ImmediateSubmit(
+        [&]( CommandBuffer& cmdBuf )
+        {
+            cmdBuf.TransitionImageLayout( tex.GetImage(), ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST );
+
+            std::vector<VkBufferImageCopy> bufferCopyRegions;
+            uint32_t offset = 0;
+
+            uint32_t numMips = tex.GetMipLevels();
+            uint32_t width   = tex.GetWidth();
+            uint32_t height  = tex.GetHeight();
+            for ( uint32_t mip = 0; mip < numMips; ++mip )
+            {
+                for ( uint32_t face = 0; face < tex.GetArrayLayers(); ++face )
+                {
+                    VkBufferImageCopy region               = {};
+                    region.bufferOffset                    = offset;
+                    region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+                    region.imageSubresource.mipLevel       = mip;
+                    region.imageSubresource.baseArrayLayer = face;
+                    region.imageSubresource.layerCount     = 1;
+                    region.imageExtent.width               = width;
+                    region.imageExtent.height              = height;
+                    region.imageExtent.depth               = 1;
+
+                    bufferCopyRegions.push_back( region );
+                    uint32_t size = NumBytesPerPixel( tex.GetPixelFormat() );
+                    if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
+                    {
+                        uint32_t roundedWidth  = ( width + 3 ) & ~3u;
+                        uint32_t roundedHeight = ( height + 3 ) & ~3u;
+                        uint32_t numBlocksX    = roundedWidth / 4;
+                        uint32_t numBlocksY    = roundedHeight / 4;
+                        size *= numBlocksX * numBlocksY;
+                    }
+                    else
+                    {
+                        size *= width * height;
+                    }
+                    offset += size;
+                }
+                width  = Max( width >> 1, 1u );
+                height = Max( height >> 1, 1u );
+            }
+
+            vkCmdCopyBufferToImage( cmdBuf, stagingBuffer, tex.GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                static_cast<uint32_t>( bufferCopyRegions.size() ), bufferCopyRegions.data() );
+
+            cmdBuf.TransitionImageLayout( tex.GetImage(), ImageLayout::TRANSFER_DST, ImageLayout::SHADER_READ_ONLY );
+        } );
+
+    stagingBuffer.Free();
+
+    return tex;
 }
 
 Sampler Device::NewSampler( const SamplerCreateInfo& desc ) const
@@ -356,79 +379,7 @@ Pipeline Device::NewComputePipeline( Shader* shader, std::string_view name ) con
     // return pipeline;
 }
 
-void Device::Copy( Buffer dst, Buffer src ) const
-{
-    // CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time copy buffer -> buffer" );
-    //
-    // cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    // cmdBuf.CopyBuffer( dst, src );
-    // cmdBuf.EndRecording();
-    //
-    // Submit( cmdBuf );
-    // WaitForIdle(); // TODO: use barrier
-    //
-    // cmdBuf.Free();
-}
-
-void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips ) const
-{
-    // PG_ASSERT( tex.GetDepth() == 1 );
-    // CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time CopyBufferToImage" );
-    // cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    //
-    // std::vector<VkBufferImageCopy> bufferCopyRegions;
-    // uint32_t offset = 0;
-    //
-    // uint32_t numMips = tex.GetMipLevels();
-    // if ( !copyAllMips )
-    //{
-    //     numMips = 1;
-    // }
-    //
-    // uint32_t width  = tex.GetWidth();
-    // uint32_t height = tex.GetHeight();
-    // for ( uint32_t mip = 0; mip < numMips; ++mip )
-    //{
-    //     for ( uint32_t face = 0; face < tex.GetArrayLayers(); ++face )
-    //     {
-    //         VkBufferImageCopy region               = {};
-    //         region.bufferOffset                    = offset;
-    //         region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-    //         region.imageSubresource.mipLevel       = mip;
-    //         region.imageSubresource.baseArrayLayer = face;
-    //         region.imageSubresource.layerCount     = 1;
-    //         region.imageExtent.width               = width;
-    //         region.imageExtent.height              = height;
-    //         region.imageExtent.depth               = 1;
-    //
-    //         bufferCopyRegions.push_back( region );
-    //         uint32_t size = NumBytesPerPixel( tex.GetPixelFormat() );
-    //         if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
-    //         {
-    //             uint32_t roundedWidth  = ( width + 3 ) & ~3u;
-    //             uint32_t roundedHeight = ( height + 3 ) & ~3u;
-    //             uint32_t numBlocksX    = roundedWidth / 4;
-    //             uint32_t numBlocksY    = roundedHeight / 4;
-    //             size *= numBlocksX * numBlocksY;
-    //         }
-    //         else
-    //         {
-    //             size *= width * height;
-    //         }
-    //         offset += size;
-    //     }
-    //     width  = Max( width >> 1, 1u );
-    //     height = Max( height >> 1, 1u );
-    // }
-    //
-    // vkCmdCopyBufferToImage( cmdBuf.GetHandle(), buffer, tex, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-    //     static_cast<uint32_t>( bufferCopyRegions.size() ), bufferCopyRegions.data() );
-    //
-    // cmdBuf.EndRecording();
-    // Submit( cmdBuf );
-    // WaitForIdle();
-    // cmdBuf.Free();
-}
+void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips ) const { PG_ASSERT( false ); }
 
 bool Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore ) const
 {

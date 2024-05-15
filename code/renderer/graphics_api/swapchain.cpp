@@ -34,7 +34,8 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
     m_imageFormat = VulkanToPGPixelFormat( vkbSwapchain.image_format );
     m_width       = vkbSwapchain.extent.width;
     m_height      = vkbSwapchain.extent.height;
-    LOG( "\tSwapchain requested size (%u x %u) actual size: (%u x %u )", width, height, m_width, m_height );
+    if ( m_width != width && m_height != height )
+        LOG_WARN( "Swapchain requested size (%u x %u) actual size: (%u x %u )", width, height, m_width, m_height );
     // PG_ASSERT( m_width == width && m_height == height, "Later textures (r_globals) are allocated assuming this" );
     m_handle     = vkbSwapchain.swapchain;
     m_images     = vkbSwapchain.get_images().value();

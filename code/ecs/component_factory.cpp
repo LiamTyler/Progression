@@ -77,7 +77,7 @@ static void ParseModelRenderer( const rapidjson::Value& value, entt::entity e, e
                 PG_ASSERT( v.IsString(), "Please provide a string of the model's name" );
                 comp.model = AssetManager::Get< Model >( v.GetString() );
                 PG_ASSERT( comp.model != nullptr, "Model with name '%s' not found", v.GetString() );
-                comp.materials = comp.model->originalMaterials;
+                //comp.materials = comp.model->originalMaterials;
             }
         },
         { "material", []( const rapidjson::Value& v, ModelRenderer& comp )

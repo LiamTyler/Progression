@@ -221,7 +221,7 @@ void RegisterLuaFunctions( lua_State* L )
     sol::usertype<Model> model_type = lua.new_usertype<Model>( "Model" );
     model_type["name"]              = &Model::name;
     model_type["meshes"]            = &Model::meshes;
-    model_type["originalMaterials"] = &Model::originalMaterials;
+    // model_type["originalMaterials"] = &Model::originalMaterials;
 
     sol::usertype<GfxImage> image_type = lua.new_usertype<GfxImage>( "GfxImage" );
     image_type["name"]                 = &GfxImage::name;

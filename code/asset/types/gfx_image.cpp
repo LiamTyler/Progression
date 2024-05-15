@@ -88,7 +88,7 @@ void GfxImage::UploadToGpu()
     desc.mipLevels   = static_cast<uint8_t>( mipLevels );
     desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    gpuTexture = rg.device.NewTextureFromBuffer( desc, pixels, name );
+    gpuTexture = rg.device.NewTextureWithData( desc, pixels, name );
     PG_ASSERT( gpuTexture );
     free( pixels );
     pixels = nullptr;

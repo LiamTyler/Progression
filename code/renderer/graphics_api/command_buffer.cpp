@@ -287,7 +287,7 @@ void CommandPool::Free()
     }
 }
 
-CommandBuffer CommandPool::NewCommandBuffer( const std::string& name )
+CommandBuffer CommandPool::NewCommandBuffer( std::string_view name )
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
     VkCommandBufferAllocateInfo allocInfo = {};

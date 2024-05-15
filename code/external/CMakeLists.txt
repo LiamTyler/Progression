@@ -237,9 +237,26 @@ set(ISOCLINE_LIBS isocline PARENT_SCOPE)
 file(GLOB tmpFiles ${EXT_DIR}/isocline/src/* ${EXT_DIR}/isocline/include/*)
 SET_LOCAL_AND_PARENT(ISOCLINE_EXT_FILES ${tmpFiles})
 
+#-------------------------------MESHOPTIMIZER--------------------------------------------
+if(MSVC)
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/meshoptimizer.lib)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/meshoptimizer ${CMAKE_BINARY_DIR}/ext/meshoptimizer Release)
+        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/meshoptimizer/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib meshoptimizer)
+    endif()
+else()
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/libmeshoptimizer.a)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/meshoptimizer ${CMAKE_BINARY_DIR}/ext/meshoptimizer Release)
+        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/meshoptimizer ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib meshoptimizer)
+    endif()
+endif()
+#set(MESHOPT_INCLUDES ${EXT_DIR}/meshoptimizer/ PARENT_SCOPE)
+set(MESHOPT_LIBS meshoptimizer PARENT_SCOPE)
+file(GLOB tmpFiles ${EXT_DIR}/meshoptimizer/src/*)
+SET_LOCAL_AND_PARENT(MESHOPT_EXT_FILES ${tmpFiles})
+
 
 
 #-----------------------------------------------------------------------------------
 # intentionally not adding VULKAN_EXT_FILES below, since it ALL_EXT_FILES is usually used with source_group(TREE, and the files are not in the project root
-set(ALL_EXT_FILES ${GLFW_EXT_FILES} ${IMAGELIB_EXT_FILES} ${PUGIXML_EXT_FILES} ${MSDFGEN_EXT_FILES} ${ISOCLINE_EXT_FILES} PARENT_SCOPE)
+set(ALL_EXT_FILES ${GLFW_EXT_FILES} ${IMAGELIB_EXT_FILES} ${PUGIXML_EXT_FILES} ${MSDFGEN_EXT_FILES} ${ISOCLINE_EXT_FILES} ${MESHOPT_EXT_FILES} PARENT_SCOPE)
 set(ALL_EXT_COMPILE_DEFS ${ASSIMP_COMPILE_DEFS} ${GLFW_COMPILE_DEFS} ${MSDFGEN_COMPILE_DEFS} PARENT_SCOPE)

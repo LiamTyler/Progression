@@ -41,7 +41,25 @@ struct R_Globals
     uint32_t displayWidth;
     uint32_t displayHeight;
 
+    CommandPool immediateCmdPool;
+    CommandBuffer immediateCmdBuffer;
+    Fence immediateFence;
+
     FrameData& GetFrameData() { return frameData[currentFrameIdx % NUM_FRAME_OVERLAP]; }
+
+    template <typename Func>
+    void ImmediateSubmit( Func func )
+    {
+        immediateFence.Reset();
+        immediateCmdBuffer.Reset();
+        immediateCmdBuffer.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+        func( immediateCmdBuffer );
+        immediateCmdBuffer.EndRecording();
+        SubmitImmediateCommandBuffer();
+    }
+
+private:
+    void SubmitImmediateCommandBuffer();
 };
 
 Viewport DisplaySizedViewport( bool vulkanFlipViewport = true );

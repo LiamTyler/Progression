@@ -13,8 +13,9 @@ struct PerFrameManagerData
 
 struct PendingAdd
 {
-    Handle slot;
     VkImageView imgView;
+    Handle slot;
+    TextureManager::Usage usage;
 };
 
 static PerFrameManagerData s_frameData[NUM_FRAME_OVERLAP];
@@ -53,16 +54,21 @@ void Init()
     static_assert( PG_INVALID_TEXTURE_INDEX == 0, "update the free slot list above if this changes" );
 
     s_pendingAdds.reserve( 128 );
+    s_scratchWrites.reserve( 2 * 128 );
+    s_scratchImgInfos.reserve( 2 * 128 );
 
     DescriptorLayoutBuilder setLayoutBuilder;
-    setLayoutBuilder.AddBinding( 0, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
+    setLayoutBuilder.AddBinding( 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES );
+    setLayoutBuilder.AddBinding( 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
     s_descriptorSetLayout = setLayoutBuilder.Build( VK_SHADER_STAGE_ALL, "bindless" );
+
 #if USING( PG_DESCRIPTOR_BUFFER )
     s_dbProps = rg.physicalDevice.GetProperties().dbProps;
     s_descriptorBuffer.Create( s_descriptorSetLayout );
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
     vector<VkDescriptorPoolSize> poolSizes = {
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES },
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES},
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES},
     };
     s_descriptorAllocator.Init( 1, poolSizes, "bindless" );
 
@@ -117,28 +123,42 @@ void Update()
         vkGetDescriptorEXT( rg.device, &descriptorInfo, descSize, dbPtr + s_descriptorBuffer.offset + pendingAdd.slot * descSize );
     }
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
-    s_scratchWrites.resize( numAdds );
-    s_scratchImgInfos.resize( numAdds );
+    s_scratchWrites.reserve( 2 * numAdds );
+    s_scratchImgInfos.reserve( 2 * numAdds );
     for ( uint32_t i = 0; i < numAdds; ++i )
     {
         const PendingAdd& pendingAdd = s_pendingAdds[i];
 
-        VkDescriptorImageInfo& imgInfo = s_scratchImgInfos[i];
-        imgInfo.sampler                = VK_NULL_HANDLE;
-        imgInfo.imageView              = pendingAdd.imgView;
-        imgInfo.imageLayout            = VK_IMAGE_LAYOUT_GENERAL;
+        if ( IsSet( pendingAdd.usage, Usage::READ ) )
+        {
+            VkDescriptorImageInfo& imgInfo = s_scratchImgInfos.emplace_back();
+            imgInfo.sampler                = VK_NULL_HANDLE;
+            imgInfo.imageView              = pendingAdd.imgView;
+            imgInfo.imageLayout            = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
-        VkWriteDescriptorSet& write = s_scratchWrites[i];
-        write.sType                 = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
-        write.pNext                 = nullptr;
-        write.dstSet                = s_descriptorSet;
-        write.dstBinding            = 0;
-        write.dstArrayElement       = pendingAdd.slot;
-        write.descriptorCount       = 1;
-        write.descriptorType        = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
-        write.pImageInfo            = &imgInfo;
-        write.pBufferInfo           = nullptr;
-        write.pTexelBufferView      = nullptr;
+            VkWriteDescriptorSet& write = s_scratchWrites.emplace_back( VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET );
+            write.dstSet                = s_descriptorSet;
+            write.dstBinding            = 0;
+            write.dstArrayElement       = pendingAdd.slot;
+            write.descriptorCount       = 1;
+            write.descriptorType        = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
+            write.pImageInfo            = &imgInfo;
+        }
+        if ( IsSet( pendingAdd.usage, Usage::WRITE ) )
+        {
+            VkDescriptorImageInfo& imgInfo = s_scratchImgInfos.emplace_back();
+            imgInfo.sampler                = VK_NULL_HANDLE;
+            imgInfo.imageView              = pendingAdd.imgView;
+            imgInfo.imageLayout            = VK_IMAGE_LAYOUT_GENERAL;
+
+            VkWriteDescriptorSet& write = s_scratchWrites.emplace_back( VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET );
+            write.dstSet                = s_descriptorSet;
+            write.dstBinding            = 1;
+            write.dstArrayElement       = pendingAdd.slot;
+            write.descriptorCount       = 1;
+            write.descriptorType        = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
+            write.pImageInfo            = &imgInfo;
+        }
     }
 
     vkUpdateDescriptorSets( rg.device, numAdds, s_scratchWrites.data(), 0, nullptr );
@@ -149,12 +169,13 @@ void Update()
     s_pendingAdds.clear();
 }
 
-Handle AddTexture( VkImageView imgView )
+Handle AddTexture( VkImageView imgView, Usage usage )
 {
+    PG_ASSERT( usage != Usage::NONE );
     PG_ASSERT( !s_freeSlots.empty(), "No more slots in the bindless array!" );
     Handle openSlot = s_freeSlots.back();
     s_freeSlots.pop_back();
-    s_pendingAdds.emplace_back( openSlot, imgView );
+    s_pendingAdds.emplace_back( imgView, openSlot, usage );
 
     return openSlot;
 }

@@ -6,6 +6,7 @@
 #include "core/time.hpp"
 #if USING( GAME )
 #include "core/input.hpp"
+#include "core/scene.hpp"
 #include "core/window.hpp"
 #include "projects/engine/remote_console_server.hpp"
 #include "renderer/render_system.hpp"
@@ -73,6 +74,7 @@ bool EngineInitialize( EngineInitInfo info )
 void EngineShutdown()
 {
 #if USING( GAME )
+    FreeAllScenes();
     RemoteConsoleServer::Shutdown();
     // UI::Shutdown();
     RenderSystem::Shutdown();

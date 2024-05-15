@@ -27,6 +27,7 @@ public:
     void Start();
     void Update();
 
+    std::string name;
     Camera camera;
     vec3 skyTint      = vec3( 1, 1, 1 );
     float skyEVAdjust = 0; // scales sky by pow( 2, skyEVAdjust )
@@ -49,10 +50,12 @@ public:
 #endif // #if USING( GPU_DATA )
 };
 
-Scene* GetPrimaryScene();
-
-void SetPrimaryScene( Scene* scene );
-
 void RegisterLuaFunctions_Scene( lua_State* L );
+
+Scene* GetPrimaryScene();
+Scene* GetScene( std::string_view name );
+void SetPrimaryScene( Scene* scene );
+void FreeScene( Scene* scene );
+void FreeAllScenes();
 
 } // namespace PG

@@ -45,18 +45,16 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
     return VK_FALSE;
 }
 
-static bool InitCommands()
+static void InitCommandObjects()
 {
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        rg.frameData[i].cmdPool = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, "frame" + std::to_string( i ) );
-        if ( !rg.frameData[i].cmdPool )
-            return false;
-
+        rg.frameData[i].cmdPool          = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, "frame" + std::to_string( i ) );
         rg.frameData[i].primaryCmdBuffer = rg.frameData[i].cmdPool.NewCommandBuffer( "primary" + std::to_string( i ) );
     }
 
-    return true;
+    rg.immediateCmdPool   = rg.device.NewCommandPool( COMMAND_POOL_TRANSIENT | COMMAND_POOL_RESET_COMMAND_BUFFER, "immediate" );
+    rg.immediateCmdBuffer = rg.immediateCmdPool.NewCommandBuffer( "immediate" );
 }
 
 static void InitSyncObjects()
@@ -68,6 +66,8 @@ static void InitSyncObjects()
         rg.frameData[i].renderingCompleteSemaphore = rg.device.NewSemaphore( "renderingCompleteSemaphore" + iStr );
         rg.frameData[i].renderingCompleteFence     = rg.device.NewFence( true, "renderingCompleteFence" + iStr );
     }
+
+    rg.immediateFence = rg.device.NewFence( false, "immediate" );
 }
 
 bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
@@ -218,9 +218,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
         rg.displayHeight = rg.swapchain.GetHeight();
     }
 
-    if ( !InitCommands() )
-        return false;
-
+    InitCommandObjects();
     InitSyncObjects();
 
     return true;
@@ -236,6 +234,8 @@ void R_Shutdown()
         frameData.renderingCompleteSemaphore.Free();
         frameData.renderingCompleteFence.Free();
     }
+    rg.immediateCmdPool.Free();
+    rg.immediateFence.Free();
 
     rg.swapchain.Free();
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );

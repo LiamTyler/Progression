@@ -23,7 +23,7 @@ static void DisplayHelp()
 {
     auto msg =
         "Usage: converter [options] [ASSET_NAME or SCENE_FILE]\n"
-        "SCENE_FILE is relative to the project's assets/ folder. Can also pass in a specific CSV instead of a regular json scene file\n"
+        "SCENE_FILE is relative to the assets/scenes/ folder. Can also pass in a specific CSV instead of a regular json scene file\n"
         "ASSET_NAME is the name of the asset to be converted. Only applies when using --single, otherwise it's always interpreted as a "
         "scene path\n"
         "Options\n"

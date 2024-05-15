@@ -78,7 +78,7 @@ public:
     CommandPool() = default;
 
     void Free();
-    CommandBuffer NewCommandBuffer( const std::string& name = "" );
+    CommandBuffer NewCommandBuffer( std::string_view name = "" );
     operator bool() const;
     operator VkCommandPool() const;
     VkCommandPool GetHandle() const;

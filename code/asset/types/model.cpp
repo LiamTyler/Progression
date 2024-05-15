@@ -8,7 +8,11 @@
 #include "shared/serializer.hpp"
 #include <cstring>
 
+#if USING( CONVERTER )
+#include "meshoptimizer/src/meshoptimizer.h"
+#endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
+#include "renderer/graphics_api/buffer.hpp"
 #include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
 
@@ -19,6 +23,7 @@ std::string GetAbsPath_ModelFilename( const std::string& filename ) { return PG_
 
 bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 {
+#if USING( CONVERTER )
     PG_ASSERT( baseInfo );
     const ModelCreateInfo* createInfo = (const ModelCreateInfo*)baseInfo;
     name                              = createInfo->name;
@@ -33,338 +38,222 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         return false;
 
     meshes.resize( pmodel.meshes.size() );
-    originalMaterials.resize( pmodel.meshes.size() );
-    uint32_t totalVerts     = 0;
-    uint32_t totalIndices   = 0;
-    bool anyMeshHasUVs      = false;
-    bool anyMeshHasTangents = false;
     for ( uint32_t meshIdx = 0; meshIdx < (uint32_t)meshes.size(); ++meshIdx )
     {
         Mesh& m                   = meshes[meshIdx];
         const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
 
-        m.name                     = pMesh.name;
-        originalMaterials[meshIdx] = AssetManager::Get<Material>( pMesh.materialName );
-        if ( !originalMaterials[meshIdx] )
+        m.name     = pMesh.name;
+        m.material = AssetManager::Get<Material>( pMesh.materialName );
+        if ( !m.material )
         {
             LOG_ERR( "No material '%s' found", pMesh.materialName.c_str() );
             return false;
         }
 
-        m.startVertex = totalVerts;
-        m.startIndex  = totalIndices;
-        m.numVertices = (uint32_t)pMesh.vertices.size();
-        m.numIndices  = (uint32_t)pMesh.indices.size();
+        constexpr size_t MAX_VERTS_PER_MESHLET = 64;
+        constexpr size_t MAX_TRIS_PER_MESHLET  = 124;
+        constexpr float CONE_WEIGHT            = 0.5f;
 
-        totalVerts += m.numVertices;
-        totalIndices += m.numIndices;
+        size_t maxMeshlets = meshopt_buildMeshletsBound( pMesh.indices.size(), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET );
+        std::vector<meshopt_Meshlet> meshlets( maxMeshlets );
+        std::vector<uint32_t> meshletVertices( maxMeshlets * MAX_VERTS_PER_MESHLET );
+        std::vector<uint8_t> meshletTriangles( maxMeshlets * MAX_TRIS_PER_MESHLET * 3 );
 
-        anyMeshHasUVs      = anyMeshHasUVs || pMesh.numUVChannels > 0;
-        anyMeshHasTangents = anyMeshHasTangents || pMesh.hasTangents;
-    }
+        size_t meshletCount = meshopt_buildMeshlets( meshlets.data(), meshletVertices.data(), meshletTriangles.data(), pMesh.indices.data(),
+            pMesh.indices.size(), &pMesh.vertices[0].pos.x, pMesh.vertices.size(), sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET,
+            MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
 
-    positions.resize( totalVerts );
-    normals.resize( totalVerts );
-    if ( anyMeshHasUVs )
-        texCoords.resize( totalVerts );
-    if ( anyMeshHasTangents )
-        tangents.resize( totalVerts ); // xyz is the tangent, w is the bitangent sign
-    indices.resize( totalIndices );
-
-    uint32_t vertOffset  = 0;
-    uint32_t indexOffset = 0;
-    for ( uint32_t meshIdx = 0; meshIdx < (uint32_t)meshes.size(); ++meshIdx )
-    {
-        const Mesh& m             = meshes[meshIdx];
-        const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
-
-        for ( uint32_t localVertIdx = 0; localVertIdx < m.numVertices; ++localVertIdx )
+        m.meshlets.resize( meshletCount );
+        uint32_t numVerts   = 0;
+        uint32_t numIndices = 0;
+        for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
-            const PModel::Vertex& v = pMesh.vertices[localVertIdx];
-            uint32_t vIdx           = vertOffset + localVertIdx;
-            positions[vIdx]         = v.pos;
-            normals[vIdx]           = v.normal;
-            if ( anyMeshHasUVs )
+            const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
+            Meshlet& pgMeshlet             = m.meshlets[meshletIdx];
+            // meshopt_optimizeMeshlet( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
+            //     meshlet.triangle_count, meshlet.vertex_count );
+
+            // meshopt_Bounds bounds =
+            //     meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
+            //         meshlet.triangle_count, &pMesh.vertices[0].pos, meshlet.vertex_count, sizeof( PNodel::Vertex ) );
+
+            PG_ASSERT( numVerts == meshlet.vertex_offset );
+            PG_ASSERT( numIndices == meshlet.triangle_offset );
+            pgMeshlet.vertexOffset  = meshlet.vertex_offset;
+            pgMeshlet.indexOffset   = meshlet.triangle_offset; // it seems like meshoptimizer always pads the offsets to be a multiple of 4
+            pgMeshlet.vertexCount   = static_cast<uint8_t>( meshlet.vertex_count );
+            pgMeshlet.triangleCount = static_cast<uint8_t>( meshlet.triangle_count );
+
+            numVerts += pgMeshlet.vertexCount;
+            numIndices += ALIGN_UP_POW_2( 3 * pgMeshlet.triangleCount, 4 );
+        }
+
+        m.positions.resize( numVerts );
+        m.normals.resize( numVerts );
+        if ( pMesh.numUVChannels > 0 )
+            m.texCoords.resize( numVerts );
+        if ( pMesh.hasTangents )
+            m.tangents.resize( numVerts );
+        m.indices.resize( numIndices );
+
+        for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
+        {
+            const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
+            const Meshlet& pgMeshlet       = m.meshlets[meshletIdx];
+            for ( uint8_t localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
             {
-                texCoords[vIdx] = pMesh.numUVChannels > 0 ? v.uvs[0] : vec2( 0 );
-                if ( createInfo->flipTexCoordsVertically )
-                    texCoords[vIdx].y = 1.0f - texCoords[vIdx].y;
-            }
-            if ( anyMeshHasTangents )
-            {
+                size_t globalMOIdx       = meshlet.vertex_offset + localVIdx;
+                size_t globalPGIdx       = pgMeshlet.vertexOffset + localVIdx;
+                const PModel::Vertex& v  = pMesh.vertices[meshletVertices[globalMOIdx]];
+                m.positions[globalPGIdx] = v.pos;
+                m.normals[globalPGIdx]   = v.normal;
+
+                if ( pMesh.numUVChannels > 0 )
+                {
+                    m.texCoords[globalPGIdx] = v.uvs[0];
+                    if ( createInfo->flipTexCoordsVertically )
+                        m.texCoords[globalPGIdx].y = 1.0f - v.uvs[0].y;
+                }
                 if ( pMesh.hasTangents )
                 {
-                    vec3 tangent   = v.tangent;
-                    vec3 bitangent = v.bitangent;
-                    vec3 tNormal   = Cross( tangent, bitangent );
-                    float bSign    = Dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
-                    vec4 packed    = vec4( tangent, bSign );
-                    tangents[vIdx] = packed;
-                }
-                else
-                {
-                    tangents[vIdx] = vec4( 0, 0, 0, 0 );
+                    vec3 tangent            = v.tangent;
+                    vec3 bitangent          = v.bitangent;
+                    vec3 tNormal            = Cross( tangent, bitangent );
+                    float bSign             = Dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
+                    vec4 packed             = vec4( tangent, bSign );
+                    m.tangents[globalPGIdx] = packed;
                 }
             }
+
+            for ( uint8_t localTriIdx = 0; localTriIdx < pgMeshlet.triangleCount; ++localTriIdx )
+            {
+                size_t globalMOIdx         = meshlet.triangle_offset + 3 * localTriIdx;
+                size_t globalPGIdx         = pgMeshlet.indexOffset + 3 * localTriIdx;
+                m.indices[globalPGIdx + 0] = meshletTriangles[globalMOIdx + 0];
+                m.indices[globalPGIdx + 1] = meshletTriangles[globalMOIdx + 1];
+                m.indices[globalPGIdx + 2] = meshletTriangles[globalMOIdx + 2];
+            }
         }
-
-        for ( uint32_t localIIdx = 0; localIIdx < m.numIndices; ++localIIdx )
-        {
-            indices[indexOffset + localIIdx] = pMesh.indices[localIIdx];
-        }
-
-        vertOffset += m.numVertices;
-        indexOffset += m.numIndices;
     }
-
-    if ( createInfo->recalculateNormals )
-    {
-        RecalculateNormals();
-    }
-    UploadToGPU();
+    PG_ASSERT( !createInfo->recalculateNormals, "Not implemented with meshlets yet" );
 
     return true;
+#else  // #if USING( CONVERTER )
+    return false;
+#endif // #else // #if USING( CONVERTER )
 }
 
 bool Model::FastfileLoad( Serializer* serializer )
 {
-    PG_ASSERT( serializer );
     serializer->Read( name );
-    serializer->Read( positions );
-    serializer->Read( normals );
-    serializer->Read( texCoords );
-    serializer->Read( tangents );
-    serializer->Read( indices );
     size_t numMeshes;
     serializer->Read( numMeshes );
     meshes.resize( numMeshes );
-    originalMaterials.resize( numMeshes );
-    for ( size_t i = 0; i < meshes.size(); ++i )
+    for ( Mesh& mesh : meshes )
     {
-        Mesh& mesh = meshes[i];
         serializer->Read( mesh.name );
         std::string matName;
         serializer->Read( matName );
-        originalMaterials[i] = AssetManager::Get<Material>( matName );
-        if ( !originalMaterials[i] )
+        mesh.material = AssetManager::Get<Material>( matName );
+        if ( !mesh.material )
         {
             LOG_ERR( "No material found with name '%s', using default material instead.", matName.c_str() );
-            originalMaterials[i] = AssetManager::Get<Material>( "default" );
+            mesh.material = AssetManager::Get<Material>( "default" );
         }
-        serializer->Read( mesh.startIndex );
-        serializer->Read( mesh.numIndices );
-        serializer->Read( mesh.startVertex );
-        serializer->Read( mesh.numVertices );
+        serializer->Read( mesh.positions );
+        serializer->Read( mesh.normals );
+        serializer->Read( mesh.texCoords );
+        serializer->Read( mesh.tangents );
+        serializer->Read( mesh.indices );
+        serializer->Read( mesh.meshlets );
     }
 
     UploadToGPU();
+    FreeCPU();
 
     return true;
 }
 
 bool Model::FastfileSave( Serializer* serializer ) const
 {
-    PG_ASSERT( serializer );
-    PG_ASSERT( meshes.size() == originalMaterials.size() );
-
     serializer->Write( name );
-    serializer->Write( positions );
-    serializer->Write( normals );
-    serializer->Write( texCoords );
-    serializer->Write( tangents );
-    serializer->Write( indices );
     serializer->Write( meshes.size() );
-    for ( size_t i = 0; i < meshes.size(); ++i )
+    for ( const Mesh& mesh : meshes )
     {
-        const Mesh& mesh = meshes[i];
         serializer->Write( mesh.name );
-        serializer->Write( originalMaterials[i]->name );
-        serializer->Write( mesh.startIndex );
-        serializer->Write( mesh.numIndices );
-        serializer->Write( mesh.startVertex );
-        serializer->Write( mesh.numVertices );
+        serializer->Write( mesh.material->name );
+        serializer->Write( mesh.positions );
+        serializer->Write( mesh.normals );
+        serializer->Write( mesh.texCoords );
+        serializer->Write( mesh.tangents );
+        serializer->Write( mesh.indices );
+        serializer->Write( mesh.meshlets );
     }
 
     return true;
 }
 
-void Model::RecalculateNormals()
-{
-    PG_ASSERT( positions.size() == normals.size() );
-    std::vector<vec3> newNormals;
-    newNormals.resize( normals.size(), vec3( 0 ) );
-    for ( const Mesh& mesh : meshes )
-    {
-        for ( uint32_t i = 0; i < mesh.numIndices; i += 3 )
-        {
-            const auto i0 = mesh.startVertex + indices[mesh.startIndex + i + 0];
-            const auto i1 = mesh.startVertex + indices[mesh.startIndex + i + 1];
-            const auto i2 = mesh.startVertex + indices[mesh.startIndex + i + 2];
-            vec3 e01      = positions[i1] - positions[i0];
-            vec3 e02      = positions[i2] - positions[i0];
-            auto N        = Cross( e01, e02 );
-            if ( Length( N ) <= 0.00001f )
-            {
-                // degenerate tri, just use the existing normals
-                newNormals[i0] += normals[i0];
-                newNormals[i1] += normals[i1];
-                newNormals[i2] += normals[i2];
-            }
-            else
-            {
-                vec3 n = Normalize( N );
-                newNormals[i0] += n;
-                newNormals[i1] += n;
-                newNormals[i2] += n;
-            }
-        }
-    }
-
-    for ( size_t i = 0; i < normals.size(); ++i )
-    {
-        normals[i] = Normalize( newNormals[i] );
-    }
-}
-
-void Model::CreateBLAS()
-{
-#if USING( PG_RTX ) && USING( GPU_DATA )
-    VkDeviceAddress vertexAddress = vertexBuffer.GetDeviceAddress();
-    VkDeviceAddress indexAddress  = indexBuffer.GetDeviceAddress();
-    uint32_t numTriangles         = static_cast<uint32_t>( ( indexBuffer.GetLength() / sizeof( uint32_t ) ) / 3 );
-
-    VkAccelerationStructureGeometryKHR accelerationStructureGeometry{ VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_KHR };
-    accelerationStructureGeometry.flags                           = VK_GEOMETRY_OPAQUE_BIT_KHR;
-    accelerationStructureGeometry.geometryType                    = VK_GEOMETRY_TYPE_TRIANGLES_KHR;
-    accelerationStructureGeometry.geometry.triangles.sType        = VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_GEOMETRY_TRIANGLES_DATA_KHR;
-    accelerationStructureGeometry.geometry.triangles.vertexFormat = VK_FORMAT_R32G32B32_SFLOAT;
-    accelerationStructureGeometry.geometry.triangles.vertexData.deviceAddress    = vertexAddress;
-    accelerationStructureGeometry.geometry.triangles.maxVertex                   = numVertices;
-    accelerationStructureGeometry.geometry.triangles.vertexStride                = sizeof( vec3 );
-    accelerationStructureGeometry.geometry.triangles.indexType                   = VK_INDEX_TYPE_UINT32;
-    accelerationStructureGeometry.geometry.triangles.indexData.deviceAddress     = indexAddress;
-    accelerationStructureGeometry.geometry.triangles.transformData.deviceAddress = 0;
-    accelerationStructureGeometry.geometry.triangles.transformData.hostAddress   = nullptr;
-
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationStructureBuildGeometryInfo{
-        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
-    accelerationStructureBuildGeometryInfo.type          = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    accelerationStructureBuildGeometryInfo.flags         = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-    accelerationStructureBuildGeometryInfo.geometryCount = 1;
-    accelerationStructureBuildGeometryInfo.pGeometries   = &accelerationStructureGeometry;
-
-    VkAccelerationStructureBuildSizesInfoKHR accelerationStructureBuildSizesInfo{
-        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_SIZES_INFO_KHR };
-    vkGetAccelerationStructureBuildSizesKHR( Gfx::rg.device, VK_ACCELERATION_STRUCTURE_BUILD_TYPE_DEVICE_KHR,
-        &accelerationStructureBuildGeometryInfo, &numTriangles, &accelerationStructureBuildSizesInfo );
-
-    using namespace Gfx;
-    blas = rg.device.NewAccelerationStructure(
-        AccelerationStructureType::BLAS, accelerationStructureBuildSizesInfo.accelerationStructureSize );
-
-    Buffer scratchBuffer = rg.device.NewBuffer(
-        accelerationStructureBuildSizesInfo.buildScratchSize, BUFFER_TYPE_STORAGE | BUFFER_TYPE_DEVICE_ADDRESS, MEMORY_TYPE_DEVICE_LOCAL );
-
-    VkAccelerationStructureBuildGeometryInfoKHR accelerationBuildGeometryInfo{
-        VK_STRUCTURE_TYPE_ACCELERATION_STRUCTURE_BUILD_GEOMETRY_INFO_KHR };
-    accelerationBuildGeometryInfo.type                      = VK_ACCELERATION_STRUCTURE_TYPE_BOTTOM_LEVEL_KHR;
-    accelerationBuildGeometryInfo.flags                     = VK_BUILD_ACCELERATION_STRUCTURE_PREFER_FAST_TRACE_BIT_KHR;
-    accelerationBuildGeometryInfo.mode                      = VK_BUILD_ACCELERATION_STRUCTURE_MODE_BUILD_KHR;
-    accelerationBuildGeometryInfo.dstAccelerationStructure  = blas;
-    accelerationBuildGeometryInfo.geometryCount             = 1;
-    accelerationBuildGeometryInfo.pGeometries               = &accelerationStructureGeometry;
-    accelerationBuildGeometryInfo.scratchData.deviceAddress = scratchBuffer.GetDeviceAddress();
-
-    VkAccelerationStructureBuildRangeInfoKHR accelerationStructureBuildRangeInfo{};
-    accelerationStructureBuildRangeInfo.primitiveCount                                          = numTriangles;
-    accelerationStructureBuildRangeInfo.primitiveOffset                                         = 0;
-    accelerationStructureBuildRangeInfo.firstVertex                                             = 0;
-    accelerationStructureBuildRangeInfo.transformOffset                                         = 0;
-    std::vector<VkAccelerationStructureBuildRangeInfoKHR*> accelerationBuildStructureRangeInfos = { &accelerationStructureBuildRangeInfo };
-
-    CommandBuffer cmdBuf = rg.commandPools[GFX_CMD_POOL_TRANSIENT].NewCommandBuffer( "One time Build AS" );
-    cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    vkCmdBuildAccelerationStructuresKHR( cmdBuf, 1, &accelerationBuildGeometryInfo, accelerationBuildStructureRangeInfos.data() );
-    cmdBuf.EndRecording();
-    rg.device.Submit( cmdBuf );
-    rg.device.WaitForIdle();
-    cmdBuf.Free();
-    scratchBuffer.Free();
-#endif // #if USING( PG_RTX ) && USING( GPU_DATA )
-}
+void Model::CreateBLAS() {}
 
 void Model::UploadToGPU()
 {
 #if USING( GPU_DATA )
-    FreeGPU();
-    numVertices = static_cast<uint32_t>( positions.size() );
-
-    PG_ASSERT( positions.size() == normals.size() );
-
-    // TODO: allow for variable-attribute meshes. For now, just allocate a zero buffer for texCoords and tangents if they are not specified
-    PG_ASSERT( tangents.empty() || positions.size() == tangents.size() );
-    PG_ASSERT( texCoords.empty() || positions.size() == texCoords.size() );
-    size_t texCoordCount = positions.size();
-    size_t tangentCount  = positions.size();
-
-    size_t totalSize = 0;
-    totalSize += positions.size() * sizeof( vec3 );
-    totalSize += normals.size() * sizeof( vec3 );
-    totalSize += texCoordCount * sizeof( vec2 );
-    totalSize += tangentCount * sizeof( vec4 );
-    if ( totalSize == 0 && indices.size() == 0 )
-    {
-        return;
-    }
-
-    gpuPositionOffset     = 0;
-    size_t offset         = 0;
-    unsigned char* tmpMem = static_cast<unsigned char*>( malloc( totalSize ) );
-    memcpy( tmpMem + offset, positions.data(), positions.size() * sizeof( vec3 ) );
-    offset += positions.size() * sizeof( vec3 );
-
-    gpuNormalOffset = offset;
-    memcpy( tmpMem + offset, normals.data(), normals.size() * sizeof( vec3 ) );
-    offset += normals.size() * sizeof( vec3 );
-
-    gpuTexCoordOffset = offset;
-    if ( texCoords.empty() )
-    {
-        memset( tmpMem + offset, 0, texCoordCount * sizeof( vec2 ) );
-    }
-    else
-    {
-        memcpy( tmpMem + offset, texCoords.data(), texCoordCount * sizeof( vec2 ) );
-    }
-    offset += texCoordCount * sizeof( vec2 );
-
-    gpuTangentOffset = offset;
-    if ( tangents.empty() )
-    {
-        memset( tmpMem + offset, 0, tangentCount * sizeof( vec4 ) );
-    }
-    else
-    {
-        memcpy( tmpMem + offset, tangents.data(), tangentCount * sizeof( vec4 ) );
-    }
-    offset += tangentCount * sizeof( vec4 );
-
     using namespace Gfx;
-    // #if USING( PG_RTX )
-    //     BufferType rayTracingType = BUFFER_TYPE_DEVICE_ADDRESS | BUFFER_TYPE_ACCELERATION_STRUCTURE_BUILD_INPUT_READ_ONLY |
-    //     BUFFER_TYPE_STORAGE;
-    // #else // #if USING( PG_RTX )
-    //     BufferType rayTracingType = BUFFER_TYPE_NONE;
-    // #endif // #else // #if USING( PG_RTX )
-    // vertexBuffer =
-    //     rg.device.NewBuffer( totalSize, tmpMem, rayTracingType | BUFFER_TYPE_VERTEX, MEMORY_TYPE_DEVICE_LOCAL, "Vertex, model: " + name
-    //     );
-    // indexBuffer = rg.device.NewBuffer( indices.size() * sizeof( uint32_t ), indices.data(), rayTracingType | BUFFER_TYPE_INDEX,
-    //     MEMORY_TYPE_DEVICE_LOCAL, "Index, model: " + name );
-    free( tmpMem );
-    CreateBLAS();
+    FreeGPU();
+    for ( Mesh& mesh : meshes )
+    {
+        mesh.numVertices       = static_cast<uint32_t>( mesh.positions.size() );
+        mesh.hasTexCoords      = !mesh.texCoords.empty();
+        mesh.hasTangents       = !mesh.tangents.empty();
+        size_t totalVertexSize = 0;
+        totalVertexSize += mesh.positions.size() * sizeof( vec3 );
+        totalVertexSize += mesh.normals.size() * sizeof( vec3 );
+        totalVertexSize += mesh.texCoords.size() * sizeof( vec2 );
+        totalVertexSize += mesh.tangents.size() * sizeof( vec4 );
+        mesh.indexOffset = totalVertexSize;
+        totalVertexSize += ALIGN_UP_POW_2( mesh.indices.size(), 4 ) * sizeof( uint8_t );
 
-    FreeCPU();
+        Gfx::Buffer stagingBuffer = rg.device.NewStagingBuffer( totalVertexSize );
+        char* stagingData         = stagingBuffer.Map();
+        memcpy( stagingData, mesh.positions.data(), mesh.positions.size() * sizeof( vec3 ) );
+        stagingData += mesh.positions.size() * sizeof( vec3 );
+        memcpy( stagingData, mesh.normals.data(), mesh.normals.size() * sizeof( vec3 ) );
+        stagingData += mesh.normals.size() * sizeof( vec3 );
+        if ( mesh.hasTexCoords )
+        {
+            memcpy( stagingData, mesh.texCoords.data(), mesh.texCoords.size() * sizeof( vec2 ) );
+            stagingData += mesh.texCoords.size() * sizeof( vec2 );
+        }
+        if ( mesh.hasTangents )
+        {
+            memcpy( stagingData, mesh.tangents.data(), mesh.tangents.size() * sizeof( vec4 ) );
+            stagingData += mesh.tangents.size() * sizeof( vec4 );
+        }
+        memcpy( stagingData, mesh.indices.data(), mesh.indices.size() * sizeof( uint8_t ) );
+
+        BufferCreateInfo vbCreateInfo{};
+        vbCreateInfo.size        = totalVertexSize;
+        vbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+        mesh.vertexBuffer        = rg.device.NewBuffer( vbCreateInfo, name + "_vb_" + mesh.name );
+        rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.vertexBuffer, stagingBuffer ); } );
+
+        size_t meshletsSize = mesh.meshlets.size() * sizeof( Meshlet );
+        if ( meshletsSize > totalVertexSize )
+        {
+            stagingBuffer.Free();
+            stagingBuffer = rg.device.NewStagingBuffer( meshletsSize );
+        }
+        stagingData = stagingBuffer.Map();
+        memcpy( stagingData, mesh.meshlets.data(), meshletsSize );
+
+        BufferCreateInfo mbCreateInfo = vbCreateInfo;
+        mbCreateInfo.size             = meshletsSize;
+        mesh.meshletBuffer            = rg.device.NewBuffer( mbCreateInfo, name + "_mb_" + mesh.name );
+        rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.meshletBuffer, stagingBuffer, meshletsSize ); } );
+
+        stagingBuffer.Free();
+    }
 #endif // #if USING( GPU_DATA )
 }
 
@@ -376,35 +265,27 @@ void Model::Free()
 
 void Model::FreeCPU()
 {
-    positions.clear();
-    positions.shrink_to_fit();
-    normals.clear();
-    normals.shrink_to_fit();
-    texCoords.clear();
-    texCoords.shrink_to_fit();
-    tangents.clear();
-    tangents.shrink_to_fit();
+    for ( Mesh& mesh : meshes )
+    {
+        mesh.meshlets  = std::vector<Meshlet>();
+        mesh.positions = std::vector<vec3>();
+        mesh.normals   = std::vector<vec3>();
+        mesh.texCoords = std::vector<vec2>();
+        mesh.tangents  = std::vector<vec4>();
+        mesh.indices   = std::vector<uint8_t>();
+    }
 }
 
 void Model::FreeGPU()
 {
 #if USING( GPU_DATA )
-    if ( vertexBuffer )
+    for ( Mesh& mesh : meshes )
     {
-        vertexBuffer.Free();
+        if ( mesh.vertexBuffer )
+            mesh.vertexBuffer.Free();
+        if ( mesh.meshletBuffer )
+            mesh.meshletBuffer.Free();
     }
-    if ( indexBuffer )
-    {
-        indexBuffer.Free();
-    }
-
-#if USING( PG_RTX )
-    if ( blas )
-    {
-        blas.Free();
-    }
-#endif // #if USING( PG_RTX )
-
 #endif // #if USING( GPU_DATA )
 }
 

@@ -8,7 +8,7 @@
 #include <string>
 #include <unordered_map>
 
-bool ParseJSONFile( const std::string& filename, rapidjson::Document& document );
+bool ParseJSONFile( std::string_view filename, rapidjson::Document& document );
 
 template <typename T>
 T ParseNumber( const rapidjson::Value& v )

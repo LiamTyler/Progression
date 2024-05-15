@@ -4,18 +4,10 @@
 #extension GL_EXT_shader_image_load_formatted : enable
 #extension GL_ARB_shader_image_size : enable
 
-//size of a workgroup for compute
 layout (local_size_x = 16, local_size_y = 16) in;
 
-#define BINDLESS 1
-
-//descriptor bindings for the pipeline
-
-#if BINDLESS
-layout( set = 0, binding = 0 ) uniform image2D images[];
-#else
-layout( set = 0, binding = 0) uniform image2D rwImage;
-#endif
+layout( set = 0, binding = 0 ) uniform readonly image2D readOnlyImages[];
+layout( set = 0, binding = 1 ) uniform image2D rwImages[];
 
 layout( push_constant ) uniform constants
 {
@@ -28,31 +20,14 @@ layout( push_constant ) uniform constants
 void main() 
 {
     ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
-    
-#if BINDLESS
-    ivec2 size = imageSize( images[PushConstants.imageIndex] );
-#else
-    ivec2 size = imageSize( rwImage );
-#endif
+    ivec2 size = imageSize( rwImages[PushConstants.imageIndex] );
     
     vec4 topColor = PushConstants.topColor;
     vec4 bottomColor = PushConstants.botColor;
     
-    if ( texelCoord.x < size.x && texelCoord.y < size.y && (texelCoord.x % 10) != 0 )
+    if ( texelCoord.x < size.x && texelCoord.y < size.y )
     {
         float blend = float(texelCoord.y)/(size.y);
-        #if BINDLESS
-            imageStore( images[PushConstants.imageIndex], texelCoord, mix( topColor, bottomColor, blend ) );
-        #else
-            imageStore( rwImage, texelCoord, mix( topColor, bottomColor, blend ) );
-        #endif
+        imageStore( rwImages[PushConstants.imageIndex], texelCoord, mix( topColor, bottomColor, blend ) );
     }
-    //else
-    //{
-    //#if BINDLESS
-    //    imageStore( images[PushConstants.imageIndex], texelCoord, vec4( 0, 1, 0, 1 ) );
-    //#else
-    //    imageStore( rwImage, texelCoord, vec4( 0, 1, 0, 1 ) );
-    //#endif
-    //}
 }

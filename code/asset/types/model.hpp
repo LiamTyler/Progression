@@ -17,13 +17,35 @@ namespace PG
 
 struct Material;
 
+struct Meshlet
+{
+    uint32_t vertexOffset;
+    uint32_t indexOffset;
+    uint32_t _pad1;
+    uint16_t _pad2;
+    uint8_t vertexCount;
+    uint8_t triangleCount;
+};
+
 struct Mesh
 {
     std::string name;
-    uint32_t startIndex  = 0;
-    uint32_t numIndices  = 0;
-    uint32_t startVertex = 0;
-    uint32_t numVertices = 0;
+    Material* material;
+    std::vector<Meshlet> meshlets;
+    std::vector<vec3> positions;
+    std::vector<vec3> normals;
+    std::vector<vec2> texCoords;
+    std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
+    std::vector<uint8_t> indices;
+
+#if USING( GPU_DATA )
+    Gfx::Buffer vertexBuffer;
+    Gfx::Buffer meshletBuffer;
+    size_t indexOffset;
+    uint32_t numVertices;
+    bool hasTexCoords;
+    bool hasTangents;
+#endif // #if USING( GPU_DATA )
 };
 
 struct ModelCreateInfo : public BaseAssetCreateInfo
@@ -41,33 +63,12 @@ struct Model : public BaseAsset
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
-    void RecalculateNormals();
     void CreateBLAS();
     void UploadToGPU();
     void FreeCPU();
     void FreeGPU();
 
-    std::vector<vec3> positions;
-    std::vector<vec3> normals;
-    std::vector<vec2> texCoords;
-    std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
-    std::vector<uint32_t> indices;
-
     std::vector<Mesh> meshes;
-    std::vector<Material*> originalMaterials;
-
-#if USING( GPU_DATA )
-    uint32_t numVertices = 0;
-    Gfx::Buffer vertexBuffer;
-    Gfx::Buffer indexBuffer;
-    size_t gpuPositionOffset;
-    size_t gpuNormalOffset;
-    size_t gpuTexCoordOffset;
-    size_t gpuTangentOffset;
-#if USING( PG_RTX )
-    Gfx::AccelerationStructure blas;
-#endif // #if USING( PG_RTX )
-#endif // #if USING( GPU_DATA )
 };
 
 } // namespace PG

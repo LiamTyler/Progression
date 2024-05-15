@@ -39,8 +39,9 @@ public:
     AccelerationStructure NewAccelerationStructure( AccelerationStructureType type, size_t size ) const;
 
     Buffer NewBuffer( const BufferCreateInfo& info, std::string_view name = "" ) const;
+    Buffer NewStagingBuffer( size_t size ) const;
     Texture NewTexture( const TextureCreateInfo& desc, std::string_view name = "" ) const;
-    Texture NewTextureFromBuffer( TextureCreateInfo& desc, void* data, std::string_view name = "" ) const;
+    Texture NewTextureWithData( TextureCreateInfo& desc, void* data, std::string_view name = "" ) const;
 
     Sampler NewSampler( const SamplerCreateInfo& desc ) const;
     Fence NewFence( bool signaled = false, std::string_view name = "" ) const;
@@ -51,7 +52,6 @@ public:
     // returns false if present failed because the swapchain needs to be recreated
     bool Present( const Swapchain& swapChain, const Semaphore& waitSemaphore ) const;
 
-    void Copy( Buffer dst, Buffer src ) const;
     void CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool copyAllMips = true ) const;
 
     operator bool() const;

@@ -16,8 +16,8 @@
     { "_BackgroundColor": [ 0,0,1 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {
-        "NameComponent": "tri",
+        "NameComponent": "dragon",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "cube", "material": "macaw" }
+        "ModelRenderer": { "model": "dragon", "material": "red" }
     }}
 ]

@@ -104,12 +104,11 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER ${ALL_E
 target_link_libraries(${PROJECT_NAME} PUBLIC debug
     OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG}
     lua lz4
-    ${FREETYPE_LIBS} ${MSDFGEN_LIBS}
+    ${FREETYPE_LIBS} ${MSDFGEN_LIBS} ${MESHOPT_LIBS}
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX
     ${VULKAN_LIBS} ${IMAGELIB_LIBS}
     lua lz4
-    ${FREETYPE_LIBS} ${MSDFGEN_LIBS}
+    ${FREETYPE_LIBS} ${MSDFGEN_LIBS} ${MESHOPT_LIBS}
 )
-message("VULKAN_LIBS = '${VULKAN_LIBS}'")
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

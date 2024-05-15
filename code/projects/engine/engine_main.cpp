@@ -26,23 +26,20 @@ int main( int argc, char* argv[] )
     if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );
-        return 1;
+        return 0;
     }
 
-    /*
 #if USING( LOAD_SCENE_DIRECTLY )
     std::string sceneName = argc > 1 ? argv[1] : "";
-    Scene* scene = Scene::Load( PG_ASSET_DIR "scenes/" + sceneName + ".json" );
+    Scene* scene          = Scene::Load( PG_ASSET_DIR "scenes/" + sceneName + ".json" );
     if ( !scene )
     {
         EngineShutdown();
-        return 1;
+        return 0;
     }
-    SetPrimaryScene( scene );
-#else // #if USING( LOAD_SCENE_DIRECTLY )
+#else  // #if USING( LOAD_SCENE_DIRECTLY )
     UI::BootMainMenu();
 #endif // #else // #if USING( LOAD_SCENE_DIRECTLY )
-    */
 
     Window* window = GetMainWindow();
     // window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
@@ -104,9 +101,6 @@ int main( int argc, char* argv[] )
 
         window->EndFrame();
     }
-    // #if USING( LOAD_SCENE_DIRECTLY )
-    //     delete scene;
-    // #endif // #if USING( LOAD_SCENE_DIRECTLY )
 
     EngineShutdown();
 

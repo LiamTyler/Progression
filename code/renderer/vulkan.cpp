@@ -211,6 +211,26 @@ VKAPI_ATTR VkResult VKAPI_CALL vkGetAccelerationStructureOpaqueCaptureDescriptor
 #endif // #if defined( VK_EXT_descriptor_buffer )
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
+DECLARE_VK_FUNC( vkCmdDrawMeshTasksIndirectCountEXT );
+DECLARE_VK_FUNC( vkCmdDrawMeshTasksIndirectEXT );
+DECLARE_VK_FUNC( vkCmdDrawMeshTasksEXT );
+
+VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksIndirectCountEXT( VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
+    VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride )
+{
+    pfn_vkCmdDrawMeshTasksIndirectCountEXT( commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride );
+}
+VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksIndirectEXT(
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride )
+{
+    pfn_vkCmdDrawMeshTasksIndirectEXT( commandBuffer, buffer, offset, drawCount, stride );
+}
+VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksEXT(
+    VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ )
+{
+    pfn_vkCmdDrawMeshTasksEXT( commandBuffer, groupCountX, groupCountY, groupCountZ );
+}
+
 namespace PG::Gfx
 {
 
@@ -263,6 +283,10 @@ void LoadVulkanExtensions( VkDevice device )
     LOAD_VK_FUNC( vkGetAccelerationStructureOpaqueCaptureDescriptorDataEXT );
 #endif // #if defined( VK_EXT_descriptor_buffer )
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
+
+    LOAD_VK_FUNC( vkCmdDrawMeshTasksIndirectCountEXT );
+    LOAD_VK_FUNC( vkCmdDrawMeshTasksIndirectEXT );
+    LOAD_VK_FUNC( vkCmdDrawMeshTasksEXT );
 }
 
 uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )

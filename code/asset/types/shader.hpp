@@ -20,6 +20,8 @@ enum class ShaderStage : uint8_t
     GEOMETRY                = 3,
     FRAGMENT                = 4,
     COMPUTE                 = 5,
+    TASK                    = 6,
+    MESH                    = 7,
 
     NUM_SHADER_STAGES
 };

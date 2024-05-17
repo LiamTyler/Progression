@@ -164,6 +164,8 @@ BEGIN_STR_TO_ENUM_MAP( ShaderStage )
     STR_TO_ENUM_VALUE( ShaderStage, GEOMETRY )
     STR_TO_ENUM_VALUE( ShaderStage, FRAGMENT )
     STR_TO_ENUM_VALUE( ShaderStage, COMPUTE )
+    STR_TO_ENUM_VALUE( ShaderStage, TASK )
+    STR_TO_ENUM_VALUE( ShaderStage, MESH )
 END_STR_TO_ENUM_MAP( ShaderStage, NUM_SHADER_STAGES )
 
 bool ShaderParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )

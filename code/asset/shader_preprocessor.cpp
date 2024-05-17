@@ -71,6 +71,8 @@ static const char* PGShaderStageToDefine( PG::ShaderStage stage )
         "IS_GEOMETRY_SHADER",
         "IS_FRAGMENT_SHADER",
         "IS_COMPUTE_SHADER",
+        "IS_TASK_SHADER",
+        "IS_MESH_SHADER",
     };
 
     int index = static_cast<int>( stage );
@@ -87,6 +89,8 @@ static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
         shaderc_geometry_shader,        // GEOMETRY
         shaderc_fragment_shader,        // FRAGMENT
         shaderc_compute_shader,         // COMPUTE
+        shaderc_task_shader,            // TASK
+        shaderc_mesh_shader,            // MESH
     };
 
     int index = static_cast<int>( stage );

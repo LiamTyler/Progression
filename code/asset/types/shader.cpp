@@ -35,8 +35,11 @@ static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
     case spv::ExecutionModel::ExecutionModelGeometry: return ShaderStage::GEOMETRY;
     case spv::ExecutionModel::ExecutionModelFragment: return ShaderStage::FRAGMENT;
     case spv::ExecutionModel::ExecutionModelGLCompute: return ShaderStage::COMPUTE;
+    case spv::ExecutionModel::ExecutionModelTaskEXT: return ShaderStage::TASK;
+    case spv::ExecutionModel::ExecutionModelMeshEXT: return ShaderStage::MESH;
     default: return ShaderStage::NUM_SHADER_STAGES;
     }
+    static_assert( Underlying( ShaderStage::NUM_SHADER_STAGES ) == 8, "update above" );
 }
 
 static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )

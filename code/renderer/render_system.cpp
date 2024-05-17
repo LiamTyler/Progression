@@ -99,6 +99,157 @@ bool Init_TaskGraph()
     return true;
 }
 
+void Init_GraphicsPipeline()
+{
+    Shader* shaders[2] =
+    {
+        AssetManager::Get<Shader>( "triMS" ),
+        AssetManager::Get<Shader>( "triPS" ),
+    };
+    VkPipelineShaderStageCreateInfo shaderStages[2];
+    uint32_t numShaderStages = 2;
+    for ( size_t i = 0; i < 2; ++i )
+    {
+        shaderStages[i]        = {};
+        shaderStages[i].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+        shaderStages[i].stage  = PGToVulkanShaderStage( shaders[i]->shaderStage );
+        shaderStages[i].module = shaders[i]->handle;
+        shaderStages[i].pName  = desc.shaders[i]->entryPoint.c_str();
+    }
+    PG_ASSERT( numShaderStages > 0 );
+
+    VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
+    pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    pipelineLayoutCreateInfo.setLayoutCount             = numSetLayouts;
+    pipelineLayoutCreateInfo.pSetLayouts                = vkLayouts;
+    pipelineLayoutCreateInfo.pushConstantRangeCount     = 0;
+    if ( layout.pushConstantRange.size > 0 )
+    {
+        pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
+        pipelineLayoutCreateInfo.pPushConstantRanges    = &layout.pushConstantRange;
+    }
+    VK_CHECK_RESULT( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &p.m_pipelineLayout ) );
+
+    uint32_t dynamicStateCount       = 2;
+    VkDynamicState vkDnamicStates[3] = { VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT };
+    if ( desc.rasterizerInfo.depthBiasEnable )
+    {
+        vkDnamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BIAS;
+    }
+    VkPipelineDynamicStateCreateInfo dynamicState = {};
+    dynamicState.sType                            = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamicState.dynamicStateCount                = dynamicStateCount;
+    dynamicState.pDynamicStates                   = vkDnamicStates;
+
+    VkPipelineViewportStateCreateInfo viewportState = {};
+    viewportState.sType                             = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewportState.viewportCount                     = 1; // don't need to give actual viewport or scissor upfront, since they're dynamic
+    viewportState.scissorCount                      = 1;
+
+    // specify topology and if primitive restart is on
+    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
+    inputAssembly.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    inputAssembly.topology                               = PGToVulkanPrimitiveType( desc.primitiveType );
+    inputAssembly.primitiveRestartEnable                 = VK_FALSE;
+
+    // rasterizer does rasterization, depth testing, face culling, and scissor test
+    VkPipelineRasterizationStateCreateInfo rasterizer = {};
+    rasterizer.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    rasterizer.depthClampEnable                       = VK_FALSE;
+    rasterizer.rasterizerDiscardEnable                = VK_FALSE;
+    rasterizer.polygonMode                            = PGToVulkanPolygonMode( desc.rasterizerInfo.polygonMode );
+    rasterizer.lineWidth                              = 1.0f; // to be higher than 1 needs the wideLines GPU feature
+    rasterizer.cullMode                               = PGToVulkanCullFace( desc.rasterizerInfo.cullFace );
+    rasterizer.frontFace                              = PGToVulkanWindingOrder( desc.rasterizerInfo.winding );
+    rasterizer.depthBiasEnable                        = desc.rasterizerInfo.depthBiasEnable;
+
+    VkPipelineMultisampleStateCreateInfo multisampling = {};
+    multisampling.sType                                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    multisampling.sampleShadingEnable                  = VK_FALSE;
+    multisampling.rasterizationSamples                 = VK_SAMPLE_COUNT_1_BIT;
+
+    bool dynamicRendering = desc.renderPass == nullptr && desc.dynamicAttachmentInfo.HasInfo();
+    uint8_t numColorAttachments =
+        dynamicRendering ? desc.dynamicAttachmentInfo.numColorAttachments : desc.renderPass->desc.numColorAttachments;
+    VkPipelineColorBlendAttachmentState colorBlendAttachment[8] = {};
+    for ( uint8_t i = 0; i < numColorAttachments; ++i )
+    {
+        colorBlendAttachment[i].colorWriteMask =
+            VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+        colorBlendAttachment[i].blendEnable         = desc.colorAttachmentInfos[i].blendingEnabled;
+        colorBlendAttachment[i].srcColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcColorBlendFactor );
+        colorBlendAttachment[i].dstColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].dstColorBlendFactor );
+        colorBlendAttachment[i].srcAlphaBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcAlphaBlendFactor );
+        colorBlendAttachment[i].dstAlphaBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].dstAlphaBlendFactor );
+        colorBlendAttachment[i].colorBlendOp        = PGToVulkanBlendEquation( desc.colorAttachmentInfos[i].colorBlendEquation );
+        colorBlendAttachment[i].alphaBlendOp        = PGToVulkanBlendEquation( desc.colorAttachmentInfos[i].alphaBlendEquation );
+    }
+
+    // blending for all attachments / global settings
+    VkPipelineColorBlendStateCreateInfo colorBlending = {};
+    colorBlending.sType                               = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    colorBlending.logicOpEnable                       = VK_FALSE;
+    colorBlending.logicOp                             = VK_LOGIC_OP_COPY;
+    colorBlending.attachmentCount                     = numColorAttachments;
+    colorBlending.pAttachments                        = colorBlendAttachment;
+
+    VkPipelineDepthStencilStateCreateInfo depthStencil = {};
+    depthStencil.sType                                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    depthStencil.depthTestEnable                       = desc.depthInfo.depthTestEnabled;
+    depthStencil.depthWriteEnable                      = desc.depthInfo.depthWriteEnabled;
+    depthStencil.depthCompareOp                        = PGToVulkanCompareFunction( desc.depthInfo.compareFunc );
+    depthStencil.depthBoundsTestEnable                 = VK_FALSE;
+    depthStencil.stencilTestEnable                     = VK_FALSE;
+
+    VkGraphicsPipelineCreateInfo pipelineInfo = {};
+    pipelineInfo.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    pipelineInfo.stageCount                   = numShaderStages;
+    pipelineInfo.pStages                      = shaderStages;
+    pipelineInfo.pVertexInputState            = &p.m_desc.vertexDescriptor.GetHandle();
+    pipelineInfo.pInputAssemblyState          = &inputAssembly;
+    pipelineInfo.pViewportState               = &viewportState;
+    pipelineInfo.pRasterizationState          = &rasterizer;
+    pipelineInfo.pMultisampleState            = &multisampling;
+    pipelineInfo.pDepthStencilState           = &depthStencil;
+    pipelineInfo.pColorBlendState             = &colorBlending;
+    pipelineInfo.pDynamicState                = &dynamicState;
+    pipelineInfo.layout                       = p.m_pipelineLayout;
+    pipelineInfo.renderPass                   = dynamicRendering ? nullptr : desc.renderPass->GetHandle();
+    pipelineInfo.subpass                      = 0;
+    pipelineInfo.basePipelineHandle           = VK_NULL_HANDLE;
+
+    VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo;
+    VkFormat dynRenderingFormats[MAX_COLOR_ATTACHMENTS];
+    if ( dynamicRendering )
+    {
+        dynRenderingCreateInfo                         = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+        dynRenderingCreateInfo.colorAttachmentCount    = desc.dynamicAttachmentInfo.numColorAttachments;
+        dynRenderingCreateInfo.pColorAttachmentFormats = &dynRenderingFormats[1];
+        for ( uint8_t i = 0; i < numColorAttachments; ++i )
+            dynRenderingFormats[1 + i] = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.colorAttachmentFormats[i] );
+
+        if ( desc.dynamicAttachmentInfo.depthAttachmentFormat != PixelFormat::INVALID )
+        {
+            VkFormat fmt                                 = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.depthAttachmentFormat );
+            dynRenderingCreateInfo.depthAttachmentFormat = fmt;
+            if ( PixelFormatHasStencil( desc.dynamicAttachmentInfo.depthAttachmentFormat ) )
+                dynRenderingCreateInfo.stencilAttachmentFormat = fmt;
+        }
+
+        pipelineInfo.pNext = &dynRenderingCreateInfo;
+    }
+
+    if ( vkCreateGraphicsPipelines( m_handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &p.m_pipeline ) != VK_SUCCESS )
+    {
+        LOG_ERR( "Failed to create graphics pipeline '%s'", name.c_str() );
+        vkDestroyPipelineLayout( m_handle, p.m_pipelineLayout, nullptr );
+        p.m_pipeline = VK_NULL_HANDLE;
+    }
+    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_PIPELINE_NAME( p, name ) );
+
+    return p;
+}
+
 bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uint32_t displayHeight, bool headless )
 {
     rg.sceneWidth    = sceneWidth;

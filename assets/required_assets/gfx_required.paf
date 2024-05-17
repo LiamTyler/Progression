@@ -1,3 +1,5 @@
 [
-    { "Shader": { "name": "gradient", "shaderStage" : "COMPUTE", "filename": "gradient.comp" } }
+    { "Shader": { "name": "gradient", "shaderStage" : "COMPUTE", "filename": "gradient.comp" } },
+	{ "Shader": { "name": "triMS", "shaderStage" : "MESH", "filename": "ms.mesh" } },
+	{ "Shader": { "name": "triPS", "shaderStage" : "FRAGMENT", "filename": "ps.frag" } }
 ]

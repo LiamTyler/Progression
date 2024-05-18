@@ -22,9 +22,16 @@ void Texture::Free()
         TextureManager::RemoveTexture( m_bindlessArrayIndex );
         m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
     }
+#if USING( DEBUG_BUILD )
     m_image      = VK_NULL_HANDLE;
     m_imageView  = VK_NULL_HANDLE;
     m_allocation = nullptr;
+    if ( debugName )
+    {
+        free( debugName );
+        debugName = nullptr;
+    }
+#endif // #if USING( DEBUG_BUILD )
 }
 
 ImageType Texture::GetType() const { return m_info.type; }

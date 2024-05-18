@@ -47,6 +47,13 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         gfxTex.m_imageView          = VK_NULL_HANDLE;
         gfxTex.m_sampler            = GetSampler( desc.sampler );
         gfxTex.m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
+#if USING( DEBUG_BUILD ) && USING( TG_DEBUG )
+        if ( !buildTex.debugName.empty() )
+        {
+            gfxTex.debugName = (char*)malloc( buildTex.debugName.length() + 1 );
+            strcpy( gfxTex.debugName, buildTex.debugName.c_str() );
+        }
+#endif // #if USING( DEBUG_BUILD ) && USING( TG_DEBUG )
 
         if ( buildTex.externalFunc )
         {
@@ -68,10 +75,9 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         info.format            = PGToVulkanPixelFormat( buildTex.format );
         info.tiling            = VK_IMAGE_TILING_OPTIMAL;
         info.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
-        info.usage =
-            VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
-        info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-        info.samples     = VK_SAMPLE_COUNT_1_BIT;
+        info.usage             = buildTex.usage;
+        info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
+        info.samples           = VK_SAMPLE_COUNT_1_BIT;
 
         VK_CHECK( vkCreateImage( rg.device, &info, nullptr, &data.img ) );
         vkGetImageMemoryRequirements( rg.device, data.img, &data.memoryReq );
@@ -90,6 +96,13 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         gfxBuffer.m_mappedPtr   = nullptr;
         gfxBuffer.m_size        = buildBuffer.size;
         gfxBuffer.m_handle      = VK_NULL_HANDLE;
+#if USING( DEBUG_BUILD ) && USING( TG_DEBUG )
+        if ( !buildBuffer.debugName.empty() )
+        {
+            gfxBuffer.debugName = (char*)malloc( buildBuffer.debugName.length() + 1 );
+            strcpy( gfxBuffer.debugName, buildBuffer.debugName.c_str() );
+        }
+#endif // #if USING( DEBUG_BUILD ) && USING( TG_DEBUG )
 
         if ( buildBuffer.externalFunc )
         {
@@ -171,7 +184,12 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         gfxTex.m_imageView =
             CreateImageView( gfxTex.m_image, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, gfxTex.GetMipLevels(), gfxTex.GetArrayLayers() );
 
-        gfxTex.m_bindlessArrayIndex = TextureManager::AddTexture( gfxTex.m_imageView );
+        TextureManager::Usage usage = TextureManager::Usage::NONE;
+        if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_SAMPLED_BIT )
+            usage |= TextureManager::Usage::READ;
+        if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_STORAGE_BIT )
+            usage |= TextureManager::Usage::WRITE;
+        gfxTex.m_bindlessArrayIndex = TextureManager::AddTexture( gfxTex.m_imageView, usage );
 
 #if USING( TG_DEBUG )
         PG_DEBUG_MARKER_SET_IMAGE_NAME( gfxTex.m_image, buildTex.debugName );
@@ -567,6 +585,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             PG_ASSERT( false, "Need to handle this new task type!" );
         }
 
+        TG_DEBUG_ONLY( task->debugName = builderTask->debugName );
         TG_STAT( m_stats.numBarriers_Buffer += (uint32_t)task->bufferBarriers.size() );
         TG_STAT( m_stats.numBarriers_Image += (uint32_t)task->imageBarriers.size() );
 
@@ -651,6 +670,22 @@ void TaskGraph::DisplayStats()
         ( preAliasMem - s.totalMemoryPostAliasing ) * toMB );
 #endif // #if USING( TG_STATS )
 }
+
+#if USING( TG_DEBUG )
+void TaskGraph::Print()
+{
+    LOG( "TaskGraph" );
+    LOG( "------------------------------------------------------------" );
+    LOG( "Tasks: %zu", m_tasks.size() );
+
+    for ( size_t taskIdx = 0; taskIdx < m_tasks.size(); ++taskIdx )
+    {
+        Task* task = m_tasks[taskIdx];
+        LOG( "  Task[%zu]: '%s'", taskIdx, task->debugName.c_str() );
+        task->Print( this );
+    }
+}
+#endif // #if USING( TG_DEBUG )
 
 void TaskGraph::Execute( TGExecuteData& data )
 {

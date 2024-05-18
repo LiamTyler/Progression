@@ -101,6 +101,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     VkPhysicalDeviceVulkan13Features features13{};
     features13.dynamicRendering = true;
     features13.synchronization2 = true;
+    features13.maintenance4     = true;
 
     VkPhysicalDeviceVulkan12Features features12{};
     features12.bufferDeviceAddress                                = true;
@@ -138,7 +139,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     mutableExt.mutableDescriptorType = true;
 
     mutableExt.pNext = features12.pNext;
-    features12.pNext = &mutableExt;
+    features12PNextChain.push_back( &mutableExt );
 #endif // #if USING( PG_MUTABLE_DESCRIPTORS )
 
 #if USING( PG_DESCRIPTOR_BUFFER )
@@ -151,6 +152,12 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.pNext          = &descriptorBufferExt;
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
+    VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT };
+    meshShaderFeatures.meshShader = true;
+    meshShaderFeatures.taskShader = true;
+    pDevSelector.add_required_extension_features( meshShaderFeatures );
+
+    pDevSelector.add_required_extension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_MESH_SHADER_EXTENSION_NAME );
     pDevSelector.set_minimum_version( 1, 3 );
     pDevSelector.require_present( !headless );

@@ -152,7 +152,7 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
     vmaAllocInfo.usage                   = createInfo.memoryUsage;
     vmaAllocInfo.flags                   = createInfo.flags;
 
-    Buffer buffer;
+    Buffer buffer        = {};
     buffer.m_size        = createInfo.size;
     buffer.m_bufferUsage = createInfo.bufferUsage;
     buffer.m_memoryUsage = createInfo.memoryUsage;
@@ -167,6 +167,14 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
     PG_ASSERT( !( buffer.m_persistent && !buffer.m_coherent ), "Persistently mapped buffers should be coherent" );
 
     buffer.m_mappedPtr = buffer.m_persistent ? allocReturnInfo.pMappedData : nullptr;
+
+#if USING( DEBUG_BUILD )
+    if ( !name.empty() )
+    {
+        buffer.debugName = (char*)malloc( name.length() + 1 );
+        strcpy( buffer.debugName, name.data() );
+    }
+#endif // #if USING( DEBUG_BUILD )
 
     return buffer;
 }
@@ -234,6 +242,14 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name );
 
     tex.m_bindlessArrayIndex = TextureManager::AddTexture( tex.m_imageView, tmUsage );
+
+#if USING( DEBUG_BUILD )
+    if ( !name.empty() )
+    {
+        tex.debugName = (char*)malloc( name.length() + 1 );
+        strcpy( tex.debugName, name.data() );
+    }
+#endif // #if USING( DEBUG_BUILD )
 
     return tex;
 }

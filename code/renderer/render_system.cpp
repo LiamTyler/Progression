@@ -8,6 +8,7 @@
 #include "r_init.hpp"
 #include "r_texture_manager.hpp"
 #include "renderer/debug_ui.hpp"
+#include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "shared/logger.hpp"
 #include "taskgraph/r_taskGraph.hpp"
 
@@ -19,9 +20,11 @@ namespace PG::RenderSystem
 
 static VkPipeline s_gradientPipeline;
 static VkPipelineLayout s_gradientPipelineLayout;
+static VkPipeline s_meshPipeline;
+static VkPipelineLayout s_meshPipelineLayout;
 static TaskGraph s_taskGraph;
 
-void NewDrawFunctionTG( ComputeTask* task, TGExecuteData* data )
+void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
@@ -58,13 +61,31 @@ void NewDrawFunctionTG( ComputeTask* task, TGExecuteData* data )
         (uint32_t)std::ceil( tex->GetHeight() / (float)shader->reflectionData.workgroupSize.y ), 1 );
 }
 
+void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
+{
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    vkCmdBindDescriptorSets(
+        cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, s_meshPipelineLayout, 0, 1, &TextureManager::GetBindlessSet(), 0, nullptr );
+
+    vkCmdBindPipeline( cmdBuf, VK_PIPELINE_BIND_POINT_GRAPHICS, s_meshPipeline );
+    cmdBuf.SetViewport( SceneSizedViewport() );
+    cmdBuf.SetScissor( SceneSizedScissor() );
+
+    vkCmdDrawMeshTasksEXT( cmdBuf, 1, 1, 1 );
+}
+
 bool Init_TaskGraph()
 {
     TaskGraphBuilder builder;
     ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
     TGBTextureRef gradientImg =
         cTask->AddTextureOutput( "gradientImg", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 1, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
-    cTask->SetFunction( NewDrawFunctionTG );
+    cTask->SetFunction( ComputeDrawFunc );
+
+    GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "mesh" );
+    mTask->AddColorAttachment( gradientImg );
+    mTask->SetFunction( MeshDrawFunc );
 
     TGBTextureRef swapImg =
         builder.RegisterExternalTexture( "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
@@ -95,14 +116,14 @@ bool Init_TaskGraph()
         LOG_ERR( "Could not compile the task graph" );
         return false;
     }
+    TG_DEBUG_ONLY( s_taskGraph.Print() );
 
     return true;
 }
 
 void Init_GraphicsPipeline()
 {
-    Shader* shaders[2] =
-    {
+    Shader* shaders[2] = {
         AssetManager::Get<Shader>( "triMS" ),
         AssetManager::Get<Shader>( "triPS" ),
     };
@@ -114,140 +135,105 @@ void Init_GraphicsPipeline()
         shaderStages[i].sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         shaderStages[i].stage  = PGToVulkanShaderStage( shaders[i]->shaderStage );
         shaderStages[i].module = shaders[i]->handle;
-        shaderStages[i].pName  = desc.shaders[i]->entryPoint.c_str();
+        shaderStages[i].pName  = "main";
     }
-    PG_ASSERT( numShaderStages > 0 );
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
     pipelineLayoutCreateInfo.sType                      = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    pipelineLayoutCreateInfo.setLayoutCount             = numSetLayouts;
-    pipelineLayoutCreateInfo.pSetLayouts                = vkLayouts;
+    pipelineLayoutCreateInfo.setLayoutCount             = 1;
+    pipelineLayoutCreateInfo.pSetLayouts                = &TextureManager::GetBindlessSetLayout();
     pipelineLayoutCreateInfo.pushConstantRangeCount     = 0;
-    if ( layout.pushConstantRange.size > 0 )
-    {
-        pipelineLayoutCreateInfo.pushConstantRangeCount = 1;
-        pipelineLayoutCreateInfo.pPushConstantRanges    = &layout.pushConstantRange;
-    }
-    VK_CHECK_RESULT( vkCreatePipelineLayout( m_handle, &pipelineLayoutCreateInfo, NULL, &p.m_pipelineLayout ) );
+    VK_CHECK( vkCreatePipelineLayout( rg.device, &pipelineLayoutCreateInfo, NULL, &s_meshPipelineLayout ) );
 
     uint32_t dynamicStateCount       = 2;
     VkDynamicState vkDnamicStates[3] = { VK_DYNAMIC_STATE_SCISSOR, VK_DYNAMIC_STATE_VIEWPORT };
-    if ( desc.rasterizerInfo.depthBiasEnable )
-    {
-        vkDnamicStates[dynamicStateCount++] = VK_DYNAMIC_STATE_DEPTH_BIAS;
-    }
-    VkPipelineDynamicStateCreateInfo dynamicState = {};
-    dynamicState.sType                            = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+
+    VkPipelineDynamicStateCreateInfo dynamicState = { VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO };
     dynamicState.dynamicStateCount                = dynamicStateCount;
     dynamicState.pDynamicStates                   = vkDnamicStates;
 
-    VkPipelineViewportStateCreateInfo viewportState = {};
-    viewportState.sType                             = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewportState.viewportCount                     = 1; // don't need to give actual viewport or scissor upfront, since they're dynamic
+    VkPipelineViewportStateCreateInfo viewportState = { VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO };
+    viewportState.viewportCount                     = 1;
     viewportState.scissorCount                      = 1;
 
-    // specify topology and if primitive restart is on
-    VkPipelineInputAssemblyStateCreateInfo inputAssembly = {};
-    inputAssembly.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    inputAssembly.topology                               = PGToVulkanPrimitiveType( desc.primitiveType );
-    inputAssembly.primitiveRestartEnable                 = VK_FALSE;
+    // VkPipelineInputAssemblyStateCreateInfo inputAssembly = { VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+    // inputAssembly.topology                               = PGToVulkanPrimitiveType( PrimitiveType::TRIANGLES );
+    // inputAssembly.primitiveRestartEnable                 = VK_FALSE;
 
-    // rasterizer does rasterization, depth testing, face culling, and scissor test
-    VkPipelineRasterizationStateCreateInfo rasterizer = {};
-    rasterizer.sType                                  = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    VkPipelineRasterizationStateCreateInfo rasterizer = { VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO };
     rasterizer.depthClampEnable                       = VK_FALSE;
     rasterizer.rasterizerDiscardEnable                = VK_FALSE;
-    rasterizer.polygonMode                            = PGToVulkanPolygonMode( desc.rasterizerInfo.polygonMode );
+    rasterizer.polygonMode                            = PGToVulkanPolygonMode( PolygonMode::FILL );
     rasterizer.lineWidth                              = 1.0f; // to be higher than 1 needs the wideLines GPU feature
-    rasterizer.cullMode                               = PGToVulkanCullFace( desc.rasterizerInfo.cullFace );
-    rasterizer.frontFace                              = PGToVulkanWindingOrder( desc.rasterizerInfo.winding );
-    rasterizer.depthBiasEnable                        = desc.rasterizerInfo.depthBiasEnable;
+    rasterizer.cullMode                               = PGToVulkanCullFace( CullFace::BACK );
+    rasterizer.frontFace                              = PGToVulkanWindingOrder( WindingOrder::COUNTER_CLOCKWISE );
+    rasterizer.depthBiasEnable                        = VK_FALSE;
 
-    VkPipelineMultisampleStateCreateInfo multisampling = {};
-    multisampling.sType                                = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    VkPipelineMultisampleStateCreateInfo multisampling = { VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO };
     multisampling.sampleShadingEnable                  = VK_FALSE;
     multisampling.rasterizationSamples                 = VK_SAMPLE_COUNT_1_BIT;
 
-    bool dynamicRendering = desc.renderPass == nullptr && desc.dynamicAttachmentInfo.HasInfo();
-    uint8_t numColorAttachments =
-        dynamicRendering ? desc.dynamicAttachmentInfo.numColorAttachments : desc.renderPass->desc.numColorAttachments;
+    uint8_t numColorAttachments                                 = 1;
     VkPipelineColorBlendAttachmentState colorBlendAttachment[8] = {};
     for ( uint8_t i = 0; i < numColorAttachments; ++i )
     {
         colorBlendAttachment[i].colorWriteMask =
             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-        colorBlendAttachment[i].blendEnable         = desc.colorAttachmentInfos[i].blendingEnabled;
-        colorBlendAttachment[i].srcColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcColorBlendFactor );
-        colorBlendAttachment[i].dstColorBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].dstColorBlendFactor );
-        colorBlendAttachment[i].srcAlphaBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].srcAlphaBlendFactor );
-        colorBlendAttachment[i].dstAlphaBlendFactor = PGToVulkanBlendFactor( desc.colorAttachmentInfos[i].dstAlphaBlendFactor );
-        colorBlendAttachment[i].colorBlendOp        = PGToVulkanBlendEquation( desc.colorAttachmentInfos[i].colorBlendEquation );
-        colorBlendAttachment[i].alphaBlendOp        = PGToVulkanBlendEquation( desc.colorAttachmentInfos[i].alphaBlendEquation );
+        colorBlendAttachment[i].blendEnable = false;
     }
 
     // blending for all attachments / global settings
-    VkPipelineColorBlendStateCreateInfo colorBlending = {};
-    colorBlending.sType                               = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    VkPipelineColorBlendStateCreateInfo colorBlending = { VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
     colorBlending.logicOpEnable                       = VK_FALSE;
     colorBlending.logicOp                             = VK_LOGIC_OP_COPY;
     colorBlending.attachmentCount                     = numColorAttachments;
     colorBlending.pAttachments                        = colorBlendAttachment;
 
-    VkPipelineDepthStencilStateCreateInfo depthStencil = {};
-    depthStencil.sType                                 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-    depthStencil.depthTestEnable                       = desc.depthInfo.depthTestEnabled;
-    depthStencil.depthWriteEnable                      = desc.depthInfo.depthWriteEnabled;
-    depthStencil.depthCompareOp                        = PGToVulkanCompareFunction( desc.depthInfo.compareFunc );
+    VkPipelineDepthStencilStateCreateInfo depthStencil = { VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
+    depthStencil.depthTestEnable                       = false;
+    depthStencil.depthWriteEnable                      = false;
+    depthStencil.depthCompareOp                        = PGToVulkanCompareFunction( CompareFunction::LEQUAL );
     depthStencil.depthBoundsTestEnable                 = VK_FALSE;
     depthStencil.stencilTestEnable                     = VK_FALSE;
 
-    VkGraphicsPipelineCreateInfo pipelineInfo = {};
-    pipelineInfo.sType                        = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+    VkGraphicsPipelineCreateInfo pipelineInfo = { VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
     pipelineInfo.stageCount                   = numShaderStages;
     pipelineInfo.pStages                      = shaderStages;
-    pipelineInfo.pVertexInputState            = &p.m_desc.vertexDescriptor.GetHandle();
-    pipelineInfo.pInputAssemblyState          = &inputAssembly;
+    pipelineInfo.pVertexInputState            = nullptr;
+    pipelineInfo.pInputAssemblyState          = nullptr;
     pipelineInfo.pViewportState               = &viewportState;
     pipelineInfo.pRasterizationState          = &rasterizer;
     pipelineInfo.pMultisampleState            = &multisampling;
     pipelineInfo.pDepthStencilState           = &depthStencil;
     pipelineInfo.pColorBlendState             = &colorBlending;
     pipelineInfo.pDynamicState                = &dynamicState;
-    pipelineInfo.layout                       = p.m_pipelineLayout;
-    pipelineInfo.renderPass                   = dynamicRendering ? nullptr : desc.renderPass->GetHandle();
-    pipelineInfo.subpass                      = 0;
-    pipelineInfo.basePipelineHandle           = VK_NULL_HANDLE;
+    pipelineInfo.layout                       = s_meshPipelineLayout;
 
-    VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo;
-    VkFormat dynRenderingFormats[MAX_COLOR_ATTACHMENTS];
-    if ( dynamicRendering )
+    VkFormat colorFmt                                       = PGToVulkanPixelFormat( PixelFormat::R16_G16_B16_A16_FLOAT );
+    VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+    dynRenderingCreateInfo.colorAttachmentCount             = 1;
+    dynRenderingCreateInfo.pColorAttachmentFormats          = &colorFmt;
+
+    // PixelFormat depthFmt = PixelFormat::INVALID;
+    // if ( desc.dynamicAttachmentInfo.depthAttachmentFormat != PixelFormat::INVALID )
+    //{
+    //     VkFormat fmt                                 = PGToVulkanPixelFormat( depthFmt );
+    //     dynRenderingCreateInfo.depthAttachmentFormat = fmt;
+    //     if ( PixelFormatHasStencil( depthFmt ) )
+    //         dynRenderingCreateInfo.stencilAttachmentFormat = fmt;
+    // }
+
+    pipelineInfo.pNext = &dynRenderingCreateInfo;
+
+    if ( vkCreateGraphicsPipelines( rg.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &s_meshPipeline ) != VK_SUCCESS )
     {
-        dynRenderingCreateInfo                         = { VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
-        dynRenderingCreateInfo.colorAttachmentCount    = desc.dynamicAttachmentInfo.numColorAttachments;
-        dynRenderingCreateInfo.pColorAttachmentFormats = &dynRenderingFormats[1];
-        for ( uint8_t i = 0; i < numColorAttachments; ++i )
-            dynRenderingFormats[1 + i] = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.colorAttachmentFormats[i] );
-
-        if ( desc.dynamicAttachmentInfo.depthAttachmentFormat != PixelFormat::INVALID )
-        {
-            VkFormat fmt                                 = PGToVulkanPixelFormat( desc.dynamicAttachmentInfo.depthAttachmentFormat );
-            dynRenderingCreateInfo.depthAttachmentFormat = fmt;
-            if ( PixelFormatHasStencil( desc.dynamicAttachmentInfo.depthAttachmentFormat ) )
-                dynRenderingCreateInfo.stencilAttachmentFormat = fmt;
-        }
-
-        pipelineInfo.pNext = &dynRenderingCreateInfo;
+        LOG_ERR( "Failed to create graphics pipeline" );
+        vkDestroyPipelineLayout( rg.device, s_meshPipelineLayout, nullptr );
+        return;
     }
 
-    if ( vkCreateGraphicsPipelines( m_handle, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &p.m_pipeline ) != VK_SUCCESS )
-    {
-        LOG_ERR( "Failed to create graphics pipeline '%s'", name.c_str() );
-        vkDestroyPipelineLayout( m_handle, p.m_pipelineLayout, nullptr );
-        p.m_pipeline = VK_NULL_HANDLE;
-    }
-    PG_DEBUG_MARKER_IF_STR_NOT_EMPTY( name, PG_DEBUG_MARKER_SET_PIPELINE_NAME( p, name ) );
-
-    return p;
+    PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( s_meshPipelineLayout, "mesh" );
+    PG_DEBUG_MARKER_SET_PIPELINE_NAME( s_meshPipeline, "mesh" );
 }
 
 bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uint32_t displayHeight, bool headless )
@@ -288,6 +274,8 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( s_gradientPipelineLayout, "gradient" );
     PG_DEBUG_MARKER_SET_PIPELINE_NAME( s_gradientPipeline, "gradient" );
 
+    Init_GraphicsPipeline();
+
     if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
         return false;
 
@@ -319,6 +307,8 @@ void Shutdown()
     rg.device.WaitForIdle();
     s_taskGraph.Free();
     UIOverlay::Shutdown();
+    vkDestroyPipelineLayout( rg.device, s_meshPipelineLayout, nullptr );
+    vkDestroyPipeline( rg.device, s_meshPipeline, nullptr );
     vkDestroyPipelineLayout( rg.device, s_gradientPipelineLayout, nullptr );
     vkDestroyPipeline( rg.device, s_gradientPipeline, nullptr );
 

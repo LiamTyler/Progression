@@ -81,7 +81,14 @@ void Buffer::Free()
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
     vmaDestroyBuffer( rg.device.GetAllocator(), m_handle, m_allocation );
+#if USING( DEBUG_BUILD )
     m_handle = VK_NULL_HANDLE;
+    if ( debugName )
+    {
+        free( debugName );
+        debugName = nullptr;
+    }
+#endif // #if USING( DEBUG_BUILD )
 }
 
 char* Buffer::Map()

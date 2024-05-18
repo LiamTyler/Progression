@@ -17,6 +17,8 @@ constexpr VkShaderStageFlagBits PGToVulkanShaderStage( ShaderStage stage )
         VK_SHADER_STAGE_GEOMETRY_BIT,                // GEOMETRY
         VK_SHADER_STAGE_FRAGMENT_BIT,                // FRAGMENT
         VK_SHADER_STAGE_COMPUTE_BIT,                 // COMPUTE
+        VK_SHADER_STAGE_TASK_BIT_EXT,                // TASK
+        VK_SHADER_STAGE_MESH_BIT_EXT,                // MESH
     };
 
     static_assert( ARRAY_COUNT( convert ) == static_cast<int>( ShaderStage::NUM_SHADER_STAGES ) );

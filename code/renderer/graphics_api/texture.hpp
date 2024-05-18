@@ -51,6 +51,7 @@ public:
     uint16_t GetBindlessArrayIndex() const;
     size_t GetTotalBytes() const;
     Sampler* GetSampler() const;
+    DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );
 
     operator bool() const;
 
@@ -61,6 +62,7 @@ private:
     VmaAllocation m_allocation    = nullptr;
     Sampler* m_sampler            = nullptr;
     uint16_t m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
+    DEBUG_BUILD_ONLY( char* debugName = nullptr );
 };
 
 enum class ImageLayout

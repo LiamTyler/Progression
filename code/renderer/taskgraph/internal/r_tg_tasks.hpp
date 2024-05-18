@@ -1,13 +1,13 @@
 #pragma once
 
 #include "r_tg_common.hpp"
-#include "renderer/graphics_api/buffer.hpp"
 #include <functional>
 
 namespace PG::Gfx
 {
 
 struct TGExecuteData;
+class TaskGraph;
 
 class Task
 {
@@ -19,6 +19,8 @@ public:
     virtual ~Task()                                    = default;
     virtual void Execute( TGExecuteData* executeData ) = 0;
     virtual void SubmitBarriers( TGExecuteData* executeData );
+
+    TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const );
 };
 
 struct BufferClearSubTask
@@ -40,6 +42,7 @@ class ComputeTask : public Task
 {
 public:
     void Execute( TGExecuteData* data ) override;
+    TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 
     std::vector<BufferClearSubTask> bufferClears;
     std::vector<TextureClearSubTask> textureClears;
@@ -60,6 +63,7 @@ class GraphicsTask : public Task
 {
 public:
     void Execute( TGExecuteData* data ) override;
+    TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 
     std::vector<VkRenderingAttachmentInfo> attachments; // all attachments. If there is a depth/stencil image, it's always in attachments[0]
     VkRenderingInfo renderingInfo;
@@ -76,6 +80,7 @@ class TransferTask : public Task
 {
 public:
     void Execute( TGExecuteData* data ) override;
+    TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 
     std::vector<TextureTransfer> textureBlits;
 };
@@ -84,6 +89,7 @@ class PresentTask : public Task
 {
 public:
     void Execute( TGExecuteData* data ) override;
+    TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 };
 
 } // namespace PG::Gfx

@@ -114,7 +114,7 @@ class TaskGraphBuilder;
 class TaskBuilder
 {
 public:
-    TaskBuilder( TaskGraphBuilder* inBuilder, TaskHandle inTaskHandle, const std::string& inName )
+    TaskBuilder( TaskGraphBuilder* inBuilder, TaskHandle inTaskHandle, std::string_view inName )
         : builder( inBuilder ), taskHandle( inTaskHandle )
 #if USING( TG_DEBUG )
           ,
@@ -133,21 +133,21 @@ public:
 class ComputeTaskBuilder : public TaskBuilder
 {
 public:
-    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
+    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::COMPUTE ), inName )
     {
     }
 
-    TGBTextureRef AddTextureOutput( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
+    TGBTextureRef AddTextureOutput( std::string_view name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
         uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
-    TGBTextureRef AddTextureOutput( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
+    TGBTextureRef AddTextureOutput( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
         uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
     void AddTextureOutput( TGBTextureRef& texture );
     void AddTextureInput( TGBTextureRef& texture );
 
     TGBBufferRef AddBufferOutput(
-        const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal );
-    TGBBufferRef AddBufferOutput( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size );
+        std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal );
+    TGBBufferRef AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size );
     void AddBufferOutput( TGBBufferRef& buffer );
     void AddBufferInput( TGBBufferRef& buffer );
 
@@ -169,14 +169,14 @@ struct TGBAttachmentInfo
 class GraphicsTaskBuilder : public TaskBuilder
 {
 public:
-    GraphicsTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
+    GraphicsTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::GRAPHICS ), inName )
     {
     }
 
-    TGBTextureRef AddColorAttachment( const std::string& name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
+    TGBTextureRef AddColorAttachment( std::string_view name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
         uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
-    TGBTextureRef AddColorAttachment( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
+    TGBTextureRef AddColorAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
         uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
     void AddColorAttachment( TGBTextureRef tex );
 
@@ -195,7 +195,7 @@ struct TGBTextureTransfer
 class TransferTaskBuilder : public TaskBuilder
 {
 public:
-    TransferTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
+    TransferTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::TRANSFER ), inName )
     {
     }
@@ -208,7 +208,7 @@ public:
 class PresentTaskBuilder : public TaskBuilder
 {
 public:
-    PresentTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, const std::string& inName )
+    PresentTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::PRESENT ), inName )
     {
     }
@@ -229,20 +229,20 @@ class TaskGraphBuilder
 public:
     TaskGraphBuilder();
     ~TaskGraphBuilder();
-    ComputeTaskBuilder* AddComputeTask( const std::string& name );
-    GraphicsTaskBuilder* AddGraphicsTask( const std::string& name );
-    TransferTaskBuilder* AddTransferTask( const std::string& name );
+    ComputeTaskBuilder* AddComputeTask( std::string_view name );
+    GraphicsTaskBuilder* AddGraphicsTask( std::string_view name );
+    TransferTaskBuilder* AddTransferTask( std::string_view name );
     PresentTaskBuilder* AddPresentTask();
 
-    TGBTextureRef RegisterExternalTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
+    TGBTextureRef RegisterExternalTexture( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
         uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
     TGBBufferRef RegisterExternalBuffer(
-        const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
+        std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
 private:
-    TGBTextureRef AddTexture( const std::string& name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
+    TGBTextureRef AddTexture( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
         uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func, VkImageUsageFlags usage );
-    TGBBufferRef AddBuffer( const std::string& name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
+    TGBBufferRef AddBuffer( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
     std::vector<TaskBuilder*> tasks;
     std::vector<TGBTexture> textures;

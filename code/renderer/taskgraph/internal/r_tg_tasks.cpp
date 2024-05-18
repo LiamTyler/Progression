@@ -144,4 +144,203 @@ void TransferTask::Execute( TGExecuteData* data )
 
 void PresentTask::Execute( TGExecuteData* data ) { SubmitBarriers( data ); }
 
+#if USING( TG_DEBUG )
+template <uint32_t N>
+constexpr uint32_t StrLen( char const ( & )[N] )
+{
+    return N - 1;
+}
+
+static const char* ImgLayoutToString( VkImageLayout layout )
+{
+    // ex: VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> COLOR_ATTACHMENT_OPTIMAL
+    constexpr uint32_t L = StrLen( "VK_IMAGE_LAYOUT_" );
+    return string_VkImageLayout( layout ) + L;
+}
+
+static const char* PipelineStageFlagsToString( VkPipelineStageFlags2 stage )
+{
+    if ( stage == VK_PIPELINE_STAGE_2_NONE )
+        return "NONE";
+
+    // ex: VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT -> ALL_TRANSFER_BIT
+    constexpr uint32_t L = StrLen( "VK_PIPELINE_STAGE_2_" );
+    return string_VkPipelineStageFlags2( stage ).c_str() + L;
+}
+
+// todo: work with or-ed flags |
+static const char* AccessFlagsToString( VkAccessFlags2 flags )
+{
+    if ( flags == VK_ACCESS_2_NONE )
+        return "NONE";
+
+    // ex: VK_ACCESS_2_SHADER_WRITE_BIT -> SHADER_WRITE_BIT
+    constexpr uint32_t L = StrLen( "VK_ACCESS_2_" );
+    return string_VkAccessFlags2( flags ).c_str() + L;
+}
+
+static const char* LoadOpToString( VkAttachmentLoadOp op )
+{
+    // ex: VK_ATTACHMENT_LOAD_OP_LOAD -> LOAD
+    constexpr uint32_t L = StrLen( "VK_ATTACHMENT_LOAD_OP_" );
+    return string_VkAttachmentLoadOp( op ) + L;
+}
+
+static const char* StoreOpToString( VkAttachmentStoreOp op )
+{
+    // ex: VK_ATTACHMENT_STORE_OP_STORE -> STORE
+    constexpr uint32_t L = StrLen( "VK_ATTACHMENT_STORE_OP_" );
+    return string_VkAttachmentStoreOp( op ) + L;
+}
+
+static void PrintImageBarrier( std::string_view indent, const VkImageMemoryBarrier2& barrier )
+{
+    LOG( "%sSRCStage:  %s", indent.data(), PipelineStageFlagsToString( barrier.srcStageMask ) );
+    LOG( "%sSRCAccess: %s", indent.data(), AccessFlagsToString( barrier.srcAccessMask ) );
+    LOG( "%sDSTStage:  %s", indent.data(), PipelineStageFlagsToString( barrier.dstStageMask ) );
+    LOG( "%sDSTAccess: %s", indent.data(), AccessFlagsToString( barrier.dstAccessMask ) );
+    LOG( "%sOldLayout: %s", indent.data(), ImgLayoutToString( barrier.oldLayout ) );
+    LOG( "%sNewLayout: %s", indent.data(), ImgLayoutToString( barrier.newLayout ) );
+}
+
+void Task::Print( TaskGraph* taskGraph ) const
+{
+    LOG( "    Buffer Barriers: %zu", bufferBarriers.size() );
+    for ( size_t i = 0; i < bufferBarriers.size(); ++i )
+    {
+        const VkBufferMemoryBarrier2& barrier = bufferBarriers[i];
+        TGResourceHandle bufHandle;
+        memcpy( &bufHandle, &barrier.buffer, sizeof( TGResourceHandle ) );
+        LOG( "      [%zu]: Buffer: %u '%s'", i, bufHandle, taskGraph->GetBuffer( bufHandle )->GetDebugName() );
+        LOG( "        SRCStage:  %s", PipelineStageFlagsToString( barrier.srcStageMask ) );
+        LOG( "        SRCAccess: %s", AccessFlagsToString( barrier.srcAccessMask ) );
+        LOG( "        DSTStage:  %s", PipelineStageFlagsToString( barrier.dstStageMask ) );
+        LOG( "        DSTAccess: %s", AccessFlagsToString( barrier.dstAccessMask ) );
+    }
+
+    LOG( "    Image Barriers: %zu", imageBarriers.size() );
+    for ( size_t i = 0; i < imageBarriers.size(); ++i )
+    {
+        const VkImageMemoryBarrier2& barrier = imageBarriers[i];
+        TGResourceHandle imgHandle;
+        memcpy( &imgHandle, &barrier.image, sizeof( TGResourceHandle ) );
+        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle )->GetDebugName() );
+        PrintImageBarrier( "        ", barrier );
+    }
+}
+
+void ComputeTask::Print( TaskGraph* taskGraph ) const
+{
+    LOG( "    Task Type: Compute" );
+    LOG( "    Pre-Clear Image Barriers: %zu", imageBarriersPreClears.size() );
+    for ( size_t i = 0; i < imageBarriersPreClears.size(); ++i )
+    {
+        const VkImageMemoryBarrier2& barrier = imageBarriersPreClears[i];
+        TGResourceHandle imgHandle;
+        memcpy( &imgHandle, &barrier.image, sizeof( TGResourceHandle ) );
+        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle )->GetDebugName() );
+        PrintImageBarrier( "        ", barrier );
+    }
+    Task::Print( taskGraph );
+
+    LOG( "    Buffer Clears: %zu", bufferClears.size() );
+    for ( size_t i = 0; i < bufferClears.size(); ++i )
+    {
+        const BufferClearSubTask& c = bufferClears[i];
+        const Buffer* buf           = taskGraph->GetBuffer( c.bufferHandle );
+        LOG( "      [%zu]: Buffer %u ('%s'), Clear Val: %u", i, c.bufferHandle, buf->GetDebugName(), c.clearVal );
+    }
+
+    LOG( "    Texture Clears: %zu", textureClears.size() );
+    for ( size_t i = 0; i < textureClears.size(); ++i )
+    {
+        const TextureClearSubTask& c = textureClears[i];
+        const Texture* tex           = taskGraph->GetTexture( c.textureHandle );
+        LOG( "      [%zu]: Texture %u ('%s'), Clear Color: %g %g %g %g", i, c.textureHandle, tex->GetDebugName(), c.clearVal.r,
+            c.clearVal.g, c.clearVal.b, c.clearVal.a );
+    }
+
+    LOG( "    Input Buffers: %zu", inputBuffers.size() );
+    for ( size_t i = 0; i < inputBuffers.size(); ++i )
+    {
+        const Buffer* buf = taskGraph->GetBuffer( inputBuffers[i] );
+        LOG( "      [%zu]: Buffer %u ('%s')", i, inputBuffers[i], buf->GetDebugName() );
+    }
+
+    LOG( "    Output Buffers: %zu", outputBuffers.size() );
+    for ( size_t i = 0; i < outputBuffers.size(); ++i )
+    {
+        const Buffer* buf = taskGraph->GetBuffer( outputBuffers[i] );
+        LOG( "      [%zu]: Buffer %u ('%s')", i, outputBuffers[i], buf->GetDebugName() );
+    }
+
+    LOG( "    Input Texture: %zu", inputTextures.size() );
+    for ( size_t i = 0; i < inputBuffers.size(); ++i )
+    {
+        const Texture* tex = taskGraph->GetTexture( inputTextures[i] );
+        LOG( "      [%zu]: Texture %u ('%s')", i, inputTextures[i], tex->GetDebugName() );
+    }
+
+    LOG( "    Output Texture: %zu", outputTextures.size() );
+    for ( size_t i = 0; i < outputTextures.size(); ++i )
+    {
+        const Texture* tex = taskGraph->GetTexture( outputTextures[i] );
+        LOG( "      [%zu]: Texture %u ('%s')", i, outputTextures[i], tex->GetDebugName() );
+    }
+}
+
+void GraphicsTask::Print( TaskGraph* taskGraph ) const
+{
+    LOG( "    Task Type: Graphics" );
+    Task::Print( taskGraph );
+    LOG( "    Num Attachments: %zu", attachments.size() );
+    for ( size_t i = 0; i < attachments.size(); ++i )
+    {
+        const VkRenderingAttachmentInfo& attach = attachments[i];
+        TGResourceHandle imgHandle;
+        memcpy( &imgHandle, &attach.imageView, sizeof( TGResourceHandle ) );
+        const Texture* tex   = taskGraph->GetTexture( imgHandle );
+        bool isDepthAttach   = PixelFormatHasDepthFormat( tex->GetPixelFormat() );
+        bool isStencilAttach = PixelFormatHasStencil( tex->GetPixelFormat() );
+        bool isColorAttach   = !isDepthAttach && !isStencilAttach;
+        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, tex->GetDebugName() );
+        LOG( "      Layout: %s", ImgLayoutToString( attach.imageLayout ) );
+        LOG( "      LoadOp:  %s", LoadOpToString( attach.loadOp ) );
+        if ( attach.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR )
+        {
+            if ( isDepthAttach )
+                LOG( "      Depth Clear Val: %g", attach.clearValue.depthStencil.depth );
+            if ( isStencilAttach )
+                LOG( "      Stencil Clear Val: %u", attach.clearValue.depthStencil.stencil );
+            if ( isColorAttach )
+            {
+                VkClearColorValue c = attach.clearValue.color;
+                LOG( "      Clear Color: %g %g %g %g", c.float32[0], c.float32[1], c.float32[2], c.float32[3] );
+            }
+        }
+        LOG( "      StoreOp: %s", StoreOpToString( attach.storeOp ) );
+    }
+}
+
+void TransferTask::Print( TaskGraph* taskGraph ) const
+{
+    LOG( "    Task Type: Transfer" );
+    Task::Print( taskGraph );
+    LOG( "    Texture Blits: %zu", textureBlits.size() );
+    for ( size_t i = 0; i < textureBlits.size(); ++i )
+    {
+        const TextureTransfer& t = textureBlits[i];
+        const Texture* src       = taskGraph->GetTexture( t.src );
+        const Texture* dst       = taskGraph->GetTexture( t.dst );
+        LOG( "      [%zu]: %u -> %u ('%s' -> '%s')", i, t.src, t.dst, src->GetDebugName(), dst->GetDebugName() );
+    }
+}
+
+void PresentTask::Print( TaskGraph* taskGraph ) const
+{
+    LOG( "    Task Type: Present" );
+    Task::Print( taskGraph );
+}
+#endif // #if USING( TG_DEBUG )
+
 } // namespace PG::Gfx

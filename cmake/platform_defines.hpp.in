@@ -1,5 +1,7 @@
 #pragma once
 
+// clang-format off
+
 /*
  * This is an AUTO GENERATED file from cmake/platform_defines.hpp.in. This will be overwritten whenever
  * cmake is run again, careful when editing.
@@ -18,8 +20,10 @@
 
 #ifdef CMAKE_DEFINE_DEBUG_BUILD
 #define DEBUG_BUILD IN_USE
+#define DEBUG_BUILD_ONLY( x ) x
 #else
 #define DEBUG_BUILD NOT_IN_USE
+#define DEBUG_BUILD_ONLY( x )
 #endif
 
 #ifdef CMAKE_DEFINE_RELEASE_BUILD
@@ -66,3 +70,5 @@
 
 #define GPU_DATA USE_IF( USING( GAME ) )
 #define GPU_STRUCTS USE_IF( USING( GAME ) || USING( CONVERTER ) )
+
+// clang-format on

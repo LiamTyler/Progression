@@ -68,6 +68,7 @@ public:
     bool Compile( TaskGraphBuilder& builder, CompileInfo& compileInfo );
     void Free();
     void DisplayStats();
+    TG_DEBUG_ONLY( void Print() );
 
     void Execute( TGExecuteData& data );
 

@@ -2,6 +2,7 @@
 #include "core/console_commands.hpp"
 #include "core/dvars.hpp"
 #include "core/window.hpp"
+#include "shared/assert.hpp"
 #include "shared/string.hpp"
 #include <cctype>
 #include <cstdio>

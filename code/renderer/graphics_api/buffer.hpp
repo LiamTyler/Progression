@@ -142,6 +142,7 @@ public:
     VkBuffer GetHandle() const { return m_handle; }
     VmaAllocation GetAllocation() const { return m_allocation; }
     char* GetMappedPtr() const { return static_cast<char*>( m_mappedPtr ); }
+    DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );
 
 private:
     size_t m_size; // in bytes
@@ -153,6 +154,8 @@ private:
     void* m_mappedPtr = nullptr;
     bool m_persistent = false;
     bool m_coherent   = false;
+
+    DEBUG_BUILD_ONLY( char* debugName = nullptr );
 };
 
 } // namespace PG::Gfx

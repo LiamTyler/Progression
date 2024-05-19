@@ -17,7 +17,6 @@ void Shutdown();
 void Render();
 
 void CreateTLAS( Scene* scene );
-::PG::Gfx::PipelineAttachmentInfo GetPipelineAttachmentInfo( const std::string& name );
 
 } // namespace RenderSystem
 } // namespace PG

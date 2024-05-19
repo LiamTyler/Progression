@@ -407,13 +407,6 @@ constexpr VkCommandPoolCreateFlags PGToVulkanCommandPoolCreateFlags( CommandPool
 
 constexpr VkImageLayout PGToVulkanImageLayout( ImageLayout op ) { return static_cast<VkImageLayout>( op ); }
 
-constexpr VkAccessFlags PGToVulkanAccessFlags( AccessFlags flags ) { return static_cast<VkAccessFlags>( flags ); }
-
-constexpr VkPipelineStageFlags PGToVulkanPipelineStageFlags( PipelineStageFlags flags )
-{
-    return static_cast<VkPipelineStageFlags>( flags );
-}
-
 constexpr VkAccelerationStructureTypeKHR PGToVulkanAccelerationStructureType( AccelerationStructureType type )
 {
     return static_cast<VkAccelerationStructureTypeKHR>( type );

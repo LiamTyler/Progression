@@ -6,7 +6,6 @@
 namespace PG::Gfx
 {
 class CommandBuffer;
-class DescriptorSet;
 } // namespace PG::Gfx
 
 namespace PG::UI
@@ -34,6 +33,6 @@ void ReloadLayoutIfInUse( UILayout* oldLayout, UILayout* newLayout );
 uint16_t AddScript( const std::string& scriptName );
 
 void Update();
-void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet* bindlessTexturesSet );
+void Render( Gfx::CommandBuffer* cmdBuf );
 
 } // namespace PG::UI

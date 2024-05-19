@@ -46,7 +46,7 @@ public:
     Sampler NewSampler( const SamplerCreateInfo& desc ) const;
     Fence NewFence( bool signaled = false, std::string_view name = "" ) const;
     Semaphore NewSemaphore( std::string_view name = "" ) const;
-    Pipeline NewGraphicsPipeline( const PipelineCreateInfo& desc, std::string_view name = "" ) const;
+    Pipeline NewGraphicsPipeline( const GraphicsPipelineCreateInfo& info, std::string_view name = "" ) const;
     Pipeline NewComputePipeline( Shader* shader, std::string_view name = "" ) const;
 
     // returns false if present failed because the swapchain needs to be recreated

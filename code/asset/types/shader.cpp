@@ -134,8 +134,8 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     PG_ASSERT( baseInfo );
     auto createInfo = (const ShaderCreateInfo*)baseInfo;
 
-    name        = createInfo->name;
-    shaderStage = createInfo->shaderStage;
+    name          = createInfo->name;
+    m_shaderStage = createInfo->shaderStage;
 
     ShaderPreprocessOutput preproc = PreprocessShader( *createInfo, false );
     if ( !preproc.success )
@@ -150,7 +150,7 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     size_t spirvSizeInBytes = 4 * spirv.size();
-    if ( !ReflectShader_ReflectSpirv( spirv.data(), spirvSizeInBytes, reflectionData ) )
+    if ( !ReflectShader_ReflectSpirv( spirv.data(), spirvSizeInBytes, m_reflectionData ) )
     {
         LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed", createInfo->name.c_str(), createInfo->filename.c_str() );
         return false;
@@ -161,12 +161,12 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     AddIncludeCacheEntry( cacheName, createInfo, preproc );
 #endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
-    handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
-    if ( handle == VK_NULL_HANDLE )
+    m_handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
+    if ( m_handle == VK_NULL_HANDLE )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( this->handle, name );
+    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, name );
 #endif // if USING( GPU_DATA )
 
     return true;
@@ -176,18 +176,18 @@ bool Shader::FastfileLoad( Serializer* serializer )
 {
     PG_ASSERT( serializer );
     serializer->Read( name );
-    serializer->Read( &reflectionData, sizeof( reflectionData ) );
-    serializer->Read( shaderStage );
+    serializer->Read( &m_reflectionData, sizeof( m_reflectionData ) );
+    serializer->Read( m_shaderStage );
     std::vector<uint32_t> spirv;
     serializer->Read( spirv );
 
 #if USING( GPU_DATA )
-    handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
-    if ( handle == VK_NULL_HANDLE )
+    m_handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
+    if ( m_handle == VK_NULL_HANDLE )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( this->handle, name );
+    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, name );
 #endif // #if USING( GPU_DATA )
 
     return true;
@@ -200,8 +200,8 @@ bool Shader::FastfileSave( Serializer* serializer ) const
     PG_ASSERT( false, "Spirv code is only kept around in Converter builds for saving" );
 #else  // #if !USING( CONVERTER )
     serializer->Write( name );
-    serializer->Write( &reflectionData, sizeof( reflectionData ) );
-    serializer->Write( shaderStage );
+    serializer->Write( &m_reflectionData, sizeof( m_reflectionData ) );
+    serializer->Write( m_shaderStage );
     serializer->Write( savedSpirv );
 #endif // #else // #if !USING( CONVERTER )
 
@@ -211,7 +211,7 @@ bool Shader::FastfileSave( Serializer* serializer ) const
 void Shader::Free()
 {
 #if USING( GPU_DATA )
-    vkDestroyShaderModule( PG::Gfx::rg.device, handle, nullptr );
+    vkDestroyShaderModule( PG::Gfx::rg.device, m_handle, nullptr );
 #endif // #if USING( GPU_DATA )
 }
 

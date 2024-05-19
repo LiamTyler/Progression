@@ -6,8 +6,6 @@
 namespace PG::Gfx
 {
 
-class DescriptorSet;
-
 enum CommandBufferUsageBits
 {
     COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT = 1 << 0,
@@ -31,19 +29,22 @@ public:
     void BeginRecording( CommandBufferUsage flags = 0 ) const;
     void EndRecording() const;
     void BindPipeline( Pipeline* pipeline );
-    void BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber ) const;
-    void BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet ) const;
+    void BindGlobalDescriptors() const;
     void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, uint32_t firstBinding = 0 ) const;
     void BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding = 0 ) const;
     void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;
-    // void PipelineBufferBarrier(
-    //     PipelineStageFlags srcStageMask, PipelineStageFlags dstStageMask, const VkBufferMemoryBarrier& barrier ) const;
     void PipelineImageBarrier2( const VkImageMemoryBarrier2& barrier ) const;
     void SetViewport( const Viewport& viewport ) const;
     void SetScissor( const Scissor& scissor ) const;
     void SetDepthBias( float constant, float clamp, float slope ) const;
 
-    void PushConstants( uint32_t offset, uint32_t size, void* data ) const;
+    void PushConstants( void* data, uint32_t size, uint32_t offset = 0 ) const;
+    template <typename T>
+    void PushConstants( const T& data, uint32_t offset = 0 ) const
+    {
+        vkCmdPushConstants(
+            m_handle, m_boundPipeline->GetLayoutHandle(), m_boundPipeline->GetPushConstantShaderStages(), offset, sizeof( T ), &data );
+    }
 
     void CopyBuffer( const Buffer& dst, const Buffer& src, size_t size = VK_WHOLE_SIZE, size_t srcOffset = 0, size_t dstOffset = 0 ) const;
     void BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, ImageLayout dstLayout, const VkImageBlit& region ) const;
@@ -55,6 +56,9 @@ public:
     void DrawIndexed(
         uint32_t firstIndex, uint32_t indexCount, int vertexOffset = 0, uint32_t firstInstance = 0, uint32_t instanceCount = 1 ) const;
     void Dispatch( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const;
+    void Dispatch_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const;
+    void DrawMeshTasks( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const;
+    void DrawMeshTasks_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const;
 
 private:
     VkCommandPool m_pool      = VK_NULL_HANDLE;

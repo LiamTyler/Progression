@@ -50,15 +50,21 @@ struct Shader : public BaseAsset
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
 
-    ShaderReflectData reflectionData;
-#if USING( GPU_DATA )
-    VkShaderModule handle = VK_NULL_HANDLE;
-#endif // #if USING( GPU_DATA )
-    ShaderStage shaderStage;
+    VkShaderModule GetHandle() const { return m_handle; }
+    const ShaderReflectData& GetReflectionData() const { return m_reflectionData; }
+    ShaderStage GetShaderStage() const { return m_shaderStage; }
+    operator VkShaderModule() const { return m_handle; }
 
 #if USING( CONVERTER )
     std::vector<uint32_t> savedSpirv;
 #endif // #if USING( CONVERTER )
+
+private:
+#if USING( GPU_DATA )
+    VkShaderModule m_handle = VK_NULL_HANDLE;
+#endif // #if USING( GPU_DATA )
+    ShaderStage m_shaderStage;
+    ShaderReflectData m_reflectionData;
 };
 
 } // namespace PG

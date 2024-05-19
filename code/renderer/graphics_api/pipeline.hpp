@@ -13,52 +13,6 @@ struct Shader;
 namespace Gfx
 {
 
-enum class AccessFlags
-{
-    INDIRECT_COMMAND_READ_BIT          = 0x00000001,
-    INDEX_READ_BIT                     = 0x00000002,
-    VERTEX_ATTRIBUTE_READ_BIT          = 0x00000004,
-    UNIFORM_READ_BIT                   = 0x00000008,
-    INPUT_ATTACHMENT_READ_BIT          = 0x00000010,
-    SHADER_READ_BIT                    = 0x00000020,
-    SHADER_WRITE_BIT                   = 0x00000040,
-    COLOR_ATTACHMENT_READ_BIT          = 0x00000080,
-    COLOR_ATTACHMENT_WRITE_BIT         = 0x00000100,
-    DEPTH_STENCIL_ATTACHMENT_READ_BIT  = 0x00000200,
-    DEPTH_STENCIL_ATTACHMENT_WRITE_BIT = 0x00000400,
-    TRANSFER_READ_BIT                  = 0x00000800,
-    TRANSFER_WRITE_BIT                 = 0x00001000,
-    HOST_READ_BIT                      = 0x00002000,
-    HOST_WRITE_BIT                     = 0x00004000,
-    MEMORY_READ_BIT                    = 0x00008000,
-    MEMORY_WRITE_BIT                   = 0x00010000,
-};
-
-enum class PipelineStageFlags
-{
-    NONE                               = 0x00000000,
-    TOP_OF_PIPE_BIT                    = 0x00000001,
-    DRAW_INDIRECT_BIT                  = 0x00000002,
-    VERTEX_INPUT_BIT                   = 0x00000004,
-    VERTEX_SHADER_BIT                  = 0x00000008,
-    TESSELLATION_CONTROL_SHADER_BIT    = 0x00000010,
-    TESSELLATION_EVALUATION_SHADER_BIT = 0x00000020,
-    GEOMETRY_SHADER_BIT                = 0x00000040,
-    FRAGMENT_SHADER_BIT                = 0x00000080,
-    EARLY_FRAGMENT_TESTS_BIT           = 0x00000100,
-    LATE_FRAGMENT_TESTS_BIT            = 0x00000200,
-    COLOR_ATTACHMENT_OUTPUT_BIT        = 0x00000400,
-    COMPUTE_SHADER_BIT                 = 0x00000800,
-    TRANSFER_BIT                       = 0x00001000,
-    BOTTOM_OF_PIPE_BIT                 = 0x00002000,
-    HOST_BIT                           = 0x00004000,
-    ALL_GRAPHICS_BIT                   = 0x00008000,
-    ALL_COMMANDS_BIT                   = 0x00010000,
-};
-PG_DEFINE_ENUM_OPS( PipelineStageFlags );
-
-PipelineStageFlags GetPipelineStageFlags( ImageLayout imageLayout );
-
 enum class CompareFunction : uint8_t
 {
     NEVER   = 0,
@@ -78,6 +32,7 @@ struct PipelineDepthInfo
     bool depthTestEnabled       = true;
     bool depthWriteEnabled      = true;
     CompareFunction compareFunc = CompareFunction::LESS;
+    PixelFormat format          = PixelFormat::INVALID;
 };
 
 enum class BlendFactor : uint8_t
@@ -108,8 +63,11 @@ enum class BlendEquation : uint8_t
     NUM_BLEND_EQUATIONS
 };
 
-struct PipelineColorAttachmentInfo
+struct alignas( 8 ) PipelineColorAttachmentInfo
 {
+    PipelineColorAttachmentInfo() = default;
+    PipelineColorAttachmentInfo( PixelFormat inFmt ) : format( inFmt ) {}
+
     BlendFactor srcColorBlendFactor  = BlendFactor::SRC_ALPHA;
     BlendFactor dstColorBlendFactor  = BlendFactor::ONE_MINUS_SRC_ALPHA;
     BlendFactor srcAlphaBlendFactor  = BlendFactor::SRC_ALPHA;
@@ -117,6 +75,7 @@ struct PipelineColorAttachmentInfo
     BlendEquation colorBlendEquation = BlendEquation::ADD;
     BlendEquation alphaBlendEquation = BlendEquation::ADD;
     bool blendingEnabled             = false;
+    PixelFormat format               = PixelFormat::INVALID;
 };
 
 enum class WindingOrder : uint8_t
@@ -192,24 +151,22 @@ enum class PrimitiveType : uint8_t
     NUM_PRIMITIVE_TYPE
 };
 
-struct PipelineAttachmentInfo
+struct GraphicsPipelineCreateInfo
 {
-    PixelFormat colorAttachmentFormats[MAX_NUM_COLOR_ATTACHMENTS];
-    uint8_t numColorAttachments       = 0;
-    PixelFormat depthAttachmentFormat = PixelFormat::INVALID;
-
-    bool HasInfo() const { return numColorAttachments > 0 || depthAttachmentFormat != PixelFormat::INVALID; }
+    std::vector<Shader*> shaders;
+    std::vector<PipelineColorAttachmentInfo> colorAttachments;
+    RasterizerInfo rasterizerInfo;
+    PipelineDepthInfo depthInfo;
+    PrimitiveType primitiveType = PrimitiveType::TRIANGLES;
 };
 
-struct PipelineCreateInfo
+enum class PipelineType : uint8_t
 {
-    std::array<Shader*, 3> shaders = {};
-    VertexInputDescriptor vertexDescriptor;
-    PipelineAttachmentInfo dynamicAttachmentInfo;
-    RasterizerInfo rasterizerInfo;
-    PrimitiveType primitiveType = PrimitiveType::TRIANGLES;
-    PipelineDepthInfo depthInfo;
-    std::array<PipelineColorAttachmentInfo, 8> colorAttachmentInfos;
+    NONE     = 0,
+    GRAPHICS = 1,
+    COMPUTE  = 2,
+
+    TOTAL
 };
 
 class Pipeline
@@ -223,16 +180,20 @@ public:
     VkPipeline GetHandle() const;
     VkPipelineLayout GetLayoutHandle() const;
     VkPipelineBindPoint GetPipelineBindPoint() const;
-    VkShaderStageFlags GetPushConstantShaderStages() const { return VK_SHADER_STAGE_ALL; }
+    VkShaderStageFlags GetPushConstantShaderStages() const;
+    PipelineType GetPipelineType() const;
+    uvec3 GetWorkgroupSize() const;
 
     operator bool() const;
     operator VkPipeline() const;
 
 private:
-    PipelineCreateInfo m_info;
     VkPipeline m_pipeline             = VK_NULL_HANDLE;
     VkPipelineLayout m_pipelineLayout = VK_NULL_HANDLE;
-    bool m_isCompute                  = false;
+    VkPipelineBindPoint m_bindPoint;
+    VkShaderStageFlags m_stageFlags = VK_SHADER_STAGE_ALL;
+    PipelineType m_pipelineType;
+    uvec3 m_workgroupSize;
 };
 
 } // namespace Gfx

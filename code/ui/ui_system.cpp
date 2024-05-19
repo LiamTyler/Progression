@@ -675,14 +675,15 @@ static GpuData::UIElementData GetGpuDataFromUIElement( const UIElement& e )
 
 static uint32_t GetPipelineForUIElement( const UIElement& element ) { return Underlying( element.blendMode ); }
 
-void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet* bindlessTexturesSet )
+void Render( Gfx::CommandBuffer* cmdBuf )
 {
     using namespace Gfx;
     cmdBuf->SetViewport( DisplaySizedViewport( false ) );
     cmdBuf->SetScissor( DisplaySizedScissor() );
     cmdBuf->BindPipeline( &s_uiPipelines[PIPELINE_OPAQUE] );
     uint32_t lastPipelineIndex = PIPELINE_OPAQUE;
-    cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_DESCRIPTOR_SET );
+    // cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_DESCRIPTOR_SET );
+    PG_ASSERT( false, "todo" );
 
     IterateAllElementsInOrder(
         [&]( const UIElement& e )
@@ -694,7 +695,7 @@ void Render( Gfx::CommandBuffer* cmdBuf, Gfx::DescriptorSet* bindlessTexturesSet
                 cmdBuf->BindPipeline( &s_uiPipelines[pipelineIdx] );
             }
             GpuData::UIElementData gpuData = GetGpuDataFromUIElement( e );
-            cmdBuf->PushConstants( 0, sizeof( GpuData::UIElementData ), &gpuData );
+            cmdBuf->PushConstants( gpuData );
             cmdBuf->Draw( 0, 6 );
         } );
 }

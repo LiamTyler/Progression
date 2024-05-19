@@ -2,6 +2,7 @@
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
+#include "renderer/r_texture_manager.hpp"
 #include "shared/assert.hpp"
 
 namespace PG::Gfx
@@ -38,16 +39,23 @@ void CommandBuffer::BindPipeline( Pipeline* pipeline )
     m_boundPipeline = pipeline;
 }
 
-void CommandBuffer::BindDescriptorSet( const DescriptorSet& set, uint32_t setNumber ) const
+void CommandBuffer::BindGlobalDescriptors() const
 {
-    vkCmdBindDescriptorSets( m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), setNumber, 1,
-        (VkDescriptorSet*)&set, 0, nullptr );
-}
+#if USING( PG_DESCRIPTOR_BUFFER )
+    VkDescriptorBufferBindingInfoEXT pBindingInfos{};
+    pBindingInfos.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
+    pBindingInfos.address = TextureManager::GetBindlessDescriptorBuffer().buffer.GetDeviceAddress();
+    pBindingInfos.usage   = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
+    vkCmdBindDescriptorBuffersEXT( m_handle, 1, &pBindingInfos );
 
-void CommandBuffer::BindDescriptorSets( uint32_t numSets, DescriptorSet* sets, uint32_t firstSet ) const
-{
-    vkCmdBindDescriptorSets( m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), firstSet, numSets,
-        (VkDescriptorSet*)sets, 0, nullptr );
+    uint32_t bufferIndex      = 0; // index into pBindingInfos for vkCmdBindDescriptorBuffersEXT?
+    VkDeviceSize bufferOffset = 0;
+    vkCmdSetDescriptorBufferOffsetsEXT(
+        m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), 0, 1, &bufferIndex, &bufferOffset );
+#else  // #if USING( PG_DESCRIPTOR_BUFFER )
+    vkCmdBindDescriptorSets( m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), 0, 1,
+        &TextureManager::GetBindlessSet(), 0, nullptr );
+#endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 }
 
 void CommandBuffer::BindVertexBuffer( const Buffer& buffer, size_t offset, uint32_t firstBinding ) const
@@ -108,7 +116,7 @@ void CommandBuffer::SetDepthBias( float constant, float clamp, float slope ) con
     vkCmdSetDepthBias( m_handle, constant, clamp, slope );
 }
 
-void CommandBuffer::PushConstants( uint32_t offset, uint32_t size, void* data ) const
+void CommandBuffer::PushConstants( void* data, uint32_t size, uint32_t offset ) const
 {
     vkCmdPushConstants( m_handle, m_boundPipeline->GetLayoutHandle(), m_boundPipeline->GetPushConstantShaderStages(), offset, size, data );
 }
@@ -275,7 +283,34 @@ void CommandBuffer::DrawIndexed(
 
 void CommandBuffer::Dispatch( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const
 {
+    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
     vkCmdDispatch( m_handle, groupsX, groupsY, groupsZ );
+}
+
+void CommandBuffer::Dispatch_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const
+{
+    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
+    uvec3 gSize      = m_boundPipeline->GetWorkgroupSize();
+    uint32_t groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
+    uint32_t groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
+    uint32_t groupsZ = ( itemsZ + gSize.z - 1 ) / gSize.z;
+    vkCmdDispatch( m_handle, groupsX, groupsY, groupsZ );
+}
+
+void CommandBuffer::DrawMeshTasks( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const
+{
+    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
+    vkCmdDrawMeshTasksEXT( m_handle, groupsX, groupsY, groupsZ );
+}
+
+void CommandBuffer::DrawMeshTasks_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const
+{
+    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
+    uvec3 gSize      = m_boundPipeline->GetWorkgroupSize();
+    uint32_t groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
+    uint32_t groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
+    uint32_t groupsZ = ( itemsZ + gSize.z - 1 ) / gSize.z;
+    vkCmdDrawMeshTasksEXT( m_handle, groupsX, groupsY, groupsZ );
 }
 
 void CommandPool::Free()

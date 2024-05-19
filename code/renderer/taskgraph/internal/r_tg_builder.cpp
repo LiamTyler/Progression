@@ -118,6 +118,29 @@ void GraphicsTaskBuilder::AddColorAttachment( TGBTextureRef tex )
     attachments.emplace_back( vec4( 0 ), tex, ResourceType::COLOR_ATTACH, false );
 }
 
+TGBTextureRef GraphicsTaskBuilder::AddDepthAttachment(
+    std::string_view name, PixelFormat format, uint32_t width, uint32_t height, float clearVal )
+{
+    TGBTextureRef ref = builder->AddTexture( name, format, width, height, 1, 1, 1, nullptr, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT );
+    builder->UpdateTextureLifetimeAndUsage( ref, taskHandle );
+    attachments.emplace_back( vec4( clearVal ), ref, ResourceType::DEPTH_ATTACH, true );
+    return ref;
+}
+
+TGBTextureRef GraphicsTaskBuilder::AddDepthAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height )
+{
+    TGBTextureRef ref = builder->AddTexture( name, format, width, height, 1, 1, 1, nullptr, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT );
+    builder->UpdateTextureLifetimeAndUsage( ref, taskHandle );
+    attachments.emplace_back( vec4( 0 ), ref, ResourceType::DEPTH_ATTACH, false );
+    return ref;
+}
+
+void GraphicsTaskBuilder::AddDepthAttachment( TGBTextureRef tex )
+{
+    builder->UpdateTextureLifetimeAndUsage( tex, taskHandle, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT );
+    attachments.emplace_back( vec4( 0 ), tex, ResourceType::DEPTH_ATTACH, false );
+}
+
 void GraphicsTaskBuilder::SetFunction( GraphicsFunction func ) { function = func; }
 
 void TransferTaskBuilder::BlitTexture( TGBTextureRef dst, TGBTextureRef src )

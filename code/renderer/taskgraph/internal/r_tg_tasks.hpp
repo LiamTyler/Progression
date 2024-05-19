@@ -62,10 +62,12 @@ using GraphicsFunction = std::function<void( GraphicsTask*, TGExecuteData* )>;
 class GraphicsTask : public Task
 {
 public:
+    ~GraphicsTask();
     void Execute( TGExecuteData* data ) override;
     TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 
-    std::vector<VkRenderingAttachmentInfo> attachments; // all attachments. If there is a depth/stencil image, it's always in attachments[0]
+    std::vector<VkRenderingAttachmentInfo> colorAttachments;
+    VkRenderingAttachmentInfo* depthAttach = nullptr;
     VkRenderingInfo renderingInfo;
     GraphicsFunction function;
 };

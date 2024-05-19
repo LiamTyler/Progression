@@ -26,7 +26,8 @@ TimeSlice::TimeSlice( const ResourceData& res, size_t totalSize ) : TimeSlice( r
 TimeSlice::TimeSlice( const ResourceData& res, size_t totalSize, uint16_t inFirstTask, uint16_t inLastTask, size_t offset )
     : firstTask( inFirstTask ), lastTask( inLastTask )
 {
-    TG_ASSERT( firstTask <= lastTask ); // really only 1-off external outputs that should have firstTask==lastTask
+    // really only 1-off external outputs that should have firstTask==lastTask. Internal, non-depth, should be firstTask < lastTask
+    TG_ASSERT( firstTask <= lastTask, "Only depth textures should maybe be used in only 1 pass" );
     size_t remainingSize = totalSize - res.memoryReq.size;
     if ( remainingSize > 0 )
     {
@@ -120,6 +121,7 @@ MemoryBucket::MemoryBucket( const ResourceData& res )
 
 bool MemoryBucket::AddResource( const ResourceData& res )
 {
+    TG_ASSERT( res.firstTask <= res.lastTask, "Only depth textures should maybe be used in only 1 pass" );
     if ( res.memoryReq.size > bucketSize )
         return false;
     if ( !( memoryTypeBits & res.memoryReq.memoryTypeBits ) )

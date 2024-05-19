@@ -180,6 +180,10 @@ public:
         uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
     void AddColorAttachment( TGBTextureRef tex );
 
+    TGBTextureRef AddDepthAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, float clearVal );
+    TGBTextureRef AddDepthAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height );
+    void AddDepthAttachment( TGBTextureRef tex );
+
     void SetFunction( GraphicsFunction func );
 
     std::vector<TGBAttachmentInfo> attachments;

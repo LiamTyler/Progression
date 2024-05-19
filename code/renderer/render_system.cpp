@@ -63,6 +63,7 @@ bool Init_TaskGraph()
 
     GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "mesh" );
     mTask->AddColorAttachment( gradientImg );
+    mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
     TGBTextureRef swapImg =
@@ -88,7 +89,8 @@ bool Init_TaskGraph()
     compileInfo.sceneHeight   = rg.sceneHeight;
     compileInfo.displayWidth  = rg.displayWidth;
     compileInfo.displayHeight = rg.displayHeight;
-    compileInfo.showStats     = false;
+    // compileInfo.mergeResources = false;
+    TG_DEBUG_ONLY( compileInfo.showStats = true );
     if ( !s_taskGraph.Compile( builder, compileInfo ) )
     {
         LOG_ERR( "Could not compile the task graph" );
@@ -118,8 +120,9 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     info.shaders.push_back( AssetManager::Get<Shader>( "triMS" ) );
     info.shaders.push_back( AssetManager::Get<Shader>( "triPS" ) );
     info.colorAttachments.emplace_back( PixelFormat::R16_G16_B16_A16_FLOAT );
-    info.depthInfo.depthTestEnabled  = false;
-    info.depthInfo.depthWriteEnabled = false;
+    info.depthInfo.format = PixelFormat::DEPTH_32_FLOAT;
+    // info.depthInfo.depthTestEnabled  = false;
+    // info.depthInfo.depthWriteEnabled = false;
 
     s_meshPipeline = rg.device.NewGraphicsPipeline( info, "mesh" );
 

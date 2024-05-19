@@ -26,13 +26,12 @@ namespace PG::Gfx
 
 enum class ResourceType : uint8_t
 {
-    NONE            = 0,
-    TEXTURE         = ( 1 << 0 ),
-    BUFFER          = ( 1 << 1 ),
-    COLOR_ATTACH    = ( 1 << 2 ),
-    DEPTH_ATTACH    = ( 1 << 3 ),
-    STENCIL_ATTACH  = ( 1 << 4 ),
-    SWAPCHAIN_IMAGE = ( 1 << 5 ),
+    NONE           = 0,
+    TEXTURE        = ( 1 << 0 ),
+    BUFFER         = ( 1 << 1 ),
+    COLOR_ATTACH   = ( 1 << 2 ),
+    DEPTH_ATTACH   = ( 1 << 3 ),
+    STENCIL_ATTACH = ( 1 << 4 ),
 };
 PG_DEFINE_ENUM_OPS( ResourceType )
 
@@ -46,5 +45,13 @@ enum class ResourceState : uint8_t
 };
 
 using TGResourceHandle = uint16_t;
+
+template <typename T>
+TGResourceHandle GetEmbeddedResHandle( T val )
+{
+    TGResourceHandle handle;
+    memcpy( &handle, &val, sizeof( TGResourceHandle ) );
+    return handle;
+}
 
 } // namespace PG::Gfx

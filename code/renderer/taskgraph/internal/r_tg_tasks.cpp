@@ -12,9 +12,8 @@ static void FillBufferBarriers( TaskGraph* taskGraph, vector<VkBufferMemoryBarri
     scratch = source;
     for ( VkBufferMemoryBarrier2& barrier : scratch )
     {
-        TGResourceHandle bufHandle;
-        memcpy( &bufHandle, &barrier.buffer, sizeof( TGResourceHandle ) );
-        barrier.buffer = *taskGraph->GetBuffer( bufHandle );
+        TGResourceHandle bufHandle = GetEmbeddedResHandle( barrier.buffer );
+        barrier.buffer             = *taskGraph->GetBuffer( bufHandle );
     }
 }
 
@@ -23,9 +22,8 @@ static void FillImageBarriers( TaskGraph* taskGraph, vector<VkImageMemoryBarrier
     scratch = source;
     for ( VkImageMemoryBarrier2& barrier : scratch )
     {
-        TGResourceHandle imgHandle;
-        memcpy( &imgHandle, &barrier.image, sizeof( TGResourceHandle ) );
-        barrier.image = taskGraph->GetTexture( imgHandle )->GetImage();
+        TGResourceHandle imgHandle = GetEmbeddedResHandle( barrier.image );
+        barrier.image              = taskGraph->GetTexture( imgHandle )->GetImage();
     }
 }
 
@@ -35,9 +33,8 @@ static void FillAttachmentInfos(
     scratch = source;
     for ( VkRenderingAttachmentInfo& attach : scratch )
     {
-        TGResourceHandle imgHandle;
-        memcpy( &imgHandle, &attach.imageView, sizeof( TGResourceHandle ) );
-        attach.imageView = taskGraph->GetTexture( imgHandle )->GetView();
+        TGResourceHandle imgHandle = GetEmbeddedResHandle( attach.imageView );
+        attach.imageView           = taskGraph->GetTexture( imgHandle )->GetView();
     }
 }
 
@@ -89,12 +86,25 @@ void ComputeTask::Execute( TGExecuteData* data )
     function( this, data );
 }
 
+GraphicsTask::~GraphicsTask()
+{
+    if ( depthAttach )
+        delete depthAttach;
+}
+
 void GraphicsTask::Execute( TGExecuteData* data )
 {
     SubmitBarriers( data );
 
-    FillAttachmentInfos( data->taskGraph, data->scratchAttachmentInfos, attachments );
-    renderingInfo.pColorAttachments = data->scratchAttachmentInfos.data();
+    FillAttachmentInfos( data->taskGraph, data->scratchColorAttachmentInfos, colorAttachments );
+    renderingInfo.pColorAttachments = data->scratchColorAttachmentInfos.data();
+    if ( depthAttach )
+    {
+        data->scratchDepthAttachmentInfo           = *depthAttach;
+        TGResourceHandle imgHandle                 = GetEmbeddedResHandle( depthAttach->imageView );
+        data->scratchDepthAttachmentInfo.imageView = data->taskGraph->GetTexture( imgHandle )->GetView();
+        renderingInfo.pDepthAttachment             = &data->scratchDepthAttachmentInfo;
+    }
 
     vkCmdBeginRendering( *data->cmdBuf, &renderingInfo );
     function( this, data );
@@ -209,8 +219,7 @@ void Task::Print( TaskGraph* taskGraph ) const
     for ( size_t i = 0; i < bufferBarriers.size(); ++i )
     {
         const VkBufferMemoryBarrier2& barrier = bufferBarriers[i];
-        TGResourceHandle bufHandle;
-        memcpy( &bufHandle, &barrier.buffer, sizeof( TGResourceHandle ) );
+        TGResourceHandle bufHandle            = GetEmbeddedResHandle( barrier.buffer );
         LOG( "      [%zu]: Buffer: %u '%s'", i, bufHandle, taskGraph->GetBuffer( bufHandle )->GetDebugName() );
         LOG( "        SRCStage:  %s", PipelineStageFlagsToString( barrier.srcStageMask ) );
         LOG( "        SRCAccess: %s", AccessFlagsToString( barrier.srcAccessMask ) );
@@ -222,8 +231,7 @@ void Task::Print( TaskGraph* taskGraph ) const
     for ( size_t i = 0; i < imageBarriers.size(); ++i )
     {
         const VkImageMemoryBarrier2& barrier = imageBarriers[i];
-        TGResourceHandle imgHandle;
-        memcpy( &imgHandle, &barrier.image, sizeof( TGResourceHandle ) );
+        TGResourceHandle imgHandle           = GetEmbeddedResHandle( barrier.image );
         LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle )->GetDebugName() );
         PrintImageBarrier( "        ", barrier );
     }
@@ -236,8 +244,7 @@ void ComputeTask::Print( TaskGraph* taskGraph ) const
     for ( size_t i = 0; i < imageBarriersPreClears.size(); ++i )
     {
         const VkImageMemoryBarrier2& barrier = imageBarriersPreClears[i];
-        TGResourceHandle imgHandle;
-        memcpy( &imgHandle, &barrier.image, sizeof( TGResourceHandle ) );
+        TGResourceHandle imgHandle           = GetEmbeddedResHandle( barrier.image );
         LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle )->GetDebugName() );
         PrintImageBarrier( "        ", barrier );
     }
@@ -293,32 +300,41 @@ void GraphicsTask::Print( TaskGraph* taskGraph ) const
 {
     LOG( "    Task Type: Graphics" );
     Task::Print( taskGraph );
-    LOG( "    Num Attachments: %zu", attachments.size() );
-    for ( size_t i = 0; i < attachments.size(); ++i )
+    LOG( "    Num Color Attachments: %zu", colorAttachments.size() );
+    for ( size_t i = 0; i < colorAttachments.size(); ++i )
     {
-        const VkRenderingAttachmentInfo& attach = attachments[i];
-        TGResourceHandle imgHandle;
-        memcpy( &imgHandle, &attach.imageView, sizeof( TGResourceHandle ) );
-        const Texture* tex   = taskGraph->GetTexture( imgHandle );
-        bool isDepthAttach   = PixelFormatHasDepthFormat( tex->GetPixelFormat() );
-        bool isStencilAttach = PixelFormatHasStencil( tex->GetPixelFormat() );
-        bool isColorAttach   = !isDepthAttach && !isStencilAttach;
+        const VkRenderingAttachmentInfo& attach = colorAttachments[i];
+        TGResourceHandle imgHandle              = GetEmbeddedResHandle( attach.imageView );
+        const Texture* tex                      = taskGraph->GetTexture( imgHandle );
         LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, tex->GetDebugName() );
         LOG( "      Layout: %s", ImgLayoutToString( attach.imageLayout ) );
         LOG( "      LoadOp:  %s", LoadOpToString( attach.loadOp ) );
         if ( attach.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR )
         {
-            if ( isDepthAttach )
-                LOG( "      Depth Clear Val: %g", attach.clearValue.depthStencil.depth );
-            if ( isStencilAttach )
-                LOG( "      Stencil Clear Val: %u", attach.clearValue.depthStencil.stencil );
-            if ( isColorAttach )
-            {
-                VkClearColorValue c = attach.clearValue.color;
-                LOG( "      Clear Color: %g %g %g %g", c.float32[0], c.float32[1], c.float32[2], c.float32[3] );
-            }
+            VkClearColorValue c = attach.clearValue.color;
+            LOG( "      Clear Color: %g %g %g %g", c.float32[0], c.float32[1], c.float32[2], c.float32[3] );
         }
         LOG( "      StoreOp: %s", StoreOpToString( attach.storeOp ) );
+    }
+
+    if ( depthAttach )
+    {
+        LOG( "    Depth Attachment: Yes" );
+        const VkRenderingAttachmentInfo& attach = *depthAttach;
+        TGResourceHandle imgHandle              = GetEmbeddedResHandle( attach.imageView );
+        const Texture* tex                      = taskGraph->GetTexture( imgHandle );
+        LOG( "      Image: %u '%s'", imgHandle, tex->GetDebugName() );
+        LOG( "      Layout: %s", ImgLayoutToString( attach.imageLayout ) );
+        LOG( "      LoadOp:  %s", LoadOpToString( attach.loadOp ) );
+        if ( attach.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR )
+        {
+            LOG( "      Depth Clear Val: %g", attach.clearValue.depthStencil.depth );
+        }
+        LOG( "      StoreOp: %s", StoreOpToString( attach.storeOp ) );
+    }
+    else
+    {
+        LOG( "    Depth Attachment: No" );
     }
 }
 

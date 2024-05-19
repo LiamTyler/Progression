@@ -28,7 +28,8 @@ struct TGExecuteData
 
     std::vector<VkImageMemoryBarrier2> scratchImageBarriers;
     std::vector<VkBufferMemoryBarrier2> scratchBufferBarriers;
-    std::vector<VkRenderingAttachmentInfo> scratchAttachmentInfos;
+    std::vector<VkRenderingAttachmentInfo> scratchColorAttachmentInfos;
+    VkRenderingAttachmentInfo scratchDepthAttachmentInfo;
 };
 
 struct TGStats

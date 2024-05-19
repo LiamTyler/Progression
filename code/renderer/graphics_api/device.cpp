@@ -473,18 +473,18 @@ Pipeline Device::NewGraphicsPipeline( const GraphicsPipelineCreateInfo& info, st
     pipelineInfo.layout              = p.m_pipelineLayout;
 
     VkFormat colorFmt = PGToVulkanPixelFormat( PixelFormat::R16_G16_B16_A16_FLOAT );
-    VkPipelineRenderingCreateInfoKHR dynRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+    VkPipelineRenderingCreateInfo dynRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
     dynRenderingCreateInfo.colorAttachmentCount    = (uint32_t)info.colorAttachments.size();
     dynRenderingCreateInfo.pColorAttachmentFormats = colorAttachmentFormats;
 
-    // PixelFormat depthFmt = PixelFormat::INVALID;
-    // if ( desc.dynamicAttachmentInfo.depthAttachmentFormat != PixelFormat::INVALID )
-    //{
-    //     VkFormat fmt                                 = PGToVulkanPixelFormat( depthFmt );
-    //     dynRenderingCreateInfo.depthAttachmentFormat = fmt;
-    //     if ( PixelFormatHasStencil( depthFmt ) )
-    //         dynRenderingCreateInfo.stencilAttachmentFormat = fmt;
-    // }
+    PixelFormat depthFmt = PixelFormat::INVALID;
+    if ( info.depthInfo.format != PixelFormat::INVALID )
+    {
+        VkFormat fmt                                 = PGToVulkanPixelFormat( info.depthInfo.format );
+        dynRenderingCreateInfo.depthAttachmentFormat = fmt;
+        if ( PixelFormatHasStencil( info.depthInfo.format ) )
+            dynRenderingCreateInfo.stencilAttachmentFormat = fmt;
+    }
 
     pipelineInfo.pNext = &dynRenderingCreateInfo;
 

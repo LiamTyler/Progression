@@ -132,9 +132,32 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
     }
 }
 
+static VkImageAspectFlags GetImageAspectFromFormat( PixelFormat format )
+{
+    VkImageAspectFlags aspect = 0;
+    if ( PixelFormatHasDepthFormat( format ) )
+        aspect |= VK_IMAGE_ASPECT_DEPTH_BIT;
+    if ( PixelFormatHasStencil( format ) )
+        aspect |= VK_IMAGE_ASPECT_STENCIL_BIT;
+
+    return ( aspect == 0 ) ? VK_IMAGE_ASPECT_COLOR_BIT : aspect;
+}
+
 void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& compileInfo, std::vector<ResourceData>& resourceDatas )
 {
-    std::vector<MemoryBucket> buckets = PackResources( resourceDatas );
+    std::vector<MemoryBucket> buckets;
+    if ( !compileInfo.mergeResources )
+    {
+        buckets.reserve( resourceDatas.size() );
+        for ( const ResourceData& resData : resourceDatas )
+        {
+            MemoryBucket& bucket = buckets.emplace_back( resData );
+        }
+    }
+    else
+    {
+        buckets = PackResources( resourceDatas );
+    }
 
     TG_STAT( auto allocStartTime = Time::GetTimePoint() );
     VmaAllocator allocator = rg.device.GetAllocator();
@@ -178,18 +201,20 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
 
         Texture& gfxTex = m_textures[i];
 
-        VkFormatFeatureFlags features = VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT | VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-        VkFormat vkFormat             = PGToVulkanPixelFormat( gfxTex.GetPixelFormat() );
-        PG_ASSERT( FormatSupported( vkFormat, features ) );
-        gfxTex.m_imageView =
-            CreateImageView( gfxTex.m_image, vkFormat, VK_IMAGE_ASPECT_COLOR_BIT, gfxTex.GetMipLevels(), gfxTex.GetArrayLayers() );
+        VkImageAspectFlags aspect = GetImageAspectFromFormat( gfxTex.GetPixelFormat() );
+        VkFormat vkFormat         = PGToVulkanPixelFormat( gfxTex.GetPixelFormat() );
+        gfxTex.m_imageView        = CreateImageView( gfxTex.m_image, vkFormat, aspect, gfxTex.GetMipLevels(), gfxTex.GetArrayLayers() );
 
         TextureManager::Usage usage = TextureManager::Usage::NONE;
         if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_SAMPLED_BIT )
             usage |= TextureManager::Usage::READ;
         if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_STORAGE_BIT )
             usage |= TextureManager::Usage::WRITE;
-        gfxTex.m_bindlessArrayIndex = TextureManager::AddTexture( gfxTex.m_imageView, usage );
+
+        if ( usage == TextureManager::Usage::NONE )
+            gfxTex.m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
+        else
+            gfxTex.m_bindlessArrayIndex = TextureManager::AddTexture( gfxTex.m_imageView, usage );
 
 #if USING( TG_DEBUG )
         PG_DEBUG_MARKER_SET_IMAGE_NAME( gfxTex.m_image, buildTex.debugName );
@@ -203,19 +228,6 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
 
 // if we knew the specific shader stages the buffer was used in, we could a lot more specific with the stages here
 static VkPipelineStageFlags2 GetGeneralStageFlags( TaskType taskType )
-{
-    switch ( taskType )
-    {
-    case TaskType::NONE: return VK_PIPELINE_STAGE_2_NONE;
-    case TaskType::COMPUTE: return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-    case TaskType::GRAPHICS: return VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-    case TaskType::TRANSFER: return VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
-    }
-
-    return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-}
-
-static VkPipelineStageFlags2 GetSrcStageFlags( TaskType taskType, BufferUsage bufUsage )
 {
     switch ( taskType )
     {
@@ -260,15 +272,35 @@ static VkAccessFlags2 GetAccessFlags( TaskType taskType, ResourceState resState,
     {
         if ( resState == ResourceState::READ )
             return VK_ACCESS_2_SHADER_READ_BIT;
-        else if ( resState == ResourceState::READ )
+        else if ( resState == ResourceState::WRITE )
             return VK_ACCESS_2_SHADER_WRITE_BIT;
         else
             return VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
     }
     case TaskType::GRAPHICS:
     {
-        TG_ASSERT( resState == ResourceState::WRITE );
-        return VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+        if ( resState == ResourceState::READ )
+        {
+            if ( IsSet( resType, ResourceType::COLOR_ATTACH ) )
+                return VK_ACCESS_2_COLOR_ATTACHMENT_READ_BIT;
+
+            if ( IsSet( resType, ResourceType::DEPTH_ATTACH ) || IsSet( resType, ResourceType::STENCIL_ATTACH ) )
+                return VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_READ_BIT;
+
+            return VK_ACCESS_2_SHADER_READ_BIT;
+        }
+        else if ( resState == ResourceState::WRITE )
+        {
+            if ( IsSet( resType, ResourceType::COLOR_ATTACH ) )
+                return VK_ACCESS_2_COLOR_ATTACHMENT_WRITE_BIT;
+
+            if ( IsSet( resType, ResourceType::DEPTH_ATTACH ) || IsSet( resType, ResourceType::STENCIL_ATTACH ) )
+                return VK_ACCESS_2_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+
+            return VK_ACCESS_2_SHADER_WRITE_BIT;
+        }
+
+        return VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
     }
     case TaskType::TRANSFER:
     {
@@ -279,6 +311,23 @@ static VkAccessFlags2 GetAccessFlags( TaskType taskType, ResourceState resState,
     }
 
     return VK_ACCESS_2_NONE;
+}
+
+static ImageLayout GetImageLayoutFromType( ResourceType type )
+{
+    if ( IsSet( type, ResourceType::COLOR_ATTACH ) )
+        return ImageLayout::COLOR_ATTACHMENT;
+
+    bool depth   = IsSet( type, ResourceType::DEPTH_ATTACH );
+    bool stencil = IsSet( type, ResourceType::STENCIL_ATTACH );
+    if ( depth && stencil )
+        return ImageLayout::DEPTH_STENCIL_ATTACHMENT;
+    if ( depth )
+        return ImageLayout::DEPTH_ATTACHMENT;
+    else if ( stencil )
+        return ImageLayout::STENCIL_ATTACHMENT;
+
+    return ImageLayout::GENERAL;
 }
 
 void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, CompileInfo& compileInfo )
@@ -413,7 +462,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 }
                 else if ( trackInfo.prevTask == NO_TASK )
                 {
-                    PG_ASSERT( trackInfo.currLayout == ImageLayout::UNDEFINED, "Should be the first use of this texture" );
+                    TG_ASSERT( trackInfo.currLayout == ImageLayout::UNDEFINED, "Should be the first use of this texture" );
                     VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
                     barrier.srcStageMask     = VK_PIPELINE_STAGE_2_NONE;
                     barrier.srcAccessMask    = VK_ACCESS_2_NONE;
@@ -452,8 +501,11 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             for ( const TGBAttachmentInfo& bAttachInfo : bgTask->attachments )
             {
                 TGResourceHandle texHandle      = bAttachInfo.ref.index;
+                const Texture& tex              = m_textures[texHandle];
                 ResourceTrackingInfo& trackInfo = texTracking[texHandle];
-                ImageLayout desiredLayout       = ImageLayout::COLOR_ATTACHMENT;
+                bool isDepthAttach              = PixelFormatHasDepthFormat( tex.GetPixelFormat() );
+
+                ImageLayout desiredLayout = GetImageLayoutFromType( bAttachInfo.type );
                 if ( trackInfo.currLayout != desiredLayout )
                 {
                     VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
@@ -464,26 +516,41 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                     barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
                     barrier.newLayout        = PGToVulkanImageLayout( desiredLayout );
                     barrier.image            = reinterpret_cast<VkImage>( texHandle );
-                    barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
+                    barrier.subresourceRange = ImageSubresourceRange( GetImageAspectFromFormat( tex.GetPixelFormat() ) );
                     gTask->imageBarriers.push_back( barrier );
                 }
 
-                VkRenderingAttachmentInfo& vkAttach = gTask->attachments.emplace_back();
-                vkAttach.sType                      = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-                vkAttach.pNext                      = nullptr;
-                vkAttach.imageView                  = reinterpret_cast<VkImageView>( texHandle );
-                vkAttach.imageLayout                = PGToVulkanImageLayout( desiredLayout );
-                vkAttach.resolveMode                = VK_RESOLVE_MODE_NONE;
-                vkAttach.resolveImageView           = VK_NULL_HANDLE;
-                vkAttach.resolveImageLayout         = VK_IMAGE_LAYOUT_UNDEFINED;
-                if ( bAttachInfo.isCleared )
-                    vkAttach.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                else if ( trackInfo.currLayout == ImageLayout::UNDEFINED )
-                    vkAttach.loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                VkRenderingAttachmentInfo* vkAttach;
+                if ( isDepthAttach )
+                {
+                    TG_ASSERT( !gTask->depthAttach, "can't have multiple depth attachments" );
+                    gTask->depthAttach = new VkRenderingAttachmentInfo;
+                    vkAttach           = gTask->depthAttach;
+                }
                 else
-                    vkAttach.loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-                vkAttach.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
-                memcpy( vkAttach.clearValue.color.float32, &bAttachInfo.clearColor.x, sizeof( vec4 ) );
+                {
+                    vkAttach = &gTask->colorAttachments.emplace_back();
+                }
+                vkAttach->sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
+                vkAttach->pNext              = nullptr;
+                vkAttach->imageView          = reinterpret_cast<VkImageView>( texHandle );
+                vkAttach->imageLayout        = PGToVulkanImageLayout( desiredLayout );
+                vkAttach->resolveMode        = VK_RESOLVE_MODE_NONE;
+                vkAttach->resolveImageView   = VK_NULL_HANDLE;
+                vkAttach->resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+                vkAttach->storeOp            = VK_ATTACHMENT_STORE_OP_STORE;
+                if ( bAttachInfo.isCleared )
+                    vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+                else if ( trackInfo.currLayout == ImageLayout::UNDEFINED )
+                    vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+                else
+                    vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+                TG_ASSERT( !PixelFormatHasStencil( tex.GetPixelFormat() ), "handle stencil clears" );
+                if ( isDepthAttach )
+                    vkAttach->clearValue.depthStencil.depth = bAttachInfo.clearColor.x;
+                else
+                    memcpy( vkAttach->clearValue.color.float32, &bAttachInfo.clearColor.x, sizeof( vec4 ) );
 
                 minAttachWidth  = Min( minAttachWidth, m_textures[texHandle].GetWidth() );
                 minAttachHeight = Min( minAttachHeight, m_textures[texHandle].GetHeight() );
@@ -500,9 +567,9 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             gTask->renderingInfo.renderArea           = { 0, 0, minAttachWidth, minAttachHeight };
             gTask->renderingInfo.layerCount           = 1;
             gTask->renderingInfo.viewMask             = 0;
-            gTask->renderingInfo.colorAttachmentCount = (uint32_t)gTask->attachments.size();
-            gTask->renderingInfo.pColorAttachments    = gTask->attachments.data();
-            gTask->renderingInfo.pDepthAttachment     = nullptr;
+            gTask->renderingInfo.colorAttachmentCount = (uint32_t)gTask->colorAttachments.size();
+            gTask->renderingInfo.pColorAttachments    = gTask->colorAttachments.data();
+            gTask->renderingInfo.pDepthAttachment     = gTask->depthAttach;
             gTask->renderingInfo.pStencilAttachment   = nullptr;
         }
         else if ( taskType == TaskType::TRANSFER )
@@ -516,7 +583,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             {
                 ResourceTrackingInfo& srcTrackInfo = texTracking[transfer.src.index];
                 ResourceTrackingInfo& dstTrackInfo = texTracking[transfer.dst.index];
-                PG_ASSERT( srcTrackInfo.prevTask != NO_TASK && srcTrackInfo.currLayout != ImageLayout::UNDEFINED,
+                TG_ASSERT( srcTrackInfo.prevTask != NO_TASK && srcTrackInfo.currLayout != ImageLayout::UNDEFINED,
                     "Need valid data to blit to another image!" );
 
                 VkImageMemoryBarrier2 srcBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
@@ -561,7 +628,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             task                       = pTask;
 
             ResourceTrackingInfo& trackInfo = texTracking[bpTask->presentationTex.index];
-            PG_ASSERT( trackInfo.prevTask != NO_TASK && trackInfo.currLayout != ImageLayout::UNDEFINED,
+            TG_ASSERT( trackInfo.prevTask != NO_TASK && trackInfo.currLayout != ImageLayout::UNDEFINED,
                 "Need to have written data to the image you're about to present!" );
 
             VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
@@ -582,7 +649,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
         }
         else
         {
-            PG_ASSERT( false, "Need to handle this new task type!" );
+            TG_ASSERT( false, "Need to handle this new task type!" );
         }
 
         TG_DEBUG_ONLY( task->debugName = builderTask->debugName );

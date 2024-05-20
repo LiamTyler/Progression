@@ -652,7 +652,9 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             TG_ASSERT( false, "Need to handle this new task type!" );
         }
 
-        TG_DEBUG_ONLY( task->debugName = builderTask->debugName );
+#if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
+        task->name = builderTask->name;
+#endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
         TG_STAT( m_stats.numBarriers_Buffer += (uint32_t)task->bufferBarriers.size() );
         TG_STAT( m_stats.numBarriers_Image += (uint32_t)task->imageBarriers.size() );
 
@@ -748,7 +750,7 @@ void TaskGraph::Print()
     for ( size_t taskIdx = 0; taskIdx < m_tasks.size(); ++taskIdx )
     {
         Task* task = m_tasks[taskIdx];
-        LOG( "  Task[%zu]: '%s'", taskIdx, task->debugName.c_str() );
+        LOG( "  Task[%zu]: '%s'", taskIdx, task->name.c_str() );
         task->Print( this );
     }
 }
@@ -769,7 +771,9 @@ void TaskGraph::Execute( TGExecuteData& data )
 
     for ( Task* task : m_tasks )
     {
+        //PG_PROFILE_GPU_START( *data.cmdBuf, task->name );
         task->Execute( &data );
+        //PG_PROFILE_GPU_END( *data.cmdBuf, task->name );
     }
 }
 

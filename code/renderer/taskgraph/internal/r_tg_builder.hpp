@@ -116,10 +116,10 @@ class TaskBuilder
 public:
     TaskBuilder( TaskGraphBuilder* inBuilder, TaskHandle inTaskHandle, std::string_view inName )
         : builder( inBuilder ), taskHandle( inTaskHandle )
-#if USING( TG_DEBUG )
+#if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
           ,
-          debugName( inName )
-#endif // #if USING( TG_DEBUG )
+          name( inName )
+#endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
     {
     }
 
@@ -127,7 +127,9 @@ public:
 
     TaskGraphBuilder* const builder;
     const TaskHandle taskHandle;
-    TG_DEBUG_ONLY( std::string debugName );
+#if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
+    std::string name;
+#endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
 };
 
 class ComputeTaskBuilder : public TaskBuilder

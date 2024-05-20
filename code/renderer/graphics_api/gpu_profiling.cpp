@@ -93,7 +93,7 @@ static uint8_t s_frameIndex;
 namespace PG::Gfx::Profile
 {
 
-bool Init()
+void Init()
 {
     s_timestampDifferenceToMillis = rg.physicalDevice.GetProperties().nanosecondsPerTick / 1e6;
     s_numProfileRecords           = 0;
@@ -120,8 +120,6 @@ bool Init()
         s_frameData[i].nameToQueryRecordMap.reserve( 64 );
     }
     s_frameIndex = 0;
-
-    return true;
 }
 
 void Shutdown()
@@ -173,38 +171,22 @@ void DrawResultsOnScreen()
 #endif // #if USING( PG_DEBUG_UI )
 }
 
-void StartFrame( const CommandBuffer& cmdbuf ) { Reset( cmdbuf ); }
-
-void Reset( const CommandBuffer& cmdbuf )
-{
-    PerFrameData& frameData = s_frameData[s_frameIndex];
-    if ( frameData.waitingForResults )
-        return;
-
-    vkCmdResetQueryPool( cmdbuf, frameData.queryPool, 0, MAX_NUM_QUERIES_PER_FRAME );
-    frameData.timestampsWritten = 0;
-}
-
 static void GetOldestFramesResults()
 {
-    PerFrameData& frameData = s_frameData[( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP]; // oldest frame
+    PerFrameData& frameData = s_frameData[s_frameIndex]; // oldest frame
+    //PerFrameData& frameData = s_frameData[( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP]; // oldest frame
     if ( frameData.timestampsWritten == 0 )
     {
-        frameData.waitingForResults = false;
+        //frameData.waitingForResults = false;
         return;
     }
 
     // VkResult res = vkGetQueryPoolResults( rg.device, s_queryPool, 0, s_timestampsWritten, sizeof( s_cpuQueries ),
     // s_cpuQueries, sizeof( QueryResult ), VK_QUERY_RESULT_WITH_AVAILABILITY_BIT | VK_QUERY_RESULT_64_BIT );
     VkResult res = vkGetQueryPoolResults( rg.device, frameData.queryPool, 0, frameData.timestampsWritten, sizeof( s_cpuQueries ),
-        s_cpuQueries, sizeof( QueryResult ), VK_QUERY_RESULT_64_BIT );
-    if ( res == VK_NOT_READY )
-    {
-        frameData.waitingForResults = true;
-        // LOG( "Waiting for profiling results" );
-        return;
-    }
+        s_cpuQueries, sizeof( QueryResult ), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
     VK_CHECK( res );
+    
 
     // uint32_t numTimestampsAvailable = 0;
     for ( const auto& [name, qRecord] : frameData.nameToQueryRecordMap )
@@ -238,10 +220,26 @@ static void GetOldestFramesResults()
     frameData.waitingForResults = false;
 }
 
+void StartFrame( const CommandBuffer& cmdbuf )
+{
+    GetOldestFramesResults();
+    Reset( cmdbuf );
+}
+
+void Reset( const CommandBuffer& cmdbuf )
+{
+    PerFrameData& frameData = s_frameData[s_frameIndex];
+    //if ( frameData.waitingForResults )
+    //    return;
+
+    vkCmdResetQueryPool( cmdbuf, frameData.queryPool, 0, MAX_NUM_QUERIES_PER_FRAME );
+    frameData.timestampsWritten = 0;
+}
+
 void EndFrame()
 {
-    s_frameData[s_frameIndex].waitingForResults = true;
-    GetOldestFramesResults();
+    //s_frameData[s_frameIndex].waitingForResults = true;
+    //GetOldestFramesResults();
     s_frameIndex = ( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP;
 }
 

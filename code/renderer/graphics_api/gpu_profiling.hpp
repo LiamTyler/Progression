@@ -7,7 +7,7 @@
 namespace PG::Gfx::Profile
 {
 
-bool Init();
+void Init();
 void Shutdown();
 void DrawResultsOnScreen();
 

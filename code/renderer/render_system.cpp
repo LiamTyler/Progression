@@ -22,6 +22,9 @@ Pipeline s_computePipeline;
 Pipeline s_meshPipeline;
 static TaskGraph s_taskGraph;
 
+static VkQueryPool s_timestampQueryPool = VK_NULL_HANDLE;
+static std::vector<uint64_t> s_timestamps;
+
 void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
@@ -53,6 +56,41 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.DrawMeshTasks( 1, 1, 1 );
 }
 
+void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
+{
+    double timestampDiffToMillis = rg.physicalDevice.GetProperties().nanosecondsPerTick / 1e6;
+
+    static size_t frameCount = 0;
+    static double diff = 0;
+    if ( !(frameCount % 200) )
+    {
+        diff = ( s_timestamps[1] - s_timestamps[0] ) * timestampDiffToMillis;
+    }
+    ++frameCount;
+
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+    
+    // UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
+    ImGui::SetNextWindowPos( { 5, 5 }, ImGuiCond_FirstUseEver );
+    ImGui::Begin( "Profiling Stats" );
+
+    if ( ImGui::BeginTable( "RenderPass Times", 2, ImGuiTableFlags_Borders ) )
+    {
+        ImGui::TableSetupColumn( "Render Pass" );
+        ImGui::TableSetupColumn( "Time (ms)" );
+        ImGui::TableHeadersRow();
+
+        ImGui::TableNextRow();
+        ImGui::TableSetColumnIndex( 0 );
+        ImGui::Text( "Frame Total" );
+        ImGui::TableSetColumnIndex( 1 );
+        ImGui::Text( "%.3f", diff );
+        ImGui::EndTable();
+    }
+    ImGui::End();
+    UIOverlay::Render( cmdBuf );
+}
+
 bool Init_TaskGraph()
 {
     TaskGraphBuilder builder;
@@ -79,7 +117,7 @@ bool Init_TaskGraph()
 
     GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_2D" );
     gTask->AddColorAttachment( swapImg );
-    gTask->SetFunction( []( GraphicsTask* task, TGExecuteData* data ) { UIOverlay::Render( *data->cmdBuf ); } );
+    gTask->SetFunction( UI_2D_DrawFunc );
 
     PresentTaskBuilder* pTask = builder.AddPresentTask();
     pTask->SetPresentationImage( swapImg );
@@ -111,6 +149,8 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     if ( !R_Init( headless, displayWidth, displayHeight ) )
         return false;
 
+    //Profile::Init();
+
     if ( !AssetManager::LoadFastFile( "gfx_required" ) )
         return false;
 
@@ -131,6 +171,13 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
 
     if ( !Init_TaskGraph() )
         return false;
+
+    s_timestamps.resize( 2 );
+    VkQueryPoolCreateInfo query_pool_info{};
+    query_pool_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    query_pool_info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+    query_pool_info.queryCount = static_cast<uint32_t>( s_timestamps.size() );
+    VK_CHECK( vkCreateQueryPool( rg.device, &query_pool_info, nullptr, &s_timestampQueryPool ) );
 
     return true;
 }
@@ -159,8 +206,10 @@ void Shutdown()
     UIOverlay::Shutdown();
     s_computePipeline.Free();
     s_meshPipeline.Free();
+    vkDestroyQueryPool( rg.device, s_timestampQueryPool, nullptr );
 
     AssetManager::FreeRemainingGpuResources();
+    //Profile::Shutdown();
     R_Shutdown();
 }
 
@@ -175,12 +224,17 @@ void Render()
         return;
     }
 
-    TextureManager::Update();
-    UIOverlay::BeginFrame();
-
     CommandBuffer& cmdBuf = frameData.primaryCmdBuffer;
     cmdBuf.Reset();
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+
+    vkCmdResetQueryPool( cmdBuf, s_timestampQueryPool, 0, static_cast<uint32_t>( s_timestamps.size() ) );
+    vkCmdWriteTimestamp( cmdBuf, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, s_timestampQueryPool, 0 );
+    // Profile::StartFrame( cmdBuf );
+    // PG_PROFILE_GPU_START( cmdBuf, "Frame" );
+
+    TextureManager::Update();
+    UIOverlay::BeginFrame();
 
     TGExecuteData tgData;
     tgData.scene     = GetPrimaryScene();
@@ -189,8 +243,11 @@ void Render()
     s_taskGraph.Execute( tgData );
 
     UIOverlay::EndFrame();
+    // PG_PROFILE_GPU_END( cmdBuf, "Frame" );
+    vkCmdWriteTimestamp( cmdBuf, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, s_timestampQueryPool, 1 );
 
     cmdBuf.EndRecording();
+    // Profile::EndFrame();
 
     VkPipelineStageFlags2 waitStages =
         VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_TRANSFER_BIT;
@@ -202,6 +259,17 @@ void Render()
     {
         eg.resizeRequested = true;
     }
+
+    uint32_t count = static_cast<uint32_t>( s_timestamps.size() );
+
+    // Fetch the time stamp results written in the command buffer submissions
+    // A note on the flags used:
+    //	VK_QUERY_RESULT_64_BIT: Results will have 64 bits. As time stamp values are on nano-seconds, this flag should always be used to
+    //avoid 32 bit overflows
+    //  VK_QUERY_RESULT_WAIT_BIT: Since we want to immediately display the results, we use this flag to have the CPU wait until the results
+    //  are available
+    vkGetQueryPoolResults( rg.device, s_timestampQueryPool, 0, count, s_timestamps.size() * sizeof( uint64_t ), s_timestamps.data(),
+        sizeof( uint64_t ), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
 
     ++rg.currentFrameIdx;
 }

@@ -12,7 +12,9 @@ class TaskGraph;
 class Task
 {
 public:
-    TG_DEBUG_ONLY( std::string debugName );
+#if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
+    std::string name;
+#endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
     std::vector<VkImageMemoryBarrier2> imageBarriers;
     std::vector<VkBufferMemoryBarrier2> bufferBarriers;
 

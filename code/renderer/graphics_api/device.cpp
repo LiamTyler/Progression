@@ -176,6 +176,21 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
     }
 #endif // #if USING( DEBUG_BUILD )
 
+    if ( !createInfo.initalData )
+        return buffer;
+
+    if ( buffer.m_mappedPtr )
+    {
+        memcpy( buffer.m_mappedPtr, createInfo.initalData, createInfo.size );
+    }
+    else
+    {
+        Buffer staging = NewStagingBuffer( createInfo.size );
+        memcpy( staging.GetMappedPtr(), createInfo.initalData, createInfo.size );
+        rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( buffer, staging ); } );
+        staging.Free();
+    }
+
     return buffer;
 }
 

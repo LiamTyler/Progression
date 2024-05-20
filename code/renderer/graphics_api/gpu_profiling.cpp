@@ -174,10 +174,10 @@ void DrawResultsOnScreen()
 static void GetOldestFramesResults()
 {
     PerFrameData& frameData = s_frameData[s_frameIndex]; // oldest frame
-    //PerFrameData& frameData = s_frameData[( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP]; // oldest frame
+    // PerFrameData& frameData = s_frameData[( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP]; // oldest frame
     if ( frameData.timestampsWritten == 0 )
     {
-        //frameData.waitingForResults = false;
+        // frameData.waitingForResults = false;
         return;
     }
 
@@ -186,7 +186,6 @@ static void GetOldestFramesResults()
     VkResult res = vkGetQueryPoolResults( rg.device, frameData.queryPool, 0, frameData.timestampsWritten, sizeof( s_cpuQueries ),
         s_cpuQueries, sizeof( QueryResult ), VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
     VK_CHECK( res );
-    
 
     // uint32_t numTimestampsAvailable = 0;
     for ( const auto& [name, qRecord] : frameData.nameToQueryRecordMap )
@@ -229,8 +228,8 @@ void StartFrame( const CommandBuffer& cmdbuf )
 void Reset( const CommandBuffer& cmdbuf )
 {
     PerFrameData& frameData = s_frameData[s_frameIndex];
-    //if ( frameData.waitingForResults )
-    //    return;
+    // if ( frameData.waitingForResults )
+    //     return;
 
     vkCmdResetQueryPool( cmdbuf, frameData.queryPool, 0, MAX_NUM_QUERIES_PER_FRAME );
     frameData.timestampsWritten = 0;
@@ -238,8 +237,8 @@ void Reset( const CommandBuffer& cmdbuf )
 
 void EndFrame()
 {
-    //s_frameData[s_frameIndex].waitingForResults = true;
-    //GetOldestFramesResults();
+    // s_frameData[s_frameIndex].waitingForResults = true;
+    // GetOldestFramesResults();
     s_frameIndex = ( s_frameIndex + 1 ) % NUM_FRAME_OVERLAP;
 }
 

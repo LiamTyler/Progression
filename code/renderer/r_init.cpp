@@ -159,6 +159,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 
     pDevSelector.add_required_extension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_MESH_SHADER_EXTENSION_NAME );
+    pDevSelector.add_required_extension( VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME );
     pDevSelector.set_minimum_version( 1, 3 );
     pDevSelector.require_present( !headless );
     pDevSelector.set_required_features_13( features13 );

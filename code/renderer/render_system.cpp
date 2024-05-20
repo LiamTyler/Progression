@@ -18,9 +18,10 @@ using namespace Gfx;
 namespace PG::RenderSystem
 {
 
-Pipeline s_computePipeline;
-Pipeline s_meshPipeline;
+static Pipeline s_computePipeline;
+static Pipeline s_meshPipeline;
 static TaskGraph s_taskGraph;
+static Buffer s_buffer;
 
 static VkQueryPool s_timestampQueryPool = VK_NULL_HANDLE;
 static std::vector<uint64_t> s_timestamps;
@@ -50,6 +51,9 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.BindPipeline( &s_meshPipeline );
     cmdBuf.BindGlobalDescriptors();
 
+    VkDeviceAddress address = s_buffer.GetDeviceAddress();
+    cmdBuf.PushConstants( address );
+
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
 
@@ -61,15 +65,15 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     double timestampDiffToMillis = rg.physicalDevice.GetProperties().nanosecondsPerTick / 1e6;
 
     static size_t frameCount = 0;
-    static double diff = 0;
-    if ( !(frameCount % 200) )
+    static double diff       = 0;
+    // if ( !(frameCount % 200) )
     {
         diff = ( s_timestamps[1] - s_timestamps[0] ) * timestampDiffToMillis;
     }
     ++frameCount;
 
     CommandBuffer& cmdBuf = *data->cmdBuf;
-    
+
     // UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     ImGui::SetNextWindowPos( { 5, 5 }, ImGuiCond_FirstUseEver );
     ImGui::Begin( "Profiling Stats" );
@@ -149,7 +153,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     if ( !R_Init( headless, displayWidth, displayHeight ) )
         return false;
 
-    //Profile::Init();
+    // Profile::Init();
 
     if ( !AssetManager::LoadFastFile( "gfx_required" ) )
         return false;
@@ -172,10 +176,22 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     if ( !Init_TaskGraph() )
         return false;
 
+    std::vector<vec3> meshletPositions = {
+        vec3( 0.5, -0.5, 0 ),
+        vec3( 0.5, 0.5, 0 ),
+        vec3( -0.5, 0.5, 0 ),
+    };
+    BufferCreateInfo bufInfo = {};
+    bufInfo.size             = meshletPositions.size() * sizeof( vec3 );
+    bufInfo.initalData       = meshletPositions.data();
+    bufInfo.bufferUsage |= BufferUsage::STORAGE;
+    bufInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+    s_buffer      = rg.device.NewBuffer( bufInfo, "mesh" );
+
     s_timestamps.resize( 2 );
     VkQueryPoolCreateInfo query_pool_info{};
-    query_pool_info.sType = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
-    query_pool_info.queryType = VK_QUERY_TYPE_TIMESTAMP;
+    query_pool_info.sType      = VK_STRUCTURE_TYPE_QUERY_POOL_CREATE_INFO;
+    query_pool_info.queryType  = VK_QUERY_TYPE_TIMESTAMP;
     query_pool_info.queryCount = static_cast<uint32_t>( s_timestamps.size() );
     VK_CHECK( vkCreateQueryPool( rg.device, &query_pool_info, nullptr, &s_timestampQueryPool ) );
 
@@ -207,9 +223,10 @@ void Shutdown()
     s_computePipeline.Free();
     s_meshPipeline.Free();
     vkDestroyQueryPool( rg.device, s_timestampQueryPool, nullptr );
+    s_buffer.Free();
 
     AssetManager::FreeRemainingGpuResources();
-    //Profile::Shutdown();
+    // Profile::Shutdown();
     R_Shutdown();
 }
 
@@ -265,7 +282,7 @@ void Render()
     // Fetch the time stamp results written in the command buffer submissions
     // A note on the flags used:
     //	VK_QUERY_RESULT_64_BIT: Results will have 64 bits. As time stamp values are on nano-seconds, this flag should always be used to
-    //avoid 32 bit overflows
+    // avoid 32 bit overflows
     //  VK_QUERY_RESULT_WAIT_BIT: Since we want to immediately display the results, we use this flag to have the CPU wait until the results
     //  are available
     vkGetQueryPoolResults( rg.device, s_timestampQueryPool, 0, count, s_timestamps.size() * sizeof( uint64_t ), s_timestamps.data(),

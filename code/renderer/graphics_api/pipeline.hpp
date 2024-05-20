@@ -1,9 +1,8 @@
 #pragma once
 
-#include "renderer/graphics_api/descriptor.hpp"
-#include "renderer/graphics_api/limits.hpp"
-#include "renderer/graphics_api/vertex_descriptor.hpp"
+#include "core/pixel_formats.hpp"
 #include "renderer/vulkan.hpp"
+#include "shared/math_vec.hpp"
 
 namespace PG
 {

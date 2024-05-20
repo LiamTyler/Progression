@@ -63,7 +63,7 @@ public:
         uint32_t displayWidth;
         uint32_t displayHeight;
         bool mergeResources = true;
-        bool showStats      = true; // only works if TG_STATS is enabled
+        bool showStats      = false; // only works if TG_STATS is enabled
     };
 
     bool Compile( TaskGraphBuilder& builder, CompileInfo& compileInfo );

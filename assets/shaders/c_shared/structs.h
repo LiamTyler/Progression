@@ -80,11 +80,4 @@ struct SkyboxData
 } // namespace GpuData
 #endif // #ifndef PG_SHADER_CODE
 
-#define PG_SCENE_GLOBALS_DESCRIPTOR_SET 0
-    #define PG_SCENE_CONSTS_BINDING_SLOT 0
-#define PG_BINDLESS_TEXTURE_DESCRIPTOR_SET 1
-#define PG_LIGHT_DESCRIPTOR_SET 2
-#define PG_LIGHTING_AUX_DESCRIPTOR_SET 3
-#define PG_OBJECT_DESCRIPTOR_SET 4
-
 #endif // #ifndef _STRUCTS_H_

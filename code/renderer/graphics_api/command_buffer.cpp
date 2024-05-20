@@ -44,7 +44,7 @@ void CommandBuffer::BindGlobalDescriptors() const
 #if USING( PG_DESCRIPTOR_BUFFER )
     VkDescriptorBufferBindingInfoEXT pBindingInfos{};
     pBindingInfos.sType   = VK_STRUCTURE_TYPE_DESCRIPTOR_BUFFER_BINDING_INFO_EXT;
-    pBindingInfos.address = TextureManager::GetBindlessDescriptorBuffer().buffer.GetDeviceAddress();
+    pBindingInfos.address = GetGlobalDescriptorBuffer().buffer.GetDeviceAddress();
     pBindingInfos.usage   = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
     vkCmdBindDescriptorBuffersEXT( m_handle, 1, &pBindingInfos );
 
@@ -54,7 +54,7 @@ void CommandBuffer::BindGlobalDescriptors() const
         m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), 0, 1, &bufferIndex, &bufferOffset );
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
     vkCmdBindDescriptorSets( m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), 0, 1,
-        &TextureManager::GetBindlessSet(), 0, nullptr );
+        &GetGlobalDescriptorSet(), 0, nullptr );
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 }
 

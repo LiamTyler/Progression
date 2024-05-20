@@ -1,0 +1,37 @@
+#version 450
+#include "global_descriptors.glsl"
+#extension GL_EXT_mesh_shader : require
+
+DEFINE_GLOBAL_DESCRIPTORS();
+
+DEFINE_BUFFER_REFERENCE( 4 ) Position
+{
+    vec3 positions[];
+};
+
+layout(push_constant) uniform Registers
+{
+    Position verts;
+} constants;
+
+layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = 3, max_primitives = 1) out;
+
+vec3 GetPos( int i )
+{
+    vec3 pos = constants.verts.positions[i];
+    pos.x += globals.debugFloat;
+    return vec3( pos );
+    //return vec3( pos, 0 );
+}
+
+void main()
+{
+  uint vertexCount = 3;
+  uint triangleCount = 1;
+  SetMeshOutputsEXT(vertexCount, triangleCount);
+  gl_MeshVerticesEXT[0].gl_Position = vec4( GetPos( 0 ), 1);
+  gl_MeshVerticesEXT[1].gl_Position = vec4( GetPos( 1 ), 1);
+  gl_MeshVerticesEXT[2].gl_Position = vec4( GetPos( 2 ), 1);
+  gl_PrimitiveTriangleIndicesEXT[0] =  uvec3(0, 1, 2);
+}

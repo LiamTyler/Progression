@@ -411,7 +411,7 @@ Pipeline Device::NewGraphicsPipeline( const GraphicsPipelineCreateInfo& info, st
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
     pipelineLayoutCreateInfo.setLayoutCount         = 1;
-    pipelineLayoutCreateInfo.pSetLayouts            = &TextureManager::GetBindlessSetLayout();
+    pipelineLayoutCreateInfo.pSetLayouts            = &GetGlobalDescriptorSetLayout();
     pipelineLayoutCreateInfo.pushConstantRangeCount = pushConstantSize ? 1 : 0;
     pipelineLayoutCreateInfo.pPushConstantRanges    = pushConstantSize ? &pRange : nullptr;
     VK_CHECK( vkCreatePipelineLayout( rg.device, &pipelineLayoutCreateInfo, NULL, &p.m_pipelineLayout ) );
@@ -521,7 +521,7 @@ Pipeline Device::NewComputePipeline( Shader* shader, std::string_view name ) con
 
     VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
     pipelineLayoutCreateInfo.setLayoutCount = 1;
-    pipelineLayoutCreateInfo.pSetLayouts    = &TextureManager::GetBindlessSetLayout();
+    pipelineLayoutCreateInfo.pSetLayouts    = &GetGlobalDescriptorSetLayout();
     VkPushConstantRange pRange              = {
         VK_SHADER_STAGE_COMPUTE_BIT, shader->GetReflectionData().pushConstantOffset, shader->GetReflectionData().pushConstantSize };
     pipelineLayoutCreateInfo.pushConstantRangeCount = pRange.size ? 1 : 0;

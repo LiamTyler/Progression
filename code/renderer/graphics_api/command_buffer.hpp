@@ -1,7 +1,8 @@
 #pragma once
 
+#include "renderer/graphics_api/buffer.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
-#include "renderer/vulkan.hpp"
+#include "renderer/graphics_api/texture.hpp"
 
 namespace PG::Gfx
 {

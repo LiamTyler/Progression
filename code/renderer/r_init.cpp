@@ -121,6 +121,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.shaderStorageTexelBufferArrayNonUniformIndexing    = true;
     features12.shaderUniformBufferArrayNonUniformIndexing         = true;
     features12.shaderUniformTexelBufferArrayNonUniformIndexing    = true;
+    features12.scalarBlockLayout                                  = true;
 
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
 #if USING( PG_RTX )
@@ -213,6 +214,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     }
     LoadVulkanExtensions( rg.device );
 
+    InitGlobalDescriptorData();
     TextureManager::Init();
 
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( rg.instance, "Primary" );
@@ -249,6 +251,7 @@ void R_Shutdown()
     rg.swapchain.Free();
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
     TextureManager::Shutdown();
+    FreeGlobalDescriptorData();
     rg.device.Free();
     vkb::destroy_debug_utils_messenger( rg.instance, s_debugMessenger );
     vkDestroyInstance( rg.instance, nullptr );

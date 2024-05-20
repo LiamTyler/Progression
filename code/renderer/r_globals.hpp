@@ -24,6 +24,9 @@ struct FrameData
 
     CommandPool cmdPool;
     CommandBuffer primaryCmdBuffer;
+
+    Buffer objectModelMatricesBuffer;
+    Buffer sceneGlobalsBuffer;
 };
 
 struct R_Globals

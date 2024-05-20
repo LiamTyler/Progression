@@ -4,6 +4,9 @@
 #include "core/scene.hpp"
 #include "core/window.hpp"
 #include "debug_marker.hpp"
+#include "ecs/components/model_renderer.hpp"
+#include "ecs/components/transform.hpp"
+#include "r_dvars.hpp"
 #include "r_globals.hpp"
 #include "r_init.hpp"
 #include "r_texture_manager.hpp"
@@ -14,6 +17,8 @@
 
 using namespace PG;
 using namespace Gfx;
+
+#define MAX_OBJECTS_PER_FRAME 4096
 
 namespace PG::RenderSystem
 {
@@ -132,13 +137,13 @@ bool Init_TaskGraph()
     compileInfo.displayWidth  = rg.displayWidth;
     compileInfo.displayHeight = rg.displayHeight;
     // compileInfo.mergeResources = false;
-    TG_DEBUG_ONLY( compileInfo.showStats = true );
+    // TG_DEBUG_ONLY( compileInfo.showStats = true );
     if ( !s_taskGraph.Compile( builder, compileInfo ) )
     {
         LOG_ERR( "Could not compile the task graph" );
         return false;
     }
-    TG_DEBUG_ONLY( s_taskGraph.Print() );
+    // TG_DEBUG_ONLY( s_taskGraph.Print() );
 
     return true;
 }
@@ -161,8 +166,8 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     s_computePipeline = rg.device.NewComputePipeline( AssetManager::Get<Shader>( "gradient" ), "gradient2" );
 
     GraphicsPipelineCreateInfo info = {};
-    info.shaders.push_back( AssetManager::Get<Shader>( "triMS" ) );
-    info.shaders.push_back( AssetManager::Get<Shader>( "triPS" ) );
+    info.shaders.push_back( AssetManager::Get<Shader>( "modelMS" ) );
+    info.shaders.push_back( AssetManager::Get<Shader>( "litPS" ) );
     info.colorAttachments.emplace_back( PixelFormat::R16_G16_B16_A16_FLOAT );
     info.depthInfo.format = PixelFormat::DEPTH_32_FLOAT;
     // info.depthInfo.depthTestEnabled  = false;
@@ -195,6 +200,23 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     query_pool_info.queryCount = static_cast<uint32_t>( s_timestamps.size() );
     VK_CHECK( vkCreateQueryPool( rg.device, &query_pool_info, nullptr, &s_timestampQueryPool ) );
 
+    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    {
+        FrameData& fData = rg.frameData[i];
+
+        BufferCreateInfo oBufInfo       = {};
+        oBufInfo.size                   = MAX_OBJECTS_PER_FRAME * sizeof( mat4 );
+        oBufInfo.bufferUsage            = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
+        oBufInfo.flags                  = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        fData.objectModelMatricesBuffer = rg.device.NewBuffer( oBufInfo, "objectModelMatricesBuffer" );
+
+        BufferCreateInfo sgBufInfo = {};
+        sgBufInfo.size             = sizeof( GpuData::SceneGlobals );
+        sgBufInfo.bufferUsage      = BufferUsage::UNIFORM | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
+        sgBufInfo.flags            = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        fData.sceneGlobalsBuffer   = rg.device.NewBuffer( sgBufInfo, "sceneGlobalsBuffer" );
+    }
+
     return true;
 }
 
@@ -218,6 +240,13 @@ void Resize( uint32_t displayWidth, uint32_t displayHeight )
 void Shutdown()
 {
     rg.device.WaitForIdle();
+
+    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    {
+        rg.frameData[i].objectModelMatricesBuffer.Free();
+        rg.frameData[i].sceneGlobalsBuffer.Free();
+    }
+
     s_taskGraph.Free();
     UIOverlay::Shutdown();
     s_computePipeline.Free();
@@ -230,6 +259,58 @@ void Shutdown()
     R_Shutdown();
 }
 
+static void UpdateGPUSceneData( Scene* scene )
+{
+    FrameData& frameData    = rg.GetFrameData();
+    mat4* gpuObjectMatrices = reinterpret_cast<mat4*>( frameData.objectModelMatricesBuffer.GetMappedPtr() );
+
+    auto view          = scene->registry.view<ModelRenderer, PG::Transform>();
+    uint32_t objectNum = 0;
+    for ( auto entity : view )
+    {
+        if ( objectNum == MAX_OBJECTS_PER_FRAME )
+        {
+            LOG_WARN( "Too many objects in the scene! Some objects may be missing when in final render" );
+            break;
+        }
+
+        PG::Transform& transform     = view.get<PG::Transform>( entity );
+        mat4 M                       = transform.Matrix();
+        gpuObjectMatrices[objectNum] = M;
+        // mat4 N                               = Transpose( Inverse( M ) );
+        // gpuObjectMatrices[2 * objectNum + 1] = N;
+        ++objectNum;
+    }
+
+    GpuData::SceneGlobals globalData;
+    globalData.V                        = scene->camera.GetV();
+    globalData.P                        = scene->camera.GetP();
+    globalData.VP                       = scene->camera.GetVP();
+    globalData.invVP                    = Inverse( scene->camera.GetVP() );
+    globalData.cameraPos                = vec4( scene->camera.position, 1 );
+    VEC3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
+    globalData.cameraExposureAndSkyTint = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
+    globalData.r_materialViz            = r_materialViz.GetUint();
+    globalData.r_lightingViz            = r_lightingViz.GetUint();
+    globalData.r_postProcessing         = r_postProcessing.GetBool();
+    globalData.r_tonemap                = r_tonemap.GetUint();
+    globalData.debugInt                 = r_debugInt.GetInt();
+    globalData.debugUint                = r_debugUint.GetUint();
+    globalData.debugFloat               = r_debugFloat.GetFloat();
+    globalData.debug3                   = 0u;
+
+    memcpy( frameData.sceneGlobalsBuffer.GetMappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );
+
+    VkDescriptorBufferInfo dBufferInfo = { frameData.sceneGlobalsBuffer.GetHandle(), 0, VK_WHOLE_SIZE };
+    VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+    write.dstSet          = GetGlobalDescriptorSet();
+    write.dstBinding      = 2;
+    write.descriptorCount = 1;
+    write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    write.pBufferInfo     = &dBufferInfo;
+    vkUpdateDescriptorSets( rg.device, 1, &write, 0, nullptr );
+}
+
 void Render()
 {
     FrameData& frameData = rg.GetFrameData();
@@ -240,6 +321,7 @@ void Render()
         eg.resizeRequested = true;
         return;
     }
+    UpdateGPUSceneData( GetPrimaryScene() );
 
     CommandBuffer& cmdBuf = frameData.primaryCmdBuffer;
     cmdBuf.Reset();

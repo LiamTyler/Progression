@@ -7,6 +7,15 @@
 namespace PG::Gfx
 {
 
+static VkDescriptorSetLayout s_globalDescriptorSetLayout;
+#if USING( PG_DESCRIPTOR_BUFFER )
+static VkPhysicalDeviceDescriptorBufferPropertiesEXT s_dbProps;
+static DescriptorBuffer s_globalDescriptorBuffer;
+#else  // #if USING( PG_DESCRIPTOR_BUFFER )
+static DescriptorAllocator s_descriptorAllocator;
+static VkDescriptorSet s_globalDescriptorSet;
+#endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
+
 void DescriptorLayoutBuilder::AddBinding( uint32_t binding, VkDescriptorType type, uint32_t count )
 {
     VkDescriptorSetLayoutBinding newbind{};
@@ -19,7 +28,7 @@ void DescriptorLayoutBuilder::AddBinding( uint32_t binding, VkDescriptorType typ
 
 void DescriptorLayoutBuilder::Clear() { bindings.clear(); }
 
-VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderStages, const std::string& name )
+VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderStages, std::string_view name )
 {
     for ( auto& b : bindings )
     {
@@ -36,20 +45,41 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
     VkDescriptorSetLayoutBindingFlagsCreateInfo extendedInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_BINDING_FLAGS_CREATE_INFO };
-    VkDescriptorBindingFlags bindFlags[2] = { 0 };
+    std::vector<VkDescriptorBindingFlags> bindFlags( bindings.size(), {} );
     if ( bindlessSupport )
     {
-        for ( int i = 0; i < 2; ++i )
+        for ( size_t i = 0; i < bindings.size(); ++i )
         {
-            VkDescriptorBindingFlags& bindFlag = bindFlags[i];
-            bindFlag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-            // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+            const VkDescriptorSetLayoutBinding& binding = bindings[i];
+            VkDescriptorBindingFlags& bindFlag          = bindFlags[i];
+            if ( ( binding.descriptorCount == VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE ||
+                     binding.descriptorCount == VK_DESCRIPTOR_TYPE_STORAGE_IMAGE ) &&
+                 binding.descriptorCount == PG_MAX_BINDLESS_TEXTURES )
+            {
+                bindFlag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+                // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+            }
             bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
         }
 
         extendedInfo.bindingCount  = (uint32_t)bindings.size();
-        extendedInfo.pBindingFlags = bindFlags;
+        extendedInfo.pBindingFlags = bindFlags.data();
     }
+
+    // VkDescriptorBindingFlags bindFlags[2] = { 0 };
+    // if ( bindlessSupport )
+    //{
+    //     for ( int i = 0; i < 2; ++i )
+    //     {
+    //         VkDescriptorBindingFlags& bindFlag = bindFlags[i];
+    //         bindFlag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
+    //         // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
+    //         bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
+    //     }
+    //
+    //     extendedInfo.bindingCount  = (uint32_t)bindings.size();
+    //     extendedInfo.pBindingFlags = bindFlags;
+    // }
 
 #if USING( PG_MUTABLE_DESCRIPTORS )
     VkDescriptorType mutableTexTypes[] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE };
@@ -74,7 +104,7 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
     return setLayout;
 }
 
-void DescriptorAllocator::Init( uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, const std::string& name )
+void DescriptorAllocator::Init( uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, std::string_view name )
 {
     VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     // Even if we can update all the descriptors before the command buffer, the limit counts are much higher with it.
@@ -93,7 +123,7 @@ void DescriptorAllocator::ClearDescriptors() { vkResetDescriptorPool( rg.device,
 
 void DescriptorAllocator::Free() { vkDestroyDescriptorPool( rg.device, pool, nullptr ); }
 
-VkDescriptorSet DescriptorAllocator::Allocate( VkDescriptorSetLayout layout, const std::string& name )
+VkDescriptorSet DescriptorAllocator::Allocate( VkDescriptorSetLayout layout, std::string_view name )
 {
     VkDescriptorSetAllocateInfo allocInfo = { .sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
     allocInfo.pNext                       = nullptr;
@@ -108,7 +138,7 @@ VkDescriptorSet DescriptorAllocator::Allocate( VkDescriptorSetLayout layout, con
     return ds;
 }
 
-bool DescriptorBuffer::Create( VkDescriptorSetLayout layout, const std::string& name )
+bool DescriptorBuffer::Create( VkDescriptorSetLayout layout, std::string_view name )
 {
 #if USING( PG_DESCRIPTOR_BUFFER )
     const VkPhysicalDeviceDescriptorBufferPropertiesEXT& dbProps = rg.physicalDevice.GetProperties().dbProps;
@@ -129,5 +159,46 @@ bool DescriptorBuffer::Create( VkDescriptorSetLayout layout, const std::string& 
 }
 
 void DescriptorBuffer::Free() { buffer.Free(); }
+
+void InitGlobalDescriptorData()
+{
+    DescriptorLayoutBuilder setLayoutBuilder;
+    setLayoutBuilder.AddBinding( 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES );
+    setLayoutBuilder.AddBinding( 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
+    setLayoutBuilder.AddBinding( 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 );
+    s_globalDescriptorSetLayout = setLayoutBuilder.Build( VK_SHADER_STAGE_ALL, "global" );
+
+#if USING( PG_DESCRIPTOR_BUFFER )
+    s_globalDescriptorBuffer.Create( s_globalDescriptorSetLayout );
+#else  // #if USING( PG_DESCRIPTOR_BUFFER )
+    std::vector<VkDescriptorPoolSize> poolSizes = {
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  PG_MAX_BINDLESS_TEXTURES},
+        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  PG_MAX_BINDLESS_TEXTURES},
+        {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1                       },
+    };
+    s_descriptorAllocator.Init( 1, poolSizes, "global" );
+
+    s_globalDescriptorSet = s_descriptorAllocator.Allocate( s_globalDescriptorSetLayout, "global" );
+#endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
+}
+
+void FreeGlobalDescriptorData()
+{
+    vkDestroyDescriptorSetLayout( rg.device, s_globalDescriptorSetLayout, nullptr );
+    DEBUG_BUILD_ONLY( s_globalDescriptorSetLayout = VK_NULL_HANDLE );
+#if USING( PG_DESCRIPTOR_BUFFER )
+    s_globalDescriptorBuffer.Free();
+#else  // #if USING( PG_DESCRIPTOR_BUFFER )
+    DEBUG_BUILD_ONLY( s_globalDescriptorSet = VK_NULL_HANDLE );
+    s_descriptorAllocator.Free();
+#endif // #else  // #if USING( PG_DESCRIPTOR_BUFFER )
+}
+
+const VkDescriptorSetLayout& GetGlobalDescriptorSetLayout() { return s_globalDescriptorSetLayout; }
+#if USING( PG_DESCRIPTOR_BUFFER )
+DescriptorBuffer& GetGlobalDescriptorBuffer() { return s_globalDescriptorBuffer; }
+#else  // #if USING( PG_DESCRIPTOR_BUFFER )
+const VkDescriptorSet& GetGlobalDescriptorSet() { return s_globalDescriptorSet; }
+#endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 
 } // namespace PG::Gfx

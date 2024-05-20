@@ -23,13 +23,9 @@ static PerFrameManagerData* s_currFrameData;
 static vector<Handle> s_freeSlots;
 static vector<PendingAdd> s_pendingAdds;
 
-static VkDescriptorSetLayout s_descriptorSetLayout;
 #if USING( PG_DESCRIPTOR_BUFFER )
 static VkPhysicalDeviceDescriptorBufferPropertiesEXT s_dbProps;
-static DescriptorBuffer s_descriptorBuffer;
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
-static DescriptorAllocator s_descriptorAllocator;
-static VkDescriptorSet s_descriptorSet;
 static vector<VkWriteDescriptorSet> s_scratchWrites;
 static vector<VkDescriptorImageInfo> s_scratchImgInfos;
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
@@ -54,25 +50,13 @@ void Init()
     static_assert( PG_INVALID_TEXTURE_INDEX == 0, "update the free slot list above if this changes" );
 
     s_pendingAdds.reserve( 128 );
-    s_scratchWrites.reserve( 2 * 128 );
-    s_scratchImgInfos.reserve( 2 * 128 );
-
-    DescriptorLayoutBuilder setLayoutBuilder;
-    setLayoutBuilder.AddBinding( 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES );
-    setLayoutBuilder.AddBinding( 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
-    s_descriptorSetLayout = setLayoutBuilder.Build( VK_SHADER_STAGE_ALL, "bindless" );
 
 #if USING( PG_DESCRIPTOR_BUFFER )
     s_dbProps = rg.physicalDevice.GetProperties().dbProps;
     s_descriptorBuffer.Create( s_descriptorSetLayout );
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
-    vector<VkDescriptorPoolSize> poolSizes = {
-        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES},
-        {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES},
-    };
-    s_descriptorAllocator.Init( 1, poolSizes, "bindless" );
-
-    s_descriptorSet = s_descriptorAllocator.Allocate( s_descriptorSetLayout, "bindless" );
+    s_scratchWrites.reserve( 2 * 128 );
+    s_scratchImgInfos.reserve( 2 * 128 );
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 }
 
@@ -84,17 +68,7 @@ void Shutdown()
     }
     s_freeSlots   = vector<Handle>();
     s_pendingAdds = vector<PendingAdd>();
-    vkDestroyDescriptorSetLayout( rg.device, s_descriptorSetLayout, nullptr );
-    s_descriptorSetLayout = VK_NULL_HANDLE;
-#if USING( PG_DESCRIPTOR_BUFFER )
-    s_descriptorBuffer.Free();
-#else  // #if USING( PG_DESCRIPTOR_BUFFER )
-    s_descriptorSet = VK_NULL_HANDLE;
-    s_descriptorAllocator.Free();
-#endif // #else  // #if USING( PG_DESCRIPTOR_BUFFER )
 }
-
-const VkDescriptorSetLayout& GetBindlessSetLayout() { return s_descriptorSetLayout; }
 
 void Update()
 {
@@ -107,7 +81,8 @@ void Update()
         return;
 
 #if USING( PG_DESCRIPTOR_BUFFER )
-    char* dbPtr = s_descriptorBuffer.buffer.GetMappedPtr();
+    DescriptorBuffer& descriptorBuffer = GetGlobalDescriptorBuffer();
+    char* dbPtr                        = descriptorBuffer.buffer.GetMappedPtr();
     for ( uint32_t i = 0; i < numAdds; ++i )
     {
         const PendingAdd& pendingAdd = s_pendingAdds[i];
@@ -120,7 +95,7 @@ void Update()
         descriptorInfo.type               = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
         descriptorInfo.data.pStorageImage = &imgInfo;
         size_t descSize                   = s_dbProps.storageImageDescriptorSize;
-        vkGetDescriptorEXT( rg.device, &descriptorInfo, descSize, dbPtr + s_descriptorBuffer.offset + pendingAdd.slot * descSize );
+        vkGetDescriptorEXT( rg.device, &descriptorInfo, descSize, dbPtr + descriptorBuffer.offset + pendingAdd.slot * descSize );
     }
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
     s_scratchWrites.reserve( 2 * numAdds );
@@ -137,7 +112,7 @@ void Update()
             imgInfo.imageLayout            = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
 
             VkWriteDescriptorSet& write = s_scratchWrites.emplace_back( VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET );
-            write.dstSet                = s_descriptorSet;
+            write.dstSet                = GetGlobalDescriptorSet();
             write.dstBinding            = 0;
             write.dstArrayElement       = pendingAdd.slot;
             write.descriptorCount       = 1;
@@ -152,7 +127,7 @@ void Update()
             imgInfo.imageLayout            = VK_IMAGE_LAYOUT_GENERAL;
 
             VkWriteDescriptorSet& write = s_scratchWrites.emplace_back( VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET );
-            write.dstSet                = s_descriptorSet;
+            write.dstSet                = GetGlobalDescriptorSet();
             write.dstBinding            = 1;
             write.dstArrayElement       = pendingAdd.slot;
             write.descriptorCount       = 1;
@@ -181,11 +156,5 @@ Handle AddTexture( VkImageView imgView, Usage usage )
 }
 
 void RemoveTexture( Handle index ) { s_currFrameData->pendingRemovals.push_back( index ); }
-
-#if USING( PG_DESCRIPTOR_BUFFER )
-const DescriptorBuffer& GetBindlessDescriptorBuffer() { return s_descriptorBuffer; }
-#else  // #if USING( PG_DESCRIPTOR_BUFFER )
-const VkDescriptorSet& GetBindlessSet() { return s_descriptorSet; }
-#endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 
 } // namespace PG::Gfx::TextureManager

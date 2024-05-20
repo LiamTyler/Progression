@@ -21,11 +21,4 @@ void Update();
 uint16_t AddTexture( VkImageView imgView, Usage usage = Usage::READ_WRITE );
 void RemoveTexture( uint16_t index );
 
-const VkDescriptorSetLayout& GetBindlessSetLayout();
-#if USING( PG_DESCRIPTOR_BUFFER )
-const DescriptorBuffer& GetBindlessDescriptorBuffer();
-#else  // #if USING( PG_DESCRIPTOR_BUFFER )
-const VkDescriptorSet& GetBindlessSet();
-#endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
-
 } // namespace PG::Gfx::TextureManager

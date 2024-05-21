@@ -137,7 +137,12 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     name          = createInfo->name;
     m_shaderStage = createInfo->shaderStage;
 
-    ShaderPreprocessOutput preproc = PreprocessShader( *createInfo, false );
+    bool savePreproc = false;
+#if USING( CONVERTER )
+    savePreproc = g_converterConfigOptions.saveShaderPreproc;
+#endif // #if USING( CONVERTER )
+
+    ShaderPreprocessOutput preproc = PreprocessShader( *createInfo, savePreproc );
     if ( !preproc.success )
     {
         return false;

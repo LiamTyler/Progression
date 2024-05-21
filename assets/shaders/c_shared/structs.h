@@ -17,12 +17,12 @@ struct SceneGlobals
     VEC4 cameraPos; // w is 1, for convenience
     VEC4 cameraExposureAndSkyTint; // x = exposure, yzw = sky tint
     UVEC4 lightCountAndPad3; // x = light count, yzw = pad
-
+    
     UINT r_materialViz;
     UINT r_lightingViz;
     UINT r_postProcessing;
     UINT r_tonemap;
-
+    
     int debugInt; // r_debugInt
     UINT debugUint; // r_debugUint
     float debugFloat; // r_debugFloat
@@ -34,24 +34,27 @@ struct PerObjectData
     UINT matrixIndex;
 };
 
+struct Meshlet
+{
+    UINT vertexOffset;
+    UINT triOffset;
+    UINT vertexCount;
+    UINT triangleCount;
+};
+
 struct MaterialData
 {
     VEC3 albedoTint;
     float metalnessTint;
-
+    
     float roughnessTint;
     UINT albedoMetalnessMapIndex;
     UINT normalRoughnessMapIndex;
     float pad;
-
+    
     VEC3 emissiveTint;
     UINT emissiveMapIndex;
 };
-
-#ifndef PG_SHADER_CODE
-static_assert( sizeof( PerObjectData ) + sizeof( MaterialData ) <= 128, "Total push constant data has to be less than 128 bytes (on some machines)" );
-static_assert( 16 + sizeof( MaterialData ) <= 128, "Total push constant data has to be less than 128 bytes (on some machines). Accounting for member alignment" );
-#endif // #ifndef PG_SHADER_CODE
 
 #define LIGHT_TYPE_POINT 0
 #define LIGHT_TYPE_SPOT 1
@@ -70,7 +73,7 @@ struct SkyboxData
     MAT4 VP;
     VEC3 tint;
     float scale;
-	UINT hasTexture;
+    UINT hasTexture;
     UINT r_skyboxViz;
     float r_skyboxReflectionMipLevel;
     UINT _pad1;

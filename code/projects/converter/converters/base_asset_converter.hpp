@@ -16,7 +16,8 @@ namespace PG
 
 struct ConverterConfigOptions
 {
-    bool force = false;
+    bool force             = false;
+    bool saveShaderPreproc = false;
 };
 
 enum class AssetStatus : uint8_t

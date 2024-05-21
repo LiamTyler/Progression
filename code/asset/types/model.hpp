@@ -20,11 +20,9 @@ struct Material;
 struct Meshlet
 {
     uint32_t vertexOffset;
-    uint32_t indexOffset;
-    uint32_t _pad1;
-    uint16_t _pad2;
-    uint8_t vertexCount;
-    uint8_t triangleCount;
+    uint32_t triOffset;
+    uint32_t vertexCount;
+    uint32_t triangleCount;
 };
 
 struct Mesh
@@ -40,9 +38,10 @@ struct Mesh
 
 #if USING( GPU_DATA )
     Gfx::Buffer vertexBuffer;
+    Gfx::Buffer triBuffer;
     Gfx::Buffer meshletBuffer;
-    size_t indexOffset;
     uint32_t numVertices;
+    uint32_t numMeshlets;
     bool hasTexCoords;
     bool hasTangents;
 #endif // #if USING( GPU_DATA )

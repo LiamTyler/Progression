@@ -42,7 +42,7 @@ int main( int argc, char* argv[] )
 #endif // #else // #if USING( LOAD_SCENE_DIRECTLY )
 
     Window* window = GetMainWindow();
-    // window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
+    window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
     window->SetRelativeMouse( false );
 
     Input::PollEvents();

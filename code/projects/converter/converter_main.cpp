@@ -43,27 +43,24 @@ static const std::string SCENE_DIR = PG_ASSET_DIR "scenes/";
 
 static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile )
 {
-    if ( argc == 1 )
-    {
-        return true;
-    }
-
     static struct option long_options[] = {
-        {"force",  no_argument,       0, 'f'},
-        {"help",   no_argument,       0, 'h'},
-        {"single", required_argument, 0, 's'},
-        {0,        0,                 0, 0  }
+        {"force",   no_argument,       0, 'f'},
+        {"help",    no_argument,       0, 'h'},
+        {"preproc", no_argument,       0, 'p'},
+        {"single",  required_argument, 0, 's'},
+        {0,         0,                 0, 0  }
     };
 
     s_singleAssetType = ASSET_TYPE_COUNT;
     int option_index  = 0;
     int c             = -1;
-    while ( ( c = getopt_long( argc, argv, "fhs", long_options, &option_index ) ) != -1 )
+    while ( ( c = getopt_long( argc, argv, "fhps", long_options, &option_index ) ) != -1 )
     {
         switch ( c )
         {
         case 'f': g_converterConfigOptions.force = true; break;
         case 'h': DisplayHelp(); return false;
+        case 'p': g_converterConfigOptions.saveShaderPreproc = true; break;
         case 's':
             for ( uint32_t i = 0; i < Underlying( ASSET_TYPE_COUNT ); ++i )
             {

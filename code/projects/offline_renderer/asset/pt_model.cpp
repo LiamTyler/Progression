@@ -13,6 +13,8 @@ MeshInstance::MeshInstance() : material( MATERIAL_HANDLE_INVALID ) {}
 
 MeshInstance::MeshInstance( Model* model, uint32_t meshIdx, const Transform& inLocalToWorld, MaterialHandle inMaterial )
 {
+    PG_ASSERT( false, "todo: update to handle new meshlet models" );
+    /*
     localToWorld         = inLocalToWorld;
     uint32_t numVertices = model->meshes[meshIdx].numVertices;
     positions.resize( numVertices );
@@ -42,10 +44,13 @@ MeshInstance::MeshInstance( Model* model, uint32_t meshIdx, const Transform& inL
         indices[i]          = model->indices[startIndex + i];
     }
     material = inMaterial;
+    */
 }
 
 void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> materials, const Transform& transform )
 {
+    PG_ASSERT( false, "todo: update to handle new meshlet models" );
+    /*
     if ( model->texCoords.empty() )
     {
         model->texCoords.resize( model->positions.size(), vec2( 0 ) );
@@ -98,6 +103,7 @@ void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> material
     {
         g_meshInstances.emplace_back( model, i, transform, LoadMaterialFromPGMaterial( materials[i] ) );
     }
+    */
 }
 
 void EmitTrianglesForAllMeshes( std::vector<Shape*>& shapes, std::vector<Light*>& lights )

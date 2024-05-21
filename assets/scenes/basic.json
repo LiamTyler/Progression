@@ -17,7 +17,7 @@
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
     { "Entity": {
         "NameComponent": "dragon",
-        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 90, 0, 90 ], "scale": [ 1, 1, 1 ] },
         "ModelRenderer": { "model": "dragon", "material": "red" }
     }}
 ]

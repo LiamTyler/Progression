@@ -287,13 +287,14 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
             output.success = false;
             return output;
         }
-        out << output.outputShader << std::endl;
 
-        // write list of #defines at the bottom for easier debugging
+        // write list of #defines for easier debugging
         for ( const auto& [define, value] : defines )
         {
             out << "// #define " << define << " " << value << "\n";
         }
+
+        out << output.outputShader << std::endl;
     }
 
     return output;

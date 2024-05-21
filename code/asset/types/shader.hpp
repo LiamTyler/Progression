@@ -50,10 +50,13 @@ struct Shader : public BaseAsset
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
 
-    VkShaderModule GetHandle() const { return m_handle; }
     const ShaderReflectData& GetReflectionData() const { return m_reflectionData; }
     ShaderStage GetShaderStage() const { return m_shaderStage; }
+
+#if USING( GPU_DATA )
+    VkShaderModule GetHandle() const { return m_handle; }
     operator VkShaderModule() const { return m_handle; }
+#endif // #if USING( GPU_DATA )
 
 #if USING( CONVERTER )
     std::vector<uint32_t> savedSpirv;

@@ -65,8 +65,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
 
         m.meshlets.resize( meshletCount );
-        uint32_t numVerts   = 0;
-        uint32_t numIndices = 0;
+        uint32_t numVerts = 0;
+        uint32_t numTris  = 0;
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
@@ -79,14 +79,13 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             //         meshlet.triangle_count, &pMesh.vertices[0].pos, meshlet.vertex_count, sizeof( PNodel::Vertex ) );
 
             PG_ASSERT( numVerts == meshlet.vertex_offset );
-            PG_ASSERT( numIndices == meshlet.triangle_offset );
             pgMeshlet.vertexOffset  = meshlet.vertex_offset;
-            pgMeshlet.indexOffset   = meshlet.triangle_offset; // it seems like meshoptimizer always pads the offsets to be a multiple of 4
-            pgMeshlet.vertexCount   = static_cast<uint8_t>( meshlet.vertex_count );
-            pgMeshlet.triangleCount = static_cast<uint8_t>( meshlet.triangle_count );
+            pgMeshlet.triOffset     = numTris;
+            pgMeshlet.vertexCount   = meshlet.vertex_count;
+            pgMeshlet.triangleCount = meshlet.triangle_count;
 
             numVerts += pgMeshlet.vertexCount;
-            numIndices += ALIGN_UP_POW_2( 3 * pgMeshlet.triangleCount, 4 );
+            numTris += pgMeshlet.triangleCount;
         }
 
         m.positions.resize( numVerts );
@@ -95,15 +94,15 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             m.texCoords.resize( numVerts );
         if ( pMesh.hasTangents )
             m.tangents.resize( numVerts );
-        m.indices.resize( numIndices );
+        m.indices.resize( 4 * numTris ); // for now, storing 1 byte of padding after every 3 indices, for easier indexing
 
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
-            const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
-            const Meshlet& pgMeshlet       = m.meshlets[meshletIdx];
+            const meshopt_Meshlet& moMeshlet = meshlets[meshletIdx];
+            const Meshlet& pgMeshlet         = m.meshlets[meshletIdx];
             for ( uint8_t localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
             {
-                size_t globalMOIdx       = meshlet.vertex_offset + localVIdx;
+                size_t globalMOIdx       = moMeshlet.vertex_offset + localVIdx;
                 size_t globalPGIdx       = pgMeshlet.vertexOffset + localVIdx;
                 const PModel::Vertex& v  = pMesh.vertices[meshletVertices[globalMOIdx]];
                 m.positions[globalPGIdx] = v.pos;
@@ -128,11 +127,12 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
             for ( uint8_t localTriIdx = 0; localTriIdx < pgMeshlet.triangleCount; ++localTriIdx )
             {
-                size_t globalMOIdx         = meshlet.triangle_offset + 3 * localTriIdx;
-                size_t globalPGIdx         = pgMeshlet.indexOffset + 3 * localTriIdx;
+                size_t globalMOIdx         = moMeshlet.triangle_offset + 3 * localTriIdx;
+                size_t globalPGIdx         = 4 * pgMeshlet.triOffset + 4 * localTriIdx;
                 m.indices[globalPGIdx + 0] = meshletTriangles[globalMOIdx + 0];
                 m.indices[globalPGIdx + 1] = meshletTriangles[globalMOIdx + 1];
                 m.indices[globalPGIdx + 2] = meshletTriangles[globalMOIdx + 2];
+                m.indices[globalPGIdx + 3] = 0;
             }
         }
     }
@@ -203,18 +203,28 @@ void Model::UploadToGPU()
     FreeGPU();
     for ( Mesh& mesh : meshes )
     {
-        mesh.numVertices       = static_cast<uint32_t>( mesh.positions.size() );
-        mesh.hasTexCoords      = !mesh.texCoords.empty();
-        mesh.hasTangents       = !mesh.tangents.empty();
-        size_t totalVertexSize = 0;
-        totalVertexSize += mesh.positions.size() * sizeof( vec3 );
-        totalVertexSize += mesh.normals.size() * sizeof( vec3 );
-        totalVertexSize += mesh.texCoords.size() * sizeof( vec2 );
-        totalVertexSize += mesh.tangents.size() * sizeof( vec4 );
-        mesh.indexOffset = totalVertexSize;
-        totalVertexSize += ALIGN_UP_POW_2( mesh.indices.size(), 4 ) * sizeof( uint8_t );
+        mesh.numVertices              = static_cast<uint32_t>( mesh.positions.size() );
+        mesh.numMeshlets              = static_cast<uint32_t>( mesh.meshlets.size() );
+        mesh.hasTexCoords             = !mesh.texCoords.empty();
+        mesh.hasTangents              = !mesh.tangents.empty();
+        size_t totalVertexSizeInBytes = 0;
+        totalVertexSizeInBytes += mesh.positions.size() * sizeof( vec3 );
+        totalVertexSizeInBytes += mesh.normals.size() * sizeof( vec3 );
+        totalVertexSizeInBytes += mesh.texCoords.size() * sizeof( vec2 );
+        totalVertexSizeInBytes += mesh.tangents.size() * sizeof( vec4 );
+        // mesh.indexOffset = totalVertexSize;
+        // totalVertexSize += mesh.indices.size() * sizeof( uint8_t );
+        // totalVertexSize += ALIGN_UP_POW_2( mesh.indices.size(), 4 ) * sizeof( uint8_t );
 
-        Gfx::Buffer stagingBuffer = rg.device.NewStagingBuffer( totalVertexSize );
+        PG_ASSERT( mesh.indices.size() % 4 == 0 );
+        uint32_t tri1             = *reinterpret_cast<uint32_t*>( mesh.indices.data() );
+        uint32_t index1           = ( tri1 >> 0 ) & 0xFF;
+        uint32_t index2           = ( tri1 >> 8 ) & 0xFF;
+        uint32_t index3           = ( tri1 >> 16 ) & 0xFF;
+        size_t triBufferSize      = mesh.indices.size() * sizeof( uint8_t );
+        size_t meshletsSize       = mesh.meshlets.size() * sizeof( Meshlet );
+        size_t stagingBufferSize  = Max( totalVertexSizeInBytes, Max( triBufferSize, meshletsSize ) );
+        Gfx::Buffer stagingBuffer = rg.device.NewStagingBuffer( stagingBufferSize );
         char* stagingData         = stagingBuffer.Map();
         memcpy( stagingData, mesh.positions.data(), mesh.positions.size() * sizeof( vec3 ) );
         stagingData += mesh.positions.size() * sizeof( vec3 );
@@ -230,20 +240,23 @@ void Model::UploadToGPU()
             memcpy( stagingData, mesh.tangents.data(), mesh.tangents.size() * sizeof( vec4 ) );
             stagingData += mesh.tangents.size() * sizeof( vec4 );
         }
-        memcpy( stagingData, mesh.indices.data(), mesh.indices.size() * sizeof( uint8_t ) );
+        // stagingData = stagingBuffer.Map() + mesh.indexOffset;
+        // memcpy( stagingData, mesh.indices.data(), mesh.indices.size() * sizeof( uint8_t ) );
 
         BufferCreateInfo vbCreateInfo{};
-        vbCreateInfo.size        = totalVertexSize;
+        vbCreateInfo.size        = totalVertexSizeInBytes;
         vbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
         mesh.vertexBuffer        = rg.device.NewBuffer( vbCreateInfo, name + "_vb_" + mesh.name );
-        rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.vertexBuffer, stagingBuffer ); } );
+        rg.ImmediateSubmit(
+            [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.vertexBuffer, stagingBuffer, totalVertexSizeInBytes ); } );
 
-        size_t meshletsSize = mesh.meshlets.size() * sizeof( Meshlet );
-        if ( meshletsSize > totalVertexSize )
-        {
-            stagingBuffer.Free();
-            stagingBuffer = rg.device.NewStagingBuffer( meshletsSize );
-        }
+        memcpy( stagingBuffer.Map(), mesh.indices.data(), triBufferSize );
+        BufferCreateInfo tbCreateInfo{};
+        tbCreateInfo.size        = triBufferSize;
+        tbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+        mesh.triBuffer           = rg.device.NewBuffer( tbCreateInfo, name + "_tb_" + mesh.name );
+        rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.triBuffer, stagingBuffer, triBufferSize ); } );
+
         stagingData = stagingBuffer.Map();
         memcpy( stagingData, mesh.meshlets.data(), meshletsSize );
 
@@ -283,6 +296,8 @@ void Model::FreeGPU()
     {
         if ( mesh.vertexBuffer )
             mesh.vertexBuffer.Free();
+        if ( mesh.triBuffer )
+            mesh.triBuffer.Free();
         if ( mesh.meshletBuffer )
             mesh.meshletBuffer.Free();
     }

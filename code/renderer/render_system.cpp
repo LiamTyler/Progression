@@ -56,13 +56,51 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.BindPipeline( &s_meshPipeline );
     cmdBuf.BindGlobalDescriptors();
 
-    VkDeviceAddress address = s_buffer.GetDeviceAddress();
-    cmdBuf.PushConstants( address );
+    // VkDeviceAddress address = s_buffer.GetDeviceAddress();
+    // cmdBuf.PushConstants( address );
 
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
 
-    cmdBuf.DrawMeshTasks( 1, 1, 1 );
+    uint32_t objectNum = 0;
+    data->scene->registry.view<ModelRenderer, Transform>().each(
+        [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
+        {
+            if ( objectNum == MAX_OBJECTS_PER_FRAME )
+                return;
+
+            const Model* model = modelRenderer.model;
+
+            for ( size_t i = 0; i < model->meshes.size(); ++i )
+            {
+                const Mesh& mesh = model->meshes[i];
+
+                struct PushConsts
+                {
+                    VkDeviceAddress vertexBuffer;
+                    VkDeviceAddress triBuffer;
+                    VkDeviceAddress meshletBuffer;
+                    VkDeviceAddress transformBuffer;
+                    uint32_t matrixIndex;
+                    uint32_t pad;
+                };
+
+                PushConsts constants;
+                constants.vertexBuffer    = mesh.vertexBuffer.GetDeviceAddress();
+                constants.triBuffer       = mesh.triBuffer.GetDeviceAddress();
+                constants.meshletBuffer   = mesh.meshletBuffer.GetDeviceAddress();
+                constants.transformBuffer = data->frameData->objectModelMatricesBuffer.GetDeviceAddress();
+                constants.matrixIndex     = objectNum;
+                constants.pad             = 0;
+
+                cmdBuf.PushConstants( constants );
+
+                PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw \"" + model->name + "\" : \"" + mesh.name + "\"", vec4( 0 ) );
+                cmdBuf.DrawMeshTasks( mesh.numMeshlets, 1, 1 );
+
+                ++objectNum;
+            }
+        } );
 }
 
 void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
@@ -170,6 +208,8 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     info.shaders.push_back( AssetManager::Get<Shader>( "litPS" ) );
     info.colorAttachments.emplace_back( PixelFormat::R16_G16_B16_A16_FLOAT );
     info.depthInfo.format = PixelFormat::DEPTH_32_FLOAT;
+    // info.rasterizerInfo.winding = WindingOrder::CLOCKWISE;
+    // info.rasterizerInfo.cullFace = CullFace::NONE;
     // info.depthInfo.depthTestEnabled  = false;
     // info.depthInfo.depthWriteEnabled = false;
 

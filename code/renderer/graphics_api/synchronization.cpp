@@ -30,6 +30,20 @@ Fence::operator VkFence() const { return m_handle; }
 
 void Semaphore::Free() { vkDestroySemaphore( rg.device, m_handle, nullptr ); }
 
+// cleanup dangerous semaphore with signal pending from vkAcquireNextImageKHR (tie it to a specific queue)
+// https://github.com/KhronosGroup/Vulkan-Docs/issues/1059
+void Semaphore::Unsignal() const
+{
+    const VkPipelineStageFlags psw = VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT;
+
+    VkSubmitInfo submitInfo{ VK_STRUCTURE_TYPE_SUBMIT_INFO };
+    submitInfo.waitSemaphoreCount = 1;
+    submitInfo.pWaitSemaphores    = &m_handle;
+    submitInfo.pWaitDstStageMask  = &psw;
+
+    vkQueueSubmit( rg.device.GetQueue(), 1, &submitInfo, VK_NULL_HANDLE );
+}
+
 VkSemaphore Semaphore::GetHandle() const { return m_handle; }
 
 Semaphore::operator bool() const { return m_handle != VK_NULL_HANDLE; }

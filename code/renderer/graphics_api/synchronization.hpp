@@ -31,6 +31,7 @@ public:
     Semaphore() = default;
 
     void Free();
+    void Unsignal() const;
     VkSemaphore GetHandle() const;
     operator bool() const;
     operator VkSemaphore() const;

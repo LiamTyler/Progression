@@ -355,12 +355,13 @@ void Render()
 {
     FrameData& frameData = rg.GetFrameData();
     frameData.renderingCompleteFence.WaitFor();
-    frameData.renderingCompleteFence.Reset();
     if ( !rg.swapchain.AcquireNextImage( frameData.swapchainSemaphore ) )
     {
         eg.resizeRequested = true;
+        frameData.swapchainSemaphore.Unsignal();
         return;
     }
+    frameData.renderingCompleteFence.Reset();
     UpdateGPUSceneData( GetPrimaryScene() );
 
     CommandBuffer& cmdBuf = frameData.primaryCmdBuffer;

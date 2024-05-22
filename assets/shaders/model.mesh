@@ -42,9 +42,6 @@ uvec3 GetTri( const Meshlet meshlet, uint index )
     tri.x = (packedTri >> 0)  & 0xFF;
     tri.y = (packedTri >> 8)  & 0xFF;
     tri.z = (packedTri >> 16) & 0xFF;
-    //tri.x = (packedTri >> 24) & 0xFF;
-    //tri.y = (packedTri >> 16) & 0xFF;
-    //tri.z = (packedTri >> 8)  & 0xFF;
     return tri;
 }
 
@@ -63,6 +60,11 @@ mat4 GetWorldMatrix( uint objectIdx )
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 64, max_primitives = 124) out;
 
+layout (location = 0) out PerVertexData
+{
+    flat uint meshletIdx;
+} v_out[];
+
 void main()
 {
     const uint meshletID = gl_WorkGroupID.x;
@@ -80,6 +82,8 @@ void main()
         //vec4 worldPos = localPos;
         vec4 worldPos = GetWorldMatrix( constants.matrixIndex ) * localPos;
         gl_MeshVerticesEXT[threadID].gl_Position = globals.VP * worldPos;
+        
+        v_out[threadID].meshletIdx = meshletID;
     }
     
     uint tri1_ID = 2 * threadID + 0;
@@ -94,59 +98,3 @@ void main()
         gl_PrimitiveTriangleIndicesEXT[tri2_ID] = GetTri( meshlet, tri2_ID );
     }
 }
-
-
-/*
-DEFINE_GLOBAL_DESCRIPTORS();
-
-DEFINE_BUFFER_REFERENCE( 4 ) PositionBuffer
-{
-    vec3 positions[];
-};
-
-DEFINE_BUFFER_REFERENCE( 4 ) TriBuffer
-{
-    uint tris[];
-};
-
-layout(push_constant) uniform Registers
-{
-    PositionBuffer vertexBuffer;
-    TriBuffer triBuffer;
-} constants;
-
-layout(local_size_x = 1, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 3, max_primitives = 1) out;
-
-vec3 GetPos( uint i )
-{
-    vec3 pos = constants.vertexBuffer.positions[i];
-    pos.x += globals.debugFloat;
-    return vec3( pos );
-    //return vec3( pos, 0 );
-}
-
-uvec3 GetTri( uint index )
-{
-    uint packedTri = constants.triBuffer.tris[index];
-    uvec3 tri;
-    tri.x = (packedTri >> 0)  & 0xFF;
-    tri.y = (packedTri >> 8)  & 0xFF;
-    tri.z = (packedTri >> 16) & 0xFF;
-    return tri;
-}
-
-void main()
-{
-    const uint meshletID = gl_WorkGroupID.x;
-    const uint threadID = gl_LocalInvocationIndex;
-    
-    uint vertexCount = 3;
-    uint triangleCount = 1;
-    SetMeshOutputsEXT(vertexCount, triangleCount);
-    gl_MeshVerticesEXT[0].gl_Position = vec4( GetPos( threadID ), 1);
-    gl_MeshVerticesEXT[1].gl_Position = vec4( GetPos( threadID ), 1);
-    gl_MeshVerticesEXT[2].gl_Position = vec4( GetPos( threadID ), 1);
-    gl_PrimitiveTriangleIndicesEXT[0] =  GetTri( threadID );
-}
-*/

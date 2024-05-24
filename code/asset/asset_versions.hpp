@@ -26,9 +26,9 @@ constexpr unsigned int g_assetVersions[] = {
     9, // ASSET_TYPE_MATERIAL,  "Fixed material type"
     0, // ASSET_TYPE_SCRIPT
     2, // ASSET_TYPE_MODEL,     "basic meshlets"
-    2, // ASSET_TYPE_SHADER,    "deleted descriptor reflection stuff, added workgroup size reflection"
+    3, // ASSET_TYPE_SHADER,    "new names"
     7, // ASSET_TYPE_UI_LAYOUT, "mouse button down/up callbacks"
-    0, // ASSET_TYPE_PIPELINE, ""
+    1, // ASSET_TYPE_PIPELINE,  "fixed cache names"
 
     // put all assets that don't actually have a struct below.
     // Note: this means that bumping the image versions doesn't do anything :(

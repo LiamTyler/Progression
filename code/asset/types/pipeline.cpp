@@ -11,33 +11,24 @@
 namespace PG
 {
 
-std::string PipelineShaderInfo::GetFinalName( const std::vector<std::string>& defines ) const
-{
-    size_t hash = 0;
-    HashCombine( hash, stage );
-    for ( const std::string& define : defines )
-        HashCombine( hash, define );
-
-    return name + "_" + std::to_string( hash );
-}
-
 bool Pipeline::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
     const PipelineCreateInfo* inputCreateInfo = (const PipelineCreateInfo*)baseInfo;
 #if USING( CONVERTER )
     createInfo = *inputCreateInfo;
-#else  // #if USING( CONVERTER )
-    *this = Gfx::PipelineManager::CreatePipeline( *inputCreateInfo );
-#endif // #else // #if USING( CONVERTER )
     return true;
+#endif // #if USING( CONVERTER )
+#if USING( GPU_DATA )
+    *this = Gfx::PipelineManager::CreatePipeline( *inputCreateInfo );
+    return true;
+#endif // #if USING( GPU_DATA )
+    return false;
 }
 
 bool Pipeline::FastfileLoad( Serializer* serializer )
 {
-#if USING( CONVERTER )
-    return false;
-#else  // #if USING( CONVERTER )
+#if USING( GPU_DATA )
     using namespace Gfx;
     PipelineCreateInfo createInfo;
 
@@ -66,7 +57,8 @@ bool Pipeline::FastfileLoad( Serializer* serializer )
     *this = Gfx::PipelineManager::CreatePipeline( createInfo );
 
     return true;
-#endif // #else // #if USING( CONVERTER )
+#endif // #if USING( GPU_DATA )
+    return false;
 }
 
 bool Pipeline::FastfileSave( Serializer* serializer ) const
@@ -78,7 +70,7 @@ bool Pipeline::FastfileSave( Serializer* serializer ) const
     serializer->Write( numShaders );
     for ( const PipelineShaderInfo& shader : createInfo.shaders )
     {
-        std::string finalShaderName = shader.GetFinalName( createInfo.defines );
+        std::string finalShaderName = GetShaderCacheName( shader.name, shader.stage, createInfo.defines );
         serializer->Write( finalShaderName );
         serializer->Write( shader.stage );
     }

@@ -9,6 +9,6 @@ void Init();
 void Shutdown();
 
 Pipeline CreatePipeline( const PipelineCreateInfo& createInfo );
-Pipeline* GetPipeline( std::string_view name, bool debugPermuation = false );
+Pipeline* GetPipeline( const std::string& name, bool debugPermuation = false );
 
 } // namespace PG::Gfx::PipelineManager

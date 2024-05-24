@@ -143,8 +143,6 @@ struct PipelineShaderInfo
     // in asset .paf files, the filename is needed, but after that the actual asset name is needed
     std::string name;
     ShaderStage stage;
-
-    std::string GetFinalName( const std::vector<std::string>& defines ) const;
 };
 
 struct PipelineCreateInfo : public BaseAssetCreateInfo

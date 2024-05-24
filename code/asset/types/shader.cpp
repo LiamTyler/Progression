@@ -4,6 +4,7 @@
 #include "shaderc/shaderc.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
+#include "shared/hash.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include "spirv-tools/optimizer.hpp"
@@ -20,6 +21,21 @@
 
 namespace PG
 {
+
+std::string GetShaderCacheName( const std::string& filename, ShaderStage stage, const std::vector<std::string>& defines )
+{
+    size_t hash = 0;
+    HashCombine( hash, stage );
+    bool isDebug      = defines.empty() ? false : defines.back() == "IS_DEBUG_SHADER 1";
+    size_t numDefines = isDebug ? defines.size() - 1 : defines.size();
+    for ( size_t i = 0; i < numDefines; ++i )
+        HashCombine( hash, defines[i] );
+
+    if ( isDebug )
+        return filename + "_d_" + std::to_string( hash );
+    else
+        return filename + "_" + std::to_string( hash );
+}
 
 std::string GetAbsPath_ShaderFilename( const std::string& filename ) { return PG_ASSET_DIR "shaders/" + filename; }
 

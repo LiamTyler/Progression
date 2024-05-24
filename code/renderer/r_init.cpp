@@ -2,6 +2,7 @@
 #include "core/window.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
+#include "renderer/r_pipeline_manager.hpp"
 #include "renderer/r_texture_manager.hpp"
 #include "shared/logger.hpp"
 #include "vk-bootstrap/VkBootstrap.h"
@@ -216,6 +217,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 
     InitGlobalDescriptorData();
     TextureManager::Init();
+    PipelineManager::Init();
 
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( rg.instance, "Primary" );
     PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( rg.physicalDevice, rg.physicalDevice.GetName() );
@@ -250,6 +252,7 @@ void R_Shutdown()
 
     rg.swapchain.Free();
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
+    PipelineManager::Shutdown();
     TextureManager::Shutdown();
     FreeGlobalDescriptorData();
     rg.device.Free();

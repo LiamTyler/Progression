@@ -29,6 +29,7 @@ static void DisplayHelp()
         "Options\n"
         "  --force        Don't check asset file dependencies, just reconvert everything\n"
         "  --help         Print this message and exit\n"
+        "  --preproc      Save out the preprocessed shaders, for any converted shaders\n"
         "  --single       Used to process a specific asset (and its referenced assets). Format: type name. Ex: '--single material "
         "\n";
 
@@ -135,7 +136,6 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                     {
                         LOG_ERR( "Could not find AssetInfo for AssetType: %s, name '%s'", assetTypeName.data(), assetName.data() );
                     }
-                    g_converters[assetTypeIdx]->AddReferencedAssets( createInfo );
                     AddUsedAsset( (AssetType)assetTypeIdx, createInfo );
                     found = true;
                     break;

@@ -9,7 +9,7 @@ void PipelineConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& pipeli
     for ( const PipelineShaderInfo& shaderInfo : pipelineInfo->shaders )
     {
         auto shaderCI         = std::make_shared<ShaderCreateInfo>();
-        shaderCI->name        = shaderInfo.GetFinalName( pipelineInfo->defines );
+        shaderCI->name        = GetShaderCacheName( shaderInfo.name, shaderInfo.stage, pipelineInfo->defines );
         shaderCI->filename    = shaderInfo.name;
         shaderCI->shaderStage = shaderInfo.stage;
         shaderCI->defines     = pipelineInfo->defines;

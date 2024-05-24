@@ -213,11 +213,6 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     {
         output.outputShader = CleanUpPreproc( output.outputShader );
         size_t seed         = 0;
-        // for ( const auto& [define, value] : defines )
-        //{
-        //     HashCombine( seed, define );
-        //     HashCombine( seed, value );
-        // }
         for ( const std::string& define : defines )
         {
             HashCombine( seed, define );
@@ -231,12 +226,6 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
             output.success = false;
             return output;
         }
-
-        // write list of #defines for easier debugging
-        // for ( const auto& [define, value] : defines )
-        //{
-        //    out << "// #define " << define << " " << value << "\n";
-        //}
         for ( const std::string& define : defines )
         {
             out << "// #define " << define << "\n";

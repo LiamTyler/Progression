@@ -31,6 +31,7 @@ struct ShaderCreateInfo : public BaseAssetCreateInfo
     std::vector<std::string> defines;
 };
 
+std::string GetShaderCacheName( const std::string& filename, ShaderStage stage, const std::vector<std::string>& defines );
 std::string GetAbsPath_ShaderFilename( const std::string& filename );
 
 struct ShaderReflectData

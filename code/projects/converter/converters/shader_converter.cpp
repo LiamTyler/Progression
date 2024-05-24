@@ -95,20 +95,7 @@ namespace PG
 
 std::string ShaderConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
-    std::string cacheName = info->name;
-    size_t hash           = 0;
-    HashCombine( hash, info->shaderStage );
-    HashCombine( hash, info->filename );
-    // for ( const auto& [defineName, defineVal] : info->defines )
-    for ( const std::string& define : info->defines )
-    {
-        HashCombine( hash, define );
-        // HashCombine( hash, defineName );
-        // HashCombine( hash, defineVal );
-    }
-    cacheName += "_" + std::to_string( hash );
-
-    return cacheName;
+    return GetShaderCacheName( info->filename, info->shaderStage, info->defines );
 }
 
 AssetStatus ShaderConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )

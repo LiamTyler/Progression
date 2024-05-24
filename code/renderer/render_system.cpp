@@ -9,6 +9,7 @@
 #include "r_dvars.hpp"
 #include "r_globals.hpp"
 #include "r_init.hpp"
+#include "r_pipeline_manager.hpp"
 #include "r_texture_manager.hpp"
 #include "renderer/debug_ui.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
@@ -23,8 +24,6 @@ using namespace Gfx;
 namespace PG::RenderSystem
 {
 
-static Pipeline* s_computePipeline;
-static Pipeline* s_meshPipeline;
 static TaskGraph s_taskGraph;
 static Buffer s_buffer;
 
@@ -35,7 +34,7 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    cmdBuf.BindPipeline( s_computePipeline );
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "gradient" ) );
     cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
@@ -53,7 +52,7 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
-    cmdBuf.BindPipeline( s_meshPipeline );
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "litModel" ) );
     cmdBuf.BindGlobalDescriptors();
 
     cmdBuf.SetViewport( SceneSizedViewport() );
@@ -195,16 +194,13 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
 
     // Profile::Init();
 
+    if ( !Init_TaskGraph() )
+        return false;
+
     if ( !AssetManager::LoadFastFile( "gfx_required" ) )
         return false;
 
-    s_computePipeline = AssetManager::Get<Pipeline>( "gradient" );
-    s_meshPipeline    = AssetManager::Get<Pipeline>( "litModel" );
-
     if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
-        return false;
-
-    if ( !Init_TaskGraph() )
         return false;
 
     s_timestamps.resize( 2 );

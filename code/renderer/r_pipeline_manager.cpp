@@ -226,6 +226,16 @@ Pipeline CreatePipeline( const PipelineCreateInfo& createInfo )
     }
 }
 
-Pipeline* GetPipeline( std::string_view name, bool debugPermuation ) { return nullptr; }
+Pipeline* GetPipeline( const std::string& name, bool debugPermuation )
+{
+    if ( debugPermuation )
+    {
+        return AssetManager::Get<Pipeline>( name + "_debug" );
+    }
+    else
+    {
+        return AssetManager::Get<Pipeline>( name );
+    }
+}
 
 } // namespace PG::Gfx::PipelineManager

@@ -36,7 +36,7 @@ namespace PG::UI
 static constexpr UIElementHandle MAX_UI_ELEMENTS = 4096;
 static StaticArrayAllocator<UIElement, UIElementHandle, UI_NULL_HANDLE, MAX_UI_ELEMENTS> s_uiElements;
 static StaticArrayAllocator<UIElementFunctions, uint16_t, UI_NULL_HANDLE, MAX_UI_ELEMENTS> s_uiElementFunctions;
-static Gfx::Pipeline s_uiPipelines[PIPELINE_COUNT];
+static Pipeline s_uiPipelines[PIPELINE_COUNT];
 static std::list<UIElementHandle> s_rootUiElements; // TODO: do linked list in statically allocated memory
 static sol::state* s_uiLuaState = nullptr;
 static std::vector<UIScript*> s_luaScripts;

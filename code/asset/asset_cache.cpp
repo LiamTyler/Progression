@@ -13,6 +13,7 @@ std::string assetCacheFolders[ASSET_TYPE_COUNT] = {
     "models/",      // ASSET_TYPE_MODEL
     "shaders/",     // ASSET_TYPE_SHADER
     "ui_layouts/",  // ASSET_TYPE_UI_LAYOUT
+    "pipelines/",   // ASSET_TYPE_PIPELINE
     "texturesets/", // ASSET_TYPE_TEXTURESET
 };
 
@@ -23,9 +24,10 @@ std::string assetCacheFileExtensions[ASSET_TYPE_COUNT] = {
     ".ffi", // ASSET_TYPE_MODEL
     ".ffi", // ASSET_TYPE_SHADER
     ".ffi", // ASSET_TYPE_UI_LAYOUT
+    ".ffi", // ASSET_TYPE_PIPELINE
     ".ffi", // ASSET_TYPE_TEXTURESET
 };
-static_assert( ASSET_TYPE_COUNT == 7 );
+static_assert( ASSET_TYPE_COUNT == 8 );
 
 static std::string GetCachedPath( AssetType assetType, const std::string& assetCacheName )
 {

@@ -20,6 +20,8 @@ T ParseNumber( const rapidjson::Value& v )
 vec2 ParseVec2( const rapidjson::Value& v );
 vec3 ParseVec3( const rapidjson::Value& v );
 vec4 ParseVec4( const rapidjson::Value& v );
+std::string ParseString( const rapidjson::Value& v );
+bool ParseBool( const rapidjson::Value& v );
 
 template <typename... Args>
 class JSONFunctionMapper

@@ -25,21 +25,24 @@ static bool ParseAssetFile( const std::string& filename )
 
     for ( json::Value::ConstValueIterator assetIter = document.Begin(); assetIter != document.End(); ++assetIter )
     {
-        std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
         const json::Value& value = assetIter->MemberBegin()->value;
+        std::string assetName;
+        if ( !value.HasMember( "name" ) )
+        {
+            LOG_ERR( "Asset '%s' in file '%s' needs to have a 'name' entry!", value.GetString(), filename.c_str() );
+            return false;
+        }
+        assetName = value["name"].GetString();
+
+        bool foundType           = false;
+        std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
         for ( uint32_t typeIndex = 0; typeIndex < ASSET_TYPE_COUNT; ++typeIndex )
         {
             if ( assetTypeStr == g_assetNames[typeIndex] )
             {
-                if ( !value.HasMember( "name" ) )
-                {
-                    LOG_ERR( "Asset '%s' in file '%s' needs to have a 'name' entry!", assetTypeStr.c_str(), filename.c_str() );
-                    return false;
-                }
-                const std::string assetName = value["name"].GetString();
                 if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )
                 {
-                    LOG_WARN( "Duplicate %s name %s in file %s. Ignoring", assetTypeStr.c_str(), assetName.c_str(), filename.c_str() );
+                    LOG_WARN( "Duplicate %s named %s in file %s. Ignoring", assetTypeStr.c_str(), assetName.c_str(), filename.c_str() );
                 }
                 else
                 {
@@ -53,8 +56,14 @@ static bool ParseAssetFile( const std::string& filename )
                     s_assetInfos[typeIndex][assetName] = info;
                 }
 
+                foundType = true;
                 break;
             }
+        }
+
+        if ( !foundType )
+        {
+            LOG_WARN( "Asset type '%s' not recognized. Skipping asset '%s'", assetTypeStr.c_str(), assetName.c_str() );
         }
     }
 

@@ -1,5 +1,14 @@
 [
-    { "Shader": { "name": "gradient", "shaderStage" : "COMPUTE", "filename": "gradient.comp" } },
-    { "Shader": { "name": "modelMS", "shaderStage" : "MESH", "filename": "model.mesh" } },
-	{ "Shader": { "name": "litPS", "shaderStage" : "FRAGMENT", "filename": "lit.frag" } }
+    { "Pipeline": {
+        "name": "gradient",
+        "computeShader": "gradient.comp",
+        "generateDebugPermutation": false
+    } },
+    { "Pipeline": {
+        "name": "litModel",
+        "meshShader": "model.mesh",
+        "fragmentShader": "lit.frag",
+        "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
+        "depthAttachment": { "format": "DEPTH_32_FLOAT" }
+    } }
 ]

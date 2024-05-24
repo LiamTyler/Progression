@@ -11,14 +11,12 @@ namespace PG::Gfx
 constexpr VkShaderStageFlagBits PGToVulkanShaderStage( ShaderStage stage )
 {
     VkShaderStageFlagBits convert[] = {
-        VK_SHADER_STAGE_VERTEX_BIT,                  // VERTEX
-        VK_SHADER_STAGE_TESSELLATION_CONTROL_BIT,    // TESSELLATION_CONTROL
-        VK_SHADER_STAGE_TESSELLATION_EVALUATION_BIT, // TESSELLATION_EVALUATION
-        VK_SHADER_STAGE_GEOMETRY_BIT,                // GEOMETRY
-        VK_SHADER_STAGE_FRAGMENT_BIT,                // FRAGMENT
-        VK_SHADER_STAGE_COMPUTE_BIT,                 // COMPUTE
-        VK_SHADER_STAGE_TASK_BIT_EXT,                // TASK
-        VK_SHADER_STAGE_MESH_BIT_EXT,                // MESH
+        VK_SHADER_STAGE_VERTEX_BIT,   // VERTEX
+        VK_SHADER_STAGE_GEOMETRY_BIT, // GEOMETRY
+        VK_SHADER_STAGE_FRAGMENT_BIT, // FRAGMENT
+        VK_SHADER_STAGE_COMPUTE_BIT,  // COMPUTE
+        VK_SHADER_STAGE_TASK_BIT_EXT, // TASK
+        VK_SHADER_STAGE_MESH_BIT_EXT, // MESH
     };
 
     static_assert( ARRAY_COUNT( convert ) == static_cast<int>( ShaderStage::NUM_SHADER_STAGES ) );

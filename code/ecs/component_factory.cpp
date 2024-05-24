@@ -21,8 +21,7 @@ static void ParseEntityMetadata( const rapidjson::Value& value, entt::entity e, 
     {
         { "name", []( const rapidjson::Value& v, entt::registry& reg, EntityMetaData& d )
             {
-                PG_ASSERT( v.IsString() );
-                std::string name = v.GetString();
+                std::string name = ParseString( v );
                 PG_ASSERT( !name.empty() );
                 PG_ASSERT( ECS::GetEntityByName( reg, name ) == entt::null, "ECS already contains entity with name '%s'", name.c_str() );
                 d.name = name;
@@ -30,16 +29,14 @@ static void ParseEntityMetadata( const rapidjson::Value& value, entt::entity e, 
         },
         { "parent", []( const rapidjson::Value& v, entt::registry& reg, EntityMetaData& d )
             {
-                PG_ASSERT( v.IsString() );
-                std::string parentName = v.GetString();
+                std::string parentName = ParseString( v );
                 d.parent = ECS::GetEntityByName( reg, parentName );
                 PG_ASSERT( d.parent != entt::null, "No entity found with name '%s'", parentName.c_str() );
             }
         },
         { "isStatic", []( const rapidjson::Value& v, entt::registry& reg, EntityMetaData& d )
             {
-                PG_ASSERT( v.IsBool() );
-                d.isStatic = v.GetBool();
+                d.isStatic = ParseBool( v );
             }
         }
     });
@@ -74,16 +71,14 @@ static void ParseModelRenderer( const rapidjson::Value& value, entt::entity e, e
     {
         { "model", []( const rapidjson::Value& v, ModelRenderer& comp )
             {
-                PG_ASSERT( v.IsString(), "Please provide a string of the model's name" );
-                comp.model = AssetManager::Get< Model >( v.GetString() );
+                comp.model = AssetManager::Get< Model >( ParseString( v ) );
                 PG_ASSERT( comp.model != nullptr, "Model with name '%s' not found", v.GetString() );
                 //comp.materials = comp.model->originalMaterials;
             }
         },
         { "material", []( const rapidjson::Value& v, ModelRenderer& comp )
             {
-                PG_ASSERT( v.IsString(), "Please provide a string of the material's name" );
-                auto mat = AssetManager::Get<Material>( v.GetString() );
+                auto mat = AssetManager::Get<Material>( ParseString( v ) );
                 PG_ASSERT( mat != nullptr, "Material with name '%s' not found", v.GetString() );
                 PG_ASSERT( comp.model != nullptr, "Must specify model before assigning materials for it" );
                 comp.materials.resize( comp.model->meshes.size() );

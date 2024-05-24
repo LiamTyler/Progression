@@ -43,7 +43,7 @@ int main( int argc, char* argv[] )
 
     Window* window = GetMainWindow();
     window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
-    window->SetRelativeMouse( false );
+    // window->SetRelativeMouse( false );
 
     Input::PollEvents();
     Time::Reset();

@@ -4,6 +4,7 @@
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/material.hpp"
 #include "asset/types/model.hpp"
+#include "asset/types/pipeline.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
 #include "asset/types/textureset.hpp"
@@ -54,6 +55,24 @@ protected:
     virtual bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) = 0;
 };
 
+struct NullParserCreateInfo : public BaseAssetCreateInfo
+{
+};
+
+class NullParser : public BaseAssetParserTemplate<NullParserCreateInfo>
+{
+public:
+    NullParser() : BaseAssetParserTemplate( ASSET_TYPE_COUNT ) {}
+
+protected:
+    bool ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info ) override
+    {
+        PG_UNUSED( value );
+        PG_UNUSED( info );
+        return false;
+    }
+};
+
 #define PG_DECLARE_ASSET_PARSER( AssetName, AssetType, CreateInfo )                        \
     class AssetName##Parser : public BaseAssetParserTemplate<CreateInfo>                   \
     {                                                                                      \
@@ -68,8 +87,8 @@ PG_DECLARE_ASSET_PARSER( GfxImage, ASSET_TYPE_GFX_IMAGE, GfxImageCreateInfo );
 PG_DECLARE_ASSET_PARSER( Material, ASSET_TYPE_MATERIAL, MaterialCreateInfo );
 PG_DECLARE_ASSET_PARSER( Model, ASSET_TYPE_MODEL, ModelCreateInfo );
 PG_DECLARE_ASSET_PARSER( Script, ASSET_TYPE_SCRIPT, ScriptCreateInfo );
-PG_DECLARE_ASSET_PARSER( Shader, ASSET_TYPE_SHADER, ShaderCreateInfo );
 PG_DECLARE_ASSET_PARSER( UILayout, ASSET_TYPE_UI_LAYOUT, UILayoutCreateInfo );
+PG_DECLARE_ASSET_PARSER( Pipeline, ASSET_TYPE_UI_LAYOUT, PipelineCreateInfo );
 PG_DECLARE_ASSET_PARSER( Textureset, ASSET_TYPE_TEXTURESET, TexturesetCreateInfo );
 
 extern const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT];

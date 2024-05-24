@@ -8,7 +8,6 @@
 #extension GL_EXT_shader_image_load_formatted : enable
 #extension GL_ARB_shader_image_size : enable
 
-#define DEFINE_BUFFER_REFERENCE( alignment ) \
-    layout(scalar, buffer_reference, buffer_reference_align = alignment) buffer
+#define DEFINE_BUFFER_REFERENCE( alignment ) layout(scalar, buffer_reference, buffer_reference_align = alignment) buffer
     
 #endif // #ifndef _COMMON_INCLUDE

@@ -83,14 +83,12 @@ static const char* PGShaderStageToDefine( PG::ShaderStage stage )
 static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
 {
     static shaderc_shader_kind convert[] = {
-        shaderc_vertex_shader,          // VERTEX
-        shaderc_tess_control_shader,    // TESSELLATION_CONTROL
-        shaderc_tess_evaluation_shader, // TESSELLATION_EVALUATION
-        shaderc_geometry_shader,        // GEOMETRY
-        shaderc_fragment_shader,        // FRAGMENT
-        shaderc_compute_shader,         // COMPUTE
-        shaderc_task_shader,            // TASK
-        shaderc_mesh_shader,            // MESH
+        shaderc_vertex_shader,   // VERTEX
+        shaderc_geometry_shader, // GEOMETRY
+        shaderc_fragment_shader, // FRAGMENT
+        shaderc_compute_shader,  // COMPUTE
+        shaderc_task_shader,     // TASK
+        shaderc_mesh_shader,     // MESH
     };
 
     int index = static_cast<int>( stage );
@@ -173,64 +171,6 @@ public:
     std::vector<std::shared_ptr<std::string>> fileContentPtrs;
 };
 
-/*
-ShaderPreprocessOutput PreprocessShaderEntryPoint( const ShaderCreateInfo& createInfo, bool savePreproc )
-{
-
-using namespace shaderc;
-ShaderPreprocessOutput output;
-output.success = false;
-
-std::shared_ptr<std::string> fileContents = GetFileContents( GetAbsPath_ShaderFilename( createInfo.filename ) );
-if ( !fileContents )
-    return output;
-
-// The entire reason we're not using shaderc::Compiler directly is because its PreprocessGlsl function assumes
-// that the entry point is always named "main".
-shaderc_compile_options_t options = shaderc_compile_options_initialize();
-shaderc_compile_options_set_target_env( options, shaderc_target_env_vulkan, shaderc_env_version_vulkan_1_3 );
-auto includer = std::make_unique<ShaderIncluder>( &output );
-shaderc_compile_options_set_include_callbacks(
-    options,
-    []( void* user_data, const char* requested_source, int type, const char* requesting_source, size_t include_depth )
-    {
-        auto* sub_includer = static_cast<CompileOptions::IncluderInterface*>( user_data );
-        return sub_includer->GetInclude(
-            requested_source, static_cast<shaderc_include_type>( type ), requesting_source, include_depth );
-    },
-    []( void* user_data, shaderc_include_result* include_result )
-    {
-        auto* sub_includer = static_cast<CompileOptions::IncluderInterface*>( user_data );
-        return sub_includer->ReleaseInclude( include_result );
-    },
-    includer.get() );
-
-std::string shaderStageDefine = PGShaderStageToDefine( createInfo.shaderStage );
-auto defines                  = createInfo.defines;
-defines.emplace_back( "PG_SHADER_CODE", "1" );
-defines.emplace_back( shaderStageDefine, "1" );
-defines.emplace_back( "IS_DEBUG_SHADER", createInfo.generateDebugInfo ? "1" : "0" );
-
-for ( const auto& [symbol, value] : defines )
-    shaderc_compile_options_add_macro_definition( options, symbol.c_str(), symbol.length(),
-                                             value, value_length);
-//
-//
-//
-//  shaderc_shader_kind shadercStage                = PGToShadercShaderStage( createInfo.shaderStage );
-//  shaderc_compilation_result_t compilation_result = shaderc_compile_into_preprocessed_text(
-//      compiler., fileContents->c_str(), fileContents->length(), shadercStage, createInfo.filename.c_str(), "main", options_ );
-//  shaderc::PreprocessedSourceCompilationResult result( compilation_result );
-//
-//  if ( result.GetCompilationStatus() != shaderc_compilation_status_success )
-//{
-//      LOG_ERR( "Preprocess GLSL failed: %s", result.GetErrorMessage().c_str() );
-//      return output;
-//  }
-return output;
-}
-*/
-
 ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, bool savePreproc )
 {
     ShaderPreprocessOutput output;
@@ -249,12 +189,11 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
 
     std::string shaderStageDefine = PGShaderStageToDefine( createInfo.shaderStage );
     auto defines                  = createInfo.defines;
-    defines.emplace_back( "PG_SHADER_CODE", "1" );
-    defines.emplace_back( shaderStageDefine, "1" );
-    defines.emplace_back( "IS_DEBUG_SHADER", createInfo.generateDebugInfo ? "1" : "0" );
-    for ( const auto& [symbol, value] : defines )
+    defines.emplace_back( "PG_SHADER_CODE 1" );
+    defines.emplace_back( shaderStageDefine + " 1" );
+    for ( const std::string& define : defines )
     {
-        options.AddMacroDefinition( symbol, value );
+        options.AddMacroDefinition( define );
     }
 
     shaderc_shader_kind shadercStage = PGToShadercShaderStage( createInfo.shaderStage );
@@ -274,9 +213,14 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     {
         output.outputShader = CleanUpPreproc( output.outputShader );
         size_t seed         = 0;
-        for ( const auto& [define, value] : defines )
+        // for ( const auto& [define, value] : defines )
+        //{
+        //     HashCombine( seed, define );
+        //     HashCombine( seed, value );
+        // }
+        for ( const std::string& define : defines )
         {
-            HashCombine( seed, define + value );
+            HashCombine( seed, define );
         }
         std::string preprocFilename =
             PG_ASSET_DIR "cache/shader_preproc/" + GetRelativeFilename( createInfo.filename ) + "_" + std::to_string( seed ) + ".glsl";
@@ -289,9 +233,13 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
         }
 
         // write list of #defines for easier debugging
-        for ( const auto& [define, value] : defines )
+        // for ( const auto& [define, value] : defines )
+        //{
+        //    out << "// #define " << define << " " << value << "\n";
+        //}
+        for ( const std::string& define : defines )
         {
-            out << "// #define " << define << " " << value << "\n";
+            out << "// #define " << define << "\n";
         }
 
         out << output.outputShader << std::endl;

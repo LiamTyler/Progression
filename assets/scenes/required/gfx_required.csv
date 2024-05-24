@@ -1,3 +1,2 @@
-Shader,gradient
-Shader,modelMS
-Shader,litPS
+Pipeline,gradient
+Pipeline,litModel

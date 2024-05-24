@@ -63,6 +63,8 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/material_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/model_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/model_converter.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters/pipeline_converter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters/pipeline_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.cpp

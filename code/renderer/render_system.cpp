@@ -23,8 +23,8 @@ using namespace Gfx;
 namespace PG::RenderSystem
 {
 
-static Pipeline s_computePipeline;
-static Pipeline s_meshPipeline;
+static Pipeline* s_computePipeline;
+static Pipeline* s_meshPipeline;
 static TaskGraph s_taskGraph;
 static Buffer s_buffer;
 
@@ -35,7 +35,7 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    cmdBuf.BindPipeline( &s_computePipeline );
+    cmdBuf.BindPipeline( s_computePipeline );
     cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
@@ -53,11 +53,8 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
-    cmdBuf.BindPipeline( &s_meshPipeline );
+    cmdBuf.BindPipeline( s_meshPipeline );
     cmdBuf.BindGlobalDescriptors();
-
-    // VkDeviceAddress address = s_buffer.GetDeviceAddress();
-    // cmdBuf.PushConstants( address );
 
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
@@ -201,37 +198,14 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     if ( !AssetManager::LoadFastFile( "gfx_required" ) )
         return false;
 
-    s_computePipeline = rg.device.NewComputePipeline( AssetManager::Get<Shader>( "gradient" ), "gradient2" );
-
-    GraphicsPipelineCreateInfo info = {};
-    info.shaders.push_back( AssetManager::Get<Shader>( "modelMS" ) );
-    info.shaders.push_back( AssetManager::Get<Shader>( "litPS" ) );
-    info.colorAttachments.emplace_back( PixelFormat::R16_G16_B16_A16_FLOAT );
-    info.depthInfo.format = PixelFormat::DEPTH_32_FLOAT;
-    // info.rasterizerInfo.winding = WindingOrder::CLOCKWISE;
-    // info.rasterizerInfo.cullFace = CullFace::NONE;
-    // info.depthInfo.depthTestEnabled  = false;
-    // info.depthInfo.depthWriteEnabled = false;
-
-    s_meshPipeline = rg.device.NewGraphicsPipeline( info, "mesh" );
+    s_computePipeline = AssetManager::Get<Pipeline>( "gradient" );
+    s_meshPipeline    = AssetManager::Get<Pipeline>( "litModel" );
 
     if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
         return false;
 
     if ( !Init_TaskGraph() )
         return false;
-
-    std::vector<vec3> meshletPositions = {
-        vec3( 0.5, -0.5, 0 ),
-        vec3( 0.5, 0.5, 0 ),
-        vec3( -0.5, 0.5, 0 ),
-    };
-    BufferCreateInfo bufInfo = {};
-    bufInfo.size             = meshletPositions.size() * sizeof( vec3 );
-    bufInfo.initalData       = meshletPositions.data();
-    bufInfo.bufferUsage |= BufferUsage::STORAGE;
-    bufInfo.flags = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-    s_buffer      = rg.device.NewBuffer( bufInfo, "mesh" );
 
     s_timestamps.resize( 2 );
     VkQueryPoolCreateInfo query_pool_info{};
@@ -289,10 +263,9 @@ void Shutdown()
 
     s_taskGraph.Free();
     UIOverlay::Shutdown();
-    s_computePipeline.Free();
-    s_meshPipeline.Free();
+    // s_computePipeline.Free();
+    // s_meshPipeline.Free();
     vkDestroyQueryPool( rg.device, s_timestampQueryPool, nullptr );
-    s_buffer.Free();
 
     AssetManager::FreeRemainingGpuResources();
     // Profile::Shutdown();

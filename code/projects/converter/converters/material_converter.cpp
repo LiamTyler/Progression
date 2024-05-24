@@ -88,7 +88,7 @@ std::string MaterialConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 
 AssetStatus MaterialConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr matInfo, time_t materialCacheTimestamp )
 {
-    // if there is a cache entry at all, it should be up to date (since all fields + image names are part of the material hash name
+    // if there is a cache entry at all, it should be up to date (since all fields + image names are part of the material hash name)
     return AssetStatus::UP_TO_DATE;
 }
 

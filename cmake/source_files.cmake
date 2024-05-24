@@ -10,6 +10,8 @@ set(
     ${CODE_DIR}/asset/types/material.hpp
     ${CODE_DIR}/asset/types/model.cpp
     ${CODE_DIR}/asset/types/model.hpp
+    ${CODE_DIR}/asset/types/pipeline.cpp
+    ${CODE_DIR}/asset/types/pipeline.hpp
     ${CODE_DIR}/asset/types/script.cpp
     ${CODE_DIR}/asset/types/script.hpp
     ${CODE_DIR}/asset/types/shader.cpp
@@ -96,16 +98,12 @@ set(SHADER_DIR ${PROGRESSION_DIR}/assets/shaders)
 set(
     SHADERS
     
-    ${SHADER_DIR}/depth.vert
-    ${SHADER_DIR}/lit.vert
+    ${SHADER_DIR}/common.glsl
+    ${SHADER_DIR}/global_descriptors.glsl
     ${SHADER_DIR}/lit.frag
-    ${SHADER_DIR}/post_process.vert
-    ${SHADER_DIR}/post_process.frag
-    ${SHADER_DIR}/skybox.vert
-    ${SHADER_DIR}/skybox.frag
-    ${SHADER_DIR}/ui.vert
-    ${SHADER_DIR}/ui.frag
+    ${SHADER_DIR}/model.mesh
     
+    ${SHADER_DIR}/lib/debug_coloring.glsl
     ${SHADER_DIR}/lib/gamma.glsl
     ${SHADER_DIR}/lib/lights.glsl
     ${SHADER_DIR}/lib/packing.glsl

@@ -30,8 +30,6 @@ static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
     switch ( stage )
     {
     case spv::ExecutionModel::ExecutionModelVertex: return ShaderStage::VERTEX;
-    case spv::ExecutionModel::ExecutionModelTessellationControl: return ShaderStage::TESSELLATION_CONTROL;
-    case spv::ExecutionModel::ExecutionModelTessellationEvaluation: return ShaderStage::TESSELLATION_EVALUATION;
     case spv::ExecutionModel::ExecutionModelGeometry: return ShaderStage::GEOMETRY;
     case spv::ExecutionModel::ExecutionModelFragment: return ShaderStage::FRAGMENT;
     case spv::ExecutionModel::ExecutionModelGLCompute: return ShaderStage::COMPUTE;
@@ -39,7 +37,7 @@ static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
     case spv::ExecutionModel::ExecutionModelMeshEXT: return ShaderStage::MESH;
     default: return ShaderStage::NUM_SHADER_STAGES;
     }
-    static_assert( Underlying( ShaderStage::NUM_SHADER_STAGES ) == 8, "update above" );
+    static_assert( Underlying( ShaderStage::NUM_SHADER_STAGES ) == 6, "update above" );
 }
 
 static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
@@ -86,11 +84,8 @@ static bool CompilePreprocessedShaderToSPIRV(
     // If optimization is used, then spirv-opt gets called, and it actually crashes on windows.
     // Only seems to crash when using the binaries that come with Vulkan while also linking + using the spirv-cross lib.
     // Maybe spirv-cross and shaderc both link spirv-tools, that might be built differently? Some posts online say it doesnt do much either
-    options.SetOptimizationLevel( shaderc_optimization_level_zero );
-    if ( createInfo.generateDebugInfo )
-    {
-        options.SetGenerateDebugInfo();
-    }
+    options.SetOptimizationLevel( shaderc_optimization_level_performance );
+    options.SetGenerateDebugInfo();
 
     // No entry point info needed, because GLSL mandates that the entry point is always void main()
     shaderc_shader_kind kind             = static_cast<shaderc_shader_kind>( PGShaderStageToShaderc( createInfo.shaderStage ) );

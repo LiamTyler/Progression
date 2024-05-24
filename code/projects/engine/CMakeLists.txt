@@ -107,10 +107,10 @@ set(
     ${CODE_DIR}/renderer/r_globals.hpp
     ${CODE_DIR}/renderer/r_init.cpp
     ${CODE_DIR}/renderer/r_init.hpp
+    ${CODE_DIR}/renderer/r_pipeline_manager.cpp
+    ${CODE_DIR}/renderer/r_pipeline_manager.hpp
 	${CODE_DIR}/renderer/r_texture_manager.cpp
     ${CODE_DIR}/renderer/r_texture_manager.hpp
-    ${CODE_DIR}/renderer/vulkan.cpp
-    ${CODE_DIR}/renderer/vulkan.hpp
 	${CODE_DIR}/renderer/taskgraph/r_taskGraph.cpp
     ${CODE_DIR}/renderer/taskgraph/r_taskGraph.hpp
     ${CODE_DIR}/renderer/taskgraph/internal/r_tg_builder.cpp
@@ -120,6 +120,8 @@ set(
     ${CODE_DIR}/renderer/taskgraph/internal/r_tg_resource_packing.hpp
     ${CODE_DIR}/renderer/taskgraph/internal/r_tg_tasks.cpp
     ${CODE_DIR}/renderer/taskgraph/internal/r_tg_tasks.hpp
+    ${CODE_DIR}/renderer/vulkan.cpp
+    ${CODE_DIR}/renderer/vulkan.hpp
 	
 	${C_SHARED_SHADERS}
     

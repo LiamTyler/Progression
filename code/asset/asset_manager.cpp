@@ -1,11 +1,5 @@
 #include "asset/asset_manager.hpp"
 #include "asset/asset_versions.hpp"
-#include "asset/types/gfx_image.hpp"
-#include "asset/types/material.hpp"
-#include "asset/types/model.hpp"
-#include "asset/types/script.hpp"
-#include "asset/types/shader.hpp"
-#include "asset/types/ui_layout.hpp"
 #include "core/lua.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
@@ -31,13 +25,15 @@ void Init()
     GetAssetTypeID<Model>::ID();    // AssetType::ASSET_TYPE_MODEL
     GetAssetTypeID<Shader>::ID();   // AssetType::ASSET_TYPE_SHADER
     GetAssetTypeID<UILayout>::ID(); // AssetType::ASSET_TYPE_UI_LAYOUT
+    GetAssetTypeID<Pipeline>::ID(); // AssetType::ASSET_TYPE_PIPELINE
     PG_ASSERT( GetAssetTypeID<GfxImage>::ID() == ASSET_TYPE_GFX_IMAGE, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Material>::ID() == ASSET_TYPE_MATERIAL, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Script>::ID() == ASSET_TYPE_SCRIPT, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Model>::ID() == ASSET_TYPE_MODEL, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Shader>::ID() == ASSET_TYPE_SHADER, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<UILayout>::ID() == ASSET_TYPE_UI_LAYOUT, "This needs to line up with AssetType ordering" );
-    static_assert( ASSET_TYPE_COUNT == 7, "Dont forget to add GetAssetTypeID for new assets" );
+    PG_ASSERT( GetAssetTypeID<Pipeline>::ID() == ASSET_TYPE_PIPELINE, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( ASSET_TYPE_COUNT == 8, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
 #if USING( ASSET_LIVE_UPDATE )
@@ -162,6 +158,7 @@ bool LoadFastFile( const std::string& fname )
             LOAD_FF_CASE( ASSET_TYPE_MODEL, Model );
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader );
             LOAD_FF_CASE( ASSET_TYPE_UI_LAYOUT, UILayout );
+            LOAD_FF_CASE( ASSET_TYPE_PIPELINE, Pipeline );
         default: LOG_ERR( "Unknown asset type '%d'", static_cast<int>( assetType ) ); return false;
         }
     }
@@ -174,7 +171,7 @@ bool LoadFastFile( const std::string& fname )
 void FreeRemainingGpuResources()
 {
     ClearPendingLiveUpdates();
-    const AssetType typesWithGpuData[] = { ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER };
+    const AssetType typesWithGpuData[] = { ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE };
     for ( uint32_t i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
     {
         AssetType type = typesWithGpuData[i];

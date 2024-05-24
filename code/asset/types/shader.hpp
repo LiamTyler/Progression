@@ -14,14 +14,12 @@ namespace PG
 
 enum class ShaderStage : uint8_t
 {
-    VERTEX                  = 0,
-    TESSELLATION_CONTROL    = 1,
-    TESSELLATION_EVALUATION = 2,
-    GEOMETRY                = 3,
-    FRAGMENT                = 4,
-    COMPUTE                 = 5,
-    TASK                    = 6,
-    MESH                    = 7,
+    VERTEX   = 0,
+    GEOMETRY = 1,
+    FRAGMENT = 2,
+    COMPUTE  = 3,
+    TASK     = 4,
+    MESH     = 5,
 
     NUM_SHADER_STAGES
 };
@@ -30,8 +28,7 @@ struct ShaderCreateInfo : public BaseAssetCreateInfo
 {
     std::string filename;
     ShaderStage shaderStage = ShaderStage::NUM_SHADER_STAGES;
-    std::vector<std::pair<std::string, std::string>> defines;
-    bool generateDebugInfo = false;
+    std::vector<std::string> defines;
 };
 
 std::string GetAbsPath_ShaderFilename( const std::string& filename );

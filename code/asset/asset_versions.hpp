@@ -12,10 +12,11 @@ enum AssetType : unsigned int
     ASSET_TYPE_MODEL     = 3,
     ASSET_TYPE_SHADER    = 4,
     ASSET_TYPE_UI_LAYOUT = 5,
+    ASSET_TYPE_PIPELINE  = 6,
 
     // put all assets that don't actually have a struct below.
     // Eg: types that exist in JSON but only have CreateInfo's that get used by other assets
-    ASSET_TYPE_TEXTURESET = 6,
+    ASSET_TYPE_TEXTURESET = 7,
 
     ASSET_TYPE_COUNT
 };
@@ -27,6 +28,7 @@ constexpr unsigned int g_assetVersions[] = {
     2, // ASSET_TYPE_MODEL,     "basic meshlets"
     2, // ASSET_TYPE_SHADER,    "deleted descriptor reflection stuff, added workgroup size reflection"
     7, // ASSET_TYPE_UI_LAYOUT, "mouse button down/up callbacks"
+    0, // ASSET_TYPE_PIPELINE, ""
 
     // put all assets that don't actually have a struct below.
     // Note: this means that bumping the image versions doesn't do anything :(
@@ -44,5 +46,6 @@ inline const char* const g_assetNames[] = {
     "Model",      // ASSET_TYPE_MODEL
     "Shader",     // ASSET_TYPE_SHADER
     "UILayout",   // ASSET_TYPE_UI_LAYOUT
+    "Pipeline",   // ASSET_TYPE_PIPELINE
     "Textureset", // ASSET_TYPE_TEXTURESET
 };

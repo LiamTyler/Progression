@@ -96,11 +96,18 @@ namespace PG
 std::string ShaderConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
     std::string cacheName = info->name;
-    cacheName += "_" + std::to_string( Hash( info->filename ) );
-    if ( info->generateDebugInfo )
+    size_t hash           = 0;
+    HashCombine( hash, info->shaderStage );
+    HashCombine( hash, info->filename );
+    // for ( const auto& [defineName, defineVal] : info->defines )
+    for ( const std::string& define : info->defines )
     {
-        cacheName += "_d";
+        HashCombine( hash, define );
+        // HashCombine( hash, defineName );
+        // HashCombine( hash, defineVal );
     }
+    cacheName += "_" + std::to_string( hash );
+
     return cacheName;
 }
 

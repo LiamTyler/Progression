@@ -1,5 +1,6 @@
 #include "render_system.hpp"
 #include "asset/asset_manager.hpp"
+#include "c_shared/dvar_defines.h"
 #include "core/engine_globals.hpp"
 #include "core/scene.hpp"
 #include "core/window.hpp"
@@ -52,7 +53,16 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
-    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "litModel" ) );
+
+    bool useDebugShader = false;
+#if !USING( SHIP_BUILD )
+    useDebugShader = useDebugShader || r_materialViz.GetUint();
+    useDebugShader = useDebugShader || r_lightingViz.GetUint();
+    useDebugShader = useDebugShader || r_meshletViz.GetBool();
+    useDebugShader = useDebugShader || r_wireframe.GetBool();
+#endif // #if !USING( SHIP_BUILD )
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "litModel", useDebugShader ) );
+
     cmdBuf.BindGlobalDescriptors();
 
     cmdBuf.SetViewport( SceneSizedViewport() );
@@ -292,6 +302,7 @@ static void UpdateGPUSceneData( Scene* scene )
     }
 
     GpuData::SceneGlobals globalData;
+    memset( &globalData, 0, sizeof( globalData ) );
     globalData.V                        = scene->camera.GetV();
     globalData.P                        = scene->camera.GetP();
     globalData.VP                       = scene->camera.GetVP();
@@ -299,14 +310,23 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.cameraPos                = vec4( scene->camera.position, 1 );
     VEC3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
     globalData.cameraExposureAndSkyTint = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
-    globalData.r_materialViz            = r_materialViz.GetUint();
-    globalData.r_lightingViz            = r_lightingViz.GetUint();
-    globalData.r_postProcessing         = r_postProcessing.GetBool();
     globalData.r_tonemap                = r_tonemap.GetUint();
-    globalData.debugInt                 = r_debugInt.GetInt();
-    globalData.debugUint                = r_debugUint.GetUint();
-    globalData.debugFloat               = r_debugFloat.GetFloat();
-    globalData.debug3                   = 0u;
+
+#if !USING( SHIP_BUILD )
+    globalData.r_materialViz    = r_materialViz.GetUint();
+    globalData.r_lightingViz    = r_lightingViz.GetUint();
+    globalData.r_postProcessing = r_postProcessing.GetBool();
+    PackMeshletVizBit( globalData.debug_PackedDvarBools, r_meshletViz.GetBool() );
+    PackWireframeBit( globalData.debug_PackedDvarBools, r_wireframe.GetBool() );
+    vec4 wireframeColor              = r_wireframeColor.GetVec4();
+    globalData.debug_wireframeData.r = wireframeColor.r;
+    globalData.debug_wireframeData.g = wireframeColor.g;
+    globalData.debug_wireframeData.b = wireframeColor.b;
+    globalData.debug_wireframeData.a = r_wireframeThickness.GetFloat();
+    globalData.debugInt              = r_debugInt.GetInt();
+    globalData.debugUint             = r_debugUint.GetUint();
+    globalData.debugFloat            = r_debugFloat.GetFloat();
+#endif // #if !USING( SHIP_BUILD )
 
     memcpy( frameData.sceneGlobalsBuffer.GetMappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );
 

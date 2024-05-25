@@ -48,7 +48,6 @@ uvec3 GetTri( const Meshlet meshlet, uint index )
 vec3 GetPos( const Meshlet meshlet, uint index )
 {
     vec3 pos = constants.vertexBuffer.positions[meshlet.vertexOffset + index];
-    //pos.x += globals.debugFloat;
     return pos;
 }
 
@@ -60,10 +59,12 @@ mat4 GetWorldMatrix( uint objectIdx )
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 64, max_primitives = 124) out;
 
+#if IS_DEBUG_SHADER
 layout (location = 0) out PerVertexData
 {
     flat uint meshletIdx;
 } v_out[];
+#endif // #if IS_DEBUG_SHADER
 
 void main()
 {
@@ -79,11 +80,12 @@ void main()
     if ( threadID < meshlet.vertexCount )
     {
         vec4 localPos = vec4( GetPos( meshlet, threadID ), 1 );
-        //vec4 worldPos = localPos;
         vec4 worldPos = GetWorldMatrix( constants.matrixIndex ) * localPos;
         gl_MeshVerticesEXT[threadID].gl_Position = globals.VP * worldPos;
         
+    #if IS_DEBUG_SHADER
         v_out[threadID].meshletIdx = meshletID;
+    #endif // #if IS_DEBUG_SHADER
     }
     
     uint tri1_ID = 2 * threadID + 0;

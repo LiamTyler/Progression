@@ -1,6 +1,8 @@
 #ifndef _SHADER_DVAR_DEFINES_H_
 #define _SHADER_DVAR_DEFINES_H_
 
+#include "c_shared/defines.h"
+
 // r_materialViz
 #define PG_DEBUG_MTL_DISABLED 0
 #define PG_DEBUG_MTL_ALBEDO 1
@@ -30,10 +32,39 @@
 #define PG_DEBUG_SKY_WHITE 4
 #define PG_DEBUG_SKY_COUNT 4u
 
+// r_tonemap
 #define PG_TONEMAP_METHOD_DISABLED 0
 #define PG_TONEMAP_METHOD_ACES 1
 #define PG_TONEMAP_METHOD_UNCHARTED_2 2
 #define PG_TONEMAP_METHOD_REINHARD 3
 #define PG_TONEMAP_METHOD_COUNT 3u
+
+#define PG_R_MESHLET_VIZ_BIT 0
+#define PG_R_WIREFRAME_BIT 1
+
+#if PG_SHADER_CODE
+bool IsMeshletVizEnabled()
+{
+    return ((globals.debug_PackedDvarBools >> PG_R_MESHLET_VIZ_BIT) & 0x1) > 0;
+}
+
+bool IsWireframeEnabled()
+{
+    return ((globals.debug_PackedDvarBools >> PG_R_WIREFRAME_BIT) & 0x1) > 0;
+}
+
+#else // #if PG_SHADER_CODE
+inline void PackMeshletVizBit( UINT& debug_PackedDvarBools, bool enabled )
+{
+    if ( enabled )
+        debug_PackedDvarBools |= 1u << PG_R_MESHLET_VIZ_BIT;
+}
+
+inline void PackWireframeBit( UINT& debug_PackedDvarBools, bool enabled )
+{
+    if ( enabled )
+        debug_PackedDvarBools |= 1u << PG_R_WIREFRAME_BIT;
+}
+#endif // #else // #if PG_SHADER_CODE
 
 #endif // #ifndef _SHADER_DVAR_DEFINES_H_

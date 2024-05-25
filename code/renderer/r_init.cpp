@@ -76,11 +76,10 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     rg.currentFrameIdx = 0;
 
     vkb::InstanceBuilder builder;
-
-    auto inst_ret = builder.request_validation_layers( !USING( SHIP_BUILD ) )
-                        .set_debug_callback( DebugCallback )
-                        .require_api_version( 1, 3, 0 )
-                        .build();
+    builder.request_validation_layers( !USING( SHIP_BUILD ) );
+    builder.set_debug_callback( DebugCallback );
+    builder.require_api_version( 1, 3, 0 );
+    auto inst_ret = builder.build();
 
     if ( !inst_ret )
     {
@@ -89,9 +88,8 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     }
 
     vkb::Instance vkb_inst = inst_ret.value();
-
-    rg.instance      = vkb_inst.instance;
-    s_debugMessenger = vkb_inst.debug_messenger;
+    rg.instance            = vkb_inst.instance;
+    s_debugMessenger       = vkb_inst.debug_messenger;
 
     rg.surface = VK_NULL_HANDLE;
     if ( !headless )
@@ -124,6 +122,10 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.shaderUniformTexelBufferArrayNonUniformIndexing    = true;
     features12.scalarBlockLayout                                  = true;
 
+#define ADD_PNEXT_FEATURES12( extStruct ) \
+    extStruct.pNext  = features12.pNext;  \
+    features12.pNext = &extStruct;
+
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
 #if USING( PG_RTX )
     pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
@@ -139,9 +141,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
     VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
     mutableExt.mutableDescriptorType = true;
-
-    mutableExt.pNext = features12.pNext;
-    features12PNextChain.push_back( &mutableExt );
+    ADD_PNEXT_FEATURES12( mutableExt );
 #endif // #if USING( PG_MUTABLE_DESCRIPTORS )
 
 #if USING( PG_DESCRIPTOR_BUFFER )
@@ -149,10 +149,17 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
     descriptorBufferExt.descriptorBuffer = USING( PG_DESCRIPTOR_BUFFER );
     // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
-
-    descriptorBufferExt.pNext = features12.pNext;
-    features12.pNext          = &descriptorBufferExt;
+    ADD_PNEXT_FEATURES12( descriptorBufferExt );
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
+
+#if !USING( SHIP_BUILD )
+    // for solid wireframe debug mode
+    pDevSelector.add_required_extension( VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME );
+    VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR baryFeaturesKHR = {
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR };
+    baryFeaturesKHR.fragmentShaderBarycentric = true;
+    ADD_PNEXT_FEATURES12( baryFeaturesKHR );
+#endif // #if !USING( SHIP_BUILD )
 
     VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT };
     meshShaderFeatures.meshShader = true;

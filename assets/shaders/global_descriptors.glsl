@@ -1,5 +1,5 @@
-#ifndef _GLOBAL_DESCRIPTORS_INCLUDE
-#define _GLOBAL_DESCRIPTORS_INCLUDE
+#ifndef __GLOBAL_DESCRIPTORS_GLSL__
+#define __GLOBAL_DESCRIPTORS_GLSL__
 
 #include "common.glsl"
 #include "c_shared/structs.h"
@@ -12,4 +12,4 @@
         SceneGlobals globals; \
     }
 
-#endif // #ifndef _GLOBAL_DESCRIPTORS_INCLUDE
+#endif // #ifndef __GLOBAL_DESCRIPTORS_GLSL__

@@ -1,5 +1,5 @@
-#ifndef _COMMON_INCLUDE
-#define _COMMON_INCLUDE
+#ifndef __COMMON_GLSL__
+#define __COMMON_GLSL__
 
 #extension GL_EXT_nonuniform_qualifier : enable
 #extension GL_EXT_buffer_reference : require
@@ -10,4 +10,4 @@
 
 #define DEFINE_BUFFER_REFERENCE( alignment ) layout(scalar, buffer_reference, buffer_reference_align = alignment) buffer
     
-#endif // #ifndef _COMMON_INCLUDE
+#endif // #ifndef __COMMON_GLSL__

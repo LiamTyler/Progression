@@ -18,15 +18,17 @@ struct SceneGlobals
     VEC4 cameraExposureAndSkyTint; // x = exposure, yzw = sky tint
     UVEC4 lightCountAndPad3; // x = light count, yzw = pad
     
+    UINT r_tonemap;
+
+    // debug vals
     UINT r_materialViz;
     UINT r_lightingViz;
     UINT r_postProcessing;
-    UINT r_tonemap;
-    
+    VEC4 debug_wireframeData; // x,y,z = color, w = thickness
+    UINT debug_PackedDvarBools;
     int debugInt; // r_debugInt
     UINT debugUint; // r_debugUint
     float debugFloat; // r_debugFloat
-    UINT debug3;
 };
 
 struct PerObjectData

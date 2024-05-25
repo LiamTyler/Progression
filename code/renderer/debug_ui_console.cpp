@@ -232,6 +232,8 @@ void Console::ExecCommand( const char* fullCommand )
         {
             Dvar* dvar = it->second;
             AddLog( LogType::LOG, "  Dvar %s = %s\n", dvar->GetName(), dvar->GetValueAsString().c_str() );
+            if ( args.size() != 1 )
+                AddLog( LogType::WARN, "  Hint: use the 'set' command to set dvars. Usage: set [dvarName] [value]\n" );
             return;
         }
     }
@@ -249,9 +251,9 @@ void Console::ExecCommand( const char* fullCommand )
     }
     else if ( cmd == "set" )
     {
-        if ( args.size() != 3 )
+        if ( args.size() < 3 )
         {
-            AddLog( LogType::WARN, "  Usage: set [commandName] [value]\n" );
+            AddLog( LogType::WARN, "  Usage: set [dvarName] [value]\n" );
             return;
         }
         auto it = dvarMap.find( args[1] );
@@ -261,7 +263,17 @@ void Console::ExecCommand( const char* fullCommand )
             return;
         }
         Dvar* dvar = it->second;
-        dvar->SetFromString( std::string( args[2] ) );
+        if ( args.size() == 3 || dvar->GetType() != Dvar::Type::VEC4 )
+        {
+            dvar->SetFromString( std::string( args[2] ) );
+        }
+        else
+        {
+            std::string combinedArgs = std::string( args[2] );
+            for ( size_t argIdx = 3; argIdx < args.size(); ++argIdx )
+                combinedArgs += " " + std::string( args[argIdx] );
+            dvar->SetFromString( combinedArgs );
+        }
         AddLog( LogType::LOG, "  Dvar %s = %s\n", dvar->GetName(), args[2].data() );
     }
     else

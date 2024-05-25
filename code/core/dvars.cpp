@@ -37,7 +37,7 @@ static void RegisterDvar( Dvar* dvar )
 
 const char* Dvar::TypeToString( Type t )
 {
-    static_assert( Underlying( Type::COUNT ) == 5 );
+    static_assert( Underlying( Type::COUNT ) == 6 );
     switch ( t )
     {
     case Type::BOOL: return "BOOL";
@@ -45,6 +45,7 @@ const char* Dvar::TypeToString( Type t )
     case Type::UINT: return "UINT";
     case Type::FLOAT: return "FLOAT";
     case Type::DOUBLE: return "DOUBLE";
+    case Type::VEC4: return "VEC4";
     }
 
     return "_ERR";
@@ -82,6 +83,13 @@ Dvar::Dvar( const char* const inName, double defaultVal, double minVal, double m
     : type( Type::DOUBLE ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.dVal = defaultVal;
+    RegisterDvar( this );
+}
+
+Dvar::Dvar( const char* const inName, vec4 defaultVal, vec4 minVal, vec4 maxVal, const char* const desc )
+    : type( Type::VEC4 ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
+{
+    value.vVal = defaultVal;
     RegisterDvar( this );
 }
 
@@ -129,6 +137,14 @@ double Dvar::GetDouble() const
     return value.dVal;
 }
 
+vec4 Dvar::GetVec4() const
+{
+#if USING( DVAR_DEBUGGING )
+    PG_ASSERT( type == Type::VEC4, "Calling GetVec4() on a non-vec4 dvar. Name %s, type %s", name, TypeToString( type ) );
+#endif // #if USING( DVAR_DEBUGGING )
+    return value.vVal;
+}
+
 Dvar::Type Dvar::GetType() const { return type; }
 
 std::string Dvar::GetValueAsString() const
@@ -172,6 +188,20 @@ void Dvar::SetFromString( const std::string& str )
         {
             value.dVal = std::stod( str );
             value.dVal = Min( maxValue.dVal, Max( minValue.dVal, value.dVal ) );
+        }
+        else if ( type == Type::VEC4 )
+        {
+            const char* p = str.c_str();
+            char* pEnd    = nullptr;
+            for ( int i = 0; i < 4; ++i )
+            {
+                float x       = strtof( p, &pEnd );
+                value.vVal[i] = x;
+                if ( p == pEnd )
+                    break;
+                p = pEnd;
+            }
+            value.vVal = Min( maxValue.vVal, Max( minValue.vVal, value.vVal ) );
         }
     }
     catch ( const std::invalid_argument& )

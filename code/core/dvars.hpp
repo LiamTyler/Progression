@@ -1,6 +1,7 @@
 #pragma once
 
 #include "shared/logger.hpp"
+#include "shared/math_vec.hpp"
 #include "shared/platform_defines.hpp"
 #include <stdint.h>
 #include <string>
@@ -32,6 +33,7 @@ private:
         uint32_t uVal;
         float fVal;
         double dVal;
+        vec4 vVal;
 
         DvarValue() : dVal( 0 ) {}
         DvarValue( bool v ) : bVal( v ) {}
@@ -39,6 +41,7 @@ private:
         DvarValue( uint32_t v ) : uVal( v ) {}
         DvarValue( float v ) : fVal( v ) {}
         DvarValue( double v ) : dVal( v ) {}
+        DvarValue( vec4 v ) : vVal( v ) {}
     };
 
 public:
@@ -49,6 +52,7 @@ public:
         UINT,
         FLOAT,
         DOUBLE,
+        VEC4,
 
         COUNT
     };
@@ -60,6 +64,7 @@ public:
     explicit Dvar( const char* const inName, uint32_t defaultVal, uint32_t minVal, uint32_t maxVal, const char* const desc );
     explicit Dvar( const char* const inName, float defaultVal, float minVal, float maxVal, const char* const desc );
     explicit Dvar( const char* const inName, double defaultVal, double minVal, double maxVal, const char* const desc );
+    explicit Dvar( const char* const inName, vec4 defaultVal, vec4 minVal, vec4 maxVal, const char* const desc );
 
     const char* const GetName() const;
     const char* const GetDescription() const;
@@ -68,6 +73,7 @@ public:
     uint32_t GetUint() const;
     float GetFloat() const;
     double GetDouble() const;
+    vec4 GetVec4() const;
     Type GetType() const;
     std::string GetValueAsString() const;
 
@@ -94,6 +100,10 @@ public:
         else if constexpr ( std::is_same_v<UT, double> )
         {
             return &value.dVal;
+        }
+        else if constexpr ( std::is_same_v<UT, vec4> )
+        {
+            return &value.vVal;
         }
         else
         {
@@ -129,6 +139,11 @@ public:
         {
             DVAR_ASSERT( type == Type::DOUBLE, "Trying to set a DOUBLE dvar %s with a variable of type %s", name, typeid( UT ).name() );
             value.dVal = newVal;
+        }
+        else if constexpr ( std::is_same_v<UT, vec4> )
+        {
+            DVAR_ASSERT( type == Type::VEC4, "Trying to set a VEC4 dvar %s with a variable of type %s", name, typeid( UT ).name() );
+            value.vVal = newVal;
         }
         else
         {

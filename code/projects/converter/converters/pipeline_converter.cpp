@@ -19,10 +19,11 @@ void PipelineConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& pipeli
 
     if ( pipelineInfo->generateDebugPermutation )
     {
-        auto debugPipelineCI     = std::make_shared<PipelineCreateInfo>();
-        debugPipelineCI->name    = pipelineInfo->name + "_debug";
-        debugPipelineCI->shaders = pipelineInfo->shaders;
-        debugPipelineCI->defines = pipelineInfo->defines;
+        auto debugPipelineCI          = std::make_shared<PipelineCreateInfo>();
+        debugPipelineCI->name         = pipelineInfo->name + "_debug";
+        debugPipelineCI->shaders      = pipelineInfo->shaders;
+        debugPipelineCI->graphicsInfo = pipelineInfo->graphicsInfo;
+        debugPipelineCI->defines      = pipelineInfo->defines;
         debugPipelineCI->defines.emplace_back( "IS_DEBUG_SHADER 1" );
         debugPipelineCI->generateDebugPermutation = false;
 

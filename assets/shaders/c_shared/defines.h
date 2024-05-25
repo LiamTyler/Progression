@@ -1,7 +1,7 @@
 #ifndef _SHADER_DEFINES_H_
 #define _SHADER_DEFINES_H_
 
-#ifdef PG_SHADER_CODE
+#if PG_SHADER_CODE
 
 #define PI 3.1415926535f
 
@@ -18,9 +18,8 @@
 #define MAT4 mat4
 #define UINT uint
 
-#else // #ifdef PG_SHADER_CODE
+#else // #if PG_SHADER_CODE
 
-// TODO: the preprocessor doesn't actually check for #if's before processing the includes yet
 #include "shared/math.hpp"
 
 #define VEC2 vec2
@@ -36,7 +35,7 @@
 #define MAT4 mat4
 #define UINT uint32_t
 
-#endif // #else // #ifdef PG_SHADER_CODE
+#endif // #else // #if PG_SHADER_CODE
 
 // slot 0 is reserved for invalid textures, so really only indices [1, 65535] are valid
 #define PG_MAX_BINDLESS_TEXTURES 65536

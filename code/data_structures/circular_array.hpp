@@ -6,41 +6,34 @@
 template <typename T, size_t SIZE>
 class CircularArray
 {
-    using StorageType = std::conditional_t<SIZE <= 8, uint8_t,
-        std::conditional_t<SIZE <= 16, uint16_t, std::conditional_t<SIZE <= 32, uint32_t, uint64_t>>>;
+    using StorageType = std::conditional_t<SIZE <= 0xFF, uint8_t,
+        std::conditional_t<SIZE <= 0xFFFF, uint16_t, std::conditional_t<SIZE <= ~0u, uint32_t, uint64_t>>>;
 
 public:
-    CircularArray() : currentSize( 0 ), frontIndex( 0 ), backIndex( 0 ) {}
+    CircularArray() : m_currentSize( 0 ), m_frontIndex( 0 ), m_backIndex( 0 ) {}
 
-    StorageType Size() const { return currentSize; }
-    StorageType FrontIndex() const { return frontIndex; }
-    StorageType BackIndex() const { return backIndex; }
-    T& operator[]( size_t index ) { return data[( frontIndex + index ) % SIZE]; }
-    const T& operator[]( size_t index ) const { return data[( frontIndex + index ) % SIZE]; }
+    StorageType Size() const { return m_currentSize; }
+    StorageType FrontIndex() const { return m_frontIndex; }
+    StorageType BackIndex() const { return m_backIndex; }
+    T& operator[]( size_t index ) { return data[( m_frontIndex + index ) % SIZE]; }
+    const T& operator[]( size_t index ) const { return data[( m_frontIndex + index ) % SIZE]; }
 
-    void Clear() { currentSize = frontIndex = backIndex = 0; }
+    void Clear() { m_currentSize = m_frontIndex = m_backIndex = 0; }
 
     void Pushback( const T& val )
     {
-        if ( backIndex == SIZE )
-        {
-            data[0] = val;
-            if ( frontIndex == 0 )
-                ++frontIndex;
-            backIndex = 1;
-        }
+        data[m_backIndex] = val;
+        m_backIndex       = ( m_backIndex + 1 ) % SIZE;
+        if ( m_backIndex == m_frontIndex )
+            m_frontIndex = ( m_frontIndex + 1 ) % SIZE;
         else
-        {
-            data[backIndex] = val;
-            ++currentSize;
-            ++backIndex;
-        }
+            ++m_currentSize;
     }
 
     T data[SIZE];
 
 private:
-    StorageType currentSize;
-    StorageType frontIndex;
-    StorageType backIndex;
+    StorageType m_currentSize;
+    StorageType m_frontIndex;
+    StorageType m_backIndex;
 };

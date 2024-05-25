@@ -21,7 +21,7 @@ void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, s
 void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag );
 
 void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, std::string_view name, vec4 color = vec4( 0 ) );
-void Insert_CmdBuf( VkCommandBuffer cmdbuffer, std::string_view name, vec4 color = vec4( 0 ) );
+void Insert_CmdBuf( VkCommandBuffer cmdbuffer, vec4 color, const char* fmt, ... );
 void EndRegion_CmdBuf( VkCommandBuffer cmdBuffer );
 
 void BeginRegion_Queue( VkQueue queue, std::string_view name, vec4 color = vec4( 0 ) );
@@ -56,9 +56,10 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 
 #if !USING( SHIP_BUILD ) && USING( GPU_DATA )
 
-#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color ) PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf, name, color )
+#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name ) \
+    PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf, name, PG::Gfx::DebugMarker::GetNextRegionColor() )
 #define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf ) PG::Gfx::DebugMarker::EndRegion_CmdBuf( cmdbuf )
-#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name, color ) PG::Gfx::DebugMarker::Insert_CmdBuf( cmdbuf, name, color )
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, fmt, ... ) PG::Gfx::DebugMarker::Insert_CmdBuf( cmdbuf, vec4( 0 ), fmt, __VA_ARGS__ )
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color ) PG::Gfx::DebugMarker::BeginRegion_Queue( cmdbuf, name, color )
 #define PG_DEBUG_MARKER_END_REGION_QUEUE( queue ) PG::Gfx::DebugMarker::EndRegion_Queue( cmdbuf )
@@ -93,7 +94,7 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color )
 #define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )
-#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name, color )
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name )
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color )
 #define PG_DEBUG_MARKER_END_REGION_QUEUE( queue )

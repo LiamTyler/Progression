@@ -771,9 +771,11 @@ void TaskGraph::Execute( TGExecuteData& data )
 
     for ( Task* task : m_tasks )
     {
-        // PG_PROFILE_GPU_START( *data.cmdBuf, task->name );
+        PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( *data.cmdBuf, task->name );
+        PG_PROFILE_GPU_START( *data.cmdBuf, tgTask, task->name );
         task->Execute( &data );
-        // PG_PROFILE_GPU_END( *data.cmdBuf, task->name );
+        PG_PROFILE_GPU_END( *data.cmdBuf, tgTask );
+        PG_DEBUG_MARKER_END_REGION_CMDBUF( *data.cmdBuf );
     }
 }
 

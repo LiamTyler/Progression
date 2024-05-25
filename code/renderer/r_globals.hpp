@@ -38,7 +38,8 @@ struct R_Globals
     Swapchain swapchain;
     uint32_t swapchainImageIndex;
     FrameData frameData[NUM_FRAME_OVERLAP];
-    uint32_t currentFrameIdx;
+    uint32_t currentFrameIdx; // [0, NUM_FRAME_OVERLAP)
+    uint32_t totalFrameCount;
     uint32_t sceneWidth;
     uint32_t sceneHeight;
     uint32_t displayWidth;
@@ -48,7 +49,13 @@ struct R_Globals
     CommandBuffer immediateCmdBuffer;
     Fence immediateFence;
 
-    FrameData& GetFrameData() { return frameData[currentFrameIdx % NUM_FRAME_OVERLAP]; }
+    FrameData& GetFrameData() { return frameData[currentFrameIdx]; }
+
+    void EndFrame()
+    {
+        ++totalFrameCount;
+        currentFrameIdx = ( currentFrameIdx + 1 ) % NUM_FRAME_OVERLAP;
+    }
 
     template <typename Func>
     void ImmediateSubmit( Func func )

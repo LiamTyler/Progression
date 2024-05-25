@@ -74,7 +74,7 @@ void Update()
 {
     s_freeSlots.insert( s_freeSlots.end(), s_currFrameData->pendingRemovals.begin(), s_currFrameData->pendingRemovals.end() );
     s_currFrameData->pendingRemovals.clear();
-    s_currFrameData = &s_frameData[rg.currentFrameIdx % NUM_FRAME_OVERLAP];
+    s_currFrameData = &s_frameData[rg.currentFrameIdx];
 
     uint32_t numAdds = static_cast<uint32_t>( s_pendingAdds.size() );
     if ( !numAdds )

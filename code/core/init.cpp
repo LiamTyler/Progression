@@ -32,7 +32,9 @@ bool EngineInitialize( EngineInitInfo info )
     eg.headless = info.headless;
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
-    Logger_AddLogLocation( "logfile", "log_engine.txt" );
+#if USING( GAME )
+    Logger_AddLogLocation( "logfile", PG_BIN_DIR "log_engine.txt" );
+#endif // #if USING( GAME )
     Lua::Init();
     Time::Reset();
     AssetManager::Init();

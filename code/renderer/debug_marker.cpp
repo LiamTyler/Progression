@@ -1,5 +1,6 @@
 #include "renderer/debug_marker.hpp"
 #include "shared/logger.hpp"
+#include <cstdarg>
 #include <cstring>
 #include <vector>
 
@@ -120,14 +121,19 @@ void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, std::string_view name, vec4 
     }
 }
 
-void Insert_CmdBuf( VkCommandBuffer cmdbuffer, std::string_view name, vec4 color )
+void Insert_CmdBuf( VkCommandBuffer cmdbuffer, vec4 color, const char* fmt, ... )
 {
     if ( s_active )
     {
+        char nameBuffer[64];
+        va_list args;
+        va_start( args, fmt );
+        vsnprintf( nameBuffer, sizeof( nameBuffer ), fmt, args );
+        va_end( args );
         VkDebugUtilsLabelEXT label;
         label.sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
         label.pNext      = nullptr;
-        label.pLabelName = name.data();
+        label.pLabelName = nameBuffer;
         memcpy( label.color, &color[0], sizeof( float ) * 4 );
         vkCmdDebugMarkerInsert( cmdbuffer, &label );
     }

@@ -73,7 +73,7 @@ static void InitSyncObjects()
 
 bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 {
-    rg.currentFrameIdx = 0;
+    rg.currentFrameIdx = rg.totalFrameCount = 0;
 
     vkb::InstanceBuilder builder;
     builder.request_validation_layers( !USING( SHIP_BUILD ) );
@@ -121,6 +121,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.shaderUniformBufferArrayNonUniformIndexing         = true;
     features12.shaderUniformTexelBufferArrayNonUniformIndexing    = true;
     features12.scalarBlockLayout                                  = true;
+    features12.hostQueryReset                                     = true;
 
 #define ADD_PNEXT_FEATURES12( extStruct ) \
     extStruct.pNext  = features12.pNext;  \
@@ -169,6 +170,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     pDevSelector.add_required_extension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_MESH_SHADER_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME );
+    pDevSelector.add_required_extension( VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME );
     pDevSelector.set_minimum_version( 1, 3 );
     pDevSelector.require_present( !headless );
     pDevSelector.set_required_features_13( features13 );

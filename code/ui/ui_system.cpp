@@ -666,7 +666,7 @@ static GpuData::UIElementData GetGpuDataFromUIElement( const UIElement& e )
     gpuData.flags        = Underlying( e.userFlags );
     gpuData.type         = Underlying( e.type );
     gpuData.packedTint   = Pack4Unorm( e.tint.x, e.tint.y, e.tint.z, e.tint.w );
-    gpuData.textureIndex = e.image ? e.image->gpuTexture.GetBindlessArrayIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuData.textureIndex = e.image ? e.image->gpuTexture.GetBindlessIndex() : PG_INVALID_TEXTURE_INDEX;
     gpuData.pos          = e.pos;
     gpuData.dimensions   = e.dimensions;
 

@@ -35,10 +35,10 @@ struct SpotLight : public Light
     float outerAngle = DegToRad( 30.0f );
 };
 
-#if USING( GAME )
-GpuData::PackedLight PackPointLight( const PointLight& light );
-GpuData::PackedLight PackSpotLight( const SpotLight& light );
-GpuData::PackedLight PackDirectionalLight( const DirectionalLight& light );
-#endif // #if USING( GAME )
+// #if USING( GAME )
+// GpuData::PackedLight PackPointLight( const PointLight& light );
+// GpuData::PackedLight PackSpotLight( const SpotLight& light );
+// GpuData::PackedLight PackDirectionalLight( const DirectionalLight& light );
+// #endif // #if USING( GAME )
 
 } // namespace PG

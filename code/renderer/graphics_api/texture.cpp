@@ -17,15 +17,12 @@ void Texture::Free()
 
     vkDestroyImageView( rg.device, m_imageView, nullptr );
     vmaDestroyImage( rg.device.GetAllocator(), m_image, m_allocation );
-    if ( m_bindlessArrayIndex != PG_INVALID_TEXTURE_INDEX )
-    {
-        TextureManager::RemoveTexture( m_bindlessArrayIndex );
-        m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
-    }
+    BindlessManager::RemoveTexture( m_bindlessIndex );
 #if USING( DEBUG_BUILD )
-    m_image      = VK_NULL_HANDLE;
-    m_imageView  = VK_NULL_HANDLE;
-    m_allocation = nullptr;
+    m_bindlessIndex = PG_INVALID_TEXTURE_INDEX;
+    m_image         = VK_NULL_HANDLE;
+    m_imageView     = VK_NULL_HANDLE;
+    m_allocation    = nullptr;
     if ( debugName )
     {
         free( debugName );
@@ -46,7 +43,7 @@ VkExtent3D Texture::GetExtent3D() const { return { m_info.width, m_info.height, 
 VkImage Texture::GetImage() const { return m_image; }
 VkImageView Texture::GetView() const { return m_imageView; }
 VmaAllocation Texture::GetAllocation() const { return m_allocation; }
-uint16_t Texture::GetBindlessArrayIndex() const { return m_bindlessArrayIndex; }
+uint16_t Texture::GetBindlessIndex() const { return m_bindlessIndex; }
 Sampler* Texture::GetSampler() const { return m_sampler; }
 Texture::operator bool() const { return m_image != VK_NULL_HANDLE; }
 size_t Texture::GetTotalBytes() const { return m_info.TotalSizeInBytes(); }

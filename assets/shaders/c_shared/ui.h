@@ -1,3 +1,6 @@
+#ifndef __UI_H__
+#define __UI_H__
+
 #include "c_shared/defines.h"
 
 // keep in sync with UIElementUserFlags!
@@ -26,4 +29,7 @@ struct UIElementData
 
 #ifndef PG_SHADER_CODE
 } // namespace GpuData
+
 #endif // #ifndef PG_SHADER_CODE
+
+#endif // #ifndef __UI_H__

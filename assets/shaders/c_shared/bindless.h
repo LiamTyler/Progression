@@ -1,0 +1,16 @@
+#ifndef __BINDLESS_H__
+#define __BINDLESS_H__
+
+// slot 0 is reserved for invalid textures, so really only indices [1, 65535] are valid
+#define PG_MAX_BINDLESS_TEXTURES 65536
+#define PG_INVALID_TEXTURE_INDEX 0
+
+#define PG_MAX_BINDLESS_BUFFERS 65536
+#define PG_INVALID_BUFFER_INDEX 0
+
+#define PG_BINDLESS_READ_ONLY_TEXTURE_DSET_BINDING 0
+#define PG_BINDLESS_RW_TEXTURE_DSET_BINDING 1
+#define PG_SCENE_GLOBALS_DSET_BINDING 2
+#define PG_BINDLESS_BUFFER_DSET_BINDING 3
+
+#endif // #ifndef __BINDLESS_H__

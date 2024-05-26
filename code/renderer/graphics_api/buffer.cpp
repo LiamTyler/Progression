@@ -127,4 +127,18 @@ VkDeviceAddress Buffer::GetDeviceAddress() const
     return vkGetBufferDeviceAddress( rg.device, &info );
 }
 
+VkDescriptorType Buffer::GetDescriptorType() const
+{
+    if ( IsSet( m_bufferUsage, BufferUsage::STORAGE ) )
+        return VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+    if ( IsSet( m_bufferUsage, BufferUsage::UNIFORM ) )
+        return VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+    if ( IsSet( m_bufferUsage, BufferUsage::STORAGE_TEXEL ) )
+        return VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER;
+    if ( IsSet( m_bufferUsage, BufferUsage::UNIFORM_TEXEL ) )
+        return VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER;
+
+    return VK_DESCRIPTOR_TYPE_MAX_ENUM;
+}
+
 } // namespace PG::Gfx

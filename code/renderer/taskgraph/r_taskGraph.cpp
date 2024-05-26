@@ -42,11 +42,11 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         desc.mipLevels         = buildTex.mipLevels;
         desc.usage             = buildTex.usage;
 
-        gfxTex.m_info               = desc;
-        gfxTex.m_image              = VK_NULL_HANDLE;
-        gfxTex.m_imageView          = VK_NULL_HANDLE;
-        gfxTex.m_sampler            = GetSampler( desc.sampler );
-        gfxTex.m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
+        gfxTex.m_info          = desc;
+        gfxTex.m_image         = VK_NULL_HANDLE;
+        gfxTex.m_imageView     = VK_NULL_HANDLE;
+        gfxTex.m_sampler       = GetSampler( desc.sampler );
+        gfxTex.m_bindlessIndex = PG_INVALID_TEXTURE_INDEX;
 #if USING( DEBUG_BUILD ) && USING( TG_DEBUG )
         if ( !buildTex.debugName.empty() )
         {
@@ -205,16 +205,16 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         VkFormat vkFormat         = PGToVulkanPixelFormat( gfxTex.GetPixelFormat() );
         gfxTex.m_imageView        = CreateImageView( gfxTex.m_image, vkFormat, aspect, gfxTex.GetMipLevels(), gfxTex.GetArrayLayers() );
 
-        TextureManager::Usage usage = TextureManager::Usage::NONE;
+        BindlessManager::Usage usage = BindlessManager::Usage::NONE;
         if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_SAMPLED_BIT )
-            usage |= TextureManager::Usage::READ;
+            usage |= BindlessManager::Usage::READ;
         if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_STORAGE_BIT )
-            usage |= TextureManager::Usage::WRITE;
+            usage |= BindlessManager::Usage::WRITE;
 
-        if ( usage == TextureManager::Usage::NONE )
-            gfxTex.m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
+        if ( usage == BindlessManager::Usage::NONE )
+            gfxTex.m_bindlessIndex = PG_INVALID_TEXTURE_INDEX;
         else
-            gfxTex.m_bindlessArrayIndex = TextureManager::AddTexture( gfxTex.m_imageView, usage );
+            gfxTex.m_bindlessIndex = BindlessManager::AddTexture( gfxTex.m_imageView, usage );
 
 #if USING( TG_DEBUG )
         PG_DEBUG_MARKER_SET_IMAGE_NAME( gfxTex.m_image, buildTex.debugName );

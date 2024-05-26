@@ -228,11 +228,13 @@ Pipeline CreatePipeline( const PipelineCreateInfo& createInfo )
 
 Pipeline* GetPipeline( const std::string& name, bool debugPermuation )
 {
+#if !USING( SHIP_BUILD )
     if ( debugPermuation )
     {
         return AssetManager::Get<Pipeline>( name + "_debug" );
     }
     else
+#endif // #if !USING( SHIP_BUILD )
     {
         return AssetManager::Get<Pipeline>( name );
     }

@@ -1,5 +1,5 @@
-#ifndef _SHADER_DVAR_DEFINES_H_
-#define _SHADER_DVAR_DEFINES_H_
+#ifndef __DVAR_DEFINES_H__
+#define __DVAR_DEFINES_H__
 
 #include "c_shared/defines.h"
 
@@ -67,4 +67,4 @@ inline void PackWireframeBit( UINT& debug_PackedDvarBools, bool enabled )
 }
 #endif // #else // #if PG_SHADER_CODE
 
-#endif // #ifndef _SHADER_DVAR_DEFINES_H_
+#endif // #ifndef __DVAR_DEFINES_H__

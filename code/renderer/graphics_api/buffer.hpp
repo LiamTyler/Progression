@@ -135,6 +135,7 @@ public:
     void FlushCpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
     void FlushGpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
     VkDeviceAddress GetDeviceAddress() const;
+    VkDescriptorType GetDescriptorType() const;
 
     operator bool() const { return m_handle != VK_NULL_HANDLE; }
     operator VkBuffer() const { return m_handle; }
@@ -142,20 +143,20 @@ public:
     VkBuffer GetHandle() const { return m_handle; }
     VmaAllocation GetAllocation() const { return m_allocation; }
     char* GetMappedPtr() const { return static_cast<char*>( m_mappedPtr ); }
+    uint16_t GetBindlessIndex() const { return m_bindlessIndex; }
     DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );
 
 private:
+    DEBUG_BUILD_ONLY( char* debugName = nullptr );
     size_t m_size; // in bytes
-    BufferUsage m_bufferUsage;
-    VmaMemoryUsage m_memoryUsage;
-
     VkBuffer m_handle;
     VmaAllocation m_allocation;
     void* m_mappedPtr = nullptr;
+    BufferUsage m_bufferUsage;
+    VmaMemoryUsage m_memoryUsage;
+    uint16_t m_bindlessIndex;
     bool m_persistent = false;
     bool m_coherent   = false;
-
-    DEBUG_BUILD_ONLY( char* debugName = nullptr );
 };
 
 } // namespace PG::Gfx

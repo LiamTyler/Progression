@@ -1,6 +1,6 @@
 #pragma once
 
-#include "c_shared/defines.h"
+#include "c_shared/bindless.h"
 #include "core/image_types.hpp"
 #include "core/pixel_formats.hpp"
 #include "renderer/graphics_api/sampler.hpp"
@@ -48,7 +48,7 @@ public:
     VkImage GetImage() const;
     VkImageView GetView() const;
     VmaAllocation GetAllocation() const;
-    uint16_t GetBindlessArrayIndex() const;
+    uint16_t GetBindlessIndex() const;
     size_t GetTotalBytes() const;
     Sampler* GetSampler() const;
     DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );
@@ -57,11 +57,11 @@ public:
 
 private:
     TextureCreateInfo m_info;
-    VkImage m_image               = VK_NULL_HANDLE;
-    VkImageView m_imageView       = VK_NULL_HANDLE;
-    VmaAllocation m_allocation    = nullptr;
-    Sampler* m_sampler            = nullptr;
-    uint16_t m_bindlessArrayIndex = PG_INVALID_TEXTURE_INDEX;
+    VkImage m_image            = VK_NULL_HANDLE;
+    VkImageView m_imageView    = VK_NULL_HANDLE;
+    VmaAllocation m_allocation = nullptr;
+    Sampler* m_sampler         = nullptr;
+    uint16_t m_bindlessIndex   = PG_INVALID_TEXTURE_INDEX;
     DEBUG_BUILD_ONLY( char* debugName = nullptr );
 };
 

@@ -1,6 +1,7 @@
 #version 450
 
 #include "global_descriptors.glsl"
+#include "c_shared/structs.h"
 #extension GL_EXT_mesh_shader : require
 
 DEFINE_GLOBAL_DESCRIPTORS();
@@ -27,17 +28,14 @@ DEFINE_BUFFER_REFERENCE( 64 ) TransformBuffer
 
 layout(push_constant) uniform Registers
 {
-    PositionBuffer vertexBuffer;
-    TriBuffer triBuffer;
-    MeshletBuffer meshletBuffer;
-    TransformBuffer transformBuffer;
-    uint matrixIndex;
-    uint pad;
-} constants;
+    PerObjectData constants;
+};
 
 uvec3 GetTri( const Meshlet meshlet, uint index )
 {
-    uint packedTri = constants.triBuffer.tris[meshlet.triOffset + index];
+    TriBuffer tBuffer = TriBuffer( bindlessBuffers[constants.triBuffer] );
+    uint packedTri = tBuffer.tris[meshlet.triOffset + index];
+    //uint packedTri = constants.triBuffer.tris[meshlet.triOffset + index];
     uvec3 tri;
     tri.x = (packedTri >> 0)  & 0xFF;
     tri.y = (packedTri >> 8)  & 0xFF;
@@ -47,13 +45,24 @@ uvec3 GetTri( const Meshlet meshlet, uint index )
 
 vec3 GetPos( const Meshlet meshlet, uint index )
 {
-    vec3 pos = constants.vertexBuffer.positions[meshlet.vertexOffset + index];
+    PositionBuffer pBuffer = PositionBuffer( bindlessBuffers[constants.vertexBuffer] );
+    vec3 pos = pBuffer.positions[meshlet.vertexOffset + index];
+    //vec3 pos = constants.vertexBuffer.positions[meshlet.vertexOffset + index];
     return pos;
 }
 
-mat4 GetWorldMatrix( uint objectIdx )
+mat4 GetWorldMatrix()
 {
-    return constants.transformBuffer.transforms[objectIdx];
+    TransformBuffer tBuffer = TransformBuffer( bindlessBuffers[constants.transformBuffer] );
+    return tBuffer.transforms[constants.modelMatrixIndex];
+    //return constants.transformBuffer.transforms[constants.modelMatrixIndex];
+}
+
+Meshlet GetMeshlet( uint meshletID )
+{
+    MeshletBuffer mBuffer = MeshletBuffer( bindlessBuffers[constants.meshletBuffer] );
+    return mBuffer.meshlets[meshletID];
+    //return constants.meshletBuffer.meshlets[meshletID];
 }
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
@@ -71,7 +80,7 @@ void main()
     const uint meshletID = gl_WorkGroupID.x;
     const uint threadID = gl_LocalInvocationIndex;
 
-    Meshlet meshlet = constants.meshletBuffer.meshlets[meshletID];
+    Meshlet meshlet = GetMeshlet( meshletID );
     if ( threadID == 0 )
     {
         SetMeshOutputsEXT( meshlet.vertexCount, meshlet.triangleCount );
@@ -80,7 +89,7 @@ void main()
     if ( threadID < meshlet.vertexCount )
     {
         vec4 localPos = vec4( GetPos( meshlet, threadID ), 1 );
-        vec4 worldPos = GetWorldMatrix( constants.matrixIndex ) * localPos;
+        vec4 worldPos = GetWorldMatrix() * localPos;
         gl_MeshVerticesEXT[threadID].gl_Position = globals.VP * worldPos;
         
     #if IS_DEBUG_SHADER

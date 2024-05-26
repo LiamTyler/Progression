@@ -1,5 +1,6 @@
 #include "render_system.hpp"
 #include "asset/asset_manager.hpp"
+#include "c_shared/bindless.h"
 #include "c_shared/dvar_defines.h"
 #include "core/engine_globals.hpp"
 #include "core/scene.hpp"
@@ -41,7 +42,7 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
         uint32_t imageIndex;
     };
     Texture* tex = data->taskGraph->GetTexture( task->outputTextures[0] );
-    ComputePushConstants push{ vec4( 1, 0, 0, 1 ), vec4( 0, 0, 1, 1 ), tex->GetBindlessArrayIndex() };
+    ComputePushConstants push{ vec4( 1, 0, 0, 1 ), vec4( 0, 0, 1, 1 ), tex->GetBindlessIndex() };
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch_AutoSized( tex->GetWidth(), tex->GetHeight(), 1 );
 }
@@ -77,23 +78,12 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
             {
                 const Mesh& mesh = model->meshes[i];
 
-                struct PushConsts
-                {
-                    VkDeviceAddress vertexBuffer;
-                    VkDeviceAddress triBuffer;
-                    VkDeviceAddress meshletBuffer;
-                    VkDeviceAddress transformBuffer;
-                    uint32_t matrixIndex;
-                    uint32_t pad;
-                };
-
-                PushConsts constants;
-                constants.vertexBuffer    = mesh.vertexBuffer.GetDeviceAddress();
-                constants.triBuffer       = mesh.triBuffer.GetDeviceAddress();
-                constants.meshletBuffer   = mesh.meshletBuffer.GetDeviceAddress();
-                constants.transformBuffer = data->frameData->objectModelMatricesBuffer.GetDeviceAddress();
-                constants.matrixIndex     = objectNum;
-                constants.pad             = 0;
+                GpuData::PerObjectData constants;
+                constants.vertexBuffer     = mesh.vertexBuffer.GetBindlessIndex();
+                constants.triBuffer        = mesh.triBuffer.GetBindlessIndex();
+                constants.meshletBuffer    = mesh.meshletBuffer.GetBindlessIndex();
+                constants.transformBuffer  = data->frameData->objectModelMatricesBuffer.GetBindlessIndex();
+                constants.modelMatrixIndex = objectNum;
 
                 cmdBuf.PushConstants( constants );
 
@@ -291,7 +281,7 @@ static void UpdateGPUSceneData( Scene* scene )
     VkDescriptorBufferInfo dBufferInfo = { frameData.sceneGlobalsBuffer.GetHandle(), 0, VK_WHOLE_SIZE };
     VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
     write.dstSet          = GetGlobalDescriptorSet();
-    write.dstBinding      = 2;
+    write.dstBinding      = PG_SCENE_GLOBALS_DSET_BINDING;
     write.descriptorCount = 1;
     write.descriptorType  = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
     write.pBufferInfo     = &dBufferInfo;
@@ -318,7 +308,7 @@ void Render()
     PG_PROFILE_GPU_START_FRAME( cmdBuf );
     PG_PROFILE_GPU_START( cmdBuf, Frame, "Frame" );
 
-    TextureManager::Update();
+    BindlessManager::Update();
     UIOverlay::BeginFrame();
 
     TGExecuteData tgData;

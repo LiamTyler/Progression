@@ -123,6 +123,9 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.scalarBlockLayout                                  = true;
     features12.hostQueryReset                                     = true;
 
+    VkPhysicalDeviceFeatures features{};
+    features.shaderInt64 = true;
+
 #define ADD_PNEXT_FEATURES12( extStruct ) \
     extStruct.pNext  = features12.pNext;  \
     features12.pNext = &extStruct;
@@ -166,15 +169,16 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     meshShaderFeatures.meshShader = true;
     meshShaderFeatures.taskShader = true;
     pDevSelector.add_required_extension_features( meshShaderFeatures );
+    pDevSelector.add_required_extension( VK_EXT_MESH_SHADER_EXTENSION_NAME );
 
     pDevSelector.add_required_extension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
-    pDevSelector.add_required_extension( VK_EXT_MESH_SHADER_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME );
     pDevSelector.set_minimum_version( 1, 3 );
     pDevSelector.require_present( !headless );
     pDevSelector.set_required_features_13( features13 );
     pDevSelector.set_required_features_12( features12 );
+    pDevSelector.set_required_features( features );
 
     if ( !headless )
         pDevSelector.set_surface( rg.surface );
@@ -225,7 +229,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     LoadVulkanExtensions( rg.device );
 
     InitGlobalDescriptorData();
-    TextureManager::Init();
+    BindlessManager::Init();
     PipelineManager::Init();
 
     PG_DEBUG_MARKER_SET_INSTANCE_NAME( rg.instance, "Primary" );
@@ -262,7 +266,7 @@ void R_Shutdown()
     rg.swapchain.Free();
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
     PipelineManager::Shutdown();
-    TextureManager::Shutdown();
+    BindlessManager::Shutdown();
     FreeGlobalDescriptorData();
     rg.device.Free();
     vkb::destroy_debug_utils_messenger( rg.instance, s_debugMessenger );

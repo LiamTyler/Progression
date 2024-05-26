@@ -66,21 +66,6 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
         extendedInfo.pBindingFlags = bindFlags.data();
     }
 
-    // VkDescriptorBindingFlags bindFlags[2] = { 0 };
-    // if ( bindlessSupport )
-    //{
-    //     for ( int i = 0; i < 2; ++i )
-    //     {
-    //         VkDescriptorBindingFlags& bindFlag = bindFlags[i];
-    //         bindFlag |= VK_DESCRIPTOR_BINDING_PARTIALLY_BOUND_BIT;
-    //         // bindFlag |= VK_DESCRIPTOR_BINDING_VARIABLE_DESCRIPTOR_COUNT_BIT;
-    //         bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
-    //     }
-    //
-    //     extendedInfo.bindingCount  = (uint32_t)bindings.size();
-    //     extendedInfo.pBindingFlags = bindFlags;
-    // }
-
 #if USING( PG_MUTABLE_DESCRIPTORS )
     VkDescriptorType mutableTexTypes[] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE };
 
@@ -166,6 +151,7 @@ void InitGlobalDescriptorData()
     setLayoutBuilder.AddBinding( 0, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES );
     setLayoutBuilder.AddBinding( 1, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
     setLayoutBuilder.AddBinding( 2, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 );
+    setLayoutBuilder.AddBinding( 3, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 );
     s_globalDescriptorSetLayout = setLayoutBuilder.Build( VK_SHADER_STAGE_ALL, "global" );
 
 #if USING( PG_DESCRIPTOR_BUFFER )
@@ -175,6 +161,7 @@ void InitGlobalDescriptorData()
         {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  PG_MAX_BINDLESS_TEXTURES},
         {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  PG_MAX_BINDLESS_TEXTURES},
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1                       },
+        {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1                       },
     };
     s_descriptorAllocator.Init( 1, poolSizes, "global" );
 

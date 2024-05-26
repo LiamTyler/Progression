@@ -13,6 +13,7 @@ static float PackRadius( float radius )
     return *reinterpret_cast<float*>( &packed );
 }
 
+/*
 #if USING( GAME )
 // NOTE! Keep the following Pack* functions in sync with lights.glsl
 GpuData::PackedLight PackPointLight( const PointLight& light )
@@ -46,5 +47,6 @@ GpuData::PackedLight PackDirectionalLight( const DirectionalLight& light )
     return p;
 }
 #endif // #if USING( GAME )
+*/
 
 } // namespace PG

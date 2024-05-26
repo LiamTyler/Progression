@@ -168,6 +168,8 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
 
     buffer.m_mappedPtr = buffer.m_persistent ? allocReturnInfo.pMappedData : nullptr;
 
+    buffer.m_bindlessIndex = BindlessManager::AddBuffer( &buffer );
+
 #if USING( DEBUG_BUILD )
     if ( !name.empty() )
     {
@@ -234,17 +236,17 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     allocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VK_CHECK( vmaCreateImage( m_vmaAllocator, &imageInfo, &allocInfo, &tex.m_image, &tex.m_allocation, nullptr ) );
 
-    TextureManager::Usage tmUsage = TextureManager::Usage::NONE;
-    VkFormatFeatureFlags features = 0;
+    BindlessManager::Usage tmUsage = BindlessManager::Usage::NONE;
+    VkFormatFeatureFlags features  = 0;
     if ( desc.usage & VK_IMAGE_USAGE_SAMPLED_BIT )
     {
         features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-        tmUsage |= TextureManager::Usage::READ;
+        tmUsage |= BindlessManager::Usage::READ;
     }
     if ( desc.usage & VK_IMAGE_USAGE_STORAGE_BIT )
     {
         features |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-        tmUsage |= TextureManager::Usage::WRITE;
+        tmUsage |= BindlessManager::Usage::WRITE;
     }
     if ( isDepth )
         features |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
@@ -256,7 +258,7 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     PG_DEBUG_MARKER_SET_IMAGE_NAME( tex.m_image, name );
     PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name );
 
-    tex.m_bindlessArrayIndex = TextureManager::AddTexture( tex.m_imageView, tmUsage );
+    tex.m_bindlessIndex = BindlessManager::AddTexture( tex.m_imageView, tmUsage );
 
 #if USING( DEBUG_BUILD )
     if ( !name.empty() )

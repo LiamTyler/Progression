@@ -101,6 +101,8 @@ set(
     ${CODE_DIR}/renderer/graphics_api.hpp
     ${CODE_DIR}/renderer/render_system.cpp
     ${CODE_DIR}/renderer/render_system.hpp
+    ${CODE_DIR}/renderer/r_bindless_manager.cpp
+    ${CODE_DIR}/renderer/r_bindless_manager.hpp
     ${CODE_DIR}/renderer/r_dvars.cpp
     ${CODE_DIR}/renderer/r_dvars.hpp
     ${CODE_DIR}/renderer/r_globals.cpp
@@ -109,8 +111,6 @@ set(
     ${CODE_DIR}/renderer/r_init.hpp
     ${CODE_DIR}/renderer/r_pipeline_manager.cpp
     ${CODE_DIR}/renderer/r_pipeline_manager.hpp
-	${CODE_DIR}/renderer/r_texture_manager.cpp
-    ${CODE_DIR}/renderer/r_texture_manager.hpp
 	${CODE_DIR}/renderer/taskgraph/r_taskGraph.cpp
     ${CODE_DIR}/renderer/taskgraph/r_taskGraph.hpp
     ${CODE_DIR}/renderer/taskgraph/internal/r_tg_builder.cpp

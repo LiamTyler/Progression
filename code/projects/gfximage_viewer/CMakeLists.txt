@@ -5,6 +5,7 @@ include(source_files)
 
 set(SRC
     ${CMAKE_CURRENT_SOURCE_DIR}/gfximage_viewer_main.cpp
+    ${CODE_DIR}/asset/types/base_asset.cpp
     ${CODE_DIR}/asset/types/base_asset.hpp
     ${CODE_DIR}/asset/types/gfx_image.cpp
     ${CODE_DIR}/asset/types/gfx_image.hpp

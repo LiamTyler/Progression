@@ -20,7 +20,7 @@ bool Pipeline::Load( const BaseAssetCreateInfo* baseInfo )
     return true;
 #endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
-    *this = Gfx::PipelineManager::CreatePipeline( *inputCreateInfo );
+    Gfx::PipelineManager::CreatePipeline( this, *inputCreateInfo );
     return true;
 #endif // #if USING( GPU_DATA )
     return false;
@@ -32,7 +32,7 @@ bool Pipeline::FastfileLoad( Serializer* serializer )
     using namespace Gfx;
     PipelineCreateInfo createInfo;
 
-    serializer->Read( createInfo.name );
+    // serializer->Read( createInfo.name );
     uint8_t numShaders;
     serializer->Read( numShaders );
     createInfo.shaders.resize( numShaders );
@@ -54,7 +54,7 @@ bool Pipeline::FastfileLoad( Serializer* serializer )
     serializer->Read( &createInfo.graphicsInfo.depthInfo, sizeof( PipelineDepthInfo ) );
     serializer->Read( &createInfo.graphicsInfo.primitiveType, sizeof( PrimitiveType ) );
 
-    *this = Gfx::PipelineManager::CreatePipeline( createInfo );
+    Gfx::PipelineManager::CreatePipeline( this, createInfo );
 
     return true;
 #endif // #if USING( GPU_DATA )
@@ -65,7 +65,7 @@ bool Pipeline::FastfileSave( Serializer* serializer ) const
 {
 #if USING( CONVERTER )
     using namespace Gfx;
-    serializer->Write( createInfo.name );
+    serializer->Write<uint16_t>( createInfo.name.c_str() );
     uint8_t numShaders = static_cast<uint8_t>( createInfo.shaders.size() );
     serializer->Write( numShaders );
     for ( const PipelineShaderInfo& shader : createInfo.shaders )

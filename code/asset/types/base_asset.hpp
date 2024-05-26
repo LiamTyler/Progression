@@ -3,6 +3,8 @@
 #include "shared/platform_defines.hpp"
 #include <string>
 
+#define ASSET_NAMES USE_IF( !USING( GAME ) || !USING( SHIP_BUILD ) )
+
 class Serializer;
 
 namespace PG
@@ -17,8 +19,11 @@ class BaseAsset
 {
 public:
     BaseAsset() = default;
-    BaseAsset( const std::string& inName ) : name( inName ) {}
-    virtual ~BaseAsset() = default;
+    BaseAsset( std::string_view inName );
+    virtual ~BaseAsset();
+
+    BaseAsset( const BaseAsset& )            = delete;
+    BaseAsset& operator=( const BaseAsset& ) = delete;
 
     // Not pure virtual because assets are not required to support runtime loading (this function) though most do
     // They can choose to have it handled through the corresponding asset converter class if need be (Material, for example)
@@ -28,12 +33,20 @@ public:
     virtual bool FastfileSave( Serializer* serializer ) const = 0;
     virtual void Free() {}
 
-    std::string name;
+    void SetName( std::string_view inName );
+    const char* GetName() const;
 
 #if USING( CONVERTER )
     // occassionally handy to have access to this during the Load() function, mostly uneeded though
     std::string cacheName;
 #endif // #if USING( CONVERTER )
+
+protected:
+#if USING( ASSET_NAMES )
+    char* m_name = nullptr; // the AssetManager always takes care of deserializing this
+#endif                      // #if USING( ASSET_NAMES )
+
+    void SerializeName( Serializer* serializer ) const;
 };
 
 } // namespace PG

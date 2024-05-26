@@ -97,7 +97,7 @@ size_t CalculateTotalImageBytes(
 size_t CalculateTotalImageBytes( const GfxImage& img );
 PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB );
 
-GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, PixelFormat format );
-GfxImage DecompressGfxImage( const GfxImage& image );
+void RawImage2DMipsToGfxImage( GfxImage& image, const std::vector<RawImage2D>& mips, PixelFormat format );
+void DecompressGfxImage( const GfxImage& compressedImage, GfxImage& decompressedImage );
 
 } // namespace PG

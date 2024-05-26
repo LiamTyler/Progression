@@ -14,9 +14,6 @@ namespace PG
 
 bool Material::FastfileLoad( Serializer* serializer )
 {
-    PG_ASSERT( serializer );
-    MaterialCreateInfo createInfo;
-    serializer->Read( name );
     serializer->Read( type );
     serializer->Read( albedoTint );
     serializer->Read( metalnessTint );
@@ -26,17 +23,17 @@ bool Material::FastfileLoad( Serializer* serializer )
     std::string imgName;
     serializer->Read( imgName );
     albedoMetalnessImage = AssetManager::Get<GfxImage>( imgName );
-    PG_ASSERT( albedoMetalnessImage, "AlbedoMetalness image '%s' not found for material '%s'", imgName.c_str(), name.c_str() );
+    PG_ASSERT( albedoMetalnessImage, "AlbedoMetalness image '%s' not found for material '%s'", imgName.c_str(), m_name );
 
     serializer->Read( imgName );
     normalRoughnessImage = AssetManager::Get<GfxImage>( imgName );
-    PG_ASSERT( normalRoughnessImage, "NormalRoughness image '%s' not found for material '%s'", imgName.c_str(), name.c_str() );
+    PG_ASSERT( normalRoughnessImage, "NormalRoughness image '%s' not found for material '%s'", imgName.c_str(), m_name );
 
     serializer->Read( imgName );
     if ( !imgName.empty() )
     {
         emissiveImage = AssetManager::Get<GfxImage>( imgName );
-        PG_ASSERT( emissiveImage, "Emissive image '%s' not found for material '%s'", imgName.c_str(), name.c_str() );
+        PG_ASSERT( emissiveImage, "Emissive image '%s' not found for material '%s'", imgName.c_str(), m_name );
     }
 
     return true;
@@ -44,17 +41,17 @@ bool Material::FastfileLoad( Serializer* serializer )
 
 bool Material::FastfileSave( Serializer* serializer ) const
 {
-    serializer->Write( name );
+    SerializeName( serializer );
     serializer->Write( type );
     serializer->Write( albedoTint );
     serializer->Write( metalnessTint );
     serializer->Write( roughnessTint );
     serializer->Write( emissiveTint );
-    std::string imgName = albedoMetalnessImage ? albedoMetalnessImage->name : "";
+    std::string imgName = albedoMetalnessImage ? albedoMetalnessImage->GetName() : "";
     serializer->Write( imgName );
-    imgName = normalRoughnessImage ? normalRoughnessImage->name : "";
+    imgName = normalRoughnessImage ? normalRoughnessImage->GetName() : "";
     serializer->Write( imgName );
-    imgName = emissiveImage ? emissiveImage->name : "";
+    imgName = emissiveImage ? emissiveImage->GetName() : "";
     serializer->Write( imgName );
 
     return true;

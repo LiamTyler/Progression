@@ -2,7 +2,7 @@
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
-#include "renderer/r_texture_manager.hpp"
+#include "renderer/r_bindless_manager.hpp"
 #include "shared/assert.hpp"
 
 namespace PG::Gfx

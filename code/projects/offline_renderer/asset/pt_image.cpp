@@ -15,19 +15,20 @@ std::unordered_map<std::string, TextureHandle> s_textureNameToHandleMap;
 
 TextureHandle LoadTextureFromGfxImage( GfxImage* image )
 {
-    PG_ASSERT( image && image->name.length() > 0 );
-    auto it = s_textureNameToHandleMap.find( image->name );
+    PG_ASSERT( image );
+    std::string name = image->GetName();
+    auto it          = s_textureNameToHandleMap.find( name );
     if ( it != s_textureNameToHandleMap.end() )
     {
         return it->second;
     }
 
-    GfxImage decompressedImg;
+    GfxImage decompressedImg{};
     if ( PixelFormatIsCompressed( image->pixelFormat ) )
     {
         static uint32_t decompressedImages = 0;
-        LOG( "Decompressing image %u '%s'...", decompressedImages++, image->name.c_str() );
-        decompressedImg = DecompressGfxImage( *image );
+        LOG( "Decompressing image %u '%s'...", decompressedImages++, image->GetName() );
+        DecompressGfxImage( *image, decompressedImg );
     }
 
     image = &decompressedImg;
@@ -36,7 +37,7 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     {
         tex = std::make_shared<Texture2D>( image->width, image->height, image->mipLevels, image->pixelFormat, (void*)image->pixels );
         // RawImage2D img( image->width, image->height, PixelFormatToImageFormat( image->pixelFormat ), std::static_pointer_cast<Texture2D>(
-        // tex )->Raw( 0 ) ); img.Save( PG_ROOT_DIR + image->name + (PixelFormatIsFloat( image->pixelFormat ) ? ".exr" : ".png") );
+        // tex )->Raw( 0 ) ); img.Save( PG_ROOT_DIR + name + (PixelFormatIsFloat( image->pixelFormat ) ? ".exr" : ".png") );
     }
     else if ( image->imageType == ImageType::TYPE_CUBEMAP )
     {
@@ -54,8 +55,8 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     }
 
     g_textures.push_back( tex );
-    TextureHandle handle                  = static_cast<TextureHandle>( g_textures.size() - 1 );
-    s_textureNameToHandleMap[image->name] = handle;
+    TextureHandle handle           = static_cast<TextureHandle>( g_textures.size() - 1 );
+    s_textureNameToHandleMap[name] = handle;
 
     if ( image == &decompressedImg )
     {

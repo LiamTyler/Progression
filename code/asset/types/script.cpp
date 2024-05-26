@@ -13,7 +13,7 @@ bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
     const ScriptCreateInfo* createInfo = (const ScriptCreateInfo*)baseInfo;
-    name                               = createInfo->name;
+    SetName( createInfo->name );
     std::ifstream in( GetAbsPath_ScriptFilename( createInfo->filename ), std::ios::binary );
     if ( !in )
     {
@@ -32,8 +32,6 @@ bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool Script::FastfileLoad( Serializer* serializer )
 {
-    PG_ASSERT( serializer );
-    serializer->Read( name );
     serializer->Read( scriptText );
 
     return true;
@@ -42,7 +40,7 @@ bool Script::FastfileLoad( Serializer* serializer )
 bool Script::FastfileSave( Serializer* serializer ) const
 {
     PG_ASSERT( serializer );
-    serializer->Write( name );
+    SerializeName( serializer );
     serializer->Write( scriptText );
 
     return true;

@@ -37,7 +37,7 @@ void Init()
 }
 
 #if USING( ASSET_LIVE_UPDATE )
-bool LiveUpdatesSupported( AssetType type ) { return type == AssetType::ASSET_TYPE_SCRIPT || type == AssetType::ASSET_TYPE_UI_LAYOUT; }
+bool LiveUpdatesSupported( AssetType type ) { return false; }
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
 static void ClearPendingLiveUpdates()
@@ -74,23 +74,23 @@ void ProcessPendingLiveUpdates()
                 continue;
             }
 
-            LOG( "Performing live update for asset '%s'", newAssetBase->name.c_str() );
-            if ( assetIdx == AssetType::ASSET_TYPE_SCRIPT )
-            {
-                Script* oldAsset = Get<Script>( newAssetBase->name );
-                Script* newAsset = (Script*)newAssetBase;
-                UI::ReloadScriptIfInUse( oldAsset, newAsset );
-                oldAsset->Free();
-                *oldAsset = std::move( *newAsset );
-            }
-            else if ( assetIdx == AssetType::ASSET_TYPE_UI_LAYOUT )
-            {
-                UILayout* oldAsset = Get<UILayout>( newAssetBase->name );
-                UILayout* newAsset = (UILayout*)newAssetBase;
-                UI::ReloadLayoutIfInUse( oldAsset, newAsset );
-                oldAsset->Free();
-                *oldAsset = std::move( *newAsset );
-            }
+            // LOG( "Performing live update for asset '%s'", newAssetBase->GetName() );
+            // if ( assetIdx == AssetType::ASSET_TYPE_SCRIPT )
+            //{
+            //     Script* oldAsset = Get<Script>( newAssetBase->GetName() );
+            //     Script* newAsset = (Script*)newAssetBase;
+            //     UI::ReloadScriptIfInUse( oldAsset, newAsset );
+            //     oldAsset->Free();
+            //     *oldAsset = std::move( *newAsset );
+            // }
+            // else if ( assetIdx == AssetType::ASSET_TYPE_UI_LAYOUT )
+            //{
+            //     UILayout* oldAsset = Get<UILayout>( newAssetBase->GetName() );
+            //     UILayout* newAsset = (UILayout*)newAssetBase;
+            //     UI::ReloadLayoutIfInUse( oldAsset, newAsset );
+            //     oldAsset->Free();
+            //     *oldAsset = std::move( *newAsset );
+            // }
         }
         s_pendingAssetUpdates[assetIdx].clear();
     }
@@ -100,26 +100,40 @@ void ProcessPendingLiveUpdates()
 #endif // #if USING( ASSET_LIVE_UPDATE )
 }
 
+std::string DeserializeAssetName( Serializer* serializer, BaseAsset* asset )
+{
+    std::string assetName;
+    uint16_t assetNameLen;
+    serializer->Read( assetNameLen );
+    assetName.resize( assetNameLen );
+    serializer->Read( &assetName[0], assetNameLen );
+    asset->SetName( assetName );
+
+    return assetName;
+}
+
 template <typename ActualAssetType>
 bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
 {
     ActualAssetType* asset = new ActualAssetType;
+    std::string assetName  = DeserializeAssetName( serializer, asset );
+
     if ( !asset->FastfileLoad( serializer ) )
     {
         LOG_ERR( "Could not load %s", g_assetNames[assetType] );
         return false;
     }
-    auto it = g_resourceMaps[assetType].find( asset->name );
+    auto it = g_resourceMaps[assetType].find( assetName );
     if ( it == g_resourceMaps[assetType].end() )
     {
-        g_resourceMaps[assetType][asset->name] = asset;
+        g_resourceMaps[assetType][assetName] = asset;
     }
 #if USING( ASSET_LIVE_UPDATE )
     else
     {
         s_pendingAssetUpdates[assetType].push_back( asset );
         // LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)",
-        // asset->name.c_str(), g_assetNames[assetType] ); asset->Free(); delete asset;
+        // assetName.c_str(), g_assetNames[assetType] ); asset->Free(); delete asset;
     }
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
@@ -208,7 +222,7 @@ void RegisterLuaFunctions( lua_State* L )
     assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get<Model>( name ); };
 
     sol::usertype<Material> mat_type = lua.new_usertype<Material>( "Material" ); //, sol::constructors<Material()>() );
-    mat_type["name"]                 = &Material::name;
+    // mat_type["name"]                 = &Material::name;
     mat_type["albedoTint"]           = &Material::albedoTint;
     mat_type["metalnessTint"]        = &Material::metalnessTint;
     mat_type["roughnessTint"]        = &Material::roughnessTint;
@@ -216,23 +230,23 @@ void RegisterLuaFunctions( lua_State* L )
     mat_type["normalRoughnessImage"] = &Material::normalRoughnessImage;
 
     sol::usertype<Model> model_type = lua.new_usertype<Model>( "Model" );
-    model_type["name"]              = &Model::name;
-    model_type["meshes"]            = &Model::meshes;
+    // model_type["name"]              = &Model::name;
+    model_type["meshes"] = &Model::meshes;
     // model_type["originalMaterials"] = &Model::originalMaterials;
 
     sol::usertype<GfxImage> image_type = lua.new_usertype<GfxImage>( "GfxImage" );
-    image_type["name"]                 = &GfxImage::name;
-    image_type["width"]                = &GfxImage::width;
-    image_type["height"]               = &GfxImage::height;
-    image_type["depth"]                = &GfxImage::depth;
-    image_type["mipLevels"]            = &GfxImage::mipLevels;
-    image_type["numFaces"]             = &GfxImage::numFaces;
-    image_type["pixelFormat"]          = &GfxImage::pixelFormat;
-    image_type["imageType"]            = &GfxImage::imageType;
+    // image_type["name"]                 = &GfxImage::name;
+    image_type["width"]       = &GfxImage::width;
+    image_type["height"]      = &GfxImage::height;
+    image_type["depth"]       = &GfxImage::depth;
+    image_type["mipLevels"]   = &GfxImage::mipLevels;
+    image_type["numFaces"]    = &GfxImage::numFaces;
+    image_type["pixelFormat"] = &GfxImage::pixelFormat;
+    image_type["imageType"]   = &GfxImage::imageType;
 
     sol::usertype<Script> script_type = lua.new_usertype<Script>( "Script" );
-    script_type["name"]               = &Script::name;
-    script_type["scriptText"]         = &Script::scriptText;
+    // script_type["name"]               = &Script::name;
+    script_type["scriptText"] = &Script::scriptText;
 }
 
 BaseAsset* Get( uint32_t assetTypeID, const std::string& name )

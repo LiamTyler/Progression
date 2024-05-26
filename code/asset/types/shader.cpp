@@ -145,7 +145,7 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     PG_ASSERT( baseInfo );
     auto createInfo = (const ShaderCreateInfo*)baseInfo;
 
-    name          = createInfo->name;
+    SetName( createInfo->name );
     m_shaderStage = createInfo->shaderStage;
 
     bool savePreproc = false;
@@ -182,7 +182,7 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, name );
+    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, GetName() );
 #endif // if USING( GPU_DATA )
 
     return true;
@@ -190,8 +190,6 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool Shader::FastfileLoad( Serializer* serializer )
 {
-    PG_ASSERT( serializer );
-    serializer->Read( name );
     serializer->Read( &m_reflectionData, sizeof( m_reflectionData ) );
     serializer->Read( m_shaderStage );
     std::vector<uint32_t> spirv;
@@ -203,7 +201,7 @@ bool Shader::FastfileLoad( Serializer* serializer )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, name );
+    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, GetName() );
 #endif // #if USING( GPU_DATA )
 
     return true;
@@ -215,7 +213,7 @@ bool Shader::FastfileSave( Serializer* serializer ) const
 #if !USING( CONVERTER )
     PG_ASSERT( false, "Spirv code is only kept around in Converter builds for saving" );
 #else  // #if !USING( CONVERTER )
-    serializer->Write( name );
+    SerializeName( serializer );
     serializer->Write( &m_reflectionData, sizeof( m_reflectionData ) );
     serializer->Write( m_shaderStage );
     serializer->Write( savedSpirv );

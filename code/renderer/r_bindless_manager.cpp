@@ -1,4 +1,4 @@
-#include "renderer/r_texture_manager.hpp"
+#include "renderer/r_bindless_manager.hpp"
 #include "c_shared/bindless.h"
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/r_globals.hpp"

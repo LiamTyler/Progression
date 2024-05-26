@@ -3,6 +3,7 @@ set(CODE_DIR ${PROGRESSION_DIR}/code)
 set(
     ASSET_SRC
     
+    ${CODE_DIR}/asset/types/base_asset.cpp
     ${CODE_DIR}/asset/types/base_asset.hpp
     ${CODE_DIR}/asset/types/gfx_image.cpp
     ${CODE_DIR}/asset/types/gfx_image.hpp

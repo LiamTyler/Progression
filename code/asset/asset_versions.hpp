@@ -22,13 +22,13 @@ enum AssetType : unsigned int
 };
 
 constexpr unsigned int g_assetVersions[] = {
-    8, // ASSET_TYPE_GFX_IMAGE, "Changed how alpha is handled during mipmapping"
-    9, // ASSET_TYPE_MATERIAL,  "Fixed material type"
-    0, // ASSET_TYPE_SCRIPT
-    2, // ASSET_TYPE_MODEL,     "basic meshlets"
-    3, // ASSET_TYPE_SHADER,    "new names"
-    7, // ASSET_TYPE_UI_LAYOUT, "mouse button down/up callbacks"
-    2, // ASSET_TYPE_PIPELINE,  "fixed debug pipeline setup"
+    9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
+    10, // ASSET_TYPE_MATERIAL, "New name serialization"
+    1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
+    3,  // ASSET_TYPE_MODEL,     "New name serialization"
+    4,  // ASSET_TYPE_SHADER,    "New name serialization"
+    8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
+    3,  // ASSET_TYPE_PIPELINE,  "New name serialization"
 
     // put all assets that don't actually have a struct below.
     // Note: this means that bumping the image versions doesn't do anything :(

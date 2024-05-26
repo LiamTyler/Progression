@@ -62,8 +62,8 @@ T* Get( const std::string& name )
     if ( it == g_resourceMaps[assetTypeID].end() )
     {
         // in the converter just want to get a list of asset names that are used while parsing the scene
-        asset                             = new T;
-        asset->name                       = name;
+        asset = new T;
+        asset->SetName( name );
         g_resourceMaps[assetTypeID][name] = asset;
     }
     else

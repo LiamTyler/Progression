@@ -1,7 +1,7 @@
 #include "renderer/graphics_api/texture.hpp"
 #include "asset/types/gfx_image.hpp"
+#include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
-#include "renderer/r_texture_manager.hpp"
 #include "shared/assert.hpp"
 #include <algorithm>
 #include <cmath>

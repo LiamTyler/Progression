@@ -1,9 +1,9 @@
 ﻿#include "renderer/r_init.hpp"
 #include "core/window.hpp"
 #include "renderer/debug_marker.hpp"
+#include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
-#include "renderer/r_texture_manager.hpp"
 #include "shared/logger.hpp"
 #include "vk-bootstrap/VkBootstrap.h"
 #include <cstring>

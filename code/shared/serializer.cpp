@@ -78,6 +78,12 @@ void Serializer::Read( void* buffer, size_t bytes )
     currentReadPos += bytes;
 }
 
+void Serializer::Skip( size_t bytes )
+{
+    PG_ASSERT( !bytes || ( currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size() ), "Skipping off the end of the file" );
+    currentReadPos += bytes;
+}
+
 void Serializer::Write( const std::string& s )
 {
     int strSize = static_cast<int>( s.length() );
@@ -94,7 +100,7 @@ void Serializer::Read( std::string& s )
     Read( strSize );
     if ( strSize > 0 )
     {
-        s.resize( strSize, ' ' );
+        s.resize( strSize );
         Read( &s[0], strSize );
     }
 }

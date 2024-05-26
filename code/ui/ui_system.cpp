@@ -483,7 +483,7 @@ static bool CreateLayoutFromAsset( UILayout* layoutAsset )
     {
         layoutInfo.uiscript = new UIScript( s_uiLuaState, layoutAsset->script );
         Lua::RunFunctionSafeChecks( layoutInfo.uiscript->env, "Start" );
-        const std::string& scriptName = layoutAsset->script->name;
+        const std::string& scriptName = layoutAsset->script->GetName();
 
         for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layoutAsset->createInfos.size(); ++localHandle )
         {
@@ -557,7 +557,7 @@ void ReloadScriptIfInUse( Script* oldScript, Script* newScript )
         if ( !layoutInfo.uiscript || oldScript != layoutInfo.uiscript->script )
             continue;
 
-        const std::string& scriptName = newScript->name;
+        const std::string& scriptName = newScript->GetName();
         s_uiLuaState->script( newScript->scriptText, layoutInfo.uiscript->env );
         for ( uint32_t idx = 0; idx < layoutInfo.elementCount; ++idx )
         {

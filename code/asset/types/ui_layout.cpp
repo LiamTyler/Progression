@@ -182,7 +182,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );
     const UILayoutCreateInfo* createInfo = (const UILayoutCreateInfo*)baseInfo;
-    name                                 = createInfo->name;
+    SetName( createInfo->name );
 
 #if USING( CONVERTER )
     const std::string absPath = GetAbsPath_UILayoutFilename( createInfo->xmlFilename );
@@ -247,8 +247,6 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool UILayout::FastfileLoad( Serializer* serializer )
 {
-    PG_ASSERT( serializer );
-    serializer->Read( name );
     uint32_t numElements;
     serializer->Read( numElements );
     createInfos.resize( numElements );
@@ -274,7 +272,7 @@ bool UILayout::FastfileLoad( Serializer* serializer )
     std::string scriptName;
     serializer->Read( scriptName );
     script = AssetManager::Get<Script>( scriptName );
-    PG_ASSERT( script, "Cannot find Script '%s' for UILayout '%s'", scriptName.c_str(), name.c_str() );
+    PG_ASSERT( script, "Cannot find Script '%s' for UILayout '%s'", scriptName.c_str(), m_name );
 
     return true;
 }
@@ -282,7 +280,7 @@ bool UILayout::FastfileLoad( Serializer* serializer )
 bool UILayout::FastfileSave( Serializer* serializer ) const
 {
     PG_ASSERT( serializer );
-    serializer->Write( name );
+    SerializeName( serializer );
     uint32_t numElements = static_cast<uint32_t>( createInfos.size() );
     serializer->Write( numElements );
     for ( const auto& info : createInfos )
@@ -305,7 +303,7 @@ bool UILayout::FastfileSave( Serializer* serializer ) const
         serializer->Write( info.mouseButtonUpFuncName );
     }
 
-    std::string scriptName = script ? script->name : "";
+    std::string scriptName = script ? script->GetName() : "";
     serializer->Write( scriptName );
 
     return true;

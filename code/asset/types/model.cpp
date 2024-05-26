@@ -26,7 +26,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 #if USING( CONVERTER )
     PG_ASSERT( baseInfo );
     const ModelCreateInfo* createInfo = (const ModelCreateInfo*)baseInfo;
-    name                              = createInfo->name;
+    SetName( createInfo->name );
     if ( GetFileExtension( createInfo->filename ) != ".pmodel" )
     {
         LOG_ERR( "Model::Load only takes .pmodel format" );
@@ -146,7 +146,6 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool Model::FastfileLoad( Serializer* serializer )
 {
-    serializer->Read( name );
     size_t numMeshes;
     serializer->Read( numMeshes );
     meshes.resize( numMeshes );
@@ -177,12 +176,12 @@ bool Model::FastfileLoad( Serializer* serializer )
 
 bool Model::FastfileSave( Serializer* serializer ) const
 {
-    serializer->Write( name );
+    SerializeName( serializer );
     serializer->Write( meshes.size() );
     for ( const Mesh& mesh : meshes )
     {
         serializer->Write( mesh.name );
-        serializer->Write( mesh.material->name );
+        serializer->Write( std::string( mesh.material->GetName() ) );
         serializer->Write( mesh.positions );
         serializer->Write( mesh.normals );
         serializer->Write( mesh.texCoords );
@@ -246,23 +245,31 @@ void Model::UploadToGPU()
         BufferCreateInfo vbCreateInfo{};
         vbCreateInfo.size        = totalVertexSizeInBytes;
         vbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
-        mesh.vertexBuffer        = rg.device.NewBuffer( vbCreateInfo, name + "_vb_" + mesh.name );
+
+        BufferCreateInfo tbCreateInfo{};
+        tbCreateInfo.size        = triBufferSize;
+        tbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+
+        BufferCreateInfo mbCreateInfo = vbCreateInfo;
+        mbCreateInfo.size             = meshletsSize;
+
+#if USING( ASSET_NAMES )
+        mesh.vertexBuffer  = rg.device.NewBuffer( vbCreateInfo, std::string( m_name ) + "_vb_" + mesh.name );
+        mesh.triBuffer     = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + "_tb_" + mesh.name );
+        mesh.meshletBuffer = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + "_mb_" + mesh.name );
+#else  // #if USING( ASSET_NAMES )
+        mesh.vertexBuffer  = rg.device.NewBuffer( vbCreateInfo );
+        mesh.triBuffer     = rg.device.NewBuffer( tbCreateInfo );
+        mesh.meshletBuffer = rg.device.NewBuffer( mbCreateInfo );
+#endif // #else // #if USING( ASSET_NAMES )
         rg.ImmediateSubmit(
             [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.vertexBuffer, stagingBuffer, totalVertexSizeInBytes ); } );
 
         memcpy( stagingBuffer.Map(), mesh.indices.data(), triBufferSize );
-        BufferCreateInfo tbCreateInfo{};
-        tbCreateInfo.size        = triBufferSize;
-        tbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
-        mesh.triBuffer           = rg.device.NewBuffer( tbCreateInfo, name + "_tb_" + mesh.name );
         rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.triBuffer, stagingBuffer, triBufferSize ); } );
 
         stagingData = stagingBuffer.Map();
         memcpy( stagingData, mesh.meshlets.data(), meshletsSize );
-
-        BufferCreateInfo mbCreateInfo = vbCreateInfo;
-        mbCreateInfo.size             = meshletsSize;
-        mesh.meshletBuffer            = rg.device.NewBuffer( mbCreateInfo, name + "_mb_" + mesh.name );
         rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.meshletBuffer, stagingBuffer, meshletsSize ); } );
 
         stagingBuffer.Free();

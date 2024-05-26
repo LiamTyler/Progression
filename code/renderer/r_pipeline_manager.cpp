@@ -22,13 +22,13 @@ void Shutdown() { vkDestroyPipelineCache( rg.device, s_pipelineCache, nullptr );
 class PipelineBuilder
 {
 public:
-    Pipeline CreateGraphicsPipeline( const PipelineCreateInfo& createInfo )
+    void CreateGraphicsPipeline( Pipeline& p, const PipelineCreateInfo& createInfo )
     {
-        Pipeline p       = {};
-        p.name           = createInfo.name;
-        p.m_stageFlags   = 0;
-        p.m_bindPoint    = VK_PIPELINE_BIND_POINT_GRAPHICS;
-        p.m_pipelineType = PipelineType::GRAPHICS;
+        p.SetName( createInfo.name );
+        p.m_stageFlags    = 0;
+        p.m_bindPoint     = VK_PIPELINE_BIND_POINT_GRAPHICS;
+        p.m_pipelineType  = PipelineType::GRAPHICS;
+        p.m_workgroupSize = uvec3( 0 );
 
         int taskShaderIdx          = -1;
         int meshShaderIdx          = -1;
@@ -170,14 +170,11 @@ public:
 
         PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( p.m_pipelineLayout, createInfo.name );
         PG_DEBUG_MARKER_SET_PIPELINE_NAME( p.m_pipeline, createInfo.name );
-
-        return p;
     }
 
-    Pipeline CreateComputePipeline( const PipelineCreateInfo& createInfo )
+    void CreateComputePipeline( Pipeline& p, const PipelineCreateInfo& createInfo )
     {
-        Pipeline p       = {};
-        p.name           = createInfo.name;
+        p.SetName( createInfo.name );
         p.m_stageFlags   = VK_SHADER_STAGE_COMPUTE_BIT;
         p.m_bindPoint    = VK_PIPELINE_BIND_POINT_COMPUTE;
         p.m_pipelineType = PipelineType::COMPUTE;
@@ -208,21 +205,19 @@ public:
         VK_CHECK( vkCreateComputePipelines( rg.device, nullptr, 1, &computePipelineCreateInfo, nullptr, &p.m_pipeline ) );
         PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( p.m_pipelineLayout, createInfo.name );
         PG_DEBUG_MARKER_SET_PIPELINE_NAME( p.m_pipeline, createInfo.name );
-
-        return p;
     }
 };
 
-Pipeline CreatePipeline( const PipelineCreateInfo& createInfo )
+void CreatePipeline( Pipeline* pipeline, const PipelineCreateInfo& createInfo )
 {
     PipelineBuilder builder;
     if ( createInfo.shaders.size() == 1 && createInfo.shaders[0].stage == ShaderStage::COMPUTE )
     {
-        return builder.CreateComputePipeline( createInfo );
+        builder.CreateComputePipeline( *pipeline, createInfo );
     }
     else
     {
-        return builder.CreateGraphicsPipeline( createInfo );
+        builder.CreateGraphicsPipeline( *pipeline, createInfo );
     }
 }
 

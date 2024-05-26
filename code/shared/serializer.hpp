@@ -21,6 +21,7 @@ public:
 
     void Write( const void* buffer, size_t bytes );
     void Read( void* buffer, size_t bytes );
+    void Skip( size_t bytes );
     void Write( const std::string& s );
     void Read( std::string& s );
 
@@ -38,6 +39,14 @@ public:
         size_t size = x.size();
         Write( size );
         Write( x.data(), x.size() * sizeof( T ) );
+    }
+
+    template <typename T>
+    void Write( const char* str )
+    {
+        T len = (T)strlen( str );
+        Write( len );
+        Write( str, len );
     }
 
     template <typename T>

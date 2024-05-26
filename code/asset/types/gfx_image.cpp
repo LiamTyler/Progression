@@ -88,8 +88,7 @@ void GfxImage::UploadToGpu()
     desc.mipLevels   = static_cast<uint8_t>( mipLevels );
     desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    gpuTexture = rg.device.NewTextureWithData( desc, pixels, name );
-    PG_ASSERT( gpuTexture );
+    gpuTexture = rg.device.NewTextureWithData( desc, pixels, USING( ASSET_NAMES ) ? m_name : nullptr );
     free( pixels );
     pixels = nullptr;
 #endif // #if USING( GPU )
@@ -133,7 +132,7 @@ static bool Load_Color( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo
         img = CompressToBC( img, compressorSettings );
     }
 
-    *gfxImage = RawImage2DMipsToGfxImage( { img }, format );
+    RawImage2DMipsToGfxImage( *gfxImage, { img }, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -149,7 +148,7 @@ static bool Load_Gray( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo 
     RawImage2D compressed = CompressToBC( img, compressorSettings );
 
     PixelFormat format = ImageFormatToPixelFormat( compressed.format, false );
-    *gfxImage          = RawImage2DMipsToGfxImage( { compressed }, format );
+    RawImage2DMipsToGfxImage( *gfxImage, { compressed }, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -193,7 +192,7 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
 
     PixelFormat format = ImageFormatToPixelFormat( compressedMips[0].format, compositeInfo.outputColorSpace == ColorSpace::SRGB );
-    *gfxImage          = RawImage2DMipsToGfxImage( compressedMips, format );
+    RawImage2DMipsToGfxImage( *gfxImage, compressedMips, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -272,7 +271,7 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
 
     PixelFormat format = ImageFormatToPixelFormat( compressedMips[0].format, compositeInfo.outputColorSpace == ColorSpace::SRGB );
-    *gfxImage          = RawImage2DMipsToGfxImage( compressedMips, format );
+    RawImage2DMipsToGfxImage( *gfxImage, compressedMips, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -283,7 +282,7 @@ static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxIm
     RawImage2D compressed = CompressToBC( img, compressorSettings );
 
     PixelFormat format = ImageFormatToPixelFormat( compressed.format, false );
-    *gfxImage          = RawImage2DMipsToGfxImage( { compressed }, format );
+    RawImage2DMipsToGfxImage( *gfxImage, { compressed }, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -716,7 +715,7 @@ static bool Load_UI( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
     RawImage2D compressed = CompressToBC( img, compressorSettings );
 
     PixelFormat format = ImageFormatToPixelFormat( compressed.format, false );
-    *gfxImage          = RawImage2DMipsToGfxImage( { compressed }, format );
+    RawImage2DMipsToGfxImage( *gfxImage, { compressed }, format );
 
     return gfxImage->pixels != nullptr;
 }
@@ -739,7 +738,7 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
     case GfxImageSemantic::UI: success = Load_UI( this, createInfo ); break;
     default: LOG_ERR( "GfxImage::Load not implemented yet for semantic %u", Underlying( createInfo->semantic ) ); return false;
     }
-    name            = createInfo->name;
+    SetName( createInfo->name );
     clampHorizontal = createInfo->clampHorizontal;
     clampVertical   = createInfo->clampVertical;
     filterMode      = createInfo->filterMode;
@@ -749,9 +748,6 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool GfxImage::FastfileLoad( Serializer* serializer )
 {
-    PG_ASSERT( serializer );
-    serializer->Read( name );
-    PG_ASSERT( name != "" );
     serializer->Read( width );
     serializer->Read( height );
     serializer->Read( depth );
@@ -773,10 +769,8 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
 
 bool GfxImage::FastfileSave( Serializer* serializer ) const
 {
-    PG_ASSERT( serializer );
     PG_ASSERT( pixels );
-    PG_ASSERT( name != "" );
-    serializer->Write( name );
+    SerializeName( serializer );
     serializer->Write( width );
     serializer->Write( height );
     serializer->Write( depth );
@@ -876,12 +870,11 @@ PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB )
     }
 }
 
-GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, PixelFormat format )
+void RawImage2DMipsToGfxImage( GfxImage& gfxImage, const std::vector<RawImage2D>& mips, PixelFormat format )
 {
     if ( mips.empty() )
-        return {};
+        return;
 
-    GfxImage gfxImage;
     gfxImage.imageType        = ImageType::TYPE_2D;
     gfxImage.width            = mips[0].width;
     gfxImage.height           = mips[0].height;
@@ -899,16 +892,11 @@ GfxImage RawImage2DMipsToGfxImage( const std::vector<RawImage2D>& mips, PixelFor
         memcpy( currentMip, mip.Raw(), mip.TotalBytes() );
         currentMip += mip.TotalBytes();
     }
-
-    return gfxImage;
 }
 
-GfxImage DecompressGfxImage( const GfxImage& compressedImage )
+void DecompressGfxImage( const GfxImage& compressedImage, GfxImage& decompressedImage )
 {
-    if ( !PixelFormatIsCompressed( compressedImage.pixelFormat ) )
-    {
-        return compressedImage;
-    }
+    PG_ASSERT( PixelFormatIsCompressed( compressedImage.pixelFormat ) );
 
     PG_ASSERT( compressedImage.depth == 1, "TODO: support depth > 1" );
     ImageFormat compressedImgFormat   = PixelFormatToImageFormat( compressedImage.pixelFormat );
@@ -916,11 +904,33 @@ GfxImage DecompressGfxImage( const GfxImage& compressedImage )
     PixelFormat decompressedPixelFormat =
         ImageFormatToPixelFormat( decompressedImgFormat, PixelFormatIsSrgb( compressedImage.pixelFormat ) );
 
-    GfxImage decompressedImg         = compressedImage;
-    decompressedImg.pixelFormat      = decompressedPixelFormat;
-    decompressedImg.totalSizeInBytes = CalculateTotalImageBytes( decompressedPixelFormat, compressedImage.width, compressedImage.height,
+    /*
+    size_t totalSizeInBytes = 0;
+    unsigned char* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
+    uint32_t width          = 0;
+    uint32_t height         = 0;
+    uint32_t depth          = 0;
+    uint32_t mipLevels      = 0;
+    uint32_t numFaces       = 0;
+    PixelFormat pixelFormat;
+    ImageType imageType;
+    bool clampHorizontal;
+    bool clampVertical;
+    GfxImageFilterMode filterMode;
+    */
+    decompressedImage.width            = compressedImage.width;
+    decompressedImage.height           = compressedImage.height;
+    decompressedImage.depth            = compressedImage.depth;
+    decompressedImage.mipLevels        = compressedImage.mipLevels;
+    decompressedImage.numFaces         = compressedImage.numFaces;
+    decompressedImage.imageType        = compressedImage.imageType;
+    decompressedImage.clampHorizontal  = compressedImage.clampHorizontal;
+    decompressedImage.clampVertical    = compressedImage.clampVertical;
+    decompressedImage.filterMode       = compressedImage.filterMode;
+    decompressedImage.pixelFormat      = decompressedPixelFormat;
+    decompressedImage.totalSizeInBytes = CalculateTotalImageBytes( decompressedPixelFormat, compressedImage.width, compressedImage.height,
         compressedImage.depth, compressedImage.numFaces, compressedImage.mipLevels );
-    decompressedImg.pixels           = static_cast<uint8_t*>( malloc( decompressedImg.totalSizeInBytes ) );
+    decompressedImage.pixels           = static_cast<uint8_t*>( malloc( decompressedImage.totalSizeInBytes ) );
 
     for ( uint32_t face = 0; face < compressedImage.numFaces; ++face )
     {
@@ -930,14 +940,12 @@ GfxImage DecompressGfxImage( const GfxImage& compressedImage )
         {
             RawImage2D compressedMip( w, h, compressedImgFormat, compressedImage.GetPixels( face, mipLevel ) );
             RawImage2D decompressedMip = DecompressBC( compressedMip );
-            memcpy( decompressedImg.GetPixels( face, mipLevel ), decompressedMip.Raw(), decompressedMip.TotalBytes() );
+            memcpy( decompressedImage.GetPixels( face, mipLevel ), decompressedMip.Raw(), decompressedMip.TotalBytes() );
 
             w = std::max( 1u, w >> 1 );
             h = std::max( 1u, h >> 1 );
         }
     }
-
-    return decompressedImg;
 }
 
 } // namespace PG

@@ -8,11 +8,11 @@
 #include "debug_marker.hpp"
 #include "ecs/components/model_renderer.hpp"
 #include "ecs/components/transform.hpp"
+#include "r_bindless_manager.hpp"
 #include "r_dvars.hpp"
 #include "r_globals.hpp"
 #include "r_init.hpp"
 #include "r_pipeline_manager.hpp"
-#include "r_texture_manager.hpp"
 #include "renderer/debug_ui.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "shared/logger.hpp"
@@ -87,7 +87,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
                 cmdBuf.PushConstants( constants );
 
-                PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw '%s' : '%s'", model->name.c_str(), mesh.name.c_str() );
+                PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw '%s' : '%s'", model->GetName(), mesh.name.c_str() );
                 cmdBuf.DrawMeshTasks( mesh.numMeshlets, 1, 1 );
 
                 ++objectNum;

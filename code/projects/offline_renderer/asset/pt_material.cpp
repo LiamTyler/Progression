@@ -121,8 +121,9 @@ std::unordered_map<std::string, TextureHandle> s_materialNameToHandleMap;
 
 MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
 {
-    PG_ASSERT( material && material->name.length() > 0 );
-    auto it = s_materialNameToHandleMap.find( material->name );
+    PG_ASSERT( material );
+    std::string name = material->GetName();
+    auto it          = s_materialNameToHandleMap.find( name );
     if ( it != s_materialNameToHandleMap.end() )
     {
         return it->second;
@@ -152,8 +153,8 @@ MaterialHandle LoadMaterialFromPGMaterial( PG::Material* material )
     mat.isDecal = material->type == MaterialType::DECAL;
 
     g_materials.emplace_back( mat );
-    MaterialHandle handle                     = static_cast<MaterialHandle>( g_materials.size() - 1 );
-    s_materialNameToHandleMap[material->name] = handle;
+    MaterialHandle handle           = static_cast<MaterialHandle>( g_materials.size() - 1 );
+    s_materialNameToHandleMap[name] = handle;
     return handle;
 }
 

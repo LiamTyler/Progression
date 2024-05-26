@@ -98,7 +98,7 @@ bool MaterialConverter::ConvertInternal( ConstDerivedInfoPtr& matInfo )
     auto texturesetInfo        = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );
 
     Material material;
-    material.name          = matInfo->name;
+    material.SetName( matInfo->name );
     material.type          = matInfo->type;
     material.albedoTint    = matInfo->albedoTint;
     material.metalnessTint = matInfo->metalnessTint;

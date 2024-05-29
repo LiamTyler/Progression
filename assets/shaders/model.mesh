@@ -8,16 +8,8 @@
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec2Buffer, vec2 );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec3Buffer, vec3 );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec4Buffer, vec4 );
-
-DEFINE_BUFFER_REFERENCE( 4 ) TriBuffer
-{
-    uint tris[];
-};
-
-DEFINE_BUFFER_REFERENCE( 32 ) MeshletBuffer
-{
-    Meshlet meshlets[];
-};
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, UintBuffer, uint );
+DEFINE_STANDARD_BUFFER_REFERENCE( 32, MeshletBuffer, Meshlet );
 
 layout(push_constant) uniform Registers
 {
@@ -28,14 +20,14 @@ Meshlet GetMeshlet( uint meshletID )
 {
     uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_MESHLETS];
     MeshletBuffer mBuffer = MeshletBuffer( ptr );
-    return mBuffer.meshlets[meshletID];
+    return mBuffer.data[meshletID];
 }
 
 uvec3 GetTri( const Meshlet meshlet, uint index )
 {
     uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_TRIS];
-    TriBuffer tBuffer = TriBuffer( ptr );
-    uint packedTri = tBuffer.tris[meshlet.triOffset + index];
+    UintBuffer tBuffer = UintBuffer( ptr );
+    uint packedTri = tBuffer.data[meshlet.triOffset + index];
     uvec3 tri;
     tri.x = (packedTri >> 0)  & 0xFF;
     tri.y = (packedTri >> 8)  & 0xFF;

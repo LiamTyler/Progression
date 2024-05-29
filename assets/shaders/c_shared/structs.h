@@ -18,6 +18,8 @@ struct SceneGlobals
     VEC4 cameraExposureAndSkyTint; // x = exposure, yzw = sky tint
     UVEC4 lightCountAndPad3; // x = light count, yzw = pad
     
+    UINT modelMatriciesIdx;
+    UINT normalMatriciesIdx;
     UINT r_tonemap;
 
     // debug vals
@@ -25,6 +27,7 @@ struct SceneGlobals
     UINT r_lightingViz;
     UINT r_postProcessing;
     VEC4 debug_wireframeData; // x,y,z = color, w = thickness
+
     UINT debug_PackedDvarBools;
     int debugInt; // r_debugInt
     UINT debugUint; // r_debugUint
@@ -33,19 +36,8 @@ struct SceneGlobals
 
 struct PerObjectData
 {
-    UINT vertexBuffer;
-    UINT triBuffer;
-    UINT meshletBuffer;
-    UINT transformBuffer;
-    UINT modelMatrixIndex;
-};
-
-struct Meshlet
-{
-    UINT vertexOffset;
-    UINT triOffset;
-    UINT vertexCount;
-    UINT triangleCount;
+    UINT bindlessRangeStart;
+    UINT objectIdx;
 };
 
 #ifndef PG_SHADER_CODE

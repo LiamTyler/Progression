@@ -13,6 +13,7 @@
 #endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
 #include "renderer/graphics_api/buffer.hpp"
+#include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
 
@@ -96,6 +97,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             m.tangents.resize( numVerts );
         m.indices.resize( 4 * numTris ); // for now, storing 1 byte of padding after every 3 indices, for easier indexing
 
+        uint32_t numZeroNormals  = 0;
+        uint32_t numZeroTangents = 0;
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& moMeshlet = meshlets[meshletIdx];
@@ -107,6 +110,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 const PModel::Vertex& v  = pMesh.vertices[meshletVertices[globalMOIdx]];
                 m.positions[globalPGIdx] = v.pos;
                 m.normals[globalPGIdx]   = v.normal;
+                if ( Length( v.normal ) <= 0.00001f )
+                    ++numZeroNormals;
 
                 if ( pMesh.numUVChannels > 0 )
                 {
@@ -122,6 +127,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     float bSign             = Dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
                     vec4 packed             = vec4( tangent, bSign );
                     m.tangents[globalPGIdx] = packed;
+                    if ( Length( v.tangent ) <= 0.00001f )
+                        ++numZeroTangents;
                 }
             }
 
@@ -135,6 +142,12 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 m.indices[globalPGIdx + 3] = 0;
             }
         }
+        if ( numZeroNormals )
+            LOG_WARN( "Mesh[%u] '%s' inside of model '%s' has %u normals of length 0", meshIdx, pMesh.name.c_str(),
+                createInfo->name.c_str(), numZeroNormals );
+        if ( numZeroTangents )
+            LOG_WARN( "Mesh[%u] '%s' inside of model '%s' has %u tangents of length 0", meshIdx, pMesh.name.c_str(),
+                createInfo->name.c_str(), numZeroTangents );
     }
     PG_ASSERT( !createInfo->recalculateNormals, "Not implemented with meshlets yet" );
 
@@ -151,9 +164,15 @@ bool Model::FastfileLoad( Serializer* serializer )
     meshes.resize( numMeshes );
     for ( Mesh& mesh : meshes )
     {
-        serializer->Read( mesh.name );
+#if USING( ASSET_NAMES )
+        serializer->Read<uint16_t>( mesh.name );
+#else  // #if USING( ASSET_NAMES )
+        uint16_t meshNameLen;
+        serializer->Read( meshNameLen );
+        serializer->Skip( meshNameLen );
+#endif // #else // #if USING( ASSET_NAMES )
         std::string matName;
-        serializer->Read( matName );
+        serializer->Read<uint16_t>( matName );
         mesh.material = AssetManager::Get<Material>( matName );
         if ( !mesh.material )
         {
@@ -180,8 +199,8 @@ bool Model::FastfileSave( Serializer* serializer ) const
     serializer->Write( meshes.size() );
     for ( const Mesh& mesh : meshes )
     {
-        serializer->Write( mesh.name );
-        serializer->Write( std::string( mesh.material->GetName() ) );
+        serializer->Write<uint16_t>( mesh.name );
+        serializer->Write<uint16_t>( mesh.material->GetName() );
         serializer->Write( mesh.positions );
         serializer->Write( mesh.normals );
         serializer->Write( mesh.texCoords );
@@ -192,8 +211,6 @@ bool Model::FastfileSave( Serializer* serializer ) const
 
     return true;
 }
-
-void Model::CreateBLAS() {}
 
 void Model::UploadToGPU()
 {
@@ -273,6 +290,8 @@ void Model::UploadToGPU()
         rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.meshletBuffer, stagingBuffer, meshletsSize ); } );
 
         stagingBuffer.Free();
+
+        mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
     }
 #endif // #if USING( GPU_DATA )
 }
@@ -301,6 +320,11 @@ void Model::FreeGPU()
 #if USING( GPU_DATA )
     for ( Mesh& mesh : meshes )
     {
+        if ( mesh.bindlessBuffersSlot != PG_INVALID_BUFFER_INDEX )
+        {
+            Gfx::BindlessManager::RemoveMeshBuffers( &mesh );
+            mesh.bindlessBuffersSlot = PG_INVALID_BUFFER_INDEX;
+        }
         if ( mesh.vertexBuffer )
             mesh.vertexBuffer.Free();
         if ( mesh.triBuffer )

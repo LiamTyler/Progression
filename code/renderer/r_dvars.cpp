@@ -15,7 +15,7 @@ Dvar r_tonemap( "r_tonemap", 1u, 0u, PG_TONEMAP_METHOD_COUNT,
 #if !USING( SHIP_BUILD )
 
 // NOTE! keep these in sync with c_shared/dvar_defines.h
-Dvar r_materialViz( "r_materialViz", 0u, 0u, PG_DEBUG_MTL_COUNT,
+Dvar r_materialViz( "r_materialViz", 7u, 0u, PG_DEBUG_MTL_COUNT,
     "Debug dvar for visualizing material related values. Auto turns off post processing when > 0\n"
     "0 - Default\n"
     "1 - Albedo\n"
@@ -49,7 +49,7 @@ Dvar r_skyboxReflectionMipLevel(
 Dvar r_postProcessing( "r_postProcessing", true, "Enable/disable post processing entirely" );
 
 Dvar r_meshletViz( "r_meshletViz", false, "Enable/disable colorizing the meshlets" );
-Dvar r_wireframe( "r_wireframe", false, "Enable/disable wireframe mode" );
+Dvar r_wireframe( "r_wireframe", true, "Enable/disable wireframe mode" );
 Dvar r_wireframeColor( "r_wireframeColor", vec4( 0 ), vec4( 0 ), vec4( 1 ), "Color of the lines when r_wireframe is enabled" );
 Dvar r_wireframeThickness( "r_wireframeThickness", 0.5f, 0.0f, 100.0f, "Thickness of the lines when r_wireframe is enabled" );
 Dvar r_debugInt( "r_debugInt", 0, INT_MIN, INT_MAX, "Just used as an optional debug value when doing shader dev" );

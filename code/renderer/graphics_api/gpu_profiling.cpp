@@ -137,6 +137,7 @@ void DrawResultsOnScreen()
 
 static void GetOldestFramesResults()
 {
+    uint32_t CF             = rg.currentFrameIdx;
     PerFrameData& frameData = GetCurrentFrameData();
     uint32_t numQueries     = static_cast<uint32_t>( frameData.queries.size() );
     if ( !numQueries )

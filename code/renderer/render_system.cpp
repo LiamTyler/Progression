@@ -79,11 +79,8 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
                 const Mesh& mesh = model->meshes[i];
 
                 GpuData::PerObjectData constants;
-                constants.vertexBuffer     = mesh.vertexBuffer.GetBindlessIndex();
-                constants.triBuffer        = mesh.triBuffer.GetBindlessIndex();
-                constants.meshletBuffer    = mesh.meshletBuffer.GetBindlessIndex();
-                constants.transformBuffer  = data->frameData->objectModelMatricesBuffer.GetBindlessIndex();
-                constants.modelMatrixIndex = objectNum;
+                constants.bindlessRangeStart = mesh.bindlessBuffersSlot;
+                constants.objectIdx          = objectNum;
 
                 cmdBuf.PushConstants( constants );
 
@@ -176,11 +173,12 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     {
         FrameData& fData = rg.frameData[i];
 
-        BufferCreateInfo oBufInfo       = {};
-        oBufInfo.size                   = MAX_OBJECTS_PER_FRAME * sizeof( mat4 );
-        oBufInfo.bufferUsage            = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
-        oBufInfo.flags                  = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        fData.objectModelMatricesBuffer = rg.device.NewBuffer( oBufInfo, "objectModelMatricesBuffer" );
+        BufferCreateInfo oBufInfo        = {};
+        oBufInfo.size                    = MAX_OBJECTS_PER_FRAME * sizeof( mat4 );
+        oBufInfo.bufferUsage             = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
+        oBufInfo.flags                   = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        fData.objectModelMatricesBuffer  = rg.device.NewBuffer( oBufInfo, "objectModelMatricesBuffer" );
+        fData.objectNormalMatricesBuffer = rg.device.NewBuffer( oBufInfo, "objectNormalMatricesBuffer" );
 
         BufferCreateInfo sgBufInfo = {};
         sgBufInfo.size             = sizeof( GpuData::SceneGlobals );
@@ -216,6 +214,7 @@ void Shutdown()
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         rg.frameData[i].objectModelMatricesBuffer.Free();
+        rg.frameData[i].objectNormalMatricesBuffer.Free();
         rg.frameData[i].sceneGlobalsBuffer.Free();
     }
 
@@ -228,8 +227,9 @@ void Shutdown()
 
 static void UpdateGPUSceneData( Scene* scene )
 {
-    FrameData& frameData    = rg.GetFrameData();
-    mat4* gpuObjectMatrices = reinterpret_cast<mat4*>( frameData.objectModelMatricesBuffer.GetMappedPtr() );
+    FrameData& frameData     = rg.GetFrameData();
+    mat4* gpuModelMatricies  = reinterpret_cast<mat4*>( frameData.objectModelMatricesBuffer.GetMappedPtr() );
+    mat4* gpuNormalMatricies = reinterpret_cast<mat4*>( frameData.objectNormalMatricesBuffer.GetMappedPtr() );
 
     auto view          = scene->registry.view<ModelRenderer, PG::Transform>();
     uint32_t objectNum = 0;
@@ -243,9 +243,10 @@ static void UpdateGPUSceneData( Scene* scene )
 
         PG::Transform& transform     = view.get<PG::Transform>( entity );
         mat4 M                       = transform.Matrix();
-        gpuObjectMatrices[objectNum] = M;
-        // mat4 N                               = Transpose( Inverse( M ) );
-        // gpuObjectMatrices[2 * objectNum + 1] = N;
+        gpuModelMatricies[objectNum] = M;
+
+        mat4 N                        = Transpose( Inverse( M ) );
+        gpuNormalMatricies[objectNum] = N;
         ++objectNum;
     }
 
@@ -258,6 +259,8 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.cameraPos                = vec4( scene->camera.position, 1 );
     VEC3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
     globalData.cameraExposureAndSkyTint = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
+    globalData.modelMatriciesIdx        = frameData.objectModelMatricesBuffer.GetBindlessIndex();
+    globalData.normalMatriciesIdx       = frameData.objectNormalMatricesBuffer.GetBindlessIndex();
     globalData.r_tonemap                = r_tonemap.GetUint();
 
 #if !USING( SHIP_BUILD )

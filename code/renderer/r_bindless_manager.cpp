@@ -1,8 +1,12 @@
 #include "renderer/r_bindless_manager.hpp"
+#include "asset/types/model.hpp"
 #include "c_shared/bindless.h"
+#include "c_shared/model.h"
+#include "data_structures/free_slot_bit_array.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
 #include "renderer/r_globals.hpp"
 
+using namespace PG;
 using namespace PG::Gfx;
 using std::vector;
 using TexIndex    = uint16_t;
@@ -31,7 +35,7 @@ static PerFrameManagerData s_frameData[NUM_FRAME_OVERLAP];
 static PerFrameManagerData* s_currFrameData;
 static vector<TexIndex> s_freeTexSlots;
 static vector<PendingTexAdd> s_pendingTexAdds;
-static vector<BufferIndex> s_freeBufferSlots;
+static FreeSlotBitArray<PG_MAX_BINDLESS_BUFFERS> s_freeBufferSlots;
 static vector<PendingBufferAdd> s_pendingBufferAdds;
 
 #if USING( PG_DESCRIPTOR_BUFFER )
@@ -63,11 +67,8 @@ void Init()
     }
     static_assert( PG_INVALID_TEXTURE_INDEX == 0, "update the free slot list above if this changes" );
 
-    s_freeBufferSlots.resize( PG_MAX_BINDLESS_BUFFERS - 1 );
-    for ( int i = 1; i < PG_MAX_BINDLESS_BUFFERS; ++i )
-    {
-        s_freeBufferSlots[i] = PG_MAX_BINDLESS_BUFFERS - i;
-    }
+    s_freeBufferSlots.Clear();
+    s_freeBufferSlots.GetFreeSlot();
     static_assert( PG_INVALID_BUFFER_INDEX == 0, "update the free slot list above if this changes" );
 
     s_pendingTexAdds.reserve( 128 );
@@ -107,15 +108,14 @@ void Shutdown()
     }
     s_freeTexSlots      = vector<TexIndex>();
     s_pendingTexAdds    = vector<PendingTexAdd>();
-    s_freeBufferSlots   = vector<BufferIndex>();
     s_pendingBufferAdds = vector<PendingBufferAdd>();
 }
 
 void Update()
 {
     s_freeTexSlots.insert( s_freeTexSlots.end(), s_currFrameData->pendingTexRemovals.begin(), s_currFrameData->pendingTexRemovals.end() );
-    s_freeBufferSlots.insert(
-        s_freeBufferSlots.end(), s_currFrameData->pendingBufferRemovals.begin(), s_currFrameData->pendingBufferRemovals.end() );
+    for ( BufferIndex bufRemoval : s_currFrameData->pendingBufferRemovals )
+        s_freeBufferSlots.FreeSlot( bufRemoval );
     s_currFrameData->pendingTexRemovals.clear();
     s_currFrameData->pendingBufferRemovals.clear();
     s_currFrameData = &s_frameData[rg.currentFrameIdx];
@@ -217,15 +217,19 @@ void RemoveTexture( TexIndex index )
     s_currFrameData->pendingTexRemovals.push_back( index );
 }
 
+static BufferIndex GetBufferSlot()
+{
+    BufferIndex openSlot = (uint16_t)s_freeBufferSlots.GetFreeSlot();
+    return openSlot;
+}
+
 BufferIndex AddBuffer( const Buffer* buffer )
 {
     VkDescriptorType descType = buffer->GetDescriptorType();
     if ( descType == VK_DESCRIPTOR_TYPE_MAX_ENUM )
         return PG_INVALID_BUFFER_INDEX;
 
-    PG_ASSERT( !s_freeBufferSlots.empty(), "No more buffer slots in the bindless array!" );
-    BufferIndex openSlot = s_freeBufferSlots.back();
-    s_freeBufferSlots.pop_back();
+    BufferIndex openSlot = GetBufferSlot();
     s_pendingBufferAdds.emplace_back( buffer->GetDeviceAddress(), openSlot );
 
     return openSlot;
@@ -237,5 +241,43 @@ void RemoveBuffer( BufferIndex index )
         return;
     s_currFrameData->pendingBufferRemovals.push_back( index );
 }
+
+uint32_t AddMeshBuffers( Mesh* mesh )
+{
+    BufferIndex firstSlot = s_freeBufferSlots.GetConsecutiveFreeSlots( MESH_NUM_BUFFERS );
+    s_pendingBufferAdds.emplace_back( mesh->meshletBuffer.GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLETS );
+
+    s_pendingBufferAdds.emplace_back( mesh->triBuffer.GetDeviceAddress(), firstSlot + MESH_BUFFER_TRIS );
+
+    VkDeviceAddress vData = mesh->vertexBuffer.GetDeviceAddress();
+    s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_POSITIONS );
+
+    vData += mesh->numVertices * sizeof( vec3 );
+    s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_NORMALS );
+
+    if ( mesh->hasTexCoords )
+    {
+        vData += mesh->numVertices * sizeof( vec3 );
+        s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_UVS );
+    }
+    else
+    {
+        s_pendingBufferAdds.emplace_back( 0, firstSlot + MESH_BUFFER_UVS );
+    }
+
+    if ( mesh->hasTangents )
+    {
+        vData += mesh->numVertices * sizeof( vec2 );
+        s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_TANGENTS );
+    }
+    else
+    {
+        s_pendingBufferAdds.emplace_back( 0, firstSlot + MESH_BUFFER_TANGENTS );
+    }
+
+    return firstSlot;
+}
+
+void RemoveMeshBuffers( Mesh* mesh ) {}
 
 } // namespace PG::Gfx::BindlessManager

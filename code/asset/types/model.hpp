@@ -6,16 +6,12 @@
 #include <vector>
 
 #if USING( GPU_DATA )
+#include "c_shared/model.h"
 #include "renderer/graphics_api/buffer.hpp"
-#if USING( PG_RTX )
-#include "renderer/graphics_api/acceleration_structure.hpp"
-#endif // #if USING( PG_RTX )
 #endif // #if USING( GPU_DATA )
 
 namespace PG
 {
-
-struct Material;
 
 struct Meshlet
 {
@@ -25,9 +21,13 @@ struct Meshlet
     uint32_t triangleCount;
 };
 
+struct Material;
+
 struct Mesh
 {
+#if USING( ASSET_NAMES )
     std::string name;
+#endif // #if USING( ASSET_NAMES )
     Material* material;
     std::vector<Meshlet> meshlets;
     std::vector<vec3> positions;
@@ -44,6 +44,7 @@ struct Mesh
     uint32_t numMeshlets;
     bool hasTexCoords;
     bool hasTangents;
+    uint32_t bindlessBuffersSlot;
 #endif // #if USING( GPU_DATA )
 };
 
@@ -62,7 +63,6 @@ struct Model : public BaseAsset
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
-    void CreateBLAS();
     void UploadToGPU();
     void FreeCPU();
     void FreeGPU();

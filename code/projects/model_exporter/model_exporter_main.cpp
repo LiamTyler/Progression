@@ -59,7 +59,9 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
 
     mat4 normalMatrix = Inverse( Transpose( localToWorldMat ) );
 
-    uint32_t numVerts = paiMesh->mNumVertices;
+    uint32_t numZeroBefore = 0;
+    uint32_t numZeroAfter  = 0;
+    uint32_t numVerts      = paiMesh->mNumVertices;
     pgMesh.vertices.resize( numVerts );
     for ( uint32_t vIdx = 0; vIdx < numVerts; ++vIdx )
     {
@@ -67,7 +69,11 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
         v.pos             = AiToPG( paiMesh->mVertices[vIdx] );
         v.pos             = vec3( localToWorldMat * vec4( v.pos, 1.0f ) );
         v.normal          = AiToPG( paiMesh->mNormals[vIdx] );
-        v.normal          = vec3( normalMatrix * vec4( v.normal, 0.0f ) );
+        if ( Length( v.normal ) == 0 )
+            numZeroBefore++;
+        v.normal = vec3( normalMatrix * vec4( v.normal, 0.0f ) );
+        if ( Length( v.normal ) == 0 )
+            numZeroAfter++;
         PG_ASSERT( !any( isnan( v.pos ) ) );
         PG_ASSERT( !any( isnan( v.normal ) ) );
         v.numBones = 0;
@@ -93,6 +99,8 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
             v.colors[colorSetIdx]  = AiToPG( paiMesh->mColors[aiColorSetIdx][vIdx] );
         }
     }
+
+    LOG( "Num zero before %u, after %u", numZeroBefore, numZeroAfter );
 
     std::vector<uint32_t> numBonesPerVertex( numVerts, 0 );
     for ( uint32_t aiBoneIdx = 0; aiBoneIdx < paiMesh->mNumBones; ++aiBoneIdx )
@@ -135,7 +143,7 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
     {
         const aiMesh* paiMesh = scene->mMeshes[node->mMeshes[meshIdx]];
         PModel::Mesh& pgMesh  = pmodel.meshes.emplace_back();
-        pgMesh.name           = paiMesh->mName.C_Str();
+        pgMesh.name           = StripWhitespace( paiMesh->mName.C_Str() );
         if ( pgMesh.name.empty() )
         {
             pgMesh.name = stem + "_mesh" + std::to_string( meshIdx );

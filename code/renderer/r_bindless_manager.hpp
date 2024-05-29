@@ -3,6 +3,11 @@
 #include "renderer/graphics_api/descriptor.hpp"
 #include "vulkan.hpp"
 
+namespace PG
+{
+struct Mesh;
+} // namespace PG
+
 namespace PG::Gfx
 {
 class Buffer;
@@ -29,5 +34,8 @@ void RemoveTexture( uint16_t index );
 // can return 0 (invalid) if the buffer isn't bindless compatible (ex: descriptor buffers, AS buffers, etc)
 uint16_t AddBuffer( const Buffer* buffer );
 void RemoveBuffer( uint16_t index );
+
+uint32_t AddMeshBuffers( Mesh* mesh );
+void RemoveMeshBuffers( Mesh* mesh );
 
 } // namespace PG::Gfx::BindlessManager

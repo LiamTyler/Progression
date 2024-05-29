@@ -26,6 +26,7 @@ struct FrameData
     CommandBuffer primaryCmdBuffer;
 
     Buffer objectModelMatricesBuffer;
+    Buffer objectNormalMatricesBuffer;
     Buffer sceneGlobalsBuffer;
 };
 

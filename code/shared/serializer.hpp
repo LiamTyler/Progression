@@ -22,8 +22,29 @@ public:
     void Write( const void* buffer, size_t bytes );
     void Read( void* buffer, size_t bytes );
     void Skip( size_t bytes );
-    void Write( const std::string& s );
-    void Read( std::string& s );
+
+    template <typename LenType = unsigned int>
+    void Write( const std::string& s )
+    {
+        LenType strSize = static_cast<LenType>( s.length() );
+        Write( strSize );
+        if ( strSize > 0 )
+        {
+            Write( &s[0], strSize );
+        }
+    }
+
+    template <typename LenType = int>
+    void Read( std::string& s )
+    {
+        LenType strSize;
+        Read( strSize );
+        if ( strSize > 0 )
+        {
+            s.resize( strSize );
+            Read( &s[0], strSize );
+        }
+    }
 
     template <typename T>
     void Write( const T& x )

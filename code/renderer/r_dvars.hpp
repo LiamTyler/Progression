@@ -8,6 +8,7 @@ extern Dvar r_tonemap;
 
 #if !USING( SHIP_BUILD )
 
+extern Dvar r_geometryViz;
 extern Dvar r_materialViz;
 extern Dvar r_lightingViz;
 extern Dvar r_skyboxViz;

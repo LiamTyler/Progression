@@ -10,5 +10,10 @@
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #define DEFINE_BUFFER_REFERENCE( alignment ) layout( scalar, buffer_reference, buffer_reference_align = alignment ) buffer
+
+#define DEFINE_STANDARD_BUFFER_REFERENCE( alignment, name, type ) layout( scalar, buffer_reference, buffer_reference_align = alignment ) buffer name \
+{ \
+    type data[]; \
+}
     
 #endif // #ifndef __COMMON_GLSL__

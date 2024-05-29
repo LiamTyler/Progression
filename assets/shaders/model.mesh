@@ -5,25 +5,9 @@
 #include "global_descriptors.glsl"
 #include "c_shared/model.h"
 
-DEFINE_BUFFER_REFERENCE( 4 ) PositionBuffer
-{
-    vec3 positions[];
-};
-
-DEFINE_BUFFER_REFERENCE( 4 ) NormalBuffer
-{
-    vec3 normals[];
-};
-
-DEFINE_BUFFER_REFERENCE( 4 ) Vec3Buffer
-{
-    vec3 data[];
-};
-
-DEFINE_BUFFER_REFERENCE( 4 ) Vec4Buffer
-{
-    vec4 data[];
-};
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec2Buffer, vec2 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec3Buffer, vec3 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec4Buffer, vec4 );
 
 DEFINE_BUFFER_REFERENCE( 4 ) TriBuffer
 {
@@ -62,15 +46,25 @@ uvec3 GetTri( const Meshlet meshlet, uint index )
 vec3 GetPos( const Meshlet meshlet, uint index )
 {
     uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_POSITIONS];
-    PositionBuffer buff = PositionBuffer( ptr );
-    return buff.positions[meshlet.vertexOffset + index];
+    Vec3Buffer buff = Vec3Buffer( ptr );
+    return buff.data[meshlet.vertexOffset + index];
 }
 
 vec4 GetNormal( const Meshlet meshlet, uint index )
 {
     uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_NORMALS];
-    NormalBuffer buff = NormalBuffer( ptr );
-    return vec4( buff.normals[meshlet.vertexOffset + index], 0 );
+    Vec3Buffer buff = Vec3Buffer( ptr );
+    return vec4( buff.data[meshlet.vertexOffset + index], 0 );
+}
+
+vec2 GetUV( const Meshlet meshlet, uint index )
+{
+    uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_UVS];
+    if ( ptr == 0 )
+        return vec2( 0 );
+    
+    Vec2Buffer buff = Vec2Buffer( ptr );
+    return buff.data[meshlet.vertexOffset + index];
 }
 
 vec4 GetTangentAndSign( const Meshlet meshlet, uint index )
@@ -90,6 +84,7 @@ layout (location = 0) out PerVertexData
 {
     vec3 normal;
     vec4 tangentAndSign;
+    vec2 uv;
 #if IS_DEBUG_SHADER
     flat uint meshletIdx;
 #endif // #if IS_DEBUG_SHADER
@@ -116,6 +111,8 @@ void main()
         
         vec4 localNormal = GetNormal( meshlet, threadID );
         v_out[threadID].normal = (GetNormalMatrix( constants.objectIdx ) * localNormal).xyz;
+        
+        v_out[threadID].uv = GetUV( meshlet, threadID );
         
         vec4 tangentAndSign = GetTangentAndSign( meshlet, threadID );
         vec3 worldTangent = (modelMatrix * vec4( tangentAndSign.xyz, 0 )).xyz;

@@ -7,6 +7,7 @@ layout (location = 0) in PerVertexData
 {
     vec3 normal;
     vec4 tangentAndSign;
+    vec2 uv;
 #if IS_DEBUG_SHADER
     flat uint meshletIdx;
 #endif // #if IS_DEBUG_SHADER
@@ -57,6 +58,30 @@ Material GetMaterial( const vec2 uv )
 #include "lib/debug_coloring.glsl"
 #include "lib/debug_wireframe.glsl"
 
+void Debug_Geometry( inout vec4 outColor )
+{
+    uint r_geometryViz = globals.r_geometryViz;
+    if ( r_geometryViz == PG_DEBUG_GEOM_UV )
+    {
+        outColor.rgb = vec3( fragInput.uv, 0 );
+    }
+    else if ( r_geometryViz == PG_DEBUG_GEOM_NORMAL )
+    {
+        outColor.rgb = Vec3ToUnorm_Clamped( normalize( fragInput.normal ) );
+    }
+    else if ( r_geometryViz == PG_DEBUG_GEOM_TANGENT )
+    {
+        outColor.rgb = Vec3ToUnorm_Clamped( normalize( fragInput.tangentAndSign.xyz ) );
+    }
+    else if ( r_geometryViz == PG_DEBUG_GEOM_BITANGENT )
+    {
+        vec3 normal = normalize( fragInput.normal );
+        vec3 tangent = normalize( fragInput.tangentAndSign.xyz );
+        vec3 bitangent = cross( normal, tangent ) * fragInput.tangentAndSign.w;
+        outColor.rgb = Vec3ToUnorm_Clamped( bitangent );
+    }
+}
+
 void Debug_Material( const Material m, inout vec4 outColor )
 {
     uint r_materialViz = globals.r_materialViz;
@@ -80,21 +105,6 @@ void Debug_Material( const Material m, inout vec4 outColor )
     {
         outColor.rgb = vec3( m.emissive );
     }
-    else if ( r_materialViz == PG_DEBUG_MTL_GEOM_NORMAL )
-    {
-        outColor.rgb = Vec3ToUnorm_Clamped( normalize( fragInput.normal ) );
-    }
-    else if ( r_materialViz == PG_DEBUG_MTL_GEOM_TANGENT )
-    {
-        outColor.rgb = Vec3ToUnorm_Clamped( normalize( fragInput.tangentAndSign.xyz ) );
-    }
-    else if ( r_materialViz == PG_DEBUG_MTL_GEOM_BITANGENT )
-    {
-        vec3 normal = normalize( fragInput.normal );
-        vec3 tangent = normalize( fragInput.tangentAndSign.xyz );
-        vec3 bitangent = cross( normal, tangent ) * fragInput.tangentAndSign.w;
-        outColor.rgb = Vec3ToUnorm_Clamped( bitangent );
-    }
 }
 
 #endif // #if IS_DEBUG_SHADER
@@ -105,6 +115,7 @@ void main()
     color = vec4( m.albedo, 1 );
     
 #if IS_DEBUG_SHADER
+    Debug_Geometry( color );
     Debug_Material( m, color );
     if ( IsMeshletVizEnabled() )
     {

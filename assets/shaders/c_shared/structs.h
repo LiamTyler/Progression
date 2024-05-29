@@ -23,6 +23,7 @@ struct SceneGlobals
     UINT r_tonemap;
 
     // debug vals
+    UINT r_geometryViz;
     UINT r_materialViz;
     UINT r_lightingViz;
     UINT r_postProcessing;

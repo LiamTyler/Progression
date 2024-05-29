@@ -53,6 +53,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
     bool useDebugShader = false;
 #if !USING( SHIP_BUILD )
+    useDebugShader = useDebugShader || r_geometryViz.GetUint();
     useDebugShader = useDebugShader || r_materialViz.GetUint();
     useDebugShader = useDebugShader || r_lightingViz.GetUint();
     useDebugShader = useDebugShader || r_meshletViz.GetBool();
@@ -264,6 +265,7 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.r_tonemap                = r_tonemap.GetUint();
 
 #if !USING( SHIP_BUILD )
+    globalData.r_geometryViz    = r_geometryViz.GetUint();
     globalData.r_materialViz    = r_materialViz.GetUint();
     globalData.r_lightingViz    = r_lightingViz.GetUint();
     globalData.r_postProcessing = r_postProcessing.GetBool();

@@ -106,7 +106,7 @@ void DrawResultsOnScreen()
 {
 #if USING( PG_DEBUG_UI )
     ImGui::SetNextWindowPos( { 5, 5 }, ImGuiCond_FirstUseEver );
-    ImGui::Begin( "Profiling Stats" );
+    ImGui::Begin( "Profiling Stats", NULL, ImGuiWindowFlags_NoFocusOnAppearing );
 
     if ( ImGui::BeginTable( "RenderPass Times", 4, ImGuiTableFlags_Borders ) )
     {

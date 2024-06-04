@@ -640,15 +640,15 @@ void Update()
                 CHECK_SOL_FUNCTION_CALL( funcs.update() );
             }
 
-            auto window         = GetMainWindow();
-            bool mouseInElement = ElementContainsPos( e, Input::GetMousePosition() / vec2( window->Width(), window->Height() ) );
-            if ( mouseInElement )
-            {
-                if ( Input::AnyMouseButtonDown() && IsSet( e.scriptFlags, UIElementScriptFlags::MOUSE_BUTTON_DOWN ) )
-                    CHECK_SOL_FUNCTION_CALL( funcs.mouseButtonDown() );
-                if ( Input::AnyMouseButtonUp() && IsSet( e.scriptFlags, UIElementScriptFlags::MOUSE_BUTTON_UP ) )
-                    CHECK_SOL_FUNCTION_CALL( funcs.mouseButtonUp() );
-            }
+            // auto window         = GetMainWindow();
+            // bool mouseInElement = ElementContainsPos( e, Input::GetMousePosition() / vec2( window->Width(), window->Height() ) );
+            // if ( mouseInElement )
+            //{
+            //     if ( Input::AnyMouseButtonDown() && IsSet( e.scriptFlags, UIElementScriptFlags::MOUSE_BUTTON_DOWN ) )
+            //         CHECK_SOL_FUNCTION_CALL( funcs.mouseButtonDown() );
+            //     if ( Input::AnyMouseButtonUp() && IsSet( e.scriptFlags, UIElementScriptFlags::MOUSE_BUTTON_UP ) )
+            //         CHECK_SOL_FUNCTION_CALL( funcs.mouseButtonUp() );
+            // }
         } );
 }
 

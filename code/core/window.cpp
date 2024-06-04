@@ -1,5 +1,6 @@
 #include "core/window.hpp"
 #include "core/engine_globals.hpp"
+#include "core/input.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
 #include "shared/logger.hpp"
@@ -116,6 +117,7 @@ void Window::SetRelativeMouse( bool b )
 {
     glfwSetInputMode( m_window, GLFW_CURSOR, b ? GLFW_CURSOR_DISABLED : GLFW_CURSOR_NORMAL );
     m_relativeMouse = b;
+    Input::MouseCursorChange();
 }
 
 void Window::SetTitle( const std::string& title )

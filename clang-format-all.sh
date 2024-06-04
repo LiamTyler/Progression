@@ -11,5 +11,5 @@ declare -a arr=("./code/asset/" "./code/core/" "./code/data_structures/" "./code
 
 for i in "${arr[@]}"
 do
-   find "$i" -regex '.*\.\(cpp\|hpp\|h\|c\)' | xargs "${fmtExe}" -style=file -i
+   find "$i" -regex '.*\.\(cpp\|hpp\|h\|c\)' | xargs -I {} "${fmtExe}" -style=file -i {}
 done

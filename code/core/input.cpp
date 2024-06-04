@@ -1,265 +1,496 @@
 #include "core/input.hpp"
+#include "core/engine_globals.hpp"
 #include "core/lua.hpp"
 #include "core/window.hpp"
+#include "shared/assert.hpp"
 #include "shared/logger.hpp"
+#include <unordered_set>
 
-static vec2 s_lastCursorPos    = ivec2( 0 );
-static vec2 s_currentCursorPos = ivec2( 0 );
-static vec2 s_scrollOffset     = ivec2( 0 );
-
-enum KeyStatus : uint8_t
-{
-    KEY_RELEASED = 0, // first frame key released
-    KEY_FREE     = 1, // all frames key is released besides first
-    KEY_PRESSED  = 2, // first frame key pressed
-    KEY_HELD     = 3, // all frames key is pressed besides first
-};
-
-static uint8_t s_keyStatus[GLFW_KEY_LAST + 1];
-static uint8_t s_mouseButtonStatus[GLFW_MOUSE_BUTTON_LAST + 1];
-static bool s_anyKeyDown;
-static bool s_anyKeyUp;
-static bool s_anyMouseButtonDown;
-static bool s_anyMouseButtonUp;
-
-static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
-{
-    if ( key == GLFW_KEY_UNKNOWN )
-    {
-        LOG_WARN( "Unknown key pressed" );
-        return;
-    }
-
-    if ( action == GLFW_PRESS )
-    {
-        s_keyStatus[key] = KEY_PRESSED;
-        s_anyKeyDown     = true;
-    }
-    else if ( action == GLFW_RELEASE )
-    {
-        s_keyStatus[key] = KEY_RELEASED;
-        s_anyKeyUp       = true;
-    }
-}
-
-static void CursorPositionCallback( GLFWwindow* window, double xpos, double ypos ) { s_currentCursorPos = vec2( xpos, ypos ); }
-
-static void MouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
-{
-    if ( action == GLFW_PRESS )
-    {
-        s_mouseButtonStatus[button] = KEY_PRESSED;
-        s_anyMouseButtonDown        = true;
-    }
-    else if ( action == GLFW_RELEASE )
-    {
-        s_mouseButtonStatus[button] = KEY_RELEASED;
-        s_anyMouseButtonUp          = true;
-    }
-}
-
-static void ScrollCallback( GLFWwindow* window, double xoffset, double yoffset ) { s_scrollOffset += vec2( xoffset, yoffset ); }
+#if !USING( SHIP_BUILD )
+#include "imgui/imgui.h"
+#endif // #if !USING( SHIP_BUILD )
 
 namespace PG::Input
 {
 
-void Init()
+static vec2 s_prevMousePos;
+static bool s_cursorStateChanged = false;
+
+class RawInputTracker
 {
-    GLFWwindow* window = GetMainWindow()->GetGLFWHandle();
-    double x, y;
-    glfwGetCursorPos( window, &x, &y );
-    s_currentCursorPos = vec2( x, y );
-    s_lastCursorPos    = s_currentCursorPos;
+    friend class InputContextManager;
 
-    glfwSetCursorPosCallback( window, CursorPositionCallback );
-    glfwSetMouseButtonCallback( window, MouseButtonCallback );
-    glfwSetKeyCallback( window, KeyCallback );
-    glfwSetScrollCallback( window, ScrollCallback );
+    std::unordered_map<RawButton, RawButtonState> m_activeButtons;
+    std::vector<unsigned int> m_characters; // unicode
+    std::unordered_map<RawAxis, RawAxisValue> m_activeAxes;
 
-    for ( int i = 0; i < GLFW_KEY_LAST + 1; ++i )
+public:
+    RawInputTracker() = default;
+
+    bool HasInput() const { return !m_activeButtons.empty() || !m_characters.empty() || !m_activeAxes.empty(); }
+
+    void AddOrUpdateButton( RawButton button, RawButtonState state ) { m_activeButtons[button] = state; }
+
+    void AddCharacter( unsigned int c ) { m_characters.push_back( c ); }
+
+    void AddAxisValue( RawAxis axis, RawAxisValue value )
     {
-        s_keyStatus[i] = KEY_FREE;
+        // Seems like the mouse cursor callback can happen multiple times per frame. Combined the values if so
+        if ( value )
+        {
+            if ( m_activeAxes.contains( axis ) )
+                m_activeAxes[axis] += value;
+            else
+                m_activeAxes[axis] = value;
+        }
     }
 
-    for ( int i = 0; i < GLFW_MOUSE_BUTTON_LAST + 1; ++i )
+    void StartFrame()
     {
-        s_mouseButtonStatus[i] = KEY_FREE;
+        m_characters.clear();
+        m_activeAxes.clear();
+        for ( auto it = m_activeButtons.begin(); it != m_activeButtons.end(); ++it )
+        {
+            if ( it->second == RawButtonState::PRESSED )
+                it->second = RawButtonState::HELD;
+            if ( it->second == RawButtonState::RELEASED )
+                m_activeButtons.erase( it );
+        }
     }
 
-    PollEvents();
+    void CreateCallbackInput( InputContext* context, CallbackInput& cInput )
+    {
+        cInput.actions.clear();
+        cInput.axes.clear();
+
+        for ( const auto [rawButton, rawState] : m_activeButtons )
+        {
+            if ( context->m_rawButtonToActionMap.contains( rawButton ) )
+            {
+                Action action      = context->m_rawButtonToActionMap[rawButton];
+                ActionState aState = (ActionState)rawState;
+                cInput.actions.emplace_back( action, aState );
+            }
+            else if ( context->m_rawButtonToAxisMap.contains( rawButton ) )
+            {
+                AxisValuePair axisValuePair = context->m_rawButtonToAxisMap[rawButton];
+                if ( rawState == RawButtonState::RELEASED )
+                    axisValuePair.value = 0.0f;
+                // if two actions are present that map to the same axis, add them
+                size_t i = 0;
+                while ( i < cInput.axes.size() && cInput.axes[i].axis != axisValuePair.axis )
+                    ++i;
+                if ( i == cInput.axes.size() )
+                    cInput.axes.emplace_back( axisValuePair );
+                else
+                    cInput.axes[i].value += axisValuePair.value;
+            }
+        }
+
+        for ( const auto [rawAxis, rawValue] : m_activeAxes )
+        {
+            if ( context->m_rawAxisToAxisMap.contains( rawAxis ) )
+            {
+                Axis axis        = context->m_rawAxisToAxisMap[rawAxis];
+                AxisValue aValue = (AxisValue)rawValue;
+                cInput.axes.emplace_back( axis, aValue );
+            }
+        }
+    }
+
+    void UpdateBasedOnContext( InputContext* context )
+    {
+        if ( context->m_blockLevel == InputContextBlockLevel::NOT_BLOCKING )
+            return;
+
+        if ( context->m_blockLevel == InputContextBlockLevel::BLOCK_ALL_CONTROLS )
+        {
+            m_activeAxes.clear();
+            m_activeButtons.clear();
+            m_characters.clear();
+            return;
+        }
+
+        for ( auto it = m_activeButtons.begin(); it != m_activeButtons.end(); ++it )
+        {
+            bool isMapped = context->m_rawButtonToActionMap.contains( it->first ) || context->m_rawButtonToAxisMap.contains( it->first );
+            if ( isMapped )
+                m_activeButtons.erase( it );
+        }
+
+        for ( auto it = m_activeAxes.begin(); it != m_activeAxes.end(); ++it )
+        {
+            bool isMapped = context->m_rawAxisToAxisMap.contains( it->first );
+            if ( isMapped )
+                m_activeAxes.erase( it );
+        }
+    }
+};
+
+static std::vector<InputContext*> s_allInputContexts;
+static InputContextManager s_contextManager;
+static RawInputTracker s_inputTracker;
+
+static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
+{
+    if ( action != GLFW_PRESS && action != GLFW_RELEASE )
+        return;
+
+    RawButton button = GlfwKeyToRawButton( key );
+    if ( button == RawButton::UNKNOWN )
+    {
+        LOG_WARN( "Unknown key pressed!" );
+        return;
+    }
+
+    RawButtonState state = action == GLFW_PRESS ? RawButtonState::PRESSED : RawButtonState::RELEASED;
+    s_inputTracker.AddOrUpdateButton( button, state );
 }
 
-void Shutdown() { glfwPollEvents(); }
+static void CharCallback( GLFWwindow* window, unsigned int c ) { s_inputTracker.AddCharacter( c ); }
 
-void PollEvents()
+static void MousePosCallback( GLFWwindow* window, double x, double y )
 {
-    s_anyKeyDown         = false;
-    s_anyKeyUp           = false;
-    s_anyMouseButtonDown = false;
-    s_anyMouseButtonUp   = false;
-    for ( int i = 0; i < GLFW_KEY_LAST + 1; ++i )
+    vec2 pos = vec2( (float)x, (float)y );
+    // LOG( "%f %f", pos.x, pos.y );
+    if ( !s_cursorStateChanged )
     {
-        s_keyStatus[i] += s_keyStatus[i] == KEY_RELEASED || s_keyStatus[i] == KEY_PRESSED;
+        s_inputTracker.AddAxisValue( RawAxis::MOUSE_X, pos.x - s_prevMousePos.x );
+        s_inputTracker.AddAxisValue( RawAxis::MOUSE_Y, pos.y - s_prevMousePos.y );
+    }
+    s_prevMousePos = pos;
+}
+
+static void MouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
+{
+    if ( action != GLFW_PRESS && action != GLFW_RELEASE )
+        return;
+
+    RawButton rawButton = GlfwMouseButtonToRawButton( button );
+    if ( rawButton == RawButton::UNKNOWN )
+    {
+        LOG_WARN( "Unknown key pressed!" );
+        return;
     }
 
-    for ( int i = 0; i < GLFW_MOUSE_BUTTON_LAST + 1; ++i )
+    RawButtonState state = action == GLFW_PRESS ? RawButtonState::PRESSED : RawButtonState::RELEASED;
+    s_inputTracker.AddOrUpdateButton( rawButton, state );
+}
+
+bool Init()
+{
+    s_contextManager.ClearAll();
+    if ( !s_contextManager.LoadContexts() )
     {
-        s_mouseButtonStatus[i] += s_mouseButtonStatus[i] == KEY_RELEASED || s_mouseButtonStatus[i] == KEY_PRESSED;
+        LOG_ERR( "Failed to load all input contexts" );
+        return false;
     }
-    s_lastCursorPos = s_currentCursorPos;
-    s_scrollOffset  = vec2( 0 );
+
+    s_contextManager.PushLayer( InputContextID::CAMERA_CONTROLS );
+
+    GLFWwindow* window = GetMainWindow()->GetGLFWHandle();
+    glfwSetKeyCallback( window, KeyCallback );
+    glfwSetCharCallback( window, CharCallback );
+    glfwSetMouseButtonCallback( window, MouseButtonCallback );
+
+    ResetMousePosition();
+    glfwSetCursorPosCallback( window, MousePosCallback );
+
+    return true;
+}
+
+void Shutdown()
+{
+    for ( InputContext* context : s_allInputContexts )
+        delete context;
+
     glfwPollEvents();
 }
 
-bool GetKeyDown( Key k ) { return s_keyStatus[static_cast<int>( k )] == KEY_PRESSED; }
-
-bool AnyKeyDown() { return s_anyKeyDown; }
-
-bool GetKeyUp( Key k ) { return s_keyStatus[static_cast<int>( k )] == KEY_RELEASED; }
-
-bool AnyKeyUp() { return s_anyKeyUp; }
-
-bool GetKeyHeld( Key k ) { return s_keyStatus[static_cast<int>( k )] == KEY_PRESSED || s_keyStatus[static_cast<int>( k )] == KEY_HELD; }
-
-bool GetMouseButtonDown( MouseButton b ) { return s_mouseButtonStatus[static_cast<int>( b )] == KEY_PRESSED; }
-
-bool AnyMouseButtonDown() { return s_anyMouseButtonDown; }
-
-bool GetMouseButtonUp( MouseButton b ) { return s_mouseButtonStatus[static_cast<int>( b )] == KEY_RELEASED; }
-
-bool AnyMouseButtonUp() { return s_anyMouseButtonUp; }
-
-bool GetMouseButtonHeld( MouseButton b )
+void PollEvents()
 {
-    return s_mouseButtonStatus[static_cast<int>( b )] == KEY_PRESSED || s_mouseButtonStatus[static_cast<int>( b )] == KEY_HELD;
+    s_inputTracker.StartFrame();
+    glfwPollEvents();
+    s_contextManager.Update();
+    s_cursorStateChanged = false;
 }
 
-vec2 GetMousePosition() { return s_currentCursorPos; }
+void ResetMousePosition()
+{
+    double mouse_x, mouse_y;
+    glfwGetCursorPos( GetMainWindow()->GetGLFWHandle(), &mouse_x, &mouse_y );
+    s_prevMousePos = vec2( (float)mouse_x, (float)mouse_y );
+}
 
-vec2 GetMouseChange() { return s_currentCursorPos - s_lastCursorPos; }
+void MouseCursorChange() { s_cursorStateChanged = true; }
 
-vec2 GetScrollChange() { return s_scrollOffset; }
+bool CallbackInput::HasInput() const { return !axes.empty() || !actions.empty(); }
+
+bool CallbackInput::ActionJustPressed( Action action ) const
+{
+    for ( size_t i = 0; i < actions.size(); ++i )
+    {
+        if ( actions[i].action == action )
+            return actions[i].state == ActionState::PRESSED;
+    }
+
+    return false;
+}
+
+bool CallbackInput::ActionBeingPressed( Action action ) const
+{
+    for ( size_t i = 0; i < actions.size(); ++i )
+    {
+        if ( actions[i].action == action )
+            return actions[i].state == ActionState::PRESSED || actions[i].state == ActionState::HELD;
+    }
+
+    return false;
+}
+
+bool CallbackInput::ActionReleased( Action action ) const
+{
+    for ( size_t i = 0; i < actions.size(); ++i )
+    {
+        if ( actions[i].action == action )
+            return actions[i].state == ActionState::RELEASED;
+    }
+
+    return false;
+}
+
+AxisValue CallbackInput::GetAxisValue( Axis axis ) const
+{
+    for ( size_t i = 0; i < axes.size(); ++i )
+    {
+        if ( axes[i].axis == axis )
+            return axes[i].value;
+    }
+
+    return 0;
+}
+
+void InputContext::AddRawButtonToAction( RawButton rawButton, Action action ) { m_rawButtonToActionMap[rawButton] = action; }
+
+void InputContext::AddRawButtonToAxis( RawButton rawButton, AxisValuePair axisValuePair )
+{
+    m_rawButtonToAxisMap[rawButton] = axisValuePair;
+}
+
+void InputContext::AddRawAxisToAxis( RawAxis rawAxis, Axis axis ) { m_rawAxisToAxisMap[rawAxis] = axis; }
+
+uint32_t InputContext::AddCallback( sol::function callback )
+{
+    uint32_t id           = m_callbackID++;
+    m_scriptCallbacks[id] = callback;
+    return id;
+}
+
+uint32_t InputContext::AddCallback( InputCodeCallback callback )
+{
+    uint32_t id         = m_callbackID++;
+    m_codeCallbacks[id] = callback;
+    return id;
+}
+
+void InputContext::RemoveCallback( uint32_t id )
+{
+    if ( m_scriptCallbacks.contains( id ) )
+    {
+        m_scriptCallbacks.erase( id );
+        return;
+    }
+
+    PG_ASSERT( m_codeCallbacks.contains( id ) );
+    m_codeCallbacks.erase( id );
+}
+
+InputContextBlockLevel InputContext::GetBlockLevel() const { return m_blockLevel; }
+void InputContext::SetBlockLevel( InputContextBlockLevel level ) { m_blockLevel = level; }
+
+void InputContext::ProcessCallbacks( const CallbackInput& cInput )
+{
+    if ( !cInput.HasInput() )
+        return;
+
+    for ( const auto& [id, callback] : m_scriptCallbacks )
+    {
+        CHECK_SOL_FUNCTION_CALL( callback( cInput ) );
+    }
+    for ( const auto& [id, callback] : m_codeCallbacks )
+    {
+        callback( cInput );
+    }
+}
+
+InputContextManager::InputContextManager()
+{
+    ClearAll();
+    m_layers.reserve( 8 );
+    for ( auto& layer : m_layers )
+        layer.contexts.reserve( 8 );
+}
+
+#if !USING( SHIP_BUILD )
+static void DevControlsInputCallback( const CallbackInput& cInput )
+{
+    if ( cInput.ActionJustPressed( Action::QUIT_GAME ) )
+        eg.shutdown = true;
+}
+#endif // #if !USING( SHIP_BUILD )
+
+bool InputContextManager::LoadContexts()
+{
+    s_allInputContexts.resize( Underlying( InputContextID::COUNT ) );
+    InputContext* context;
+
+#if !USING( SHIP_BUILD )
+    context = new InputContext( InputContextID::DEV_CONTROLS );
+    context->SetBlockLevel( InputContextBlockLevel::BLOCK_MAPPED_CONTROLS );
+    context->AddRawButtonToAction( RawButton::ESC, Action::QUIT_GAME );
+    context->AddCallback( DevControlsInputCallback );
+
+    s_allInputContexts[Underlying( InputContextID::DEV_CONTROLS )] = context;
+#endif // #if !USING( SHIP_BUILD )
+
+    context = new InputContext( InputContextID::CAMERA_CONTROLS );
+    context->SetBlockLevel( InputContextBlockLevel::BLOCK_MAPPED_CONTROLS );
+    context->AddRawButtonToAxis( RawButton::A, { Axis::CAMERA_VEL_X, -1.0f } );
+    context->AddRawButtonToAxis( RawButton::D, { Axis::CAMERA_VEL_X, 1.0f } );
+    context->AddRawButtonToAxis( RawButton::W, { Axis::CAMERA_VEL_Y, 1.0f } );
+    context->AddRawButtonToAxis( RawButton::S, { Axis::CAMERA_VEL_Y, -1.0f } );
+    context->AddRawButtonToAxis( RawButton::MB_LEFT, { Axis::CAMERA_VEL_Z, 1.0f } );
+    context->AddRawButtonToAxis( RawButton::MB_RIGHT, { Axis::CAMERA_VEL_Z, -1.0f } );
+    context->AddRawButtonToAction( RawButton::X, Action::TOGGLE_CAMERA_CONTROLS );
+    context->AddRawButtonToAction( RawButton::LEFT_SHIFT, Action::CAMERA_SPRINT );
+    context->AddRawAxisToAxis( RawAxis::MOUSE_X, Axis::CAMERA_YAW );
+    context->AddRawAxisToAxis( RawAxis::MOUSE_Y, Axis::CAMERA_PITCH );
+
+    s_allInputContexts[Underlying( InputContextID::CAMERA_CONTROLS )] = context;
+
+    return true;
+}
+
+void InputContextManager::Update()
+{
+    if ( !s_inputTracker.HasInput() )
+        return;
+
+    RawInputTracker inputTracker = s_inputTracker;
+    CallbackInput cInput;
+
+    // always process the dev controls + handle imgui first, in developement builds
+#if !USING( SHIP_BUILD )
+    InputContext* devContext = s_allInputContexts[Underlying( InputContextID::DEV_CONTROLS )];
+    inputTracker.CreateCallbackInput( devContext, cInput );
+    devContext->ProcessCallbacks( cInput );
+    inputTracker.UpdateBasedOnContext( devContext );
+
+    ImGuiIO& io = ImGui::GetIO();
+    if ( io.WantCaptureKeyboard )
+        inputTracker.m_activeButtons.clear();
+    if ( io.WantTextInput )
+        inputTracker.m_characters.clear();
+
+    if ( !inputTracker.HasInput() )
+        return;
+#endif // #if !USING( SHIP_BUILD )
+
+    // make copy, in case the callbacks edit the context list/order
+    static std::vector<InputContext*> scratchContexts;
+    scratchContexts = CurrentLayer().contexts;
+    for ( size_t cIdx = scratchContexts.size(); cIdx-- > 0; )
+    {
+        InputContext* context = scratchContexts[cIdx];
+        inputTracker.CreateCallbackInput( context, cInput );
+
+        context->ProcessCallbacks( cInput );
+
+        inputTracker.UpdateBasedOnContext( context );
+        if ( !inputTracker.HasInput() )
+            return;
+    }
+}
+
+void InputContextManager::ClearAll() { m_layers.clear(); }
+void InputContextManager::PushContext_Front( InputContextID contextID )
+{
+    CurrentLayer().contexts.insert( CurrentLayer().contexts.begin(), GetContext( contextID ) );
+}
+void InputContextManager::PopContext_Front() { CurrentLayer().contexts.erase( CurrentLayer().contexts.begin() ); }
+void InputContextManager::PushContext_Back( InputContextID contextID ) { CurrentLayer().contexts.push_back( GetContext( contextID ) ); }
+void InputContextManager::PopContext_Back() { CurrentLayer().contexts.pop_back(); }
+void InputContextManager::PushLayer( InputContextID contextID )
+{
+    m_layers.emplace_back();
+    PushContext_Back( contextID );
+}
+void InputContextManager::PopLayer() { m_layers.pop_back(); }
+
+InputContext* GetContext( InputContextID id ) { return s_allInputContexts[Underlying( id )]; }
+
+static uint32_t AddCallback( InputContextID contextID, sol::function callback )
+{
+    return s_allInputContexts[Underlying( contextID )]->AddCallback( callback );
+}
+
+static void RemoveCallback( InputContextID contextID, uint32_t callbackHandle )
+{
+    return s_allInputContexts[Underlying( contextID )]->RemoveCallback( callbackHandle );
+}
 
 void RegisterLuaFunctions( lua_State* L )
 {
     sol::state_view lua( L );
     auto input = lua["Input"].get_or_create<sol::table>();
-    input.set_function( "GetKeyDown", &GetKeyDown );
-    input.set_function( "GetKeyUp", &GetKeyUp );
-    input.set_function( "GetKeyHeld", &GetKeyHeld );
-    input.set_function( "GetMouseButtonDown", &GetMouseButtonDown );
-    input.set_function( "GetMouseButtonUp", &GetMouseButtonUp );
-    input.set_function( "GetMouseButtonHeld", &GetMouseButtonHeld );
-    input.set_function( "GetMousePosition", &GetMousePosition );
-    input.set_function( "GetMouseChange", &GetMouseChange );
-    input.set_function( "GetScrollChange", &GetScrollChange );
+    input.set_function( "AddCallback", &AddCallback );
+    input.set_function( "RemoveCallback", &RemoveCallback );
 
-    std::initializer_list<std::pair<sol::string_view, Key>> keyItems = {
-        {"A",             Key::A            },
-        {"B",             Key::B            },
-        {"C",             Key::C            },
-        {"D",             Key::D            },
-        {"E",             Key::E            },
-        {"F",             Key::F            },
-        {"H",             Key::G            },
-        {"G",             Key::H            },
-        {"I",             Key::I            },
-        {"J",             Key::J            },
-        {"K",             Key::K            },
-        {"L",             Key::L            },
-        {"M",             Key::M            },
-        {"N",             Key::N            },
-        {"O",             Key::O            },
-        {"P",             Key::P            },
-        {"Q",             Key::Q            },
-        {"R",             Key::R            },
-        {"S",             Key::S            },
-        {"T",             Key::T            },
-        {"U",             Key::U            },
-        {"V",             Key::V            },
-        {"W",             Key::W            },
-        {"X",             Key::X            },
-        {"Y",             Key::Y            },
-        {"Z",             Key::Z            },
-        {"UNKOWN",        Key::UNKOWN       },
-        {"SPACE",         Key::SPACE        },
-        {"ESC",           Key::ESC          },
-        {"APOSTROPHE",    Key::APOSTROPHE   },
-        {"COMMA",         Key::COMMA        },
-        {"MINUS",         Key::MINUS        },
-        {"PERIOD",        Key::PERIOD       },
-        {"SLASH",         Key::SLASH        },
-        {"SEMICOLON",     Key::SEMICOLON    },
-        {"EQUAL",         Key::EQUAL        },
-        {"LEFT_BRACKET",  Key::LEFT_BRACKET },
-        {"BACKSLASH",     Key::BACKSLASH    },
-        {"RIGHT_BRACKET", Key::RIGHT_BRACKET},
-        {"BACK_TICK",     Key::BACK_TICK    },
-        {"ENTER",         Key::ENTER        },
-        {"TAB",           Key::TAB          },
-        {"BACKSPACE",     Key::BACKSPACE    },
-        {"INSERT",        Key::INSERT       },
-        {"DELETE",        Key::DELETE       },
-        {"RIGHT",         Key::RIGHT        },
-        {"LEFT",          Key::LEFT         },
-        {"DOWN",          Key::DOWN         },
-        {"UP",            Key::UP           },
-        {"PAGE_UP",       Key::PAGE_UP      },
-        {"PAGE_DOWN",     Key::PAGE_DOWN    },
-        {"HOME",          Key::HOME         },
-        {"END",           Key::END          },
-        {"CAPS_LOCK",     Key::CAPS_LOCK    },
-        {"SCROLL_LOCK",   Key::SCROLL_LOCK  },
-        {"NUM_LOCK",      Key::NUM_LOCK     },
-        {"PRINT_SCREEN",  Key::PRINT_SCREEN },
-        {"PAUSE",         Key::PAUSE        },
-        {"LEFT_SHIFT",    Key::LEFT_SHIFT   },
-        {"LEFT_CONTROL",  Key::LEFT_CONTROL },
-        {"LEFT_ALT",      Key::LEFT_ALT     },
-        {"LEFT_SUPER",    Key::LEFT_SUPER   },
-        {"RIGHT_SHIFT",   Key::RIGHT_SHIFT  },
-        {"RIGHT_CONTROL", Key::RIGHT_CONTROL},
-        {"RIGHT_ALT",     Key::RIGHT_ALT    },
-        {"RIGHT_SUPER",   Key::RIGHT_SUPER  },
-        {"MENU",          Key::MENU         },
-        {"F1",            Key::F1           },
-        {"F2",            Key::F2           },
-        {"F3",            Key::F3           },
-        {"F4",            Key::F4           },
-        {"F5",            Key::F5           },
-        {"F6",            Key::F6           },
-        {"F7",            Key::F7           },
-        {"F8",            Key::F8           },
-        {"F9",            Key::F9           },
-        {"F10",           Key::F10          },
-        {"F11",           Key::F11          },
-        {"F12",           Key::F12          },
-        {"KP_0",          Key::KP_0         },
-        {"KP_1",          Key::KP_1         },
-        {"KP_2",          Key::KP_2         },
-        {"KP_3",          Key::KP_3         },
-        {"KP_4",          Key::KP_4         },
-        {"KP_5",          Key::KP_5         },
-        {"KP_6",          Key::KP_6         },
-        {"KP_7",          Key::KP_7         },
-        {"KP_8",          Key::KP_8         },
-        {"KP_9",          Key::KP_9         },
-        {"KP_DECIMAL",    Key::KP_DECIMAL   },
-        {"KP_DIVIDE",     Key::KP_DIVIDE    },
-        {"KP_MULTIPLY",   Key::KP_MULTIPLY  },
-        {"KP_SUBTRACT",   Key::KP_SUBTRACT  },
-        {"KP_ADD",        Key::KP_ADD       },
-        {"KP_ENTER",      Key::KP_ENTER     },
-        {"KP_EQUAL",      Key::KP_EQUAL     }
-    };
-    lua.new_enum<Key, false>( "Key", keyItems ); // false makes it read/write in Lua, but its faster
+    sol::table actionEnum = input.create( (int)Underlying( Action::COUNT ) );
+    for ( uint16_t i = 0; i < Underlying( Action::COUNT ); ++i )
+    {
+        Action action = (Action)i;
+        actionEnum.set( ActionToString( action ), action );
+    }
+    input.create_named( "Action", sol::metatable_key,
+        input.create_with( sol::meta_function::new_index, sol::detail::fail_on_newindex, sol::meta_function::index, actionEnum ) );
 
-    std::initializer_list<std::pair<sol::string_view, MouseButton>> mouseItems = {
-        {"LEFT",   MouseButton::LEFT  },
-        {"RIGHT",  MouseButton::RIGHT },
-        {"MIDDLE", MouseButton::MIDDLE},
+    sol::table axisEnum = input.create( (int)Underlying( Axis::COUNT ) );
+    for ( uint16_t i = 0; i < Underlying( Axis::COUNT ); ++i )
+    {
+        Axis axis = (Axis)i;
+        axisEnum.set( AxisToString( axis ), axis );
+    }
+    input.create_named( "Axis", sol::metatable_key,
+        input.create_with( sol::meta_function::new_index, sol::detail::fail_on_newindex, sol::meta_function::index, axisEnum ) );
+
+    sol::table contextEnum = input.create( (int)Underlying( InputContextID::COUNT ) );
+    for ( uint16_t i = 0; i < Underlying( InputContextID::COUNT ); ++i )
+    {
+        InputContextID id = (InputContextID)i;
+        contextEnum.set( InputContextIDToString( id ), id );
+    }
+    input.create_named( "Context", sol::metatable_key,
+        input.create_with( sol::meta_function::new_index, sol::detail::fail_on_newindex, sol::meta_function::index, contextEnum ) );
+
+    sol::usertype<CallbackInput> cInput = lua.new_usertype<CallbackInput>( "CallbackInput" );
+    cInput["ActionJustPressed"]         = &CallbackInput::ActionJustPressed;
+    cInput["ActionBeingPressed"]        = &CallbackInput::ActionBeingPressed;
+    cInput["ActionReleased"]            = &CallbackInput::ActionReleased;
+    cInput["GetAxisValue"]              = &CallbackInput::GetAxisValue;
+}
+
+const char* InputContextIDToString( InputContextID id )
+{
+    static const char* names[] = {
+#if !USING( SHIP_BUILD )
+        "DEV_CONTROLS",
+#endif // #if !USING( SHIP_BUILD )
+        "CAMERA_CONTROLS",
     };
-    lua.new_enum<MouseButton, false>( "MouseButton", mouseItems );
+    static_assert( Underlying( InputContextID::COUNT ) == ARRAY_COUNT( names ), "don't forget to update" );
+
+    return names[Underlying( id )];
 }
 
 } // namespace PG::Input

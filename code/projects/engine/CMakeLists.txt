@@ -45,7 +45,10 @@ set(
     ${CODE_DIR}/core/init.hpp
     ${CODE_DIR}/core/input.cpp
     ${CODE_DIR}/core/input.hpp
+    ${CODE_DIR}/core/input_types.cpp
     ${CODE_DIR}/core/input_types.hpp
+    ${CODE_DIR}/core/raw_input_types.cpp
+    ${CODE_DIR}/core/raw_input_types.hpp
     ${CODE_DIR}/core/lights.cpp
     ${CODE_DIR}/core/lights.hpp
     ${CODE_DIR}/core/low_discrepancy_sampling.cpp

@@ -10,8 +10,6 @@
 #include <string>
 #include <vector>
 
-#define PG_MAX_NON_ENTITY_SCRIPTS 64
-
 namespace PG
 {
 struct GfxImage;
@@ -42,12 +40,7 @@ public:
     GfxImage* skyboxReflectionProbe = nullptr;
 
     // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions
-    Lua::ScriptInstance nonEntityScripts[PG_MAX_NON_ENTITY_SCRIPTS];
-    uint16_t numNonEntityScripts = 0;
-
-#if USING( GPU_DATA )
-    // Gfx::AccelerationStructure tlas;
-#endif // #if USING( GPU_DATA )
+    std::vector<Lua::ScriptInstance> nonEntityScripts;
 };
 
 void RegisterLuaFunctions_Scene( lua_State* L );

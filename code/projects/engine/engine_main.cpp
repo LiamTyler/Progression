@@ -45,7 +45,7 @@ int main( int argc, char* argv[] )
     window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
     // window->SetRelativeMouse( false );
 
-    Input::PollEvents();
+    // Input::PollEvents();
     Time::Reset();
 
     while ( !eg.shutdown )
@@ -58,35 +58,6 @@ int main( int argc, char* argv[] )
         if ( eg.resizeRequested )
         {
             RenderSystem::Resize( window->FramebufferWidth(), window->FramebufferHeight() );
-        }
-
-        if ( Input::GetKeyDown( Key::ESC ) )
-        {
-            eg.shutdown = true;
-        }
-        if ( Input::GetKeyDown( Key::BACK_TICK ) )
-        {
-            Gfx::UIOverlay::ToggleConsoleVisibility();
-        }
-        if ( Input::GetKeyDown( Key::F1 ) )
-        {
-            Dvar* debugUIDvar = GetDvar( "r_debugUI" );
-            debugUIDvar->Set( !debugUIDvar->GetBool() );
-        }
-        if ( Input::GetKeyDown( Key::F2 ) )
-        {
-            Dvar* debugUIDvar = GetDvar( "r_debugUI" );
-            debugUIDvar->Set( !debugUIDvar->GetBool() );
-        }
-        if ( Input::GetKeyDown( Key::UP ) )
-        {
-            Dvar* r_debugInt = GetDvar( "r_debugInt" );
-            r_debugInt->Set( r_debugInt->GetInt() - 1 );
-        }
-        if ( Input::GetKeyDown( Key::DOWN ) )
-        {
-            Dvar* r_debugInt = GetDvar( "r_debugInt" );
-            r_debugInt->Set( r_debugInt->GetInt() + 1 );
         }
 
         if ( auto primaryScenePtr = GetPrimaryScene() )

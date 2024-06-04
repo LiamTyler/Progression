@@ -1,80 +1,56 @@
 
-velocity     = nil
-currentSpeed = 3
-regularSpeed = 3
-boostSpeed   = 15
-turnSpeed    = 0.002
-maxAngle     = 89 * 3.14159/180
-camera       = nil
-active       = true
+velocity       = nil
+rotation       = nil
+regularSpeed   = 3
+boostSpeed     = 15
+currentSpeed   = regularSpeed
+turnSpeed      = 0.002
+maxAngle       = 89 * 3.14159/180
+camera         = nil
+active         = true
+callbackHandle = nil
+
+function InputCallback( cInput )
+    velocity.z = 0
+    
+    velocity.x = cInput:GetAxisValue( Input.Axis.CAMERA_VEL_X )
+    velocity.y = cInput:GetAxisValue( Input.Axis.CAMERA_VEL_Y )
+    velocity.z = cInput:GetAxisValue( Input.Axis.CAMERA_VEL_Z )
+    
+    rotation.x = -cInput:GetAxisValue( Input.Axis.CAMERA_PITCH )
+    rotation.z = -cInput:GetAxisValue( Input.Axis.CAMERA_YAW )
+    
+    if cInput:ActionJustPressed( Input.Action.TOGGLE_CAMERA_CONTROLS ) then
+        active = not active
+        GetMainWindow():SetRelativeMouse( active )        
+    end
+    
+    if cInput:ActionBeingPressed( Input.Action.CAMERA_SPRINT ) then
+        currentSpeed = boostSpeed
+    end
+end
 
 function Start()
     camera = scene.camera
     velocity = vec3.new( 0 )
+    rotation = vec3.new( 0 )
+    
+    callbackHandle = Input.AddCallback( Input.Context.CAMERA_CONTROLS, InputCallback )
+end
+
+function End()
+    Input.RemoveCallback( Input.Context.CAMERA_CONTROLS, callbackHandle )
 end
 
 function Update()
-    if Input.GetKeyUp( Key.X ) then
-        active = not active
-    end
-    if Input.GetKeyUp( Key.R ) then
-        GetMainWindow():SetRelativeMouse( not GetMainWindow():IsRelativeMouse() )
-    end
     if not active then
         return
     end
-	
 
-    if Input.GetMouseButtonDown( MouseButton.LEFT ) then
-        velocity.z = 1
-    end
-    if Input.GetMouseButtonDown( MouseButton.RIGHT ) then
-        velocity.z = -1
-    end
-    if Input.GetKeyDown( Key.A ) then
-        velocity.x = -1
-    end
-    if Input.GetKeyDown( Key.D ) then
-        velocity.x = 1
-    end
-    if Input.GetKeyDown( Key.W ) then
-        velocity.y = 1
-    end
-    if Input.GetKeyDown( Key.S ) then
-        velocity.y = -1
-    end
-    if Input.GetKeyDown( Key.LEFT_SHIFT ) then
-        currentSpeed = boostSpeed
-    end
-    
-    if Input.GetMouseButtonUp( MouseButton.LEFT ) and velocity.z == 1 then
-        velocity.z = 0
-    end
-    if Input.GetMouseButtonUp( MouseButton.RIGHT ) and velocity.z == -1 then
-        velocity.z = 0
-    end
-    if Input.GetKeyUp( Key.A ) and velocity.x == -1 then
-        velocity.x = 0
-    end
-    if Input.GetKeyUp( Key.D ) and velocity.x == 1 then
-        velocity.x = 0
-    end
-    if Input.GetKeyUp( Key.W ) and velocity.y == 1 then
-        velocity.y = 0
-    end
-    if Input.GetKeyUp( Key.S ) and velocity.y == -1 then
-        velocity.y = 0
-    end
-    
-    if Input.GetKeyUp( Key.LEFT_SHIFT ) then
-        currentSpeed = regularSpeed
-    end
-    
-    local dMouse    = -Input:GetMouseChange()
-    local dRotation = vec3.new( dMouse.y, 0, dMouse.x )
-
-    camera.rotation   = camera.rotation + vec3.scale( turnSpeed, dRotation )
+    camera.rotation   = camera.rotation + vec3.scale( turnSpeed, rotation )
     camera.rotation.x = math.max( -maxAngle, math.min( maxAngle, camera.rotation.x ) )
+    rotation.x = 0
+    rotation.z = 0
     
     camera:UpdateOrientationVectors()
     
@@ -84,4 +60,6 @@ function Update()
     local step = currentSpeed * Time.dt
     camera.position = camera.position + vec3.scale( velocity.y * step, forward ) + vec3.scale( velocity.x * step, right ) + vec3.scale( velocity.z * step, up )
     camera:UpdateViewMatrix()
+    
+    currentSpeed = regularSpeed
 end

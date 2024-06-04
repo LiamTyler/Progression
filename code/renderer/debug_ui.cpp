@@ -1,4 +1,5 @@
 #include "renderer/debug_ui.hpp"
+#include "core/input.hpp"
 #include "renderer/debug_ui_console.hpp"
 
 #if !USING( PG_DEBUG_UI )
@@ -111,6 +112,15 @@ static void CheckVkResult( VkResult err )
         abort();
 }
 
+static void DevControlsInputCallback( const Input::CallbackInput& cInput )
+{
+    using namespace Input;
+    if ( cInput.ActionJustPressed( Action::TOGGLE_DEV_CONSOLE ) )
+        PG::Gfx::UIOverlay::ToggleConsoleVisibility();
+    if ( cInput.ActionJustPressed( Action::TOGGLE_DEBUG_UI ) )
+        dvarDebugUI.Set( !dvarDebugUI.GetBool() );
+}
+
 bool Init( PixelFormat colorAttachmentFormat )
 {
     s_updated = false;
@@ -180,6 +190,11 @@ bool Init( PixelFormat colorAttachmentFormat )
 
     s_console = new Console;
 
+    Input::InputContext* devContext = Input::GetContext( Input::InputContextID::DEV_CONTROLS );
+    devContext->AddRawButtonToAction( Input::RawButton::BACK_TICK, Input::Action::TOGGLE_DEV_CONSOLE );
+    devContext->AddRawButtonToAction( Input::RawButton::F1, Input::Action::TOGGLE_DEBUG_UI );
+    devContext->AddCallback( DevControlsInputCallback );
+
     return true;
 }
 
@@ -231,11 +246,21 @@ void Render( CommandBuffer& cmdBuf )
     ImGui_ImplVulkan_RenderDrawData( draw_data, cmdBuf );
 }
 
-void EndFrame() { ImGui::EndFrame(); }
+void EndFrame()
+{
+    // imgui will always focus on one of the initial windows, even if using ImGuiWindowFlags_NoFocusOnAppearing
+    if ( rg.totalFrameCount == 0 )
+        ImGui::SetWindowFocus( NULL );
+    ImGui::EndFrame();
+}
 
 bool CapturingMouse() { return dvarDebugUI.GetBool() && ImGui::GetIO().WantCaptureMouse; }
 
-void ToggleConsoleVisibility() { s_console->ToggleVisibility(); }
+void ToggleConsoleVisibility()
+{
+    s_console->ToggleVisibility();
+    ImGui::SetWindowFocus( NULL );
+}
 
 bool Header( const char* caption ) { return ImGui::CollapsingHeader( caption, ImGuiTreeNodeFlags_DefaultOpen ); }
 

@@ -1,37 +1,117 @@
 #pragma once
 
 #include "core/input_types.hpp"
+#include "core/lua.hpp"
+#include "core/raw_input_types.hpp"
 #include "shared/math_vec.hpp"
+#include <unordered_map>
 
 struct lua_State;
 
 namespace PG::Input
 {
 
-void Init();
+enum class InputContextBlockLevel : uint8_t
+{
+    NOT_BLOCKING,
+    BLOCK_MAPPED_CONTROLS,
+    BLOCK_ALL_CONTROLS,
+
+    COUNT
+};
+
+enum class InputContextID : uint8_t
+{
+#if !USING( SHIP_BUILD )
+    DEV_CONTROLS,
+#endif // #if !USING( SHIP_BUILD )
+    CAMERA_CONTROLS,
+
+    COUNT
+};
+
+const char* InputContextIDToString( InputContextID id );
+
+class CallbackInput
+{
+public:
+    bool HasInput() const;
+    bool ActionJustPressed( Action action ) const;
+    bool ActionBeingPressed( Action action ) const;
+    bool ActionReleased( Action action ) const;
+    AxisValue GetAxisValue( Axis axis ) const;
+
+    std::vector<ActionStatePair> actions;
+    std::vector<AxisValuePair> axes;
+};
+
+using InputCodeCallback = void ( * )( const CallbackInput& cInput );
+
+class InputContext
+{
+    friend class RawInputTracker;
+
+public:
+    InputContext( InputContextID id ) : m_id( id ) {}
+
+    void AddRawButtonToAction( RawButton rawButton, Action action );
+    void AddRawButtonToAxis( RawButton rawButton, AxisValuePair axisValuePair );
+    void AddRawAxisToAxis( RawAxis rawAxis, Axis axis );
+
+    uint32_t AddCallback( sol::function callback );
+    uint32_t AddCallback( InputCodeCallback callback );
+    void RemoveCallback( uint32_t id );
+    void ProcessCallbacks( const CallbackInput& cInput );
+
+    InputContextBlockLevel GetBlockLevel() const;
+    void SetBlockLevel( InputContextBlockLevel level );
+
+private:
+    std::unordered_map<RawButton, Action> m_rawButtonToActionMap;
+    std::unordered_map<RawButton, AxisValuePair> m_rawButtonToAxisMap;
+    std::unordered_map<RawAxis, Axis> m_rawAxisToAxisMap;
+    InputContextBlockLevel m_blockLevel = InputContextBlockLevel::BLOCK_MAPPED_CONTROLS;
+    InputContextID m_id;
+
+    std::unordered_map<uint32_t, sol::function> m_scriptCallbacks;
+    std::unordered_map<uint32_t, InputCodeCallback> m_codeCallbacks;
+    uint32_t m_callbackID = 0;
+};
+
+class InputContextManager
+{
+public:
+    InputContextManager();
+
+    bool LoadContexts();
+    void Update();
+
+    void ClearAll();
+    void PushContext_Front( InputContextID contextID );
+    void PopContext_Front();
+    void PushContext_Back( InputContextID contextID );
+    void PopContext_Back();
+    void PushLayer( InputContextID contextID );
+    void PopLayer();
+
+private:
+    struct ContextLayer
+    {
+        std::vector<InputContext*> contexts;
+    };
+    ContextLayer& CurrentLayer() { return m_layers.back(); }
+    std::vector<ContextLayer> m_layers;
+};
+
+bool Init();
 void Shutdown();
+
+InputContext* GetContext( InputContextID contextID );
 
 // should be called once per frame to update inputs
 void PollEvents();
-
-// Get[Key/MouseButton]Down returns true the first frame the Key/MouseButton is pressed
-// Get[Key/MouseButton]Up returns true the first frame the Key/MouseButton is released
-// Get[Key/MouseButton]Held returns true all frames the Key/MouseButton is pressed, including the first frame
-bool GetKeyDown( Key k );
-bool AnyKeyDown();
-bool GetKeyUp( Key k );
-bool AnyKeyUp();
-bool GetKeyHeld( Key k );
-
-bool GetMouseButtonDown( MouseButton b );
-bool AnyMouseButtonDown();
-bool GetMouseButtonUp( MouseButton b );
-bool AnyMouseButtonUp();
-bool GetMouseButtonHeld( MouseButton b );
-
-vec2 GetMousePosition();
-vec2 GetMouseChange();
-vec2 GetScrollChange();
+void ResetMousePosition();
+void MouseCursorChange();
 
 void RegisterLuaFunctions( lua_State* L );
 

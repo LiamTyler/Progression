@@ -165,12 +165,7 @@ static bool ParseScript( const rapidjson::Value& v, Scene* scene )
     Script* script = AssetManager::Get<Script>( scrName );
 #if !USING( CONVERTER )
     PG_ASSERT( script, "No script found with name '%s'", scrName.c_str() );
-    if ( scene->numNonEntityScripts == PG_MAX_NON_ENTITY_SCRIPTS )
-    {
-        LOG_ERR( "Could not add nonEntityScript '%s' because already reached the script limit %d", scrName.c_str(), PG_MAX_NON_ENTITY_SCRIPTS );
-        return false;
-    }
-    scene->nonEntityScripts[scene->numNonEntityScripts++] = Lua::ScriptInstance( script );
+    scene->nonEntityScripts.emplace_back( script );
 #endif // #if !USING( CONVERTER )
     return true;
 }
@@ -181,6 +176,14 @@ namespace PG
 
 Scene::~Scene()
 {
+    for ( size_t i = 0; i < nonEntityScripts.size(); ++i )
+    {
+        sol::function endFn = nonEntityScripts[i].env["End"];
+        if ( endFn.valid() )
+        {
+            CHECK_SOL_FUNCTION_CALL( endFn() );
+        }
+    }
 #if USING( GPU_DATA )
     // tlas.Free();
 #endif // #if USING( GPU_DATA )
@@ -248,12 +251,11 @@ void Scene::Start()
     Lua::State()["ECS"]   = &registry;
     Lua::State()["scene"] = this;
 
-    for ( int i = 0; i < numNonEntityScripts; ++i )
+    for ( size_t i = 0; i < nonEntityScripts.size(); ++i )
     {
         sol::function startFn = nonEntityScripts[i].env["Start"];
         if ( startFn.valid() )
         {
-            // nonEntityScripts[i].env["scene"] = this;
             CHECK_SOL_FUNCTION_CALL( startFn() );
         }
     }
@@ -265,7 +267,7 @@ void Scene::Update()
     Lua::State()["scene"]  = this;
     auto luaTimeNamespace  = Lua::State()["Time"].get<sol::table>();
     luaTimeNamespace["dt"] = Time::DeltaTime();
-    for ( int i = 0; i < numNonEntityScripts; ++i )
+    for ( size_t i = 0; i < nonEntityScripts.size(); ++i )
     {
         if ( nonEntityScripts[i].hasUpdateFunction )
         {

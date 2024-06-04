@@ -70,6 +70,11 @@ bool EngineInitialize( EngineInitInfo info )
     RemoteConsoleServer::Init();
 #endif // #if USING( GAME )
 
+#if USING( GAME )
+    if ( !eg.headless )
+        Input::ResetMousePosition();
+#endif // #if USING( GAME )
+
     return true;
 }
 

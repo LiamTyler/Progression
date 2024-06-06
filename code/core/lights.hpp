@@ -3,7 +3,7 @@
 #include "shared/math_vec.hpp"
 #include "shared/platform_defines.hpp"
 #if USING( GAME )
-#include "c_shared/structs.h"
+
 #endif // #if USING( GAME )
 
 namespace PG

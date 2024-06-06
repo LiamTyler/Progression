@@ -1,8 +1,6 @@
 #include "lights.hpp"
 #include "shared/float_conversions.hpp"
 
-using namespace GpuData;
-
 namespace PG
 {
 

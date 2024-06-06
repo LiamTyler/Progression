@@ -1,7 +1,6 @@
 #ifndef __LIGHTS_GLSL__
 #define __LIGHTS_GLSL__
 
-#include "c_shared/structs.h"
 #include "lib/packing.glsl"
 
 struct PointLight

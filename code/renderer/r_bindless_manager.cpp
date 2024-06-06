@@ -156,11 +156,16 @@ void Update()
 
                 VkWriteDescriptorSet& write = s_scratchWrites.emplace_back( VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET );
                 write.dstSet                = GetGlobalDescriptorSet();
-                write.dstBinding            = PG_BINDLESS_READ_ONLY_TEXTURE_DSET_BINDING;
+                write.dstBinding            = PG_BINDLESS_SAMPLED_TEXTURE_DSET_BINDING;
                 write.dstArrayElement       = pendingAdd.slot;
                 write.descriptorCount       = 1;
                 write.descriptorType        = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                 write.pImageInfo            = &imgInfo;
+
+                VkWriteDescriptorSet& imageWrite = s_scratchWrites.emplace_back( write );
+                imageWrite.dstBinding            = PG_BINDLESS_READ_ONLY_IMAGE_DSET_BINDING;
+                imageWrite.dstArrayElement       = pendingAdd.slot;
+                imageWrite.descriptorType        = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
             }
             if ( IsSet( pendingAdd.usage, Usage::WRITE ) )
             {
@@ -171,7 +176,7 @@ void Update()
 
                 VkWriteDescriptorSet& write = s_scratchWrites.emplace_back( VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET );
                 write.dstSet                = GetGlobalDescriptorSet();
-                write.dstBinding            = PG_BINDLESS_RW_TEXTURE_DSET_BINDING;
+                write.dstBinding            = PG_BINDLESS_RW_IMAGE_DSET_BINDING;
                 write.dstArrayElement       = pendingAdd.slot;
                 write.descriptorCount       = 1;
                 write.descriptorType        = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;

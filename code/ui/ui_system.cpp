@@ -1,6 +1,5 @@
 #include "ui/ui_system.hpp"
 #include "asset/asset_manager.hpp"
-#include "c_shared/structs.h"
 #include "c_shared/ui.h"
 #include "core/input.hpp"
 #include "core/lua.hpp"

@@ -2,6 +2,7 @@
 #include "asset/asset_manager.hpp"
 #include "c_shared/bindless.h"
 #include "c_shared/dvar_defines.h"
+#include "c_shared/scene_globals.h"
 #include "core/engine_globals.hpp"
 #include "core/scene.hpp"
 #include "core/window.hpp"

@@ -1,13 +1,8 @@
 #version 460
 
-#extension GL_EXT_nonuniform_qualifier : enable
-#extension GL_EXT_shader_image_load_formatted : enable
-#extension GL_ARB_shader_image_size : enable
+#include "global_descriptors.glsl"
 
 layout (local_size_x = 16, local_size_y = 16) in;
-
-layout( set = 0, binding = 0 ) uniform readonly image2D readOnlyImages[];
-layout( set = 0, binding = 1 ) uniform image2D rwImages[];
 
 layout( push_constant ) uniform constants
 {
@@ -20,7 +15,7 @@ layout( push_constant ) uniform constants
 void main() 
 {
     ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
-    ivec2 size = imageSize( rwImages[PushConstants.imageIndex] );
+    ivec2 size = imageSize( RWImages2D[PushConstants.imageIndex] );
     
     vec4 topColor = PushConstants.topColor;
     vec4 bottomColor = PushConstants.botColor;
@@ -28,6 +23,6 @@ void main()
     if ( texelCoord.x < size.x && texelCoord.y < size.y )
     {
         float blend = float(texelCoord.y)/(size.y);
-        imageStore( rwImages[PushConstants.imageIndex], texelCoord, mix( topColor, bottomColor, blend ) );
+        imageStore( RWImages2D[PushConstants.imageIndex], texelCoord, mix( topColor, bottomColor, blend ) );
     }
 }

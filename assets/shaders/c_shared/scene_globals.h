@@ -1,5 +1,5 @@
-#ifndef __STRUCTS_H__
-#define __STRUCTS_H__
+#ifndef __SCENE_GLOBALS_H__
+#define __SCENE_GLOBALS_H__
 
 #include "c_shared/defines.h"
 
@@ -45,4 +45,4 @@ struct PerObjectData
 } // namespace GpuData
 #endif // #ifndef PG_SHADER_CODE
 
-#endif // #ifndef __STRUCTS_H__
+#endif // #ifndef __SCENE_GLOBALS_H__

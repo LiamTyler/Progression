@@ -51,6 +51,7 @@ public:
     uint16_t GetBindlessIndex() const;
     size_t GetTotalBytes() const;
     Sampler* GetSampler() const;
+    VkImageUsageFlags GetUsage() const;
     DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );
 
     operator bool() const;

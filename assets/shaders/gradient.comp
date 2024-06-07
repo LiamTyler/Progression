@@ -15,7 +15,7 @@ layout( push_constant ) uniform constants
 void main() 
 {
     ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
-    ivec2 size = imageSize( RWImages2D[PushConstants.imageIndex] );
+    ivec2 size = imageSize( RImages2D[PushConstants.imageIndex] );
     
     vec4 topColor = PushConstants.topColor;
     vec4 bottomColor = PushConstants.botColor;

@@ -21,12 +21,14 @@ struct SceneGlobals
     UINT modelMatriciesIdx;
     UINT normalMatriciesIdx;
     UINT r_tonemap;
+    UINT _pad;
 
     // debug vals
     UINT r_geometryViz;
     UINT r_materialViz;
     UINT r_lightingViz;
     UINT r_postProcessing;
+    
     VEC4 debug_wireframeData; // x,y,z = color, w = thickness
 
     UINT debug_PackedDvarBools;
@@ -39,6 +41,7 @@ struct PerObjectData
 {
     UINT bindlessRangeStart;
     UINT objectIdx;
+    UINT materialIdx;
 };
 
 #ifndef PG_SHADER_CODE

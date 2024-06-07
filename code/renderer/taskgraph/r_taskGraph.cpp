@@ -204,17 +204,7 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         VkImageAspectFlags aspect = GetImageAspectFromFormat( gfxTex.GetPixelFormat() );
         VkFormat vkFormat         = PGToVulkanPixelFormat( gfxTex.GetPixelFormat() );
         gfxTex.m_imageView        = CreateImageView( gfxTex.m_image, vkFormat, aspect, gfxTex.GetMipLevels(), gfxTex.GetArrayLayers() );
-
-        BindlessManager::Usage usage = BindlessManager::Usage::NONE;
-        if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_SAMPLED_BIT )
-            usage |= BindlessManager::Usage::READ;
-        if ( gfxTex.m_info.usage & VK_IMAGE_USAGE_STORAGE_BIT )
-            usage |= BindlessManager::Usage::WRITE;
-
-        if ( usage == BindlessManager::Usage::NONE )
-            gfxTex.m_bindlessIndex = PG_INVALID_TEXTURE_INDEX;
-        else
-            gfxTex.m_bindlessIndex = BindlessManager::AddTexture( gfxTex.m_imageView, usage );
+        gfxTex.m_bindlessIndex    = BindlessManager::AddTexture( &gfxTex );
 
 #if USING( TG_DEBUG )
         PG_DEBUG_MARKER_SET_IMAGE_NAME( gfxTex.m_image, buildTex.debugName );

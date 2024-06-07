@@ -236,18 +236,13 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     allocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
     VK_CHECK( vmaCreateImage( m_vmaAllocator, &imageInfo, &allocInfo, &tex.m_image, &tex.m_allocation, nullptr ) );
 
-    BindlessManager::Usage tmUsage = BindlessManager::Usage::NONE;
-    VkFormatFeatureFlags features  = 0;
+    VkFormatFeatureFlags features = 0;
+    if ( desc.usage & VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT )
+        features |= VK_FORMAT_FEATURE_COLOR_ATTACHMENT_BIT;
     if ( desc.usage & VK_IMAGE_USAGE_SAMPLED_BIT )
-    {
         features |= VK_FORMAT_FEATURE_SAMPLED_IMAGE_BIT;
-        tmUsage |= BindlessManager::Usage::READ;
-    }
     if ( desc.usage & VK_IMAGE_USAGE_STORAGE_BIT )
-    {
         features |= VK_FORMAT_FEATURE_STORAGE_IMAGE_BIT;
-        tmUsage |= BindlessManager::Usage::WRITE;
-    }
     if ( isDepth )
         features |= VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT;
 
@@ -258,7 +253,7 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     PG_DEBUG_MARKER_SET_IMAGE_NAME( tex.m_image, name );
     PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name );
 
-    tex.m_bindlessIndex = BindlessManager::AddTexture( tex.m_imageView, tmUsage );
+    tex.m_bindlessIndex = BindlessManager::AddTexture( &tex );
 
 #if USING( DEBUG_BUILD )
     if ( !name.empty() )
@@ -343,23 +338,22 @@ Sampler Device::NewSampler( const SamplerCreateInfo& desc ) const
     Sampler sampler;
     sampler.m_info = desc;
 
-    VkSamplerCreateInfo info     = {};
-    info.sType                   = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
-    info.magFilter               = PGToVulkanFilterMode( desc.magFilter );
-    info.minFilter               = PGToVulkanFilterMode( desc.minFilter );
-    info.addressModeU            = PGToVulkanWrapMode( desc.wrapModeU );
-    info.addressModeV            = PGToVulkanWrapMode( desc.wrapModeV );
-    info.addressModeW            = PGToVulkanWrapMode( desc.wrapModeW );
-    info.anisotropyEnable        = desc.maxAnisotropy > 1.0f ? VK_TRUE : VK_FALSE;
-    info.maxAnisotropy           = desc.maxAnisotropy;
-    info.borderColor             = PGToVulkanBorderColor( desc.borderColor );
-    info.unnormalizedCoordinates = VK_FALSE;
-    info.compareEnable           = VK_FALSE;
-    info.compareOp               = VK_COMPARE_OP_ALWAYS;
-    info.mipmapMode              = PGToVulkanMipFilter( desc.mipFilter );
-    info.mipLodBias              = 0.0f;
-    info.minLod                  = 0.0f;
-    info.maxLod                  = 100.0f;
+    VkSamplerCreateInfo info = {};
+    info.sType               = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+    info.magFilter           = PGToVulkanFilterMode( desc.magFilter );
+    info.minFilter           = PGToVulkanFilterMode( desc.minFilter );
+    info.addressModeU        = PGToVulkanWrapMode( desc.wrapModeU );
+    info.addressModeV        = PGToVulkanWrapMode( desc.wrapModeV );
+    info.addressModeW        = PGToVulkanWrapMode( desc.wrapModeW );
+    info.anisotropyEnable    = desc.maxAnisotropy > 1.0f ? VK_TRUE : VK_FALSE;
+    info.maxAnisotropy       = desc.maxAnisotropy;
+    info.borderColor         = PGToVulkanBorderColor( desc.borderColor );
+    info.compareEnable       = VK_FALSE;
+    info.compareOp           = VK_COMPARE_OP_NEVER;
+    info.mipmapMode          = PGToVulkanMipFilter( desc.mipFilter );
+    info.mipLodBias          = 0.0f;
+    info.minLod              = 0.0f;
+    info.maxLod              = VK_LOD_CLAMP_NONE;
 
     VK_CHECK( vkCreateSampler( m_handle, &info, nullptr, &sampler.m_handle ) );
     PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, desc.name );

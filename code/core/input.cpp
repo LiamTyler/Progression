@@ -391,6 +391,8 @@ void InputContextManager::Update()
         inputTracker.m_activeButtons.clear();
     if ( io.WantTextInput )
         inputTracker.m_characters.clear();
+    if ( io.WantCaptureMouse )
+        inputTracker.m_activeAxes.clear();
 
     if ( !inputTracker.HasInput() )
         return;

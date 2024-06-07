@@ -31,6 +31,9 @@ bool Pipeline::FastfileLoad( Serializer* serializer )
 #if USING( GPU_DATA )
     using namespace Gfx;
     PipelineCreateInfo createInfo;
+#if USING( ASSET_NAMES )
+    createInfo.name = m_name;
+#endif // #if USING( ASSET_NAMES )
 
     // serializer->Read( createInfo.name );
     uint8_t numShaders;

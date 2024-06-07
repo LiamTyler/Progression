@@ -73,6 +73,7 @@ private:
     VkSampler m_handle = VK_NULL_HANDLE;
 };
 
+// Note: keep in sync with global_descriptors.glsl!
 enum SamplerType : uint8_t
 {
     SAMPLER_NEAREST                 = 0,

@@ -41,32 +41,35 @@ static void AddWrapSamplers( SamplerType type, const SamplerCreateInfo& samplerT
 {
     SamplerCreateInfo samplerDesc = samplerTemplate;
 
-    samplerDesc.name      = samplerTemplate.name + "clampU_clampV";
-    samplerDesc.wrapModeU = WrapMode::CLAMP_TO_EDGE;
-    samplerDesc.wrapModeV = WrapMode::CLAMP_TO_EDGE;
-    samplerDesc.wrapModeW = WrapMode::CLAMP_TO_EDGE;
-    // s_builtInSamplers[type] = rg.device.NewSampler( samplerDesc );
+    samplerDesc.name                          = samplerTemplate.name + "clampU_clampV";
+    samplerDesc.wrapModeU                     = WrapMode::CLAMP_TO_EDGE;
+    samplerDesc.wrapModeV                     = WrapMode::CLAMP_TO_EDGE;
+    samplerDesc.wrapModeW                     = WrapMode::CLAMP_TO_EDGE;
+    s_builtInSamplers[Underlying( type ) + 0] = rg.device.NewSampler( samplerDesc );
 
-    samplerDesc.name      = samplerTemplate.name + "wrapU_clampV";
-    samplerDesc.wrapModeU = WrapMode::REPEAT;
-    samplerDesc.wrapModeV = WrapMode::REPEAT;
-    samplerDesc.wrapModeW = WrapMode::CLAMP_TO_EDGE;
+    samplerDesc.name                          = samplerTemplate.name + "wrapU_clampV";
+    samplerDesc.wrapModeU                     = WrapMode::REPEAT;
+    samplerDesc.wrapModeV                     = WrapMode::REPEAT;
+    samplerDesc.wrapModeW                     = WrapMode::CLAMP_TO_EDGE;
+    s_builtInSamplers[Underlying( type ) + 1] = rg.device.NewSampler( samplerDesc );
 
-    samplerDesc.name      = samplerTemplate.name + "clampU_wrapV";
-    samplerDesc.wrapModeU = WrapMode::CLAMP_TO_EDGE;
-    samplerDesc.wrapModeV = WrapMode::REPEAT;
-    samplerDesc.wrapModeW = WrapMode::CLAMP_TO_EDGE;
+    samplerDesc.name                          = samplerTemplate.name + "clampU_wrapV";
+    samplerDesc.wrapModeU                     = WrapMode::CLAMP_TO_EDGE;
+    samplerDesc.wrapModeV                     = WrapMode::REPEAT;
+    samplerDesc.wrapModeW                     = WrapMode::CLAMP_TO_EDGE;
+    s_builtInSamplers[Underlying( type ) + 2] = rg.device.NewSampler( samplerDesc );
 
-    samplerDesc.name      = samplerTemplate.name + "wrapU_wrapV";
-    samplerDesc.wrapModeU = WrapMode::REPEAT;
-    samplerDesc.wrapModeV = WrapMode::REPEAT;
-    samplerDesc.wrapModeW = WrapMode::REPEAT;
+    samplerDesc.name                          = samplerTemplate.name + "wrapU_wrapV";
+    samplerDesc.wrapModeU                     = WrapMode::REPEAT;
+    samplerDesc.wrapModeV                     = WrapMode::REPEAT;
+    samplerDesc.wrapModeW                     = WrapMode::REPEAT;
+    s_builtInSamplers[Underlying( type ) + 3] = rg.device.NewSampler( samplerDesc );
 }
 
 void InitSamplers()
 {
     SamplerCreateInfo samplerDesc;
-    samplerDesc.maxAnisotropy = 16.0f;
+    samplerDesc.maxAnisotropy = rg.physicalDevice.GetProperties().maxAnisotropy;
 
     samplerDesc.name      = "nearest_";
     samplerDesc.minFilter = FilterMode::NEAREST;
@@ -85,6 +88,22 @@ void InitSamplers()
     samplerDesc.magFilter = FilterMode::LINEAR;
     samplerDesc.mipFilter = MipFilterMode::LINEAR;
     AddWrapSamplers( SAMPLER_TRILINEAR, samplerDesc );
+
+    constexpr uint32_t NUM_SAMPLERS = Underlying( SamplerType::NUM_SAMPLERS );
+    VkDescriptorImageInfo samplerInfos[NUM_SAMPLERS];
+    for ( uint32_t i = 0; i < NUM_SAMPLERS; ++i )
+    {
+        samplerInfos[i]         = {};
+        samplerInfos[i].sampler = s_builtInSamplers[i].GetHandle();
+    }
+    VkWriteDescriptorSet writeSet{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
+    writeSet.dstSet          = GetGlobalDescriptorSet();
+    writeSet.dstBinding      = PG_BINDLESS_SAMPLERS_DSET_BINDING;
+    writeSet.dstArrayElement = 0;
+    writeSet.descriptorCount = NUM_SAMPLERS;
+    writeSet.descriptorType  = VK_DESCRIPTOR_TYPE_SAMPLER;
+    writeSet.pImageInfo      = samplerInfos;
+    vkUpdateDescriptorSets( rg.device, 1, &writeSet, 0, nullptr );
 }
 
 void FreeSamplers()

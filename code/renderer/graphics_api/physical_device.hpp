@@ -15,6 +15,7 @@ struct PhysicalDeviceProperties
     uint16_t apiVersionPatch;
     bool isDiscrete;
     VkPhysicalDeviceDescriptorBufferPropertiesEXT dbProps;
+    float maxAnisotropy;
 };
 
 class PhysicalDevice

@@ -31,7 +31,8 @@ int main( int argc, char* argv[] )
 
 #if USING( LOAD_SCENE_DIRECTLY )
     std::string sceneName = argc > 1 ? argv[1] : "";
-    Scene* scene          = Scene::Load( PG_ASSET_DIR "scenes/" + sceneName + ".json" );
+    // Scene* scene          = Scene::Load( "assets/basic.json" );
+    Scene* scene = Scene::Load( PG_ASSET_DIR "scenes/" + sceneName + ".json" );
     if ( !scene )
     {
         EngineShutdown();

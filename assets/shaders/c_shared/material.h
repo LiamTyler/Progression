@@ -20,6 +20,8 @@ struct Material
     
     VEC3 emissiveTint;
     UINT emissiveMapIndex;
+    
+    VEC4 MorePad;
 };
 
 #ifndef PG_SHADER_CODE

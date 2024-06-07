@@ -9,6 +9,10 @@
 #include "shared/random.hpp"
 #include "shared/serializer.hpp"
 
+#if USING( GAME )
+#include "renderer/r_bindless_manager.hpp"
+#endif // #if USING( GAME )
+
 namespace PG
 {
 
@@ -35,6 +39,10 @@ bool Material::FastfileLoad( Serializer* serializer )
         emissiveImage = AssetManager::Get<GfxImage>( imgName );
         PG_ASSERT( emissiveImage, "Emissive image '%s' not found for material '%s'", imgName.c_str(), m_name );
     }
+
+#if USING( GAME )
+    m_bindlessIndex = Gfx::BindlessManager::AddMaterial( this );
+#endif // #if USING( GAME )
 
     return true;
 }

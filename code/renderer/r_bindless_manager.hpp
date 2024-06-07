@@ -6,36 +6,38 @@
 namespace PG
 {
 struct Mesh;
+struct Material;
 } // namespace PG
 
 namespace PG::Gfx
 {
 class Buffer;
+class Texture;
+
+using TextureIndex  = uint16_t;
+using BufferIndex   = uint16_t;
+using MaterialIndex = uint16_t;
+
 } // namespace PG::Gfx
 
 namespace PG::Gfx::BindlessManager
 {
 
-enum class Usage : uint8_t
-{
-    NONE       = 0,
-    READ       = 1 << 0,
-    WRITE      = 1 << 1,
-    READ_WRITE = READ | WRITE,
-};
-PG_DEFINE_ENUM_OPS( Usage );
-
 void Init();
 void Shutdown();
 void Update();
-uint16_t AddTexture( VkImageView imgView, Usage usage = Usage::READ_WRITE );
-void RemoveTexture( uint16_t index );
+
+TextureIndex AddTexture( const Texture* texture );
+void RemoveTexture( TextureIndex index );
 
 // can return 0 (invalid) if the buffer isn't bindless compatible (ex: descriptor buffers, AS buffers, etc)
-uint16_t AddBuffer( const Buffer* buffer );
-void RemoveBuffer( uint16_t index );
+BufferIndex AddBuffer( const Buffer* buffer );
+void RemoveBuffer( BufferIndex index );
 
-uint32_t AddMeshBuffers( Mesh* mesh );
+BufferIndex AddMeshBuffers( Mesh* mesh );
 void RemoveMeshBuffers( Mesh* mesh );
+
+MaterialIndex AddMaterial( const Material* material );
+void RemoveMaterial( MaterialIndex index );
 
 } // namespace PG::Gfx::BindlessManager

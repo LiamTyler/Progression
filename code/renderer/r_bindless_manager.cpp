@@ -1,6 +1,9 @@
 #include "renderer/r_bindless_manager.hpp"
+#include "asset/types/gfx_image.hpp"
+#include "asset/types/material.hpp"
 #include "asset/types/model.hpp"
 #include "c_shared/bindless.h"
+#include "c_shared/material.h"
 #include "c_shared/model.h"
 #include "data_structures/free_slot_bit_array.hpp"
 #include "renderer/graphics_api/descriptor.hpp"
@@ -9,20 +12,21 @@
 using namespace PG;
 using namespace PG::Gfx;
 using std::vector;
-using TexIndex    = uint16_t;
-using BufferIndex = uint16_t;
 
 struct PerFrameManagerData
 {
-    vector<TexIndex> pendingTexRemovals;
+    vector<TextureIndex> pendingTextureRemovals;
     vector<BufferIndex> pendingBufferRemovals;
+    vector<BufferIndex> pendingMeshBufferRemovals;
+    vector<MaterialIndex> pendingMaterialRemovals;
 };
 
-struct PendingTexAdd
+struct PendingTextureAdd
 {
     VkImageView imgView;
-    TexIndex slot;
-    BindlessManager::Usage usage;
+    TextureIndex slot;
+    bool isSampled;
+    bool isStorage;
 };
 
 struct PendingBufferAdd
@@ -31,12 +35,21 @@ struct PendingBufferAdd
     BufferIndex slot;
 };
 
+struct PendingMaterialAdd
+{
+    const Material* material;
+    MaterialIndex slot;
+};
+
 static PerFrameManagerData s_frameData[NUM_FRAME_OVERLAP];
 static PerFrameManagerData* s_currFrameData;
-static vector<TexIndex> s_freeTexSlots;
-static vector<PendingTexAdd> s_pendingTexAdds;
+static FreeSlotBitArray<PG_MAX_BINDLESS_TEXTURES> s_freeTextureSlots;
 static FreeSlotBitArray<PG_MAX_BINDLESS_BUFFERS> s_freeBufferSlots;
+static FreeSlotBitArray<PG_MAX_BINDLESS_MATERIALS> s_freeMaterialSlots;
+
+static vector<PendingTextureAdd> s_pendingTextureAdds;
 static vector<PendingBufferAdd> s_pendingBufferAdds;
+static vector<PendingMaterialAdd> s_pendingMaterialAdds;
 
 #if USING( PG_DESCRIPTOR_BUFFER )
 static VkPhysicalDeviceDescriptorBufferPropertiesEXT s_dbProps;
@@ -46,6 +59,7 @@ static vector<VkDescriptorImageInfo> s_scratchImgInfos;
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 
 static Buffer s_bindlessBufferPointers;
+static Buffer s_bindlessMaterials;
 
 namespace PG::Gfx::BindlessManager
 {
@@ -54,25 +68,28 @@ void Init()
 {
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        s_frameData[i].pendingTexRemovals.reserve( 128 );
+        s_frameData[i].pendingTextureRemovals.reserve( 128 );
         s_frameData[i].pendingBufferRemovals.reserve( 128 );
+        s_frameData[i].pendingMeshBufferRemovals.reserve( 128 );
+        s_frameData[i].pendingMaterialRemovals.reserve( 128 );
     }
     s_currFrameData = &s_frameData[0];
 
-    // the first slot in the bindless array we just reserve as an invalid slot
-    s_freeTexSlots.resize( PG_MAX_BINDLESS_TEXTURES - 1 );
-    for ( int i = 1; i < PG_MAX_BINDLESS_TEXTURES; ++i )
-    {
-        s_freeTexSlots[i] = PG_MAX_BINDLESS_TEXTURES - i;
-    }
+    s_freeTextureSlots.Clear();
+    s_freeTextureSlots.GetFreeSlot();
     static_assert( PG_INVALID_TEXTURE_INDEX == 0, "update the free slot list above if this changes" );
 
     s_freeBufferSlots.Clear();
     s_freeBufferSlots.GetFreeSlot();
     static_assert( PG_INVALID_BUFFER_INDEX == 0, "update the free slot list above if this changes" );
 
-    s_pendingTexAdds.reserve( 128 );
+    s_freeMaterialSlots.Clear();
+    s_freeMaterialSlots.GetFreeSlot();
+    static_assert( PG_INVALID_MATERIAL_INDEX == 0, "update the free slot list above if this changes" );
+
+    s_pendingTextureAdds.reserve( 128 );
     s_pendingBufferAdds.reserve( 128 );
+    s_pendingMaterialAdds.reserve( 128 );
 
 #if USING( PG_DESCRIPTOR_BUFFER )
     s_dbProps = rg.physicalDevice.GetProperties().dbProps;
@@ -88,39 +105,79 @@ void Init()
     bufInfo.flags            = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
     s_bindlessBufferPointers = rg.device.NewBuffer( bufInfo, "global_bindlessBufferPointers" );
 
-    VkDescriptorBufferInfo dBufferInfo = { s_bindlessBufferPointers.GetHandle(), 0, VK_WHOLE_SIZE };
+    bufInfo.size        = PG_MAX_BINDLESS_MATERIALS * sizeof( GpuData::Material );
+    bufInfo.bufferUsage = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
+    bufInfo.flags       = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+    s_bindlessMaterials = rg.device.NewBuffer( bufInfo, "global_bindlessMaterials" );
+
+    VkDescriptorBufferInfo bBufferInfo{ s_bindlessBufferPointers.GetHandle(), 0, VK_WHOLE_SIZE };
     VkWriteDescriptorSet write{ VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
     write.dstSet          = GetGlobalDescriptorSet();
     write.dstBinding      = PG_BINDLESS_BUFFER_DSET_BINDING;
     write.descriptorCount = 1;
     write.descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-    write.pBufferInfo     = &dBufferInfo;
+    write.pBufferInfo     = &bBufferInfo;
     vkUpdateDescriptorSets( rg.device, 1, &write, 0, nullptr );
+
+    VkDescriptorBufferInfo mBufferInfo{ s_bindlessMaterials.GetHandle(), 0, VK_WHOLE_SIZE };
+    write.dstBinding  = PG_BINDLESS_MATERIALS_DSET_BINDING;
+    write.pBufferInfo = &mBufferInfo;
+    vkUpdateDescriptorSets( rg.device, 1, &write, 0, nullptr );
+
+    InitSamplers();
 }
 
 void Shutdown()
 {
+    FreeSamplers();
+    s_bindlessMaterials.Free();
     s_bindlessBufferPointers.Free();
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        s_frameData[i].pendingTexRemovals    = vector<TexIndex>();
-        s_frameData[i].pendingBufferRemovals = vector<BufferIndex>();
+        s_frameData[i].pendingTextureRemovals    = vector<TextureIndex>();
+        s_frameData[i].pendingBufferRemovals     = vector<BufferIndex>();
+        s_frameData[i].pendingMeshBufferRemovals = vector<BufferIndex>();
+        s_frameData[i].pendingMaterialRemovals   = vector<MaterialIndex>();
     }
-    s_freeTexSlots      = vector<TexIndex>();
-    s_pendingTexAdds    = vector<PendingTexAdd>();
-    s_pendingBufferAdds = vector<PendingBufferAdd>();
+    s_pendingTextureAdds  = vector<PendingTextureAdd>();
+    s_pendingBufferAdds   = vector<PendingBufferAdd>();
+    s_pendingMaterialAdds = vector<PendingMaterialAdd>();
+}
+
+GpuData::Material CpuToGpuMaterial( const Material* mat )
+{
+    GpuData::Material gpuMat;
+    gpuMat.albedoTint    = mat->albedoTint;
+    gpuMat.metalnessTint = mat->metalnessTint;
+    gpuMat.roughnessTint = mat->roughnessTint;
+    gpuMat.albedoMetalnessMapIndex =
+        mat->albedoMetalnessImage ? mat->albedoMetalnessImage->gpuTexture.GetBindlessIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMat.normalRoughnessMapIndex =
+        mat->normalRoughnessImage ? mat->normalRoughnessImage->gpuTexture.GetBindlessIndex() : PG_INVALID_TEXTURE_INDEX;
+    gpuMat.emissiveTint     = mat->emissiveTint;
+    gpuMat.emissiveMapIndex = mat->emissiveImage ? mat->emissiveImage->gpuTexture.GetBindlessIndex() : PG_INVALID_TEXTURE_INDEX;
+
+    return gpuMat;
 }
 
 void Update()
 {
-    s_freeTexSlots.insert( s_freeTexSlots.end(), s_currFrameData->pendingTexRemovals.begin(), s_currFrameData->pendingTexRemovals.end() );
-    for ( BufferIndex bufRemoval : s_currFrameData->pendingBufferRemovals )
-        s_freeBufferSlots.FreeSlot( bufRemoval );
-    s_currFrameData->pendingTexRemovals.clear();
+    for ( TextureIndex idx : s_currFrameData->pendingTextureRemovals )
+        s_freeTextureSlots.FreeSlot( idx );
+    for ( BufferIndex idx : s_currFrameData->pendingBufferRemovals )
+        s_freeBufferSlots.FreeSlot( idx );
+    for ( BufferIndex firstSlot : s_currFrameData->pendingMeshBufferRemovals )
+        s_freeBufferSlots.FreeConsecutiveSlots( firstSlot, MESH_NUM_BUFFERS );
+    for ( MaterialIndex idx : s_currFrameData->pendingMaterialRemovals )
+        s_freeMaterialSlots.FreeSlot( idx );
+
+    s_currFrameData->pendingTextureRemovals.clear();
     s_currFrameData->pendingBufferRemovals.clear();
+    s_currFrameData->pendingMeshBufferRemovals.clear();
+    s_currFrameData->pendingMaterialRemovals.clear();
     s_currFrameData = &s_frameData[rg.currentFrameIdx];
 
-    uint32_t numTexAdds = static_cast<uint32_t>( s_pendingTexAdds.size() );
+    uint32_t numTexAdds = static_cast<uint32_t>( s_pendingTextureAdds.size() );
     if ( numTexAdds )
     {
 #if USING( PG_DESCRIPTOR_BUFFER )
@@ -145,9 +202,9 @@ void Update()
         s_scratchImgInfos.reserve( 2 * numTexAdds );
         for ( uint32_t i = 0; i < numTexAdds; ++i )
         {
-            const PendingTexAdd& pendingAdd = s_pendingTexAdds[i];
+            const PendingTextureAdd& pendingAdd = s_pendingTextureAdds[i];
 
-            if ( IsSet( pendingAdd.usage, Usage::READ ) )
+            if ( pendingAdd.isSampled )
             {
                 VkDescriptorImageInfo& imgInfo = s_scratchImgInfos.emplace_back();
                 imgInfo.sampler                = VK_NULL_HANDLE;
@@ -161,13 +218,8 @@ void Update()
                 write.descriptorCount       = 1;
                 write.descriptorType        = VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE;
                 write.pImageInfo            = &imgInfo;
-
-                VkWriteDescriptorSet& imageWrite = s_scratchWrites.emplace_back( write );
-                imageWrite.dstBinding            = PG_BINDLESS_READ_ONLY_IMAGE_DSET_BINDING;
-                imageWrite.dstArrayElement       = pendingAdd.slot;
-                imageWrite.descriptorType        = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
             }
-            if ( IsSet( pendingAdd.usage, Usage::WRITE ) )
+            if ( pendingAdd.isStorage )
             {
                 VkDescriptorImageInfo& imgInfo = s_scratchImgInfos.emplace_back();
                 imgInfo.sampler                = VK_NULL_HANDLE;
@@ -176,7 +228,7 @@ void Update()
 
                 VkWriteDescriptorSet& write = s_scratchWrites.emplace_back( VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET );
                 write.dstSet                = GetGlobalDescriptorSet();
-                write.dstBinding            = PG_BINDLESS_RW_IMAGE_DSET_BINDING;
+                write.dstBinding            = PG_BINDLESS_STORAGE_IMAGE_DSET_BINDING;
                 write.dstArrayElement       = pendingAdd.slot;
                 write.descriptorCount       = 1;
                 write.descriptorType        = VK_DESCRIPTOR_TYPE_STORAGE_IMAGE;
@@ -189,42 +241,51 @@ void Update()
         s_scratchWrites.clear();
         s_scratchImgInfos.clear();
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
-        s_pendingTexAdds.clear();
+        s_pendingTextureAdds.clear();
     }
 
     VkDeviceAddress* bufData = reinterpret_cast<VkDeviceAddress*>( s_bindlessBufferPointers.GetMappedPtr() );
-    uint32_t numBufferAdds   = static_cast<uint32_t>( s_pendingBufferAdds.size() );
-    if ( numBufferAdds )
+    for ( const PendingBufferAdd& pendingAdd : s_pendingBufferAdds )
     {
-        for ( const PendingBufferAdd& pendingAdd : s_pendingBufferAdds )
-        {
-            bufData[pendingAdd.slot] = pendingAdd.bufferAddress;
-        }
-        s_pendingBufferAdds.clear();
+        bufData[pendingAdd.slot] = pendingAdd.bufferAddress;
     }
+    s_pendingBufferAdds.clear();
+
+    GpuData::Material* gpuMatData = reinterpret_cast<GpuData::Material*>( s_bindlessMaterials.GetMappedPtr() );
+    for ( const PendingMaterialAdd& pendingAdd : s_pendingMaterialAdds )
+    {
+        gpuMatData[pendingAdd.slot] = CpuToGpuMaterial( pendingAdd.material );
+    }
+    s_pendingMaterialAdds.clear();
 }
 
-TexIndex AddTexture( VkImageView imgView, Usage usage )
+TextureIndex AddTexture( const Texture* texture )
 {
-    PG_ASSERT( usage != Usage::NONE );
-    PG_ASSERT( !s_freeTexSlots.empty(), "No more texture slots in the bindless array!" );
-    TexIndex openSlot = s_freeTexSlots.back();
-    s_freeTexSlots.pop_back();
-    s_pendingTexAdds.emplace_back( imgView, openSlot, usage );
+    bool isSampled = texture->GetUsage() & VK_IMAGE_USAGE_SAMPLED_BIT;
+    bool isStorage = texture->GetUsage() & VK_IMAGE_USAGE_STORAGE_BIT;
+    if ( !isSampled && !isStorage )
+        return PG_INVALID_TEXTURE_INDEX;
+
+    TextureIndex openSlot  = (TextureIndex)s_freeTextureSlots.GetFreeSlot();
+    PendingTextureAdd& add = s_pendingTextureAdds.emplace_back();
+    add.imgView            = texture->GetView();
+    add.slot               = openSlot;
+    add.isSampled          = isSampled;
+    add.isStorage          = isStorage;
 
     return openSlot;
 }
 
-void RemoveTexture( TexIndex index )
+void RemoveTexture( TextureIndex index )
 {
     if ( index == PG_INVALID_TEXTURE_INDEX )
         return;
-    s_currFrameData->pendingTexRemovals.push_back( index );
+    s_currFrameData->pendingTextureRemovals.push_back( index );
 }
 
 static BufferIndex GetBufferSlot()
 {
-    BufferIndex openSlot = (uint16_t)s_freeBufferSlots.GetFreeSlot();
+    BufferIndex openSlot = (BufferIndex)s_freeBufferSlots.GetFreeSlot();
     return openSlot;
 }
 
@@ -247,7 +308,7 @@ void RemoveBuffer( BufferIndex index )
     s_currFrameData->pendingBufferRemovals.push_back( index );
 }
 
-uint32_t AddMeshBuffers( Mesh* mesh )
+BufferIndex AddMeshBuffers( Mesh* mesh )
 {
     BufferIndex firstSlot = s_freeBufferSlots.GetConsecutiveFreeSlots( MESH_NUM_BUFFERS );
     s_pendingBufferAdds.emplace_back( mesh->meshletBuffer.GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLETS );
@@ -283,6 +344,21 @@ uint32_t AddMeshBuffers( Mesh* mesh )
     return firstSlot;
 }
 
-void RemoveMeshBuffers( Mesh* mesh ) {}
+void RemoveMeshBuffers( Mesh* mesh ) { s_currFrameData->pendingMeshBufferRemovals.push_back( mesh->bindlessBuffersSlot ); }
+
+MaterialIndex AddMaterial( const Material* material )
+{
+    MaterialIndex openSlot = (MaterialIndex)s_freeMaterialSlots.GetFreeSlot();
+    s_pendingMaterialAdds.emplace_back( material, openSlot );
+
+    return openSlot;
+}
+
+void RemoveMaterial( MaterialIndex index )
+{
+    if ( index == PG_INVALID_MATERIAL_INDEX )
+        return;
+    s_currFrameData->pendingMaterialRemovals.push_back( index );
+}
 
 } // namespace PG::Gfx::BindlessManager

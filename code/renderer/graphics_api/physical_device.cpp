@@ -17,6 +17,7 @@ static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDe
     p.apiVersionPatch          = VK_VERSION_PATCH( vkProperties.apiVersion );
     p.isDiscrete               = vkProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
     p.nanosecondsPerTick       = vkProperties.limits.timestampPeriod;
+    p.maxAnisotropy            = vkProperties.limits.maxSamplerAnisotropy;
 
     p.dbProps       = {};
     p.dbProps.sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT;

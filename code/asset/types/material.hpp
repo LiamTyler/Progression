@@ -52,6 +52,11 @@ struct Material : public BaseAsset
 
     vec3 emissiveTint       = vec3( 0.0f );
     GfxImage* emissiveImage = nullptr;
+
+    uint16_t GetBindlessIndex() const { return m_bindlessIndex; }
+
+private:
+    uint16_t m_bindlessIndex;
 };
 
 } // namespace PG

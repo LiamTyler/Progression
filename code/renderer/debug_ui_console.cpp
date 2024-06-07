@@ -251,7 +251,7 @@ void Console::ExecCommand( const char* fullCommand )
     }
     else if ( cmd == "set" )
     {
-        if ( args.size() < 3 )
+        if ( args.size() < 2 )
         {
             AddLog( LogType::WARN, "  Usage: set [dvarName] [value]\n" );
             return;
@@ -263,6 +263,12 @@ void Console::ExecCommand( const char* fullCommand )
             return;
         }
         Dvar* dvar = it->second;
+        if ( args.size() == 2 )
+        {
+            AddLog( LogType::WARN, "  Missing a value. Usage: set [dvarName] [value]. Description:%s\n", dvar->GetDescription() );
+            return;
+        }
+
         if ( args.size() == 3 || dvar->GetType() != Dvar::Type::VEC4 )
         {
             dvar->SetFromString( std::string( args[2] ) );

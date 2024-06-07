@@ -323,7 +323,7 @@ void Model::FreeGPU()
         if ( mesh.bindlessBuffersSlot != PG_INVALID_BUFFER_INDEX )
         {
             Gfx::BindlessManager::RemoveMeshBuffers( &mesh );
-            mesh.bindlessBuffersSlot = PG_INVALID_BUFFER_INDEX;
+            DEBUG_BUILD_ONLY( mesh.bindlessBuffersSlot = PG_INVALID_BUFFER_INDEX );
         }
         if ( mesh.vertexBuffer )
             mesh.vertexBuffer.Free();

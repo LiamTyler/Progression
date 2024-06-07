@@ -13,19 +13,14 @@ layout (location = 0) in PerVertexData
 #endif // #if IS_DEBUG_SHADER
 } fragInput;
 
-layout( std430, push_constant ) uniform Registers
+layout(push_constant) uniform Registers
 {
-    layout( offset = 8 ) uint materialIdx;
+    PerObjectData constants;
 };
 
 layout (location = 0) out vec4 color;
 
 //layout (set = 2, binding = 0) uniform sampler mySampler;
-
-vec4 SampleTexture2D( uint texIndex, vec2 uv )
-{
-    return vec4( 0 ); //return texture( sampler2D( Textures2D[texIndex], mySampler ), uv );
-}
 
 void GetAlbedoMetalness( const Material mat, const vec2 uv, out vec3 albedo, out float metalness )
 {
@@ -34,7 +29,7 @@ void GetAlbedoMetalness( const Material mat, const vec2 uv, out vec3 albedo, out
 
     if ( mat.albedoMetalnessMapIndex != PG_INVALID_TEXTURE_INDEX )
     {
-        vec4 albedoMetalnessSample = SampleTexture2D( mat.albedoMetalnessMapIndex, uv );
+        vec4 albedoMetalnessSample = SampleTexture2D( mat.albedoMetalnessMapIndex, SAMPLER_TRILINEAR_WRAP_U_WRAP_V, uv );
         albedo *= albedoMetalnessSample.rgb;
         metalness *= albedoMetalnessSample.a;
     }
@@ -47,7 +42,7 @@ void GetNormalRoughness( const Material mat, const vec2 uv, out vec3 N, out floa
 
     if ( mat.normalRoughnessMapIndex != PG_INVALID_TEXTURE_INDEX )
     {
-        vec4 normalRoughnessSample = SampleTexture2D( mat.normalRoughnessMapIndex, uv );
+        vec4 normalRoughnessSample = SampleTexture2D( mat.normalRoughnessMapIndex, SAMPLER_TRILINEAR_WRAP_U_WRAP_V, uv );
         vec3 nmv = UnpackNormalMapVal( normalRoughnessSample.rgb );
         vec3 T = normalize( fragInput.tangentAndSign.xyz );
         vec3 B = cross( N, T ) * fragInput.tangentAndSign.w;
@@ -62,7 +57,7 @@ vec3 GetEmissive( const Material mat, const vec2 uv )
     vec3 emissive = mat.emissiveTint;
     if ( mat.emissiveMapIndex != PG_INVALID_TEXTURE_INDEX )
     {
-        vec3 emissiveSample = SampleTexture2D( mat.emissiveMapIndex, uv ).rgb;
+        vec3 emissiveSample = SampleTexture2D( mat.emissiveMapIndex, SAMPLER_TRILINEAR_WRAP_U_WRAP_V, uv ).rgb;
         emissive *= emissiveSample;
     }
 
@@ -81,12 +76,13 @@ struct ShaderMaterial
 
 ShaderMaterial GetShaderMaterial()
 {
-    Material m = GetMaterial( materialIdx );
+    Material m = GetMaterial( constants.materialIdx );
     ShaderMaterial sm;
     GetAlbedoMetalness( m, fragInput.uv, sm.albedo, sm.metalness );
     GetNormalRoughness( m, fragInput.uv, sm.N, sm.roughness );
     sm.emissive = GetEmissive( m, fragInput.uv );
     sm.F0 = mix( vec3( 0.04f ), sm.albedo, sm.metalness );
+    //sm.albedo = vec3( 0, 1, 0 );
 
     return sm;
 }
@@ -125,7 +121,7 @@ void Debug_Material( const ShaderMaterial m, inout vec4 outColor )
     uint r_materialViz = globals.r_materialViz;
     if ( r_materialViz == PG_DEBUG_MTL_ALBEDO )
     {
-        outColor.rgb = vec3( 0.5, 0.5, 0.5 );
+        outColor.rgb = m.albedo;
     }
     else if ( r_materialViz == PG_DEBUG_MTL_NORMAL )
     {

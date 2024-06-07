@@ -8,7 +8,7 @@
         "tonemapMethod": "REINHARD"
     }},
     { "Camera": {
-        "position": [ 0, -3, 0 ],
+        "position": [ 0, -5, 0 ],
         "rotation": [ 0, 0, 0 ],
         "nearPlane": 0.02
     }},
@@ -19,6 +19,6 @@
     { "Entity": {
         "NameComponent": "dragon",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 90, 0, 90 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "cube", "material": "red" }
+        "ModelRenderer": { "model": "cube", "material": "test_normals_1" }
     }}
 ]

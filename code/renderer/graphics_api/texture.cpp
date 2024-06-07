@@ -44,9 +44,11 @@ VkImage Texture::GetImage() const { return m_image; }
 VkImageView Texture::GetView() const { return m_imageView; }
 VmaAllocation Texture::GetAllocation() const { return m_allocation; }
 uint16_t Texture::GetBindlessIndex() const { return m_bindlessIndex; }
-Sampler* Texture::GetSampler() const { return m_sampler; }
-Texture::operator bool() const { return m_image != VK_NULL_HANDLE; }
 size_t Texture::GetTotalBytes() const { return m_info.TotalSizeInBytes(); }
+Sampler* Texture::GetSampler() const { return m_sampler; }
+VkImageUsageFlags Texture::GetUsage() const { return m_info.usage; }
+Texture::operator bool() const { return m_image != VK_NULL_HANDLE; }
+
 size_t TextureCreateInfo::TotalSizeInBytes() const
 {
     return CalculateTotalImageBytes( format, width, height, depth, arrayLayers, mipLevels );

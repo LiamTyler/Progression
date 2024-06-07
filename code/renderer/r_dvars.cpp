@@ -30,10 +30,7 @@ Dvar r_materialViz( "r_materialViz", 0u, 0u, PG_DEBUG_MTL_COUNT,
     "2 - Normal\n"
     "3 - Roughness\n"
     "4 - Metalness\n"
-    "5 - Emissive\n"
-    "6 - Geometric Normal\n"
-    "7 - Geometric Tangent\n"
-    "8 - Geometric Bitangent" );
+    "5 - Emissive" );
 
 Dvar r_lightingViz( "r_lightingViz", 0u, 0u, PG_DEBUG_LIGHTING_COUNT,
     "Debug dvar for visualizing lighting related values.\n"

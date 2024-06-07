@@ -124,7 +124,8 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     features12.hostQueryReset                                     = true;
 
     VkPhysicalDeviceFeatures features{};
-    features.shaderInt64 = true;
+    features.shaderInt64       = true;
+    features.samplerAnisotropy = true;
 
 #define ADD_PNEXT_FEATURES12( extStruct ) \
     extStruct.pNext  = features12.pNext;  \

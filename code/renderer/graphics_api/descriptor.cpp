@@ -149,10 +149,11 @@ void InitGlobalDescriptorData()
 {
     DescriptorLayoutBuilder setLayoutBuilder;
     setLayoutBuilder.AddBinding( PG_BINDLESS_SAMPLED_TEXTURE_DSET_BINDING, VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, PG_MAX_BINDLESS_TEXTURES );
-    setLayoutBuilder.AddBinding( PG_BINDLESS_READ_ONLY_IMAGE_DSET_BINDING, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
-    setLayoutBuilder.AddBinding( PG_BINDLESS_RW_IMAGE_DSET_BINDING, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
+    setLayoutBuilder.AddBinding( PG_BINDLESS_STORAGE_IMAGE_DSET_BINDING, VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, PG_MAX_BINDLESS_TEXTURES );
     setLayoutBuilder.AddBinding( PG_SCENE_GLOBALS_DSET_BINDING, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 );
     setLayoutBuilder.AddBinding( PG_BINDLESS_BUFFER_DSET_BINDING, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 );
+    setLayoutBuilder.AddBinding( PG_BINDLESS_MATERIALS_DSET_BINDING, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1 );
+    setLayoutBuilder.AddBinding( PG_BINDLESS_SAMPLERS_DSET_BINDING, VK_DESCRIPTOR_TYPE_SAMPLER, 12 );
     s_globalDescriptorSetLayout = setLayoutBuilder.Build( VK_SHADER_STAGE_ALL, "global" );
 
 #if USING( PG_DESCRIPTOR_BUFFER )
@@ -160,9 +161,10 @@ void InitGlobalDescriptorData()
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
     std::vector<VkDescriptorPoolSize> poolSizes = {
         {VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  PG_MAX_BINDLESS_TEXTURES},
-        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  2 * PG_MAX_BINDLESS_TEXTURES},
+        {VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  PG_MAX_BINDLESS_TEXTURES},
         {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1                       },
         {VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2                       },
+        {VK_DESCRIPTOR_TYPE_SAMPLER,        12                      },
     };
     s_descriptorAllocator.Init( 1, poolSizes, "global" );
 

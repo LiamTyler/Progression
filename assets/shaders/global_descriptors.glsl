@@ -7,20 +7,41 @@
 #include "c_shared/scene_globals.h"
 
 layout( set = 0, binding = PG_BINDLESS_SAMPLED_TEXTURE_DSET_BINDING ) uniform texture2D Textures2D[];
-layout( set = 0, binding = PG_BINDLESS_READ_ONLY_IMAGE_DSET_BINDING ) uniform readonly image2D RImages2D[];
-layout( set = 0, binding = PG_BINDLESS_RW_IMAGE_DSET_BINDING ) uniform image2D RWImages2D[];
-layout( scalar, set = 0, binding = PG_SCENE_GLOBALS_DSET_BINDING ) uniform SceneGlobalsUBO
+layout( set = 0, binding = PG_BINDLESS_STORAGE_IMAGE_DSET_BINDING ) uniform restrict readonly image2D RImages2D[];
+layout( set = 0, binding = PG_BINDLESS_STORAGE_IMAGE_DSET_BINDING ) uniform restrict image2D RWImages2D[];
+layout( scalar, set = 0, binding = PG_SCENE_GLOBALS_DSET_BINDING ) uniform restrict SceneGlobalsUBO
 {
     SceneGlobals globals;
 };
-layout( scalar, set = 0, binding = PG_BINDLESS_BUFFER_DSET_BINDING ) readonly buffer BindlessBuffers
+layout( scalar, set = 0, binding = PG_BINDLESS_BUFFER_DSET_BINDING ) restrict readonly buffer BindlessBuffers
 {
     uint64_t bindlessBuffers[];
 };
-layout( scalar, set = 0, binding = PG_BINDLESS_MATERIALS_DSET_BINDING ) readonly buffer Materials
+layout( scalar, set = 0, binding = PG_BINDLESS_MATERIALS_DSET_BINDING ) restrict readonly buffer Materials
 {
     Material materials[];
 };
+
+layout( set = 0, binding = PG_BINDLESS_SAMPLERS_DSET_BINDING ) uniform sampler samplers[];
+
+// Note: keep in sync with sampler.hpp!
+#define SAMPLER_NEAREST                 0
+#define SAMPLER_NEAREST_WRAP_U          1
+#define SAMPLER_NEAREST_WRAP_V          2
+#define SAMPLER_NEAREST_WRAP_U_WRAP_V   3
+#define SAMPLER_BILINEAR                4
+#define SAMPLER_BILINEAR_WRAP_U         5
+#define SAMPLER_BILINEAR_WRAP_V         6
+#define SAMPLER_BILINEAR_WRAP_U_WRAP_V  7
+#define SAMPLER_TRILINEAR               8
+#define SAMPLER_TRILINEAR_WRAP_U        9
+#define SAMPLER_TRILINEAR_WRAP_V        10
+#define SAMPLER_TRILINEAR_WRAP_U_WRAP_V 11
+
+vec4 SampleTexture2D( uint texIndex, uint samplerIndex, vec2 uv )
+{
+    return texture( nonuniformEXT( sampler2D( Textures2D[texIndex], samplers[samplerIndex] ) ), uv );
+}
 
 DEFINE_BUFFER_REFERENCE( 64 ) TransformBuffer
 {

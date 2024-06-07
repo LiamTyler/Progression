@@ -83,6 +83,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
                 GpuData::PerObjectData constants;
                 constants.bindlessRangeStart = mesh.bindlessBuffersSlot;
                 constants.objectIdx          = objectNum;
+                constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
 
                 cmdBuf.PushConstants( constants );
 
@@ -98,7 +99,7 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
+    // UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
 }
 

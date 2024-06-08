@@ -1,0 +1,66 @@
+#version 450
+
+#include "global_descriptors.glsl"
+#include "c_shared/dvar_defines.h"
+#include "lib/gamma.glsl"
+#include "lib/tonemap.glsl"
+
+layout( scalar, push_constant ) uniform constants
+{
+    uint inputImageIndex;
+    uint outputImageIndex;
+} PushConstants;
+
+bool ShouldApplyPostProcessing()
+{
+    return globals.r_postProcessing != 0 && globals.r_materialViz == 0;
+}
+
+bool ShouldApplyTonemapping()
+{
+    return globals.r_tonemap != 0;
+}
+
+layout (local_size_x = 16, local_size_y = 16) in;
+void main()
+{
+    ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
+    ivec2 size = imageSize( RImages2D[PushConstants.inputImageIndex] );
+    if ( texelCoord.x >= size.x || texelCoord.y >= size.y )
+        return;
+    
+    vec3 linearHdrColor = imageLoad( RImages2D[PushConstants.inputImageIndex], texelCoord ).rgb;
+    if ( !ShouldApplyPostProcessing() )
+    {
+        imageStore( RWImages2D[PushConstants.outputImageIndex], texelCoord, vec4( linearHdrColor, 1 ) );
+        return;
+    }
+
+    vec3 toneMappedColor = globals.cameraExposureAndSkyTint.x * linearHdrColor;
+    if ( ShouldApplyTonemapping() )
+    {
+        switch ( globals.r_tonemap )
+        {
+        case PG_TONEMAP_METHOD_ACES:
+            toneMappedColor = ACESFilm( toneMappedColor );
+            break;
+        case PG_TONEMAP_METHOD_UNCHARTED_2:
+            toneMappedColor = Uncharted2Tonemap( toneMappedColor );
+            break;
+        case PG_TONEMAP_METHOD_REINHARD:
+            toneMappedColor = Reinhard( toneMappedColor );
+            break;
+        case PG_TONEMAP_METHOD_DISABLED:
+        default:
+            toneMappedColor = clamp( toneMappedColor, vec3( 0 ), vec3( 1 ) );
+            break;
+        }
+    }
+    else
+    {
+        toneMappedColor = clamp( toneMappedColor, vec3( 0 ), vec3( 1 ) );
+    }
+
+    toneMappedColor = LinearToGammaSRGB( toneMappedColor );
+    imageStore( RWImages2D[PushConstants.outputImageIndex], texelCoord, vec4( toneMappedColor, 1 ) );
+}

@@ -330,6 +330,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
         uint16_t prevTask      = NO_TASK;
         TaskType prevTaskType  = TaskType::NONE;
         ResourceState prevState;
+        ResourceType prevResType = ResourceType::NONE;
     };
     std::vector<ResourceTrackingInfo> texTracking( builder.textures.size() );
     std::vector<ResourceTrackingInfo> bufTracking( builder.buffers.size() );
@@ -355,6 +356,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 TGResourceHandle index          = bufInfo.ref.index;
                 const TGBBuffer& buildBuffer    = builder.buffers[index];
                 ResourceTrackingInfo& trackInfo = bufTracking[index];
+                ResourceType resType            = ResourceType::BUFFER;
                 if ( bufInfo.isCleared )
                 {
                     TG_ASSERT(
@@ -394,6 +396,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 trackInfo.prevTask     = taskIndex;
                 trackInfo.prevState    = bufInfo.state;
                 trackInfo.prevTaskType = taskType;
+                trackInfo.prevResType  = resType;
             }
 
             for ( const TGBTextureInfo& texInfo : bcTask->textures )
@@ -401,6 +404,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 TGResourceHandle index          = texInfo.ref.index;
                 const TGBTexture& buildTexture  = builder.textures[index];
                 ResourceTrackingInfo& trackInfo = texTracking[index];
+                ResourceType resType            = ResourceType::TEXTURE;
                 if ( texInfo.isCleared )
                 {
                     TG_ASSERT(
@@ -441,10 +445,10 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                     // barrier to wait for any previous writes to be complete
                     VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
                     barrier.srcStageMask     = GetGeneralStageFlags( trackInfo.prevTaskType );
-                    barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState );
+                    barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType );
                     barrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                    barrier.dstAccessMask    = GetAccessFlags( taskType, texInfo.state );
-                    barrier.oldLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
+                    barrier.dstAccessMask    = GetAccessFlags( taskType, texInfo.state, resType );
+                    barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
                     barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
                     barrier.image            = reinterpret_cast<VkImage>( index );
                     barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
@@ -474,6 +478,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 trackInfo.prevTask     = taskIndex;
                 trackInfo.prevState    = texInfo.state;
                 trackInfo.prevTaskType = taskType;
+                trackInfo.prevResType  = resType;
             }
 
             TG_STAT( m_stats.numBarriers_Image += (uint32_t)cTask->imageBarriersPreClears.size() );
@@ -494,15 +499,16 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 const Texture& tex              = m_textures[texHandle];
                 ResourceTrackingInfo& trackInfo = texTracking[texHandle];
                 bool isDepthAttach              = PixelFormatHasDepthFormat( tex.GetPixelFormat() );
+                ResourceType resType            = bAttachInfo.type;
 
                 ImageLayout desiredLayout = GetImageLayoutFromType( bAttachInfo.type );
                 if ( trackInfo.currLayout != desiredLayout )
                 {
                     VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
                     barrier.srcStageMask     = GetGeneralStageFlags( trackInfo.prevTaskType );
-                    barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState );
+                    barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType );
                     barrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                    barrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::WRITE );
+                    barrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::WRITE, resType );
                     barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
                     barrier.newLayout        = PGToVulkanImageLayout( desiredLayout );
                     barrier.image            = reinterpret_cast<VkImage>( texHandle );
@@ -549,6 +555,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 trackInfo.prevTask     = taskIndex;
                 trackInfo.prevState    = ResourceState::WRITE;
                 trackInfo.prevTaskType = taskType;
+                trackInfo.prevResType  = resType;
             }
 
             gTask->renderingInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
@@ -576,11 +583,12 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 TG_ASSERT( srcTrackInfo.prevTask != NO_TASK && srcTrackInfo.currLayout != ImageLayout::UNDEFINED,
                     "Need valid data to blit to another image!" );
 
+                ResourceType resType = ResourceType::TEXTURE;
                 VkImageMemoryBarrier2 srcBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
                 srcBarrier.srcStageMask     = GetGeneralStageFlags( srcTrackInfo.prevTaskType );
-                srcBarrier.srcAccessMask    = GetAccessFlags( srcTrackInfo.prevTaskType, srcTrackInfo.prevState );
+                srcBarrier.srcAccessMask    = GetAccessFlags( srcTrackInfo.prevTaskType, srcTrackInfo.prevState, srcTrackInfo.prevResType );
                 srcBarrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                srcBarrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::READ );
+                srcBarrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::READ, resType );
                 srcBarrier.oldLayout        = PGToVulkanImageLayout( srcTrackInfo.currLayout );
                 srcBarrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_SRC );
                 srcBarrier.image            = reinterpret_cast<VkImage>( transfer.src.index );
@@ -589,9 +597,9 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
 
                 VkImageMemoryBarrier2 dstBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
                 dstBarrier.srcStageMask     = GetGeneralStageFlags( dstTrackInfo.prevTaskType );
-                dstBarrier.srcAccessMask    = GetAccessFlags( dstTrackInfo.prevTaskType, dstTrackInfo.prevState );
+                dstBarrier.srcAccessMask    = GetAccessFlags( dstTrackInfo.prevTaskType, dstTrackInfo.prevState, dstTrackInfo.prevResType );
                 dstBarrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                dstBarrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::WRITE );
+                dstBarrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::WRITE, resType );
                 dstBarrier.oldLayout        = PGToVulkanImageLayout( dstTrackInfo.currLayout );
                 dstBarrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
                 dstBarrier.image            = reinterpret_cast<VkImage>( transfer.dst.index );
@@ -602,11 +610,13 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 srcTrackInfo.prevTask     = taskIndex;
                 srcTrackInfo.prevState    = ResourceState::READ;
                 srcTrackInfo.prevTaskType = taskType;
+                srcTrackInfo.prevResType  = resType;
 
                 dstTrackInfo.currLayout   = ImageLayout::TRANSFER_DST;
                 dstTrackInfo.prevTask     = taskIndex;
                 dstTrackInfo.prevState    = ResourceState::WRITE;
                 dstTrackInfo.prevTaskType = taskType;
+                dstTrackInfo.prevResType  = resType;
 
                 tTask->textureBlits.emplace_back( transfer.dst.index, transfer.src.index );
             }
@@ -623,7 +633,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
 
             VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
             barrier.srcStageMask     = GetGeneralStageFlags( trackInfo.prevTaskType );
-            barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState );
+            barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType );
             barrier.dstStageMask     = GetGeneralStageFlags( taskType );
             barrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::READ );
             barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
@@ -636,6 +646,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             trackInfo.prevTask     = taskIndex;
             trackInfo.prevState    = ResourceState::READ;
             trackInfo.prevTaskType = taskType;
+            trackInfo.prevResType  = ResourceType::TEXTURE;
         }
         else
         {
@@ -751,12 +762,11 @@ void TaskGraph::Execute( TGExecuteData& data )
     data.taskGraph = this;
     for ( auto& [bufHandle, extBufFunc] : m_externalBuffers )
     {
-        m_buffers[bufHandle].m_handle = extBufFunc();
+        m_buffers[bufHandle] = extBufFunc();
     }
     for ( auto& [texHandle, extTexFunc] : m_externalTextures )
     {
-        Texture& tex = m_textures[texHandle];
-        extTexFunc( tex.m_image, tex.m_imageView );
+        m_textures[texHandle] = extTexFunc();
     }
 
     for ( Task* task : m_tasks )

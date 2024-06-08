@@ -4,7 +4,7 @@
 #include <cstdint>
 
 // If order is changed, all fastfiles need to be rebuilt
-enum AssetType : unsigned int
+enum AssetType : uint8_t
 {
     ASSET_TYPE_GFX_IMAGE = 0,
     ASSET_TYPE_MATERIAL  = 1,
@@ -37,7 +37,7 @@ constexpr unsigned int g_assetVersions[] = {
     0, // ASSET_TYPE_TEXTURESET, "use slopeScale, metalness + roughness tints correctly"
 };
 
-constexpr uint32_t PG_FASTFILE_VERSION = 8 + ARRAY_SUM( g_assetVersions ); // mouse button down/up callbacks
+constexpr uint32_t PG_FASTFILE_VERSION = 9 + ARRAY_SUM( g_assetVersions ); // smaller AssetType
 
 inline const char* const g_assetNames[] = {
     "Image",      // ASSET_TYPE_GFX_IMAGE

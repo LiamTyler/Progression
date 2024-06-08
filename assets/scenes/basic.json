@@ -19,6 +19,6 @@
     { "Entity": {
         "NameComponent": "dragon",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 90, 0, 90 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "cube", "material": "test_normals_1" }
+        "ModelRenderer": { "model": "cube", "material": "green" }
     }}
 ]

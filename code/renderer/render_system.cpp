@@ -95,6 +95,27 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
         } );
 }
 
+void PostProcessFunc( ComputeTask* task, TGExecuteData* data )
+{
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "post_process" ) );
+    cmdBuf.BindGlobalDescriptors();
+
+    struct ComputePushConstants
+    {
+        uint32_t inputImageIndex;
+        uint32_t outputImageIndex;
+    };
+    Texture* inputTex  = data->taskGraph->GetTexture( task->inputTextures[0] );
+    Texture* outputTex = data->taskGraph->GetTexture( task->outputTextures[0] );
+    PG_ASSERT( inputTex->GetWidth() == outputTex->GetWidth() );
+    PG_ASSERT( inputTex->GetHeight() == outputTex->GetHeight() );
+    ComputePushConstants push{ inputTex->GetBindlessIndex(), outputTex->GetBindlessIndex() };
+    cmdBuf.PushConstants( push );
+    cmdBuf.Dispatch_AutoSized( inputTex->GetWidth(), inputTex->GetHeight(), 1 );
+}
+
 void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
@@ -116,16 +137,21 @@ bool Init_TaskGraph()
     mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
-    TGBTextureRef swapImg =
-        builder.RegisterExternalTexture( "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1,
-            []( VkImage& img, VkImageView& view )
-            {
-                img  = rg.swapchain.GetImage();
-                view = rg.swapchain.GetImageView();
-            } );
+    TGBTextureRef swapImg = builder.RegisterExternalTexture(
+        "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } );
 
-    TransferTaskBuilder* tTask = builder.AddTransferTask( "copyToSwapchain" );
-    tTask->BlitTexture( swapImg, gradientImg );
+    TGBTextureRef litImgDisplaySized = gradientImg;
+    if ( rg.sceneWidth != rg.displayWidth || rg.sceneHeight != rg.displayHeight )
+    {
+        TransferTaskBuilder* tTask = builder.AddTransferTask( "copyAndResizeToSwapchain" );
+        tTask->BlitTexture( swapImg, gradientImg );
+        litImgDisplaySized = swapImg;
+    }
+
+    cTask = builder.AddComputeTask( "post_process" );
+    cTask->AddTextureInput( litImgDisplaySized );
+    cTask->AddTextureOutput( swapImg );
+    cTask->SetFunction( PostProcessFunc );
 
     GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_2D" );
     gTask->AddColorAttachment( swapImg );

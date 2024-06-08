@@ -231,6 +231,14 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     tex.m_info    = desc;
     tex.m_sampler = GetSampler( desc.sampler );
 
+#if USING( DEBUG_BUILD )
+    if ( !name.empty() )
+    {
+        tex.debugName = (char*)malloc( name.length() + 1 );
+        strcpy( tex.debugName, name.data() );
+    }
+#endif // #if USING( DEBUG_BUILD )
+
     VmaAllocationCreateInfo allocInfo = {};
     allocInfo.usage                   = VMA_MEMORY_USAGE_GPU_ONLY;
     allocInfo.requiredFlags           = VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT;
@@ -254,14 +262,6 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name );
 
     tex.m_bindlessIndex = BindlessManager::AddTexture( &tex );
-
-#if USING( DEBUG_BUILD )
-    if ( !name.empty() )
-    {
-        tex.debugName = (char*)malloc( name.length() + 1 );
-        strcpy( tex.debugName, name.data() );
-    }
-#endif // #if USING( DEBUG_BUILD )
 
     return tex;
 }

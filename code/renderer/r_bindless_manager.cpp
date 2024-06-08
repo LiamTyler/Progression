@@ -236,7 +236,7 @@ void Update()
             }
         }
 
-        vkUpdateDescriptorSets( rg.device, numTexAdds, s_scratchWrites.data(), 0, nullptr );
+        vkUpdateDescriptorSets( rg.device, (uint32_t)s_scratchWrites.size(), s_scratchWrites.data(), 0, nullptr );
 
         s_scratchWrites.clear();
         s_scratchImgInfos.clear();

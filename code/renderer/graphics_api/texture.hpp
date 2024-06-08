@@ -30,6 +30,7 @@ class Texture
 {
     friend class Device;
     friend class TaskGraph;
+    friend class Swapchain;
 
 public:
     Texture() = default;

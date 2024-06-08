@@ -65,4 +65,12 @@ bool Material::FastfileSave( Serializer* serializer ) const
     return true;
 }
 
+void Material::Free()
+{
+#if USING( GAME )
+    Gfx::BindlessManager::RemoveMaterial( m_bindlessIndex );
+    DEBUG_BUILD_ONLY( m_bindlessIndex = PG_INVALID_MATERIAL_INDEX );
+#endif // #if USING( GAME )
+}
+
 } // namespace PG

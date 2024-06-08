@@ -281,14 +281,14 @@ void ComputeTask::Print( TaskGraph* taskGraph ) const
         LOG( "      [%zu]: Buffer %u ('%s')", i, outputBuffers[i], buf->GetDebugName() );
     }
 
-    LOG( "    Input Texture: %zu", inputTextures.size() );
+    LOG( "    Input Textures: %zu", inputTextures.size() );
     for ( size_t i = 0; i < inputBuffers.size(); ++i )
     {
         const Texture* tex = taskGraph->GetTexture( inputTextures[i] );
         LOG( "      [%zu]: Texture %u ('%s')", i, inputTextures[i], tex->GetDebugName() );
     }
 
-    LOG( "    Output Texture: %zu", outputTextures.size() );
+    LOG( "    Output Textures: %zu", outputTextures.size() );
     for ( size_t i = 0; i < outputTextures.size(); ++i )
     {
         const Texture* tex = taskGraph->GetTexture( outputTextures[i] );

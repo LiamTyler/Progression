@@ -186,7 +186,8 @@ bool LoadFastFile( const std::string& fname )
 void FreeRemainingGpuResources()
 {
     ClearPendingLiveUpdates();
-    const AssetType typesWithGpuData[] = { ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE };
+    const AssetType typesWithGpuData[] = {
+        ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MATERIAL, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE };
     for ( uint32_t i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
     {
         AssetType type = typesWithGpuData[i];

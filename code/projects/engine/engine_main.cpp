@@ -21,8 +21,10 @@ int main( int argc, char* argv[] )
 {
     // 1024×576
     EngineInitInfo engineInitConfig;
-    engineInitConfig.windowWidth = engineInitConfig.sceneWidth = 1280;
-    engineInitConfig.windowHeight = engineInitConfig.sceneHeight = 720;
+    engineInitConfig.sceneWidth   = 1280;
+    engineInitConfig.sceneHeight  = 720;
+    engineInitConfig.windowWidth  = 1920;
+    engineInitConfig.windowHeight = 1080;
     if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );

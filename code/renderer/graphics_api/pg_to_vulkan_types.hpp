@@ -143,8 +143,6 @@ constexpr VkFormat PGToVulkanBufferFormat( BufferFormat type )
     return convert[static_cast<int>( type )];
 }
 
-constexpr VkVertexInputRate PGToVulkanVertexInputRate( VertexInputRate inputRate ) { return static_cast<VkVertexInputRate>( inputRate ); }
-
 constexpr VkPrimitiveTopology PGToVulkanPrimitiveType( PrimitiveType topology )
 {
     VkPrimitiveTopology convert[] = {

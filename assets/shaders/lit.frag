@@ -20,8 +20,6 @@ layout(push_constant) uniform Registers
 
 layout (location = 0) out vec4 color;
 
-//layout (set = 2, binding = 0) uniform sampler mySampler;
-
 void GetAlbedoMetalness( const Material mat, const vec2 uv, out vec3 albedo, out float metalness )
 {
     albedo = mat.albedoTint.rgb;
@@ -82,7 +80,6 @@ ShaderMaterial GetShaderMaterial()
     GetNormalRoughness( m, fragInput.uv, sm.N, sm.roughness );
     sm.emissive = GetEmissive( m, fragInput.uv );
     sm.F0 = mix( vec3( 0.04f ), sm.albedo, sm.metalness );
-    //sm.albedo = vec3( 0, 1, 0 );
 
     return sm;
 }
@@ -146,6 +143,7 @@ void Debug_Material( const ShaderMaterial m, inout vec4 outColor )
 void main()
 {
     ShaderMaterial mat = GetShaderMaterial();
+    color = vec4( 0, 1, 0, 1 );
     color = vec4( mat.albedo, 1 );
     
 #if IS_DEBUG_SHADER

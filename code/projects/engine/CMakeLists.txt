@@ -80,7 +80,6 @@ set(
     ${CODE_DIR}/renderer/graphics_api/pg_to_vulkan_types.hpp
     ${CODE_DIR}/renderer/graphics_api/physical_device.cpp
     ${CODE_DIR}/renderer/graphics_api/physical_device.hpp
-    ${CODE_DIR}/renderer/graphics_api/pipeline.cpp
     ${CODE_DIR}/renderer/graphics_api/pipeline.hpp
     ${CODE_DIR}/renderer/graphics_api/sampler.cpp
     ${CODE_DIR}/renderer/graphics_api/sampler.hpp
@@ -90,8 +89,6 @@ set(
     ${CODE_DIR}/renderer/graphics_api/synchronization.hpp
     ${CODE_DIR}/renderer/graphics_api/texture.cpp
     ${CODE_DIR}/renderer/graphics_api/texture.hpp
-    ${CODE_DIR}/renderer/graphics_api/vertex_descriptor.cpp
-    ${CODE_DIR}/renderer/graphics_api/vertex_descriptor.hpp
     
     ${CODE_DIR}/renderer/brdf_functions.cpp
     ${CODE_DIR}/renderer/brdf_functions.hpp

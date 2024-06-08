@@ -1,7 +1,7 @@
 #pragma once
 
-#include "core/pixel_formats.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
+#include "renderer/graphics_api/texture.hpp"
 #include "renderer/vulkan.hpp"
 #include <array>
 #include <string>
@@ -28,10 +28,8 @@ public:
     uint32_t GetHeight() const;
     VkSwapchainKHR GetHandle() const;
     uint32_t GetNumImages() const;
-    VkImage GetImage() const;
-    VkImageView GetImageView() const;
-    VkImage GetImageAt( uint32_t index ) const;
-    VkImageView GetImageViewAt( uint32_t index ) const;
+    Texture& GetTexture();
+    Texture& GetTextureAt( uint32_t index );
 
 private:
     VkSwapchainKHR m_handle = VK_NULL_HANDLE;
@@ -39,8 +37,7 @@ private:
     uint32_t m_width;
     uint32_t m_height;
     uint32_t m_currentImageIdx;
-    std::vector<VkImage> m_images;
-    std::vector<VkImageView> m_imageViews;
+    std::vector<Texture> m_textures;
 };
 
 } // namespace PG::Gfx

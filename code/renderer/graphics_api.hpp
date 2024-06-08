@@ -11,4 +11,3 @@
 #include "renderer/graphics_api/sampler.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
 #include "renderer/graphics_api/texture.hpp"
-#include "renderer/graphics_api/vertex_descriptor.hpp"

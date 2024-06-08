@@ -1,6 +1,7 @@
 #include "renderer/graphics_api/swapchain.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
+#include "renderer/r_bindless_manager.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "vk-bootstrap/VkBootstrap.h"
@@ -36,14 +37,31 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
     m_height      = vkbSwapchain.extent.height;
     if ( m_width != width && m_height != height )
         LOG_WARN( "Swapchain requested size (%u x %u) actual size: (%u x %u )", width, height, m_width, m_height );
+
+    TextureCreateInfo texInfo( m_imageFormat, m_width, m_height );
+    texInfo.sampler = SAMPLER_BILINEAR;
+
     // PG_ASSERT( m_width == width && m_height == height, "Later textures (r_globals) are allocated assuming this" );
-    m_handle     = vkbSwapchain.swapchain;
-    m_images     = vkbSwapchain.get_images().value();
-    m_imageViews = vkbSwapchain.get_image_views().value();
-    for ( size_t i = 0; i < m_images.size(); ++i )
+    m_handle                            = vkbSwapchain.swapchain;
+    std::vector<VkImage> images         = vkbSwapchain.get_images().value();
+    std::vector<VkImageView> imageViews = vkbSwapchain.get_image_views().value();
+    m_textures.resize( images.size() );
+    for ( size_t i = 0; i < images.size(); ++i )
     {
-        PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( m_imageViews[i], "swapchain " + std::to_string( i ) );
-        PG_DEBUG_MARKER_SET_IMAGE_NAME( m_images[i], "swapchain " + std::to_string( i ) );
+        Texture& tex = m_textures[i];
+#if USING( DEBUG_BUILD )
+        std::string name = "swapchainTex_" + std::to_string( i );
+        tex.debugName    = (char*)malloc( name.length() + 1 );
+        strcpy( tex.debugName, name.c_str() );
+#endif // #if USING( DEBUG_BUILD )
+        tex.m_info          = texInfo;
+        tex.m_image         = images[i];
+        tex.m_imageView     = imageViews[i];
+        tex.m_allocation    = nullptr;
+        tex.m_sampler       = GetSampler( SAMPLER_BILINEAR );
+        tex.m_bindlessIndex = BindlessManager::AddTexture( &tex );
+        PG_DEBUG_MARKER_SET_IMAGE_NAME( images[i], "swapchain " + std::to_string( i ) );
+        PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( imageViews[i], "swapchain " + std::to_string( i ) );
     }
 
     return true;
@@ -67,10 +85,12 @@ bool Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
 void Swapchain::Free()
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
-    for ( size_t i = 0; i < m_imageViews.size(); ++i )
+    for ( size_t i = 0; i < m_textures.size(); ++i )
     {
-        vkDestroyImageView( rg.device, m_imageViews[i], nullptr );
+        vkDestroyImageView( rg.device, m_textures[i].GetView(), nullptr );
+        BindlessManager::RemoveTexture( m_textures[i].m_bindlessIndex );
     }
+    m_textures.clear();
 
     vkDestroySwapchainKHR( rg.device, m_handle, nullptr );
     m_handle = VK_NULL_HANDLE;
@@ -83,10 +103,8 @@ PixelFormat Swapchain::GetFormat() const { return m_imageFormat; }
 uint32_t Swapchain::GetWidth() const { return m_width; }
 uint32_t Swapchain::GetHeight() const { return m_height; }
 VkSwapchainKHR Swapchain::GetHandle() const { return m_handle; }
-uint32_t Swapchain::GetNumImages() const { return (uint32_t)m_images.size(); }
-VkImage Swapchain::GetImage() const { return m_images[m_currentImageIdx]; }
-VkImageView Swapchain::GetImageView() const { return m_imageViews[m_currentImageIdx]; }
-VkImage Swapchain::GetImageAt( uint32_t index ) const { return m_images[index]; }
-VkImageView Swapchain::GetImageViewAt( uint32_t index ) const { return m_imageViews[index]; }
+uint32_t Swapchain::GetNumImages() const { return (uint32_t)m_textures.size(); }
+Texture& Swapchain::GetTexture() { return m_textures[m_currentImageIdx]; }
+Texture& Swapchain::GetTextureAt( uint32_t index ) { return m_textures[index]; }
 
 } // namespace PG::Gfx

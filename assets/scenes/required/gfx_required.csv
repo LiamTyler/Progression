@@ -1,2 +1,3 @@
 Pipeline,gradient
+Pipeline,post_process
 Pipeline,litModel

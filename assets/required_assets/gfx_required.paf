@@ -4,6 +4,10 @@
         "computeShader": "gradient.comp"
     } },
     { "Pipeline": {
+        "name": "post_process",
+        "computeShader": "post_process.comp"
+    } },
+    { "Pipeline": {
         "name": "litModel",
         "meshShader": "model.mesh",
         "fragmentShader": "lit.frag",

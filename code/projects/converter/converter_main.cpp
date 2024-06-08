@@ -267,10 +267,11 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
             const auto& listOfUsedAssets = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
             for ( const auto& baseInfo : listOfUsedAssets )
             {
-                ff.Write( assetTypeIdx );
+                AssetType assetType = (AssetType)assetTypeIdx;
+                ff.Write( assetType );
                 const std::string cacheName = g_converters[assetTypeIdx]->GetCacheName( baseInfo );
                 size_t numBytes;
-                auto assetRawBytes = AssetCache::GetCachedAssetRaw( (AssetType)assetTypeIdx, cacheName, numBytes );
+                auto assetRawBytes = AssetCache::GetCachedAssetRaw( assetType, cacheName, numBytes );
                 if ( !assetRawBytes )
                 {
                     ff.Close();

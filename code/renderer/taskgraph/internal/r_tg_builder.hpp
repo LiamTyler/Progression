@@ -2,6 +2,7 @@
 
 #include "r_tg_tasks.hpp"
 #include "renderer/graphics_api/buffer.hpp"
+#include "renderer/graphics_api/texture.hpp"
 #include <functional>
 
 namespace PG::Gfx
@@ -37,8 +38,8 @@ constexpr uint32_t ResolveRelativeSize( uint32_t scene, uint32_t display, uint32
     }
 }
 
-using ExtTextureFunc = std::function<void( VkImage&, VkImageView& )>;
-using ExtBufferFunc  = std::function<VkBuffer()>;
+using ExtTextureFunc = std::function<Texture()>;
+using ExtBufferFunc  = std::function<Buffer()>;
 
 struct TGBTexture
 {

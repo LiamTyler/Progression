@@ -41,6 +41,7 @@ struct Material : public BaseAsset
 
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
+    void Free() override;
 
     MaterialType type;
     vec3 albedoTint                = vec3( 1.0f );

@@ -9,7 +9,7 @@
 namespace PG::UI
 {
 
-template <typename T, typename IndexType, IndexType NULL_VAL, uint32_t MAX_SIZE>
+template <typename T, typename IndexType, IndexType NULL_VAL, u32 MAX_SIZE>
 class StaticArrayAllocator
 {
 public:
@@ -40,13 +40,13 @@ public:
         return slot;
     }
 
-    IndexType AllocMultiple( uint32_t numElements )
+    IndexType AllocMultiple( u32 numElements )
     {
         if ( elementCount + numElements > MAX_SIZE )
             return NULL_VAL;
 
-        uint32_t count     = 1;
-        uint32_t startSlot = nextFreeSlot;
+        u32 count     = 1;
+        u32 startSlot = nextFreeSlot;
         while ( count < numElements && ( startSlot + count ) < MAX_SIZE )
         {
             if ( !slotsInUse[startSlot + count] )
@@ -63,7 +63,7 @@ public:
         if ( startSlot < MAX_SIZE )
         {
             elementCount += numElements;
-            for ( uint32_t i = 0; i < numElements; ++i )
+            for ( u32 i = 0; i < numElements; ++i )
             {
                 slotsInUse[startSlot + i] = true;
             }
@@ -74,9 +74,9 @@ public:
         return startSlot;
     }
 
-    void FreeMultiple( IndexType startElement, uint32_t numElements )
+    void FreeMultiple( IndexType startElement, u32 numElements )
     {
-        for ( uint32_t i = 0; i < numElements; ++i )
+        for ( u32 i = 0; i < numElements; ++i )
             slotsInUse[startElement + i] = false;
         elementCount -= numElements;
         nextFreeSlot = std::min( nextFreeSlot, startElement );
@@ -124,7 +124,7 @@ struct LayoutInfo
 {
     UILayout* layoutAsset;
     UIElementHandle rootElementHandle;
-    uint16_t elementCount;
+    u16 elementCount;
     UIScript* uiscript;
 };
 

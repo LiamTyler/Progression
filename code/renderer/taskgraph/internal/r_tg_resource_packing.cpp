@@ -23,7 +23,7 @@ bool Block::CanFit( const ResourceData& res ) const
 
 TimeSlice::TimeSlice( const ResourceData& res, size_t totalSize ) : TimeSlice( res, totalSize, res.firstTask, res.lastTask, 0 ) {}
 
-TimeSlice::TimeSlice( const ResourceData& res, size_t totalSize, uint16_t inFirstTask, uint16_t inLastTask, size_t offset )
+TimeSlice::TimeSlice( const ResourceData& res, size_t totalSize, u16 inFirstTask, u16 inLastTask, size_t offset )
     : firstTask( inFirstTask ), lastTask( inLastTask )
 {
     // really only 1-off external outputs that should have firstTask==lastTask. Internal, non-depth, should be firstTask < lastTask
@@ -165,10 +165,10 @@ bool MemoryBucket::AddResource( const ResourceData& res )
     else
         resources.emplace_back( ResHandle( res.texRef ), dstOffset );
 
-    int freeBegin = 0; // track gaps between memory regions
+    i32 freeBegin = 0; // track gaps between memory regions
     for ( auto it = occupiedTimeSlices.begin(); it != occupiedTimeSlices.end(); ++it )
     {
-        int freeEnd = it->firstTask - 1;
+        i32 freeEnd = it->firstTask - 1;
         if ( freeBegin < freeEnd )
         {
             TimeSlice freeRegion( res, bucketSize, freeBegin, freeEnd, dstOffset );
@@ -181,7 +181,7 @@ bool MemoryBucket::AddResource( const ResourceData& res )
     }
     if ( freeBegin <= res.lastTask )
     {
-        uint16_t start = Max( (uint16_t)freeBegin, res.firstTask );
+        u16 start = Max( (u16)freeBegin, res.firstTask );
         TimeSlice endingFreeRegion( res, bucketSize, start, res.lastTask, dstOffset );
         occupiedTimeSlices.emplace_back( endingFreeRegion );
     }

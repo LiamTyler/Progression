@@ -5,7 +5,7 @@
 namespace PG::Input
 {
 
-enum class Action : uint16_t
+enum class Action : u16
 {
 #if !USING( SHIP_BUILD )
     TOGGLE_DEV_CONSOLE,
@@ -20,7 +20,7 @@ enum class Action : uint16_t
 
 const char* ActionToString( Action action );
 
-enum class ActionState : uint8_t
+enum class ActionState : u8
 {
     PRESSED,  // only true the first frame pressed
     HELD,     // true for the 2nd frame and onwards that an action is pressed
@@ -33,7 +33,7 @@ struct ActionStatePair
     ActionState state;
 };
 
-enum class Axis : uint8_t
+enum class Axis : u8
 {
     CAMERA_VEL_X,
     CAMERA_VEL_Y,
@@ -46,7 +46,7 @@ enum class Axis : uint8_t
 
 const char* AxisToString( Axis axis );
 
-using AxisValue = float;
+using AxisValue = f32;
 
 struct AxisValuePair
 {

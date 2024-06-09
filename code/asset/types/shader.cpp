@@ -56,11 +56,11 @@ static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
     static_assert( Underlying( ShaderStage::NUM_SHADER_STAGES ) == 6, "update above" );
 }
 
-static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
+static bool ReflectShader_ReflectSpirv( u32* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
 {
     using namespace spirv_cross;
 
-    spirv_cross::Compiler compiler( spirv, sizeInBytes / sizeof( uint32_t ) );
+    spirv_cross::Compiler compiler( spirv, sizeInBytes / sizeof( u32 ) );
 
     reflectData.workgroupSize.x = compiler.get_execution_mode_argument( spv::ExecutionModeLocalSize, 0 );
     reflectData.workgroupSize.y = compiler.get_execution_mode_argument( spv::ExecutionModeLocalSize, 1 );
@@ -69,16 +69,16 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
     auto resources = compiler.get_shader_resources();
     if ( !resources.push_constant_buffers.empty() )
     {
-        const SPIRType& type  = compiler.get_type( resources.push_constant_buffers.front().base_type_id );
-        uint32_t lowestOffset = UINT32_MAX;
-        for ( uint32_t i = 0; i < (uint32_t)type.member_types.size(); ++i )
+        const SPIRType& type = compiler.get_type( resources.push_constant_buffers.front().base_type_id );
+        u32 lowestOffset     = UINT32_MAX;
+        for ( u32 i = 0; i < (u32)type.member_types.size(); ++i )
         {
             lowestOffset = Min( lowestOffset, compiler.type_struct_member_offset( type, i ) );
         }
-        uint32_t highestOffsetPlusSize = static_cast<uint32_t>( compiler.get_declared_struct_size( type ) );
+        u32 highestOffsetPlusSize      = static_cast<u32>( compiler.get_declared_struct_size( type ) );
         reflectData.pushConstantSize   = highestOffsetPlusSize - lowestOffset;
         reflectData.pushConstantOffset = lowestOffset;
-        // reflectData.layout.pushConstantSize = static_cast<uint32_t>( compiler.get_declared_struct_size( type ) );
+        // reflectData.layout.pushConstantSize = static_cast<u32>( compiler.get_declared_struct_size( type ) );
     }
 
     const auto& specializationConstants = compiler.get_specialization_constants();
@@ -91,7 +91,7 @@ static bool ReflectShader_ReflectSpirv( uint32_t* spirv, size_t sizeInBytes, Sha
 }
 
 static bool CompilePreprocessedShaderToSPIRV(
-    const ShaderCreateInfo& createInfo, const std::string& shaderSource, std::vector<uint32_t>& outputSpirv )
+    const ShaderCreateInfo& createInfo, const std::string& shaderSource, std::vector<u32>& outputSpirv )
 {
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;
@@ -103,7 +103,7 @@ static bool CompilePreprocessedShaderToSPIRV(
     options.SetOptimizationLevel( shaderc_optimization_level_performance );
     options.SetGenerateDebugInfo();
 
-    // No entry point info needed, because GLSL mandates that the entry point is always void main()
+    // No entry poi32 info needed, because GLSL mandates that the entry poi32 is always void main()
     shaderc_shader_kind kind             = static_cast<shaderc_shader_kind>( PGShaderStageToShaderc( createInfo.shaderStage ) );
     shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv( shaderSource, kind, createInfo.filename.c_str(), options );
     if ( module.GetCompilationStatus() != shaderc_compilation_status_success )
@@ -122,7 +122,7 @@ static bool CompilePreprocessedShaderToSPIRV(
 }
 
 #if USING( GPU_DATA )
-static VkShaderModule CreateShaderModule( const uint32_t* spirv, size_t sizeInBytes )
+static VkShaderModule CreateShaderModule( const u32* spirv, size_t sizeInBytes )
 {
     VkShaderModule module;
     VkShaderModuleCreateInfo vkShaderInfo = {};
@@ -159,7 +159,7 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
         return false;
     }
 
-    std::vector<uint32_t> spirv;
+    std::vector<u32> spirv;
     if ( !CompilePreprocessedShaderToSPIRV( *createInfo, preproc.outputShader, spirv ) )
     {
         return false;
@@ -192,7 +192,7 @@ bool Shader::FastfileLoad( Serializer* serializer )
 {
     serializer->Read( &m_reflectionData, sizeof( m_reflectionData ) );
     serializer->Read( m_shaderStage );
-    std::vector<uint32_t> spirv;
+    std::vector<u32> spirv;
     serializer->Read( spirv );
 
 #if USING( GPU_DATA )

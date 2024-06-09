@@ -4,11 +4,11 @@
 namespace PG
 {
 
-static float PackRadius( float radius )
+static f32 PackRadius( f32 radius )
 {
-    float inv       = 1.0f / radius;
-    uint32_t packed = Float32ToFloat16( radius, inv * inv );
-    return *reinterpret_cast<float*>( &packed );
+    f32 inv    = 1.0f / radius;
+    u32 packed = Float32ToFloat16( radius, inv * inv );
+    return *reinterpret_cast<f32*>( &packed );
 }
 
 /*
@@ -28,10 +28,10 @@ GpuData::PackedLight PackSpotLight( const SpotLight& light )
     PackedLight p;
     p.colorAndType           = vec4( light.intensity * light.color, LIGHT_TYPE_SPOT );
     p.positionAndRadius      = vec4( light.position, PackRadius( light.radius ) );
-    float cosOuterAngle      = cos( light.outerAngle );
-    float invCosAngleDiff    = 1.0f / ( cos( light.innerAngle ) - cosOuterAngle );
-    uint32_t packedAngles    = Float32ToFloat16( cosOuterAngle, invCosAngleDiff );
-    p.directionAndSpotAngles = vec4( light.direction, *reinterpret_cast<float*>( &packedAngles ) );
+    f32 cosOuterAngle      = cos( light.outerAngle );
+    f32 invCosAngleDiff    = 1.0f / ( cos( light.innerAngle ) - cosOuterAngle );
+    u32 packedAngles    = Float32ToFloat16( cosOuterAngle, invCosAngleDiff );
+    p.directionAndSpotAngles = vec4( light.direction, *reinterpret_cast<f32*>( &packedAngles ) );
 
     return p;
 }

@@ -36,21 +36,21 @@ struct TGStats
 {
     // all the sizes are in bytes
     size_t unAliasedTextureMem;
-    uint32_t numTextures;
+    u32 numTextures;
     size_t unAliasedBufferMem;
-    uint32_t numBuffers;
+    u32 numBuffers;
     size_t totalMemoryPostAliasing;
 
-    uint32_t numComputeTasks;
-    uint32_t numGraphicsTasks;
-    uint32_t numTransferTasks;
+    u32 numComputeTasks;
+    u32 numGraphicsTasks;
+    u32 numTransferTasks;
 
-    uint32_t numBarriers_Buffer;
-    uint32_t numBarriers_Image;
-    uint32_t numBarriers_Global;
+    u32 numBarriers_Buffer;
+    u32 numBarriers_Image;
+    u32 numBarriers_Global;
 
-    float compileTimeMSec;
-    float resAllocTimeMSec;
+    f32 compileTimeMSec;
+    f32 resAllocTimeMSec;
 };
 
 class TaskGraph
@@ -58,10 +58,10 @@ class TaskGraph
 public:
     struct CompileInfo
     {
-        uint32_t sceneWidth;
-        uint32_t sceneHeight;
-        uint32_t displayWidth;
-        uint32_t displayHeight;
+        u32 sceneWidth;
+        u32 sceneHeight;
+        u32 displayWidth;
+        u32 displayHeight;
         bool mergeResources = true;
         bool showStats      = false; // only works if TG_STATS is enabled
     };

@@ -1,5 +1,4 @@
 #include "core/bounding_box.hpp"
-#include <cfloat>
 
 namespace PG
 {
@@ -23,7 +22,7 @@ void AABB::Points( vec3* data ) const
     data[7]     = max - vec3( 0, 0, extent.z );
 }
 
-int AABB::LongestDimension() const
+i32 AABB::LongestDimension() const
 {
     vec3 d = max - min;
     if ( d[0] > d[1] && d[0] > d[2] )
@@ -40,7 +39,7 @@ int AABB::LongestDimension() const
     }
 }
 
-float AABB::SurfaceArea() const
+f32 AABB::SurfaceArea() const
 {
     vec3 d = max - min;
     return 2 * ( d.x * d.y + d.x * d.z + d.y * d.z );
@@ -111,7 +110,7 @@ void AABB::Encompass( const AABB& aabb, const mat4& transform )
     vec3 points[8];
     aabb.Points( points );
     vec3 halfExt = 0.5f * ( aabb.max - aabb.min );
-    for ( int i = 0; i < 8; ++i )
+    for ( i32 i = 0; i < 8; ++i )
     {
         vec3 tmp = vec3( transform * vec4( points[i] - halfExt, 1 ) ) + halfExt;
         min      = Min( min, tmp );
@@ -125,9 +124,9 @@ void AABB::Encompass( vec3 point )
     max = Max( max, point );
 }
 
-void AABB::Encompass( vec3* points, int numPoints )
+void AABB::Encompass( vec3* points, i32 numPoints )
 {
-    for ( int i = 0; i < numPoints; ++i )
+    for ( i32 i = 0; i < numPoints; ++i )
     {
         min = Min( min, points[i] );
         max = Max( max, points[i] );

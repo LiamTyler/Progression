@@ -5,7 +5,7 @@ namespace PG
 
 bool Frustum::BoxInFrustum( const AABB& aabb ) const
 {
-    for ( int i = 0; i < 6; ++i )
+    for ( i32 i = 0; i < 6; ++i )
     {
         if ( !SameSide( aabb.P( vec3( planes[i] ) ), planes[i] ) )
         {
@@ -16,11 +16,11 @@ bool Frustum::BoxInFrustum( const AABB& aabb ) const
 }
 
 void Frustum::Update(
-    float fov, float nearPlane, float farPlane, float aspect, const vec3& pos, const vec3& forward, const vec3& up, const vec3& right )
+    f32 fov, f32 nearPlane, f32 farPlane, f32 aspect, const vec3& pos, const vec3& forward, const vec3& up, const vec3& right )
 {
     vec3 ntl, ntr, nbl, nbr, ftl, ftr, fbr, fbl;
-    float nearHeight, nearWidth, farHeight, farWidth;
-    float angle = 0.5f * fov;
+    f32 nearHeight, nearWidth, farHeight, farWidth;
+    f32 angle = 0.5f * fov;
 
     nearHeight = nearPlane * tanf( angle );
     farHeight  = farPlane * tanf( angle );
@@ -62,13 +62,13 @@ bool Frustum::SameSide( const vec3& point, const vec4& plane ) const
     return ( point.x * plane.x + point.y * plane.y + point.z * plane.z + plane.w ) >= 0;
 }
 
-void Frustum::SetPlane( int planeIndex, const vec3& p1, const vec3& p2, const vec3& p3 )
+void Frustum::SetPlane( i32 planeIndex, const vec3& p1, const vec3& p2, const vec3& p3 )
 {
     vec3 p12 = p2 - p1;
     vec3 p13 = p3 - p1;
 
     vec3 n             = Normalize( Cross( p12, p13 ) );
-    float d            = Dot( n, -p1 );
+    f32 d              = Dot( n, -p1 );
     planes[planeIndex] = vec4( n, d );
 }
 

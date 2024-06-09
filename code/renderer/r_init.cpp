@@ -48,7 +48,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 
 static void InitCommandObjects()
 {
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         rg.frameData[i].cmdPool          = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, "frame" + std::to_string( i ) );
         rg.frameData[i].primaryCmdBuffer = rg.frameData[i].cmdPool.NewCommandBuffer( "primary" + std::to_string( i ) );
@@ -60,7 +60,7 @@ static void InitCommandObjects()
 
 static void InitSyncObjects()
 {
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         std::string iStr                           = std::to_string( i );
         rg.frameData[i].swapchainSemaphore         = rg.device.NewSemaphore( "swapchainSemaphore" + iStr );
@@ -71,7 +71,7 @@ static void InitSyncObjects()
     rg.immediateFence = rg.device.NewFence( false, "immediate" );
 }
 
-bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
+bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
 {
     rg.currentFrameIdx = rg.totalFrameCount = 0;
 
@@ -205,12 +205,12 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
     // std::vector<vkb::CustomQueueDescription> queue_descriptions;
     // const auto& queue_families = vkbPhysicalDevice.get_queue_families();
     // VkQueueFlags qFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
-    // for ( uint32_t i = 0; i < static_cast<uint32_t>( queue_families.size() ); ++i )
+    // for ( u32 i = 0; i < static_cast<u32>( queue_families.size() ); ++i )
     //{
     //     if ( queue_families[i].queueFlags & qFlags )
     //     {
     //         if (
-    //         queue_descriptions.push_back( vkb::CustomQueueDescription( i, std::vector<float>( 1, 1.0f ) ) );
+    //         queue_descriptions.push_back( vkb::CustomQueueDescription( i, std::vector<f32>( 1, 1.0f ) ) );
     //     }
     // }
     // device_builder.custom_queue_setup( queue_descriptions );
@@ -253,7 +253,7 @@ bool R_Init( bool headless, uint32_t displayWidth, uint32_t displayHeight )
 
 void R_Shutdown()
 {
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         FrameData& frameData = rg.frameData[i];
         frameData.cmdPool.Free();

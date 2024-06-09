@@ -10,19 +10,19 @@ namespace PG::Gfx
 
 struct TextureCreateInfo
 {
-    ImageType type       = ImageType::TYPE_2D;
-    PixelFormat format   = PixelFormat::NUM_PIXEL_FORMATS;
-    SamplerType sampler  = SAMPLER_TRILINEAR_WRAP_U_WRAP_V;
-    uint8_t mipLevels    = 1;
-    uint16_t arrayLayers = 1;
-    uint16_t width       = 0;
-    uint16_t height      = 0;
-    uint16_t depth       = 1;
+    ImageType type      = ImageType::TYPE_2D;
+    PixelFormat format  = PixelFormat::NUM_PIXEL_FORMATS;
+    SamplerType sampler = SAMPLER_TRILINEAR_WRAP_U_WRAP_V;
+    u8 mipLevels        = 1;
+    u16 arrayLayers     = 1;
+    u16 width           = 0;
+    u16 height          = 0;
+    u16 depth           = 1;
     VkImageUsageFlags usage =
         VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     TextureCreateInfo() = default;
-    TextureCreateInfo( PixelFormat inFmt, uint32_t inWidth, uint32_t inHeight ) : format( inFmt ), width( inWidth ), height( inHeight ) {}
+    TextureCreateInfo( PixelFormat inFmt, u32 inWidth, u32 inHeight ) : format( inFmt ), width( inWidth ), height( inHeight ) {}
     size_t TotalSizeInBytes() const;
 };
 
@@ -39,17 +39,17 @@ public:
 
     ImageType GetType() const;
     PixelFormat GetPixelFormat() const;
-    uint32_t GetMipLevels() const;
-    uint32_t GetArrayLayers() const;
-    uint32_t GetWidth() const;
-    uint32_t GetHeight() const;
-    uint32_t GetDepth() const;
+    u32 GetMipLevels() const;
+    u32 GetArrayLayers() const;
+    u32 GetWidth() const;
+    u32 GetHeight() const;
+    u32 GetDepth() const;
     VkExtent2D GetExtent2D() const;
     VkExtent3D GetExtent3D() const;
     VkImage GetImage() const;
     VkImageView GetView() const;
     VmaAllocation GetAllocation() const;
-    uint16_t GetBindlessIndex() const;
+    u16 GetBindlessIndex() const;
     size_t GetTotalBytes() const;
     Sampler* GetSampler() const;
     VkImageUsageFlags GetUsage() const;
@@ -63,7 +63,7 @@ private:
     VkImageView m_imageView    = VK_NULL_HANDLE;
     VmaAllocation m_allocation = nullptr;
     Sampler* m_sampler         = nullptr;
-    uint16_t m_bindlessIndex   = PG_INVALID_TEXTURE_INDEX;
+    u16 m_bindlessIndex        = PG_INVALID_TEXTURE_INDEX;
     DEBUG_BUILD_ONLY( char* debugName = nullptr );
 };
 

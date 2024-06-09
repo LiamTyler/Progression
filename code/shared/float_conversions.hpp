@@ -3,37 +3,37 @@
 #include "shared/math_vec.hpp"
 #include <algorithm>
 
-using float16 = uint16_t;
+using float16 = u16;
 
-constexpr uint16_t FP16_ZERO = 0x0000;
-constexpr uint16_t FP16_ONE  = 0x3C00;
+constexpr u16 FP16_ZERO = 0x0000;
+constexpr u16 FP16_ONE  = 0x3C00;
 
 // implementation from tinyexr library
 union FP32
 {
-    uint32_t u;
-    float f;
+    u32 u;
+    f32 f;
     struct
     {
-        uint32_t Mantissa : 23;
-        uint32_t Exponent : 8;
-        uint32_t Sign : 1;
+        u32 Mantissa : 23;
+        u32 Exponent : 8;
+        u32 Sign : 1;
     };
 };
 
 union FP16
 {
-    uint16_t u;
+    u16 u;
     struct
     {
-        uint32_t Mantissa : 10;
-        uint32_t Exponent : 5;
-        uint32_t Sign : 1;
+        u32 Mantissa : 10;
+        u32 Exponent : 5;
+        u32 Sign : 1;
     };
 };
 
 // Original ISPC reference version; this always rounds ties up.
-inline uint16_t Float32ToFloat16( float f32 )
+inline u16 Float32ToFloat16( f32 f32 )
 {
     FP32 f;
     f.f    = f32;
@@ -52,7 +52,7 @@ inline uint16_t Float32ToFloat16( float f32 )
     else // Normalized number
     {
         // Exponent unbias the single, then bias the halfp
-        int newexp = f.Exponent - 127 + 15;
+        i32 newexp = f.Exponent - 127 + 15;
         if ( newexp >= 31 ) // Overflow, return signed infinity
         {
             o.Exponent = 31;
@@ -61,8 +61,8 @@ inline uint16_t Float32ToFloat16( float f32 )
         {
             if ( ( 14 - newexp ) <= 24 ) // Mantissa might be non-zero
             {
-                uint32_t mant = f.Mantissa | 0x800000; // Hidden 1 bit
-                o.Mantissa    = mant >> ( 14 - newexp );
+                u32 mant   = f.Mantissa | 0x800000; // Hidden 1 bit
+                o.Mantissa = mant >> ( 14 - newexp );
                 if ( ( mant >> ( 13 - newexp ) ) & 1 ) // Check for rounding
                 {
                     o.u++; // Round, might overflow into exp bit, but this is OK
@@ -89,24 +89,24 @@ inline u16vec4 Float32ToFloat16( vec4 v )
     return { Float32ToFloat16( v.x ), Float32ToFloat16( v.y ), Float32ToFloat16( v.z ), Float32ToFloat16( v.w ) };
 }
 
-inline uint32_t Float32ToFloat16( float x, float y )
+inline u32 Float32ToFloat16( f32 x, f32 y )
 {
-    uint32_t px = Float32ToFloat16( x );
-    uint32_t py = Float32ToFloat16( y );
+    u32 px = Float32ToFloat16( x );
+    u32 py = Float32ToFloat16( y );
     return px | ( py << 16 );
 }
 
-inline float Float16ToFloat32( uint16_t f16 )
+inline f32 Float16ToFloat32( u16 f16 )
 {
-    static const FP32 magic               = { 113 << 23 };
-    static const unsigned int shifted_exp = 0x7c00 << 13; // exponent mask after shift
+    static const FP32 magic      = { 113 << 23 };
+    static const u32 shifted_exp = 0x7c00 << 13; // exponent mask after shift
     FP32 o;
     FP16 h;
     h.u = f16;
 
-    o.u               = ( h.u & 0x7fffU ) << 13U; // exponent/mantissa bits
-    unsigned int exp_ = shifted_exp & o.u;        // just the exponent
-    o.u += ( 127 - 15 ) << 23;                    // exponent adjust
+    o.u      = ( h.u & 0x7fffU ) << 13U; // exponent/mantissa bits
+    u32 exp_ = shifted_exp & o.u;        // just the exponent
+    o.u += ( 127 - 15 ) << 23;           // exponent adjust
 
     // handle exponent special cases
     if ( exp_ == shifted_exp ) // Inf/NaN?
@@ -128,14 +128,14 @@ inline vec4 Float16ToFloat32( u16vec4 v )
     return { Float16ToFloat32( v.x ), Float16ToFloat32( v.y ), Float16ToFloat32( v.z ), Float16ToFloat32( v.w ) };
 }
 
-inline constexpr uint8_t UNormFloatToByte( float x ) { return static_cast<uint8_t>( 255.0f * x + 0.5f ); }
+inline constexpr u8 UNormFloatToByte( f32 x ) { return static_cast<u8>( 255.0f * x + 0.5f ); }
 
 inline u8vec4 UNormFloatToByte( vec4 v ) { return { UNormFloatToByte( v.x ), UNormFloatToByte( v.y ), UNormFloatToByte( v.z ), v.w }; }
 
-inline constexpr float UNormByteToFloat( uint8_t x ) { return x / 255.0f; }
+inline constexpr f32 UNormByteToFloat( u8 x ) { return x / 255.0f; }
 
 inline vec4 UNormByteToFloat( u8vec4 v ) { return { UNormByteToFloat( v.x ), UNormByteToFloat( v.y ), UNormByteToFloat( v.z ), v.w }; }
 
-inline constexpr float UNorm16ToFloat( uint16_t x ) { return float( x ) / 65535.0f; }
+inline constexpr f32 UNorm16ToFloat( u16 x ) { return f32( x ) / 65535.0f; }
 
-inline constexpr uint16_t FloatToUNorm16( float x ) { return static_cast<uint16_t>( 65535.0f * x + 0.5f ); }
+inline constexpr u16 FloatToUNorm16( f32 x ) { return static_cast<u16>( 65535.0f * x + 0.5f ); }

@@ -39,7 +39,7 @@ std::string CleanUpPreproc( const std::string& preprocOutput )
     ss << preprocOutput;
     std::string result;
     std::string line;
-    int numBlankLines = 0;
+    i32 numBlankLines = 0;
     while ( std::getline( ss, line ) )
     {
         if ( line.length() == 0 )
@@ -75,8 +75,8 @@ static const char* PGShaderStageToDefine( PG::ShaderStage stage )
         "IS_MESH_SHADER",
     };
 
-    int index = static_cast<int>( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast<int>( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
+    i32 index = static_cast<i32>( stage );
+    PG_ASSERT( 0 <= index && index <= static_cast<i32>( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
     return shaderStageToDefine[index];
 }
 
@@ -91,8 +91,8 @@ static shaderc_shader_kind PGToShadercShaderStage( PG::ShaderStage stage )
         shaderc_mesh_shader,     // MESH
     };
 
-    int index = static_cast<int>( stage );
-    PG_ASSERT( 0 <= index && index <= static_cast<int>( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
+    i32 index = static_cast<i32>( stage );
+    PG_ASSERT( 0 <= index && index <= static_cast<i32>( PG::ShaderStage::NUM_SHADER_STAGES ), "index %d not in range", index );
     return convert[index];
 }
 
@@ -231,6 +231,6 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     return output;
 }
 
-int PGShaderStageToShaderc( const ShaderStage stage ) { return static_cast<int>( PGToShadercShaderStage( stage ) ); }
+i32 PGShaderStageToShaderc( const ShaderStage stage ) { return static_cast<i32>( PGToShadercShaderStage( stage ) ); }
 
 } // namespace PG

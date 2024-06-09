@@ -16,7 +16,7 @@ static DescriptorAllocator s_descriptorAllocator;
 static VkDescriptorSet s_globalDescriptorSet;
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 
-void DescriptorLayoutBuilder::AddBinding( uint32_t binding, VkDescriptorType type, uint32_t count )
+void DescriptorLayoutBuilder::AddBinding( u32 binding, VkDescriptorType type, u32 count )
 {
     VkDescriptorSetLayoutBinding newbind{};
     newbind.binding         = binding;
@@ -37,7 +37,7 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
 
     VkDescriptorSetLayoutCreateInfo info{ VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
     info.pBindings    = bindings.data();
-    info.bindingCount = (uint32_t)bindings.size();
+    info.bindingCount = (u32)bindings.size();
     info.flags        = 0;
     info.flags |= VK_DESCRIPTOR_SET_LAYOUT_CREATE_UPDATE_AFTER_BIND_POOL_BIT;
 #if USING( PG_DESCRIPTOR_BUFFER )
@@ -62,7 +62,7 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
             bindFlag |= VK_DESCRIPTOR_BINDING_UPDATE_AFTER_BIND_BIT;
         }
 
-        extendedInfo.bindingCount  = (uint32_t)bindings.size();
+        extendedInfo.bindingCount  = (u32)bindings.size();
         extendedInfo.pBindingFlags = bindFlags.data();
     }
 
@@ -89,7 +89,7 @@ VkDescriptorSetLayout DescriptorLayoutBuilder::Build( VkShaderStageFlags shaderS
     return setLayout;
 }
 
-void DescriptorAllocator::Init( uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, std::string_view name )
+void DescriptorAllocator::Init( u32 maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, std::string_view name )
 {
     VkDescriptorPoolCreateInfo poolInfo{ VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
     // Even if we can update all the descriptors before the command buffer, the limit counts are much higher with it.
@@ -97,7 +97,7 @@ void DescriptorAllocator::Init( uint32_t maxSets, const std::vector<VkDescriptor
     // vs VkPhysicalDeviceLimits::maxDescriptorSetStorageImages = 144 on my Intel computer
     poolInfo.flags         = VK_DESCRIPTOR_POOL_CREATE_UPDATE_AFTER_BIND_BIT;
     poolInfo.maxSets       = maxSets;
-    poolInfo.poolSizeCount = (uint32_t)poolSizes.size();
+    poolInfo.poolSizeCount = (u32)poolSizes.size();
     poolInfo.pPoolSizes    = poolSizes.data();
 
     vkCreateDescriptorPool( rg.device, &poolInfo, nullptr, &pool );

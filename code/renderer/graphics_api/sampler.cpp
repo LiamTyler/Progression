@@ -89,9 +89,9 @@ void InitSamplers()
     samplerDesc.mipFilter = MipFilterMode::LINEAR;
     AddWrapSamplers( SAMPLER_TRILINEAR, samplerDesc );
 
-    constexpr uint32_t NUM_SAMPLERS = Underlying( SamplerType::NUM_SAMPLERS );
+    constexpr u32 NUM_SAMPLERS = Underlying( SamplerType::NUM_SAMPLERS );
     VkDescriptorImageInfo samplerInfos[NUM_SAMPLERS];
-    for ( uint32_t i = 0; i < NUM_SAMPLERS; ++i )
+    for ( u32 i = 0; i < NUM_SAMPLERS; ++i )
     {
         samplerInfos[i]         = {};
         samplerInfos[i].sampler = s_builtInSamplers[i].GetHandle();
@@ -108,7 +108,7 @@ void InitSamplers()
 
 void FreeSamplers()
 {
-    for ( int i = 0; i < NUM_SAMPLERS; ++i )
+    for ( i32 i = 0; i < NUM_SAMPLERS; ++i )
     {
         s_builtInSamplers[i].Free();
     }
@@ -131,7 +131,7 @@ FilterMode Sampler::GetMagFilter() const { return m_info.magFilter; }
 WrapMode Sampler::GetWrapModeU() const { return m_info.wrapModeU; }
 WrapMode Sampler::GetWrapModeV() const { return m_info.wrapModeV; }
 WrapMode Sampler::GetWrapModeW() const { return m_info.wrapModeW; }
-float Sampler::GetMaxAnisotropy() const { return m_info.maxAnisotropy; }
+f32 Sampler::GetMaxAnisotropy() const { return m_info.maxAnisotropy; }
 BorderColor Sampler::GetBorderColor() const { return m_info.borderColor; }
 VkSampler Sampler::GetHandle() const { return m_handle; }
 Sampler::operator bool() const { return m_handle != VK_NULL_HANDLE; }

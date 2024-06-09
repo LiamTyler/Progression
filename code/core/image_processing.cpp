@@ -21,11 +21,11 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
 
     ImageLoadFlags imgLoadFlags = input.flipVertically ? ImageLoadFlags::FLIP_VERTICALLY : ImageLoadFlags::DEFAULT;
 
-    uint32_t numOutputChannels = 0;
+    u32 numOutputChannels = 0;
     FloatImage2D sourceImages[4];
     ColorSpace sourceColorSpaces[4];
-    uint32_t width  = 0;
-    uint32_t height = 0;
+    u32 width  = 0;
+    u32 height = 0;
     for ( size_t i = 0; i < input.sourceImages.size(); ++i )
     {
         if ( !sourceImages[i].Load( input.sourceImages[i].filename, imgLoadFlags ) )
@@ -43,7 +43,7 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
 
         for ( const Remap& remap : input.sourceImages[i].remaps )
         {
-            numOutputChannels = std::max<uint32_t>( numOutputChannels, Underlying( remap.to ) + 1 );
+            numOutputChannels = std::max<u32>( numOutputChannels, Underlying( remap.to ) + 1 );
         }
     }
 
@@ -54,14 +54,14 @@ FloatImage2D CompositeImage( const CompositeImageInput& input )
         FloatImage2D srcImage = sourceImages[i].Resize( width, height );
         bool convertToLinear  = sourceColorSpaces[i] == ColorSpace::SRGB && outputColorSpace == ColorSpace::LINEAR;
         bool convertToSRGB    = sourceColorSpaces[i] == ColorSpace::LINEAR && outputColorSpace == ColorSpace::SRGB;
-        for ( uint32_t pixelIndex = 0; pixelIndex < width * height; ++pixelIndex )
+        for ( u32 pixelIndex = 0; pixelIndex < width * height; ++pixelIndex )
         {
             vec4 pixel = srcImage.GetFloat4( pixelIndex );
 
             // assume that the alpha channel is always linear, in both src and dst images
             for ( const Remap& remap : input.sourceImages[i].remaps )
             {
-                float x = pixel[Underlying( remap.from )];
+                f32 x = pixel[Underlying( remap.from )];
                 if ( remap.from != Channel::A && convertToLinear )
                 {
                     x = PG::GammaSRGBToLinear( x );

@@ -12,13 +12,13 @@ struct LinearBVHNode
     PG::AABB aabb;
     union
     {
-        int firstIndexOffset;  // if node is a leaf
-        int secondChildOffset; // if node is not a leaf (only saving the offset of the 2nd child, since the first child offset is always the
+        i32 firstIndexOffset;  // if node is a leaf
+        i32 secondChildOffset; // if node is not a leaf (only saving the offset of the 2nd child, since the first child offset is always the
                                // parentIndex + 1)
     };
-    uint16_t numShapes;
-    uint8_t axis;
-    uint8_t padding;
+    u16 numShapes;
+    u8 axis;
+    u8 padding;
 };
 
 class BVH
@@ -36,7 +36,7 @@ public:
 
     void Build( std::vector<Shape*>& shapes, SplitMethod splitMethod = SplitMethod::SAH );
     bool Intersect( const Ray& ray, IntersectionData* hitData ) const;
-    bool Occluded( const Ray& ray, float tMax = FLT_MAX ) const;
+    bool Occluded( const Ray& ray, f32 tMax = FLT_MAX ) const;
     PG::AABB GetAABB() const;
 
     std::vector<Shape*> shapes;

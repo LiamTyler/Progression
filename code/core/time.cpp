@@ -4,10 +4,10 @@ using namespace std::chrono;
 using Clock     = high_resolution_clock;
 using TimePoint = time_point<Clock>;
 
-static TimePoint s_startTime         = TimePoint();
-static float s_currentFrameStartTime = 0;
-static float s_lastFrameStartTime    = 0;
-static float s_deltaTime             = 0;
+static TimePoint s_startTime       = TimePoint();
+static f32 s_currentFrameStartTime = 0;
+static f32 s_lastFrameStartTime    = 0;
+static f32 s_deltaTime             = 0;
 
 namespace PG::Time
 {
@@ -20,9 +20,9 @@ void Reset()
     s_currentFrameStartTime = 0;
 }
 
-float Time() { return static_cast<float>( GetTimeSince( s_startTime ) ); }
+f32 Time() { return static_cast<f32>( GetTimeSince( s_startTime ) ); }
 
-float DeltaTime() { return s_deltaTime; }
+f32 DeltaTime() { return s_deltaTime; }
 
 void StartFrame()
 {
@@ -34,13 +34,13 @@ void EndFrame() { s_lastFrameStartTime = s_currentFrameStartTime; }
 
 Point GetTimePoint() { return Clock::now(); }
 
-double GetTimeSince( const Point& point )
+f64 GetTimeSince( const Point& point )
 {
     auto now = Clock::now();
     return duration_cast<microseconds>( now - point ).count() / 1000.0;
 }
 
-double GetElapsedTime( const Point& startPoint, const Point& endPoint )
+f64 GetElapsedTime( const Point& startPoint, const Point& endPoint )
 {
     return duration_cast<microseconds>( endPoint - startPoint ).count() / 1000.0;
 }

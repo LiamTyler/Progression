@@ -12,7 +12,7 @@ void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageI
     {
         auto irradianceInfo  = std::make_shared<GfxImageCreateInfo>();
         irradianceInfo->name = imageInfo->name + "_irradiance";
-        for ( int i = 0; i < ARRAY_COUNT( imageInfo->filenames ); ++i )
+        for ( i32 i = 0; i < ARRAY_COUNT( imageInfo->filenames ); ++i )
             irradianceInfo->filenames[i] = imageInfo->filenames[i];
         irradianceInfo->clampHorizontal = false;
         irradianceInfo->clampVertical   = false;
@@ -30,7 +30,7 @@ void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageI
 
 std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 {
-    uint32_t numImages    = 0;
+    u32 numImages         = 0;
     std::string cacheName = info->name;
     // composite image names are already a valid cache name. No need to append a 2nd hash
     if ( !IsSemanticComposite( info->semantic ) )
@@ -42,7 +42,7 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
         HashCombine( hash, Underlying( info->clampHorizontal ) );
         HashCombine( hash, Underlying( info->clampVertical ) );
         HashCombine( hash, Underlying( info->filterMode ) );
-        for ( int i = 0; i < 6; ++i )
+        for ( i32 i = 0; i < 6; ++i )
         {
             if ( info->filenames[i].empty() )
                 continue;
@@ -53,7 +53,7 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     }
     else
     {
-        for ( int i = 0; i < 6; ++i )
+        for ( i32 i = 0; i < 6; ++i )
         {
             if ( !info->filenames[i].empty() )
                 ++numImages;
@@ -65,7 +65,7 @@ std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 
 AssetStatus GfxImageConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
-    for ( int i = 0; i < 6; ++i )
+    for ( i32 i = 0; i < 6; ++i )
     {
         const std::string& filename = info->filenames[i];
         if ( filename.empty() )

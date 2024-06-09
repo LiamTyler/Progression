@@ -1,7 +1,6 @@
 #pragma once
 
 #include "shared/math_vec.hpp"
-#include <cstdint>
 #include <fstream>
 #include <string>
 #include <vector>
@@ -9,7 +8,7 @@
 namespace PG
 {
 
-enum class PModelVersionNum : unsigned int
+enum class PModelVersionNum : u32
 {
     BITANGENT_SIGNS      = 1,
     VERTEX_DATA_TOGETHER = 2,
@@ -34,21 +33,21 @@ public:
         vec3 bitangent;
         vec2 uvs[PMODEL_MAX_UVS_PER_VERT];
         vec4 colors[PMODEL_MAX_COLORS_PER_VERT];
-        float boneWeights[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
-        uint32_t boneIndices[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
-        uint8_t numBones = 0;
+        f32 boneWeights[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
+        u32 boneIndices[PMODEL_MAX_BONE_WEIGHTS_PER_VERT];
+        u8 numBones = 0;
 
-        bool AddBone( uint32_t boneIdx, float weight );
+        bool AddBone( u32 boneIdx, f32 weight );
     };
 
     struct Mesh
     {
         std::string name;
         std::string materialName;
-        std::vector<uint32_t> indices;
+        std::vector<u32> indices;
         std::vector<Vertex> vertices;
-        uint32_t numUVChannels;
-        uint32_t numColorChannels;
+        u32 numUVChannels;
+        u32 numColorChannels;
         bool hasTangents;
         bool hasBoneWeights;
     };
@@ -57,8 +56,8 @@ public:
 
     bool Load( const std::string& filename );
 
-    bool Save( std::ofstream& out, uint32_t floatPrecision = 6, bool logProgress = true ) const;
-    bool Save( const std::string& filename, uint32_t floatPrecision = 6, bool logProgress = true ) const;
+    bool Save( std::ofstream& out, u32 floatPrecision = 6, bool logProgress = true ) const;
+    bool Save( const std::string& filename, u32 floatPrecision = 6, bool logProgress = true ) const;
 };
 
 std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename );

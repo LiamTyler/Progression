@@ -15,7 +15,7 @@ static void ResolveSizes( TGBTexture& tex, const TaskGraph::CompileInfo& info )
     tex.height = ResolveRelativeSize( info.sceneHeight, info.displayHeight, tex.height );
     if ( tex.mipLevels == AUTO_FULL_MIP_CHAIN() )
     {
-        tex.mipLevels = 1 + static_cast<int>( log2f( static_cast<float>( Max( tex.width, tex.height ) ) ) );
+        tex.mipLevels = 1 + static_cast<i32>( log2f( static_cast<f32>( Max( tex.width, tex.height ) ) ) );
     }
 }
 
@@ -24,7 +24,7 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
     resourceDatas.clear();
     resourceDatas.reserve( builder.textures.size() + builder.buffers.size() );
 
-    TG_STAT( m_stats.numTextures = (uint32_t)builder.textures.size() );
+    TG_STAT( m_stats.numTextures = (u32)builder.textures.size() );
     m_textures.resize( builder.textures.size() );
     for ( size_t i = 0; i < builder.textures.size(); ++i )
     {
@@ -35,9 +35,9 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         TextureCreateInfo desc = {};
         desc.type              = ImageType::TYPE_2D;
         desc.format            = buildTex.format;
-        desc.width             = static_cast<uint16_t>( buildTex.width );
-        desc.height            = static_cast<uint16_t>( buildTex.height );
-        desc.depth             = static_cast<uint16_t>( buildTex.depth );
+        desc.width             = static_cast<u16>( buildTex.width );
+        desc.height            = static_cast<u16>( buildTex.height );
+        desc.depth             = static_cast<u16>( buildTex.depth );
         desc.arrayLayers       = buildTex.arrayLayers;
         desc.mipLevels         = buildTex.mipLevels;
         desc.usage             = buildTex.usage;
@@ -85,7 +85,7 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         TG_STAT( m_stats.unAliasedTextureMem += data.memoryReq.size );
     }
 
-    TG_STAT( m_stats.numBuffers = (uint32_t)builder.buffers.size() );
+    TG_STAT( m_stats.numBuffers = (u32)builder.buffers.size() );
     m_buffers.resize( builder.buffers.size() );
     for ( size_t i = 0; i < builder.buffers.size(); ++i )
     {
@@ -190,7 +190,7 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
             }
         }
     }
-    TG_STAT( m_stats.resAllocTimeMSec = (float)Time::GetTimeSince( allocStartTime ) );
+    TG_STAT( m_stats.resAllocTimeMSec = (f32)Time::GetTimeSince( allocStartTime ) );
 
     // Vulkan doesn't allow you to make image views until the memory is bound
     for ( size_t i = 0; i < m_textures.size(); ++i )
@@ -323,11 +323,11 @@ static ImageLayout GetImageLayoutFromType( ResourceType type )
 void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, CompileInfo& compileInfo )
 {
     // create tasks + figure out synchronization barriers needed
-    static constexpr uint16_t NO_TASK = UINT16_MAX;
+    static constexpr u16 NO_TASK = UINT16_MAX;
     struct ResourceTrackingInfo
     {
         ImageLayout currLayout = ImageLayout::UNDEFINED;
-        uint16_t prevTask      = NO_TASK;
+        u16 prevTask           = NO_TASK;
         TaskType prevTaskType  = TaskType::NONE;
         ResourceState prevState;
         ResourceType prevResType = ResourceType::NONE;
@@ -336,7 +336,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
     std::vector<ResourceTrackingInfo> bufTracking( builder.buffers.size() );
 
     m_tasks.reserve( builder.tasks.size() );
-    for ( uint16_t taskIndex = 0; taskIndex < (uint16_t)builder.tasks.size(); ++taskIndex )
+    for ( u16 taskIndex = 0; taskIndex < (u16)builder.tasks.size(); ++taskIndex )
     {
         TaskBuilder* builderTask = builder.tasks[taskIndex];
         Task* task               = nullptr;
@@ -481,7 +481,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
                 trackInfo.prevResType  = resType;
             }
 
-            TG_STAT( m_stats.numBarriers_Image += (uint32_t)cTask->imageBarriersPreClears.size() );
+            TG_STAT( m_stats.numBarriers_Image += (u32)cTask->imageBarriersPreClears.size() );
         }
         else if ( taskType == TaskType::GRAPHICS )
         {
@@ -491,8 +491,8 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             task                        = gTask;
             gTask->function             = bgTask->function;
 
-            uint32_t minAttachWidth  = ~0u;
-            uint32_t minAttachHeight = ~0u;
+            u32 minAttachWidth  = ~0u;
+            u32 minAttachHeight = ~0u;
             for ( const TGBAttachmentInfo& bAttachInfo : bgTask->attachments )
             {
                 TGResourceHandle texHandle      = bAttachInfo.ref.index;
@@ -564,7 +564,7 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             gTask->renderingInfo.renderArea           = { 0, 0, minAttachWidth, minAttachHeight };
             gTask->renderingInfo.layerCount           = 1;
             gTask->renderingInfo.viewMask             = 0;
-            gTask->renderingInfo.colorAttachmentCount = (uint32_t)gTask->colorAttachments.size();
+            gTask->renderingInfo.colorAttachmentCount = (u32)gTask->colorAttachments.size();
             gTask->renderingInfo.pColorAttachments    = gTask->colorAttachments.data();
             gTask->renderingInfo.pDepthAttachment     = gTask->depthAttach;
             gTask->renderingInfo.pStencilAttachment   = nullptr;
@@ -656,8 +656,8 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
 #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
         task->name = builderTask->name;
 #endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
-        TG_STAT( m_stats.numBarriers_Buffer += (uint32_t)task->bufferBarriers.size() );
-        TG_STAT( m_stats.numBarriers_Image += (uint32_t)task->imageBarriers.size() );
+        TG_STAT( m_stats.numBarriers_Buffer += (u32)task->bufferBarriers.size() );
+        TG_STAT( m_stats.numBarriers_Image += (u32)task->imageBarriers.size() );
 
         m_tasks.push_back( task );
     }
@@ -673,7 +673,7 @@ bool TaskGraph::Compile( TaskGraphBuilder& builder, CompileInfo& compileInfo )
     Compile_MemoryAliasing( builder, compileInfo, resourceDatas );
     Compile_SynchronizationAndTasks( builder, compileInfo );
 
-    TG_STAT( m_stats.compileTimeMSec = (float)Time::GetTimeSince( compileStartTime ) );
+    TG_STAT( m_stats.compileTimeMSec = (f32)Time::GetTimeSince( compileStartTime ) );
     TG_STAT( if ( compileInfo.showStats ) DisplayStats() );
 
     return true;
@@ -724,7 +724,7 @@ void TaskGraph::Free()
 void TaskGraph::DisplayStats()
 {
 #if USING( TG_STATS )
-    float toMB    = 1.0f / ( 1024 * 1024 );
+    f32 toMB      = 1.0f / ( 1024 * 1024 );
     const auto& s = m_stats;
     LOG( "Task Graph Stats:" );
     LOG( "    Compiled in %.2fms", s.compileTimeMSec );

@@ -39,7 +39,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         return false;
 
     meshes.resize( pmodel.meshes.size() );
-    for ( uint32_t meshIdx = 0; meshIdx < (uint32_t)meshes.size(); ++meshIdx )
+    for ( u32 meshIdx = 0; meshIdx < (u32)meshes.size(); ++meshIdx )
     {
         Mesh& m                   = meshes[meshIdx];
         const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
@@ -58,16 +58,16 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
         size_t maxMeshlets = meshopt_buildMeshletsBound( pMesh.indices.size(), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET );
         std::vector<meshopt_Meshlet> meshlets( maxMeshlets );
-        std::vector<uint32_t> meshletVertices( maxMeshlets * MAX_VERTS_PER_MESHLET );
-        std::vector<uint8_t> meshletTriangles( maxMeshlets * MAX_TRIS_PER_MESHLET * 3 );
+        std::vector<u32> meshletVertices( maxMeshlets * MAX_VERTS_PER_MESHLET );
+        std::vector<u8> meshletTriangles( maxMeshlets * MAX_TRIS_PER_MESHLET * 3 );
 
         size_t meshletCount = meshopt_buildMeshlets( meshlets.data(), meshletVertices.data(), meshletTriangles.data(), pMesh.indices.data(),
             pMesh.indices.size(), &pMesh.vertices[0].pos.x, pMesh.vertices.size(), sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET,
             MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
 
         m.meshlets.resize( meshletCount );
-        uint32_t numVerts = 0;
-        uint32_t numTris  = 0;
+        u32 numVerts = 0;
+        u32 numTris  = 0;
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
@@ -97,13 +97,13 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             m.tangents.resize( numVerts );
         m.indices.resize( 4 * numTris ); // for now, storing 1 byte of padding after every 3 indices, for easier indexing
 
-        uint32_t numZeroNormals  = 0;
-        uint32_t numZeroTangents = 0;
+        u32 numZeroNormals  = 0;
+        u32 numZeroTangents = 0;
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& moMeshlet = meshlets[meshletIdx];
             const Meshlet& pgMeshlet         = m.meshlets[meshletIdx];
-            for ( uint8_t localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
+            for ( u8 localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
             {
                 size_t globalMOIdx       = moMeshlet.vertex_offset + localVIdx;
                 size_t globalPGIdx       = pgMeshlet.vertexOffset + localVIdx;
@@ -132,7 +132,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 }
             }
 
-            for ( uint8_t localTriIdx = 0; localTriIdx < pgMeshlet.triangleCount; ++localTriIdx )
+            for ( u8 localTriIdx = 0; localTriIdx < pgMeshlet.triangleCount; ++localTriIdx )
             {
                 size_t globalMOIdx         = moMeshlet.triangle_offset + 3 * localTriIdx;
                 size_t globalPGIdx         = 4 * pgMeshlet.triOffset + 4 * localTriIdx;
@@ -165,14 +165,14 @@ bool Model::FastfileLoad( Serializer* serializer )
     for ( Mesh& mesh : meshes )
     {
 #if USING( ASSET_NAMES )
-        serializer->Read<uint16_t>( mesh.name );
+        serializer->Read<u16>( mesh.name );
 #else  // #if USING( ASSET_NAMES )
-        uint16_t meshNameLen;
+        u16 meshNameLen;
         serializer->Read( meshNameLen );
         serializer->Skip( meshNameLen );
 #endif // #else // #if USING( ASSET_NAMES )
         std::string matName;
-        serializer->Read<uint16_t>( matName );
+        serializer->Read<u16>( matName );
         mesh.material = AssetManager::Get<Material>( matName );
         if ( !mesh.material )
         {
@@ -199,8 +199,8 @@ bool Model::FastfileSave( Serializer* serializer ) const
     serializer->Write( meshes.size() );
     for ( const Mesh& mesh : meshes )
     {
-        serializer->Write<uint16_t>( mesh.name );
-        serializer->Write<uint16_t>( mesh.material->GetName() );
+        serializer->Write<u16>( mesh.name );
+        serializer->Write<u16>( mesh.material->GetName() );
         serializer->Write( mesh.positions );
         serializer->Write( mesh.normals );
         serializer->Write( mesh.texCoords );
@@ -219,8 +219,8 @@ void Model::UploadToGPU()
     FreeGPU();
     for ( Mesh& mesh : meshes )
     {
-        mesh.numVertices              = static_cast<uint32_t>( mesh.positions.size() );
-        mesh.numMeshlets              = static_cast<uint32_t>( mesh.meshlets.size() );
+        mesh.numVertices              = static_cast<u32>( mesh.positions.size() );
+        mesh.numMeshlets              = static_cast<u32>( mesh.meshlets.size() );
         mesh.hasTexCoords             = !mesh.texCoords.empty();
         mesh.hasTangents              = !mesh.tangents.empty();
         size_t totalVertexSizeInBytes = 0;
@@ -229,15 +229,15 @@ void Model::UploadToGPU()
         totalVertexSizeInBytes += mesh.texCoords.size() * sizeof( vec2 );
         totalVertexSizeInBytes += mesh.tangents.size() * sizeof( vec4 );
         // mesh.indexOffset = totalVertexSize;
-        // totalVertexSize += mesh.indices.size() * sizeof( uint8_t );
-        // totalVertexSize += ALIGN_UP_POW_2( mesh.indices.size(), 4 ) * sizeof( uint8_t );
+        // totalVertexSize += mesh.indices.size() * sizeof( u8 );
+        // totalVertexSize += ALIGN_UP_POW_2( mesh.indices.size(), 4 ) * sizeof( u8 );
 
         PG_ASSERT( mesh.indices.size() % 4 == 0 );
-        uint32_t tri1             = *reinterpret_cast<uint32_t*>( mesh.indices.data() );
-        uint32_t index1           = ( tri1 >> 0 ) & 0xFF;
-        uint32_t index2           = ( tri1 >> 8 ) & 0xFF;
-        uint32_t index3           = ( tri1 >> 16 ) & 0xFF;
-        size_t triBufferSize      = mesh.indices.size() * sizeof( uint8_t );
+        u32 tri1                  = *reinterpret_cast<u32*>( mesh.indices.data() );
+        u32 index1                = ( tri1 >> 0 ) & 0xFF;
+        u32 index2                = ( tri1 >> 8 ) & 0xFF;
+        u32 index3                = ( tri1 >> 16 ) & 0xFF;
+        size_t triBufferSize      = mesh.indices.size() * sizeof( u8 );
         size_t meshletsSize       = mesh.meshlets.size() * sizeof( Meshlet );
         size_t stagingBufferSize  = Max( totalVertexSizeInBytes, Max( triBufferSize, meshletsSize ) );
         Gfx::Buffer stagingBuffer = rg.device.NewStagingBuffer( stagingBufferSize );
@@ -257,7 +257,7 @@ void Model::UploadToGPU()
             stagingData += mesh.tangents.size() * sizeof( vec4 );
         }
         // stagingData = stagingBuffer.Map() + mesh.indexOffset;
-        // memcpy( stagingData, mesh.indices.data(), mesh.indices.size() * sizeof( uint8_t ) );
+        // memcpy( stagingData, mesh.indices.data(), mesh.indices.size() * sizeof( u8 ) );
 
         BufferCreateInfo vbCreateInfo{};
         vbCreateInfo.size        = totalVertexSizeInBytes;
@@ -311,7 +311,7 @@ void Model::FreeCPU()
         mesh.normals   = std::vector<vec3>();
         mesh.texCoords = std::vector<vec2>();
         mesh.tangents  = std::vector<vec4>();
-        mesh.indices   = std::vector<uint8_t>();
+        mesh.indices   = std::vector<u8>();
     }
 }
 

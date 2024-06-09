@@ -32,7 +32,7 @@ const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     }                                                                                                          \
     ;                                                                                                          \
                                                                                                                \
-    for ( int i = 0; i < ARRAY_COUNT( arr ); ++i )                                                             \
+    for ( i32 i = 0; i < ARRAY_COUNT( arr ); ++i )                                                             \
     {                                                                                                          \
         if ( arr[i].first == str )                                                                             \
         {                                                                                                      \
@@ -109,9 +109,9 @@ bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
         } },
         { "textureset", []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = ParseString( v ); } },
         { "albedoTint", []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint = ParseVec3( v ); } },
-        { "metalnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint = ParseNumber<float>( v ); } },
+        { "metalnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint = ParseNumber<f32>( v ); } },
         { "emissiveTint", []( const Value& v, MaterialCreateInfo& i ) { i.emissiveTint = ParseVec3( v ); } },
-        { "roughnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint = ParseNumber<float>( v ); } },
+        { "roughnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint = ParseNumber<f32>( v ); } },
         { "applyAlbedo", []( const Value& v, MaterialCreateInfo& i ) { i.applyAlbedo = ParseBool( v ); } },
         { "applyMetalness", []( const Value& v, MaterialCreateInfo& i ) { i.applyMetalness = ParseBool( v ); } },
         { "applyNormals", []( const Value& v, MaterialCreateInfo& i ) { i.applyNormals = ParseBool( v ); } },
@@ -230,9 +230,9 @@ bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfo
         { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = ParseString( v ); } },
         { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = ParseString( v ); } },
         { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = Channel_StringToEnum( ParseString( v ) ); } },
-        { "metalnessScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessScale = ParseNumber<float>( v ); } },
+        { "metalnessScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessScale = ParseNumber<f32>( v ); } },
         { "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = ParseString( v ); } },
-        { "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<float>( v ); } },
+        { "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<f32>( v ); } },
         { "normalMapIsYUp", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMapIsYUp = ParseBool( v ); } },
         { "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = ParseString( v ); } },
         { "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( ParseString( v ) ); } },

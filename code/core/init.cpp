@@ -39,8 +39,8 @@ bool EngineInitialize( EngineInitInfo info )
     Time::Reset();
     AssetManager::Init();
 #if USING( GAME )
-    uint32_t framebufferWidth  = info.windowWidth;
-    uint32_t framebufferHeight = info.windowHeight;
+    u32 framebufferWidth  = info.windowWidth;
+    u32 framebufferHeight = info.windowHeight;
     if ( !eg.headless )
     {
         WindowCreateInfo winCreate;

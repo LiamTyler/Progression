@@ -36,19 +36,19 @@ bool Pipeline::FastfileLoad( Serializer* serializer )
 #endif // #if USING( ASSET_NAMES )
 
     // serializer->Read( createInfo.name );
-    uint8_t numShaders;
+    u8 numShaders;
     serializer->Read( numShaders );
     createInfo.shaders.resize( numShaders );
-    for ( uint8_t i = 0; i < numShaders; ++i )
+    for ( u8 i = 0; i < numShaders; ++i )
     {
         serializer->Read( createInfo.shaders[i].name );
         serializer->Read( createInfo.shaders[i].stage );
     }
 
-    uint8_t numAttachments;
+    u8 numAttachments;
     serializer->Read( numAttachments );
     createInfo.graphicsInfo.colorAttachments.resize( numAttachments );
-    for ( uint8_t i = 0; i < numAttachments; ++i )
+    for ( u8 i = 0; i < numAttachments; ++i )
     {
         PipelineColorAttachmentInfo& aInfo = createInfo.graphicsInfo.colorAttachments[i];
         serializer->Read( &aInfo, sizeof( PipelineColorAttachmentInfo ) );
@@ -68,8 +68,8 @@ bool Pipeline::FastfileSave( Serializer* serializer ) const
 {
 #if USING( CONVERTER )
     using namespace Gfx;
-    serializer->Write<uint16_t>( createInfo.name.c_str() );
-    uint8_t numShaders = static_cast<uint8_t>( createInfo.shaders.size() );
+    serializer->Write<u16>( createInfo.name.c_str() );
+    u8 numShaders = static_cast<u8>( createInfo.shaders.size() );
     serializer->Write( numShaders );
     for ( const PipelineShaderInfo& shader : createInfo.shaders )
     {
@@ -78,7 +78,7 @@ bool Pipeline::FastfileSave( Serializer* serializer ) const
         serializer->Write( shader.stage );
     }
 
-    uint8_t numAttachments = static_cast<uint8_t>( createInfo.graphicsInfo.colorAttachments.size() );
+    u8 numAttachments = static_cast<u8>( createInfo.graphicsInfo.colorAttachments.size() );
     serializer->Write( numAttachments );
     for ( const PipelineColorAttachmentInfo& aInfo : createInfo.graphicsInfo.colorAttachments )
     {

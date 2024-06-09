@@ -10,7 +10,7 @@
 namespace PG::Gfx
 {
 
-bool Swapchain::Create( uint32_t width, uint32_t height )
+bool Swapchain::Create( u32 width, u32 height )
 {
     vkb::SwapchainBuilder swapchainBuilder{ rg.physicalDevice, rg.device, rg.surface };
 
@@ -67,7 +67,7 @@ bool Swapchain::Create( uint32_t width, uint32_t height )
     return true;
 }
 
-bool Swapchain::Recreate( uint32_t preferredWidth, uint32_t preferredHeight )
+bool Swapchain::Recreate( u32 preferredWidth, u32 preferredHeight )
 {
     rg.device.WaitForIdle();
     Free();
@@ -98,13 +98,13 @@ void Swapchain::Free()
 
 Swapchain::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 Swapchain::operator VkSwapchainKHR() const { return m_handle; }
-uint32_t Swapchain::GetCurrentImageIndex() const { return m_currentImageIdx; }
+u32 Swapchain::GetCurrentImageIndex() const { return m_currentImageIdx; }
 PixelFormat Swapchain::GetFormat() const { return m_imageFormat; }
-uint32_t Swapchain::GetWidth() const { return m_width; }
-uint32_t Swapchain::GetHeight() const { return m_height; }
+u32 Swapchain::GetWidth() const { return m_width; }
+u32 Swapchain::GetHeight() const { return m_height; }
 VkSwapchainKHR Swapchain::GetHandle() const { return m_handle; }
-uint32_t Swapchain::GetNumImages() const { return (uint32_t)m_textures.size(); }
+u32 Swapchain::GetNumImages() const { return (u32)m_textures.size(); }
 Texture& Swapchain::GetTexture() { return m_textures[m_currentImageIdx]; }
-Texture& Swapchain::GetTextureAt( uint32_t index ) { return m_textures[index]; }
+Texture& Swapchain::GetTextureAt( u32 index ) { return m_textures[index]; }
 
 } // namespace PG::Gfx

@@ -1,11 +1,11 @@
 #pragma once
 
-#include <cstdint>
+#include "shared/core_defines.hpp"
 
 namespace PG
 {
 
-float Hammersley32( uint32_t index );
-double Hammersley64( uint64_t index );
+f32 Hammersley32( u32 index );
+f64 Hammersley64( u64 index );
 
 } // namespace PG

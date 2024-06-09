@@ -5,7 +5,7 @@
 namespace PG::Input
 {
 
-enum class RawButton : uint16_t
+enum class RawButton : u16
 {
     A,
     B,
@@ -126,14 +126,14 @@ enum class RawButton : uint16_t
     COUNT
 };
 
-enum class RawButtonState : uint8_t
+enum class RawButtonState : u8
 {
     PRESSED,  // only true the first frame pressed
     HELD,     // true for the 2nd frame the button is pressed and onwards
     RELEASED, // only true the first frame released
 };
 
-enum class RawAxis : uint8_t
+enum class RawAxis : u8
 {
     MOUSE_X,
     MOUSE_Y,
@@ -141,9 +141,9 @@ enum class RawAxis : uint8_t
     COUNT
 };
 
-using RawAxisValue = float;
+using RawAxisValue = f32;
 
-RawButton GlfwKeyToRawButton( int key );
-RawButton GlfwMouseButtonToRawButton( int button );
+RawButton GlfwKeyToRawButton( i32 key );
+RawButton GlfwMouseButtonToRawButton( i32 button );
 
 } // namespace PG::Input

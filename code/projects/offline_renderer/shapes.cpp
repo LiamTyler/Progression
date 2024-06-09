@@ -19,8 +19,8 @@ SurfaceInfo Shape::SampleWithRespectToSolidAngle( const Interaction& it, PG::Ran
     }
     else
     {
-        float radiusSquared = Dot( wi, wi );
-        wi                  = Normalize( wi );
+        f32 radiusSquared = Dot( wi, wi );
+        wi                = Normalize( wi );
         info.pdf *= radiusSquared / AbsDot( info.normal, -wi );
         if ( std::isinf( info.pdf ) )
         {
@@ -32,7 +32,7 @@ SurfaceInfo Shape::SampleWithRespectToSolidAngle( const Interaction& it, PG::Ran
 
 Material* Sphere::GetMaterial() const { return material.get(); }
 
-float Sphere::Area() const { return 4 * PI * radius * radius; }
+f32 Sphere::Area() const { return 4 * PI * radius * radius; }
 
 SurfaceInfo Sphere::SampleWithRespectToArea( PG::Random::RNG& rng ) const
 {
@@ -56,7 +56,7 @@ static Ray operator*( const Transform& transform, const Ray& ray )
 
 bool Sphere::Intersect( const Ray& ray, IntersectionData* hitData ) const
 {
-    float t;
+    f32 t;
     Ray localRay = worldToLocal * ray;
     if ( !intersect::RaySphere( localRay.position, localRay.direction, vec3( 0 ), 1, t, hitData->t ) )
     {
@@ -69,8 +69,8 @@ bool Sphere::Intersect( const Ray& ray, IntersectionData* hitData ) const
     hitData->normal   = Normalize( hitData->position - position );
 
     vec3 localPos        = localRay.Evaluate( t );
-    float theta          = atan2( localPos.z, localPos.x );
-    float phi            = acosf( -localPos.y );
+    f32 theta            = atan2( localPos.z, localPos.x );
+    f32 phi              = acosf( -localPos.y );
     hitData->texCoords.x = -0.5f * ( theta / PI + 1 );
     hitData->texCoords.y = phi / PI;
 
@@ -80,9 +80,9 @@ bool Sphere::Intersect( const Ray& ray, IntersectionData* hitData ) const
     return true;
 }
 
-bool Sphere::TestIfHit( const Ray& ray, float maxT ) const
+bool Sphere::TestIfHit( const Ray& ray, f32 maxT ) const
 {
-    float t;
+    f32 t;
     return intersect::RaySphere( ray.position, ray.direction, position, radius, t, maxT );
 }
 
@@ -94,7 +94,7 @@ AABB Sphere::WorldSpaceAABB() const
 
 Material* Triangle::GetMaterial() const { return PT::GetMaterial( GetMeshInstance( meshHandle )->material ); }
 
-float Triangle::Area() const
+f32 Triangle::Area() const
 {
     auto mesh      = GetMeshInstance( meshHandle );
     const auto& p0 = mesh->positions[i0];
@@ -107,8 +107,8 @@ SurfaceInfo Triangle::SampleWithRespectToArea( PG::Random::RNG& rng ) const
 {
     SurfaceInfo info;
     vec2 sample   = UniformSampleTriangle( rng.UniformFloat(), rng.UniformFloat() );
-    float u       = sample.x;
-    float v       = sample.y;
+    f32 u         = sample.x;
+    f32 v         = sample.y;
     auto mesh     = GetMeshInstance( meshHandle );
     info.position = u * mesh->positions[i0] + v * mesh->positions[i1] + ( 1 - u - v ) * mesh->positions[i2];
     info.normal   = Normalize( u * mesh->normals[i0] + v * mesh->normals[i1] + ( 1 - u - v ) * mesh->normals[i2] );
@@ -118,7 +118,7 @@ SurfaceInfo Triangle::SampleWithRespectToArea( PG::Random::RNG& rng ) const
 
 bool Triangle::Intersect( const Ray& ray, IntersectionData* hitData ) const
 {
-    float t, u, v;
+    f32 t, u, v;
     auto mesh = GetMeshInstance( meshHandle );
     if ( intersect::RayTriangle(
              ray.position, ray.direction, mesh->positions[i0], mesh->positions[i1], mesh->positions[i2], t, u, v, hitData->t ) )
@@ -136,9 +136,9 @@ bool Triangle::Intersect( const Ray& ray, IntersectionData* hitData ) const
     return false;
 }
 
-bool Triangle::TestIfHit( const Ray& ray, float maxT ) const
+bool Triangle::TestIfHit( const Ray& ray, f32 maxT ) const
 {
-    float t, u, v;
+    f32 t, u, v;
     auto mesh = GetMeshInstance( meshHandle );
     return intersect::RayTriangle(
         ray.position, ray.direction, mesh->positions[i0], mesh->positions[i1], mesh->positions[i2], t, u, v, maxT );

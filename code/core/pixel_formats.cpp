@@ -6,9 +6,9 @@
 namespace PG
 {
 
-uint32_t NumChannelsInPixelFromat( PixelFormat format )
+u32 NumChannelsInPixelFromat( PixelFormat format )
 {
-    uint8_t components[] = {
+    u8 components[] = {
         0, // INVALID
         1, // R8_UNORM
         1, // R8_SNORM
@@ -99,12 +99,12 @@ uint32_t NumChannelsInPixelFromat( PixelFormat format )
     PG_ASSERT( Underlying( format ) < Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
     static_assert( ARRAY_COUNT( components ) == Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
 
-    return components[static_cast<int>( format )];
+    return components[static_cast<i32>( format )];
 }
 
-uint32_t NumBytesPerPixel( PixelFormat format )
+u32 NumBytesPerPixel( PixelFormat format )
 {
-    uint8_t size[] = {
+    u8 size[] = {
         0, // INVALID
 
         1, // R8_UNORM
@@ -213,10 +213,10 @@ uint32_t NumBytesPerPixel( PixelFormat format )
     PG_ASSERT( Underlying( format ) < Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
     static_assert( ARRAY_COUNT( size ) == Underlying( PixelFormat::NUM_PIXEL_FORMATS ) );
 
-    return size[static_cast<int>( format )];
+    return size[static_cast<i32>( format )];
 }
 
-uint32_t NumBytesPerChannel( PixelFormat format ) { return NumBytesPerPixel( format ) / NumChannelsInPixelFromat( format ); }
+u32 NumBytesPerChannel( PixelFormat format ) { return NumBytesPerPixel( format ) / NumChannelsInPixelFromat( format ); }
 
 bool PixelFormatIsNormalized( PixelFormat format )
 {
@@ -363,7 +363,7 @@ bool PixelFormatIsCompressed( PixelFormat format )
     return Underlying( PixelFormat::BC1_RGB_UNORM ) <= f && f < Underlying( PixelFormat::NUM_PIXEL_FORMATS );
 }
 
-void GetRGBAOrder( PixelFormat format, int channelRemap[4] )
+void GetRGBAOrder( PixelFormat format, i32 channelRemap[4] )
 {
     channelRemap[0] = 0;
     channelRemap[1] = 1;

@@ -11,8 +11,8 @@ class Scene;
 
 namespace RenderSystem
 {
-bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uint32_t displayHeight, bool headless = false );
-void Resize( uint32_t displayWidth, uint32_t displayHeight );
+bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight, bool headless = false );
+void Resize( u32 displayWidth, u32 displayHeight );
 void Shutdown();
 void Render();
 

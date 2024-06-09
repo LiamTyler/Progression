@@ -21,9 +21,9 @@ void PG::InitShaderIncludeCache()
     while ( std::getline( in, shaderName ) )
     {
         std::getline( in, line );
-        uint32_t numIncludes = std::stoul( line );
+        u32 numIncludes = std::stoul( line );
         std::vector<std::string> includes( numIncludes );
-        for ( uint32_t i = 0; i < numIncludes; ++i )
+        for ( u32 i = 0; i < numIncludes; ++i )
         {
             std::getline( in, line );
             includes[i] = PG_ASSET_DIR "shaders/" + line.substr( 1 ); // [0] char should be a tab

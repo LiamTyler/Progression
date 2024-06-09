@@ -1,10 +1,9 @@
 #pragma once
 
 #include "shared/core_defines.hpp"
-#include <cstdint>
 
 // If order is changed, all fastfiles need to be rebuilt
-enum AssetType : uint8_t
+enum AssetType : u8
 {
     ASSET_TYPE_GFX_IMAGE = 0,
     ASSET_TYPE_MATERIAL  = 1,
@@ -21,7 +20,7 @@ enum AssetType : uint8_t
     ASSET_TYPE_COUNT
 };
 
-constexpr unsigned int g_assetVersions[] = {
+constexpr i32 g_assetVersions[] = {
     9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
     10, // ASSET_TYPE_MATERIAL,  "New name serialization"
     1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
@@ -37,7 +36,7 @@ constexpr unsigned int g_assetVersions[] = {
     0, // ASSET_TYPE_TEXTURESET, "use slopeScale, metalness + roughness tints correctly"
 };
 
-constexpr uint32_t PG_FASTFILE_VERSION = 9 + ARRAY_SUM( g_assetVersions ); // smaller AssetType
+constexpr u32 PG_FASTFILE_VERSION = 9 + ARRAY_SUM( g_assetVersions ); // smaller AssetType
 
 inline const char* const g_assetNames[] = {
     "Image",      // ASSET_TYPE_GFX_IMAGE

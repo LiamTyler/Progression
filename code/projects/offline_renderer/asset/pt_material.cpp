@@ -21,18 +21,18 @@ vec3 BRDF::F( const vec3& worldSpace_wo, const vec3& worldSpace_wi ) const
     const vec3& L = worldSpace_wi;
     const vec3& V = worldSpace_wo;
 
-    vec3 H      = Normalize( worldSpace_wo + worldSpace_wi );
-    float NdotV = Max( Dot( N, V ), 1e-5f );
-    float NdotH = Saturate( Dot( N, H ) );
-    float NdotL = Saturate( Dot( N, L ) );
-    float VdotH = Saturate( Dot( V, H ) );
-    vec3 F0     = mix( vec3( 0.04f ), albedo, metalness );
+    vec3 H    = Normalize( worldSpace_wo + worldSpace_wi );
+    f32 NdotV = Max( Dot( N, V ), 1e-5f );
+    f32 NdotH = Saturate( Dot( N, H ) );
+    f32 NdotL = Saturate( Dot( N, L ) );
+    f32 VdotH = Saturate( Dot( V, H ) );
+    vec3 F0   = mix( vec3( 0.04f ), albedo, metalness );
 
-    float linearRoughness = roughness * roughness;
-    float D               = GGX_D( NdotH, linearRoughness );
-    float Vis             = V_SmithGGXCorrelated( NdotV, NdotL, linearRoughness );
-    vec3 F                = FresnelSchlick( VdotH, F0 );
-    vec3 specular         = D * F * Vis;
+    f32 linearRoughness = roughness * roughness;
+    f32 D               = GGX_D( NdotH, linearRoughness );
+    f32 Vis             = V_SmithGGXCorrelated( NdotV, NdotL, linearRoughness );
+    vec3 F              = FresnelSchlick( VdotH, F0 );
+    vec3 specular       = D * F * Vis;
 
     vec3 kD = ( vec3( 1.0f ) - F ) * ( 1.0f - metalness );
     return ( kD * albedo / PI + specular );
@@ -40,10 +40,10 @@ vec3 BRDF::F( const vec3& worldSpace_wo, const vec3& worldSpace_wi ) const
     // return albedo / PI;
 }
 
-vec3 BRDF::Sample_F( const vec3& worldSpace_wo, vec3& worldSpace_wi, PG::Random::RNG& rng, float& pdf ) const
+vec3 BRDF::Sample_F( const vec3& worldSpace_wo, vec3& worldSpace_wi, PG::Random::RNG& rng, f32& pdf ) const
 {
-    float u = rng.UniformFloat();
-    float v = rng.UniformFloat();
+    f32 u = rng.UniformFloat();
+    f32 v = rng.UniformFloat();
     // vec3 localWi  = CosineSampleHemisphere( u, v );
     vec3 localWi  = UniformSampleHemisphere( u, v );
     worldSpace_wi = T * localWi.x + B * localWi.y + N * localWi.z;
@@ -52,14 +52,14 @@ vec3 BRDF::Sample_F( const vec3& worldSpace_wo, vec3& worldSpace_wi, PG::Random:
     return F( worldSpace_wo, worldSpace_wi );
 }
 
-float BRDF::Pdf( const vec3& worldSpace_wo, const vec3& worldSpace_wi ) const
+f32 BRDF::Pdf( const vec3& worldSpace_wo, const vec3& worldSpace_wi ) const
 {
     bool sameHemisphere = Dot( worldSpace_wo, N ) * Dot( worldSpace_wi, N ) > 0;
     // return sameHemisphere ? AbsDot( worldSpace_wi, N ) / PI : 0;
     return sameHemisphere ? 1.0f / ( 2.0f * PI ) : 0;
 }
 
-void Material::GetAlbedoMetalness( const vec2& uv, vec3& outAlbedo, float& outMetalness ) const
+void Material::GetAlbedoMetalness( const vec2& uv, vec3& outAlbedo, f32& outMetalness ) const
 {
     outAlbedo    = albedoTint;
     outMetalness = metalnessTint;
@@ -74,7 +74,7 @@ void Material::GetAlbedoMetalness( const vec2& uv, vec3& outAlbedo, float& outMe
 
 static vec3 UnpackNormalMapVal( vec3 v ) { return ( v * 255.0f - vec3( 128.0f ) ) / 127.0f; }
 
-void Material::GetNormalRoughness( const vec2 uv, IntersectionData* surfaceInfo, vec3& outShadingN, float& outRoughness ) const
+void Material::GetNormalRoughness( const vec2 uv, IntersectionData* surfaceInfo, vec3& outShadingN, f32& outRoughness ) const
 {
     outShadingN  = surfaceInfo->normal;
     outRoughness = roughnessTint;

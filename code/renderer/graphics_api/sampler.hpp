@@ -6,19 +6,19 @@
 namespace PG::Gfx
 {
 
-enum class FilterMode : uint8_t
+enum class FilterMode : u8
 {
     NEAREST = 0,
     LINEAR  = 1,
 };
 
-enum class MipFilterMode : uint8_t
+enum class MipFilterMode : u8
 {
     NEAREST = 0,
     LINEAR  = 1,
 };
 
-enum class WrapMode : uint8_t
+enum class WrapMode : u8
 {
     REPEAT          = 0,
     MIRRORED_REPEAT = 1,
@@ -26,7 +26,7 @@ enum class WrapMode : uint8_t
     CLAMP_TO_BORDER = 3,
 };
 
-enum class BorderColor : uint8_t
+enum class BorderColor : u8
 {
     TRANSPARENT_BLACK_FLOAT = 0,
     TRANSPARENT_BLACK_INT   = 1,
@@ -46,7 +46,7 @@ struct SamplerCreateInfo
     WrapMode wrapModeV      = WrapMode::CLAMP_TO_EDGE;
     WrapMode wrapModeW      = WrapMode::CLAMP_TO_EDGE;
     BorderColor borderColor = BorderColor::OPAQUE_BLACK_INT;
-    float maxAnisotropy     = 16.0f;
+    f32 maxAnisotropy       = 16.0f;
 };
 
 class Sampler
@@ -62,7 +62,7 @@ public:
     WrapMode GetWrapModeU() const;
     WrapMode GetWrapModeV() const;
     WrapMode GetWrapModeW() const;
-    float GetMaxAnisotropy() const;
+    f32 GetMaxAnisotropy() const;
     BorderColor GetBorderColor() const;
     VkSampler GetHandle() const;
     operator bool() const;
@@ -74,7 +74,7 @@ private:
 };
 
 // Note: keep in sync with global_descriptors.glsl!
-enum SamplerType : uint8_t
+enum SamplerType : u8
 {
     SAMPLER_NEAREST                 = 0,
     SAMPLER_NEAREST_WRAP_U          = 1,

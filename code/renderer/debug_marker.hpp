@@ -17,8 +17,8 @@ void Init( VkInstance instance );
 
 bool IsActive();
 
-void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, std::string_view name );
-void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag );
+void SetObjectName( VkDevice device, u64 object, VkObjectType objectType, std::string_view name );
+void SetObjectTag( VkDevice device, u64 object, VkObjectType objectType, u64 name, size_t tagSize, const void* tag );
 
 void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, std::string_view name, vec4 color = vec4( 0 ) );
 void Insert_CmdBuf( VkCommandBuffer cmdbuffer, vec4 color, const char* fmt, ... );

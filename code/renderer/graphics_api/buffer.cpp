@@ -7,9 +7,9 @@
 namespace PG::Gfx
 {
 
-uint32_t NumBytesPerElement( BufferFormat format )
+u32 NumBytesPerElement( BufferFormat format )
 {
-    uint8_t sizes[] = {
+    u8 sizes[] = {
         0,  // INVALID = 0,
         1,  // UCHAR  = 1,
         2,  // UCHAR2 = 2,
@@ -65,9 +65,9 @@ uint32_t NumBytesPerElement( BufferFormat format )
     return sizes[Underlying( format )];
 }
 
-int SizeOfIndexType( IndexType type )
+i32 SizeOfIndexType( IndexType type )
 {
-    int8_t sizes[] = {
+    i8 sizes[] = {
         2, // UNSIGNED_SHORT
         4, // UNSIGNED_INT
     };

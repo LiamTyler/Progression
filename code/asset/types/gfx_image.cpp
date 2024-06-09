@@ -40,23 +40,23 @@ void GfxImage::Free()
 #endif // #if USING( GPU )
 }
 
-unsigned char* GfxImage::GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel ) const
+u8* GfxImage::GetPixels( u32 face, u32 mip, u32 depthLevel ) const
 {
     PG_ASSERT( depthLevel == 0, "Texture arrays not supported yet" );
     PG_ASSERT( mip < mipLevels );
     PG_ASSERT( pixels );
 
-    int w                       = width;
-    int h                       = height;
-    int bytesPerPixel           = NumBytesPerPixel( pixelFormat );
+    i32 w                       = width;
+    i32 h                       = height;
+    i32 bytesPerPixel           = NumBytesPerPixel( pixelFormat );
     bool isCompressed           = PixelFormatIsCompressed( pixelFormat );
     size_t bytesPerFaceMipChain = CalculateTotalFaceSizeWithMips( width, height, pixelFormat, mipLevels );
     size_t offset               = face * bytesPerFaceMipChain;
-    for ( uint32_t mipLevel = 0; mipLevel < mip; ++mipLevel )
+    for ( u32 mipLevel = 0; mipLevel < mip; ++mipLevel )
     {
-        uint32_t paddedWidth  = isCompressed ? ( w + 3 ) & ~3u : w;
-        uint32_t paddedHeight = isCompressed ? ( h + 3 ) & ~3u : h;
-        uint32_t size         = paddedWidth * paddedHeight * bytesPerPixel;
+        u32 paddedWidth  = isCompressed ? ( w + 3 ) & ~3u : w;
+        u32 paddedHeight = isCompressed ? ( h + 3 ) & ~3u : h;
+        u32 size         = paddedWidth * paddedHeight * bytesPerPixel;
         if ( isCompressed )
             size /= 16;
         offset += size;
@@ -81,11 +81,11 @@ void GfxImage::UploadToGpu()
     TextureCreateInfo desc;
     desc.format      = pixelFormat;
     desc.type        = imageType;
-    desc.width       = static_cast<uint16_t>( width );
-    desc.height      = static_cast<uint16_t>( height );
-    desc.depth       = static_cast<uint16_t>( depth );
-    desc.arrayLayers = static_cast<uint16_t>( numFaces );
-    desc.mipLevels   = static_cast<uint8_t>( mipLevels );
+    desc.width       = static_cast<u16>( width );
+    desc.height      = static_cast<u16>( height );
+    desc.depth       = static_cast<u16>( depth );
+    desc.arrayLayers = static_cast<u16>( numFaces );
+    desc.mipLevels   = static_cast<u8>( mipLevels );
     desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
     gpuTexture = rg.device.NewTextureWithData( desc, pixels, USING( ASSET_NAMES ) ? m_name : nullptr );
@@ -178,7 +178,7 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     }
 
     composite.ForEachPixel(
-        [createInfo]( float* p )
+        [createInfo]( f32* p )
         {
             p[3] *= createInfo->compositeScales[1]; // metalnessScale
         } );
@@ -197,7 +197,7 @@ static bool Load_AlbedoMetalness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     return gfxImage->pixels != nullptr;
 }
 
-static vec3 ScaleNormal( vec3 n, float scale )
+static vec3 ScaleNormal( vec3 n, f32 scale )
 {
     n.x *= scale;
     n.y *= scale;
@@ -230,12 +230,12 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     }
 
     bool invertRoughness = createInfo->compositeScales[3];
-    float roughnessScale = invertRoughness ? -createInfo->compositeScales[2] : createInfo->compositeScales[2];
-    float roughnessBias  = invertRoughness ? 1.0f : 0;
-    float slopeScale     = createInfo->compositeScales[0];
+    f32 roughnessScale   = invertRoughness ? -createInfo->compositeScales[2] : createInfo->compositeScales[2];
+    f32 roughnessBias    = invertRoughness ? 1.0f : 0;
+    f32 slopeScale       = createInfo->compositeScales[0];
     bool normalMapIsYUp  = createInfo->compositeScales[1];
     composite.ForEachPixel(
-        [slopeScale, normalMapIsYUp, roughnessScale, roughnessBias]( float* p )
+        [slopeScale, normalMapIsYUp, roughnessScale, roughnessBias]( f32* p )
         {
             vec3 normal = UnpackNormal( { p[0], p[1], p[2] } );
             if ( !normalMapIsYUp )
@@ -252,11 +252,11 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
     settings.clampVertical   = createInfo->clampVertical;
     // TODO: alter the normals based on the roughness when mipmapping, because the macro-level normals
     // effectively become micro-level detail as you downsample
-    std::vector<FloatImage2D> floatMips = GenerateMipmaps( composite, settings );
-    for ( uint32_t mipLevel = 0; mipLevel < (uint32_t)floatMips.size(); ++mipLevel )
+    std::vector<FloatImage2D> f32Mips = GenerateMipmaps( composite, settings );
+    for ( u32 mipLevel = 0; mipLevel < (u32)f32Mips.size(); ++mipLevel )
     {
-        floatMips[mipLevel].ForEachPixel(
-            []( float* p )
+        f32Mips[mipLevel].ForEachPixel(
+            []( f32* p )
             {
                 vec3 normal = { p[0], p[1], p[2] };
                 normal      = PackNormal( Normalize( normal ) );
@@ -265,7 +265,7 @@ static bool Load_NormalRoughness( GfxImage* gfxImage, const GfxImageCreateInfo* 
                 p[2]        = normal.z;
             } );
     }
-    std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( floatMips );
+    std::vector<RawImage2D> rawMipsFloat32 = RawImage2DFromFloatImages( f32Mips );
 
     BCCompressorSettings compressorSettings( ImageFormat::BC7_UNORM, COMPRESSOR_QUALITY );
     std::vector<RawImage2D> compressedMips = CompressToBC( rawMipsFloat32, compressorSettings );
@@ -295,8 +295,8 @@ static bool Load_EnvironmentMap_CubeMap( GfxImage* gfxImage, const GfxImageCreat
 static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
     RawImage2D faces[6];
-    int numFaces = 0;
-    for ( int i = 0; i < 6; ++i )
+    i32 numFaces = 0;
+    for ( i32 i = 0; i < 6; ++i )
     {
         if ( !createInfo->filenames[i].empty() )
         {
@@ -326,13 +326,13 @@ static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* c
 
 static void FlipColumns( FloatImage2D& image )
 {
-    for ( uint32_t row = 0; row < image.height; ++row )
+    for ( u32 row = 0; row < image.height; ++row )
     {
-        for ( uint32_t col = 0; col < image.width / 2; ++col )
+        for ( u32 col = 0; col < image.width / 2; ++col )
         {
-            uint32_t endCol = image.width - col - 1;
-            auto p0         = image.GetFloat4( row, col );
-            auto p1         = image.GetFloat4( row, endCol );
+            u32 endCol = image.width - col - 1;
+            auto p0    = image.GetFloat4( row, col );
+            auto p1    = image.GetFloat4( row, endCol );
             image.SetFromFloat4( row, col, p1 );
             image.SetFromFloat4( row, endCol, p0 );
         }
@@ -341,13 +341,13 @@ static void FlipColumns( FloatImage2D& image )
 
 static void FlipRows( FloatImage2D& image )
 {
-    for ( uint32_t row = 0; row < image.height / 2; ++row )
+    for ( u32 row = 0; row < image.height / 2; ++row )
     {
-        for ( uint32_t col = 0; col < image.width; ++col )
+        for ( u32 col = 0; col < image.width; ++col )
         {
-            uint32_t endRow = image.height - row - 1;
-            auto p0         = image.GetFloat4( row, col );
-            auto p1         = image.GetFloat4( endRow, col );
+            u32 endRow = image.height - row - 1;
+            auto p0    = image.GetFloat4( row, col );
+            auto p1    = image.GetFloat4( endRow, col );
             image.SetFromFloat4( row, col, p1 );
             image.SetFromFloat4( endRow, col, p0 );
         }
@@ -357,9 +357,9 @@ static void FlipRows( FloatImage2D& image )
 static void FlipMainDiag( FloatImage2D& image )
 {
     PG_ASSERT( image.width == image.height );
-    for ( uint32_t row = 0; row < image.height; ++row )
+    for ( u32 row = 0; row < image.height; ++row )
     {
-        for ( uint32_t col = row + 1; col < image.width; ++col )
+        for ( u32 col = row + 1; col < image.width; ++col )
         {
             auto p0 = image.GetFloat4( row, col );
             auto p1 = image.GetFloat4( col, row );
@@ -372,14 +372,14 @@ static void FlipMainDiag( FloatImage2D& image )
 static void FlipReverseDiag( FloatImage2D& image )
 {
     PG_ASSERT( image.width == image.height );
-    for ( uint32_t row = 0; row < image.height; ++row )
+    for ( u32 row = 0; row < image.height; ++row )
     {
-        for ( uint32_t col = 0; col < image.height - row - 1; ++col )
+        for ( u32 col = 0; col < image.height - row - 1; ++col )
         {
-            uint32_t tRow = image.height - col - 1;
-            uint32_t tCol = image.width - row - 1;
-            auto p0       = image.GetFloat4( row, col );
-            auto p1       = image.GetFloat4( tRow, tCol );
+            u32 tRow = image.height - col - 1;
+            u32 tCol = image.width - row - 1;
+            auto p0  = image.GetFloat4( row, col );
+            auto p1  = image.GetFloat4( tRow, tCol );
             image.SetFromFloat4( row, col, p1 );
             image.SetFromFloat4( tRow, tCol, p0 );
         }
@@ -402,17 +402,17 @@ static void ConvertPGCubemapToVkCubemap( FloatImageCubemap& cubemap )
     // the layers of the image view starting at baseArrayLayer correspond to faces in the order +X, -X, +Y, -Y, +Z, -Z
     FaceIndex pgToVkFaceOrder[6] = { FACE_RIGHT, FACE_LEFT, FACE_FRONT, FACE_BACK, FACE_TOP, FACE_BOTTOM };
     FloatImage2D reorderedFaces[6];
-    for ( int i = 0; i < 6; ++i )
+    for ( i32 i = 0; i < 6; ++i )
     {
         reorderedFaces[i] = cubemap.faces[pgToVkFaceOrder[i]];
     }
-    for ( int i = 0; i < 6; ++i )
+    for ( i32 i = 0; i < 6; ++i )
     {
         cubemap.faces[i] = reorderedFaces[i];
     }
 }
 
-static FloatImageCubemap CreateDebugCubemap( uint32_t size )
+static FloatImageCubemap CreateDebugCubemap( u32 size )
 {
     const vec3 faceColors[6] = {
         vec3( 0, 0, 1 ), // FACE_BACK
@@ -424,11 +424,11 @@ static FloatImageCubemap CreateDebugCubemap( uint32_t size )
     };
 
     FloatImageCubemap cubemap( 32, 3 );
-    for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+    for ( i32 faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
-        for ( int dstRow = 0; dstRow < (int)cubemap.size; ++dstRow )
+        for ( i32 dstRow = 0; dstRow < (i32)cubemap.size; ++dstRow )
         {
-            for ( int dstCol = 0; dstCol < (int)cubemap.size; ++dstCol )
+            for ( i32 dstCol = 0; dstCol < (i32)cubemap.size; ++dstCol )
             {
                 vec2 faceUV = { ( dstCol + 0.5f ) / cubemap.size, ( dstRow + 0.5f ) / cubemap.size };
                 vec3 vert   = faceColors[faceIdx];
@@ -454,10 +454,10 @@ static void GfxImageFromCubemap( GfxImage* gfxImage, RawImage2D faces[6] )
     gfxImage->mipLevels        = 1;
     gfxImage->pixelFormat      = ImageFormatToPixelFormat( faces[0].format, false );
     gfxImage->totalSizeInBytes = CalculateTotalImageBytes( *gfxImage );
-    gfxImage->pixels           = static_cast<uint8_t*>( malloc( gfxImage->totalSizeInBytes ) );
+    gfxImage->pixels           = static_cast<u8*>( malloc( gfxImage->totalSizeInBytes ) );
 
-    uint8_t* currentFace = gfxImage->pixels;
-    for ( int i = 0; i < 6; ++i )
+    u8* currentFace = gfxImage->pixels;
+    for ( i32 i = 0; i < 6; ++i )
     {
         memcpy( currentFace, faces[i].Raw(), faces[i].TotalBytes() );
         currentFace += faces[i].TotalBytes();
@@ -466,9 +466,9 @@ static void GfxImageFromCubemap( GfxImage* gfxImage, RawImage2D faces[6] )
 
 static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
-    int numFaces = 0;
+    i32 numFaces = 0;
     std::string filenames[6];
-    for ( int i = 0; i < 6; ++i )
+    for ( i32 i = 0; i < 6; ++i )
     {
         if ( !createInfo->filenames[i].empty() )
         {
@@ -500,7 +500,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     {
         bool isConstantColor = true;
         vec4 color           = cubemap.faces[0].GetFloat4( 0 );
-        for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+        for ( i32 faceIdx = 0; faceIdx < 6; ++faceIdx )
         {
             isConstantColor = isConstantColor && cubemap.faces[faceIdx].GetFloat4( 0 ) == color;
         }
@@ -508,11 +508,11 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
         if ( isConstantColor )
         {
             FloatImageCubemap irradianceMap( 1, cubemap.numChannels );
-            for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+            for ( i32 faceIdx = 0; faceIdx < 6; ++faceIdx )
                 irradianceMap.faces[faceIdx].SetFromFloat4( 0, color );
 
             RawImage2D faces[6];
-            for ( int i = 0; i < 6; ++i )
+            for ( i32 i = 0; i < 6; ++i )
             {
                 faces[i] = RawImage2DFromFloatImage( irradianceMap.faces[i], ImageFormat::R16_G16_B16_A16_FLOAT );
             }
@@ -523,12 +523,12 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     }
 
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
-    for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+    for ( i32 faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
 #pragma omp parallel for
-        for ( int dstRow = 0; dstRow < (int)irradianceMap.size; ++dstRow )
+        for ( i32 dstRow = 0; dstRow < (i32)irradianceMap.size; ++dstRow )
         {
-            for ( int dstCol = 0; dstCol < (int)irradianceMap.size; ++dstCol )
+            for ( i32 dstCol = 0; dstCol < (i32)irradianceMap.size; ++dstCol )
             {
                 vec2 faceUV = { ( dstCol + 0.5f ) / irradianceMap.size, ( dstRow + 0.5f ) / irradianceMap.size };
 
@@ -537,19 +537,19 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
                 vec3 bitangent = Normalize( Cross( normal, tangent ) );
                 tangent        = Normalize( Cross( bitangent, normal ) );
 
-                uint32_t numSamples = 0;
+                u32 numSamples = 0;
                 vec3 irradiance( 0 );
 
 #if 0
-                for ( int skyFaceIdx = 0; skyFaceIdx < 6; ++skyFaceIdx )
+                for ( i32 skyFaceIdx = 0; skyFaceIdx < 6; ++skyFaceIdx )
                 {
-                    for ( int skyRow = 0; skyRow < (int)cubemap.size; ++skyRow )
+                    for ( i32 skyRow = 0; skyRow < (i32)cubemap.size; ++skyRow )
                     {
-                        for ( int skyCol = 0; skyCol < (int)cubemap.size; ++skyCol )
+                        for ( i32 skyCol = 0; skyCol < (i32)cubemap.size; ++skyCol )
                         {
                             vec2 skyFaceUV = { (skyCol + 0.5f) / cubemap.size, (skyRow + 0.5f) / cubemap.size };
                             vec3 skyDir = CubemapFaceUVToDirection( skyFaceIdx, skyFaceUV );
-                            float cosTheta = Dot( normal, skyDir );
+                            f32 cosTheta = Dot( normal, skyDir );
                             if ( cosTheta <= 0.0f )
                                 continue;
 
@@ -562,10 +562,10 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
                 irradiance *= (PI / numSamples);
                 irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, vec4( irradiance, 0 ) );
 #else
-                constexpr float angleDelta = PI / 180.0f;
-                for ( float phi = 0; phi < 2 * PI; phi += angleDelta )
+                constexpr f32 angleDelta = PI / 180.0f;
+                for ( f32 phi = 0; phi < 2 * PI; phi += angleDelta )
                 {
-                    for ( float theta = 0; theta < PI / 2; theta += angleDelta )
+                    for ( f32 theta = 0; theta < PI / 2; theta += angleDelta )
                     {
                         vec3 tangentSpaceDir = { sinf( theta ) * cosf( phi ), sinf( theta ) * sinf( phi ), cosf( theta ) };
                         vec3 worldSpaceDir   = tangentSpaceDir.x * tangent + tangentSpaceDir.y * bitangent + tangentSpaceDir.z * normal;
@@ -587,7 +587,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
 
     RawImage2D faces[6];
     BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
-    for ( int i = 0; i < 6; ++i )
+    for ( i32 i = 0; i < 6; ++i )
     {
         RawImage2D face = RawImage2DFromFloatImage( irradianceMap.faces[i], ImageFormat::R16_G16_B16_FLOAT );
         faces[i]        = CompressToBC( face, compressorSettings );
@@ -600,9 +600,9 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
 
 static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
 {
-    int numFaces = 0;
+    i32 numFaces = 0;
     std::string filenames[6];
-    for ( int i = 0; i < 6; ++i )
+    for ( i32 i = 0; i < 6; ++i )
     {
         if ( !createInfo->filenames[i].empty() )
         {
@@ -629,21 +629,21 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
         return false;
     }
 
-    constexpr int FACE_SIZE  = 128;
-    constexpr int MIP_LEVELS = 8; // keep in sync with FACE_SIZE
+    constexpr i32 FACE_SIZE  = 128;
+    constexpr i32 MIP_LEVELS = 8; // keep in sync with FACE_SIZE
     FloatImageCubemap outputMips[MIP_LEVELS];
-    for ( int mipLevel = 0; mipLevel < MIP_LEVELS; ++mipLevel )
+    for ( i32 mipLevel = 0; mipLevel < MIP_LEVELS; ++mipLevel )
     {
-        const int MIP_SIZE        = FACE_SIZE >> mipLevel;
-        outputMips[mipLevel]      = FloatImageCubemap( MIP_SIZE, 3 );
-        float perceptualRoughness = mipLevel / static_cast<float>( MIP_LEVELS - 1 );
-        float linearRoughness     = perceptualRoughness * perceptualRoughness;
-        for ( int faceIdx = 0; faceIdx < 6; ++faceIdx )
+        const i32 MIP_SIZE      = FACE_SIZE >> mipLevel;
+        outputMips[mipLevel]    = FloatImageCubemap( MIP_SIZE, 3 );
+        f32 perceptualRoughness = mipLevel / static_cast<f32>( MIP_LEVELS - 1 );
+        f32 linearRoughness     = perceptualRoughness * perceptualRoughness;
+        for ( i32 faceIdx = 0; faceIdx < 6; ++faceIdx )
         {
 #pragma omp parallel for
-            for ( int dstRow = 0; dstRow < MIP_SIZE; ++dstRow )
+            for ( i32 dstRow = 0; dstRow < MIP_SIZE; ++dstRow )
             {
-                for ( int dstCol = 0; dstCol < MIP_SIZE; ++dstCol )
+                for ( i32 dstCol = 0; dstCol < MIP_SIZE; ++dstCol )
                 {
                     vec2 faceUV = { ( dstCol + 0.5f ) / MIP_SIZE, ( dstRow + 0.5f ) / MIP_SIZE };
 
@@ -651,16 +651,16 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
                     vec3 R = N;
                     vec3 V = N;
 
-                    float totalWeight = 0;
+                    f32 totalWeight = 0;
                     vec3 prefilteredColor( 0 );
-                    const uint32_t SAMPLE_COUNT = 1024u;
-                    for ( uint32_t i = 0u; i < SAMPLE_COUNT; ++i )
+                    const u32 SAMPLE_COUNT = 1024u;
+                    for ( u32 i = 0u; i < SAMPLE_COUNT; ++i )
                     {
-                        vec2 Xi = vec2( i / (float)SAMPLE_COUNT, Hammersley32( i ) );
+                        vec2 Xi = vec2( i / (f32)SAMPLE_COUNT, Hammersley32( i ) );
                         vec3 H  = ImportanceSampleGGX_D( Xi, N, linearRoughness );
                         vec3 L  = Normalize( 2.0f * Dot( V, H ) * H - V );
 
-                        float NdotL = Max( Dot( N, L ), 0.0f );
+                        f32 NdotL = Max( Dot( N, L ), 0.0f );
                         if ( NdotL > 0.0f )
                         {
                             vec3 radiance = cubemap.Sample( L );
@@ -684,14 +684,14 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
     gfxImage->mipLevels        = MIP_LEVELS;
     gfxImage->pixelFormat      = ImageFormatToPixelFormat( ImageFormat::BC6H_U16F, false );
     gfxImage->totalSizeInBytes = CalculateTotalImageBytes( *gfxImage );
-    gfxImage->pixels           = static_cast<uint8_t*>( malloc( gfxImage->totalSizeInBytes ) );
-    uint8_t* currentFace       = gfxImage->pixels;
+    gfxImage->pixels           = static_cast<u8*>( malloc( gfxImage->totalSizeInBytes ) );
+    u8* currentFace            = gfxImage->pixels;
 
     BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
-    for ( int mipLevel = 0; mipLevel < MIP_LEVELS; ++mipLevel )
+    for ( i32 mipLevel = 0; mipLevel < MIP_LEVELS; ++mipLevel )
     {
         ConvertPGCubemapToVkCubemap( outputMips[mipLevel] );
-        for ( int i = 0; i < 6; ++i )
+        for ( i32 i = 0; i < 6; ++i )
         {
             RawImage2D face           = RawImage2DFromFloatImage( outputMips[mipLevel].faces[i], ImageFormat::R16_G16_B16_FLOAT );
             RawImage2D compressedFace = CompressToBC( face, compressorSettings );
@@ -759,7 +759,7 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
     serializer->Read( clampHorizontal );
     serializer->Read( clampVertical );
     serializer->Read( filterMode );
-    pixels = static_cast<unsigned char*>( malloc( totalSizeInBytes ) );
+    pixels = static_cast<u8*>( malloc( totalSizeInBytes ) );
     serializer->Read( pixels, totalSizeInBytes );
 
     UploadToGpu();
@@ -787,25 +787,25 @@ bool GfxImage::FastfileSave( Serializer* serializer ) const
     return true;
 }
 
-size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips )
+size_t CalculateTotalFaceSizeWithMips( u32 width, u32 height, PixelFormat format, u32 numMips )
 {
     PG_ASSERT( width > 0 && height > 0 );
     PG_ASSERT( format != PixelFormat::INVALID );
     bool isCompressed = PixelFormatIsCompressed( format );
-    uint32_t w        = width;
-    uint32_t h        = height;
+    u32 w             = width;
+    u32 h             = height;
     if ( numMips == 0 )
     {
         numMips = CalculateNumMips( w, h );
     }
 
-    uint32_t bytesPerPixel = NumBytesPerPixel( format );
-    size_t currentSize     = 0;
-    for ( uint32_t mipLevel = 0; mipLevel < numMips; ++mipLevel )
+    u32 bytesPerPixel  = NumBytesPerPixel( format );
+    size_t currentSize = 0;
+    for ( u32 mipLevel = 0; mipLevel < numMips; ++mipLevel )
     {
-        uint32_t paddedWidth  = isCompressed ? ( w + 3 ) & ~3u : w;
-        uint32_t paddedHeight = isCompressed ? ( h + 3 ) & ~3u : h;
-        uint32_t size         = paddedWidth * paddedHeight * bytesPerPixel;
+        u32 paddedWidth  = isCompressed ? ( w + 3 ) & ~3u : w;
+        u32 paddedHeight = isCompressed ? ( h + 3 ) & ~3u : h;
+        u32 size         = paddedWidth * paddedHeight * bytesPerPixel;
         if ( isCompressed )
             size /= 16;
         currentSize += size;
@@ -817,8 +817,7 @@ size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFor
     return currentSize;
 }
 
-size_t CalculateTotalImageBytes(
-    PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
+size_t CalculateTotalImageBytes( PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels )
 {
     size_t totalBytes = depth * arrayLayers * CalculateTotalFaceSizeWithMips( width, height, format, mipLevels );
 
@@ -880,13 +879,13 @@ void RawImage2DMipsToGfxImage( GfxImage& gfxImage, const std::vector<RawImage2D>
     gfxImage.height           = mips[0].height;
     gfxImage.depth            = 1;
     gfxImage.numFaces         = 1;
-    gfxImage.mipLevels        = static_cast<uint32_t>( mips.size() );
+    gfxImage.mipLevels        = static_cast<u32>( mips.size() );
     gfxImage.pixelFormat      = format;
     gfxImage.totalSizeInBytes = CalculateTotalImageBytes( gfxImage.pixelFormat, gfxImage.width, gfxImage.height, 1, 1, gfxImage.mipLevels );
-    gfxImage.pixels           = static_cast<uint8_t*>( malloc( gfxImage.totalSizeInBytes ) );
+    gfxImage.pixels           = static_cast<u8*>( malloc( gfxImage.totalSizeInBytes ) );
 
-    uint8_t* currentMip = gfxImage.pixels;
-    for ( uint32_t mipLevel = 0; mipLevel < gfxImage.mipLevels; ++mipLevel )
+    u8* currentMip = gfxImage.pixels;
+    for ( u32 mipLevel = 0; mipLevel < gfxImage.mipLevels; ++mipLevel )
     {
         const RawImage2D& mip = mips[mipLevel];
         memcpy( currentMip, mip.Raw(), mip.TotalBytes() );
@@ -906,12 +905,12 @@ void DecompressGfxImage( const GfxImage& compressedImage, GfxImage& decompressed
 
     /*
     size_t totalSizeInBytes = 0;
-    unsigned char* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
-    uint32_t width          = 0;
-    uint32_t height         = 0;
-    uint32_t depth          = 0;
-    uint32_t mipLevels      = 0;
-    uint32_t numFaces       = 0;
+    u8* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
+    u32 width          = 0;
+    u32 height         = 0;
+    u32 depth          = 0;
+    u32 mipLevels      = 0;
+    u32 numFaces       = 0;
     PixelFormat pixelFormat;
     ImageType imageType;
     bool clampHorizontal;
@@ -930,13 +929,13 @@ void DecompressGfxImage( const GfxImage& compressedImage, GfxImage& decompressed
     decompressedImage.pixelFormat      = decompressedPixelFormat;
     decompressedImage.totalSizeInBytes = CalculateTotalImageBytes( decompressedPixelFormat, compressedImage.width, compressedImage.height,
         compressedImage.depth, compressedImage.numFaces, compressedImage.mipLevels );
-    decompressedImage.pixels           = static_cast<uint8_t*>( malloc( decompressedImage.totalSizeInBytes ) );
+    decompressedImage.pixels           = static_cast<u8*>( malloc( decompressedImage.totalSizeInBytes ) );
 
-    for ( uint32_t face = 0; face < compressedImage.numFaces; ++face )
+    for ( u32 face = 0; face < compressedImage.numFaces; ++face )
     {
-        uint32_t w = compressedImage.width;
-        uint32_t h = compressedImage.height;
-        for ( uint32_t mipLevel = 0; mipLevel < compressedImage.mipLevels; ++mipLevel )
+        u32 w = compressedImage.width;
+        u32 h = compressedImage.height;
+        for ( u32 mipLevel = 0; mipLevel < compressedImage.mipLevels; ++mipLevel )
         {
             RawImage2D compressedMip( w, h, compressedImgFormat, compressedImage.GetPixels( face, mipLevel ) );
             RawImage2D decompressedMip = DecompressBC( compressedMip );

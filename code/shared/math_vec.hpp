@@ -11,35 +11,39 @@ using vec2 = glm::vec2;
 using vec3 = glm::vec3;
 using vec4 = glm::vec4;
 
-using i8vec2  = glm::vec<2, int8_t>;
-using i16vec2 = glm::vec<2, int16_t>;
-using ivec2   = glm::vec<2, int32_t>;
-using i8vec3  = glm::vec<3, int8_t>;
-using i16vec3 = glm::vec<3, int16_t>;
-using ivec3   = glm::vec<3, int32_t>;
-using i8vec4  = glm::vec<4, int8_t>;
-using i16vec4 = glm::vec<4, int16_t>;
-using ivec4   = glm::vec<4, int32_t>;
+using i8vec2 = glm::vec<2, i8>;
+using i8vec3 = glm::vec<3, i8>;
+using i8vec4 = glm::vec<4, i8>;
 
-using u8vec2  = glm::vec<2, uint8_t>;
-using u16vec2 = glm::vec<2, uint16_t>;
-using uvec2   = glm::vec<2, uint32_t>;
-using u8vec3  = glm::vec<3, uint8_t>;
-using u16vec3 = glm::vec<3, uint16_t>;
-using uvec3   = glm::vec<3, uint32_t>;
-using u8vec4  = glm::vec<4, uint8_t>;
-using u16vec4 = glm::vec<4, uint16_t>;
-using uvec4   = glm::vec<4, uint32_t>;
+using i16vec2 = glm::vec<2, i16>;
+using i16vec3 = glm::vec<3, i16>;
+using i16vec4 = glm::vec<4, i16>;
 
-inline float Length( const vec2& v ) { return glm::length( v ); }
-inline float Length( const vec3& v ) { return glm::length( v ); }
-inline float Length( const vec4& v ) { return glm::length( v ); }
+using ivec2 = glm::vec<2, i32>;
+using ivec3 = glm::vec<3, i32>;
+using ivec4 = glm::vec<4, i32>;
 
-inline float Dot( const vec2& a, const vec2& b ) { return glm::dot( a, b ); }
-inline float Dot( const vec3& a, const vec3& b ) { return glm::dot( a, b ); }
-inline float Dot( const vec4& a, const vec4& b ) { return glm::dot( a, b ); }
+using u8vec2 = glm::vec<2, u8>;
+using u8vec3 = glm::vec<3, u8>;
+using u8vec4 = glm::vec<4, u8>;
 
-inline float Cross( const vec2& a, const vec2& b ) { return a.x * b.y - a.y * b.x; }
+using u16vec2 = glm::vec<2, u16>;
+using u16vec3 = glm::vec<3, u16>;
+using u16vec4 = glm::vec<4, u16>;
+
+using uvec2 = glm::vec<2, u32>;
+using uvec3 = glm::vec<3, u32>;
+using uvec4 = glm::vec<4, u32>;
+
+inline f32 Length( const vec2& v ) { return glm::length( v ); }
+inline f32 Length( const vec3& v ) { return glm::length( v ); }
+inline f32 Length( const vec4& v ) { return glm::length( v ); }
+
+inline f32 Dot( const vec2& a, const vec2& b ) { return glm::dot( a, b ); }
+inline f32 Dot( const vec3& a, const vec3& b ) { return glm::dot( a, b ); }
+inline f32 Dot( const vec4& a, const vec4& b ) { return glm::dot( a, b ); }
+
+inline f32 Cross( const vec2& a, const vec2& b ) { return a.x * b.y - a.y * b.x; }
 inline vec3 Cross( const vec3& a, const vec3& b ) { return glm::cross( a, b ); }
 
 inline vec2 Normalize( const vec2& v ) { return glm::normalize( v ); }
@@ -66,6 +70,6 @@ inline vec2 Max( const vec2& a, const vec2& b ) { return glm::max( a, b ); }
 inline vec3 Max( const vec3& a, const vec3& b ) { return glm::max( a, b ); }
 inline vec4 Max( const vec4& a, const vec4& b ) { return glm::max( a, b ); }
 
-inline vec2 Lerp( const vec2& a, const vec2& b, float t ) { return glm::mix( a, b, t ); }
-inline vec3 Lerp( const vec3& a, const vec3& b, float t ) { return glm::mix( a, b, t ); }
-inline vec4 Lerp( const vec4& a, const vec4& b, float t ) { return glm::mix( a, b, t ); }
+inline vec2 Lerp( const vec2& a, const vec2& b, f32 t ) { return glm::mix( a, b, t ); }
+inline vec3 Lerp( const vec3& a, const vec3& b, f32 t ) { return glm::mix( a, b, t ); }
+inline vec4 Lerp( const vec4& a, const vec4& b, f32 t ) { return glm::mix( a, b, t ); }

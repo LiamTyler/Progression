@@ -22,11 +22,11 @@ void ToggleConsoleVisibility();
 
 bool Header( const char* caption );
 bool CheckBox( const char* caption, bool* value );
-bool CheckBox( const char* caption, int* value );
-bool InputFloat( const char* caption, float* value, float step );
-bool SliderFloat( const char* caption, float* value, float min, float max );
-bool SliderInt( const char* caption, int* value, int min, int max );
-bool ComboBox( const char* caption, int* itemindex, const std::vector<std::string>& items );
+bool CheckBox( const char* caption, i32* value );
+bool InputFloat( const char* caption, f32* value, f32 step );
+bool SliderFloat( const char* caption, f32* value, f32 min, f32 max );
+bool SliderInt( const char* caption, i32* value, i32 min, i32 max );
+bool ComboBox( const char* caption, i32* itemindex, const std::vector<std::string>& items );
 bool Button( const char* caption );
 void Text( const char* formatstr, ... );
 

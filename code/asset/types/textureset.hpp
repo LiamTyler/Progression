@@ -16,15 +16,15 @@ struct TexturesetCreateInfo : public BaseAssetCreateInfo
     std::string albedoMap          = "$white";
     std::string metalnessMap       = "$default_metalness";
     Channel metalnessSourceChannel = Channel::R;
-    float metalnessScale           = 1.0f;
+    f32 metalnessScale             = 1.0f;
 
     std::string normalMap          = "$default_normalmap";
-    float slopeScale               = 1.0f;
+    f32 slopeScale                 = 1.0f;
     bool normalMapIsYUp            = true;
     std::string roughnessMap       = "$default_roughness";
     Channel roughnessSourceChannel = Channel::R;
     bool invertRoughness           = false; // if the source map is actually a gloss map
-    float roughnessScale           = 1.0f;
+    f32 roughnessScale             = 1.0f;
 
     std::string emissiveMap;
 

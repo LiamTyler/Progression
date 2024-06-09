@@ -26,18 +26,18 @@ int main( int argc, char* argv[] )
     }
 
     const int BUFFER_SIZE = 64;
-    float cpu_a[BUFFER_SIZE];
-    float cpu_b[BUFFER_SIZE];
+    f32 cpu_a[BUFFER_SIZE];
+    f32 cpu_b[BUFFER_SIZE];
     for ( int i = 0; i < BUFFER_SIZE; ++i )
     {
-        cpu_a[i] = (float)i;
-        cpu_b[i] = (float)i + 2;
+        cpu_a[i] = (f32)i;
+        cpu_b[i] = (f32)i + 2;
     }
 
     Device& device = r_globals.device;
-    Buffer gpu_a   = device.NewBuffer( BUFFER_SIZE * sizeof( float ), cpu_a, BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_a" );
-    Buffer gpu_b   = device.NewBuffer( BUFFER_SIZE * sizeof( float ), cpu_b, BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_b" );
-    Buffer gpu_c   = device.NewBuffer( BUFFER_SIZE * sizeof( float ), BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_c" );
+    Buffer gpu_a   = device.NewBuffer( BUFFER_SIZE * sizeof( f32 ), cpu_a, BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_a" );
+    Buffer gpu_b   = device.NewBuffer( BUFFER_SIZE * sizeof( f32 ), cpu_b, BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_b" );
+    Buffer gpu_c   = device.NewBuffer( BUFFER_SIZE * sizeof( f32 ), BUFFER_TYPE_STORAGE, MEMORY_TYPE_HOST_VISIBLE, "ssbo_c" );
 
     ShaderCreateInfo shaderInfo = { "vector add", PG_ROOT_DIR "old_examples/vector_add.comp", ShaderStage::COMPUTE };
     Shader compShader;
@@ -58,7 +58,7 @@ int main( int argc, char* argv[] )
         WriteDescriptorSet( descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 1, &bufferDescriptors[1] ),
         WriteDescriptorSet( descriptorSet, VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 2, &bufferDescriptors[2] ),
     };
-    device.UpdateDescriptorSets( static_cast<uint32_t>( writeDescriptorSets.size() ), writeDescriptorSets.data() );
+    device.UpdateDescriptorSets( static_cast<u32>( writeDescriptorSets.size() ), writeDescriptorSets.data() );
 
     CommandBuffer cmdBuf = r_globals.commandPools[GFX_CMD_POOL_COMPUTE].NewCommandBuffer();
     cmdBuf.BeginRecording();
@@ -69,7 +69,7 @@ int main( int argc, char* argv[] )
     device.SubmitComputeCommand( cmdBuf );
     device.WaitForIdle();
 
-    float cpu_c[BUFFER_SIZE] = { 0 };
+    f32 cpu_c[BUFFER_SIZE] = { 0 };
     gpu_c.ReadToCpu( cpu_c );
     int correct = 0;
     for ( int i = 0; i < BUFFER_SIZE; ++i )

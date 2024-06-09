@@ -283,14 +283,14 @@ Texture Device::NewTextureWithData( TextureCreateInfo& desc, void* data, std::st
             cmdBuf.TransitionImageLayout( tex.GetImage(), ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST );
 
             std::vector<VkBufferImageCopy> bufferCopyRegions;
-            uint32_t offset = 0;
+            u32 offset = 0;
 
-            uint32_t numMips = tex.GetMipLevels();
-            uint32_t width   = tex.GetWidth();
-            uint32_t height  = tex.GetHeight();
-            for ( uint32_t mip = 0; mip < numMips; ++mip )
+            u32 numMips = tex.GetMipLevels();
+            u32 width   = tex.GetWidth();
+            u32 height  = tex.GetHeight();
+            for ( u32 mip = 0; mip < numMips; ++mip )
             {
-                for ( uint32_t face = 0; face < tex.GetArrayLayers(); ++face )
+                for ( u32 face = 0; face < tex.GetArrayLayers(); ++face )
                 {
                     VkBufferImageCopy region               = {};
                     region.bufferOffset                    = offset;
@@ -303,13 +303,13 @@ Texture Device::NewTextureWithData( TextureCreateInfo& desc, void* data, std::st
                     region.imageExtent.depth               = 1;
 
                     bufferCopyRegions.push_back( region );
-                    uint32_t size = NumBytesPerPixel( tex.GetPixelFormat() );
+                    u32 size = NumBytesPerPixel( tex.GetPixelFormat() );
                     if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
                     {
-                        uint32_t roundedWidth  = ( width + 3 ) & ~3u;
-                        uint32_t roundedHeight = ( height + 3 ) & ~3u;
-                        uint32_t numBlocksX    = roundedWidth / 4;
-                        uint32_t numBlocksY    = roundedHeight / 4;
+                        u32 roundedWidth  = ( width + 3 ) & ~3u;
+                        u32 roundedHeight = ( height + 3 ) & ~3u;
+                        u32 numBlocksX    = roundedWidth / 4;
+                        u32 numBlocksY    = roundedHeight / 4;
                         size *= numBlocksX * numBlocksY;
                     }
                     else
@@ -323,7 +323,7 @@ Texture Device::NewTextureWithData( TextureCreateInfo& desc, void* data, std::st
             }
 
             vkCmdCopyBufferToImage( cmdBuf, stagingBuffer, tex.GetImage(), VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                static_cast<uint32_t>( bufferCopyRegions.size() ), bufferCopyRegions.data() );
+                static_cast<u32>( bufferCopyRegions.size() ), bufferCopyRegions.data() );
 
             cmdBuf.TransitionImageLayout( tex.GetImage(), ImageLayout::TRANSFER_DST, ImageLayout::SHADER_READ_ONLY );
         } );
@@ -365,9 +365,9 @@ void Device::CopyBufferToImage( const Buffer& buffer, const Texture& tex, bool c
 
 bool Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore ) const
 {
-    VkSwapchainKHR vkSwapchain   = swapchain;
-    VkSemaphore vkSemaphore      = waitSemaphore;
-    uint32_t swapchainImageIndex = swapchain.GetCurrentImageIndex();
+    VkSwapchainKHR vkSwapchain = swapchain;
+    VkSemaphore vkSemaphore    = waitSemaphore;
+    u32 swapchainImageIndex    = swapchain.GetCurrentImageIndex();
 
     VkPresentInfoKHR presentInfo = { VK_STRUCTURE_TYPE_PRESENT_INFO_KHR };
     presentInfo.pSwapchains      = &vkSwapchain;

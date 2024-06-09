@@ -12,7 +12,7 @@ enum CommandBufferUsageBits
     COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT = 1 << 0,
 };
 
-typedef uint32_t CommandBufferUsage;
+typedef u32 CommandBufferUsage;
 
 class CommandBuffer
 {
@@ -31,17 +31,17 @@ public:
     void EndRecording() const;
     void BindPipeline( Pipeline* pipeline );
     void BindGlobalDescriptors() const;
-    void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, uint32_t firstBinding = 0 ) const;
-    void BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding = 0 ) const;
+    void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, u32 firstBinding = 0 ) const;
+    void BindVertexBuffers( u32 numBuffers, const Buffer* buffers, size_t* offsets, u32 firstBinding = 0 ) const;
     void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;
     void PipelineImageBarrier2( const VkImageMemoryBarrier2& barrier ) const;
     void SetViewport( const Viewport& viewport ) const;
     void SetScissor( const Scissor& scissor ) const;
-    void SetDepthBias( float constant, float clamp, float slope ) const;
+    void SetDepthBias( f32 constant, f32 clamp, f32 slope ) const;
 
-    void PushConstants( void* data, uint32_t size, uint32_t offset = 0 ) const;
+    void PushConstants( void* data, u32 size, u32 offset = 0 ) const;
     template <typename T>
-    void PushConstants( const T& data, uint32_t offset = 0 ) const
+    void PushConstants( const T& data, u32 offset = 0 ) const
     {
         vkCmdPushConstants(
             m_handle, m_boundPipeline->GetLayoutHandle(), m_boundPipeline->GetPushConstantShaderStages(), offset, sizeof( T ), &data );
@@ -53,13 +53,12 @@ public:
         VkPipelineStageFlags2 srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         VkPipelineStageFlags2 dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT ) const;
 
-    void Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount = 1, uint32_t firstInstance = 0 ) const;
-    void DrawIndexed(
-        uint32_t firstIndex, uint32_t indexCount, int vertexOffset = 0, uint32_t firstInstance = 0, uint32_t instanceCount = 1 ) const;
-    void Dispatch( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const;
-    void Dispatch_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const;
-    void DrawMeshTasks( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const;
-    void DrawMeshTasks_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const;
+    void Draw( u32 firstVert, u32 vertCount, u32 instanceCount = 1, u32 firstInstance = 0 ) const;
+    void DrawIndexed( u32 firstIndex, u32 indexCount, i32 vertexOffset = 0, u32 firstInstance = 0, u32 instanceCount = 1 ) const;
+    void Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) const;
+    void Dispatch_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const;
+    void DrawMeshTasks( u32 groupsX, u32 groupsY, u32 groupsZ ) const;
+    void DrawMeshTasks_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const;
 
 private:
     VkCommandPool m_pool      = VK_NULL_HANDLE;
@@ -73,7 +72,7 @@ typedef enum CommandPoolCreateFlagBits
     COMMAND_POOL_RESET_COMMAND_BUFFER = 1 << 1,
 } CommandPoolCreateFlagBits;
 
-typedef uint32_t CommandPoolCreateFlags;
+typedef u32 CommandPoolCreateFlags;
 
 class CommandPool
 {

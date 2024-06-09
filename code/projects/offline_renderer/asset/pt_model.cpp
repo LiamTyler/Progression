@@ -11,18 +11,18 @@ std::vector<MeshInstance> g_meshInstances = { MeshInstance() };
 
 MeshInstance::MeshInstance() : material( MATERIAL_HANDLE_INVALID ) {}
 
-MeshInstance::MeshInstance( Model* model, uint32_t meshIdx, const Transform& inLocalToWorld, MaterialHandle inMaterial )
+MeshInstance::MeshInstance( Model* model, u32 meshIdx, const Transform& inLocalToWorld, MaterialHandle inMaterial )
 {
     PG_ASSERT( false, "todo: update to handle new meshlet models" );
     /*
     localToWorld         = inLocalToWorld;
-    uint32_t numVertices = model->meshes[meshIdx].numVertices;
+    u32 numVertices = model->meshes[meshIdx].numVertices;
     positions.resize( numVertices );
     normals.resize( numVertices );
     tangents.resize( numVertices );
-    for ( uint32_t i = 0; i < numVertices; ++i )
+    for ( u32 i = 0; i < numVertices; ++i )
     {
-        uint32_t startVert = model->meshes[meshIdx].startVertex;
+        u32 startVert = model->meshes[meshIdx].startVertex;
         positions[i]       = localToWorld.TransformPoint( model->positions[startVert + i] );
         mat4 N             = Inverse( Transpose( localToWorld.Matrix() ) );
         normals[i]         = Normalize( vec3( N * vec4( model->normals[startVert + i], 0 ) ) );
@@ -31,16 +31,16 @@ MeshInstance::MeshInstance( Model* model, uint32_t meshIdx, const Transform& inL
     if ( model->texCoords.size() )
     {
         uvs.resize( numVertices );
-        for ( uint32_t i = 0; i < numVertices; ++i )
+        for ( u32 i = 0; i < numVertices; ++i )
         {
-            uint32_t startVert = model->meshes[meshIdx].startVertex;
+            u32 startVert = model->meshes[meshIdx].startVertex;
             uvs[i]             = model->texCoords[startVert + i];
         }
     }
     indices.resize( model->meshes[meshIdx].numIndices );
-    for ( uint32_t i = 0; i < model->meshes[meshIdx].numIndices; ++i )
+    for ( u32 i = 0; i < model->meshes[meshIdx].numIndices; ++i )
     {
-        uint32_t startIndex = model->meshes[meshIdx].startIndex;
+        u32 startIndex = model->meshes[meshIdx].startIndex;
         indices[i]          = model->indices[startIndex + i];
     }
     material = inMaterial;
@@ -66,7 +66,7 @@ void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> material
         model->tangents.resize( model->positions.size(), vec4( 0 ) );
         for ( const Mesh& mesh : model->meshes )
         {
-            for ( uint32_t i = 0; i < mesh.numIndices; i += 3 )
+            for ( u32 i = 0; i < mesh.numIndices; i += 3 )
             {
                 const auto i0 = mesh.startVertex + model->indices[mesh.startIndex + i + 0];
                 const auto i1 = mesh.startVertex + model->indices[mesh.startIndex + i + 1];
@@ -99,7 +99,7 @@ void AddMeshInstancesForModel( Model* model, std::vector<PG::Material*> material
         }
     }
 
-    for ( uint32_t i = 0; i < static_cast<uint32_t>( model->meshes.size() ); ++i )
+    for ( u32 i = 0; i < static_cast<u32>( model->meshes.size() ); ++i )
     {
         g_meshInstances.emplace_back( model, i, transform, LoadMaterialFromPGMaterial( materials[i] ) );
     }
@@ -134,7 +134,7 @@ void EmitTrianglesForAllMeshes( std::vector<Shape*>& shapes, std::vector<Light*>
             continue;
 
         const bool isEmissive = material && material->emissiveTint != vec3( 0 );
-        for ( uint32_t face = 0; face < static_cast<uint32_t>( mesh.indices.size() / 3 ); ++face )
+        for ( u32 face = 0; face < static_cast<u32>( mesh.indices.size() / 3 ); ++face )
         {
             auto tri        = new Triangle;
             tri->meshHandle = meshHandle;

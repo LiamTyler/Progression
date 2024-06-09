@@ -18,7 +18,7 @@ static std::unordered_map<std::string_view, Dvar*>& DvarMap()
 
 static bool IsNameValid( const char* const inName )
 {
-    for ( uint32_t i = 0; i < (uint32_t)strlen( inName ); ++i )
+    for ( u32 i = 0; i < (u32)strlen( inName ); ++i )
     {
         if ( inName[i] == ' ' || inName[i] == '\t' || inName[i] == '\n' )
             return false;
@@ -58,28 +58,28 @@ Dvar::Dvar( const char* const inName, bool defaultVal, const char* const desc ) 
     RegisterDvar( this );
 }
 
-Dvar::Dvar( const char* const inName, int defaultVal, int minVal, int maxVal, const char* const desc )
+Dvar::Dvar( const char* const inName, i32 defaultVal, i32 minVal, i32 maxVal, const char* const desc )
     : type( Type::INT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.iVal = defaultVal;
     RegisterDvar( this );
 }
 
-Dvar::Dvar( const char* const inName, uint32_t defaultVal, uint32_t minVal, uint32_t maxVal, const char* const desc )
+Dvar::Dvar( const char* const inName, u32 defaultVal, u32 minVal, u32 maxVal, const char* const desc )
     : type( Type::UINT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.uVal = defaultVal;
     RegisterDvar( this );
 }
 
-Dvar::Dvar( const char* const inName, float defaultVal, float minVal, float maxVal, const char* const desc )
+Dvar::Dvar( const char* const inName, f32 defaultVal, f32 minVal, f32 maxVal, const char* const desc )
     : type( Type::FLOAT ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.fVal = defaultVal;
     RegisterDvar( this );
 }
 
-Dvar::Dvar( const char* const inName, double defaultVal, double minVal, double maxVal, const char* const desc )
+Dvar::Dvar( const char* const inName, f64 defaultVal, f64 minVal, f64 maxVal, const char* const desc )
     : type( Type::DOUBLE ), minValue( minVal ), maxValue( maxVal ), name( inName ), description( desc )
 {
     value.dVal = defaultVal;
@@ -105,7 +105,7 @@ bool Dvar::GetBool() const
     return value.bVal;
 }
 
-int Dvar::GetInt() const
+i32 Dvar::GetInt() const
 {
 #if USING( DVAR_DEBUGGING )
     PG_ASSERT( type == Type::INT, "Calling GetInt() on a non-int dvar. Name %s, type %s", name, TypeToString( type ) );
@@ -113,7 +113,7 @@ int Dvar::GetInt() const
     return value.iVal;
 }
 
-uint32_t Dvar::GetUint() const
+u32 Dvar::GetUint() const
 {
 #if USING( DVAR_DEBUGGING )
     PG_ASSERT( type == Type::UINT, "Calling GetUint() on a non-uint dvar. Name %s, type %s", name, TypeToString( type ) );
@@ -121,18 +121,18 @@ uint32_t Dvar::GetUint() const
     return value.uVal;
 }
 
-float Dvar::GetFloat() const
+f32 Dvar::GetFloat() const
 {
 #if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::FLOAT, "Calling GetFloat() on a non-float dvar. Name %s, type %s", name, TypeToString( type ) );
+    PG_ASSERT( type == Type::FLOAT, "Calling GetFloat() on a non-f32 dvar. Name %s, type %s", name, TypeToString( type ) );
 #endif // #if USING( DVAR_DEBUGGING )
     return value.fVal;
 }
 
-double Dvar::GetDouble() const
+f64 Dvar::GetDouble() const
 {
 #if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::INT, "Calling GetDouble() on a non-double dvar. Name %s, type %s", name, TypeToString( type ) );
+    PG_ASSERT( type == Type::INT, "Calling GetDouble() on a non-f64 dvar. Name %s, type %s", name, TypeToString( type ) );
 #endif // #if USING( DVAR_DEBUGGING )
     return value.dVal;
 }
@@ -193,9 +193,9 @@ void Dvar::SetFromString( const std::string& str )
         {
             const char* p = str.c_str();
             char* pEnd    = nullptr;
-            for ( int i = 0; i < 4; ++i )
+            for ( i32 i = 0; i < 4; ++i )
             {
-                float x       = strtof( p, &pEnd );
+                f32 x         = strtof( p, &pEnd );
                 value.vVal[i] = x;
                 if ( p == pEnd )
                     break;
@@ -231,15 +231,15 @@ void ExportDvars()
     }
 
     const auto& dvars = DvarMap();
-    int numDvars      = static_cast<int>( dvars.size() );
+    i32 numDvars      = static_cast<i32>( dvars.size() );
     outFile.write( (char*)&numDvars, sizeof( numDvars ) );
     for ( const auto& [_, dvar] : dvars )
     {
-        int l = (int)strlen( dvar->GetName() );
+        i32 l = (i32)strlen( dvar->GetName() );
         outFile.write( (char*)&l, sizeof( l ) );
         outFile.write( dvar->GetName(), l );
 
-        l = (int)strlen( dvar->GetDescription() );
+        l = (i32)strlen( dvar->GetDescription() );
         outFile.write( (char*)&l, sizeof( l ) );
         outFile.write( dvar->GetDescription(), l );
     }

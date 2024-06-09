@@ -31,7 +31,7 @@ void InitConverters()
 void ShutdownConverters()
 {
     CloseShaderIncludeCache();
-    for ( uint32_t i = 0; i < ASSET_TYPE_COUNT; ++i )
+    for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
         g_converters[i].reset();
     }

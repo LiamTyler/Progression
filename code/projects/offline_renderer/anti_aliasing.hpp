@@ -8,7 +8,7 @@
 namespace PT::AntiAlias
 {
 
-typedef vec2 ( *AAFuncPointer )( int iteration, PG::Random::RNG& rng );
+typedef vec2 ( *AAFuncPointer )( i32 iteration, PG::Random::RNG& rng );
 
 enum class Algorithm
 {
@@ -24,13 +24,13 @@ enum class Algorithm
 Algorithm AlgorithmFromString( const std::string& alg );
 
 // return an offsets from the pixel center (-0.5 to 0.5)
-vec2 None( int iteration, PG::Random::RNG& rng );
-vec2 Regular2x2Grid( int iteration, PG::Random::RNG& rng );
-vec2 Regular4x4Grid( int iteration, PG::Random::RNG& rng );
-vec2 Rotated2x2Grid( int iteration, PG::Random::RNG& rng );
-vec2 Jitter( int iteration, PG::Random::RNG& rng );
+vec2 None( i32 iteration, PG::Random::RNG& rng );
+vec2 Regular2x2Grid( i32 iteration, PG::Random::RNG& rng );
+vec2 Regular4x4Grid( i32 iteration, PG::Random::RNG& rng );
+vec2 Rotated2x2Grid( i32 iteration, PG::Random::RNG& rng );
+vec2 Jitter( i32 iteration, PG::Random::RNG& rng );
 
-int GetIterations( Algorithm alg );
+i32 GetIterations( Algorithm alg );
 
 AAFuncPointer GetAlgorithm( Algorithm );
 

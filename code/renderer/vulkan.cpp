@@ -25,22 +25,21 @@ DECLARE_VK_FUNC( vkGetAccelerationStructureDeviceAddressKHR );
 DECLARE_VK_FUNC( vkGetDeviceAccelerationStructureCompatibilityKHR );
 DECLARE_VK_FUNC( vkWriteAccelerationStructuresPropertiesKHR );
 
-VKAPI_ATTR VkResult VKAPI_CALL vkBuildAccelerationStructuresKHR( VkDevice device, VkDeferredOperationKHR deferredOperation,
-    uint32_t infoCount, const VkAccelerationStructureBuildGeometryInfoKHR* pInfos,
-    const VkAccelerationStructureBuildRangeInfoKHR* const* ppBuildRangeInfos )
+VKAPI_ATTR VkResult VKAPI_CALL vkBuildAccelerationStructuresKHR( VkDevice device, VkDeferredOperationKHR deferredOperation, u32 infoCount,
+    const VkAccelerationStructureBuildGeometryInfoKHR* pInfos, const VkAccelerationStructureBuildRangeInfoKHR* const* ppBuildRangeInfos )
 {
     return pfn_vkBuildAccelerationStructuresKHR( device, deferredOperation, infoCount, pInfos, ppBuildRangeInfos );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructuresIndirectKHR( VkCommandBuffer commandBuffer, uint32_t infoCount,
-    const VkAccelerationStructureBuildGeometryInfoKHR* pInfos, const VkDeviceAddress* pIndirectDeviceAddresses,
-    const uint32_t* pIndirectStrides, const uint32_t* const* ppMaxPrimitiveCounts )
+VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructuresIndirectKHR( VkCommandBuffer commandBuffer, u32 infoCount,
+    const VkAccelerationStructureBuildGeometryInfoKHR* pInfos, const VkDeviceAddress* pIndirectDeviceAddresses, const u32* pIndirectStrides,
+    const u32* const* ppMaxPrimitiveCounts )
 {
     pfn_vkCmdBuildAccelerationStructuresIndirectKHR(
         commandBuffer, infoCount, pInfos, pIndirectDeviceAddresses, pIndirectStrides, ppMaxPrimitiveCounts );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructuresKHR( VkCommandBuffer commandBuffer, uint32_t infoCount,
+VKAPI_ATTR void VKAPI_CALL vkCmdBuildAccelerationStructuresKHR( VkCommandBuffer commandBuffer, u32 infoCount,
     const VkAccelerationStructureBuildGeometryInfoKHR* pInfos, const VkAccelerationStructureBuildRangeInfoKHR* const* ppBuildRangeInfos )
 {
     pfn_vkCmdBuildAccelerationStructuresKHR( commandBuffer, infoCount, pInfos, ppBuildRangeInfos );
@@ -64,9 +63,8 @@ VKAPI_ATTR void VKAPI_CALL vkCmdCopyMemoryToAccelerationStructureKHR(
     pfn_vkCmdCopyMemoryToAccelerationStructureKHR( commandBuffer, pInfo );
 }
 
-VKAPI_ATTR void VKAPI_CALL vkCmdWriteAccelerationStructuresPropertiesKHR( VkCommandBuffer commandBuffer,
-    uint32_t accelerationStructureCount, const VkAccelerationStructureKHR* pAccelerationStructures, VkQueryType queryType,
-    VkQueryPool queryPool, uint32_t firstQuery )
+VKAPI_ATTR void VKAPI_CALL vkCmdWriteAccelerationStructuresPropertiesKHR( VkCommandBuffer commandBuffer, u32 accelerationStructureCount,
+    const VkAccelerationStructureKHR* pAccelerationStructures, VkQueryType queryType, VkQueryPool queryPool, u32 firstQuery )
 {
     pfn_vkCmdWriteAccelerationStructuresPropertiesKHR(
         commandBuffer, accelerationStructureCount, pAccelerationStructures, queryType, queryPool, firstQuery );
@@ -103,7 +101,7 @@ VKAPI_ATTR void VKAPI_CALL vkDestroyAccelerationStructureKHR(
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetAccelerationStructureBuildSizesKHR( VkDevice device, VkAccelerationStructureBuildTypeKHR buildType,
-    const VkAccelerationStructureBuildGeometryInfoKHR* pBuildInfo, const uint32_t* pMaxPrimitiveCounts,
+    const VkAccelerationStructureBuildGeometryInfoKHR* pBuildInfo, const u32* pMaxPrimitiveCounts,
     VkAccelerationStructureBuildSizesInfoKHR* pSizeInfo )
 {
     pfn_vkGetAccelerationStructureBuildSizesKHR( device, buildType, pBuildInfo, pMaxPrimitiveCounts, pSizeInfo );
@@ -121,7 +119,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetDeviceAccelerationStructureCompatibilityKHR(
     pfn_vkGetDeviceAccelerationStructureCompatibilityKHR( device, pVersionInfo, pCompatibility );
 }
 
-VKAPI_ATTR VkResult VKAPI_CALL vkWriteAccelerationStructuresPropertiesKHR( VkDevice device, uint32_t accelerationStructureCount,
+VKAPI_ATTR VkResult VKAPI_CALL vkWriteAccelerationStructuresPropertiesKHR( VkDevice device, u32 accelerationStructureCount,
     const VkAccelerationStructureKHR* pAccelerationStructures, VkQueryType queryType, size_t dataSize, void* pData, size_t stride )
 {
     return pfn_vkWriteAccelerationStructuresPropertiesKHR(
@@ -150,7 +148,7 @@ VKAPI_ATTR void VKAPI_CALL vkGetDescriptorSetLayoutSizeEXT(
 }
 
 VKAPI_ATTR void VKAPI_CALL vkGetDescriptorSetLayoutBindingOffsetEXT(
-    VkDevice device, VkDescriptorSetLayout layout, uint32_t binding, VkDeviceSize* pOffset )
+    VkDevice device, VkDescriptorSetLayout layout, u32 binding, VkDeviceSize* pOffset )
 {
     pfn_vkGetDescriptorSetLayoutBindingOffsetEXT( device, layout, binding, pOffset );
 }
@@ -162,19 +160,19 @@ VKAPI_ATTR void VKAPI_CALL vkGetDescriptorEXT(
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdBindDescriptorBuffersEXT(
-    VkCommandBuffer commandBuffer, uint32_t bufferCount, const VkDescriptorBufferBindingInfoEXT* pBindingInfos )
+    VkCommandBuffer commandBuffer, u32 bufferCount, const VkDescriptorBufferBindingInfoEXT* pBindingInfos )
 {
     pfn_vkCmdBindDescriptorBuffersEXT( commandBuffer, bufferCount, pBindingInfos );
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdSetDescriptorBufferOffsetsEXT( VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint,
-    VkPipelineLayout layout, uint32_t firstSet, uint32_t setCount, const uint32_t* pBufferIndices, const VkDeviceSize* pOffsets )
+    VkPipelineLayout layout, u32 firstSet, u32 setCount, const u32* pBufferIndices, const VkDeviceSize* pOffsets )
 {
     pfn_vkCmdSetDescriptorBufferOffsetsEXT( commandBuffer, pipelineBindPoint, layout, firstSet, setCount, pBufferIndices, pOffsets );
 }
 
 VKAPI_ATTR void VKAPI_CALL vkCmdBindDescriptorBufferEmbeddedSamplersEXT(
-    VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, uint32_t set )
+    VkCommandBuffer commandBuffer, VkPipelineBindPoint pipelineBindPoint, VkPipelineLayout layout, u32 set )
 {
     pfn_vkCmdBindDescriptorBufferEmbeddedSamplersEXT( commandBuffer, pipelineBindPoint, layout, set );
 }
@@ -216,17 +214,16 @@ DECLARE_VK_FUNC( vkCmdDrawMeshTasksIndirectEXT );
 DECLARE_VK_FUNC( vkCmdDrawMeshTasksEXT );
 
 VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksIndirectCountEXT( VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset,
-    VkBuffer countBuffer, VkDeviceSize countBufferOffset, uint32_t maxDrawCount, uint32_t stride )
+    VkBuffer countBuffer, VkDeviceSize countBufferOffset, u32 maxDrawCount, u32 stride )
 {
     pfn_vkCmdDrawMeshTasksIndirectCountEXT( commandBuffer, buffer, offset, countBuffer, countBufferOffset, maxDrawCount, stride );
 }
 VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksIndirectEXT(
-    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, uint32_t drawCount, uint32_t stride )
+    VkCommandBuffer commandBuffer, VkBuffer buffer, VkDeviceSize offset, u32 drawCount, u32 stride )
 {
     pfn_vkCmdDrawMeshTasksIndirectEXT( commandBuffer, buffer, offset, drawCount, stride );
 }
-VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksEXT(
-    VkCommandBuffer commandBuffer, uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ )
+VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksEXT( VkCommandBuffer commandBuffer, u32 groupCountX, u32 groupCountY, u32 groupCountZ )
 {
     pfn_vkCmdDrawMeshTasksEXT( commandBuffer, groupCountX, groupCountY, groupCountZ );
 }
@@ -289,10 +286,10 @@ void LoadVulkanExtensions( VkDevice device )
     LOAD_VK_FUNC( vkCmdDrawMeshTasksEXT );
 }
 
-uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties )
+u32 FindMemoryType( u32 typeFilter, VkMemoryPropertyFlags properties )
 {
     auto memProperties = rg.physicalDevice.GetMemoryProperties();
-    for ( uint32_t i = 0; i < memProperties.memoryTypeCount; ++i )
+    for ( u32 i = 0; i < memProperties.memoryTypeCount; ++i )
     {
         if ( ( typeFilter & ( 1 << i ) ) && ( memProperties.memoryTypes[i].propertyFlags & properties ) == properties )
         {
@@ -312,7 +309,7 @@ bool FormatSupported( VkFormat format, VkFormatFeatureFlags requestedSupport )
     return ( props.optimalTilingFeatures & requestedSupport ) == requestedSupport;
 }
 
-VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels, uint32_t layers )
+VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels, u32 layers )
 {
     PG_ASSERT( layers == 1 || layers == 6 );
     VkImageViewCreateInfo info = { VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO };
@@ -328,7 +325,7 @@ VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags 
 }
 
 VkImageSubresourceRange ImageSubresourceRange(
-    VkImageAspectFlags aspectFlags, uint32_t baseMipLevel, uint32_t levelCount, uint32_t baseArrayLayer, uint32_t layerCount )
+    VkImageAspectFlags aspectFlags, u32 baseMipLevel, u32 levelCount, u32 baseArrayLayer, u32 layerCount )
 {
     VkImageSubresourceRange subImage{};
     subImage.aspectMask     = aspectFlags;

@@ -20,7 +20,7 @@ struct ConverterConfigOptions
     bool saveShaderPreproc = false;
 };
 
-enum class AssetStatus : uint8_t
+enum class AssetStatus : u8
 {
     OUT_OF_DATE,
     UP_TO_DATE,

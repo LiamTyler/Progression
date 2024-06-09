@@ -32,9 +32,9 @@ enum class TerminalEmphasisCode
 };
 
 // For special windows consoles like cmd.exe that use the SetConsoleTextAttribute function for coloring
-int TerminalCodesToWindowsCodes( TerminalColorCode color, TerminalEmphasisCode emphasis )
+i32 TerminalCodesToWindowsCodes( TerminalColorCode color, TerminalEmphasisCode emphasis )
 {
-    static int colorToWindows[] = {
+    static i32 colorToWindows[] = {
         0, // BLACK
         4, // RED
         2, // GREEN
@@ -45,7 +45,7 @@ int TerminalCodesToWindowsCodes( TerminalColorCode color, TerminalEmphasisCode e
         7, // WHITE
     };
 
-    int windowsCode = colorToWindows[static_cast<int>( color ) - 30];
+    i32 windowsCode = colorToWindows[static_cast<i32>( color ) - 30];
     if ( emphasis == TerminalEmphasisCode::BOLD )
     {
         windowsCode += 8;
@@ -127,13 +127,13 @@ private:
 #define MAX_NUM_LOGGER_OUTPUT_LOCATIONS 10
 static std::mutex s_loggerLock;
 static LoggerOutputLocation s_loggerLocations[MAX_NUM_LOGGER_OUTPUT_LOCATIONS];
-static int s_numLogs = 0;
+static i32 s_numLogs = 0;
 
 void Logger_Init() {}
 
 void Logger_Shutdown()
 {
-    for ( int i = 0; i < s_numLogs; ++i )
+    for ( i32 i = 0; i < s_numLogs; ++i )
     {
         s_loggerLocations[i].Close();
     }
@@ -161,7 +161,7 @@ void Logger_AddLogLocation( std::string_view name, std::string_view filename )
 void Logger_RemoveLogLocation( std::string_view name )
 {
     s_loggerLock.lock();
-    for ( int i = 0; i < s_numLogs; ++i )
+    for ( i32 i = 0; i < s_numLogs; ++i )
     {
         if ( name == s_loggerLocations[i].GetName() )
         {
@@ -181,7 +181,7 @@ void Logger_RemoveLogLocation( std::string_view name )
 void Logger_ChangeLocationColored( std::string_view name, bool colored )
 {
     s_loggerLock.lock();
-    for ( int i = 0; i < s_numLogs; ++i )
+    for ( i32 i = 0; i < s_numLogs; ++i )
     {
         if ( name == s_loggerLocations[i].GetName() )
         {
@@ -209,7 +209,7 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
     }
 
     char colorEncoding[12];
-    sprintf( colorEncoding, "\033[%d;%dm", static_cast<int>( emphasisCode ), static_cast<int>( colorCode ) );
+    sprintf( colorEncoding, "\033[%d;%dm", static_cast<i32>( emphasisCode ), static_cast<i32>( colorCode ) );
     char fullFormat[512];
     size_t formatLen  = strlen( fmt );
     char* currentSpot = fullFormat;
@@ -222,7 +222,7 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
     *currentSpot = '\0';
 
     s_loggerLock.lock();
-    for ( int i = 0; i < s_numLogs; ++i )
+    for ( i32 i = 0; i < s_numLogs; ++i )
     {
         va_list args;
         va_start( args, fmt );
@@ -231,7 +231,7 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
 #if USING( WINDOWS_PROGRAM )
             if ( s_loggerLocations[i].IsSpecialWindowsConsole() )
             {
-                int windowsCode = TerminalCodesToWindowsCodes( colorCode, emphasisCode );
+                i32 windowsCode = TerminalCodesToWindowsCodes( colorCode, emphasisCode );
                 HANDLE hConsole = GetStdHandle( s_loggerLocations[i].GetOutputFile() == stdout ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE );
                 SetConsoleTextAttribute( hConsole, windowsCode );
                 vfprintf( s_loggerLocations[i].GetOutputFile(), fullFormat, args );

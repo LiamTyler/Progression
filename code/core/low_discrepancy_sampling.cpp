@@ -3,7 +3,7 @@
 namespace PG
 {
 
-static uint32_t ReverseBits32( uint32_t bits )
+static u32 ReverseBits32( u32 bits )
 {
     bits = ( bits << 16u ) | ( bits >> 16u );
     bits = ( ( bits & 0x55555555u ) << 1u ) | ( ( bits & 0xAAAAAAAAu ) >> 1u );
@@ -13,22 +13,22 @@ static uint32_t ReverseBits32( uint32_t bits )
     return bits;
 }
 
-static uint64_t ReverseBits64( uint64_t bits )
+static u64 ReverseBits64( u64 bits )
 {
-    uint64_t n0 = ReverseBits32( (uint32_t)bits );
-    uint64_t n1 = ReverseBits32( (uint32_t)( bits >> 32 ) );
+    u64 n0 = ReverseBits32( (u32)bits );
+    u64 n1 = ReverseBits32( (u32)( bits >> 32 ) );
     return ( n0 << 32 ) | n1;
 }
 
-float Hammersley32( uint32_t index )
+f32 Hammersley32( u32 index )
 {
-    uint32_t reversed = ReverseBits32( index );
+    u32 reversed = ReverseBits32( index );
     return reversed * 0x1p-32f;
 }
 
-double Hammersley64( uint64_t index )
+f64 Hammersley64( u64 index )
 {
-    uint64_t reversed = ReverseBits64( index );
+    u64 reversed = ReverseBits64( index );
     return reversed * 0x1p-64;
 }
 

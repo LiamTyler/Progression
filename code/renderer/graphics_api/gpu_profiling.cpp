@@ -33,26 +33,26 @@ struct ProfileRecord
 {
     std::string name;
     // all timings are in milliseconds
-    float min = 0;
-    float max = 0;
-    float avg = 0;
+    f32 min = 0;
+    f32 max = 0;
+    f32 avg = 0;
 };
 
 struct ProfileRecordHistory
 {
-    CircularArray<float, NUM_HISTORY_FRAMES> frameHistory;
+    CircularArray<f32, NUM_HISTORY_FRAMES> frameHistory;
 };
 static std::vector<ProfileRecord> s_profileRecords;
 static std::vector<ProfileRecordHistory> s_profileRecordHistories;
-static std::unordered_map<std::string, uint16_t> s_profileNameToIndexMap;
+static std::unordered_map<std::string, u16> s_profileNameToIndexMap;
 
 struct QueryResult
 {
-    uint64_t timestamp;
+    u64 timestamp;
 };
 
 static QueryResult s_cpuQueries[MAX_TIMESTAMPS_PER_FRAME];
-static double s_timestampDifferenceToMillis;
+static f64 s_timestampDifferenceToMillis;
 
 namespace PG::Gfx::Profile
 {
@@ -78,7 +78,7 @@ void Init()
     createInfo.pNext                 = nullptr;
     createInfo.queryType             = VK_QUERY_TYPE_TIMESTAMP;
     createInfo.queryCount            = MAX_TIMESTAMPS_PER_FRAME;
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         VK_CHECK( vkCreateQueryPool( rg.device, &createInfo, nullptr, &s_frameData[i].queryPool ) );
         PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( s_frameData[i].queryPool, "GPU Profiling Timestamp Pool " + std::to_string( i ) );
@@ -88,7 +88,7 @@ void Init()
 
 void Shutdown()
 {
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         if ( s_frameData[i].queryPool != VK_NULL_HANDLE )
             vkDestroyQueryPool( rg.device, s_frameData[i].queryPool, nullptr );
@@ -137,16 +137,16 @@ void DrawResultsOnScreen()
 
 static void GetOldestFramesResults()
 {
-    uint32_t CF             = rg.currentFrameIdx;
+    u32 CF                  = rg.currentFrameIdx;
     PerFrameData& frameData = GetCurrentFrameData();
-    uint32_t numQueries     = static_cast<uint32_t>( frameData.queries.size() );
+    u32 numQueries          = static_cast<u32>( frameData.queries.size() );
     if ( !numQueries )
         return;
 
     vkGetQueryPoolResults( rg.device, frameData.queryPool, 0, 2 * numQueries, sizeof( s_cpuQueries ), s_cpuQueries, sizeof( QueryResult ),
         VK_QUERY_RESULT_64_BIT | VK_QUERY_RESULT_WAIT_BIT );
 
-    for ( uint32_t queryIdx = 0; queryIdx < numQueries; ++queryIdx )
+    for ( u32 queryIdx = 0; queryIdx < numQueries; ++queryIdx )
     {
         const QueryRecord& qRecord     = frameData.queries[queryIdx];
         ProfileRecord& pRecord         = s_profileRecords[qRecord.profileEntryIndex];
@@ -156,14 +156,14 @@ static void GetOldestFramesResults()
         const QueryResult& startRes = s_cpuQueries[qRecord.startQuery];
         const QueryResult& endRes   = s_cpuQueries[qRecord.endQuery];
 
-        float duration = static_cast<float>( ( endRes.timestamp - startRes.timestamp ) * s_timestampDifferenceToMillis );
+        f32 duration = static_cast<f32>( ( endRes.timestamp - startRes.timestamp ) * s_timestampDifferenceToMillis );
         pHistory.frameHistory.Pushback( duration );
         pRecord.avg = 0;
         pRecord.max = 0;
         pRecord.min = FLT_MAX;
-        for ( uint16_t i = 0; i < pHistory.frameHistory.Size(); ++i )
+        for ( u16 i = 0; i < pHistory.frameHistory.Size(); ++i )
         {
-            float t     = pHistory.frameHistory[i];
+            f32 t       = pHistory.frameHistory[i];
             pRecord.max = Max( pRecord.max, t );
             pRecord.min = Min( pRecord.min, t );
             pRecord.avg += t;
@@ -186,13 +186,13 @@ void StartFrame( const CommandBuffer& cmdbuf )
     Reset( cmdbuf );
 }
 
-uint16_t GetOrCreateProfileEntry( const std::string& name )
+u16 GetOrCreateProfileEntry( const std::string& name )
 {
     auto it = s_profileNameToIndexMap.find( name );
     if ( it != s_profileNameToIndexMap.end() )
         return it->second;
 
-    uint16_t index = static_cast<uint16_t>( s_profileRecords.size() );
+    u16 index = static_cast<u16>( s_profileRecords.size() );
     s_profileRecordHistories.emplace_back();
     ProfileRecord& pRecord        = s_profileRecords.emplace_back();
     pRecord.name                  = name;
@@ -201,11 +201,11 @@ uint16_t GetOrCreateProfileEntry( const std::string& name )
     return index;
 }
 
-QueryRecord& StartTimestamp( const CommandBuffer& cmdbuf, uint16_t profileEntryIdx )
+QueryRecord& StartTimestamp( const CommandBuffer& cmdbuf, u16 profileEntryIdx )
 {
     PerFrameData& frameData = GetCurrentFrameData();
 
-    uint16_t numQueries = static_cast<uint16_t>( frameData.queries.size() );
+    u16 numQueries = static_cast<u16>( frameData.queries.size() );
     PG_ASSERT( numQueries < MAX_RECORDS_PER_FRAME );
 
     QueryRecord& qRecord      = frameData.queries.emplace_back();

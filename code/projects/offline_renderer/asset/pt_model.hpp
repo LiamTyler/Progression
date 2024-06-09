@@ -16,7 +16,7 @@ class MeshInstance
 {
 public:
     MeshInstance();
-    MeshInstance( PG::Model* model, uint32_t meshIdx, const PG::Transform& localToWorld, MaterialHandle material );
+    MeshInstance( PG::Model* model, u32 meshIdx, const PG::Transform& localToWorld, MaterialHandle material );
 
     PG::Transform localToWorld;
     PG::AABB worldSpaceAABB;
@@ -27,14 +27,14 @@ public:
     std::vector<vec3> normals;
     std::vector<vec2> uvs;
     std::vector<vec3> tangents;
-    std::vector<uint32_t> indices;
+    std::vector<u32> indices;
 };
 
 struct Shape;
 void AddMeshInstancesForModel( PG::Model* model, std::vector<PG::Material*> materials, const PG::Transform& transform );
 void EmitTrianglesForAllMeshes( std::vector<Shape*>& shapes, std::vector<Light*>& lights );
 
-using MeshInstanceHandle                                  = uint32_t;
+using MeshInstanceHandle                                  = u32;
 constexpr MeshInstanceHandle MESH_INSTANCE_HANDLE_INVALID = 0;
 
 MeshInstance* GetMeshInstance( MeshInstanceHandle handle );

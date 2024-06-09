@@ -22,15 +22,15 @@ struct ResourceData
             TGBBufferRef bufRef;
         };
     };
-    uint16_t firstTask;
-    uint16_t lastTask;
+    u16 firstTask;
+    u16 lastTask;
     ResourceType resType;
 };
 
 struct ResHandle
 {
-    uint16_t index : 15;
-    uint16_t isTex : 1;
+    u16 index : 15;
+    u16 isTex : 1;
 
     ResHandle( TGBBufferRef buf ) : index( buf.index ), isTex( 0 ) {}
     ResHandle( TGBTextureRef tex ) : index( tex.index ), isTex( 1 ) {}
@@ -48,15 +48,15 @@ struct Block
 struct TimeSlice
 {
     TimeSlice( const ResourceData& res, size_t totalSize );
-    TimeSlice( const ResourceData& res, size_t totalSize, uint16_t inFirstTask, uint16_t inLastTask, size_t offset );
+    TimeSlice( const ResourceData& res, size_t totalSize, u16 inFirstTask, u16 inLastTask, size_t offset );
 
     bool AnyTimeOverlap( const ResourceData& res ) const;
     void FindFittableRegions( const ResourceData& res, std::vector<Block>& globalFreeBlocks, std::vector<Block>& combinedFreeBlocks ) const;
     void Add( const ResourceData& res, size_t alignedOffset );
 
     std::vector<Block> localFreeBlocks;
-    const uint16_t firstTask;
-    const uint16_t lastTask;
+    const u16 firstTask;
+    const u16 lastTask;
 };
 
 struct MemoryBucket
@@ -69,7 +69,7 @@ struct MemoryBucket
     std::vector<std::pair<ResHandle, size_t>> resources;
     const size_t bucketSize;
     const size_t initialAlignment;
-    decltype( VkMemoryRequirements::memoryTypeBits ) memoryTypeBits; // uint32_t
+    decltype( VkMemoryRequirements::memoryTypeBits ) memoryTypeBits; // u32
 };
 
 std::vector<MemoryBucket> PackResources( std::vector<ResourceData>& resourceDatas );

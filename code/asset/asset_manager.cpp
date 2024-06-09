@@ -10,7 +10,7 @@
 namespace PG::AssetManager
 {
 
-uint32_t GetAssetTypeIDHelper::IDCounter = 0;
+u32 GetAssetTypeIDHelper::IDCounter = 0;
 std::unordered_map<std::string, BaseAsset*> g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
 
 #if USING( ASSET_LIVE_UPDATE )
@@ -43,8 +43,8 @@ bool LiveUpdatesSupported( AssetType type ) { return false; }
 static void ClearPendingLiveUpdates()
 {
 #if USING( ASSET_LIVE_UPDATE )
-    uint32_t numIgnoredAssets = 0;
-    for ( uint32_t assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
+    u32 numIgnoredAssets = 0;
+    for ( u32 assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
     {
         for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
         {
@@ -61,8 +61,8 @@ static void ClearPendingLiveUpdates()
 void ProcessPendingLiveUpdates()
 {
 #if USING( ASSET_LIVE_UPDATE )
-    uint32_t numIgnoredAssets = 0;
-    for ( uint32_t assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
+    u32 numIgnoredAssets = 0;
+    for ( u32 assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
     {
         for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
         {
@@ -103,7 +103,7 @@ void ProcessPendingLiveUpdates()
 std::string DeserializeAssetName( Serializer* serializer, BaseAsset* asset )
 {
     std::string assetName;
-    uint16_t assetNameLen;
+    u16 assetNameLen;
     serializer->Read( assetNameLen );
     assetName.resize( assetNameLen );
     serializer->Read( &assetName[0], assetNameLen );
@@ -174,7 +174,7 @@ bool LoadFastFile( const std::string& fname )
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader );
             LOAD_FF_CASE( ASSET_TYPE_UI_LAYOUT, UILayout );
             LOAD_FF_CASE( ASSET_TYPE_PIPELINE, Pipeline );
-        default: LOG_ERR( "Unknown asset type '%d'", static_cast<int>( assetType ) ); return false;
+        default: LOG_ERR( "Unknown asset type '%d'", static_cast<i32>( assetType ) ); return false;
         }
     }
 
@@ -188,7 +188,7 @@ void FreeRemainingGpuResources()
     ClearPendingLiveUpdates();
     const AssetType typesWithGpuData[] = {
         ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MATERIAL, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE };
-    for ( uint32_t i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
+    for ( u32 i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
     {
         AssetType type = typesWithGpuData[i];
         for ( const auto& it : g_resourceMaps[type] )
@@ -202,7 +202,7 @@ void FreeRemainingGpuResources()
 
 void Shutdown()
 {
-    for ( uint32_t i = 0; i < AssetType::ASSET_TYPE_COUNT; ++i )
+    for ( u32 i = 0; i < AssetType::ASSET_TYPE_COUNT; ++i )
     {
         for ( const auto& it : g_resourceMaps[i] )
         {
@@ -251,7 +251,7 @@ void RegisterLuaFunctions( lua_State* L )
     script_type["scriptText"] = &Script::scriptText;
 }
 
-BaseAsset* Get( uint32_t assetTypeID, const std::string& name )
+BaseAsset* Get( u32 assetTypeID, const std::string& name )
 {
     PG_ASSERT( assetTypeID < AssetType::ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = g_resourceMaps[assetTypeID].find( name );

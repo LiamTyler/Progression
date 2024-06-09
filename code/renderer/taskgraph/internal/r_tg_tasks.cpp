@@ -47,9 +47,9 @@ void Task::SubmitBarriers( TGExecuteData* data )
     FillBufferBarriers( data->taskGraph, data->scratchBufferBarriers, bufferBarriers );
 
     VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-    depInfo.imageMemoryBarrierCount  = (uint32_t)data->scratchImageBarriers.size();
+    depInfo.imageMemoryBarrierCount  = (u32)data->scratchImageBarriers.size();
     depInfo.pImageMemoryBarriers     = data->scratchImageBarriers.data();
-    depInfo.bufferMemoryBarrierCount = (uint32_t)data->scratchBufferBarriers.size();
+    depInfo.bufferMemoryBarrierCount = (u32)data->scratchBufferBarriers.size();
     depInfo.pBufferMemoryBarriers    = data->scratchBufferBarriers.data();
 
     vkCmdPipelineBarrier2( *data->cmdBuf, &depInfo );
@@ -61,7 +61,7 @@ void ComputeTask::Execute( TGExecuteData* data )
     {
         FillImageBarriers( data->taskGraph, data->scratchImageBarriers, imageBarriersPreClears );
         VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
-        depInfo.imageMemoryBarrierCount = (uint32_t)data->scratchImageBarriers.size();
+        depInfo.imageMemoryBarrierCount = (u32)data->scratchImageBarriers.size();
         depInfo.pImageMemoryBarriers    = data->scratchImageBarriers.data();
 
         vkCmdPipelineBarrier2( *data->cmdBuf, &depInfo );
@@ -155,8 +155,8 @@ void TransferTask::Execute( TGExecuteData* data )
 void PresentTask::Execute( TGExecuteData* data ) { SubmitBarriers( data ); }
 
 #if USING( TG_DEBUG )
-template <uint32_t N>
-constexpr uint32_t StrLen( char const ( & )[N] )
+template <u32 N>
+constexpr u32 StrLen( char const ( & )[N] )
 {
     return N - 1;
 }
@@ -164,7 +164,7 @@ constexpr uint32_t StrLen( char const ( & )[N] )
 static const char* ImgLayoutToString( VkImageLayout layout )
 {
     // ex: VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL -> COLOR_ATTACHMENT_OPTIMAL
-    constexpr uint32_t L = StrLen( "VK_IMAGE_LAYOUT_" );
+    constexpr u32 L = StrLen( "VK_IMAGE_LAYOUT_" );
     return string_VkImageLayout( layout ) + L;
 }
 
@@ -174,7 +174,7 @@ static const char* PipelineStageFlagsToString( VkPipelineStageFlags2 stage )
         return "NONE";
 
     // ex: VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT -> ALL_TRANSFER_BIT
-    constexpr uint32_t L = StrLen( "VK_PIPELINE_STAGE_2_" );
+    constexpr u32 L = StrLen( "VK_PIPELINE_STAGE_2_" );
     return string_VkPipelineStageFlags2( stage ).c_str() + L;
 }
 
@@ -185,21 +185,21 @@ static const char* AccessFlagsToString( VkAccessFlags2 flags )
         return "NONE";
 
     // ex: VK_ACCESS_2_SHADER_WRITE_BIT -> SHADER_WRITE_BIT
-    constexpr uint32_t L = StrLen( "VK_ACCESS_2_" );
+    constexpr u32 L = StrLen( "VK_ACCESS_2_" );
     return string_VkAccessFlags2( flags ).c_str() + L;
 }
 
 static const char* LoadOpToString( VkAttachmentLoadOp op )
 {
     // ex: VK_ATTACHMENT_LOAD_OP_LOAD -> LOAD
-    constexpr uint32_t L = StrLen( "VK_ATTACHMENT_LOAD_OP_" );
+    constexpr u32 L = StrLen( "VK_ATTACHMENT_LOAD_OP_" );
     return string_VkAttachmentLoadOp( op ) + L;
 }
 
 static const char* StoreOpToString( VkAttachmentStoreOp op )
 {
     // ex: VK_ATTACHMENT_STORE_OP_STORE -> STORE
-    constexpr uint32_t L = StrLen( "VK_ATTACHMENT_STORE_OP_" );
+    constexpr u32 L = StrLen( "VK_ATTACHMENT_STORE_OP_" );
     return string_VkAttachmentStoreOp( op ) + L;
 }
 

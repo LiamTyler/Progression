@@ -15,10 +15,10 @@ namespace PG
 
 struct Meshlet
 {
-    uint32_t vertexOffset;
-    uint32_t triOffset;
-    uint32_t vertexCount;
-    uint32_t triangleCount;
+    u32 vertexOffset;
+    u32 triOffset;
+    u32 vertexCount;
+    u32 triangleCount;
 };
 
 struct Material;
@@ -34,17 +34,17 @@ struct Mesh
     std::vector<vec3> normals;
     std::vector<vec2> texCoords;
     std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
-    std::vector<uint8_t> indices;
+    std::vector<u8> indices;
 
 #if USING( GPU_DATA )
     Gfx::Buffer vertexBuffer;
     Gfx::Buffer triBuffer;
     Gfx::Buffer meshletBuffer;
-    uint32_t numVertices;
-    uint32_t numMeshlets;
+    u32 numVertices;
+    u32 numMeshlets;
     bool hasTexCoords;
     bool hasTangents;
-    uint32_t bindlessBuffersSlot;
+    u32 bindlessBuffersSlot;
 #endif // #if USING( GPU_DATA )
 };
 

@@ -14,7 +14,7 @@
 #include "ui/ui_data_structures.hpp"
 #include <list>
 
-enum : uint32_t
+enum : u32
 {
     PIPELINE_OPAQUE,
     PIPELINE_BLEND,
@@ -34,7 +34,7 @@ namespace PG::UI
 
 static constexpr UIElementHandle MAX_UI_ELEMENTS = 4096;
 static StaticArrayAllocator<UIElement, UIElementHandle, UI_NULL_HANDLE, MAX_UI_ELEMENTS> s_uiElements;
-static StaticArrayAllocator<UIElementFunctions, uint16_t, UI_NULL_HANDLE, MAX_UI_ELEMENTS> s_uiElementFunctions;
+static StaticArrayAllocator<UIElementFunctions, u16, UI_NULL_HANDLE, MAX_UI_ELEMENTS> s_uiElementFunctions;
 static Pipeline s_uiPipelines[PIPELINE_COUNT];
 static std::list<UIElementHandle> s_rootUiElements; // TODO: do linked list in statically allocated memory
 static sol::state* s_uiLuaState = nullptr;
@@ -92,7 +92,7 @@ bool Init()
     // pipelineDesc.vertexDescriptor            = VertexInputDescriptor::Create( 0, nullptr, 0, nullptr );
     // pipelineDesc.shaders[0]                  = AssetManager::Get<Shader>( "uiVert" );
     // pipelineDesc.shaders[1]                  = AssetManager::Get<Shader>( "uiFrag" );
-    // for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
+    // for ( u32 i = 0; i < PIPELINE_COUNT; ++i )
     //{
     //     UIElementBlendMode blendMode                         = static_cast<UIElementBlendMode>( i );
     //     pipelineDesc.colorAttachmentInfos[0].blendingEnabled = blendMode != UIElementBlendMode::OPAQUE;
@@ -135,7 +135,7 @@ void Shutdown()
 {
     Clear();
     Gfx::rg.device.WaitForIdle();
-    // for ( uint32_t i = 0; i < PIPELINE_COUNT; ++i )
+    // for ( u32 i = 0; i < PIPELINE_COUNT; ++i )
     //{
     //     s_uiPipelines[i].Free();
     // }
@@ -155,7 +155,7 @@ void Clear()
     }
     s_layouts.clear();
     s_uiElements.Clear();
-    for ( int i = 0; i < MAX_UI_ELEMENTS; ++i )
+    for ( i32 i = 0; i < MAX_UI_ELEMENTS; ++i )
     {
         auto& f = s_uiElementFunctions[i];
         if ( f.update.valid() )
@@ -322,10 +322,10 @@ UIElement* GetElement( UIElementHandle handle )
     return &s_uiElements[handle];
 }
 
-UIElement* GetChildElement( UIElementHandle parentHandle, uint32_t childIdx )
+UIElement* GetChildElement( UIElementHandle parentHandle, u32 childIdx )
 {
     const UIElement& parent     = s_uiElements[parentHandle];
-    uint32_t idx                = 0;
+    u32 idx                     = 0;
     UIElementHandle childHandle = parent.firstChild;
     for ( ; childHandle != UI_NULL_HANDLE && idx < childIdx; childHandle = GetElement( childHandle )->nextSibling )
     {
@@ -421,16 +421,16 @@ static void OffsetHandles( UIElement& e, UIElementHandle offset )
     e.lastChild   = e.lastChild == UI_NULL_HANDLE ? UI_NULL_HANDLE : e.lastChild + offset;
 }
 
-static uint16_t AddScript( UIScript* script )
+static u16 AddScript( UIScript* script )
 {
-    uint16_t idx = static_cast<uint16_t>( s_luaScripts.size() );
+    u16 idx = static_cast<u16>( s_luaScripts.size() );
     s_luaScripts.emplace_back( script );
     Lua::RunFunctionSafeChecks( script->env, "Start" );
 
     return idx;
 }
 
-uint16_t AddScript( const std::string& scriptName ) { return AddScript( new UIScript( s_uiLuaState, scriptName ) ); }
+u16 AddScript( const std::string& scriptName ) { return AddScript( new UIScript( s_uiLuaState, scriptName ) ); }
 
 static void GetFunctionRef(
     const char* funcTypeStr, sol::function& func, const std::string& funcName, UIScript* uiScript, const std::string& scriptName )
@@ -448,11 +448,11 @@ static void GetFunctionRef(
 
 static bool CreateLayoutFromAsset( UILayout* layoutAsset )
 {
-    UIElementHandle rootElementHandle = s_uiElements.AllocMultiple( (uint32_t)layoutAsset->createInfos.size() );
+    UIElementHandle rootElementHandle = s_uiElements.AllocMultiple( (u32)layoutAsset->createInfos.size() );
     if ( rootElementHandle == UI_NULL_HANDLE )
     {
         LOG_ERR( "UI::CreateLayout: No contiguous region to fit %u elements. Current element count: %u",
-            (uint32_t)layoutAsset->createInfos.size(), s_uiElements.Size() );
+            (u32)layoutAsset->createInfos.size(), s_uiElements.Size() );
         return false;
     }
 
@@ -462,7 +462,7 @@ static bool CreateLayoutFromAsset( UILayout* layoutAsset )
     LayoutInfo& layoutInfo       = s_layouts.emplace_back();
     layoutInfo.layoutAsset       = layoutAsset;
     layoutInfo.rootElementHandle = rootElementHandle;
-    layoutInfo.elementCount      = (uint16_t)layoutAsset->createInfos.size();
+    layoutInfo.elementCount      = (u16)layoutAsset->createInfos.size();
 
     for ( UIElementHandle localHandle = 0; localHandle < (UIElementHandle)layoutAsset->createInfos.size(); ++localHandle )
     {
@@ -490,7 +490,7 @@ static bool CreateLayoutFromAsset( UILayout* layoutAsset )
             const UIElementCreateInfo& createInfo = layoutAsset->createInfos[localHandle];
             if ( element.scriptFlags != UIElementScriptFlags::NONE )
             {
-                uint16_t idx                  = s_uiElementFunctions.AllocOne();
+                u16 idx                       = s_uiElementFunctions.AllocOne();
                 element.scriptFunctionsIdx    = idx;
                 UIElementFunctions& functions = s_uiElementFunctions[idx];
                 functions.uiScript            = layoutInfo.uiscript;
@@ -558,7 +558,7 @@ void ReloadScriptIfInUse( Script* oldScript, Script* newScript )
 
         const std::string& scriptName = newScript->GetName();
         s_uiLuaState->script( newScript->scriptText, layoutInfo.uiscript->env );
-        for ( uint32_t idx = 0; idx < layoutInfo.elementCount; ++idx )
+        for ( u32 idx = 0; idx < layoutInfo.elementCount; ++idx )
         {
             UIElement* e = GetElement( layoutInfo.rootElementHandle + idx );
             if ( e->scriptFunctionsIdx != UI_NO_SCRIPT_INDEX )
@@ -651,11 +651,11 @@ void Update()
         } );
 }
 
-static uint32_t UNormToByte( float x ) { return static_cast<uint8_t>( 255.0f * x + 0.5f ); }
+static u32 UNormToByte( float x ) { return static_cast<u8>( 255.0f * x + 0.5f ); }
 
-static uint32_t Pack4Unorm( float x, float y, float z, float w )
+static u32 Pack4Unorm( float x, float y, float z, float w )
 {
-    uint32_t packed = ( UNormToByte( x ) << 0 ) | ( UNormToByte( y ) << 8 ) | ( UNormToByte( z ) << 16 ) | ( UNormToByte( w ) << 24 );
+    u32 packed = ( UNormToByte( x ) << 0 ) | ( UNormToByte( y ) << 8 ) | ( UNormToByte( z ) << 16 ) | ( UNormToByte( w ) << 24 );
     return packed;
 }
 
@@ -672,7 +672,7 @@ static GpuData::UIElementData GetGpuDataFromUIElement( const UIElement& e )
     return gpuData;
 }
 
-static uint32_t GetPipelineForUIElement( const UIElement& element ) { return Underlying( element.blendMode ); }
+static u32 GetPipelineForUIElement( const UIElement& element ) { return Underlying( element.blendMode ); }
 
 void Render( Gfx::CommandBuffer* cmdBuf )
 {
@@ -680,14 +680,14 @@ void Render( Gfx::CommandBuffer* cmdBuf )
     cmdBuf->SetViewport( DisplaySizedViewport( false ) );
     cmdBuf->SetScissor( DisplaySizedScissor() );
     cmdBuf->BindPipeline( &s_uiPipelines[PIPELINE_OPAQUE] );
-    uint32_t lastPipelineIndex = PIPELINE_OPAQUE;
+    u32 lastPipelineIndex = PIPELINE_OPAQUE;
     // cmdBuf->BindDescriptorSet( *bindlessTexturesSet, PG_BINDLESS_TEXTURE_DESCRIPTOR_SET );
     PG_ASSERT( false, "todo" );
 
     IterateAllElementsInOrder(
         [&]( const UIElement& e )
         {
-            uint32_t pipelineIdx = GetPipelineForUIElement( e );
+            u32 pipelineIdx = GetPipelineForUIElement( e );
             if ( pipelineIdx != lastPipelineIndex )
             {
                 lastPipelineIndex = pipelineIdx;

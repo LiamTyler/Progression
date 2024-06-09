@@ -14,7 +14,7 @@ struct DescriptorLayoutBuilder
     bool bindlessSupport = true;
     bool mutableSupport  = false;
 
-    void AddBinding( uint32_t binding, VkDescriptorType type, uint32_t count );
+    void AddBinding( u32 binding, VkDescriptorType type, u32 count );
     void Clear();
     VkDescriptorSetLayout Build( VkShaderStageFlags shaderStages = VK_SHADER_STAGE_ALL, std::string_view name = "" );
 };
@@ -23,7 +23,7 @@ struct DescriptorAllocator
 {
     VkDescriptorPool pool;
 
-    void Init( uint32_t maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, std::string_view name = "" );
+    void Init( u32 maxSets, const std::vector<VkDescriptorPoolSize>& poolSizes, std::string_view name = "" );
     void ClearDescriptors();
     void Free();
     VkDescriptorSet Allocate( VkDescriptorSetLayout layout, std::string_view name = "" );

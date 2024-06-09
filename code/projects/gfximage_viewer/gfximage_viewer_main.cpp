@@ -82,13 +82,13 @@ int main( int argc, char* argv[] )
     }
 
     std::string fnamePrefix = GetFilenameMinusExtension( argv[1] );
-    for ( uint32_t face = 0; face < image.numFaces; ++face )
+    for ( u32 face = 0; face < image.numFaces; ++face )
     {
-        uint32_t w = image.width;
-        uint32_t h = image.height;
-        for ( uint32_t mipLevel = 0; mipLevel < image.mipLevels; ++mipLevel )
+        u32 w = image.width;
+        u32 h = image.height;
+        for ( u32 mipLevel = 0; mipLevel < image.mipLevels; ++mipLevel )
         {
-            uint8_t* pixels = image.GetPixels( face, mipLevel );
+            u8* pixels = image.GetPixels( face, mipLevel );
             RawImage2D img( w, h, imgFormat, pixels );
             if ( dstFormat != imgFormat )
             {

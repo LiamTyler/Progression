@@ -9,13 +9,13 @@ namespace PG::Gfx
 struct PhysicalDeviceProperties
 {
     std::string name;
-    double nanosecondsPerTick; // # timestamps per second
-    uint16_t apiVersionMajor;
-    uint16_t apiVersionMinor;
-    uint16_t apiVersionPatch;
+    f64 nanosecondsPerTick; // # timestamps per second
+    u16 apiVersionMajor;
+    u16 apiVersionMinor;
+    u16 apiVersionPatch;
     bool isDiscrete;
     VkPhysicalDeviceDescriptorBufferPropertiesEXT dbProps;
-    float maxAnisotropy;
+    f32 maxAnisotropy;
 };
 
 class PhysicalDevice

@@ -8,7 +8,7 @@ class Serializer;
 namespace PG
 {
 
-enum class MaterialType : uint8_t
+enum class MaterialType : u8
 {
     SURFACE = 0,
     DECAL   = 1,
@@ -20,10 +20,10 @@ struct MaterialCreateInfo : public BaseAssetCreateInfo
 {
     MaterialType type = MaterialType::SURFACE;
     std::string texturesetName;
-    vec3 albedoTint     = vec3( 1 );
-    float metalnessTint = 1.0f;
-    float roughnessTint = 1.0f;
-    vec3 emissiveTint   = vec3( 0 );
+    vec3 albedoTint   = vec3( 1 );
+    f32 metalnessTint = 1.0f;
+    f32 roughnessTint = 1.0f;
+    vec3 emissiveTint = vec3( 0 );
 
     // which textures from the textureset to actually apply
     bool applyAlbedo    = true;
@@ -45,19 +45,19 @@ struct Material : public BaseAsset
 
     MaterialType type;
     vec3 albedoTint                = vec3( 1.0f );
-    float metalnessTint            = 1.0f;
+    f32 metalnessTint              = 1.0f;
     GfxImage* albedoMetalnessImage = nullptr;
 
-    float roughnessTint            = 1.0f;
+    f32 roughnessTint              = 1.0f;
     GfxImage* normalRoughnessImage = nullptr;
 
     vec3 emissiveTint       = vec3( 0.0f );
     GfxImage* emissiveImage = nullptr;
 
-    uint16_t GetBindlessIndex() const { return m_bindlessIndex; }
+    u16 GetBindlessIndex() const { return m_bindlessIndex; }
 
 private:
-    uint16_t m_bindlessIndex;
+    u16 m_bindlessIndex;
 };
 
 } // namespace PG

@@ -23,14 +23,14 @@ namespace PG::Gfx
 
 void LoadVulkanExtensions( VkDevice device );
 
-uint32_t FindMemoryType( uint32_t typeFilter, VkMemoryPropertyFlags properties );
+u32 FindMemoryType( u32 typeFilter, VkMemoryPropertyFlags properties );
 
 bool FormatSupported( VkFormat format, VkFormatFeatureFlags requestedSupport );
 
-VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, uint32_t mipLevels = 1, uint32_t layers = 1 );
+VkImageView CreateImageView( VkImage image, VkFormat format, VkImageAspectFlags aspectFlags, u32 mipLevels = 1, u32 layers = 1 );
 
-VkImageSubresourceRange ImageSubresourceRange( VkImageAspectFlags aspectFlags, uint32_t baseMipLevel = 0,
-    uint32_t levelCount = VK_REMAINING_MIP_LEVELS, uint32_t baseArrayLayer = 0, uint32_t layerCount = VK_REMAINING_ARRAY_LAYERS );
+VkImageSubresourceRange ImageSubresourceRange( VkImageAspectFlags aspectFlags, u32 baseMipLevel = 0,
+    u32 levelCount = VK_REMAINING_MIP_LEVELS, u32 baseArrayLayer = 0, u32 layerCount = VK_REMAINING_ARRAY_LAYERS );
 
 VkSemaphoreSubmitInfo SemaphoreSubmitInfo( VkPipelineStageFlags2 stageMask, VkSemaphore semaphore );
 

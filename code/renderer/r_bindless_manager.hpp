@@ -14,9 +14,9 @@ namespace PG::Gfx
 class Buffer;
 class Texture;
 
-using TextureIndex  = uint16_t;
-using BufferIndex   = uint16_t;
-using MaterialIndex = uint16_t;
+using TextureIndex  = u16;
+using BufferIndex   = u16;
+using MaterialIndex = u16;
 
 } // namespace PG::Gfx
 

@@ -12,7 +12,7 @@
 namespace PG
 {
 
-enum class ShaderStage : uint8_t
+enum class ShaderStage : u8
 {
     VERTEX   = 0,
     GEOMETRY = 1,
@@ -36,9 +36,9 @@ std::string GetAbsPath_ShaderFilename( const std::string& filename );
 
 struct ShaderReflectData
 {
-    uvec3 workgroupSize         = uvec3( 0 );
-    uint16_t pushConstantSize   = 0;
-    uint16_t pushConstantOffset = 0;
+    uvec3 workgroupSize    = uvec3( 0 );
+    u16 pushConstantSize   = 0;
+    u16 pushConstantOffset = 0;
 };
 
 struct Shader : public BaseAsset
@@ -57,7 +57,7 @@ struct Shader : public BaseAsset
 #endif // #if USING( GPU_DATA )
 
 #if USING( CONVERTER )
-    std::vector<uint32_t> savedSpirv;
+    std::vector<u32> savedSpirv;
 #endif // #if USING( CONVERTER )
 
 private:

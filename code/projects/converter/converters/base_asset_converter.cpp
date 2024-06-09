@@ -34,7 +34,7 @@ static std::unordered_set<BaseCreateInfoPtr, BaseCreateInfoHash, BaseCreateInfoC
 
 void ClearAllUsedAssets()
 {
-    for ( uint32_t assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
+    for ( u32 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
     {
         s_pendingAssets[assetTypeIdx].clear();
         AssetManager::g_resourceMaps[assetTypeIdx].clear();

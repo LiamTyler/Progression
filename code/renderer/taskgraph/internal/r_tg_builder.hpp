@@ -8,7 +8,7 @@
 namespace PG::Gfx
 {
 
-enum class RelativeSizes : uint32_t
+enum class RelativeSizes : u32
 {
     Scene   = 1u << 30,
     Display = 1u << 31,
@@ -16,19 +16,19 @@ enum class RelativeSizes : uint32_t
     ALL = Scene | Display
 };
 
-constexpr uint32_t AUTO_FULL_MIP_CHAIN() { return UINT32_MAX; }
-constexpr uint32_t SIZE_SCENE() { return static_cast<uint32_t>( RelativeSizes::Scene ); }
-constexpr uint32_t SIZE_DISPLAY() { return static_cast<uint32_t>( RelativeSizes::Display ); }
-constexpr uint32_t SIZE_SCENE_DIV( uint32_t x ) { return static_cast<uint32_t>( RelativeSizes::Scene ) | x; }
-constexpr uint32_t SIZE_DISPLAY_DIV( uint32_t x ) { return static_cast<uint32_t>( RelativeSizes::Display ) | x; }
-constexpr uint32_t ResolveRelativeSize( uint32_t scene, uint32_t display, uint32_t relSize )
+constexpr u32 AUTO_FULL_MIP_CHAIN() { return UINT32_MAX; }
+constexpr u32 SIZE_SCENE() { return static_cast<u32>( RelativeSizes::Scene ); }
+constexpr u32 SIZE_DISPLAY() { return static_cast<u32>( RelativeSizes::Display ); }
+constexpr u32 SIZE_SCENE_DIV( u32 x ) { return static_cast<u32>( RelativeSizes::Scene ) | x; }
+constexpr u32 SIZE_DISPLAY_DIV( u32 x ) { return static_cast<u32>( RelativeSizes::Display ) | x; }
+constexpr u32 ResolveRelativeSize( u32 scene, u32 display, u32 relSize )
 {
-    uint32_t size = relSize & ~(uint32_t)RelativeSizes::ALL;
-    if ( relSize & (uint32_t)RelativeSizes::Scene )
+    u32 size = relSize & ~(u32)RelativeSizes::ALL;
+    if ( relSize & (u32)RelativeSizes::Scene )
     {
         return size == 0 ? scene : scene / size;
     }
-    else if ( relSize & (uint32_t)RelativeSizes::Display )
+    else if ( relSize & (u32)RelativeSizes::Display )
     {
         return size == 0 ? display : display / size;
     }
@@ -44,11 +44,11 @@ using ExtBufferFunc  = std::function<Buffer()>;
 struct TGBTexture
 {
     TG_DEBUG_ONLY( std::string debugName );
-    uint32_t width;
-    uint32_t height;
-    uint32_t depth;
-    uint8_t arrayLayers;
-    uint8_t mipLevels;
+    u32 width;
+    u32 height;
+    u32 depth;
+    u8 arrayLayers;
+    u8 mipLevels;
     PixelFormat format;
     VkImageUsageFlags usage;
     ExtTextureFunc externalFunc;
@@ -63,7 +63,7 @@ struct TGBBuffer
     ExtBufferFunc externalFunc;
 };
 
-enum class TaskType : uint16_t
+enum class TaskType : u16
 {
     NONE     = 0, // only valid internally for signaling a resource has no previous task yet (first usage)
     COMPUTE  = 1,
@@ -74,10 +74,10 @@ enum class TaskType : uint16_t
 
 struct TaskHandle
 {
-    uint16_t index : 13;
+    u16 index : 13;
     TaskType type : 3;
 
-    TaskHandle( uint16_t inIndex, TaskType inType ) : index( inIndex ), type( inType ) {}
+    TaskHandle( u16 inIndex, TaskType inType ) : index( inIndex ), type( inType ) {}
 };
 
 struct TGBTextureRef
@@ -96,7 +96,7 @@ struct TGBBufferRef
 
 struct TGBBufferInfo
 {
-    uint32_t clearVal;
+    u32 clearVal;
     TGBBufferRef ref;
     bool isCleared;
     ResourceState state;
@@ -136,20 +136,19 @@ public:
 class ComputeTaskBuilder : public TaskBuilder
 {
 public:
-    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
+    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::COMPUTE ), inName )
     {
     }
 
-    TGBTextureRef AddTextureOutput( std::string_view name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
-        uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
-    TGBTextureRef AddTextureOutput( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
-        uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+    TGBTextureRef AddTextureOutput( std::string_view name, PixelFormat format, const vec4& clearColor, u32 width, u32 height, u32 depth = 1,
+        u32 arrayLayers = 1, u32 mipLevels = 1 );
+    TGBTextureRef AddTextureOutput(
+        std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth = 1, u32 arrayLayers = 1, u32 mipLevels = 1 );
     void AddTextureOutput( TGBTextureRef& texture );
     void AddTextureInput( TGBTextureRef& texture );
 
-    TGBBufferRef AddBufferOutput(
-        std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal );
+    TGBBufferRef AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal );
     TGBBufferRef AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size );
     void AddBufferOutput( TGBBufferRef& buffer );
     void AddBufferInput( TGBBufferRef& buffer );
@@ -172,19 +171,19 @@ struct TGBAttachmentInfo
 class GraphicsTaskBuilder : public TaskBuilder
 {
 public:
-    GraphicsTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
+    GraphicsTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::GRAPHICS ), inName )
     {
     }
 
-    TGBTextureRef AddColorAttachment( std::string_view name, PixelFormat format, const vec4& clearColor, uint32_t width, uint32_t height,
-        uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
-    TGBTextureRef AddColorAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1,
-        uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+    TGBTextureRef AddColorAttachment( std::string_view name, PixelFormat format, const vec4& clearColor, u32 width, u32 height,
+        u32 depth = 1, u32 arrayLayers = 1, u32 mipLevels = 1 );
+    TGBTextureRef AddColorAttachment(
+        std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth = 1, u32 arrayLayers = 1, u32 mipLevels = 1 );
     void AddColorAttachment( TGBTextureRef tex );
 
-    TGBTextureRef AddDepthAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, float clearVal );
-    TGBTextureRef AddDepthAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height );
+    TGBTextureRef AddDepthAttachment( std::string_view name, PixelFormat format, u32 width, u32 height, f32 clearVal );
+    TGBTextureRef AddDepthAttachment( std::string_view name, PixelFormat format, u32 width, u32 height );
     void AddDepthAttachment( TGBTextureRef tex );
 
     void SetFunction( GraphicsFunction func );
@@ -202,7 +201,7 @@ struct TGBTextureTransfer
 class TransferTaskBuilder : public TaskBuilder
 {
 public:
-    TransferTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
+    TransferTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::TRANSFER ), inName )
     {
     }
@@ -215,7 +214,7 @@ public:
 class PresentTaskBuilder : public TaskBuilder
 {
 public:
-    PresentTaskBuilder( TaskGraphBuilder* inBuilder, uint16_t taskIndex, std::string_view inName )
+    PresentTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, std::string_view inName )
         : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::PRESENT ), inName )
     {
     }
@@ -241,14 +240,14 @@ public:
     TransferTaskBuilder* AddTransferTask( std::string_view name );
     PresentTaskBuilder* AddPresentTask();
 
-    TGBTextureRef RegisterExternalTexture( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-        uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func );
+    TGBTextureRef RegisterExternalTexture(
+        std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels, ExtTextureFunc func );
     TGBBufferRef RegisterExternalBuffer(
         std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
 private:
-    TGBTextureRef AddTexture( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-        uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func, VkImageUsageFlags usage );
+    TGBTextureRef AddTexture( std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels,
+        ExtTextureFunc func, VkImageUsageFlags usage );
     TGBBufferRef AddBuffer( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
 
     std::vector<TaskBuilder*> tasks;
@@ -257,15 +256,15 @@ private:
 
     struct ResLifetime
     {
-        uint16_t firstTask = UINT16_MAX;
-        uint16_t lastTask  = 0;
+        u16 firstTask = UINT16_MAX;
+        u16 lastTask  = 0;
     };
     std::vector<ResLifetime> textureLifetimes;
     std::vector<ResLifetime> bufferLifetimes;
     void UpdateTextureLifetimeAndUsage( TGBTextureRef ref, TaskHandle task, VkImageUsageFlags flags = 0 );
     void UpdateBufferLifetime( TGBBufferRef ref, TaskHandle task );
 
-    uint16_t numTasks;
+    u16 numTasks;
 };
 
 } // namespace PG::Gfx

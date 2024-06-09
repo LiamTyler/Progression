@@ -20,10 +20,10 @@ struct BVHBuildNode
 {
     std::unique_ptr<BVHBuildNode> firstChild;
     std::unique_ptr<BVHBuildNode> secondChild;
-    uint32_t firstIndex;
-    uint32_t numShapes;
+    u32 firstIndex;
+    u32 numShapes;
     AABB aabb = AABB();
-    uint8_t axis;
+    u8 axis;
 };
 
 // struct to cache AABB info needed during bvh build
@@ -34,25 +34,25 @@ struct BVHBuildShapeInfo
     ShapePtr shape;
 };
 
-static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeInfo>& buildShapeInfos, int start, int end,
-    std::vector<ShapePtr>& orderedShapes, uint32_t& totalNodes, BVH::SplitMethod splitMethod )
+static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeInfo>& buildShapeInfos, i32 start, i32 end,
+    std::vector<ShapePtr>& orderedShapes, u32& totalNodes, BVH::SplitMethod splitMethod )
 {
     auto node = std::make_unique<BVHBuildNode>();
     ++totalNodes;
 
     // calculate bounding box of all triangles
-    for ( int i = start; i < end; ++i )
+    for ( i32 i = start; i < end; ++i )
     {
         node->aabb.Encompass( buildShapeInfos[i].aabb );
     }
 
-    int numShapes = end - start;
+    i32 numShapes = end - start;
     PG_ASSERT( numShapes > 0 );
     if ( numShapes == 1 )
     {
-        node->firstIndex = static_cast<uint32_t>( orderedShapes.size() );
+        node->firstIndex = static_cast<u32>( orderedShapes.size() );
         node->numShapes  = end - start;
-        for ( int i = start; i < end; ++i )
+        for ( i32 i = start; i < end; ++i )
         {
             orderedShapes.push_back( buildShapeInfos[i].shape );
         }
@@ -61,11 +61,11 @@ static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeI
 
     // split using the longest dimension of the aabb containing the centroids
     AABB centroidAABB;
-    for ( int i = start; i < end; ++i )
+    for ( i32 i = start; i < end; ++i )
     {
         centroidAABB.Encompass( buildShapeInfos[i].centroid );
     }
-    int dim    = centroidAABB.LongestDimension();
+    i32 dim    = centroidAABB.LongestDimension();
     node->axis = dim;
 
     // sort all the triangles
@@ -77,7 +77,7 @@ static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeI
     {
     case BVH::SplitMethod::Middle:
     {
-        float mid = ( centroidAABB.min[dim] + centroidAABB.max[dim] ) / 2;
+        f32 mid = ( centroidAABB.min[dim] + centroidAABB.max[dim] ) / 2;
         midShape =
             std::partition( beginShape, endShape, [dim, mid]( const BVHBuildShapeInfo& shape ) { return shape.centroid[dim] < mid; } );
 
@@ -106,34 +106,34 @@ static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeI
         }
         else
         {
-            const int nBuckets = 12;
+            const i32 nBuckets = 12;
             struct BucketInfo
             {
                 AABB aabb;
-                int count = 0;
+                i32 count = 0;
             };
             BucketInfo buckets[nBuckets];
 
             // bin all of the primitives into their corresponding buckets and update the bucket AABB
-            for ( int i = start; i < end; ++i )
+            for ( i32 i = start; i < end; ++i )
             {
-                int b = std::min( nBuckets - 1, static_cast<int>( nBuckets * centroidAABB.Offset( buildShapeInfos[i].centroid )[dim] ) );
+                i32 b = std::min( nBuckets - 1, static_cast<i32>( nBuckets * centroidAABB.Offset( buildShapeInfos[i].centroid )[dim] ) );
                 buckets[b].count++;
                 buckets[b].aabb.Encompass( buildShapeInfos[i].aabb );
             }
 
-            float cost[nBuckets - 1];
+            f32 cost[nBuckets - 1];
             // Compute costs for splitting after each bucket
-            for ( int i = 0; i < nBuckets - 1; ++i )
+            for ( i32 i = 0; i < nBuckets - 1; ++i )
             {
                 AABB b0, b1;
-                int count0 = 0, count1 = 0;
-                for ( int j = 0; j <= i; ++j )
+                i32 count0 = 0, count1 = 0;
+                for ( i32 j = 0; j <= i; ++j )
                 {
                     b0.Encompass( buckets[j].aabb );
                     count0 += buckets[j].count;
                 }
-                for ( int j = i + 1; j < nBuckets; ++j )
+                for ( i32 j = i + 1; j < nBuckets; ++j )
                 {
                     b1.Encompass( buckets[j].aabb );
                     count1 += buckets[j].count;
@@ -141,9 +141,9 @@ static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeI
                 cost[i] = 0.5f + ( count0 * b0.SurfaceArea() + count1 * b1.SurfaceArea() ) / node->aabb.SurfaceArea();
             }
 
-            float minCost          = cost[0];
-            int minCostSplitBucket = 0;
-            for ( int i = 1; i < nBuckets - 1; ++i )
+            f32 minCost            = cost[0];
+            i32 minCostSplitBucket = 0;
+            for ( i32 i = 1; i < nBuckets - 1; ++i )
             {
                 if ( cost[i] < minCost )
                 {
@@ -153,22 +153,22 @@ static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeI
             }
 
             // see if the split is actually worth it
-            float leafCost       = (float)numShapes;
-            int maxShapesPerLeaf = 4;
+            f32 leafCost         = (f32)numShapes;
+            i32 maxShapesPerLeaf = 4;
             if ( numShapes > maxShapesPerLeaf || minCost < leafCost )
             {
                 midShape = std::partition( beginShape, endShape,
                     [&]( const BVHBuildShapeInfo& tri )
                     {
-                        int b = std::min( nBuckets - 1, static_cast<int>( nBuckets * centroidAABB.Offset( tri.centroid )[dim] ) );
+                        i32 b = std::min( nBuckets - 1, static_cast<i32>( nBuckets * centroidAABB.Offset( tri.centroid )[dim] ) );
                         return b <= minCostSplitBucket;
                     } );
             }
             else
             {
-                node->firstIndex = static_cast<uint32_t>( orderedShapes.size() );
+                node->firstIndex = static_cast<u32>( orderedShapes.size() );
                 node->numShapes  = end - start;
-                for ( int i = start; i < end; ++i )
+                for ( i32 i = start; i < end; ++i )
                 {
                     orderedShapes.push_back( buildShapeInfos[i].shape );
                 }
@@ -178,21 +178,21 @@ static std::unique_ptr<BVHBuildNode> BuildBVHInteral( std::vector<BVHBuildShapeI
     }
     }
 
-    int cutoff        = start + static_cast<int>( midShape - &buildShapeInfos[start] );
+    i32 cutoff        = start + static_cast<i32>( midShape - &buildShapeInfos[start] );
     node->firstChild  = BuildBVHInteral( buildShapeInfos, start, cutoff, orderedShapes, totalNodes, splitMethod );
     node->secondChild = BuildBVHInteral( buildShapeInfos, cutoff, end, orderedShapes, totalNodes, splitMethod );
 
     return node;
 }
 
-static int FlattenBVHBuild( LinearBVHNode* linearRoot, BVHBuildNode* buildNode, uint32_t& slot )
+static i32 FlattenBVHBuild( LinearBVHNode* linearRoot, BVHBuildNode* buildNode, u32& slot )
 {
     if ( !buildNode )
     {
         return -1;
     }
 
-    int currentSlot                   = slot++;
+    i32 currentSlot                   = slot++;
     linearRoot[currentSlot].aabb      = buildNode->aabb;
     linearRoot[currentSlot].axis      = buildNode->axis;
     linearRoot[currentSlot].numShapes = buildNode->numShapes;
@@ -231,25 +231,25 @@ void BVH::Build( std::vector<ShapePtr>& listOfShapes, SplitMethod splitMethod )
 
     std::vector<ShapePtr> orderedShapes;
     orderedShapes.reserve( shapes.size() );
-    uint32_t totalNodes = 0;
-    auto buildRootNode  = BuildBVHInteral( buildShapes, 0, static_cast<int>( shapes.size() ), orderedShapes, totalNodes, splitMethod );
-    shapes              = std::move( orderedShapes );
+    u32 totalNodes     = 0;
+    auto buildRootNode = BuildBVHInteral( buildShapes, 0, static_cast<i32>( shapes.size() ), orderedShapes, totalNodes, splitMethod );
+    shapes             = std::move( orderedShapes );
 
     // flatten the bvh
-    nodes         = new LinearBVHNode[totalNodes];
-    uint32_t slot = 0;
+    nodes    = new LinearBVHNode[totalNodes];
+    u32 slot = 0;
     FlattenBVHBuild( nodes, buildRootNode.get(), slot );
     PG_ASSERT( slot == totalNodes );
 }
 
 bool BVH::Intersect( const Ray& ray, IntersectionData* hitData ) const
 {
-    int nodesToVisit[64];
-    int currentNodeIndex = 0;
-    int toVisitOffset    = 0;
+    i32 nodesToVisit[64];
+    i32 currentNodeIndex = 0;
+    i32 toVisitOffset    = 0;
     vec3 invRayDir       = vec3( 1.0 ) / ray.direction;
-    int isDirNeg[3]      = { invRayDir.x < 0, invRayDir.y < 0, invRayDir.z < 0 };
-    float oldMaxT        = hitData->t;
+    i32 isDirNeg[3]      = { invRayDir.x < 0, invRayDir.y < 0, invRayDir.z < 0 };
+    f32 oldMaxT          = hitData->t;
 
     while ( true )
     {
@@ -259,7 +259,7 @@ bool BVH::Intersect( const Ray& ray, IntersectionData* hitData ) const
             // if this  is a leaf node, check each triangle
             if ( node.numShapes > 0 )
             {
-                for ( int shapeIndex = node.firstIndexOffset; shapeIndex < node.firstIndexOffset + node.numShapes; ++shapeIndex )
+                for ( i32 shapeIndex = node.firstIndexOffset; shapeIndex < node.firstIndexOffset + node.numShapes; ++shapeIndex )
                 {
                     shapes[shapeIndex]->Intersect( ray, hitData );
                 }
@@ -284,13 +284,13 @@ bool BVH::Intersect( const Ray& ray, IntersectionData* hitData ) const
     return hitData->t < oldMaxT;
 }
 
-bool BVH::Occluded( const Ray& ray, float tMax ) const
+bool BVH::Occluded( const Ray& ray, f32 tMax ) const
 {
-    int nodesToVisit[64];
-    int currentNodeIndex = 0;
-    int toVisitOffset    = 0;
+    i32 nodesToVisit[64];
+    i32 currentNodeIndex = 0;
+    i32 toVisitOffset    = 0;
     vec3 invRayDir       = vec3( 1.0 ) / ray.direction;
-    int isDirNeg[3]      = { invRayDir.x < 0, invRayDir.y < 0, invRayDir.z < 0 };
+    i32 isDirNeg[3]      = { invRayDir.x < 0, invRayDir.y < 0, invRayDir.z < 0 };
 
     while ( true )
     {
@@ -300,7 +300,7 @@ bool BVH::Occluded( const Ray& ray, float tMax ) const
             // if this  is a leaf node, check each triangle
             if ( node.numShapes > 0 )
             {
-                for ( int shapeIndex = node.firstIndexOffset; shapeIndex < node.firstIndexOffset + node.numShapes; ++shapeIndex )
+                for ( i32 shapeIndex = node.firstIndexOffset; shapeIndex < node.firstIndexOffset + node.numShapes; ++shapeIndex )
                 {
                     if ( shapes[shapeIndex]->TestIfHit( ray, tMax ) )
                     {

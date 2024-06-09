@@ -16,12 +16,12 @@ namespace PG::Gfx
 
 struct Queue
 {
-    VkQueue queue        = VK_NULL_HANDLE;
-    uint32_t familyIndex = ~0u;
-    uint32_t queueIndex  = ~0u;
+    VkQueue queue   = VK_NULL_HANDLE;
+    u32 familyIndex = ~0u;
+    u32 queueIndex  = ~0u;
 
     operator VkQueue() const { return queue; }
-    operator uint32_t() const { return familyIndex; }
+    operator u32() const { return familyIndex; }
 };
 
 class Device

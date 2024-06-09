@@ -26,7 +26,7 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     GfxImage decompressedImg{};
     if ( PixelFormatIsCompressed( image->pixelFormat ) )
     {
-        static uint32_t decompressedImages = 0;
+        static u32 decompressedImages = 0;
         LOG( "Decompressing image %u '%s'...", decompressedImages++, image->GetName() );
         DecompressGfxImage( *image, decompressedImg );
     }
@@ -42,7 +42,7 @@ TextureHandle LoadTextureFromGfxImage( GfxImage* image )
     else if ( image->imageType == ImageType::TYPE_CUBEMAP )
     {
         void* faceData[6];
-        for ( int face = 0; face < 6; ++face )
+        for ( i32 face = 0; face < 6; ++face )
         {
             faceData[face] = image->GetPixels( face, 0 );
         }

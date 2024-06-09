@@ -6,7 +6,7 @@
 namespace PG
 {
 
-inline float LinearToGammaSRGB( float x )
+inline f32 LinearToGammaSRGB( f32 x )
 {
     if ( x <= 0.0031308f ) [[unlikely]]
     {
@@ -22,7 +22,7 @@ inline vec3 LinearToGammaSRGB( vec3 v ) { return { LinearToGammaSRGB( v.x ), Lin
 
 inline vec4 LinearToGammaSRGB( vec4 v ) { return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ), v.a }; }
 
-inline float GammaSRGBToLinear( float x )
+inline f32 GammaSRGBToLinear( f32 x )
 {
     if ( x <= 0.04045f ) [[unlikely]]
     {

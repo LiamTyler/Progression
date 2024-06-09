@@ -32,7 +32,7 @@ int main( int argc, char** argv )
 
     // Perform all scene.numSamplesPerPixel.size() of the renderings.
     // Can specify to render the scene multiple times with different numbers of SPP using "SamplesPerPixel": [ 8, 32, etc... ]
-    for ( int sppIteration = 0; sppIteration < (int)scene->settings.numSamplesPerPixel.size(); ++sppIteration )
+    for ( i32 sppIteration = 0; sppIteration < (i32)scene->settings.numSamplesPerPixel.size(); ++sppIteration )
     {
         PathTracer pathTracer( scene );
         pathTracer.Render( sppIteration );

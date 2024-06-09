@@ -47,7 +47,7 @@ std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
         return name;
 
     std::string finalName = name;
-    int postFix           = 0;
+    i32 postFix           = 0;
     while ( AssetDatabase::FindAssetInfo( assetType, finalName ) || HaveCreated( assetType, finalName ) )
     {
         ++postFix;

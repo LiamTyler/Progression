@@ -11,7 +11,7 @@ class PathTracer
 public:
     PathTracer( Scene* scene );
 
-    void Render( int samplesPerPixelIteration = 0 );
+    void Render( i32 samplesPerPixelIteration = 0 );
     bool SaveImage( const std::string& filename ) const;
 
     Scene* scene;

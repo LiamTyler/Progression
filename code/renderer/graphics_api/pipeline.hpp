@@ -14,25 +14,25 @@ namespace Gfx
 struct Viewport
 {
     Viewport() = default;
-    Viewport( float w, float h ) : width( w ), height( h ) {}
+    Viewport( f32 w, f32 h ) : width( w ), height( h ) {}
 
-    float x        = 0;
-    float y        = 0;
-    float width    = 0;
-    float height   = 0;
-    float minDepth = 0.0f;
-    float maxDepth = 1.0f;
+    f32 x        = 0;
+    f32 y        = 0;
+    f32 width    = 0;
+    f32 height   = 0;
+    f32 minDepth = 0.0f;
+    f32 maxDepth = 1.0f;
 };
 
 struct Scissor
 {
     Scissor() = default;
-    Scissor( int w, int h ) : width( w ), height( h ) {}
+    Scissor( i32 w, i32 h ) : width( w ), height( h ) {}
 
-    int x      = 0;
-    int y      = 0;
-    int width  = 0;
-    int height = 0;
+    i32 x      = 0;
+    i32 y      = 0;
+    i32 width  = 0;
+    i32 height = 0;
 };
 
 } // namespace Gfx

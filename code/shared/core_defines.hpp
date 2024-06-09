@@ -1,6 +1,6 @@
 #pragma once
 
-#include <stddef.h>
+#include <stdint.h>
 #include <type_traits>
 
 /*
@@ -78,3 +78,20 @@ constexpr T ARRAY_SUM( const T ( &arr )[SIZE] )
         return reinterpret_cast<T&>( reinterpret_cast<std::underlying_type_t<T>&>( a ) ^= Underlying( b ) ); \
     }                                                                                                        \
     constexpr bool IsSet( T a, T b ) { return ( a & b ) == b; }
+
+using u8  = uint8_t;
+using u16 = uint16_t;
+using u32 = uint32_t;
+using u64 = uint64_t;
+
+using i8  = int8_t;
+using i16 = int16_t;
+using i32 = int32_t;
+using i64 = int64_t;
+
+using f32 = float;
+using f64 = double;
+
+#ifndef FLT_MAX
+#define FLT_MAX 3.402823466e+38F
+#endif // #ifndef FLT_MAX

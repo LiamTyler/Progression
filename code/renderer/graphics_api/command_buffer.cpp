@@ -48,7 +48,7 @@ void CommandBuffer::BindGlobalDescriptors() const
     pBindingInfos.usage   = VK_BUFFER_USAGE_RESOURCE_DESCRIPTOR_BUFFER_BIT_EXT;
     vkCmdBindDescriptorBuffersEXT( m_handle, 1, &pBindingInfos );
 
-    uint32_t bufferIndex      = 0; // index into pBindingInfos for vkCmdBindDescriptorBuffersEXT?
+    u32 bufferIndex           = 0; // index into pBindingInfos for vkCmdBindDescriptorBuffersEXT?
     VkDeviceSize bufferOffset = 0;
     vkCmdSetDescriptorBufferOffsetsEXT(
         m_handle, m_boundPipeline->GetPipelineBindPoint(), m_boundPipeline->GetLayoutHandle(), 0, 1, &bufferIndex, &bufferOffset );
@@ -58,16 +58,16 @@ void CommandBuffer::BindGlobalDescriptors() const
 #endif // #else // #if USING( PG_DESCRIPTOR_BUFFER )
 }
 
-void CommandBuffer::BindVertexBuffer( const Buffer& buffer, size_t offset, uint32_t firstBinding ) const
+void CommandBuffer::BindVertexBuffer( const Buffer& buffer, size_t offset, u32 firstBinding ) const
 {
     VkBuffer vkBuffer = buffer;
     vkCmdBindVertexBuffers( m_handle, firstBinding, 1, &vkBuffer, &offset );
 }
 
-void CommandBuffer::BindVertexBuffers( uint32_t numBuffers, const Buffer* buffers, size_t* offsets, uint32_t firstBinding ) const
+void CommandBuffer::BindVertexBuffers( u32 numBuffers, const Buffer* buffers, size_t* offsets, u32 firstBinding ) const
 {
     std::vector<VkBuffer> vertexBuffers( numBuffers );
-    for ( uint32_t i = 0; i < numBuffers; ++i )
+    for ( u32 i = 0; i < numBuffers; ++i )
     {
         vertexBuffers[i] = buffers[i];
     }
@@ -111,12 +111,9 @@ void CommandBuffer::SetScissor( const Scissor& scissor ) const
     vkCmdSetScissor( m_handle, 0, 1, &s );
 }
 
-void CommandBuffer::SetDepthBias( float constant, float clamp, float slope ) const
-{
-    vkCmdSetDepthBias( m_handle, constant, clamp, slope );
-}
+void CommandBuffer::SetDepthBias( f32 constant, f32 clamp, f32 slope ) const { vkCmdSetDepthBias( m_handle, constant, clamp, slope ); }
 
-void CommandBuffer::PushConstants( void* data, uint32_t size, uint32_t offset ) const
+void CommandBuffer::PushConstants( void* data, u32 size, u32 offset ) const
 {
     vkCmdPushConstants( m_handle, m_boundPipeline->GetLayoutHandle(), m_boundPipeline->GetPushConstantShaderStages(), offset, size, data );
 }
@@ -270,46 +267,45 @@ void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout,
     PipelineImageBarrier2( imageBarrier );
 }
 
-void CommandBuffer::Draw( uint32_t firstVert, uint32_t vertCount, uint32_t instanceCount, uint32_t firstInstance ) const
+void CommandBuffer::Draw( u32 firstVert, u32 vertCount, u32 instanceCount, u32 firstInstance ) const
 {
     vkCmdDraw( m_handle, vertCount, instanceCount, firstVert, firstInstance );
 }
 
-void CommandBuffer::DrawIndexed(
-    uint32_t firstIndex, uint32_t indexCount, int vertexOffset, uint32_t firstInstance, uint32_t instanceCount ) const
+void CommandBuffer::DrawIndexed( u32 firstIndex, u32 indexCount, i32 vertexOffset, u32 firstInstance, u32 instanceCount ) const
 {
     vkCmdDrawIndexed( m_handle, indexCount, instanceCount, firstIndex, vertexOffset, firstInstance );
 }
 
-void CommandBuffer::Dispatch( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const
+void CommandBuffer::Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) const
 {
     PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
     vkCmdDispatch( m_handle, groupsX, groupsY, groupsZ );
 }
 
-void CommandBuffer::Dispatch_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const
+void CommandBuffer::Dispatch_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const
 {
     PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
-    uvec3 gSize      = m_boundPipeline->GetWorkgroupSize();
-    uint32_t groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
-    uint32_t groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
-    uint32_t groupsZ = ( itemsZ + gSize.z - 1 ) / gSize.z;
+    uvec3 gSize = m_boundPipeline->GetWorkgroupSize();
+    u32 groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
+    u32 groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
+    u32 groupsZ = ( itemsZ + gSize.z - 1 ) / gSize.z;
     vkCmdDispatch( m_handle, groupsX, groupsY, groupsZ );
 }
 
-void CommandBuffer::DrawMeshTasks( uint32_t groupsX, uint32_t groupsY, uint32_t groupsZ ) const
+void CommandBuffer::DrawMeshTasks( u32 groupsX, u32 groupsY, u32 groupsZ ) const
 {
     PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
     vkCmdDrawMeshTasksEXT( m_handle, groupsX, groupsY, groupsZ );
 }
 
-void CommandBuffer::DrawMeshTasks_AutoSized( uint32_t itemsX, uint32_t itemsY, uint32_t itemsZ ) const
+void CommandBuffer::DrawMeshTasks_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const
 {
     PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
-    uvec3 gSize      = m_boundPipeline->GetWorkgroupSize();
-    uint32_t groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
-    uint32_t groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
-    uint32_t groupsZ = ( itemsZ + gSize.z - 1 ) / gSize.z;
+    uvec3 gSize = m_boundPipeline->GetWorkgroupSize();
+    u32 groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
+    u32 groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
+    u32 groupsZ = ( itemsZ + gSize.z - 1 ) / gSize.z;
     vkCmdDrawMeshTasksEXT( m_handle, groupsX, groupsY, groupsZ );
 }
 

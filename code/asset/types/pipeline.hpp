@@ -12,7 +12,7 @@ namespace PG
 
 namespace Gfx
 {
-enum class CompareFunction : uint8_t
+enum class CompareFunction : u8
 {
     NEVER   = 0,
     LESS    = 1,
@@ -26,7 +26,7 @@ enum class CompareFunction : uint8_t
     NUM_COMPARE_FUNCTION
 };
 
-enum class BlendFactor : uint8_t
+enum class BlendFactor : u8
 {
     ZERO                = 0,
     ONE                 = 1,
@@ -43,7 +43,7 @@ enum class BlendFactor : uint8_t
     NUM_BLEND_FACTORS
 };
 
-enum class BlendEquation : uint8_t
+enum class BlendEquation : u8
 {
     ADD              = 0,
     SUBTRACT         = 1,
@@ -54,7 +54,7 @@ enum class BlendEquation : uint8_t
     NUM_BLEND_EQUATIONS
 };
 
-enum class WindingOrder : uint8_t
+enum class WindingOrder : u8
 {
     COUNTER_CLOCKWISE = 0,
     CLOCKWISE         = 1,
@@ -62,7 +62,7 @@ enum class WindingOrder : uint8_t
     NUM_WINDING_ORDER
 };
 
-enum class CullFace : uint8_t
+enum class CullFace : u8
 {
     NONE           = 0,
     FRONT          = 1,
@@ -72,7 +72,7 @@ enum class CullFace : uint8_t
     NUM_CULL_FACE
 };
 
-enum class PolygonMode : uint8_t
+enum class PolygonMode : u8
 {
     FILL  = 0,
     LINE  = 1,
@@ -105,7 +105,7 @@ struct PipelineDepthInfo
     PixelFormat format          = PixelFormat::INVALID;
 };
 
-enum class PrimitiveType : uint8_t
+enum class PrimitiveType : u8
 {
     POINTS = 0,
 
@@ -127,7 +127,7 @@ struct GraphicsPipelineCreateInfo
     PrimitiveType primitiveType = PrimitiveType::TRIANGLES;
 };
 
-enum class PipelineType : uint8_t
+enum class PipelineType : u8
 {
     NONE     = 0,
     GRAPHICS = 1,

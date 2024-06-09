@@ -24,7 +24,7 @@
 namespace PG::Gfx
 {
 
-enum class ResourceType : uint8_t
+enum class ResourceType : u8
 {
     NONE           = 0,
     TEXTURE        = ( 1 << 0 ),
@@ -35,7 +35,7 @@ enum class ResourceType : uint8_t
 };
 PG_DEFINE_ENUM_OPS( ResourceType )
 
-enum class ResourceState : uint8_t
+enum class ResourceState : u8
 {
     READ       = 0,
     WRITE      = 1,
@@ -44,7 +44,7 @@ enum class ResourceState : uint8_t
     COUNT
 };
 
-using TGResourceHandle = uint16_t;
+using TGResourceHandle = u16;
 
 template <typename T>
 TGResourceHandle GetEmbeddedResHandle( T val )

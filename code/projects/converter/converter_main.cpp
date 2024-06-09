@@ -38,7 +38,7 @@ static void DisplayHelp()
 
 static AssetType s_singleAssetType;
 static std::string s_singleAssetName;
-static uint32_t s_outOfDateScenes = 0;
+static u32 s_outOfDateScenes = 0;
 
 static const std::string SCENE_DIR = PG_ASSET_DIR "scenes/";
 
@@ -53,8 +53,8 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
     };
 
     s_singleAssetType = ASSET_TYPE_COUNT;
-    int option_index  = 0;
-    int c             = -1;
+    i32 option_index  = 0;
+    i32 c             = -1;
     while ( ( c = getopt_long( argc, argv, "fhps", long_options, &option_index ) ) != -1 )
     {
         switch ( c )
@@ -63,7 +63,7 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
         case 'h': DisplayHelp(); return false;
         case 'p': g_converterConfigOptions.saveShaderPreproc = true; break;
         case 's':
-            for ( uint32_t i = 0; i < Underlying( ASSET_TYPE_COUNT ); ++i )
+            for ( u32 i = 0; i < Underlying( ASSET_TYPE_COUNT ); ++i )
             {
                 if ( !Stricmp( g_assetNames[i], optarg ) )
                 {
@@ -109,7 +109,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             LOG_ERR( "Could not open %s", sceneFile.c_str() );
             return false;
         }
-        int lineIdx = -1;
+        i32 lineIdx = -1;
         while ( std::getline( in, line ) )
         {
             ++lineIdx;
@@ -124,7 +124,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                 continue;
             }
             bool found                     = false;
-            uint32_t assetTypeIdx          = 0;
+            u32 assetTypeIdx               = 0;
             std::string_view assetTypeName = vec[0];
             std::string_view assetName     = vec[1];
             for ( ; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
@@ -156,7 +156,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             return false;
         }
 
-        for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
+        for ( u8 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
         {
             AssetType assetType = (AssetType)assetTypeIdx;
             for ( auto [assetName, _] : AssetManager::g_resourceMaps[assetTypeIdx] )
@@ -178,15 +178,15 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
     return true;
 }
 
-bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
+bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
 {
-    auto convertStartTime  = Time::GetTimePoint();
-    uint32_t convertErrors = 0;
-    outOfDateAssets        = 0;
-    uint32_t totalAssets   = 0;
+    auto convertStartTime = Time::GetTimePoint();
+    u32 convertErrors     = 0;
+    outOfDateAssets       = 0;
+    u32 totalAssets       = 0;
     std::vector<std::pair<AssetType, std::shared_ptr<BaseAssetCreateInfo>>> outOfDateAssetList;
     outOfDateAssetList.reserve( 100 );
-    for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
+    for ( u8 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
     {
         const auto& pendingConvertList = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
         for ( const std::shared_ptr<BaseAssetCreateInfo>& createInfo : pendingConvertList )
@@ -208,10 +208,10 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
 
     if ( !convertErrors )
     {
-        // #pragma omp parallel for schedule( dynamic )
-        for ( int i = 0; i < (int)outOfDateAssetList.size(); ++i )
+#pragma omp parallel for schedule( dynamic )
+        for ( i32 i = 0; i < (i32)outOfDateAssetList.size(); ++i )
         {
-            uint32_t assetTypeIdx                                  = outOfDateAssetList[i].first;
+            u32 assetTypeIdx                                       = outOfDateAssetList[i].first;
             const std::shared_ptr<BaseAssetCreateInfo>& createInfo = outOfDateAssetList[i].second;
             if ( !g_converters[assetTypeIdx]->Convert( createInfo ) )
             {
@@ -220,7 +220,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
         }
     }
 
-    double duration = Time::GetTimeSince( convertStartTime ) / 1000.0f;
+    f64 duration = Time::GetTimeSince( convertStartTime ) / 1000.0f;
     if ( convertErrors )
     {
         LOG_ERR( "Convert for '%s' FAILED with %u errors in %.2f seconds", sceneName.c_str(), convertErrors, duration );
@@ -234,7 +234,7 @@ bool ConvertAssets( const std::string& sceneName, uint32_t& outOfDateAssets )
     return convertErrors == 0;
 }
 
-bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAssets )
+bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets )
 {
     std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
@@ -262,7 +262,7 @@ bool OutputFastfile( const std::string& sceneFile, const uint32_t outOfDateAsset
             return false;
         }
 
-        for ( unsigned int assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
+        for ( u8 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
         {
             const auto& listOfUsedAssets = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
             for ( const auto& baseInfo : listOfUsedAssets )
@@ -325,7 +325,7 @@ bool ProcessSingleScene( const std::string& sceneFile )
         return false;
     }
 
-    uint32_t outOfDateAssets;
+    u32 outOfDateAssets;
     bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );
     success      = success && OutputFastfile( sceneFile, outOfDateAssets );
     return success;
@@ -375,7 +375,7 @@ bool ConvertSingleAsset()
 
     g_converters[s_singleAssetType]->AddReferencedAssets( createInfo );
     AddUsedAsset( s_singleAssetType, createInfo );
-    uint32_t outOfDateAssets;
+    u32 outOfDateAssets;
     return ConvertAssets( s_singleAssetName, outOfDateAssets );
 }
 

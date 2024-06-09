@@ -28,7 +28,7 @@ public:
 struct BufferClearSubTask
 {
     TGResourceHandle bufferHandle;
-    uint32_t clearVal;
+    u32 clearVal;
 };
 
 struct TextureClearSubTask

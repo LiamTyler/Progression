@@ -6,7 +6,7 @@ namespace PG::UI
 {
 
 // read + write flags (settings) that users can adjust about the UIElement at runtime
-enum class UIElementUserFlags : uint8_t
+enum class UIElementUserFlags : u8
 {
     NONE              = 0,
     VISIBLE           = ( 1u << 0 ),
@@ -14,7 +14,7 @@ enum class UIElementUserFlags : uint8_t
 };
 PG_DEFINE_ENUM_OPS( UIElementUserFlags );
 
-enum class UIElementScriptFlags : uint8_t
+enum class UIElementScriptFlags : u8
 {
     NONE              = 0,
     UPDATE            = ( 1u << 0 ),
@@ -25,7 +25,7 @@ enum class UIElementScriptFlags : uint8_t
 };
 PG_DEFINE_ENUM_OPS( UIElementScriptFlags );
 
-enum class UIElementBlendMode : uint8_t
+enum class UIElementBlendMode : u8
 {
     OPAQUE   = 0,
     BLEND    = 1,
@@ -34,7 +34,7 @@ enum class UIElementBlendMode : uint8_t
     COUNT = 3
 };
 
-enum class UIElementType : uint8_t
+enum class UIElementType : u8
 {
     DEFAULT        = 0,
     MKDD_DIAG_TINT = 1,
@@ -42,9 +42,9 @@ enum class UIElementType : uint8_t
     COUNT = 2
 };
 
-using UIElementHandle                           = uint16_t;
+using UIElementHandle                           = u16;
 static constexpr UIElementHandle UI_NULL_HANDLE = UINT16_MAX;
-static constexpr uint16_t UI_NO_SCRIPT_INDEX    = UINT16_MAX;
+static constexpr u16 UI_NO_SCRIPT_INDEX         = UINT16_MAX;
 
 struct UIElement
 {
@@ -54,7 +54,7 @@ struct UIElement
     UIElementHandle firstChild;
     UIElementHandle lastChild;
 
-    uint16_t scriptFunctionsIdx;
+    u16 scriptFunctionsIdx;
 
     UIElementType type               = UIElementType::DEFAULT;
     UIElementUserFlags userFlags     = UIElementUserFlags::VISIBLE;
@@ -67,7 +67,5 @@ struct UIElement
 
     UIElementHandle Handle() const;
 };
-
-constexpr int AAAAAA = sizeof( UIElement );
 
 } // namespace PG::UI

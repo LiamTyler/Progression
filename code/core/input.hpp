@@ -11,7 +11,7 @@ struct lua_State;
 namespace PG::Input
 {
 
-enum class InputContextBlockLevel : uint8_t
+enum class InputContextBlockLevel : u8
 {
     NOT_BLOCKING,
     BLOCK_MAPPED_CONTROLS,
@@ -20,7 +20,7 @@ enum class InputContextBlockLevel : uint8_t
     COUNT
 };
 
-enum class InputContextID : uint8_t
+enum class InputContextID : u8
 {
 #if !USING( SHIP_BUILD )
     DEV_CONTROLS,
@@ -58,9 +58,9 @@ public:
     void AddRawButtonToAxis( RawButton rawButton, AxisValuePair axisValuePair );
     void AddRawAxisToAxis( RawAxis rawAxis, Axis axis );
 
-    uint32_t AddCallback( sol::function callback );
-    uint32_t AddCallback( InputCodeCallback callback );
-    void RemoveCallback( uint32_t id );
+    u32 AddCallback( sol::function callback );
+    u32 AddCallback( InputCodeCallback callback );
+    void RemoveCallback( u32 id );
     void ProcessCallbacks( const CallbackInput& cInput );
 
     InputContextBlockLevel GetBlockLevel() const;
@@ -73,9 +73,9 @@ private:
     InputContextBlockLevel m_blockLevel = InputContextBlockLevel::BLOCK_MAPPED_CONTROLS;
     InputContextID m_id;
 
-    std::unordered_map<uint32_t, sol::function> m_scriptCallbacks;
-    std::unordered_map<uint32_t, InputCodeCallback> m_codeCallbacks;
-    uint32_t m_callbackID = 0;
+    std::unordered_map<u32, sol::function> m_scriptCallbacks;
+    std::unordered_map<u32, InputCodeCallback> m_codeCallbacks;
+    u32 m_callbackID = 0;
 };
 
 class InputContextManager

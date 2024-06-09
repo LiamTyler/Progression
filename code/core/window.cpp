@@ -8,10 +8,10 @@
 
 static std::unordered_set<size_t> s_debugMessages;
 static std::chrono::high_resolution_clock::time_point s_lastFPSUpdateTime;
-static unsigned int s_framesDrawnSinceLastFPSUpdate;
+static u32 s_framesDrawnSinceLastFPSUpdate;
 static PG::Window* s_mainWindow;
 
-static void ErrorCallback( int err, const char* description ) { LOG_ERR( "GLFW ERROR %d: '%s'", err, description ); }
+static void ErrorCallback( i32 err, const char* description ) { LOG_ERR( "GLFW ERROR %d: '%s'", err, description ); }
 
 namespace PG
 {
@@ -90,7 +90,7 @@ void Window::StartFrame()
 {
     Time::StartFrame();
     glfwGetWindowSize( m_window, &m_width, &m_height );
-    int fW, fH;
+    i32 fW, fH;
     glfwGetFramebufferSize( m_window, &fW, &fH );
     if ( fW != m_framebufferWidth || fH != m_framebufferHeight )
     {

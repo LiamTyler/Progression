@@ -36,7 +36,7 @@ static bool ParseAssetFile( const std::string& filename )
 
         bool foundType           = false;
         std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
-        for ( uint32_t typeIndex = 0; typeIndex < ASSET_TYPE_COUNT; ++typeIndex )
+        for ( u32 typeIndex = 0; typeIndex < ASSET_TYPE_COUNT; ++typeIndex )
         {
             if ( assetTypeStr == g_assetNames[typeIndex] )
             {
@@ -72,7 +72,7 @@ static bool ParseAssetFile( const std::string& filename )
 
 bool Init()
 {
-    // Time::Point startTime = Time::GetTimePoint();
+    // Time::Poi32 startTime = Time::GetTimePoint();
 
     namespace fs = std::filesystem;
     for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )

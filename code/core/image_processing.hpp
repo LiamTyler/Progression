@@ -7,14 +7,14 @@
 namespace PG
 {
 
-enum class CompositeType : uint8_t
+enum class CompositeType : u8
 {
     REMAP,
 
     COUNT
 };
 
-enum class ColorSpace : uint8_t
+enum class ColorSpace : u8
 {
     INFER, // linear for 1 and 2 channel textures, sRGB for 3 and 4 channel textures
     LINEAR,

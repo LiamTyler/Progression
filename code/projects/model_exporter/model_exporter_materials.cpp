@@ -17,8 +17,8 @@ struct ImageInfo
 static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType texType, std::string& absPathToTex )
 {
     aiString path;
-    namespace fs   = std::filesystem;
-    uint32_t uvSet = UINT_MAX;
+    namespace fs = std::filesystem;
+    u32 uvSet    = UINT_MAX;
     if ( assimpMat->GetTexture( texType, 0, &path, NULL, &uvSet, NULL, NULL, NULL ) == AI_SUCCESS )
     {
         std::string name = StripWhitespace( path.data );
@@ -82,7 +82,7 @@ static std::optional<std::string> GetAssimpTexture(
     return {};
 }
 
-static std::optional<vec3> GetVec3( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+static std::optional<vec3> GetVec3( const aiMaterial* assimpMat, const char* key, u32 type, u32 idx )
 {
     aiColor3D v;
     if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
@@ -90,23 +90,23 @@ static std::optional<vec3> GetVec3( const aiMaterial* assimpMat, const char* key
     return {};
 }
 
-static std::optional<float> GetFloat( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+static std::optional<f32> GetFloat( const aiMaterial* assimpMat, const char* key, u32 type, u32 idx )
 {
     ai_real v;
     if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
-        return (float)v;
+        return (f32)v;
     return {};
 }
 
-static std::optional<int> GetInt( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+static std::optional<i32> GetInt( const aiMaterial* assimpMat, const char* key, u32 type, u32 idx )
 {
     ai_int v;
     if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
-        return (int)v;
+        return (i32)v;
     return {};
 }
 
-static std::optional<std::string> GetString( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+static std::optional<std::string> GetString( const aiMaterial* assimpMat, const char* key, u32 type, u32 idx )
 {
     aiString v;
     if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
@@ -114,7 +114,7 @@ static std::optional<std::string> GetString( const aiMaterial* assimpMat, const 
     return {};
 }
 
-static std::optional<bool> GetBool( const aiMaterial* assimpMat, const char* key, unsigned int type, unsigned int idx )
+static std::optional<bool> GetBool( const aiMaterial* assimpMat, const char* key, u32 type, u32 idx )
 {
     bool v;
     if ( AI_SUCCESS == assimpMat->Get( key, type, idx, v ) )
@@ -122,10 +122,10 @@ static std::optional<bool> GetBool( const aiMaterial* assimpMat, const char* key
     return {};
 }
 
-const vec3 DEFAULT_ALBEDO_TINT     = vec3( 1 );
-const float DEFAULT_METALLIC_TINT  = 1.0f;
-const float DEFAULT_ROUGHNESS_TINT = 1.0f;
-const vec3 DEFAULT_EMISSIVE_TINT   = vec3( 0 );
+const vec3 DEFAULT_ALBEDO_TINT   = vec3( 1 );
+const f32 DEFAULT_METALLIC_TINT  = 1.0f;
+const f32 DEFAULT_ROUGHNESS_TINT = 1.0f;
+const vec3 DEFAULT_EMISSIVE_TINT = vec3( 0 );
 
 bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
 {
@@ -275,10 +275,10 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
     aiReturn a = aiGetMaterialString( context.assimpMat, "$tex.file", UINT_MAX, 0, &oString );
     std::string actualString( oString.C_Str() );
 
-    for ( int i = 0; i < (int)AI_TEXTURE_TYPE_MAX; ++i )
+    for ( i32 i = 0; i < (i32)AI_TEXTURE_TYPE_MAX; ++i )
     {
         auto t = (aiTextureType)(aiTextureType_DIFFUSE + i);
-        int x = context.assimpMat->GetTextureCount( t );
+        i32 x = context.assimpMat->GetTextureCount( t );
         if ( x )
         {
             LOG( "%s: %d", aiTextureTypeToString( t ), x );

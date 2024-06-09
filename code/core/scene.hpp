@@ -28,7 +28,7 @@ public:
     std::string name;
     Camera camera;
     vec3 skyTint      = vec3( 1, 1, 1 );
-    float skyEVAdjust = 0; // scales sky by pow( 2, skyEVAdjust )
+    f32 skyEVAdjust   = 0; // scales sky by pow( 2, skyEVAdjust )
     vec3 ambientColor = vec3( .1f );
 
     std::vector<DirectionalLight> directionalLights;

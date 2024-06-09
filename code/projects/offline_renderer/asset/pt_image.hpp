@@ -21,15 +21,15 @@ class Texture
 {
 public:
     virtual ~Texture() {}
-    virtual vec4 Sample( vec2 uv, float mipLevel = 0 ) const = 0;
-    virtual vec4 SampleDir( vec3 dir ) const                 = 0;
+    virtual vec4 Sample( vec2 uv, f32 mipLevel = 0 ) const = 0;
+    virtual vec4 SampleDir( vec3 dir ) const               = 0;
 };
 
 class Texture2D : public Texture
 {
 public:
     Texture2D() = default;
-    Texture2D( int w, int h, int mipCount, PG::PixelFormat format, void* data )
+    Texture2D( i32 w, i32 h, i32 mipCount, PG::PixelFormat format, void* data )
     {
         pixelFormat = format;
         numChannels = PG::NumChannelsInPixelFromat( format );
@@ -45,12 +45,12 @@ public:
 
         mips.resize( mipCount );
         mipResolutions.resize( mipCount );
-        int bytesPerPixel = PG::NumBytesPerPixel( format );
+        i32 bytesPerPixel = PG::NumBytesPerPixel( format );
         size_t offset     = 0;
-        for ( int i = 0; i < mipCount; ++i )
+        for ( i32 i = 0; i < mipCount; ++i )
         {
-            int mipSize       = w * h * bytesPerPixel;
-            mips[i]           = std::make_unique<uint8_t[]>( mipSize );
+            i32 mipSize       = w * h * bytesPerPixel;
+            mips[i]           = std::make_unique<u8[]>( mipSize );
             mipResolutions[i] = { w, h };
             memcpy( mips[i].get(), reinterpret_cast<char*>( data ) + offset, mipSize );
             w >>= 1;
@@ -59,22 +59,22 @@ public:
         }
     }
 
-    template <typename T = uint8_t>
-    T* Raw( int mipLevel )
+    template <typename T = u8>
+    T* Raw( i32 mipLevel )
     {
         return reinterpret_cast<T*>( mips[mipLevel].get() );
     }
 
-    template <typename T = uint8_t>
-    const T* Raw( int mipLevel ) const
+    template <typename T = u8>
+    const T* Raw( i32 mipLevel ) const
     {
         return reinterpret_cast<const T*>( mips[mipLevel].get() );
     }
 
-    vec4 Fetch( int row, int col, int mipLevel ) const
+    vec4 Fetch( i32 row, i32 col, i32 mipLevel ) const
     {
-        const int width  = mipResolutions[mipLevel].x;
-        const int height = mipResolutions[mipLevel].y;
+        const i32 width  = mipResolutions[mipLevel].x;
+        const i32 height = mipResolutions[mipLevel].y;
         if ( clampU )
         {
             col = std::clamp( col, 0, width - 1 );
@@ -98,15 +98,15 @@ public:
                 row -= height;
         }
 
-        int pixelOffset = numChannels * ( row * width + col );
+        i32 pixelOffset = numChannels * ( row * width + col );
         vec4 ret;
-        for ( int channel = 0; channel < numChannels; ++channel )
+        for ( i32 channel = 0; channel < numChannels; ++channel )
         {
             switch ( pixelType )
             {
-            case PixelType::UNORM8: ret[channel] = UNormByteToFloat( Raw<uint8_t>( mipLevel )[pixelOffset + channel] ); break;
-            case PixelType::FP16: ret[channel] = Float16ToFloat32( Raw<uint16_t>( mipLevel )[pixelOffset + channel] ); break;
-            case PixelType::FP32: ret[channel] = Raw<float>( mipLevel )[pixelOffset + channel]; break;
+            case PixelType::UNORM8: ret[channel] = UNormByteToFloat( Raw<u8>( mipLevel )[pixelOffset + channel] ); break;
+            case PixelType::FP16: ret[channel] = Float16ToFloat32( Raw<u16>( mipLevel )[pixelOffset + channel] ); break;
+            case PixelType::FP32: ret[channel] = Raw<f32>( mipLevel )[pixelOffset + channel]; break;
             }
         }
 
@@ -118,7 +118,7 @@ public:
         return ret;
     }
 
-    vec4 Bilerp( vec2 uv, int mipLevel ) const
+    vec4 Bilerp( vec2 uv, i32 mipLevel ) const
     {
         if ( clampU )
             uv.x = Saturate( uv.x );
@@ -132,14 +132,14 @@ public:
         // subtract 0.5 to account for pixel centers
         uv         = uv * vec2( mipResolutions[mipLevel] ) - vec2( 0.5f );
         vec2 start = floor( uv );
-        int col    = static_cast<int>( start.x );
-        int row    = static_cast<int>( start.y );
+        i32 col    = static_cast<i32>( start.x );
+        i32 row    = static_cast<i32>( start.y );
 
-        vec2 d          = uv - start;
-        const float w00 = ( 1.0f - d.x ) * ( 1.0f - d.y );
-        const float w01 = d.x * ( 1.0f - d.y );
-        const float w10 = ( 1.0f - d.x ) * d.y;
-        const float w11 = d.x * d.y;
+        vec2 d        = uv - start;
+        const f32 w00 = ( 1.0f - d.x ) * ( 1.0f - d.y );
+        const f32 w01 = d.x * ( 1.0f - d.y );
+        const f32 w10 = ( 1.0f - d.x ) * d.y;
+        const f32 w11 = d.x * d.y;
 
         vec4 p00 = Fetch( row, col, mipLevel );
         vec4 p01 = Fetch( row, col + 1, mipLevel );
@@ -147,7 +147,7 @@ public:
         vec4 p11 = Fetch( row + 1, col + 1, mipLevel );
 
         vec4 ret( 0, 0, 0, 1 );
-        for ( int i = 0; i < numChannels; ++i )
+        for ( i32 i = 0; i < numChannels; ++i )
         {
             ret[i] = w00 * p00[i] + w01 * p01[i] + w10 * p10[i] + w11 * p11[i];
         }
@@ -155,27 +155,27 @@ public:
         return ret;
     }
 
-    vec4 Sample( vec2 uv, float mipLevel = 0 ) const override
+    vec4 Sample( vec2 uv, f32 mipLevel = 0 ) const override
     {
-        int mipCount = static_cast<int>( mips.size() );
-        int firstMip = Min<int>( mipCount - 1, Max( 0, (int)std::floor( mipLevel ) ) );
-        int nextMip  = Min<int>( mipCount - 1, Max( 0, firstMip + 1 ) );
+        i32 mipCount = static_cast<i32>( mips.size() );
+        i32 firstMip = Min<i32>( mipCount - 1, Max( 0, (i32)std::floor( mipLevel ) ) );
+        i32 nextMip  = Min<i32>( mipCount - 1, Max( 0, firstMip + 1 ) );
         if ( firstMip == nextMip )
         {
             return Bilerp( uv, firstMip );
         }
         else
         {
-            float lerpFactor = mipLevel - firstMip;
+            f32 lerpFactor = mipLevel - firstMip;
             return ( 1.0f - lerpFactor ) * Bilerp( uv, firstMip ) + lerpFactor * Bilerp( uv, nextMip );
         }
     }
 
     vec4 SampleDir( vec3 dir ) const override
     {
-        float lon = std::atan2( dir.x, dir.y );
-        float lat = std::atan2( dir.z, Length( vec2( dir ) ) );
-        vec2 uv   = vec2( 0.5 * ( lon / PI + 1 ), lat / PI + 0.5 );
+        f32 lon = std::atan2( dir.x, dir.y );
+        f32 lat = std::atan2( dir.z, Length( vec2( dir ) ) );
+        vec2 uv = vec2( 0.5 * ( lon / PI + 1 ), lat / PI + 0.5 );
         return Sample( uv );
     }
 
@@ -183,10 +183,10 @@ public:
     bool clampU                 = false;
     bool clampV                 = false;
     std::vector<u16vec2> mipResolutions;
-    std::vector<std::unique_ptr<uint8_t[]>> mips;
+    std::vector<std::unique_ptr<u8[]>> mips;
 
     // variables below are just cached, and can be inferred from pixelFormat
-    int numChannels = 0;
+    i32 numChannels = 0;
     bool sRGB       = false;
     enum class PixelType
     {
@@ -200,15 +200,15 @@ public:
 class TextureCubeMap : public Texture
 {
 public:
-    TextureCubeMap( int w, int h, int mipLevels, PG::PixelFormat format, void* facePixelData[6] ) : halfPixelDim( 0.0f )
+    TextureCubeMap( i32 w, i32 h, i32 mipLevels, PG::PixelFormat format, void* facePixelData[6] ) : halfPixelDim( 0.0f )
     {
-        for ( int face = 0; face < 6; ++face )
+        for ( i32 face = 0; face < 6; ++face )
         {
             faces[face] = Texture2D( w, h, mipLevels, format, facePixelData[face] );
         }
     }
 
-    vec4 Sample( vec2 uv, float mipLevel = 0 ) const override
+    vec4 Sample( vec2 uv, f32 mipLevel = 0 ) const override
     {
         PG_ASSERT( false, "Invalid for cubemaps. Use SampleDir" );
         return vec4( 0 );
@@ -218,9 +218,9 @@ public:
     vec4 SampleDir( vec3 v ) const override
     {
         vec3 vAbs = abs( v );
-        float ma;
+        f32 ma;
         vec2 uv;
-        int faceIndex;
+        i32 faceIndex;
         if ( vAbs.z >= vAbs.x && vAbs.z >= vAbs.y )
         {
             faceIndex = v.z < 0.0f ? 5 : 4;
@@ -249,7 +249,7 @@ private:
     vec2 halfPixelDim;
 };
 
-using TextureHandle                            = uint16_t;
+using TextureHandle                            = u16;
 constexpr TextureHandle TEXTURE_HANDLE_INVALID = 0;
 
 TextureHandle LoadTextureFromGfxImage( PG::GfxImage* image );

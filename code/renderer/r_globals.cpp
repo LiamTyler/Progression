@@ -20,7 +20,7 @@ void R_Globals::SubmitImmediateCommandBuffer()
 
 Viewport DisplaySizedViewport( bool vulkanFlipViewport )
 {
-    Viewport v( static_cast<float>( rg.swapchain.GetWidth() ), static_cast<float>( rg.swapchain.GetHeight() ) );
+    Viewport v( static_cast<f32>( rg.swapchain.GetWidth() ), static_cast<f32>( rg.swapchain.GetHeight() ) );
     if ( vulkanFlipViewport )
     {
         v.y = v.height;
@@ -31,7 +31,7 @@ Viewport DisplaySizedViewport( bool vulkanFlipViewport )
 
 Viewport SceneSizedViewport( bool vulkanFlipViewport )
 {
-    Viewport v( static_cast<float>( rg.sceneWidth ), static_cast<float>( rg.sceneHeight ) );
+    Viewport v( static_cast<f32>( rg.sceneWidth ), static_cast<f32>( rg.sceneHeight ) );
     if ( vulkanFlipViewport )
     {
         v.y = v.height;

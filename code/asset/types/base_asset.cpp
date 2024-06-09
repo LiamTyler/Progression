@@ -26,6 +26,6 @@ void BaseAsset::SetName( std::string_view inName )
 
 const char* BaseAsset::GetName() const { return m_name; }
 
-void BaseAsset::SerializeName( Serializer* serializer ) const { serializer->Write<uint16_t>( m_name ); }
+void BaseAsset::SerializeName( Serializer* serializer ) const { serializer->Write<u16>( m_name ); }
 
 } // namespace PG

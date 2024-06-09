@@ -5,12 +5,12 @@
 #include "shared/logger.hpp"
 #include <fstream>
 
-char* LZ4CompressBuffer( const char* uncompressedData, size_t size, int& compressedSize ) { return nullptr; }
+char* LZ4CompressBuffer( const char* uncompressedData, size_t size, i32& compressedSize ) { return nullptr; }
 
-char* LZ4DecompressBuffer( const char* compressedData, int compressedSize, int uncompressedSize )
+char* LZ4DecompressBuffer( const char* compressedData, i32 compressedSize, i32 uncompressedSize )
 {
     // char* uncompressedBuffer   = (char*) malloc( uncompressedSize );
-    // const int decompressedSize = LZ4_decompress_safe( compressedData, uncompressedBuffer, compressedSize, uncompressedSize );
+    // const i32 decompressedSize = LZ4_decompress_safe( compressedData, uncompressedBuffer, compressedSize, uncompressedSize );
     return nullptr;
 }
 
@@ -24,11 +24,11 @@ bool LZ4CompressFile( const std::string& inputFilename, const std::string& outpu
     }
 
     char* src            = (char*)memMappedFile.getData();
-    const int srcSize    = (int)memMappedFile.size();
-    const int maxDstSize = LZ4_compressBound( srcSize );
+    const i32 srcSize    = (i32)memMappedFile.size();
+    const i32 maxDstSize = LZ4_compressBound( srcSize );
 
     char* compressedData         = (char*)malloc( maxDstSize );
-    const int compressedDataSize = LZ4_compress_default( src, compressedData, srcSize, maxDstSize );
+    const i32 compressedDataSize = LZ4_compress_default( src, compressedData, srcSize, maxDstSize );
 
     memMappedFile.close();
 
@@ -40,7 +40,7 @@ bool LZ4CompressFile( const std::string& inputFilename, const std::string& outpu
 
     if ( compressedDataSize > 0 )
     {
-        LOG( "Compressed file size ratio: %.3f", (float)compressedDataSize / srcSize );
+        LOG( "Compressed file size ratio: %.3f", (f32)compressedDataSize / srcSize );
     }
 
     std::ofstream out( outputFilename, std::ios::binary );

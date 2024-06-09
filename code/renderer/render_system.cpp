@@ -40,7 +40,7 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
     {
         vec4 topColor;
         vec4 botColor;
-        uint32_t imageIndex;
+        u32 imageIndex;
     };
     Texture* tex = data->taskGraph->GetTexture( task->outputTextures[0] );
     ComputePushConstants push{ vec4( 1, 0, 0, 1 ), vec4( 0, 0, 1, 1 ), tex->GetBindlessIndex() };
@@ -67,7 +67,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
 
-    uint32_t objectNum = 0;
+    u32 objectNum = 0;
     data->scene->registry.view<ModelRenderer, Transform>().each(
         [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
         {
@@ -104,8 +104,8 @@ void PostProcessFunc( ComputeTask* task, TGExecuteData* data )
 
     struct ComputePushConstants
     {
-        uint32_t inputImageIndex;
-        uint32_t outputImageIndex;
+        u32 inputImageIndex;
+        u32 outputImageIndex;
     };
     Texture* inputTex  = data->taskGraph->GetTexture( task->inputTextures[0] );
     Texture* outputTex = data->taskGraph->GetTexture( task->outputTextures[0] );
@@ -177,7 +177,7 @@ bool Init_TaskGraph()
     return true;
 }
 
-bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uint32_t displayHeight, bool headless )
+bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight, bool headless )
 {
     rg.sceneWidth    = sceneWidth;
     rg.sceneHeight   = sceneHeight;
@@ -198,7 +198,7 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
         return false;
 
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         FrameData& fData = rg.frameData[i];
 
@@ -219,12 +219,12 @@ bool Init( uint32_t sceneWidth, uint32_t sceneHeight, uint32_t displayWidth, uin
     return true;
 }
 
-void Resize( uint32_t displayWidth, uint32_t displayHeight )
+void Resize( u32 displayWidth, u32 displayHeight )
 {
-    float oldRatioX = rg.sceneWidth / (float)rg.displayWidth;
-    float oldRatioY = rg.sceneHeight / (float)rg.displayHeight;
-    rg.sceneWidth   = static_cast<uint32_t>( displayWidth * oldRatioX + 0.5f );
-    rg.sceneHeight  = static_cast<uint32_t>( displayHeight * oldRatioY + 0.5f );
+    f32 oldRatioX  = rg.sceneWidth / (f32)rg.displayWidth;
+    f32 oldRatioY  = rg.sceneHeight / (f32)rg.displayHeight;
+    rg.sceneWidth  = static_cast<u32>( displayWidth * oldRatioX + 0.5f );
+    rg.sceneHeight = static_cast<u32>( displayHeight * oldRatioY + 0.5f );
     rg.swapchain.Recreate( displayWidth, displayHeight );
     LOG( "Resizing swapchain. Old size (%u x %u), new (%u x %u)", rg.displayWidth, rg.displayHeight, rg.swapchain.GetWidth(),
         rg.swapchain.GetHeight() );
@@ -240,7 +240,7 @@ void Shutdown()
 {
     rg.device.WaitForIdle();
 
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         rg.frameData[i].objectModelMatricesBuffer.Free();
         rg.frameData[i].objectNormalMatricesBuffer.Free();
@@ -260,8 +260,8 @@ static void UpdateGPUSceneData( Scene* scene )
     mat4* gpuModelMatricies  = reinterpret_cast<mat4*>( frameData.objectModelMatricesBuffer.GetMappedPtr() );
     mat4* gpuNormalMatricies = reinterpret_cast<mat4*>( frameData.objectNormalMatricesBuffer.GetMappedPtr() );
 
-    auto view          = scene->registry.view<ModelRenderer, PG::Transform>();
-    uint32_t objectNum = 0;
+    auto view     = scene->registry.view<ModelRenderer, PG::Transform>();
+    u32 objectNum = 0;
     for ( auto entity : view )
     {
         if ( objectNum == MAX_OBJECTS_PER_FRAME )

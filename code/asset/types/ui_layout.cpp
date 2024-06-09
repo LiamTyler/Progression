@@ -43,7 +43,7 @@ static UIElementBlendMode ParseBlendMode( const char* str )
     };
     static_assert( ARRAY_COUNT( blendStrs ) == Underlying( UIElementBlendMode::COUNT ) );
 
-    for ( int i = 0; i < ARRAY_COUNT( blendStrs ); ++i )
+    for ( i32 i = 0; i < ARRAY_COUNT( blendStrs ); ++i )
     {
         if ( !strcmp( str, blendStrs[i] ) )
         {
@@ -63,7 +63,7 @@ static UIElementType ParseElementType( const char* str )
     };
     static_assert( ARRAY_COUNT( strs ) == Underlying( UIElementType::COUNT ) );
 
-    for ( int i = 0; i < ARRAY_COUNT( strs ); ++i )
+    for ( i32 i = 0; i < ARRAY_COUNT( strs ); ++i )
     {
         if ( !strcmp( str, strs[i] ) )
         {
@@ -247,7 +247,7 @@ bool UILayout::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool UILayout::FastfileLoad( Serializer* serializer )
 {
-    uint32_t numElements;
+    u32 numElements;
     serializer->Read( numElements );
     createInfos.resize( numElements );
     for ( auto& info : createInfos )
@@ -281,7 +281,7 @@ bool UILayout::FastfileSave( Serializer* serializer ) const
 {
     PG_ASSERT( serializer );
     SerializeName( serializer );
-    uint32_t numElements = static_cast<uint32_t>( createInfos.size() );
+    u32 numElements = static_cast<u32>( createInfos.size() );
     serializer->Write( numElements );
     for ( const auto& info : createInfos )
     {

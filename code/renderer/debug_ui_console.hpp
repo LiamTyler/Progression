@@ -11,7 +11,7 @@ namespace PG::Gfx::UIOverlay
 
 class Console
 {
-    enum LogType : uint8_t
+    enum LogType : u8
     {
         LOG,
         WARN,
@@ -29,7 +29,7 @@ public:
     std::vector<LogItem> m_logItems;
     std::vector<ConsoleCmd> m_commands;
     std::vector<char*> m_history;
-    int m_historyPos; // -1: new line, 0..History.Size-1 browsing history.
+    i32 m_historyPos; // -1: new line, 0..History.Size-1 browsing history.
     ImGuiTextFilter m_filter;
     bool m_autoScroll;
     bool m_scrollToBottom;
@@ -44,8 +44,8 @@ public:
     void AddLog( LogType type, const char* fmt, ... );
     void Draw();
     void ExecCommand( const char* command_line );
-    static int TextEditCallbackStub( ImGuiInputTextCallbackData* data );
-    int TextEditCallback( ImGuiInputTextCallbackData* data );
+    static i32 TextEditCallbackStub( ImGuiInputTextCallbackData* data );
+    i32 TextEditCallback( ImGuiInputTextCallbackData* data );
 };
 
 } // namespace PG::Gfx::UIOverlay

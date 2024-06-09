@@ -48,8 +48,8 @@ std::string PipelineConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
         HashCombine( hash, cAttach.format );
     }
     static_assert( sizeof( Gfx::RasterizerInfo ) == 4 && sizeof( Gfx::PipelineDepthInfo ) == 4 );
-    HashCombine( hash, *reinterpret_cast<const uint32_t*>( &info->graphicsInfo.rasterizerInfo ) );
-    HashCombine( hash, *reinterpret_cast<const uint32_t*>( &info->graphicsInfo.depthInfo ) );
+    HashCombine( hash, *reinterpret_cast<const u32*>( &info->graphicsInfo.rasterizerInfo ) );
+    HashCombine( hash, *reinterpret_cast<const u32*>( &info->graphicsInfo.depthInfo ) );
     HashCombine( hash, info->graphicsInfo.primitiveType );
 
     cacheName += "_" + std::to_string( hash );

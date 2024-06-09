@@ -7,7 +7,7 @@ struct Ray
     Ray() = default;
     Ray( const vec3& pos, const vec3& dir ) : position( pos ), direction( dir ) {}
 
-    vec3 Evaluate( float t ) const { return position + t * direction; }
+    vec3 Evaluate( f32 t ) const { return position + t * direction; }
 
     vec3 position;
     vec3 direction;
@@ -28,4 +28,4 @@ struct Interaction
     vec3 n;
 };
 
-inline float AbsDot( const vec3& a, const vec3& b ) { return Dot( a, b ); }
+inline f32 AbsDot( const vec3& a, const vec3& b ) { return Dot( a, b ); }

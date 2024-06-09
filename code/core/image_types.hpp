@@ -1,6 +1,6 @@
 #pragma once
 
-#include <cstdint>
+#include "shared/core_defines.hpp"
 
 // This is silly to have a file just for this, but im not sure where
 // else to put it currently. Both the rendering code + non-rendering code
@@ -9,7 +9,7 @@
 namespace PG
 {
 
-enum class ImageType : uint8_t
+enum class ImageType : u8
 {
     TYPE_1D            = 0,
     TYPE_1D_ARRAY      = 1,

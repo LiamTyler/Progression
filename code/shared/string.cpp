@@ -4,7 +4,7 @@
 #include <strings.h>
 #endif // #if USING( LINUX_PROGRAM )
 
-int Stricmp( const char* str1, const char* str2 )
+i32 Stricmp( const char* str1, const char* str2 )
 {
 #if USING( WINDOWS_PROGRAM )
     return _stricmp( str1, str2 );
@@ -13,7 +13,7 @@ int Stricmp( const char* str1, const char* str2 )
 #endif // #else // #if USING( WINDOWS_PROGRAM )
 }
 
-int Strncmp( const char* str1, const char* str2, int n ) { return strncmp( str1, str2, n ); }
+i32 Strncmp( const char* str1, const char* str2, i32 n ) { return strncmp( str1, str2, n ); }
 
 std::string StripWhitespace( const std::string& s )
 {

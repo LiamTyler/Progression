@@ -5,8 +5,8 @@
 namespace PG::Gfx
 {
 
-TGBTextureRef ComputeTaskBuilder::AddTextureOutput( std::string_view name, PixelFormat format, const vec4& clearColor, uint32_t width,
-    uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
+TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
+    std::string_view name, PixelFormat format, const vec4& clearColor, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels )
 {
     TGBTextureRef ref = builder->AddTexture(
         name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT );
@@ -15,7 +15,7 @@ TGBTextureRef ComputeTaskBuilder::AddTextureOutput( std::string_view name, Pixel
 }
 
 TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
-    std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
+    std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels )
 {
     TGBTextureRef ref =
         builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_STORAGE_BIT );
@@ -52,7 +52,7 @@ void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& ref )
 }
 
 TGBBufferRef ComputeTaskBuilder::AddBufferOutput(
-    std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, uint32_t clearVal )
+    std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal )
 {
     TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr );
     builder->UpdateBufferLifetime( ref, taskHandle );
@@ -94,8 +94,8 @@ void ComputeTaskBuilder::AddBufferInput( TGBBufferRef& ref )
 }
 void ComputeTaskBuilder::SetFunction( ComputeFunction func ) { function = func; }
 
-TGBTextureRef GraphicsTaskBuilder::AddColorAttachment( std::string_view name, PixelFormat format, const vec4& clearColor, uint32_t width,
-    uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
+TGBTextureRef GraphicsTaskBuilder::AddColorAttachment(
+    std::string_view name, PixelFormat format, const vec4& clearColor, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels )
 {
     TGBTextureRef ref =
         builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT );
@@ -104,7 +104,7 @@ TGBTextureRef GraphicsTaskBuilder::AddColorAttachment( std::string_view name, Pi
 }
 
 TGBTextureRef GraphicsTaskBuilder::AddColorAttachment(
-    std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels )
+    std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels )
 {
     TGBTextureRef ref =
         builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr, VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT );
@@ -118,8 +118,7 @@ void GraphicsTaskBuilder::AddColorAttachment( TGBTextureRef tex )
     attachments.emplace_back( vec4( 0 ), tex, ResourceType::COLOR_ATTACH, false );
 }
 
-TGBTextureRef GraphicsTaskBuilder::AddDepthAttachment(
-    std::string_view name, PixelFormat format, uint32_t width, uint32_t height, float clearVal )
+TGBTextureRef GraphicsTaskBuilder::AddDepthAttachment( std::string_view name, PixelFormat format, u32 width, u32 height, f32 clearVal )
 {
     TGBTextureRef ref = builder->AddTexture( name, format, width, height, 1, 1, 1, nullptr, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT );
     builder->UpdateTextureLifetimeAndUsage( ref, taskHandle );
@@ -127,7 +126,7 @@ TGBTextureRef GraphicsTaskBuilder::AddDepthAttachment(
     return ref;
 }
 
-TGBTextureRef GraphicsTaskBuilder::AddDepthAttachment( std::string_view name, PixelFormat format, uint32_t width, uint32_t height )
+TGBTextureRef GraphicsTaskBuilder::AddDepthAttachment( std::string_view name, PixelFormat format, u32 width, u32 height )
 {
     TGBTextureRef ref = builder->AddTexture( name, format, width, height, 1, 1, 1, nullptr, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT );
     builder->UpdateTextureLifetimeAndUsage( ref, taskHandle );
@@ -199,8 +198,8 @@ PresentTaskBuilder* TaskGraphBuilder::AddPresentTask()
     return task;
 }
 
-TGBTextureRef TaskGraphBuilder::RegisterExternalTexture( std::string_view name, PixelFormat format, uint32_t width, uint32_t height,
-    uint32_t depth, uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func )
+TGBTextureRef TaskGraphBuilder::RegisterExternalTexture(
+    std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels, ExtTextureFunc func )
 {
     return AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, func, 0 );
 }
@@ -211,8 +210,8 @@ TGBBufferRef TaskGraphBuilder::RegisterExternalBuffer(
     return AddBuffer( name, bufferUsage, memoryUsage, size, func );
 }
 
-TGBTextureRef TaskGraphBuilder::AddTexture( std::string_view name, PixelFormat format, uint32_t width, uint32_t height, uint32_t depth,
-    uint32_t arrayLayers, uint32_t mipLevels, ExtTextureFunc func, VkImageUsageFlags usage )
+TGBTextureRef TaskGraphBuilder::AddTexture( std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers,
+    u32 mipLevels, ExtTextureFunc func, VkImageUsageFlags usage )
 {
     TGResourceHandle index = static_cast<TGResourceHandle>( textures.size() );
 

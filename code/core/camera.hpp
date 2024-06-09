@@ -27,11 +27,11 @@ public:
 
     vec3 position;
     vec3 rotation;
-    float vFov;
-    float aspectRatio;
-    float nearPlane;
-    float farPlane;
-    float exposure; // in EVs. So the radiance is multiplied by pow( 2, exposure )
+    f32 vFov;
+    f32 aspectRatio;
+    f32 nearPlane;
+    f32 farPlane;
+    f32 exposure; // in EVs. So the radiance is multiplied by pow( 2, exposure )
 
 protected:
     mat4 m_viewMatrix;

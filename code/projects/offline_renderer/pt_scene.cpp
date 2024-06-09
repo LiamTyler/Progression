@@ -32,11 +32,11 @@ static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
     {
         { "position",    []( const rapidjson::Value& v, Camera& camera ) { camera.position    = ParseVec3( v ); } },
         { "rotation",    []( const rapidjson::Value& v, Camera& camera ) { camera.rotation    = DegToRad( ParseVec3( v ) ); } },
-        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = DegToRad( ParseNumber< float >( v ) ); } },
-        { "aspectRatio", []( const rapidjson::Value& v, Camera& camera ) { camera.aspectRatio = ParseNumber< float >( v ); } },
-        { "nearPlane",   []( const rapidjson::Value& v, Camera& camera ) { camera.nearPlane   = ParseNumber< float >( v ); } },
-        { "farPlane",    []( const rapidjson::Value& v, Camera& camera ) { camera.farPlane    = ParseNumber< float >( v ); } },
-        { "exposure",    []( const rapidjson::Value& v, Camera& camera ) { camera.exposure    = ParseNumber< float >( v ); } },
+        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = DegToRad( ParseNumber< f32 >( v ) ); } },
+        { "aspectRatio", []( const rapidjson::Value& v, Camera& camera ) { camera.aspectRatio = ParseNumber< f32 >( v ); } },
+        { "nearPlane",   []( const rapidjson::Value& v, Camera& camera ) { camera.nearPlane   = ParseNumber< f32 >( v ); } },
+        { "farPlane",    []( const rapidjson::Value& v, Camera& camera ) { camera.farPlane    = ParseNumber< f32 >( v ); } },
+        { "exposure",    []( const rapidjson::Value& v, Camera& camera ) { camera.exposure    = ParseNumber< f32 >( v ); } },
     });
 
     mapping.ForEachMember( v, camera );
@@ -52,14 +52,14 @@ static void ParseBaseLight( const rapidjson::Value& value, Light* light )
     struct BaseLightCreateInfo
     {
         vec3 color = vec3( 0 );
-        float intensity = 1.0f;
-        int nSamples = 1;
+        f32 intensity = 1.0f;
+        i32 nSamples = 1;
     };
     static JSONFunctionMapper< BaseLightCreateInfo& > mapping(
     {
         { "color",     []( const rapidjson::Value& v, BaseLightCreateInfo& l ) { l.color     = ParseVec3( v ); } },
-        { "intensity", []( const rapidjson::Value& v, BaseLightCreateInfo& l ) { l.intensity = ParseNumber< float >( v ); } },
-        { "nSamples",  []( const rapidjson::Value& v, BaseLightCreateInfo& l ) { l.nSamples  = ParseNumber< int >( v ); } }
+        { "intensity", []( const rapidjson::Value& v, BaseLightCreateInfo& l ) { l.intensity = ParseNumber< f32 >( v ); } },
+        { "nSamples",  []( const rapidjson::Value& v, BaseLightCreateInfo& l ) { l.nSamples  = ParseNumber< i32 >( v ); } }
     });
     BaseLightCreateInfo info;
     mapping.ForEachMember( value, info );
@@ -113,10 +113,10 @@ static bool ParseOfflineRenderSettings( const rapidjson::Value& v, Scene* scene 
 {
     static JSONFunctionMapper< RenderSettings& > mapping(
     {
-        { "imageResolution", []( const rapidjson::Value& v, RenderSettings& s ) { s.imageResolution = { ParseNumber<int>( v[0] ), ParseNumber<int>( v[1] ) }; } },
-        { "maxDepth", []( const rapidjson::Value& v, RenderSettings& s ) { s.maxDepth = ParseNumber<int>( v ); } },
+        { "imageResolution",     []( const rapidjson::Value& v, RenderSettings& s ) { s.imageResolution = { ParseNumber<i32>( v[0] ), ParseNumber<i32>( v[1] ) }; } },
+        { "maxDepth",            []( const rapidjson::Value& v, RenderSettings& s ) { s.maxDepth = ParseNumber<i32>( v ); } },
         { "outputImageFilename", []( const rapidjson::Value& v, RenderSettings& s ) { s.outputImageFilename = v.GetString(); } },
-        { "numSamplesPerPixel", []( const rapidjson::Value& v, RenderSettings& s )
+        { "numSamplesPerPixel",  []( const rapidjson::Value& v, RenderSettings& s )
             {
                 s.numSamplesPerPixel.clear();
                 for ( const rapidjson::Value& item : v.GetArray() )
@@ -126,7 +126,7 @@ static bool ParseOfflineRenderSettings( const rapidjson::Value& v, Scene* scene 
             }
         },
         { "antialiasMethod", []( const rapidjson::Value& v, RenderSettings& s ) { s.antialiasMethod = AntiAlias::AlgorithmFromString( v.GetString() ); } },
-        { "tonemapMethod", []( const rapidjson::Value& v, RenderSettings& s ) { s.tonemapMethod = TonemapOperatorFromString( v.GetString() ); } }
+        { "tonemapMethod",   []( const rapidjson::Value& v, RenderSettings& s ) { s.tonemapMethod = TonemapOperatorFromString( v.GetString() ); } }
     });
 
     mapping.ForEachMember( v, scene->settings );
@@ -147,7 +147,7 @@ static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
 
 static bool ParseSkyEVAdjust( const rapidjson::Value& v, Scene* scene )
 {
-    scene->skyEVAdjust = ParseNumber<float>( v );
+    scene->skyEVAdjust = ParseNumber<f32>( v );
     return true;
 }
 
@@ -240,7 +240,7 @@ bool Scene::Load( const std::string& filename )
     LOG( "Building BVH for %zu shapes...", shapes.size() );
     auto bvhTime = Time::GetTimePoint();
     bvh.Build( shapes );
-    float bvhBuildTime = (float)Time::GetTimeSince( bvhTime ) / 1000.0f;
+    f32 bvhBuildTime = (f32)Time::GetTimeSince( bvhTime ) / 1000.0f;
     LOG( "BVH build time: %.3f seconds", bvhBuildTime );
 
     return true;
@@ -273,7 +273,7 @@ bool Scene::Intersect( const Ray& ray, IntersectionData& hitData )
     return bvh.Intersect( ray, &hitData );
 }
 
-bool Scene::Occluded( const Ray& ray, float tMax )
+bool Scene::Occluded( const Ray& ray, f32 tMax )
 {
     // for ( const auto& shape : bvh.shapes )
     // {

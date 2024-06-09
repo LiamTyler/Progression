@@ -5,7 +5,7 @@
 namespace PG::Gfx
 {
 
-enum class AccelerationStructureType : uint8_t
+enum class AccelerationStructureType : u8
 {
     TLAS = 0,
     BLAS = 1,

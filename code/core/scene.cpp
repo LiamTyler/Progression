@@ -42,11 +42,11 @@ static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
     {
         { "position",    []( const rapidjson::Value& v, Camera& camera ) { camera.position    = ParseVec3( v ); } },
         { "rotation",    []( const rapidjson::Value& v, Camera& camera ) { camera.rotation    = DegToRad( ParseVec3( v ) ); } },
-        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = DegToRad( ParseNumber< float >( v ) ); } },
-        { "aspectRatio", []( const rapidjson::Value& v, Camera& camera ) { camera.aspectRatio = ParseNumber< float >( v ); } },
-        { "nearPlane",   []( const rapidjson::Value& v, Camera& camera ) { camera.nearPlane   = ParseNumber< float >( v ); } },
-        { "farPlane",    []( const rapidjson::Value& v, Camera& camera ) { camera.farPlane    = ParseNumber< float >( v ); } },
-        { "exposure",    []( const rapidjson::Value& v, Camera& camera ) { camera.exposure    = ParseNumber< float >( v ); } },
+        { "vFov",        []( const rapidjson::Value& v, Camera& camera ) { camera.vFov        = DegToRad( ParseNumber< f32 >( v ) ); } },
+        { "aspectRatio", []( const rapidjson::Value& v, Camera& camera ) { camera.aspectRatio = ParseNumber< f32 >( v ); } },
+        { "nearPlane",   []( const rapidjson::Value& v, Camera& camera ) { camera.nearPlane   = ParseNumber< f32 >( v ); } },
+        { "farPlane",    []( const rapidjson::Value& v, Camera& camera ) { camera.farPlane    = ParseNumber< f32 >( v ); } },
+        { "exposure",    []( const rapidjson::Value& v, Camera& camera ) { camera.exposure    = ParseNumber< f32 >( v ); } },
     });
 
     mapping.ForEachMember( v, camera );
@@ -62,7 +62,7 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
     static JSONFunctionMapper< DirectionalLight& > mapping(
     {
         { "color",      [](const rapidjson::Value& v, DirectionalLight& l ) { l.color     = ParseVec3( v ); } },
-        { "intensity",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.intensity = ParseNumber< float >( v ); } },
+        { "intensity",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.intensity = ParseNumber< f32 >( v ); } },
         { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } }
     });
 
@@ -88,9 +88,9 @@ static bool ParsePointLight( const rapidjson::Value& value, Scene* scene )
     static JSONFunctionMapper< PointLight& > mapping(
     {
         { "color",      []( const rapidjson::Value& v, PointLight& l ) { l.color     = ParseVec3( v ); } },
-        { "intensity",  []( const rapidjson::Value& v, PointLight& l ) { l.intensity = ParseNumber< float >( v ); } },
+        { "intensity",  []( const rapidjson::Value& v, PointLight& l ) { l.intensity = ParseNumber< f32 >( v ); } },
         { "position",   []( const rapidjson::Value& v, PointLight& l ) { l.position  = ParseVec3( v ); } },
-        { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius    = ParseNumber< float >( v ); } },
+        { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius    = ParseNumber< f32 >( v ); } },
     });
 
     PointLight& light = scene->pointLights.emplace_back();
@@ -104,12 +104,12 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
     static JSONFunctionMapper< SpotLight& > mapping(
     {
         { "color",      []( const rapidjson::Value& v, SpotLight& l ) { l.color     = ParseVec3( v ); } },
-        { "intensity",  []( const rapidjson::Value& v, SpotLight& l ) { l.intensity = ParseNumber< float >( v ); } },
+        { "intensity",  []( const rapidjson::Value& v, SpotLight& l ) { l.intensity = ParseNumber< f32 >( v ); } },
         { "position",   []( const rapidjson::Value& v, SpotLight& l ) { l.position  = ParseVec3( v ); } },
-        { "radius",     []( const rapidjson::Value& v, SpotLight& l ) { l.radius    = ParseNumber< float >( v ); } },
+        { "radius",     []( const rapidjson::Value& v, SpotLight& l ) { l.radius    = ParseNumber< f32 >( v ); } },
         { "direction",  []( const rapidjson::Value& v, SpotLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } },
-        { "innerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.innerAngle = DegToRad( ParseNumber< float >( v ) ); } },
-        { "outerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerAngle = DegToRad( ParseNumber< float >( v ) ); } },
+        { "innerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.innerAngle = DegToRad( ParseNumber< f32 >( v ) ); } },
+        { "outerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerAngle = DegToRad( ParseNumber< f32 >( v ) ); } },
     });
 
     SpotLight& light = scene->spotLights.emplace_back();
@@ -135,7 +135,7 @@ static bool ParseSkybox( const rapidjson::Value& v, Scene* scene )
 
 static bool ParseSkyEVAdjust( const rapidjson::Value& v, Scene* scene )
 {
-    scene->skyEVAdjust = ParseNumber<float>( v );
+    scene->skyEVAdjust = ParseNumber<f32>( v );
     return true;
 }
 

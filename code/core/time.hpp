@@ -1,5 +1,6 @@
 #pragma once
 
+#include "shared/core_defines.hpp"
 #include <chrono>
 
 struct lua_State;
@@ -12,10 +13,10 @@ using Point = std::chrono::high_resolution_clock::time_point;
 void Reset();
 
 // milliseconds since initialization
-float Time();
+f32 Time();
 
 // how long the last frame took, in seconds
-float DeltaTime();
+f32 DeltaTime();
 
 void StartFrame();
 
@@ -24,9 +25,9 @@ void EndFrame();
 Point GetTimePoint();
 
 // Returns the number of milliseconds elapsed since Point
-double GetTimeSince( const Point& point );
+f64 GetTimeSince( const Point& point );
 
 // Returns the number of milliseconds between two points
-double GetElapsedTime( const Point& startPoint, const Point& endPoint );
+f64 GetElapsedTime( const Point& startPoint, const Point& endPoint );
 
 } // namespace PG::Time

@@ -5,12 +5,12 @@
 namespace PT
 {
 
-vec3 PointLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
+vec3 PointLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, f32& pdf ) const
 {
     wi  = Normalize( position - it.p );
     pdf = 1;
 
-    float distToLight = Length( position - it.p );
+    f32 distToLight = Length( position - it.p );
 
     IntersectionData shadowHit;
     Ray shadowRay( it.p, wi );
@@ -22,7 +22,7 @@ vec3 PointLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::R
     return Lemit / ( distToLight * distToLight );
 }
 
-vec3 DirectionalLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
+vec3 DirectionalLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, f32& pdf ) const
 {
     wi  = -direction;
     pdf = 1;
@@ -37,12 +37,12 @@ vec3 DirectionalLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene,
     return Lemit;
 }
 
-vec3 AreaLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, float& pdf ) const
+vec3 AreaLight::Sample_Li( const Interaction& it, vec3& wi, Scene* scene, PG::Random::RNG& rng, f32& pdf ) const
 {
     SurfaceInfo surfInfo = shape->SampleWithRespectToSolidAngle( it, rng );
     wi                   = Normalize( surfInfo.position - it.p );
     pdf                  = surfInfo.pdf;
-    float distToLight    = Length( surfInfo.position - it.p );
+    f32 distToLight      = Length( surfInfo.position - it.p );
 
     IntersectionData shadowHit;
     Ray shadowRay( it.p, wi );

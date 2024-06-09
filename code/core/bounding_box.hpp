@@ -14,8 +14,8 @@ public:
 
     vec3 Center() const;
     void Points( vec3* data ) const;
-    int LongestDimension() const;
-    float SurfaceArea() const;
+    i32 LongestDimension() const;
+    f32 SurfaceArea() const;
     mat4 ModelMatrix() const;
     vec3 P( const vec3& planeNormal ) const;
     vec3 N( const vec3& planeNormal ) const;
@@ -25,7 +25,7 @@ public:
     void Encompass( const AABB& aabb );
     void Encompass( const AABB& aabb, const mat4& transform );
     void Encompass( vec3 point );
-    void Encompass( vec3* points, int numPoints );
+    void Encompass( vec3* points, i32 numPoints );
 
     vec3 min;
     vec3 max;

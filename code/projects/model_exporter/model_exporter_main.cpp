@@ -21,7 +21,7 @@ using namespace PG;
 static_assert( PMODEL_MAX_UVS_PER_VERT == AI_MAX_NUMBER_OF_TEXTURECOORDS );
 static_assert( PMODEL_MAX_COLORS_PER_VERT == AI_MAX_NUMBER_OF_COLOR_SETS );
 
-std::atomic<uint32_t> g_warnings;
+std::atomic<u32> g_warnings;
 
 static mat4 AiToGLMMat4( const aiMatrix4x4& aiM )
 {
@@ -38,13 +38,13 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
 {
     // it doesn't look like assimp guarantees that the uv or color sets will be contiguous. Aka
     // there could be uv0 and uv2 but no uv1. I want to compact them contiguously though
-    uint32_t uvSetRemap[AI_MAX_NUMBER_OF_TEXTURECOORDS] = { UINT_MAX };
-    uint32_t colorSetRemap[AI_MAX_NUMBER_OF_COLOR_SETS] = { UINT_MAX };
+    u32 uvSetRemap[AI_MAX_NUMBER_OF_TEXTURECOORDS] = { UINT_MAX };
+    u32 colorSetRemap[AI_MAX_NUMBER_OF_COLOR_SETS] = { UINT_MAX };
     static_assert( AI_MAX_NUMBER_OF_TEXTURECOORDS == 8 );
     {
-        uint32_t pgUVIdx    = 0;
-        uint32_t pgColorIdx = 0;
-        for ( uint32_t i = 0; i < 8; ++i )
+        u32 pgUVIdx    = 0;
+        u32 pgColorIdx = 0;
+        for ( u32 i = 0; i < 8; ++i )
         {
             if ( paiMesh->HasTextureCoords( i ) )
             {
@@ -59,11 +59,11 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
 
     mat4 normalMatrix = Inverse( Transpose( localToWorldMat ) );
 
-    uint32_t numZeroBefore = 0;
-    uint32_t numZeroAfter  = 0;
-    uint32_t numVerts      = paiMesh->mNumVertices;
+    u32 numZeroBefore = 0;
+    u32 numZeroAfter  = 0;
+    u32 numVerts      = paiMesh->mNumVertices;
     pgMesh.vertices.resize( numVerts );
-    for ( uint32_t vIdx = 0; vIdx < numVerts; ++vIdx )
+    for ( u32 vIdx = 0; vIdx < numVerts; ++vIdx )
     {
         PModel::Vertex& v = pgMesh.vertices[vIdx];
         v.pos             = AiToPG( paiMesh->mVertices[vIdx] );
@@ -86,27 +86,27 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
             v.bitangent = vec3( localToWorldMat * vec4( v.bitangent, 0.0f ) );
         }
 
-        for ( uint32_t uvSetIdx = 0; uvSetIdx < pgMesh.numUVChannels; ++uvSetIdx )
+        for ( u32 uvSetIdx = 0; uvSetIdx < pgMesh.numUVChannels; ++uvSetIdx )
         {
-            uint32_t aiUVSetIdx = uvSetRemap[uvSetIdx];
-            vec3 uvw            = AiToPG( paiMesh->mTextureCoords[aiUVSetIdx][vIdx] );
-            v.uvs[uvSetIdx]     = vec2( uvw.x, uvw.y );
+            u32 aiUVSetIdx  = uvSetRemap[uvSetIdx];
+            vec3 uvw        = AiToPG( paiMesh->mTextureCoords[aiUVSetIdx][vIdx] );
+            v.uvs[uvSetIdx] = vec2( uvw.x, uvw.y );
         }
 
-        for ( uint32_t colorSetIdx = 0; colorSetIdx < pgMesh.numColorChannels; ++colorSetIdx )
+        for ( u32 colorSetIdx = 0; colorSetIdx < pgMesh.numColorChannels; ++colorSetIdx )
         {
-            uint32_t aiColorSetIdx = colorSetRemap[colorSetIdx];
-            v.colors[colorSetIdx]  = AiToPG( paiMesh->mColors[aiColorSetIdx][vIdx] );
+            u32 aiColorSetIdx     = colorSetRemap[colorSetIdx];
+            v.colors[colorSetIdx] = AiToPG( paiMesh->mColors[aiColorSetIdx][vIdx] );
         }
     }
 
     LOG( "Num zero before %u, after %u", numZeroBefore, numZeroAfter );
 
-    std::vector<uint32_t> numBonesPerVertex( numVerts, 0 );
-    for ( uint32_t aiBoneIdx = 0; aiBoneIdx < paiMesh->mNumBones; ++aiBoneIdx )
+    std::vector<u32> numBonesPerVertex( numVerts, 0 );
+    for ( u32 aiBoneIdx = 0; aiBoneIdx < paiMesh->mNumBones; ++aiBoneIdx )
     {
         const aiBone& paiBone = *paiMesh->mBones[aiBoneIdx];
-        for ( uint32_t weightIdx = 0; weightIdx < paiBone.mNumWeights; ++weightIdx )
+        for ( u32 weightIdx = 0; weightIdx < paiBone.mNumWeights; ++weightIdx )
         {
             const aiVertexWeight& w = paiBone.mWeights[weightIdx];
             PG_ASSERT( w.mVertexId < numVerts );
@@ -115,7 +115,7 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
         }
     }
 
-    for ( uint32_t vIdx = 0; vIdx < numVerts; ++vIdx )
+    for ( u32 vIdx = 0; vIdx < numVerts; ++vIdx )
     {
         if ( numBonesPerVertex[vIdx] > PMODEL_MAX_BONE_WEIGHTS_PER_VERT )
         {
@@ -125,11 +125,11 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
         }
 
         PModel::Vertex& v = pgMesh.vertices[vIdx];
-        float weightTotal = 0;
-        for ( uint8_t slot = 0; slot < v.numBones; ++slot )
+        f32 weightTotal   = 0;
+        for ( u8 slot = 0; slot < v.numBones; ++slot )
             weightTotal += v.boneWeights[slot];
 
-        for ( uint8_t slot = 0; slot < v.numBones; ++slot )
+        for ( u8 slot = 0; slot < v.numBones; ++slot )
             v.boneWeights[slot] /= weightTotal;
     }
 }
@@ -139,7 +139,7 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
 {
     std::string stem         = GetFilenameStem( filename );
     mat4 currentLocalToWorld = AiToGLMMat4( node->mTransformation ) * parentLocalToWorld;
-    for ( uint32_t meshIdx = 0; meshIdx < node->mNumMeshes; ++meshIdx )
+    for ( u32 meshIdx = 0; meshIdx < node->mNumMeshes; ++meshIdx )
     {
         const aiMesh* paiMesh = scene->mMeshes[node->mMeshes[meshIdx]];
         PModel::Mesh& pgMesh  = pmodel.meshes.emplace_back();
@@ -161,7 +161,7 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
                 pgMesh.name.c_str() );
         }
 
-        for ( uint32_t uvSetIdx = 0; uvSetIdx < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++uvSetIdx )
+        for ( u32 uvSetIdx = 0; uvSetIdx < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++uvSetIdx )
         {
             if ( !paiMesh->HasTextureCoords( uvSetIdx ) || paiMesh->mNumUVComponents[uvSetIdx] == 2 )
                 continue;
@@ -182,7 +182,7 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
         ProcessVertices( paiMesh, currentLocalToWorld, pgMesh );
 
         pgMesh.indices.resize( paiMesh->mNumFaces * 3 );
-        for ( uint32_t faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
+        for ( u32 faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
         {
             const aiFace& face              = paiMesh->mFaces[faceIdx];
             pgMesh.indices[faceIdx * 3 + 0] = face.mIndices[0];
@@ -191,7 +191,7 @@ void ParseNode( const std::string& filename, const std::vector<std::string>& mat
         }
     }
 
-    for ( uint32_t childIdx = 0; childIdx < node->mNumChildren; ++childIdx )
+    for ( u32 childIdx = 0; childIdx < node->mNumChildren; ++childIdx )
     {
         ParseNode( filename, materialNames, scene, node->mChildren[childIdx], currentLocalToWorld, pmodel );
     }
@@ -212,7 +212,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
 
     std::vector<std::string> materialNames;
     bool isOBJ = GetFileExtension( filename ) == ".obj";
-    for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
+    for ( u32 i = 0; i < scene->mNumMaterials; ++i )
     {
         std::string matName = scene->mMaterials[i]->GetName().C_Str();
         if ( matName == "DefaultMaterial" || matName == "default" || ( isOBJ && matName == "None" ) )
@@ -229,7 +229,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     matContext.scene     = scene;
     matContext.file      = filename;
     matContext.modelName = modelName;
-    for ( unsigned int i = 0; i < scene->mNumMaterials; ++i )
+    for ( u32 i = 0; i < scene->mNumMaterials; ++i )
     {
         if ( materialNames[i] != "default" )
         {
@@ -247,7 +247,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     /*
     pmodel.meshes.resize( scene->mNumMeshes );
     std::string stem = GetFilenameStem( filename );
-    for ( uint32_t meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx )
+    for ( u32 meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx )
     {
         const aiMesh* paiMesh = scene->mMeshes[meshIdx];
         PModel::Mesh& pgMesh = pmodel.meshes[meshIdx];
@@ -269,7 +269,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
                 meshIdx, filename.c_str(), pgMesh.name.c_str() );
         }
 
-        for ( uint32_t uvSetIdx = 0; uvSetIdx < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++uvSetIdx )
+        for ( u32 uvSetIdx = 0; uvSetIdx < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++uvSetIdx )
         {
             if ( !paiMesh->HasTextureCoords( uvSetIdx ) || paiMesh->mNumUVComponents[uvSetIdx] == 2 )
                 continue;
@@ -290,7 +290,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         ProcessVertices( paiMesh, pgMesh );
 
         pgMesh.indices.resize( paiMesh->mNumFaces * 3 );
-        for ( uint32_t faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
+        for ( u32 faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
         {
             const aiFace& face = paiMesh->mFaces[faceIdx];
             pgMesh.indices[faceIdx * 3 + 0] = face.mIndices[0];
@@ -352,8 +352,8 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
         {0,                  0,                 0, 0  }
     };
 
-    int option_index = 0;
-    int c            = -1;
+    i32 option_index = 0;
+    i32 c            = -1;
     while ( ( c = getopt_long( argc, argv, "f:iht:", long_options, &option_index ) ) != -1 )
     {
         switch ( c )
@@ -447,7 +447,7 @@ int main( int argc, char* argv[] )
     outputJSON.reserve( 1024 * 1024 );
     // Cant run in parallel, since writing the output
     // #pragma omp parallel for
-    for ( int i = 0; i < static_cast<int>( filesToProcess.size() ); ++i )
+    for ( i32 i = 0; i < static_cast<i32>( filesToProcess.size() ); ++i )
     {
         std::string json;
         json.reserve( 2 * 1024 );

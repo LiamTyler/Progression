@@ -7,7 +7,7 @@
 namespace PG::Gfx
 {
 
-enum : unsigned char
+enum : u8
 {
     GFX_CMD_POOL_GRAPHICS,
     GFX_CMD_POOL_TRANSIENT,
@@ -37,14 +37,14 @@ struct R_Globals
     Device device;
     PhysicalDevice physicalDevice;
     Swapchain swapchain;
-    uint32_t swapchainImageIndex;
+    u32 swapchainImageIndex;
     FrameData frameData[NUM_FRAME_OVERLAP];
-    uint32_t currentFrameIdx; // [0, NUM_FRAME_OVERLAP)
-    uint32_t totalFrameCount;
-    uint32_t sceneWidth;
-    uint32_t sceneHeight;
-    uint32_t displayWidth;
-    uint32_t displayHeight;
+    u32 currentFrameIdx; // [0, NUM_FRAME_OVERLAP)
+    u32 totalFrameCount;
+    u32 sceneWidth;
+    u32 sceneHeight;
+    u32 displayWidth;
+    u32 displayHeight;
 
     CommandPool immediateCmdPool;
     CommandBuffer immediateCmdBuffer;

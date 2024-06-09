@@ -7,7 +7,7 @@ namespace PG::Input
 
 #define SWITCH_CASE( key, val ) \
     case key: return val;
-RawButton GlfwKeyToRawButton( int key )
+RawButton GlfwKeyToRawButton( i32 key )
 {
     switch ( key )
     {
@@ -127,7 +127,7 @@ RawButton GlfwKeyToRawButton( int key )
     return RawButton::UNKNOWN;
 }
 
-RawButton GlfwMouseButtonToRawButton( int button )
+RawButton GlfwMouseButtonToRawButton( i32 button )
 {
     switch ( button )
     {

@@ -30,15 +30,15 @@ public:
         p.m_pipelineType  = PipelineType::GRAPHICS;
         p.m_workgroupSize = uvec3( 0 );
 
-        int taskShaderIdx          = -1;
-        int meshShaderIdx          = -1;
-        int pushConstantLowOffset  = INT16_MAX;
-        int pushConstantHighOffset = 0;
+        i32 taskShaderIdx          = -1;
+        i32 meshShaderIdx          = -1;
+        i32 pushConstantLowOffset  = INT16_MAX;
+        i32 pushConstantHighOffset = 0;
 
         PG_ASSERT( createInfo.shaders.size() <= 3, "increase shaderStages size below" );
         VkPipelineShaderStageCreateInfo shaderStages[3];
         Shader* shaders[3];
-        for ( int i = 0; i < (int)createInfo.shaders.size(); ++i )
+        for ( i32 i = 0; i < (i32)createInfo.shaders.size(); ++i )
         {
             Shader* shader = AssetManager::Get<Shader>( createInfo.shaders[i].name );
             PG_ASSERT( shader && shader->GetShaderStage() == createInfo.shaders[i].stage );
@@ -51,8 +51,8 @@ public:
             p.m_stageFlags |= PGToVulkanShaderStage( stage );
 
             const ShaderReflectData& rData = shader->GetReflectionData();
-            pushConstantLowOffset          = Min<int>( pushConstantLowOffset, rData.pushConstantOffset );
-            pushConstantHighOffset         = Max<int>( pushConstantHighOffset, rData.pushConstantOffset + rData.pushConstantSize );
+            pushConstantLowOffset          = Min<i32>( pushConstantLowOffset, rData.pushConstantOffset );
+            pushConstantHighOffset         = Max<i32>( pushConstantHighOffset, rData.pushConstantOffset + rData.pushConstantSize );
 
             if ( stage == ShaderStage::TASK )
                 taskShaderIdx = i;
@@ -66,8 +66,8 @@ public:
         else
             p.m_workgroupSize = uvec3( 0 );
 
-        int pushConstantSize       = Max( 0, pushConstantHighOffset - pushConstantLowOffset );
-        VkPushConstantRange pRange = { p.m_stageFlags, (uint32_t)pushConstantLowOffset, (uint32_t)pushConstantSize };
+        i32 pushConstantSize       = Max( 0, pushConstantHighOffset - pushConstantLowOffset );
+        VkPushConstantRange pRange = { p.m_stageFlags, (u32)pushConstantLowOffset, (u32)pushConstantSize };
 
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
         pipelineLayoutCreateInfo.setLayoutCount         = 1;
@@ -127,7 +127,7 @@ public:
         VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
         colorBlending.logicOpEnable   = VK_FALSE;
         colorBlending.logicOp         = VK_LOGIC_OP_COPY;
-        colorBlending.attachmentCount = (uint32_t)gInfo.colorAttachments.size();
+        colorBlending.attachmentCount = (u32)gInfo.colorAttachments.size();
         colorBlending.pAttachments    = colorBlendAttachment;
 
         VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
@@ -138,7 +138,7 @@ public:
         depthStencil.stencilTestEnable     = VK_FALSE;
 
         VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
-        pipelineInfo.stageCount          = (uint32_t)createInfo.shaders.size();
+        pipelineInfo.stageCount          = (u32)createInfo.shaders.size();
         pipelineInfo.pStages             = shaderStages;
         pipelineInfo.pVertexInputState   = nullptr; // assuming pull-style vertex fetching always
         pipelineInfo.pInputAssemblyState = nullptr;
@@ -152,7 +152,7 @@ public:
 
         VkFormat colorFmt = PGToVulkanPixelFormat( PixelFormat::R16_G16_B16_A16_FLOAT );
         VkPipelineRenderingCreateInfo dynRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
-        dynRenderingCreateInfo.colorAttachmentCount    = (uint32_t)gInfo.colorAttachments.size();
+        dynRenderingCreateInfo.colorAttachmentCount    = (u32)gInfo.colorAttachments.size();
         dynRenderingCreateInfo.pColorAttachmentFormats = colorAttachmentFormats;
 
         PixelFormat depthFmt = PixelFormat::INVALID;

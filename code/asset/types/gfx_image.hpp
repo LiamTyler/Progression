@@ -13,7 +13,7 @@ class Serializer;
 namespace PG
 {
 
-enum class GfxImageSemantic : uint8_t
+enum class GfxImageSemantic : u8
 {
     COLOR,
     GRAY,
@@ -29,7 +29,7 @@ enum class GfxImageSemantic : uint8_t
 
 bool IsSemanticComposite( GfxImageSemantic semantic );
 
-enum class GfxImageFilterMode : uint8_t
+enum class GfxImageFilterMode : u8
 {
     NEAREST,
     BILINEAR,
@@ -49,7 +49,7 @@ struct GfxImageCreateInfo : public BaseAssetCreateInfo
     GfxImageFilterMode filterMode = GfxImageFilterMode::TRILINEAR;
 
     // for composite maps, like ALBEDO_METALNESS
-    float compositeScales[4]           = { 1.0f, 1.0f, 1.0f, 1.0f };
+    f32 compositeScales[4]             = { 1.0f, 1.0f, 1.0f, 1.0f };
     Channel compositeSourceChannels[4] = { Channel::COUNT, Channel::COUNT, Channel::COUNT, Channel::COUNT };
 };
 
@@ -59,16 +59,16 @@ struct GfxImage : public BaseAsset
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
-    unsigned char* GetPixels( uint32_t face, uint32_t mip, uint32_t depthLevel = 0 ) const;
+    u8* GetPixels( u32 face, u32 mip, u32 depthLevel = 0 ) const;
     void UploadToGpu();
 
     size_t totalSizeInBytes = 0;
-    unsigned char* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
-    uint32_t width          = 0;
-    uint32_t height         = 0;
-    uint32_t depth          = 0;
-    uint32_t mipLevels      = 0;
-    uint32_t numFaces       = 0;
+    u8* pixels              = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
+    u32 width               = 0;
+    u32 height              = 0;
+    u32 depth               = 0;
+    u32 mipLevels           = 0;
+    u32 numFaces            = 0;
     PixelFormat pixelFormat;
     ImageType imageType;
     bool clampHorizontal;
@@ -91,9 +91,8 @@ enum CubemapFaceIndex
 };
 
 // if numMips is unspecified (0), assume all mips are in use
-size_t CalculateTotalFaceSizeWithMips( uint32_t width, uint32_t height, PixelFormat format, uint32_t numMips = 0 );
-size_t CalculateTotalImageBytes(
-    PixelFormat format, uint32_t width, uint32_t height, uint32_t depth = 1, uint32_t arrayLayers = 1, uint32_t mipLevels = 1 );
+size_t CalculateTotalFaceSizeWithMips( u32 width, u32 height, PixelFormat format, u32 numMips = 0 );
+size_t CalculateTotalImageBytes( PixelFormat format, u32 width, u32 height, u32 depth = 1, u32 arrayLayers = 1, u32 mipLevels = 1 );
 size_t CalculateTotalImageBytes( const GfxImage& img );
 PixelFormat ImageFormatToPixelFormat( ImageFormat imgFormat, bool isSRGB );
 

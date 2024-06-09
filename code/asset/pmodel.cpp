@@ -7,12 +7,12 @@
 
 using namespace std::chrono;
 using Clock     = high_resolution_clock;
-using TimePoint = time_point<Clock>;
+using TimePoi32 = time_point<Clock>;
 
 namespace PG
 {
 
-bool PModel::Vertex::AddBone( uint32_t boneIdx, float weight )
+bool PModel::Vertex::AddBone( u32 boneIdx, f32 weight )
 {
     if ( numBones < PMODEL_MAX_BONE_WEIGHTS_PER_VERT )
     {
@@ -22,9 +22,9 @@ bool PModel::Vertex::AddBone( uint32_t boneIdx, float weight )
         return true;
     }
 
-    float minWeight = boneWeights[0];
-    uint32_t minIdx = 0;
-    for ( uint32_t slot = 1; slot < numBones; ++slot )
+    f32 minWeight = boneWeights[0];
+    u32 minIdx    = 0;
+    for ( u32 slot = 1; slot < numBones; ++slot )
     {
         if ( boneWeights[slot] < minWeight )
         {
@@ -56,9 +56,9 @@ bool PModel::Load( const std::string& filename )
     char tmpBuffer[128];
     std::string tmp;
     in >> tmp; // pmodelFormat
-    uint32_t version;
+    u32 version;
     in >> version;
-    if ( version < (uint32_t)PModelVersionNum::LAST_SUPPORTED_VERSION )
+    if ( version < (u32)PModelVersionNum::LAST_SUPPORTED_VERSION )
     {
         LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(),
             version );
@@ -97,19 +97,19 @@ bool PModel::Load( const std::string& filename )
         // skip to first vertex
         SkipEmptyLines( in, line );
 
-        uint32_t meshNumUVs        = 0;
-        uint32_t meshNumColors     = 0;
-        uint32_t meshNumTangents   = 0;
-        uint32_t meshNumBitangents = 0;
+        u32 meshNumUVs        = 0;
+        u32 meshNumColors     = 0;
+        u32 meshNumTangents   = 0;
+        u32 meshNumBitangents = 0;
 
         mesh.vertices.reserve( 65536 );
         while ( !line.empty() && line[0] == 'V' )
         {
-            Vertex& v              = mesh.vertices.emplace_back();
-            uint32_t numUVs        = 0;
-            uint32_t numColors     = 0;
-            uint32_t numTangents   = 0;
-            uint32_t numBitangents = 0;
+            Vertex& v         = mesh.vertices.emplace_back();
+            u32 numUVs        = 0;
+            u32 numColors     = 0;
+            u32 numTangents   = 0;
+            u32 numBitangents = 0;
 
             std::getline( in, line );
             while ( !line.empty() )
@@ -150,15 +150,13 @@ bool PModel::Load( const std::string& filename )
 
 #if USING( DEBUG_BUILD )
             if ( numTangents > 1 )
-                LOG_WARN( "Mesh %s vertex %u has more than 1 tangent specified", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+                LOG_WARN( "Mesh %s vertex %u has more than 1 tangent specified", mesh.name.c_str(), (u32)mesh.vertices.size() - 1 );
             if ( numBitangents > 1 )
-                LOG_WARN( "Mesh %s vertex %u has more than 1 bittangent specified", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+                LOG_WARN( "Mesh %s vertex %u has more than 1 bittangent specified", mesh.name.c_str(), (u32)mesh.vertices.size() - 1 );
             if ( numTangents && !numBitangents )
-                LOG_WARN(
-                    "Mesh %s vertex %u has a tangent specified, but no bitangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+                LOG_WARN( "Mesh %s vertex %u has a tangent specified, but no bitangent", mesh.name.c_str(), (u32)mesh.vertices.size() - 1 );
             if ( !numTangents && numBitangents )
-                LOG_WARN(
-                    "Mesh %s vertex %u has a bitangent specified, but no tangent", mesh.name.c_str(), (uint32_t)mesh.vertices.size() - 1 );
+                LOG_WARN( "Mesh %s vertex %u has a bitangent specified, but no tangent", mesh.name.c_str(), (u32)mesh.vertices.size() - 1 );
 #endif // #if USING( DEBUG_BUILD )
 
             meshNumUVs += numUVs;
@@ -186,7 +184,7 @@ bool PModel::Load( const std::string& filename )
         mesh.indices.reserve( mesh.vertices.size() * 2 );
         while ( !line.empty() )
         {
-            uint32_t i0, i1, i2;
+            u32 i0, i1, i2;
             sscanf( line.c_str(), "%u %u %u", &i0, &i1, &i2 );
             mesh.indices.push_back( i0 );
             mesh.indices.push_back( i1 );
@@ -199,9 +197,9 @@ bool PModel::Load( const std::string& filename )
     return true;
 }
 
-static constexpr float PZ( float x ) { return x == 0.0f ? +0.0f : x; }
+static constexpr f32 PZ( f32 x ) { return x == 0.0f ? +0.0f : x; }
 
-bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProgress ) const
+bool PModel::Save( std::ofstream& outFile, u32 f32Precision, bool logProgress ) const
 {
     auto Start = Clock::now();
 
@@ -221,9 +219,9 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         "bw %u %.6g\n",
     };
 
-    floatPrecision = std::max( 1u, std::min( 9u, floatPrecision ) );
-    for ( int strIdx = 0; strIdx < ARRAY_COUNT( fmtStrings ); ++strIdx )
-        SingleCharReplacement( &fmtStrings[strIdx][0], '6', '0' + floatPrecision );
+    f32Precision = std::max( 1u, std::min( 9u, f32Precision ) );
+    for ( i32 strIdx = 0; strIdx < ARRAY_COUNT( fmtStrings ); ++strIdx )
+        SingleCharReplacement( &fmtStrings[strIdx][0], '6', '0' + f32Precision );
 
     size_t totalVerts = 0;
     size_t totalTris  = 0;
@@ -235,7 +233,7 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         materialSet.insert( mesh.materialName );
     }
 
-    outFile << "pmodelFormat: " << (uint32_t)PModelVersionNum::CURRENT_VERSION << "\n\n";
+    outFile << "pmodelFormat: " << (u32)PModelVersionNum::CURRENT_VERSION << "\n\n";
 
     for ( const auto& matName : materialSet )
     {
@@ -245,35 +243,35 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
 
     size_t vertsWritten          = 0;
     const size_t tenPercentVerts = totalVerts / 10;
-    int lastPercent              = 0;
+    i32 lastPercent              = 0;
     char buffer[1024];
     for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
     {
         const PModel::Mesh& m = meshes[meshIdx];
-        sprintf( buffer, "Mesh %u: %s\nMat: %s\nNumUVs %u\nNumColors: %u\n\n", (uint32_t)meshIdx, m.name.c_str(), m.materialName.c_str(),
+        sprintf( buffer, "Mesh %u: %s\nMat: %s\nNumUVs %u\nNumColors: %u\n\n", (u32)meshIdx, m.name.c_str(), m.materialName.c_str(),
             m.numUVChannels, m.numColorChannels );
         outFile << buffer;
 
-        for ( uint32_t vIdx = 0; vIdx < (uint32_t)m.vertices.size(); ++vIdx )
+        for ( u32 vIdx = 0; vIdx < (u32)m.vertices.size(); ++vIdx )
         {
             const PModel::Vertex& v = m.vertices[vIdx];
-            int pos = sprintf( buffer, fmtStrings[POS_AND_NORMAL].c_str(), vIdx, PZ( v.pos.x ), PZ( v.pos.y ), PZ( v.pos.z ),
+            i32 pos = sprintf( buffer, fmtStrings[POS_AND_NORMAL].c_str(), vIdx, PZ( v.pos.x ), PZ( v.pos.y ), PZ( v.pos.z ),
                 PZ( v.normal.x ), PZ( v.normal.y ), PZ( v.normal.z ) );
             if ( m.hasTangents )
             {
                 pos += sprintf( buffer + pos, fmtStrings[TANGENTS].c_str(), PZ( v.tangent.x ), PZ( v.tangent.y ), PZ( v.tangent.z ),
                     PZ( v.bitangent.x ), PZ( v.bitangent.y ), PZ( v.bitangent.z ) );
             }
-            for ( uint32_t i = 0; i < m.numUVChannels; ++i )
+            for ( u32 i = 0; i < m.numUVChannels; ++i )
                 pos += sprintf( buffer + pos, fmtStrings[UV].c_str(), PZ( v.uvs[i].x ), PZ( v.uvs[i].y ) );
 
-            for ( uint32_t i = 0; i < m.numColorChannels; ++i )
+            for ( u32 i = 0; i < m.numColorChannels; ++i )
                 pos += sprintf( buffer + pos, fmtStrings[COLOR].c_str(), PZ( v.colors[i].x ), PZ( v.colors[i].y ), PZ( v.colors[i].z ),
                     PZ( v.colors[i].w ) );
 
             if ( m.hasBoneWeights )
             {
-                for ( uint8_t i = 0; i < v.numBones; ++i )
+                for ( u8 i = 0; i < v.numBones; ++i )
                     pos += sprintf( buffer + pos, fmtStrings[BONE].c_str(), v.boneIndices[i], PZ( v.boneWeights[i] ) );
             }
 
@@ -291,7 +289,7 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         outFile << '\n';
 
         vertsWritten += m.vertices.size();
-        int currentPercent = static_cast<int>( vertsWritten / (double)totalVerts * 100 );
+        i32 currentPercent = static_cast<i32>( vertsWritten / (f64)totalVerts * 100 );
         if ( logProgress && currentPercent - lastPercent >= 10 )
         {
             LOG( "%d%%...", currentPercent );
@@ -299,14 +297,14 @@ bool PModel::Save( std::ofstream& outFile, uint32_t floatPrecision, bool logProg
         }
     }
 
-    auto now    = Clock::now();
-    double time = duration_cast<microseconds>( now - Start ).count() / static_cast<float>( 1000 );
+    auto now = Clock::now();
+    f64 time = duration_cast<microseconds>( now - Start ).count() / 1000.0;
     LOG( "Exported mesh in %f sec", time / 1000.0 );
 
     return outFile.good();
 }
 
-bool PModel::Save( const std::string& filename, uint32_t floatPrecision, bool logProgress ) const
+bool PModel::Save( const std::string& filename, u32 f32Precision, bool logProgress ) const
 {
     std::ofstream out( filename );
     if ( !out )
@@ -315,7 +313,7 @@ bool PModel::Save( const std::string& filename, uint32_t floatPrecision, bool lo
         return false;
     }
 
-    return Save( out, floatPrecision, logProgress );
+    return Save( out, f32Precision, logProgress );
 }
 
 std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )
@@ -329,9 +327,9 @@ std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )
 
     std::string tmp;
     in >> tmp; // pmodelFormat
-    uint32_t version;
+    u32 version;
     in >> version;
-    if ( version < (uint32_t)PModelVersionNum::LAST_SUPPORTED_VERSION )
+    if ( version < (u32)PModelVersionNum::LAST_SUPPORTED_VERSION )
     {
         LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(),
             version );

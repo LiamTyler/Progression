@@ -19,9 +19,9 @@ constexpr VkShaderStageFlagBits PGToVulkanShaderStage( ShaderStage stage )
         VK_SHADER_STAGE_MESH_BIT_EXT, // MESH
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( ShaderStage::NUM_SHADER_STAGES ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<i32>( ShaderStage::NUM_SHADER_STAGES ) );
 
-    return convert[static_cast<int>( stage )];
+    return convert[static_cast<i32>( stage )];
 }
 
 constexpr VkCompareOp PGToVulkanCompareFunction( CompareFunction op ) { return static_cast<VkCompareOp>( op ); }
@@ -42,9 +42,9 @@ constexpr VkBlendFactor PGToVulkanBlendFactor( BlendFactor factor )
         VK_BLEND_FACTOR_SRC_ALPHA_SATURATE,  // SRC_ALPHA_SATURATE
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( BlendFactor::NUM_BLEND_FACTORS ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<i32>( BlendFactor::NUM_BLEND_FACTORS ) );
 
-    return convert[static_cast<int>( factor )];
+    return convert[static_cast<i32>( factor )];
 }
 
 constexpr VkBlendOp PGToVulkanBlendEquation( BlendEquation eq )
@@ -57,9 +57,9 @@ constexpr VkBlendOp PGToVulkanBlendEquation( BlendEquation eq )
         VK_BLEND_OP_MAX,              // MAX
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( BlendEquation::NUM_BLEND_EQUATIONS ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<i32>( BlendEquation::NUM_BLEND_EQUATIONS ) );
 
-    return convert[static_cast<int>( eq )];
+    return convert[static_cast<i32>( eq )];
 }
 
 constexpr VkFrontFace PGToVulkanWindingOrder( WindingOrder order ) { return static_cast<VkFrontFace>( order ); }
@@ -138,9 +138,9 @@ constexpr VkFormat PGToVulkanBufferFormat( BufferFormat type )
         VK_FORMAT_R32G32B32A32_UINT, // INT4
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( BufferFormat::NUM_BUFFER_FORMATS ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<i32>( BufferFormat::NUM_BUFFER_FORMATS ) );
 
-    return convert[static_cast<int>( type )];
+    return convert[static_cast<i32>( type )];
 }
 
 constexpr VkPrimitiveTopology PGToVulkanPrimitiveType( PrimitiveType topology )
@@ -154,9 +154,9 @@ constexpr VkPrimitiveTopology PGToVulkanPrimitiveType( PrimitiveType topology )
         VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN,   // TRIANGLE_FAN
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( PrimitiveType::NUM_PRIMITIVE_TYPE ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<i32>( PrimitiveType::NUM_PRIMITIVE_TYPE ) );
 
-    return convert[static_cast<int>( topology )];
+    return convert[static_cast<i32>( topology )];
 }
 
 constexpr VkFilter PGToVulkanFilterMode( FilterMode mode ) { return static_cast<VkFilter>( mode ); }
@@ -179,9 +179,9 @@ constexpr VkImageType PGToVulkanImageType( ImageType type )
         VK_IMAGE_TYPE_3D, // TYPE_3D_ARRAY
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( ImageType::NUM_IMAGE_TYPES ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<i32>( ImageType::NUM_IMAGE_TYPES ) );
 
-    return convert[static_cast<int>( type )];
+    return convert[static_cast<i32>( type )];
 }
 
 constexpr VkFormat PGToVulkanPixelFormat( PixelFormat format )
@@ -290,9 +290,9 @@ constexpr VkFormat PGToVulkanPixelFormat( PixelFormat format )
         VK_FORMAT_BC7_SRGB_BLOCK,       // BC7_SRGB
     };
 
-    static_assert( ARRAY_COUNT( convert ) == static_cast<int>( PixelFormat::NUM_PIXEL_FORMATS ) );
+    static_assert( ARRAY_COUNT( convert ) == static_cast<i32>( PixelFormat::NUM_PIXEL_FORMATS ) );
 
-    return convert[static_cast<int>( format )];
+    return convert[static_cast<i32>( format )];
 }
 
 inline PixelFormat VulkanToPGPixelFormat( VkFormat format )

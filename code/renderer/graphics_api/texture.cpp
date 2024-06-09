@@ -33,17 +33,17 @@ void Texture::Free()
 
 ImageType Texture::GetType() const { return m_info.type; }
 PixelFormat Texture::GetPixelFormat() const { return m_info.format; }
-uint32_t Texture::GetMipLevels() const { return m_info.mipLevels; }
-uint32_t Texture::GetArrayLayers() const { return m_info.arrayLayers; }
-uint32_t Texture::GetWidth() const { return m_info.width; }
-uint32_t Texture::GetHeight() const { return m_info.height; }
-uint32_t Texture::GetDepth() const { return m_info.depth; }
+u32 Texture::GetMipLevels() const { return m_info.mipLevels; }
+u32 Texture::GetArrayLayers() const { return m_info.arrayLayers; }
+u32 Texture::GetWidth() const { return m_info.width; }
+u32 Texture::GetHeight() const { return m_info.height; }
+u32 Texture::GetDepth() const { return m_info.depth; }
 VkExtent2D Texture::GetExtent2D() const { return { m_info.width, m_info.height }; }
 VkExtent3D Texture::GetExtent3D() const { return { m_info.width, m_info.height, m_info.depth }; }
 VkImage Texture::GetImage() const { return m_image; }
 VkImageView Texture::GetView() const { return m_imageView; }
 VmaAllocation Texture::GetAllocation() const { return m_allocation; }
-uint16_t Texture::GetBindlessIndex() const { return m_bindlessIndex; }
+u16 Texture::GetBindlessIndex() const { return m_bindlessIndex; }
 size_t Texture::GetTotalBytes() const { return m_info.TotalSizeInBytes(); }
 Sampler* Texture::GetSampler() const { return m_sampler; }
 VkImageUsageFlags Texture::GetUsage() const { return m_info.usage; }

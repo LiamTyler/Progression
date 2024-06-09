@@ -23,15 +23,15 @@ extern std::unordered_map<std::string, BaseAsset*> g_resourceMaps[AssetType::ASS
 
 struct GetAssetTypeIDHelper
 {
-    static uint32_t IDCounter;
+    static u32 IDCounter;
 };
 
 template <typename Derived>
 struct GetAssetTypeID : public GetAssetTypeIDHelper
 {
-    static uint32_t ID()
+    static u32 ID()
     {
-        static uint32_t id = IDCounter++;
+        static u32 id = IDCounter++;
         return id;
     }
 };
@@ -47,7 +47,7 @@ void Shutdown();
 
 void RegisterLuaFunctions( lua_State* L );
 
-BaseAsset* Get( uint32_t assetTypeID, const std::string& name );
+BaseAsset* Get( u32 assetTypeID, const std::string& name );
 
 template <typename T>
 T* Get( const std::string& name )
@@ -56,7 +56,7 @@ T* Get( const std::string& name )
         "Resource manager only manages classes derived from 'Resource'" );
     BaseAsset* asset;
 #if USING( CONVERTER )
-    uint32_t assetTypeID = GetAssetTypeID<T>::ID();
+    u32 assetTypeID = GetAssetTypeID<T>::ID();
     PG_ASSERT( assetTypeID < AssetType::ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = g_resourceMaps[assetTypeID].find( name );
     if ( it == g_resourceMaps[assetTypeID].end() )

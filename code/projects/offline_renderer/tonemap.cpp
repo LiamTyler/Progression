@@ -31,12 +31,12 @@ vec3 ReinhardTonemap( const vec3& pixel ) { return pixel / ( vec3( 1.0f ) + pixe
 // source: http://filmicworlds.com/blog/filmic-tonemapping-operators/
 static vec3 Uncharted2TonemapHelper( const vec3& x )
 {
-    float A = 0.15f;
-    float B = 0.50f;
-    float C = 0.10f;
-    float D = 0.20f;
-    float E = 0.02f;
-    float F = 0.30f;
+    f32 A = 0.15f;
+    f32 B = 0.50f;
+    f32 C = 0.10f;
+    f32 D = 0.20f;
+    f32 E = 0.02f;
+    f32 F = 0.30f;
     return ( ( x * ( A * x + C * B ) + D * E ) / ( x * ( A * x + B ) + D * F ) ) - E / F;
 }
 
@@ -51,11 +51,11 @@ vec3 Uncharted2Tonemap( const vec3& pixel )
 // https://knarkowicz.wordpress.com/2016/01/06/aces-filmic-tone-mapping-curve/
 vec3 AcesTonemap( const vec3& x )
 {
-    constexpr float a = 2.51f;
-    constexpr float b = 0.03f;
-    constexpr float c = 2.43f;
-    constexpr float d = 0.59f;
-    constexpr float e = 0.14f;
+    constexpr f32 a = 2.51f;
+    constexpr f32 b = 0.03f;
+    constexpr f32 c = 2.43f;
+    constexpr f32 d = 0.59f;
+    constexpr f32 e = 0.14f;
     return Saturate( ( x * ( a * x + b ) ) / ( x * ( c * x + d ) + e ) );
 }
 
@@ -68,7 +68,7 @@ TonemapFunc GetTonemapFunction( TonemapOperator op )
         AcesTonemap,
     };
 
-    return tonemapFuncs[static_cast<int>( op )];
+    return tonemapFuncs[static_cast<i32>( op )];
 }
 
 } // namespace PT

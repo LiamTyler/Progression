@@ -21,7 +21,7 @@ class RawInputTracker
     friend class InputContextManager;
 
     std::unordered_map<RawButton, RawButtonState> m_activeButtons;
-    std::vector<unsigned int> m_characters; // unicode
+    std::vector<u32> m_characters; // unicode
     std::unordered_map<RawAxis, RawAxisValue> m_activeAxes;
 
 public:
@@ -31,7 +31,7 @@ public:
 
     void AddOrUpdateButton( RawButton button, RawButtonState state ) { m_activeButtons[button] = state; }
 
-    void AddCharacter( unsigned int c ) { m_characters.push_back( c ); }
+    void AddCharacter( u32 c ) { m_characters.push_back( c ); }
 
     void AddAxisValue( RawAxis axis, RawAxisValue value )
     {
@@ -131,7 +131,7 @@ static std::vector<InputContext*> s_allInputContexts;
 static InputContextManager s_contextManager;
 static RawInputTracker s_inputTracker;
 
-static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, int mods )
+static void KeyCallback( GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods )
 {
     if ( action != GLFW_PRESS && action != GLFW_RELEASE )
         return;
@@ -147,11 +147,11 @@ static void KeyCallback( GLFWwindow* window, int key, int scancode, int action, 
     s_inputTracker.AddOrUpdateButton( button, state );
 }
 
-static void CharCallback( GLFWwindow* window, unsigned int c ) { s_inputTracker.AddCharacter( c ); }
+static void CharCallback( GLFWwindow* window, u32 c ) { s_inputTracker.AddCharacter( c ); }
 
-static void MousePosCallback( GLFWwindow* window, double x, double y )
+static void MousePosCallback( GLFWwindow* window, f64 x, f64 y )
 {
-    vec2 pos = vec2( (float)x, (float)y );
+    vec2 pos = vec2( (f32)x, (f32)y );
     // LOG( "%f %f", pos.x, pos.y );
     if ( !s_cursorStateChanged )
     {
@@ -161,7 +161,7 @@ static void MousePosCallback( GLFWwindow* window, double x, double y )
     s_prevMousePos = pos;
 }
 
-static void MouseButtonCallback( GLFWwindow* window, int button, int action, int mods )
+static void MouseButtonCallback( GLFWwindow* window, i32 button, i32 action, i32 mods )
 {
     if ( action != GLFW_PRESS && action != GLFW_RELEASE )
         return;
@@ -217,9 +217,9 @@ void PollEvents()
 
 void ResetMousePosition()
 {
-    double mouse_x, mouse_y;
+    f64 mouse_x, mouse_y;
     glfwGetCursorPos( GetMainWindow()->GetGLFWHandle(), &mouse_x, &mouse_y );
-    s_prevMousePos = vec2( (float)mouse_x, (float)mouse_y );
+    s_prevMousePos = vec2( (f32)mouse_x, (f32)mouse_y );
 }
 
 void MouseCursorChange() { s_cursorStateChanged = true; }
@@ -279,21 +279,21 @@ void InputContext::AddRawButtonToAxis( RawButton rawButton, AxisValuePair axisVa
 
 void InputContext::AddRawAxisToAxis( RawAxis rawAxis, Axis axis ) { m_rawAxisToAxisMap[rawAxis] = axis; }
 
-uint32_t InputContext::AddCallback( sol::function callback )
+u32 InputContext::AddCallback( sol::function callback )
 {
-    uint32_t id           = m_callbackID++;
+    u32 id                = m_callbackID++;
     m_scriptCallbacks[id] = callback;
     return id;
 }
 
-uint32_t InputContext::AddCallback( InputCodeCallback callback )
+u32 InputContext::AddCallback( InputCodeCallback callback )
 {
-    uint32_t id         = m_callbackID++;
+    u32 id              = m_callbackID++;
     m_codeCallbacks[id] = callback;
     return id;
 }
 
-void InputContext::RemoveCallback( uint32_t id )
+void InputContext::RemoveCallback( u32 id )
 {
     if ( m_scriptCallbacks.contains( id ) )
     {
@@ -431,12 +431,12 @@ void InputContextManager::PopLayer() { m_layers.pop_back(); }
 
 InputContext* GetContext( InputContextID id ) { return s_allInputContexts[Underlying( id )]; }
 
-static uint32_t AddCallback( InputContextID contextID, sol::function callback )
+static u32 AddCallback( InputContextID contextID, sol::function callback )
 {
     return s_allInputContexts[Underlying( contextID )]->AddCallback( callback );
 }
 
-static void RemoveCallback( InputContextID contextID, uint32_t callbackHandle )
+static void RemoveCallback( InputContextID contextID, u32 callbackHandle )
 {
     return s_allInputContexts[Underlying( contextID )]->RemoveCallback( callbackHandle );
 }
@@ -448,8 +448,8 @@ void RegisterLuaFunctions( lua_State* L )
     input.set_function( "AddCallback", &AddCallback );
     input.set_function( "RemoveCallback", &RemoveCallback );
 
-    sol::table actionEnum = input.create( (int)Underlying( Action::COUNT ) );
-    for ( uint16_t i = 0; i < Underlying( Action::COUNT ); ++i )
+    sol::table actionEnum = input.create( (i32)Underlying( Action::COUNT ) );
+    for ( u16 i = 0; i < Underlying( Action::COUNT ); ++i )
     {
         Action action = (Action)i;
         actionEnum.set( ActionToString( action ), action );
@@ -457,8 +457,8 @@ void RegisterLuaFunctions( lua_State* L )
     input.create_named( "Action", sol::metatable_key,
         input.create_with( sol::meta_function::new_index, sol::detail::fail_on_newindex, sol::meta_function::index, actionEnum ) );
 
-    sol::table axisEnum = input.create( (int)Underlying( Axis::COUNT ) );
-    for ( uint16_t i = 0; i < Underlying( Axis::COUNT ); ++i )
+    sol::table axisEnum = input.create( (i32)Underlying( Axis::COUNT ) );
+    for ( u16 i = 0; i < Underlying( Axis::COUNT ); ++i )
     {
         Axis axis = (Axis)i;
         axisEnum.set( AxisToString( axis ), axis );
@@ -466,8 +466,8 @@ void RegisterLuaFunctions( lua_State* L )
     input.create_named( "Axis", sol::metatable_key,
         input.create_with( sol::meta_function::new_index, sol::detail::fail_on_newindex, sol::meta_function::index, axisEnum ) );
 
-    sol::table contextEnum = input.create( (int)Underlying( InputContextID::COUNT ) );
-    for ( uint16_t i = 0; i < Underlying( InputContextID::COUNT ); ++i )
+    sol::table contextEnum = input.create( (i32)Underlying( InputContextID::COUNT ) );
+    for ( u16 i = 0; i < Underlying( InputContextID::COUNT ); ++i )
     {
         InputContextID id = (InputContextID)i;
         contextEnum.set( InputContextIDToString( id ), id );

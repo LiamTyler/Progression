@@ -23,7 +23,7 @@ public:
     void Read( void* buffer, size_t bytes );
     void Skip( size_t bytes );
 
-    template <typename LenType = unsigned int>
+    template <typename LenType = u32>
     void Write( const std::string& s )
     {
         LenType strSize = static_cast<LenType>( s.length() );
@@ -34,7 +34,7 @@ public:
         }
     }
 
-    template <typename LenType = int>
+    template <typename LenType = i32>
     void Read( std::string& s )
     {
         LenType strSize;

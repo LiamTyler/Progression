@@ -66,7 +66,7 @@ namespace PG::Gfx::BindlessManager
 
 void Init()
 {
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         s_frameData[i].pendingTextureRemovals.reserve( 128 );
         s_frameData[i].pendingBufferRemovals.reserve( 128 );
@@ -132,7 +132,7 @@ void Shutdown()
     FreeSamplers();
     s_bindlessMaterials.Free();
     s_bindlessBufferPointers.Free();
-    for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         s_frameData[i].pendingTextureRemovals    = vector<TextureIndex>();
         s_frameData[i].pendingBufferRemovals     = vector<BufferIndex>();
@@ -177,13 +177,13 @@ void Update()
     s_currFrameData->pendingMaterialRemovals.clear();
     s_currFrameData = &s_frameData[rg.currentFrameIdx];
 
-    uint32_t numTexAdds = static_cast<uint32_t>( s_pendingTextureAdds.size() );
+    u32 numTexAdds = static_cast<u32>( s_pendingTextureAdds.size() );
     if ( numTexAdds )
     {
 #if USING( PG_DESCRIPTOR_BUFFER )
         DescriptorBuffer& descriptorBuffer = GetGlobalDescriptorBuffer();
         char* dbPtr                        = descriptorBuffer.buffer.GetMappedPtr();
-        for ( uint32_t i = 0; i < numAdds; ++i )
+        for ( u32 i = 0; i < numAdds; ++i )
         {
             const PendingTexAdd& pendingAdd = s_pendingTexAdds[i];
 
@@ -200,7 +200,7 @@ void Update()
 #else  // #if USING( PG_DESCRIPTOR_BUFFER )
         s_scratchWrites.reserve( 2 * numTexAdds );
         s_scratchImgInfos.reserve( 2 * numTexAdds );
-        for ( uint32_t i = 0; i < numTexAdds; ++i )
+        for ( u32 i = 0; i < numTexAdds; ++i )
         {
             const PendingTextureAdd& pendingAdd = s_pendingTextureAdds[i];
 
@@ -236,7 +236,7 @@ void Update()
             }
         }
 
-        vkUpdateDescriptorSets( rg.device, (uint32_t)s_scratchWrites.size(), s_scratchWrites.data(), 0, nullptr );
+        vkUpdateDescriptorSets( rg.device, (u32)s_scratchWrites.size(), s_scratchWrites.data(), 0, nullptr );
 
         s_scratchWrites.clear();
         s_scratchImgInfos.clear();

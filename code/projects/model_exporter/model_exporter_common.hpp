@@ -13,7 +13,7 @@ struct Options
 {
     std::string rootDir;
     bool ignoreNameCollisions;
-    uint32_t floatPrecision;
+    u32 floatPrecision;
 };
 
 extern Options g_options;

@@ -17,10 +17,10 @@ struct EngineInitInfo
 {
     bool headless           = false;
     std::string windowTitle = "Untitled";
-    uint32_t windowWidth    = 1920;
-    uint32_t windowHeight   = 1080;
-    uint32_t sceneWidth     = 1280;
-    uint32_t sceneHeight    = 720;
+    u32 windowWidth         = 1920;
+    u32 windowHeight        = 1080;
+    u32 sceneWidth          = 1280;
+    u32 sceneHeight         = 720;
 };
 
 bool EngineInitialize( EngineInitInfo info = {} );

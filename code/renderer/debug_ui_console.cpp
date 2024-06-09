@@ -103,9 +103,9 @@ void Console::Draw()
     if ( !m_visible )
         return;
 
-    float pad           = 10;
-    float consoleHeight = 200;
-    Window* appWindow   = GetMainWindow();
+    f32 pad           = 10;
+    f32 consoleHeight = 200;
+    Window* appWindow = GetMainWindow();
     ImGui::SetNextWindowSize( ImVec2( appWindow->Width() - 2 * pad, consoleHeight ) );
     ImGui::SetNextWindowPos( ImVec2( pad, appWindow->Height() - consoleHeight - pad ) );
     if ( !ImGui::Begin( "console" ) )
@@ -138,7 +138,7 @@ void Console::Draw()
     ImGui::Separator();
 
     // Reserve enough left-over height for 1 separator + 1 input text
-    const float footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
+    const f32 footer_height_to_reserve = ImGui::GetStyle().ItemSpacing.y + ImGui::GetFrameHeightWithSpacing();
     if ( ImGui::BeginChild(
              "ScrollingRegion", ImVec2( 0, -footer_height_to_reserve ), ImGuiChildFlags_None, ImGuiWindowFlags_HorizontalScrollbar ) )
     {
@@ -210,7 +210,7 @@ void Console::ExecCommand( const char* fullCommand )
     // Insert into history. First find match and delete it so it can be pushed to the back.
     // This isn't trying to be smart or optimal.
     m_historyPos = -1;
-    for ( int i = (int)m_history.size() - 1; i >= 0; i-- )
+    for ( i32 i = (i32)m_history.size() - 1; i >= 0; i-- )
     {
         if ( !strcmp( m_history[i], fullCommand ) )
         {
@@ -296,13 +296,13 @@ void Console::ExecCommand( const char* fullCommand )
     }
 }
 
-int Console::TextEditCallbackStub( ImGuiInputTextCallbackData* data )
+i32 Console::TextEditCallbackStub( ImGuiInputTextCallbackData* data )
 {
     Console* console = (Console*)data->UserData;
     return console->TextEditCallback( data );
 }
 
-int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
+i32 Console::TextEditCallback( ImGuiInputTextCallbackData* data )
 {
     switch ( data->EventFlag )
     {
@@ -324,7 +324,7 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
         // Build a list of candidates
         ImVector<const char*> candidates;
         candidates.reserve( 32 );
-        int wordLen = (int)( word_end - word_start );
+        i32 wordLen = (i32)( word_end - word_start );
         for ( size_t i = 0; i < m_commands.size(); i++ )
             if ( Strncmp( m_commands[i].name.data(), word_start, wordLen ) == 0 )
                 candidates.push_back( m_commands[i].name.data() );
@@ -342,7 +342,7 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
         else if ( candidates.Size == 1 )
         {
             // Single match. Delete the beginning of the word and replace it entirely so we've got nice casing.
-            data->DeleteChars( (int)( word_start - data->Buf ), wordLen );
+            data->DeleteChars( (i32)( word_start - data->Buf ), wordLen );
             data->InsertChars( data->CursorPos, candidates[0] );
             data->InsertChars( data->CursorPos, " " );
         }
@@ -350,12 +350,12 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
         {
             // Multiple matches. Complete as much as we can..
             // So inputing "C"+Tab will complete to "CL" then display "CLEAR" and "CLASSIFY" as matches.
-            int match_len = wordLen;
+            i32 match_len = wordLen;
             for ( ;; )
             {
-                int c                       = 0;
+                i32 c                       = 0;
                 bool all_candidates_matches = true;
-                for ( int i = 0; i < candidates.Size && all_candidates_matches; i++ )
+                for ( i32 i = 0; i < candidates.Size && all_candidates_matches; i++ )
                     if ( i == 0 )
                         c = toupper( candidates[i][match_len] );
                     else if ( c == 0 || c != toupper( candidates[i][match_len] ) )
@@ -367,13 +367,13 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
 
             if ( match_len > 0 )
             {
-                data->DeleteChars( (int)( word_start - data->Buf ), wordLen );
+                data->DeleteChars( (i32)( word_start - data->Buf ), wordLen );
                 data->InsertChars( data->CursorPos, candidates[0], candidates[0] + match_len );
             }
 
             // List matches
             AddLog( LogType::LOG, "Possible matches:\n" );
-            for ( int i = 0; i < candidates.Size; i++ )
+            for ( i32 i = 0; i < candidates.Size; i++ )
                 AddLog( LogType::LOG, "- %s\n", candidates[i] );
         }
 
@@ -382,18 +382,18 @@ int Console::TextEditCallback( ImGuiInputTextCallbackData* data )
     case ImGuiInputTextFlags_CallbackHistory:
     {
         // Example of HISTORY
-        const int prev_history_pos = m_historyPos;
+        const i32 prev_history_pos = m_historyPos;
         if ( data->EventKey == ImGuiKey_UpArrow )
         {
             if ( m_historyPos == -1 )
-                m_historyPos = (int)m_history.size() - 1;
+                m_historyPos = (i32)m_history.size() - 1;
             else if ( m_historyPos > 0 )
                 m_historyPos--;
         }
         else if ( data->EventKey == ImGuiKey_DownArrow )
         {
             if ( m_historyPos != -1 )
-                if ( ++m_historyPos >= (int)m_history.size() )
+                if ( ++m_historyPos >= (i32)m_history.size() )
                     m_historyPos = -1;
         }
 

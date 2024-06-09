@@ -33,20 +33,20 @@ bool CheckBox( const char* caption, bool* value )
     PG_UNUSED( value );
     return false;
 }
-bool CheckBox( const char* caption, int* value )
+bool CheckBox( const char* caption, i32* value )
 {
     PG_UNUSED( caption );
     PG_UNUSED( value );
     return false;
 }
-bool InputFloat( const char* caption, float* value, float step )
+bool InputFloat( const char* caption, f32* value, f32 step )
 {
     PG_UNUSED( caption );
     PG_UNUSED( value );
     PG_UNUSED( step );
     return false;
 }
-bool SliderFloat( const char* caption, float* value, float min, float max )
+bool SliderFloat( const char* caption, f32* value, f32 min, f32 max )
 {
     PG_UNUSED( caption );
     PG_UNUSED( value );
@@ -54,7 +54,7 @@ bool SliderFloat( const char* caption, float* value, float min, float max )
     PG_UNUSED( max );
     return false;
 }
-bool SliderInt( const char* caption, int* value, int min, int max )
+bool SliderInt( const char* caption, i32* value, i32 min, i32 max )
 {
     PG_UNUSED( caption );
     PG_UNUSED( value );
@@ -62,7 +62,7 @@ bool SliderInt( const char* caption, int* value, int min, int max )
     PG_UNUSED( max );
     return false;
 }
-bool ComboBox( const char* caption, int* itemindex, const std::vector<std::string>& items )
+bool ComboBox( const char* caption, i32* itemindex, const std::vector<std::string>& items )
 {
     PG_UNUSED( caption );
     PG_UNUSED( itemindex );
@@ -272,7 +272,7 @@ bool CheckBox( const char* caption, bool* value )
     return res;
 }
 
-bool CheckBox( const char* caption, int* value )
+bool CheckBox( const char* caption, i32* value )
 {
     bool val = ( *value == 1 );
     bool res = ImGui::Checkbox( caption, &val );
@@ -282,7 +282,7 @@ bool CheckBox( const char* caption, int* value )
     return res;
 }
 
-bool InputFloat( const char* caption, float* value, float step )
+bool InputFloat( const char* caption, f32* value, f32 step )
 {
     bool res = ImGui::InputFloat( caption, value, step, step * 10.0f );
     if ( res )
@@ -290,7 +290,7 @@ bool InputFloat( const char* caption, float* value, float step )
     return res;
 }
 
-bool SliderFloat( const char* caption, float* value, float min, float max )
+bool SliderFloat( const char* caption, f32* value, f32 min, f32 max )
 {
     bool res = ImGui::SliderFloat( caption, value, min, max );
     if ( res )
@@ -298,7 +298,7 @@ bool SliderFloat( const char* caption, float* value, float min, float max )
     return res;
 }
 
-bool SliderInt( const char* caption, int* value, int min, int max )
+bool SliderInt( const char* caption, i32* value, i32 min, i32 max )
 {
     bool res = ImGui::SliderInt( caption, value, min, max );
     if ( res )
@@ -306,7 +306,7 @@ bool SliderInt( const char* caption, int* value, int min, int max )
     return res;
 }
 
-bool ComboBox( const char* caption, int* itemIndex, const std::vector<std::string>& items )
+bool ComboBox( const char* caption, i32* itemIndex, const std::vector<std::string>& items )
 {
     if ( items.empty() )
     {
@@ -318,8 +318,8 @@ bool ComboBox( const char* caption, int* itemIndex, const std::vector<std::strin
     {
         charItems.push_back( items[i].c_str() );
     }
-    uint32_t itemCount = static_cast<uint32_t>( charItems.size() );
-    bool res           = ImGui::Combo( caption, itemIndex, &charItems[0], itemCount, itemCount );
+    u32 itemCount = static_cast<u32>( charItems.size() );
+    bool res      = ImGui::Combo( caption, itemIndex, &charItems[0], itemCount, itemCount );
     if ( res )
         s_updated = true;
     return res;

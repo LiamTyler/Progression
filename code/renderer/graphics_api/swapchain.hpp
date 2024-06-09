@@ -14,29 +14,29 @@ namespace PG::Gfx
 class Swapchain
 {
 public:
-    bool Create( uint32_t preferredWidth, uint32_t preferredHeight );
-    bool Recreate( uint32_t preferredWidth, uint32_t preferredHeight );
+    bool Create( u32 preferredWidth, u32 preferredHeight );
+    bool Recreate( u32 preferredWidth, u32 preferredHeight );
     // returns false when a resize is needed
     bool AcquireNextImage( const Semaphore& presentCompleteSemaphore );
     void Free();
     operator bool() const;
     operator VkSwapchainKHR() const;
 
-    uint32_t GetCurrentImageIndex() const;
+    u32 GetCurrentImageIndex() const;
     PixelFormat GetFormat() const;
-    uint32_t GetWidth() const;
-    uint32_t GetHeight() const;
+    u32 GetWidth() const;
+    u32 GetHeight() const;
     VkSwapchainKHR GetHandle() const;
-    uint32_t GetNumImages() const;
+    u32 GetNumImages() const;
     Texture& GetTexture();
-    Texture& GetTextureAt( uint32_t index );
+    Texture& GetTextureAt( u32 index );
 
 private:
     VkSwapchainKHR m_handle = VK_NULL_HANDLE;
     PixelFormat m_imageFormat;
-    uint32_t m_width;
-    uint32_t m_height;
-    uint32_t m_currentImageIdx;
+    u32 m_width;
+    u32 m_height;
+    u32 m_currentImageIdx;
     std::vector<Texture> m_textures;
 };
 

@@ -15,7 +15,7 @@ struct ShaderPreprocessOutput
 
 ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, bool savePreproc );
 
-// returns the shaderc type casted to an int to avoid including shaderc in the header
-int PGShaderStageToShaderc( const ShaderStage stage );
+// returns the shaderc type casted to an i32 to avoid including shaderc in the header
+i32 PGShaderStageToShaderc( const ShaderStage stage );
 
 } // namespace PG

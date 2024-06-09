@@ -1,11 +1,12 @@
 #pragma once
 
+#include "shared/core_defines.hpp"
 #include <cstring>
 #include <string>
 #include <vector>
 
-int Stricmp( const char* str1, const char* str2 );
-int Strncmp( const char* str1, const char* str2, int n );
+i32 Stricmp( const char* str1, const char* str2 );
+i32 Strncmp( const char* str1, const char* str2, i32 n );
 std::string StripWhitespace( const std::string& s );
 std::vector<std::string_view> SplitString( std::string_view str, std::string_view delim = "," );
 void AddTrailingSlashIfMissing( std::string& str );

@@ -13,7 +13,7 @@ std::vector<ConsoleCmd> PG::GetConsoleCommands()
 {
     std::vector<ConsoleCmd> ret;
     ret.resize( ARRAY_COUNT( s_commands ) );
-    for ( int i = 0; i < ARRAY_COUNT( s_commands ); ++i )
+    for ( i32 i = 0; i < ARRAY_COUNT( s_commands ); ++i )
     {
         ret[i] = { s_commands[i].name, s_commands[i].usage };
     }
@@ -34,7 +34,7 @@ std::vector<ConsoleCmd> PG::GetConsoleCommands()
 static std::mutex s_lock;
 std::vector<std::string> s_pendingCommands;
 
-static void Process_loadFF( std::string_view* args, uint32_t numArgs )
+static void Process_loadFF( std::string_view* args, u32 numArgs )
 {
     if ( numArgs != 1 )
     {
@@ -45,9 +45,9 @@ static void Process_loadFF( std::string_view* args, uint32_t numArgs )
     AssetManager::LoadFastFile( std::string( args[0] ) );
 }
 
-static void Process_quit( std::string_view* args, uint32_t numArgs ) { eg.shutdown = true; }
+static void Process_quit( std::string_view* args, u32 numArgs ) { eg.shutdown = true; }
 
-using CommandFunc = std::function<void( std::string_view*, uint32_t )>;
+using CommandFunc = std::function<void( std::string_view*, u32 )>;
 
 static CommandFunc s_commandFunctions[] = { Process_loadFF, Process_quit, Process_quit };
 static_assert( ARRAY_COUNT( s_commands ) == ARRAY_COUNT( s_commandFunctions ) );
@@ -55,9 +55,9 @@ static_assert( ARRAY_COUNT( s_commands ) == ARRAY_COUNT( s_commandFunctions ) );
 static void ProcessCommand( const std::string& cmdStr )
 {
     std::vector<std::string_view> subStrs = SplitString( cmdStr, " " );
-    uint32_t numArgs                      = subStrs.empty() ? 0 : static_cast<uint32_t>( subStrs.size() - 1 );
+    u32 numArgs                           = subStrs.empty() ? 0 : static_cast<u32>( subStrs.size() - 1 );
     std::string_view cmd                  = subStrs.empty() ? "" : subStrs[0];
-    for ( int i = 0; i < ARRAY_COUNT( s_commands ); ++i )
+    for ( i32 i = 0; i < ARRAY_COUNT( s_commands ); ++i )
     {
         if ( !strcmp( cmd.data(), s_commands[i].name.data() ) )
         {

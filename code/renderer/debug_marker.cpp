@@ -78,7 +78,7 @@ void Init( VkInstance instance )
 
 bool IsActive() { return s_active; }
 
-void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, std::string_view name )
+void SetObjectName( VkDevice device, u64 object, VkObjectType objectType, std::string_view name )
 {
     if ( s_active )
     {
@@ -92,7 +92,7 @@ void SetObjectName( VkDevice device, uint64_t object, VkObjectType objectType, s
     }
 }
 
-void SetObjectTag( VkDevice device, uint64_t object, VkObjectType objectType, uint64_t name, size_t tagSize, const void* tag )
+void SetObjectTag( VkDevice device, u64 object, VkObjectType objectType, u64 name, size_t tagSize, const void* tag )
 {
     if ( s_active )
     {
@@ -116,7 +116,7 @@ void BeginRegion_CmdBuf( VkCommandBuffer cmdbuffer, std::string_view name, vec4 
         label.sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
         label.pNext      = nullptr;
         label.pLabelName = name.data();
-        memcpy( label.color, &color[0], sizeof( float ) * 4 );
+        memcpy( label.color, &color[0], sizeof( f32 ) * 4 );
         vkCmdDebugMarkerBegin( cmdbuffer, &label );
     }
 }
@@ -134,7 +134,7 @@ void Insert_CmdBuf( VkCommandBuffer cmdbuffer, vec4 color, const char* fmt, ... 
         label.sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
         label.pNext      = nullptr;
         label.pLabelName = nameBuffer;
-        memcpy( label.color, &color[0], sizeof( float ) * 4 );
+        memcpy( label.color, &color[0], sizeof( f32 ) * 4 );
         vkCmdDebugMarkerInsert( cmdbuffer, &label );
     }
 }
@@ -155,7 +155,7 @@ void BeginRegion_Queue( VkQueue queue, std::string_view name, vec4 color )
         label.sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
         label.pNext      = nullptr;
         label.pLabelName = name.data();
-        memcpy( label.color, &color[0], sizeof( float ) * 4 );
+        memcpy( label.color, &color[0], sizeof( f32 ) * 4 );
         vkQueueDebugMarkerBegin( queue, &label );
     }
 }
@@ -168,7 +168,7 @@ void Insert_Queue( VkQueue queue, std::string_view name, vec4 color )
         label.sType      = VK_STRUCTURE_TYPE_DEBUG_UTILS_LABEL_EXT;
         label.pNext      = nullptr;
         label.pLabelName = name.data();
-        memcpy( label.color, &color[0], sizeof( float ) * 4 );
+        memcpy( label.color, &color[0], sizeof( f32 ) * 4 );
         vkQueueDebugMarkerInsert( queue, &label );
     }
 }
@@ -186,7 +186,7 @@ void SetCommandPoolName( VkCommandPool pool, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "CmdPool: ", name );
-        SetObjectName( rg.device, (uint64_t)pool, VK_OBJECT_TYPE_COMMAND_POOL, finalName );
+        SetObjectName( rg.device, (u64)pool, VK_OBJECT_TYPE_COMMAND_POOL, finalName );
     }
 }
 
@@ -195,7 +195,7 @@ void SetCommandBufferName( VkCommandBuffer cmdBuffer, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "CmdBuf: ", name );
-        SetObjectName( rg.device, (uint64_t)cmdBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER, finalName );
+        SetObjectName( rg.device, (u64)cmdBuffer, VK_OBJECT_TYPE_COMMAND_BUFFER, finalName );
     }
 }
 
@@ -204,7 +204,7 @@ void SetQueueName( VkQueue queue, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Queue: ", name );
-        SetObjectName( rg.device, (uint64_t)queue, VK_OBJECT_TYPE_QUEUE, finalName );
+        SetObjectName( rg.device, (u64)queue, VK_OBJECT_TYPE_QUEUE, finalName );
     }
 }
 
@@ -213,7 +213,7 @@ void SetImageName( VkImage image, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Image: ", name );
-        SetObjectName( rg.device, (uint64_t)image, VK_OBJECT_TYPE_IMAGE, finalName );
+        SetObjectName( rg.device, (u64)image, VK_OBJECT_TYPE_IMAGE, finalName );
     }
 }
 
@@ -222,7 +222,7 @@ void SetImageViewName( VkImageView view, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "ImageView: ", name );
-        SetObjectName( rg.device, (uint64_t)view, VK_OBJECT_TYPE_IMAGE_VIEW, finalName );
+        SetObjectName( rg.device, (u64)view, VK_OBJECT_TYPE_IMAGE_VIEW, finalName );
     }
 }
 
@@ -231,7 +231,7 @@ void SetSamplerName( VkSampler sampler, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Sampler: ", name );
-        SetObjectName( rg.device, (uint64_t)sampler, VK_OBJECT_TYPE_SAMPLER, finalName );
+        SetObjectName( rg.device, (u64)sampler, VK_OBJECT_TYPE_SAMPLER, finalName );
     }
 }
 
@@ -240,7 +240,7 @@ void SetBufferName( VkBuffer buffer, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Buffer: ", name );
-        SetObjectName( rg.device, (uint64_t)buffer, VK_OBJECT_TYPE_BUFFER, finalName );
+        SetObjectName( rg.device, (u64)buffer, VK_OBJECT_TYPE_BUFFER, finalName );
     }
 }
 
@@ -249,7 +249,7 @@ void SetDeviceMemoryName( VkDeviceMemory memory, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Memory: ", name );
-        SetObjectName( rg.device, (uint64_t)memory, VK_OBJECT_TYPE_DEVICE_MEMORY, finalName );
+        SetObjectName( rg.device, (u64)memory, VK_OBJECT_TYPE_DEVICE_MEMORY, finalName );
     }
 }
 
@@ -258,7 +258,7 @@ void SetShaderModuleName( VkShaderModule shaderModule, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "ShaderModule: ", name );
-        SetObjectName( rg.device, (uint64_t)shaderModule, VK_OBJECT_TYPE_SHADER_MODULE, finalName );
+        SetObjectName( rg.device, (u64)shaderModule, VK_OBJECT_TYPE_SHADER_MODULE, finalName );
     }
 }
 
@@ -267,7 +267,7 @@ void SetPipelineName( VkPipeline pipeline, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Pipeline: ", name );
-        SetObjectName( rg.device, (uint64_t)pipeline, VK_OBJECT_TYPE_PIPELINE, finalName );
+        SetObjectName( rg.device, (u64)pipeline, VK_OBJECT_TYPE_PIPELINE, finalName );
     }
 }
 
@@ -276,7 +276,7 @@ void SetPipelineLayoutName( VkPipelineLayout pipelineLayout, std::string_view na
     if ( !name.empty() )
     {
         NameBuilder finalName( "PipelineLayout: ", name );
-        SetObjectName( rg.device, (uint64_t)pipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, finalName );
+        SetObjectName( rg.device, (u64)pipelineLayout, VK_OBJECT_TYPE_PIPELINE_LAYOUT, finalName );
     }
 }
 
@@ -285,7 +285,7 @@ void SetDescriptorSetLayoutName( VkDescriptorSetLayout descriptorSetLayout, std:
     if ( !name.empty() )
     {
         NameBuilder finalName( "DescLayout: ", name );
-        SetObjectName( rg.device, (uint64_t)descriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, finalName );
+        SetObjectName( rg.device, (u64)descriptorSetLayout, VK_OBJECT_TYPE_DESCRIPTOR_SET_LAYOUT, finalName );
     }
 }
 
@@ -294,7 +294,7 @@ void SetDescriptorSetName( VkDescriptorSet descriptorSet, std::string_view name 
     if ( !name.empty() )
     {
         NameBuilder finalName( "DescSet: ", name );
-        SetObjectName( rg.device, (uint64_t)descriptorSet, VK_OBJECT_TYPE_DESCRIPTOR_SET, finalName );
+        SetObjectName( rg.device, (u64)descriptorSet, VK_OBJECT_TYPE_DESCRIPTOR_SET, finalName );
     }
 }
 
@@ -303,7 +303,7 @@ void SetSemaphoreName( VkSemaphore semaphore, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Semaphore: ", name );
-        SetObjectName( rg.device, (uint64_t)semaphore, VK_OBJECT_TYPE_SEMAPHORE, finalName );
+        SetObjectName( rg.device, (u64)semaphore, VK_OBJECT_TYPE_SEMAPHORE, finalName );
     }
 }
 
@@ -312,7 +312,7 @@ void SetFenceName( VkFence fence, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Fence: ", name );
-        SetObjectName( rg.device, (uint64_t)fence, VK_OBJECT_TYPE_FENCE, finalName );
+        SetObjectName( rg.device, (u64)fence, VK_OBJECT_TYPE_FENCE, finalName );
     }
 }
 
@@ -321,7 +321,7 @@ void SetEventName( VkEvent event, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Event: ", name );
-        SetObjectName( rg.device, (uint64_t)event, VK_OBJECT_TYPE_EVENT, finalName );
+        SetObjectName( rg.device, (u64)event, VK_OBJECT_TYPE_EVENT, finalName );
     }
 }
 
@@ -330,7 +330,7 @@ void SetSwapChainName( VkSwapchainKHR swapchain, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Swapchain: ", name );
-        SetObjectName( rg.device, (uint64_t)swapchain, VK_OBJECT_TYPE_SWAPCHAIN_KHR, finalName );
+        SetObjectName( rg.device, (u64)swapchain, VK_OBJECT_TYPE_SWAPCHAIN_KHR, finalName );
     }
 }
 
@@ -339,7 +339,7 @@ void SetPhysicalDeviceName( VkPhysicalDevice pDev, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "PhysicalDevice: ", name );
-        SetObjectName( rg.device, (uint64_t)pDev, VK_OBJECT_TYPE_PHYSICAL_DEVICE, finalName );
+        SetObjectName( rg.device, (u64)pDev, VK_OBJECT_TYPE_PHYSICAL_DEVICE, finalName );
     }
 }
 
@@ -348,7 +348,7 @@ void SetLogicalDeviceName( VkDevice device, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "LogicalDevice: ", name );
-        SetObjectName( device, (uint64_t)device, VK_OBJECT_TYPE_DEVICE, finalName );
+        SetObjectName( device, (u64)device, VK_OBJECT_TYPE_DEVICE, finalName );
     }
 }
 
@@ -357,7 +357,7 @@ void SetInstanceName( VkInstance instance, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "Instance: ", name );
-        SetObjectName( rg.device, (uint64_t)instance, VK_OBJECT_TYPE_INSTANCE, finalName );
+        SetObjectName( rg.device, (u64)instance, VK_OBJECT_TYPE_INSTANCE, finalName );
     }
 }
 
@@ -366,7 +366,7 @@ void SetDescriptorPoolName( VkDescriptorPool pool, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "DescPool: ", name );
-        SetObjectName( rg.device, (uint64_t)pool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, finalName );
+        SetObjectName( rg.device, (u64)pool, VK_OBJECT_TYPE_DESCRIPTOR_POOL, finalName );
     }
 }
 
@@ -375,7 +375,7 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name )
     if ( !name.empty() )
     {
         NameBuilder finalName( "QueryPool: ", name );
-        SetObjectName( rg.device, (uint64_t)pool, VK_OBJECT_TYPE_QUERY_POOL, finalName );
+        SetObjectName( rg.device, (u64)pool, VK_OBJECT_TYPE_QUERY_POOL, finalName );
     }
 }
 

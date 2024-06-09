@@ -11,8 +11,8 @@ namespace PG
 
 struct Light
 {
-    vec3 color      = vec3( 1 );
-    float intensity = 1;
+    vec3 color    = vec3( 1 );
+    f32 intensity = 1;
 };
 
 struct DirectionalLight : public Light
@@ -23,16 +23,16 @@ struct DirectionalLight : public Light
 struct PointLight : public Light
 {
     vec3 position = vec3( 0, 0, 0 );
-    float radius  = 10;
+    f32 radius    = 10;
 };
 
 struct SpotLight : public Light
 {
-    vec3 position    = vec3( 0, 0, 0 );
-    float radius     = 10;
-    vec3 direction   = vec3( 0, 0, -1 );
-    float innerAngle = DegToRad( 20.0f );
-    float outerAngle = DegToRad( 30.0f );
+    vec3 position  = vec3( 0, 0, 0 );
+    f32 radius     = 10;
+    vec3 direction = vec3( 0, 0, -1 );
+    f32 innerAngle = DegToRad( 20.0f );
+    f32 outerAngle = DegToRad( 30.0f );
 };
 
 // #if USING( GAME )

@@ -1,6 +1,5 @@
 #include "renderer/r_dvars.hpp"
 #include "c_shared/dvar_defines.h"
-#include <cfloat>
 #include <climits>
 
 namespace PG

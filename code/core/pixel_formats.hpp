@@ -1,11 +1,12 @@
 #pragma once
 
+#include "shared/core_defines.hpp"
 #include <string>
 
 namespace PG
 {
 
-enum class PixelFormat : uint8_t
+enum class PixelFormat : u8
 {
     INVALID = 0,
 
@@ -113,11 +114,11 @@ enum class PixelFormat : uint8_t
     NUM_PIXEL_FORMATS
 };
 
-uint32_t NumChannelsInPixelFromat( PixelFormat format );
+u32 NumChannelsInPixelFromat( PixelFormat format );
 
-uint32_t NumBytesPerPixel( PixelFormat format );
+u32 NumBytesPerPixel( PixelFormat format );
 
-uint32_t NumBytesPerChannel( PixelFormat format );
+u32 NumBytesPerChannel( PixelFormat format );
 
 bool PixelFormatIsNormalized( PixelFormat format );
 
@@ -140,7 +141,7 @@ bool PixelFormatIsDepthOnly( PixelFormat format );
 bool PixelFormatIsCompressed( PixelFormat format );
 
 // Normally r = 0, g = 1, b = 2, a = 3, besides for a few formats like B8_G8_R8_UNORM
-void GetRGBAOrder( PixelFormat format, int channelRemap[4] );
+void GetRGBAOrder( PixelFormat format, i32 channelRemap[4] );
 
 std::string PixelFormatName( PixelFormat format );
 

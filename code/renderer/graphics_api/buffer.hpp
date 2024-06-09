@@ -5,7 +5,7 @@
 namespace PG::Gfx
 {
 
-enum class BufferFormat : uint8_t
+enum class BufferFormat : u8
 {
     INVALID = 0,
 
@@ -72,9 +72,9 @@ enum class BufferFormat : uint8_t
     NUM_BUFFER_FORMATS
 };
 
-uint32_t NumBytesPerElement( BufferFormat format );
+u32 NumBytesPerElement( BufferFormat format );
 
-enum class IndexType : uint8_t
+enum class IndexType : u8
 {
     UNSIGNED_SHORT = 0,
     UNSIGNED_INT   = 1,
@@ -82,9 +82,9 @@ enum class IndexType : uint8_t
     NUM_INDEX_TYPE
 };
 
-int SizeOfIndexType( IndexType type );
+i32 SizeOfIndexType( IndexType type );
 
-enum class BufferUsage : uint32_t
+enum class BufferUsage : u32
 {
     NONE          = 0,
     TRANSFER_SRC  = 1 << 0,
@@ -143,7 +143,7 @@ public:
     VkBuffer GetHandle() const { return m_handle; }
     VmaAllocation GetAllocation() const { return m_allocation; }
     char* GetMappedPtr() const { return static_cast<char*>( m_mappedPtr ); }
-    uint16_t GetBindlessIndex() const { return m_bindlessIndex; }
+    u16 GetBindlessIndex() const { return m_bindlessIndex; }
     DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );
 
 private:
@@ -154,7 +154,7 @@ private:
     void* m_mappedPtr = nullptr;
     BufferUsage m_bufferUsage;
     VmaMemoryUsage m_memoryUsage;
-    uint16_t m_bindlessIndex;
+    u16 m_bindlessIndex;
     bool m_persistent = false;
     bool m_coherent   = false;
 };

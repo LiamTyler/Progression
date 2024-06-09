@@ -3,8 +3,25 @@
 #include "r_globals.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
+#include "shared/filesystem.hpp"
 
 using namespace PG::Gfx;
+
+static const char* s_pipelineCacheFilename = PG_ASSET_DIR "cache/pipeline_cache.bin";
+
+#define PIPELINE_CACHE NOT_IN_USE
+#define PIPELINE_STATS USE_IF( !USING( SHIP_BUILD ) )
+
+#if USING( PIPELINE_STATS )
+#include "core/time.hpp"
+#define IF_PIPELINE_STATS( ... ) __VA_ARGS__
+static f64 s_timeSpentBuildingPipelinesMS;
+#else // #if USING( PIPELINE_STATS )
+#define IF_PIPELINE_STATS( x ) \
+    do                         \
+    {                          \
+    } while ( 0 )
+#endif // #else // #if USING( PIPELINE_STATS )
 
 namespace PG::Gfx::PipelineManager
 {
@@ -13,11 +30,44 @@ static VkPipelineCache s_pipelineCache;
 
 void Init()
 {
+    IF_PIPELINE_STATS( s_timeSpentBuildingPipelinesMS = 0 );
+    IF_PIPELINE_STATS( auto startTime = Time::GetTimePoint() );
+
+    s_pipelineCache = VK_NULL_HANDLE;
+#if USING( PIPELINE_CACHE )
     VkPipelineCacheCreateInfo pipelineCacheCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_CACHE_CREATE_INFO };
+    FileReadResult cacheBinary = ReadFile( s_pipelineCacheFilename );
+    if ( cacheBinary )
+    {
+        pipelineCacheCreateInfo.initialDataSize = cacheBinary.size;
+        pipelineCacheCreateInfo.pInitialData    = cacheBinary.data;
+    }
     VK_CHECK( vkCreatePipelineCache( rg.device, &pipelineCacheCreateInfo, nullptr, &s_pipelineCache ) );
+    cacheBinary.Free();
+#endif // #if USING( PIPELINE_CACHE )
+
+    IF_PIPELINE_STATS( LOG( "PipelineCache init time: %.2fms", Time::GetTimeSince( startTime ) ) );
 }
 
-void Shutdown() { vkDestroyPipelineCache( rg.device, s_pipelineCache, nullptr ); }
+void Shutdown()
+{
+#if USING( PIPELINE_CACHE )
+    if ( s_pipelineCache != VK_NULL_HANDLE )
+    {
+        size_t size = 0;
+        VK_CHECK( vkGetPipelineCacheData( rg.device, s_pipelineCache, &size, nullptr ) );
+
+        std::vector<char> data( size );
+        VK_CHECK( vkGetPipelineCacheData( rg.device, s_pipelineCache, &size, data.data() ) );
+
+        WriteFile( s_pipelineCacheFilename, data.data(), data.size() );
+
+        vkDestroyPipelineCache( rg.device, s_pipelineCache, nullptr );
+        s_pipelineCache = VK_NULL_HANDLE;
+    }
+#endif // #if USING( PIPELINE_CACHE )
+    IF_PIPELINE_STATS( LOG( "Time spent building pipelines: %.2fms", s_timeSpentBuildingPipelinesMS ) );
+}
 
 class PipelineBuilder
 {
@@ -166,7 +216,7 @@ public:
 
         pipelineInfo.pNext = &dynRenderingCreateInfo;
 
-        VK_CHECK( vkCreateGraphicsPipelines( rg.device, VK_NULL_HANDLE, 1, &pipelineInfo, nullptr, &p.m_pipeline ) );
+        VK_CHECK( vkCreateGraphicsPipelines( rg.device, s_pipelineCache, 1, &pipelineInfo, nullptr, &p.m_pipeline ) );
 
         PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( p.m_pipelineLayout, createInfo.name );
         PG_DEBUG_MARKER_SET_PIPELINE_NAME( p.m_pipeline, createInfo.name );
@@ -202,7 +252,7 @@ public:
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
         computePipelineCreateInfo.layout = p.GetLayoutHandle();
         computePipelineCreateInfo.stage  = stageinfo;
-        VK_CHECK( vkCreateComputePipelines( rg.device, nullptr, 1, &computePipelineCreateInfo, nullptr, &p.m_pipeline ) );
+        VK_CHECK( vkCreateComputePipelines( rg.device, s_pipelineCache, 1, &computePipelineCreateInfo, nullptr, &p.m_pipeline ) );
         PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( p.m_pipelineLayout, createInfo.name );
         PG_DEBUG_MARKER_SET_PIPELINE_NAME( p.m_pipeline, createInfo.name );
     }
@@ -210,6 +260,7 @@ public:
 
 void CreatePipeline( Pipeline* pipeline, const PipelineCreateInfo& createInfo )
 {
+    IF_PIPELINE_STATS( auto startTime = Time::GetTimePoint() );
     PipelineBuilder builder;
     if ( createInfo.shaders.size() == 1 && createInfo.shaders[0].stage == ShaderStage::COMPUTE )
     {
@@ -219,6 +270,8 @@ void CreatePipeline( Pipeline* pipeline, const PipelineCreateInfo& createInfo )
     {
         builder.CreateGraphicsPipeline( *pipeline, createInfo );
     }
+
+    IF_PIPELINE_STATS( s_timeSpentBuildingPipelinesMS += Time::GetTimeSince( startTime ) );
 }
 
 Pipeline* GetPipeline( const std::string& name, bool debugPermuation )

@@ -4,6 +4,26 @@
 #include <string>
 #include <vector>
 
+struct FileReadResult
+{
+    char* data;
+    size_t size;
+
+    void Free()
+    {
+        if ( data )
+        {
+            free( data );
+            data = nullptr;
+        }
+    }
+    operator bool() const { return data != nullptr; }
+};
+
+FileReadResult ReadFile( std::string_view filename, bool binary = true );
+
+bool WriteFile( std::string_view filename, char* data, size_t size, bool binary = true );
+
 std::string BackToForwardSlashes( std::string str );
 
 std::string UnderscorePath( std::string str );

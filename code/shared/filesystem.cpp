@@ -5,6 +5,42 @@
 
 namespace fs = std::filesystem;
 
+FileReadResult ReadFile( std::string_view filename, bool binary )
+{
+    FileReadResult result = {};
+    FILE* file            = fopen( filename.data(), binary ? "rb" : "r" );
+    if ( !file )
+        return result;
+
+    fseek( file, 0, SEEK_END );
+    result.size = ftell( file );
+    fseek( file, 0, SEEK_SET );
+
+    result.data = (char*)malloc( result.size );
+    fread( result.data, result.size, 1, file );
+
+    fclose( file );
+
+    return result;
+}
+
+bool WriteFile( std::string_view filename, char* data, size_t size, bool binary )
+{
+    FILE* file = fopen( filename.data(), binary ? "wb" : "w" );
+    if ( !file )
+        return false;
+
+    size_t bytesWritten = 0;
+    do
+    {
+        bytesWritten += fwrite( data, size, 1, file );
+    } while ( bytesWritten < size );
+
+    fclose( file );
+
+    return true;
+}
+
 std::string BackToForwardSlashes( std::string str )
 {
     for ( size_t i = 0; i < str.length(); ++i )

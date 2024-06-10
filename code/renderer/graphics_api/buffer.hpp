@@ -121,6 +121,7 @@ struct BufferCreateInfo
     BufferUsage bufferUsage        = BufferUsage::TRANSFER_SRC | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
     VmaMemoryUsage memoryUsage     = VMA_MEMORY_USAGE_AUTO;
     VmaAllocationCreateFlags flags = 0;
+    bool addToBindlessArray        = true;
 };
 
 class Buffer

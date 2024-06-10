@@ -100,7 +100,8 @@ static void ProcessVertices( const aiMesh* paiMesh, const mat4& localToWorldMat,
         }
     }
 
-    LOG( "Num zero before %u, after %u", numZeroBefore, numZeroAfter );
+    if ( numZeroBefore || numZeroAfter )
+        LOG( "Num normals with length zero: pre-transform %u, post %u", numZeroBefore, numZeroAfter );
 
     std::vector<u32> numBonesPerVertex( numVerts, 0 );
     for ( u32 aiBoneIdx = 0; aiBoneIdx < paiMesh->mNumBones; ++aiBoneIdx )

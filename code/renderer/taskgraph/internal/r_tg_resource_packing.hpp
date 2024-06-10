@@ -59,6 +59,13 @@ struct TimeSlice
     const u16 lastTask;
 };
 
+struct BucketResource
+{
+    ResHandle resHandle;
+    u64 offset;
+    u64 size;
+};
+
 struct MemoryBucket
 {
     MemoryBucket( const ResourceData& res );
@@ -66,7 +73,7 @@ struct MemoryBucket
     bool AddResource( const ResourceData& res );
 
     std::list<TimeSlice> occupiedTimeSlices;
-    std::vector<std::pair<ResHandle, size_t>> resources;
+    std::vector<BucketResource> resources;
     const size_t bucketSize;
     const size_t initialAlignment;
     decltype( VkMemoryRequirements::memoryTypeBits ) memoryTypeBits; // u32

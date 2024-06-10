@@ -89,9 +89,9 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
                 PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw '%s' : '%s'", model->GetName(), mesh.name.c_str() );
                 cmdBuf.DrawMeshTasks( mesh.numMeshlets, 1, 1 );
-
-                ++objectNum;
             }
+
+            ++objectNum;
         } );
 }
 
@@ -127,28 +127,29 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 bool Init_TaskGraph()
 {
     TaskGraphBuilder builder;
-    ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
-    TGBTextureRef gradientImg =
-        cTask->AddTextureOutput( "gradientImg", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 1, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
-    cTask->SetFunction( ComputeDrawFunc );
+    // ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
+    // TGBTextureRef litOutput =
+    //     cTask->AddTextureOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 1, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
+    // cTask->SetFunction( ComputeDrawFunc );
 
     GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "mesh" );
-    mTask->AddColorAttachment( gradientImg );
+    TGBTextureRef litOutput =
+        mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 0, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
     mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
     TGBTextureRef swapImg = builder.RegisterExternalTexture(
         "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } );
 
-    TGBTextureRef litImgDisplaySized = gradientImg;
+    TGBTextureRef litImgDisplaySized = litOutput;
     if ( rg.sceneWidth != rg.displayWidth || rg.sceneHeight != rg.displayHeight )
     {
         TransferTaskBuilder* tTask = builder.AddTransferTask( "copyAndResizeToSwapchain" );
-        tTask->BlitTexture( swapImg, gradientImg );
+        tTask->BlitTexture( swapImg, litOutput );
         litImgDisplaySized = swapImg;
     }
 
-    cTask = builder.AddComputeTask( "post_process" );
+    ComputeTaskBuilder* cTask = builder.AddComputeTask( "post_process" );
     cTask->AddTextureInput( litImgDisplaySized );
     cTask->AddTextureOutput( swapImg );
     cTask->SetFunction( PostProcessFunc );

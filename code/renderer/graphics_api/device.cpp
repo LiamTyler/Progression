@@ -168,7 +168,10 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
 
     buffer.m_mappedPtr = buffer.m_persistent ? allocReturnInfo.pMappedData : nullptr;
 
-    buffer.m_bindlessIndex = BindlessManager::AddBuffer( &buffer );
+    if ( createInfo.addToBindlessArray )
+        buffer.m_bindlessIndex = BindlessManager::AddBuffer( &buffer );
+    else
+        buffer.m_bindlessIndex = PG_INVALID_BUFFER_INDEX;
 
 #if USING( DEBUG_BUILD )
     if ( !name.empty() )
@@ -199,11 +202,12 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
 Buffer Device::NewStagingBuffer( size_t size ) const
 {
     BufferCreateInfo info{};
-    info.size        = size;
-    info.bufferUsage = BufferUsage::TRANSFER_SRC;
-    info.memoryUsage = VMA_MEMORY_USAGE_AUTO;
-    info.flags       = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    Buffer buf       = NewBuffer( info, "staging" );
+    info.size               = size;
+    info.bufferUsage        = BufferUsage::TRANSFER_SRC;
+    info.memoryUsage        = VMA_MEMORY_USAGE_AUTO;
+    info.flags              = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    info.addToBindlessArray = false;
+    Buffer buf              = NewBuffer( info, "staging" );
     PG_ASSERT( buf.m_persistent && buf.m_coherent, "staging buffers assumed host visible + mapped, without any need for flush commands" );
     return buf;
 }

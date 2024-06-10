@@ -9,7 +9,7 @@ using namespace PG::Gfx;
 
 static const char* s_pipelineCacheFilename = PG_ASSET_DIR "cache/pipeline_cache.bin";
 
-#define PIPELINE_CACHE NOT_IN_USE
+#define PIPELINE_CACHE IN_USE
 #define PIPELINE_STATS USE_IF( !USING( SHIP_BUILD ) )
 
 #if USING( PIPELINE_STATS )
@@ -60,7 +60,8 @@ void Shutdown()
         std::vector<char> data( size );
         VK_CHECK( vkGetPipelineCacheData( rg.device, s_pipelineCache, &size, data.data() ) );
 
-        WriteFile( s_pipelineCacheFilename, data.data(), data.size() );
+        if ( !WriteFile( s_pipelineCacheFilename, data.data(), data.size() ) )
+            LOG_WARN( "Error while saving the pipeline cache" );
 
         vkDestroyPipelineCache( rg.device, s_pipelineCache, nullptr );
         s_pipelineCache = VK_NULL_HANDLE;

@@ -1,44 +1,47 @@
 #include "filesystem.hpp"
 #include "logger.hpp"
 #include <filesystem>
-#include <iostream>
+#include <fstream>
 
 namespace fs = std::filesystem;
 
 FileReadResult ReadFile( std::string_view filename, bool binary )
 {
-    FileReadResult result = {};
-    FILE* file            = fopen( filename.data(), binary ? "rb" : "r" );
+    std::ifstream file( filename.data(), binary ? std::ios::binary : 0 );
     if ( !file )
-        return result;
+        return {};
 
-    fseek( file, 0, SEEK_END );
-    result.size = ftell( file );
-    fseek( file, 0, SEEK_SET );
+    FileReadResult result = {};
+    const auto begin      = file.tellg();
+    file.seekg( 0, std::ios::end );
+    result.size = file.tellg() - begin;
+    file.seekg( 0, std::ios::beg );
+
+    if ( !result.size )
+        return {};
 
     result.data = (char*)malloc( result.size );
-    fread( result.data, result.size, 1, file );
+    file.read( result.data, result.size );
 
-    fclose( file );
+    if ( !file )
+    {
+        free( result.data );
+        return {};
+    }
 
     return result;
 }
 
 bool WriteFile( std::string_view filename, char* data, size_t size, bool binary )
 {
-    FILE* file = fopen( filename.data(), binary ? "wb" : "w" );
-    if ( !file )
+    std::ofstream file( filename.data(), binary ? std::ios::binary : 0 );
+
+    if ( !file.is_open() )
         return false;
 
-    size_t bytesWritten = 0;
-    do
-    {
-        bytesWritten += fwrite( data, size, 1, file );
-    } while ( bytesWritten < size );
+    file.write( data, size );
 
-    fclose( file );
-
-    return true;
+    return !!file;
 }
 
 std::string BackToForwardSlashes( std::string str )

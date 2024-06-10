@@ -53,7 +53,7 @@ public:
                 {
                     data[chunkIdx] &= ~GetMaskForRange( bitInChunk, numSlots );
                     AdvanceFirstFreeSlot();
-                    return bitInChunk;
+                    return chunkIdx * 64 + bitInChunk;
                 }
 
                 data[chunkIdx] &= ~GetMaskForRange( bitInChunk, currentFreeSlots );
@@ -89,8 +89,9 @@ public:
 private:
     size_t GetMaskForRange( uint32_t firstBit, uint32_t numBits )
     {
-        size_t lowMask  = firstBit == 0 ? ~0ull : ~( ( 1ull << firstBit ) - 1 );
-        size_t highMask = ( 1ull << ( firstBit + numBits ) ) - 1;
+        size_t lowMask   = firstBit == 0 ? ~0ull : ~( ( 1ull << firstBit ) - 1ull );
+        uint32_t lastBit = firstBit + numBits;
+        size_t highMask  = lastBit == 64 ? ~0ull : ( ( 1ull << ( firstBit + numBits ) ) - 1ull );
         return lowMask & highMask;
     }
 
@@ -123,7 +124,7 @@ private:
                 continue;
             }
 
-            firstFreeSlot = ctzll_nonzero( data[chunkIdx] );
+            firstFreeSlot = chunkIdx * 64 + ctzll_nonzero( data[chunkIdx] );
             return;
         }
 

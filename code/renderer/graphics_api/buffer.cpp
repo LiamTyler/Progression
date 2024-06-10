@@ -1,4 +1,5 @@
 #include "renderer/graphics_api/buffer.hpp"
+#include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 #include "shared/core_defines.hpp"
@@ -81,8 +82,10 @@ void Buffer::Free()
 {
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
     vmaDestroyBuffer( rg.device.GetAllocator(), m_handle, m_allocation );
+    BindlessManager::RemoveBuffer( m_bindlessIndex );
 #if USING( DEBUG_BUILD )
-    m_handle = VK_NULL_HANDLE;
+    m_bindlessIndex = PG_INVALID_BUFFER_INDEX;
+    m_handle        = VK_NULL_HANDLE;
     if ( debugName )
     {
         free( debugName );

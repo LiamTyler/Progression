@@ -217,8 +217,9 @@ void Model::UploadToGPU()
 #if USING( GPU_DATA )
     using namespace Gfx;
     FreeGPU();
-    for ( Mesh& mesh : meshes )
+    for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
     {
+        Mesh& mesh                    = meshes[meshIdx];
         mesh.numVertices              = static_cast<u32>( mesh.positions.size() );
         mesh.numMeshlets              = static_cast<u32>( mesh.meshlets.size() );
         mesh.hasTexCoords             = !mesh.texCoords.empty();
@@ -233,15 +234,12 @@ void Model::UploadToGPU()
         // totalVertexSize += ALIGN_UP_POW_2( mesh.indices.size(), 4 ) * sizeof( u8 );
 
         PG_ASSERT( mesh.indices.size() % 4 == 0 );
-        u32 tri1                  = *reinterpret_cast<u32*>( mesh.indices.data() );
-        u32 index1                = ( tri1 >> 0 ) & 0xFF;
-        u32 index2                = ( tri1 >> 8 ) & 0xFF;
-        u32 index3                = ( tri1 >> 16 ) & 0xFF;
         size_t triBufferSize      = mesh.indices.size() * sizeof( u8 );
         size_t meshletsSize       = mesh.meshlets.size() * sizeof( Meshlet );
         size_t stagingBufferSize  = Max( totalVertexSizeInBytes, Max( triBufferSize, meshletsSize ) );
         Gfx::Buffer stagingBuffer = rg.device.NewStagingBuffer( stagingBufferSize );
-        char* stagingData         = stagingBuffer.Map();
+
+        char* stagingData = stagingBuffer.Map();
         memcpy( stagingData, mesh.positions.data(), mesh.positions.size() * sizeof( vec3 ) );
         stagingData += mesh.positions.size() * sizeof( vec3 );
         memcpy( stagingData, mesh.normals.data(), mesh.normals.size() * sizeof( vec3 ) );
@@ -260,12 +258,12 @@ void Model::UploadToGPU()
         // memcpy( stagingData, mesh.indices.data(), mesh.indices.size() * sizeof( u8 ) );
 
         BufferCreateInfo vbCreateInfo{};
-        vbCreateInfo.size        = totalVertexSizeInBytes;
-        vbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+        vbCreateInfo.size               = totalVertexSizeInBytes;
+        vbCreateInfo.bufferUsage        = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+        vbCreateInfo.addToBindlessArray = false; // since BindlessManager::AddMeshBuffers will take care of it
 
-        BufferCreateInfo tbCreateInfo{};
-        tbCreateInfo.size        = triBufferSize;
-        tbCreateInfo.bufferUsage = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+        BufferCreateInfo tbCreateInfo = vbCreateInfo;
+        tbCreateInfo.size             = triBufferSize;
 
         BufferCreateInfo mbCreateInfo = vbCreateInfo;
         mbCreateInfo.size             = meshletsSize;

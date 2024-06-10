@@ -143,7 +143,6 @@ void Debug_Material( const ShaderMaterial m, inout vec4 outColor )
 void main()
 {
     ShaderMaterial mat = GetShaderMaterial();
-    color = vec4( 0, 1, 0, 1 );
     color = vec4( mat.albedo, 1 );
     
 #if IS_DEBUG_SHADER

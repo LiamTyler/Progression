@@ -114,9 +114,9 @@ MemoryBucket::MemoryBucket( const ResourceData& res )
 {
     occupiedTimeSlices.emplace_back( res, bucketSize );
     if ( res.resType == ResourceType::BUFFER )
-        resources.emplace_back( ResHandle( res.bufRef ), 0 );
+        resources.emplace_back( ResHandle( res.bufRef ), 0, res.memoryReq.size );
     else
-        resources.emplace_back( ResHandle( res.texRef ), 0 );
+        resources.emplace_back( ResHandle( res.texRef ), 0, res.memoryReq.size );
 }
 
 bool MemoryBucket::AddResource( const ResourceData& res )
@@ -161,9 +161,9 @@ bool MemoryBucket::AddResource( const ResourceData& res )
     }
     size_t dstOffset = globalFreeBlocks[smallestIdx].offset;
     if ( res.resType == ResourceType::BUFFER )
-        resources.emplace_back( ResHandle( res.bufRef ), dstOffset );
+        resources.emplace_back( ResHandle( res.bufRef ), dstOffset, res.memoryReq.size );
     else
-        resources.emplace_back( ResHandle( res.texRef ), dstOffset );
+        resources.emplace_back( ResHandle( res.texRef ), dstOffset, res.memoryReq.size );
 
     i32 freeBegin = 0; // track gaps between memory regions
     for ( auto it = occupiedTimeSlices.begin(); it != occupiedTimeSlices.end(); ++it )

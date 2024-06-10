@@ -21,8 +21,8 @@ int main( int argc, char* argv[] )
 {
     // 1024×576
     EngineInitInfo engineInitConfig;
-    engineInitConfig.sceneWidth   = 1280;
-    engineInitConfig.sceneHeight  = 720;
+    engineInitConfig.sceneWidth   = 1920;
+    engineInitConfig.sceneHeight  = 1080;
     engineInitConfig.windowWidth  = 1920;
     engineInitConfig.windowHeight = 1080;
     if ( !EngineInitialize( engineInitConfig ) )

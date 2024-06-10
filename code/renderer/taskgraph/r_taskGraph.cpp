@@ -159,12 +159,14 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         buckets = PackResources( resourceDatas );
     }
 
+    TG_STAT( LOG( "Task Graph Memory Aliasing Stats" ) );
     TG_STAT( auto allocStartTime = Time::GetTimePoint() );
     VmaAllocator allocator = rg.device.GetAllocator();
     m_vmaAllocations.resize( buckets.size() );
     for ( size_t bucketIdx = 0; bucketIdx < buckets.size(); ++bucketIdx )
     {
-        const MemoryBucket& bucket       = buckets[bucketIdx];
+        const MemoryBucket& bucket = buckets[bucketIdx];
+        TG_STAT( LOG( "Bucket[%zu]: Num Resources: %zu", bucketIdx, bucket.resources.size() ) );
         VkMemoryRequirements finalMemReq = {};
         finalMemReq.size                 = bucket.bucketSize;
         finalMemReq.alignment            = bucket.initialAlignment;
@@ -176,17 +178,21 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         VmaAllocation& alloc                    = m_vmaAllocations[bucketIdx];
         VK_CHECK( vmaAllocateMemory( allocator, &finalMemReq, &allocCreateInfo, &alloc, nullptr ) );
 
-        for ( const auto& [resHandle, offset] : bucket.resources )
+        for ( size_t bResIdx = 0; bResIdx < bucket.resources.size(); ++bResIdx )
         {
-            if ( resHandle.isTex )
+            const BucketResource& bRes = bucket.resources[bResIdx];
+            u16 resIdx                 = bRes.resHandle.index;
+            if ( bRes.resHandle.isTex )
             {
-                VkImage img = m_textures[resHandle.index].m_image;
-                VK_CHECK( vmaBindImageMemory2( allocator, alloc, offset, img, nullptr ) );
+                VkImage img = m_textures[resIdx].m_image;
+                VK_CHECK( vmaBindImageMemory2( allocator, alloc, bRes.offset, img, nullptr ) );
+                TG_STAT( LOG( "    Tex %u '%s'. Offset: %zu, Size: %zu", resIdx, m_textures[resIdx].debugName, bRes.offset, bRes.size ) );
             }
             else
             {
-                VkBuffer buf = m_buffers[resHandle.index].m_handle;
-                VK_CHECK( vmaBindBufferMemory2( allocator, alloc, offset, buf, nullptr ) );
+                VkBuffer buf = m_buffers[bRes.resHandle.index].m_handle;
+                VK_CHECK( vmaBindBufferMemory2( allocator, alloc, bRes.offset, buf, nullptr ) );
+                TG_STAT( LOG( "    Buf %u '%s'. Offset: %zu, Size: %zu", resIdx, m_buffers[resIdx].debugName, bRes.offset, bRes.size ) );
             }
         }
     }
@@ -738,6 +744,7 @@ void TaskGraph::DisplayStats()
     size_t preAliasMem = s.unAliasedTextureMem + s.unAliasedBufferMem;
     LOG( "    Total memory post-aliasing: %.3f MB (aliasing saved %.3f MB)", s.totalMemoryPostAliasing * toMB,
         ( preAliasMem - s.totalMemoryPostAliasing ) * toMB );
+    LOG( "" );
 #endif // #if USING( TG_STATS )
 }
 

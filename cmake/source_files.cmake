@@ -66,6 +66,7 @@ set(
     DATA_STRUCTURES
     
     ${CODE_DIR}/data_structures/circular_array.hpp
+    ${CODE_DIR}/data_structures/free_slot_bit_array.hpp
 )
 
 set(

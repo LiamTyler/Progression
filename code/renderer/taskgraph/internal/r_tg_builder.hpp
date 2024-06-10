@@ -247,8 +247,9 @@ public:
 
 private:
     TGBTextureRef AddTexture( std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels,
-        ExtTextureFunc func, VkImageUsageFlags usage );
-    TGBBufferRef AddBuffer( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func );
+        ExtTextureFunc func, VkImageUsageFlags usage, u16 taskIndex );
+    TGBBufferRef AddBuffer(
+        std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, ExtBufferFunc func, u16 taskIndex );
 
     std::vector<TaskBuilder*> tasks;
     std::vector<TGBTexture> textures;

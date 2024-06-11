@@ -1,13 +1,14 @@
 #include "pmodel.hpp"
 #include "shared/assert.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
+#include "shared/serializer.hpp"
 #include "shared/string.hpp"
 #include <chrono>
 #include <set>
 
 using namespace std::chrono;
-using Clock     = high_resolution_clock;
-using TimePoi32 = time_point<Clock>;
+using Clock = high_resolution_clock;
 
 namespace PG
 {
@@ -44,23 +45,99 @@ static std::string GetNameAfterColon( const std::string& line )
     return line.substr( startIdx );
 }
 
-bool PModel::Load( const std::string& filename )
+bool PModel::LoadBinary( std::string_view filename )
 {
-    std::ifstream in( filename );
+    Serializer serializer;
+    if ( !serializer.OpenForRead( filename.data() ) )
+    {
+        LOG_ERR( "Failed to open pmodelb file '%s'", filename.data() );
+        return false;
+    }
+
+    PModelVersionNum version;
+    serializer.Read( version );
+    if ( version < PModelVersionNum::LAST_SUPPORTED_VERSION )
+    {
+        LOG_ERR( "PModelb file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.data(),
+            version );
+        return false;
+    }
+
+    u16 numUniqueMaterials;
+    serializer.Read( numUniqueMaterials );
+    for ( u16 matIdx = 0; matIdx < numUniqueMaterials; ++matIdx )
+    {
+        u16 strLen;
+        serializer.Read( strLen );
+        serializer.Skip( strLen );
+    }
+
+    meshes.resize( serializer.Read<u32>() );
+    for ( Mesh& mesh : meshes )
+    {
+        serializer.Read<u16>( mesh.name );
+        serializer.Read<u16>( mesh.materialName );
+        serializer.Read( mesh.numUVChannels );
+        serializer.Read( mesh.numColorChannels );
+        serializer.Read( mesh.hasTangents );
+        serializer.Read( mesh.hasBoneWeights );
+
+        u64 numIndices, num16BitIndices;
+        serializer.Read( numIndices );
+        serializer.Read( num16BitIndices );
+        mesh.indices.resize( numIndices );
+        for ( size_t i = 0; i < num16BitIndices; ++i )
+            mesh.indices[i] = serializer.Read<u16>();
+        for ( size_t i = num16BitIndices; i < numIndices; ++i )
+            serializer.Read( mesh.indices[i] );
+
+        mesh.vertices.resize( serializer.Read<u32>() );
+        for ( size_t vIdx = 0; vIdx < mesh.vertices.size(); ++vIdx )
+        {
+            Vertex& v = mesh.vertices[vIdx];
+            serializer.Read( v.pos );
+            serializer.Read( v.normal );
+            if ( mesh.hasTangents )
+            {
+                serializer.Read( v.tangent );
+                serializer.Read( v.bitangent );
+            }
+            for ( u32 uvIdx = 0; uvIdx < mesh.numUVChannels; ++uvIdx )
+                serializer.Read( v.uvs[uvIdx] );
+            for ( u32 cIdx = 0; cIdx < mesh.numColorChannels; ++cIdx )
+                serializer.Read( v.colors[cIdx] );
+            if ( mesh.hasBoneWeights )
+            {
+                serializer.Read( v.numBones );
+                for ( u8 i = 0; i < v.numBones; ++i )
+                {
+                    serializer.Read( v.boneIndices[i] );
+                    serializer.Read( v.boneWeights[i] );
+                }
+            }
+        }
+    }
+
+    return true;
+}
+
+bool PModel::LoadText( std::string_view filename )
+{
+    std::ifstream in( filename.data() );
     if ( !in )
     {
-        LOG_ERR( "Failed to open pmodel file '%s'", filename.c_str() );
+        LOG_ERR( "Failed to open pmodelt file '%s'", filename.data() );
         return false;
     }
 
     char tmpBuffer[128];
     std::string tmp;
     in >> tmp; // pmodelFormat
-    u32 version;
+    u16 version;
     in >> version;
-    if ( version < (u32)PModelVersionNum::LAST_SUPPORTED_VERSION )
+    if ( version < Underlying( PModelVersionNum::LAST_SUPPORTED_VERSION ) )
     {
-        LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(),
+        LOG_ERR( "PModelt file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.data(),
             version );
         return false;
     }
@@ -197,10 +274,30 @@ bool PModel::Load( const std::string& filename )
     return true;
 }
 
+bool PModel::Load( std::string_view filename )
+{
+    std::string ext = GetFileExtension( filename.data() );
+    if ( ext == ".pmodelt" )
+        return LoadText( filename );
+    else if ( ext == ".pmodelb" )
+        return LoadBinary( filename );
+
+    LOG_ERR( "PModel::Load: Invalid file extension '%s'", ext.c_str() );
+
+    return false;
+}
+
 static constexpr f32 PZ( f32 x ) { return x == 0.0f ? +0.0f : x; }
 
-bool PModel::Save( std::ofstream& outFile, u32 f32Precision, bool logProgress ) const
+bool PModel::SaveText( std::string_view filename, u32 f32Precision, bool logProgress ) const
 {
+    std::ofstream outFile( filename.data() );
+    if ( !outFile )
+    {
+        LOG_ERR( "Failed to open file '%s' to save pmodel", filename.data() );
+        return false;
+    }
+
     auto Start = Clock::now();
 
     enum
@@ -225,7 +322,7 @@ bool PModel::Save( std::ofstream& outFile, u32 f32Precision, bool logProgress ) 
 
     size_t totalVerts = 0;
     size_t totalTris  = 0;
-    std::set<std::string> materialSet;
+    std::set<std::string_view> materialSet;
     for ( const PModel::Mesh& mesh : meshes )
     {
         totalVerts += mesh.vertices.size();
@@ -233,9 +330,9 @@ bool PModel::Save( std::ofstream& outFile, u32 f32Precision, bool logProgress ) 
         materialSet.insert( mesh.materialName );
     }
 
-    outFile << "pmodelFormat: " << (u32)PModelVersionNum::CURRENT_VERSION << "\n\n";
+    outFile << "pmodelFormat: " << Underlying( PModelVersionNum::CURRENT_VERSION ) << "\n\n";
 
-    for ( const auto& matName : materialSet )
+    for ( std::string_view matName : materialSet )
     {
         outFile << matName << "\n";
     }
@@ -252,6 +349,7 @@ bool PModel::Save( std::ofstream& outFile, u32 f32Precision, bool logProgress ) 
             m.numUVChannels, m.numColorChannels );
         outFile << buffer;
 
+        PG_ASSERT( m.vertices.size() <= UINT32_MAX );
         for ( u32 vIdx = 0; vIdx < (u32)m.vertices.size(); ++vIdx )
         {
             const PModel::Vertex& v = m.vertices[vIdx];
@@ -304,53 +402,169 @@ bool PModel::Save( std::ofstream& outFile, u32 f32Precision, bool logProgress ) 
     return outFile.good();
 }
 
-bool PModel::Save( const std::string& filename, u32 f32Precision, bool logProgress ) const
+bool PModel::SaveBinary( std::string_view filename ) const
 {
-    std::ofstream out( filename );
-    if ( !out )
+    Serializer serializer;
+    if ( !serializer.OpenForWrite( filename.data() ) )
     {
-        LOG_ERR( "Failed to open file '%s' to save pmodel", filename.c_str() );
+        LOG_ERR( "Failed to open file '%s' to save pmodel", filename.data() );
         return false;
     }
 
-    return Save( out, f32Precision, logProgress );
+    serializer.Write( PModelVersionNum::CURRENT_VERSION );
+
+    std::set<std::string_view> materialSet;
+    for ( const PModel::Mesh& mesh : meshes )
+    {
+        materialSet.insert( mesh.materialName );
+    }
+
+    PG_ASSERT( materialSet.size() <= UINT16_MAX );
+    serializer.Write( (u16)materialSet.size() );
+    for ( std::string_view matName : materialSet )
+    {
+        serializer.Write( (u16)matName.length() );
+        serializer.Write( matName.data(), matName.length() );
+    }
+
+    serializer.Write( (u32)meshes.size() );
+    for ( const Mesh& mesh : meshes )
+    {
+        serializer.Write<u16>( mesh.name );
+        serializer.Write<u16>( mesh.materialName );
+        serializer.Write( mesh.numUVChannels );
+        serializer.Write( mesh.numColorChannels );
+        serializer.Write( mesh.hasTangents );
+        serializer.Write( mesh.hasBoneWeights );
+
+        serializer.Write( mesh.indices.size() );
+        // to save some space, try to save as many 16 bit indices as possible initially
+        size_t first32Index = 0;
+        while ( first32Index < mesh.indices.size() && mesh.indices[first32Index] <= UINT16_MAX )
+            ++first32Index;
+
+        serializer.Write( first32Index );
+        for ( size_t i = 0; i < first32Index; ++i )
+            serializer.Write( (u16)mesh.indices[i] );
+        for ( size_t i = first32Index; i < mesh.indices.size(); ++i )
+            serializer.Write( mesh.indices[i] );
+
+        PG_ASSERT( mesh.vertices.size() <= UINT32_MAX );
+        u32 numVerts = (u32)mesh.vertices.size();
+        serializer.Write( numVerts );
+        for ( u32 vIdx = 0; vIdx < numVerts; ++vIdx )
+        {
+            const Vertex& v = mesh.vertices[vIdx];
+            serializer.Write( v.pos );
+            serializer.Write( v.normal );
+            if ( mesh.hasTangents )
+            {
+                serializer.Write( v.tangent );
+                serializer.Write( v.bitangent );
+            }
+            for ( u32 uvIdx = 0; uvIdx < mesh.numUVChannels; ++uvIdx )
+                serializer.Write( v.uvs[uvIdx] );
+            for ( u32 cIdx = 0; cIdx < mesh.numColorChannels; ++cIdx )
+                serializer.Write( v.colors[cIdx] );
+            if ( mesh.hasBoneWeights )
+            {
+                serializer.Write( v.numBones );
+                for ( u8 i = 0; i < v.numBones; ++i )
+                {
+                    serializer.Write( v.boneIndices[i] );
+                    serializer.Write( v.boneWeights[i] );
+                }
+            }
+        }
+    }
+    serializer.Close();
+
+    return true;
+}
+
+bool PModel::Save( std::string_view filename, u32 f32Precision, bool logProgress ) const
+{
+    std::string ext = GetFileExtension( filename.data() );
+    if ( ext == ".pmodelt" )
+        return SaveText( filename, f32Precision, logProgress );
+    else if ( ext == ".pmodelb" )
+        return SaveBinary( filename );
+
+    LOG_ERR( "PModel::Save: Invalid file extension '%s'", ext.c_str() );
+
+    return false;
 }
 
 std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )
 {
-    std::ifstream in( filename );
-    if ( !in )
-    {
-        LOG_ERR( "Failed to open pmodel file '%s'", filename.c_str() );
-        return {};
-    }
-
-    std::string tmp;
-    in >> tmp; // pmodelFormat
-    u32 version;
-    in >> version;
-    if ( version < (u32)PModelVersionNum::LAST_SUPPORTED_VERSION )
-    {
-        LOG_ERR( "PModel file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.c_str(),
-            version );
-        return {};
-    }
-
-    //  skip to material list
-    std::string line;
-    do
-    {
-        std::getline( in, line );
-    } while ( line.empty() );
-
     std::vector<std::string> materials;
-    do
+    std::string ext = GetFileExtension( filename );
+    if ( ext == ".pmodelt" )
     {
-        materials.push_back( line );
-        std::getline( in, line );
-    } while ( !line.empty() );
+        std::ifstream in( filename );
+        if ( !in )
+        {
+            LOG_ERR( "Failed to open pmodelt file '%s'", filename.c_str() );
+            return {};
+        }
 
-    return materials;
+        std::string tmp;
+        in >> tmp; // pmodelFormat
+        u16 version;
+        in >> version;
+        if ( version < Underlying( PModelVersionNum::LAST_SUPPORTED_VERSION ) )
+        {
+            LOG_ERR( "PModelt file %s contains a version (%u) that is no longer supported. Please re-export the source file",
+                filename.c_str(), version );
+            return {};
+        }
+
+        //  skip to material list
+        std::string line;
+        do
+        {
+            std::getline( in, line );
+        } while ( line.empty() );
+        
+        do
+        {
+            materials.push_back( line );
+            std::getline( in, line );
+        } while ( !line.empty() );
+
+        return materials;
+    }
+    else if ( ext == ".pmodelb" )
+    {
+        Serializer serializer;
+        if ( !serializer.OpenForRead( filename.c_str() ) )
+        {
+            LOG_ERR( "Failed to open pmodelb file '%s'", filename.c_str() );
+            return {};
+        }
+
+        PModelVersionNum version;
+        serializer.Read( version );
+        if ( version < PModelVersionNum::LAST_SUPPORTED_VERSION )
+        {
+            LOG_ERR( "PModelb file %s contains a version (%u) that is no longer supported. Please re-export the source file",
+                filename.data(), version );
+            return {};
+        }
+
+        u16 numUniqueMaterials;
+        serializer.Read( numUniqueMaterials );
+        materials.resize( numUniqueMaterials );
+        for ( u16 matIdx = 0; matIdx < numUniqueMaterials; ++matIdx )
+        {
+            serializer.Read<u16>( materials[matIdx] );
+        }
+
+        return materials;
+    }
+
+    LOG_ERR( "PModel::Load: Invalid file extension '%s'", ext.c_str() );
+    return {};
 }
 
 } // namespace PG

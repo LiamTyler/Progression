@@ -345,5 +345,5 @@
 		"albedoTint": [ 0.588000, 0.588000, 0.588000 ],
 		"textureset": "material_24"
 	} },
-	{ "Model": { "name": "sponza_vulkansamples", "filename": "models/sponza_gltfsamples/sponza.pmodel" } }
+	{ "Model": { "name": "sponza_vulkansamples", "filename": "models/sponza_gltfsamples/sponza.pmodelb" } }
 ]

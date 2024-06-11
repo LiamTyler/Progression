@@ -312,7 +312,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u", filename.c_str(), pmodel.meshes.size(),
         materialNames.size(), totalTris, totalVerts );
 
-    std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodel";
+    std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodelb";
     if ( !pmodel.Save( outputModelFilename, g_options.floatPrecision, true ) )
         return false;
 
@@ -327,9 +327,11 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
 static void DisplayHelp()
 {
     auto msg = "Usage: ModelExporter [options] PATH\n"
-               "If PATH is a directory, all models found in it (not recursive) are converted into .pmodel files.\n"
-               "\tIf PATH is a file, then only that one file is converted to a pmodel.\n"
+               "If PATH is a directory, all models found in it (not recursive) are converted into .pmodelb files.\n"
+               "\tIf PATH is an asset file, then only that one file is converted to a pmodel.\n"
                "\tAlso creates an asset file (.paf) containing all the model, material, and texture info\n"
+               "\tIf PATH is .pmodelb file, then it will save out the corresponding .pmodelt file.\n"
+               "\tIf PATH is .pmodelt file, then it will save out the corresponding .pmodelb file.\n"
                "Options\n"
                "  --floatPrecision [1-9] Specify how many float sig figs to write out. Default is 6 (max is 9)\n"
                "  --help                 Print this message and exit\n"
@@ -340,11 +342,6 @@ static void DisplayHelp()
 
 static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
 {
-    if ( argc < 2 )
-    {
-        return false;
-    }
-
     static struct option long_options[] = {
         {"floatPrecision",   required_argument, 0, 'f'},
         {"ignoreCollisions", no_argument,       0, 'i'},
@@ -378,6 +375,21 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
     return true;
 }
 
+static void ConvertPModelFiletype( const std::string& filename )
+{
+    bool isText = GetFileExtension( filename ) == ".pmodelt";
+    PModel pmodel;
+    if ( !pmodel.Load( filename ) )
+    {
+        LOG_ERR( "Failed to load pmodel file '%s'", filename.c_str() );
+        return;
+    }
+
+    std::string newFilename = GetFilenameMinusExtension( filename );
+    newFilename += isText ? ".pmodelb" : ".pmodelt";
+    pmodel.Save( newFilename, g_options.floatPrecision );
+}
+
 int main( int argc, char* argv[] )
 {
     if ( argc < 2 )
@@ -393,6 +405,12 @@ int main( int argc, char* argv[] )
     if ( !ParseCommandLineArgs( argc, argv, path ) )
     {
         DisplayHelp();
+        return 0;
+    }
+
+    if ( GetFileExtension( path ) == ".pmodelt" || GetFileExtension( path ) == ".pmodelb" )
+    {
+        ConvertPModelFiletype( path );
         return 0;
     }
 

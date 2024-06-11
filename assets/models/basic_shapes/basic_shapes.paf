@@ -1,10 +1,9 @@
 [
 	{ "Model": {
 		"name": "cube",
-		"filename": "models/basic_shapes/cube.pmodel",
+		"filename": "models/basic_shapes/cube.pmodelt",
 		"flipTexCoordsVertically": true
 	} },
-	{ "Model": { "name": "triangle", "filename": "models/basic_shapes/triangle.pmodel" } },
-	{ "Model": { "name": "quad", "filename": "models/basic_shapes/quad.pmodel" } },
-	{ "Model": { "name": "uv_sphere_4k", "filename": "models/basic_shapes/uv_sphere_4k.pmodel" } }
+	{ "Model": { "name": "quad", "filename": "models/basic_shapes/quad.pmodelt" } },
+	{ "Model": { "name": "uv_sphere_4k", "filename": "models/basic_shapes/uv_sphere_4k.pmodelb" } }
 ]

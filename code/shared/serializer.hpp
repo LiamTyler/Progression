@@ -89,6 +89,14 @@ public:
         Read( (void*)x.data(), size * sizeof( T ) );
     }
 
+    template <typename T>
+    T Read()
+    {
+        T val;
+        Read( val );
+        return val;
+    }
+
 private:
     std::string filename;
     std::ofstream writeFile;

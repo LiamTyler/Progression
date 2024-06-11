@@ -24,10 +24,14 @@ set(SRC
     ${PRIMARY_SHARED_SRC}
     ${CODE_DIR}/shared/json_parsing.cpp
     ${CODE_DIR}/shared/json_parsing.hpp
+    ${CODE_DIR}/shared/serializer.cpp
+    ${CODE_DIR}/shared/serializer.hpp
 )
 
 set(
 	EXTERNALS
+    ${CODE_DIR}/external/memory_map/MemoryMapped.h
+    ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
     ${CODE_DIR}/external/getopt/getopt.c
     ${CODE_DIR}/external/getopt/getopt.h
 )

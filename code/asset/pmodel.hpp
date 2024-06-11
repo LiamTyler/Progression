@@ -8,7 +8,7 @@
 namespace PG
 {
 
-enum class PModelVersionNum : u32
+enum class PModelVersionNum : u16
 {
     BITANGENT_SIGNS      = 1,
     VERTEX_DATA_TOGETHER = 2,
@@ -54,10 +54,15 @@ public:
 
     std::vector<Mesh> meshes;
 
-    bool Load( const std::string& filename );
+    bool Load( std::string_view filename );
+    bool Save( std::string_view filename, u32 floatPrecision = 6, bool logProgress = true ) const;
 
-    bool Save( std::ofstream& out, u32 floatPrecision = 6, bool logProgress = true ) const;
-    bool Save( const std::string& filename, u32 floatPrecision = 6, bool logProgress = true ) const;
+private:
+    bool LoadBinary( std::string_view filename );
+    bool LoadText( std::string_view filename );
+
+    bool SaveBinary( std::string_view filename ) const;
+    bool SaveText( std::string_view filename, u32 floatPrecision = 6, bool logProgress = true ) const;
 };
 
 std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename );

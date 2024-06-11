@@ -28,11 +28,6 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     PG_ASSERT( baseInfo );
     const ModelCreateInfo* createInfo = (const ModelCreateInfo*)baseInfo;
     SetName( createInfo->name );
-    if ( GetFileExtension( createInfo->filename ) != ".pmodel" )
-    {
-        LOG_ERR( "Model::Load only takes .pmodel format" );
-        return false;
-    }
 
     PModel pmodel;
     if ( !pmodel.Load( GetAbsPath_ModelFilename( createInfo->filename ) ) )

@@ -1,0 +1,41 @@
+pmodelFormat: 2
+
+default
+
+Mesh 0: Plane
+Mat: default
+NumUVs 1
+NumColors: 0
+
+V 0
+p -1 1 0
+n 0 0 1
+t 1 0 0
+b 0 1 0
+uv 0.0001 0.0001
+
+V 1
+p 1 1 0
+n 0 0 1
+t 1 0 0
+b 0 1 0
+uv 0.9999 0.0001
+
+V 2
+p 1 -1 0
+n 0 0 1
+t 1 0 0
+b 0 1 0
+uv 0.9999 0.9999
+
+V 3
+p -1 -1 0
+n 0 0 1
+t 1 0 0
+b 0 1 0
+uv 0.0001 0.9999
+
+Tris:
+0 2 1
+0 3 2
+

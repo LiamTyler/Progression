@@ -1,6 +1,7 @@
 #pragma once
 
 #include "memory_map/MemoryMapped.h"
+#include "shared/core_defines.hpp"
 #include <fstream>
 #include <string>
 #include <vector>
@@ -18,6 +19,7 @@ public:
 
     // if opened for reading, return how many bytes are left to read. Else 0
     size_t BytesLeft() const;
+    const u8* GetData() const;
 
     void Write( const void* buffer, size_t bytes );
     void Read( void* buffer, size_t bytes );

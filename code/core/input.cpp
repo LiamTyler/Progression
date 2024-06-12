@@ -209,6 +209,7 @@ void Shutdown()
 
 void PollEvents()
 {
+    PGP_ZONE_SCOPEDN( "Input::PollEvents" );
     s_inputTracker.StartFrame();
     glfwPollEvents();
     s_contextManager.Update();

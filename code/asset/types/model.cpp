@@ -12,6 +12,7 @@
 #include "meshoptimizer/src/meshoptimizer.h"
 #endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
+using namespace PG::Gfx;
 #include "renderer/graphics_api/buffer.hpp"
 #include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
@@ -154,6 +155,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool Model::FastfileLoad( Serializer* serializer )
 {
+    PGP_ZONE_SCOPED_ASSET( "Model::FastfileLoad" );
     size_t numMeshes;
     serializer->Read( numMeshes );
     meshes.resize( numMeshes );
@@ -174,16 +176,85 @@ bool Model::FastfileLoad( Serializer* serializer )
             LOG_ERR( "No material found with name '%s', using default material instead.", matName.c_str() );
             mesh.material = AssetManager::Get<Material>( "default" );
         }
+
+#if !USING( GPU_DATA )
         serializer->Read( mesh.positions );
         serializer->Read( mesh.normals );
         serializer->Read( mesh.texCoords );
         serializer->Read( mesh.tangents );
         serializer->Read( mesh.indices );
         serializer->Read( mesh.meshlets );
-    }
+#else  // #if !USING( GPU_DATA )
+        size_t numPos, numNormal, numTexCoords, numTan, numIndices, numMeshlets;
+        const void *posData, *normalData, *uvData, *tanData, *indexData, *meshletData;
+        serializer->Read( numPos );
+        posData = serializer->GetData();
+        serializer->Skip( numPos * sizeof( vec3 ) );
 
-    UploadToGPU();
-    FreeCPU();
+        serializer->Read( numNormal );
+        normalData = serializer->GetData();
+        serializer->Skip( numNormal * sizeof( vec3 ) );
+
+        serializer->Read( numTexCoords );
+        uvData = serializer->GetData();
+        serializer->Skip( numTexCoords * sizeof( vec2 ) );
+
+        serializer->Read( numTan );
+        tanData = serializer->GetData();
+        serializer->Skip( numTan * sizeof( vec4 ) );
+
+        serializer->Read( numIndices );
+        indexData = serializer->GetData();
+        serializer->Skip( numIndices * sizeof( u8 ) );
+
+        serializer->Read( numMeshlets );
+        meshletData = serializer->GetData();
+        serializer->Skip( numMeshlets * sizeof( Meshlet ) );
+
+        mesh.numVertices  = static_cast<u32>( numPos );
+        mesh.numMeshlets  = static_cast<u32>( numMeshlets );
+        mesh.hasTexCoords = numTexCoords != 0;
+        mesh.hasTangents  = numTan != 0;
+
+        size_t totalVertexSizeInBytes = 0;
+        totalVertexSizeInBytes += numPos * sizeof( vec3 );
+        totalVertexSizeInBytes += numNormal * sizeof( vec3 );
+        totalVertexSizeInBytes += numTexCoords * sizeof( vec2 );
+        totalVertexSizeInBytes += numTan * sizeof( vec4 );
+
+        PG_ASSERT( numIndices % 4 == 0 );
+        size_t triBufferSize = numIndices * sizeof( u8 );
+        size_t meshletsSize  = numMeshlets * sizeof( Meshlet );
+
+        BufferCreateInfo vbCreateInfo{};
+        vbCreateInfo.size               = totalVertexSizeInBytes;
+        vbCreateInfo.bufferUsage        = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+        vbCreateInfo.addToBindlessArray = false; // since BindlessManager::AddMeshBuffers will take care of it
+
+        BufferCreateInfo tbCreateInfo = vbCreateInfo;
+        tbCreateInfo.size             = triBufferSize;
+
+        BufferCreateInfo mbCreateInfo = vbCreateInfo;
+        mbCreateInfo.size             = meshletsSize;
+
+        mesh.vertexBuffer        = rg.device.NewBuffer( vbCreateInfo, std::string( m_name ) + "_vb_" + mesh.name );
+        mesh.triBuffer           = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + "_tb_" + mesh.name );
+        mesh.meshletBuffer       = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + "_mb_" + mesh.name );
+        mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
+
+        size_t offset = 0;
+        rg.device.AddUploadRequest( mesh.vertexBuffer, posData, numPos * sizeof( vec3 ), offset );
+        offset += numPos * sizeof( vec3 );
+        rg.device.AddUploadRequest( mesh.vertexBuffer, normalData, numNormal * sizeof( vec3 ), offset );
+        offset += numNormal * sizeof( vec3 );
+        rg.device.AddUploadRequest( mesh.vertexBuffer, uvData, numTexCoords * sizeof( vec2 ), offset );
+        offset += numTexCoords * sizeof( vec2 );
+        rg.device.AddUploadRequest( mesh.vertexBuffer, tanData, numTan * sizeof( vec4 ), offset );
+
+        rg.device.AddUploadRequest( mesh.meshletBuffer, meshletData, meshletsSize );
+        rg.device.AddUploadRequest( mesh.triBuffer, indexData, triBufferSize );
+#endif // #else // #if !USING( GPU_DATA )
+    }
 
     return true;
 }
@@ -210,7 +281,6 @@ bool Model::FastfileSave( Serializer* serializer ) const
 void Model::UploadToGPU()
 {
 #if USING( GPU_DATA )
-    using namespace Gfx;
     FreeGPU();
     for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
     {
@@ -224,33 +294,10 @@ void Model::UploadToGPU()
         totalVertexSizeInBytes += mesh.normals.size() * sizeof( vec3 );
         totalVertexSizeInBytes += mesh.texCoords.size() * sizeof( vec2 );
         totalVertexSizeInBytes += mesh.tangents.size() * sizeof( vec4 );
-        // mesh.indexOffset = totalVertexSize;
-        // totalVertexSize += mesh.indices.size() * sizeof( u8 );
-        // totalVertexSize += ALIGN_UP_POW_2( mesh.indices.size(), 4 ) * sizeof( u8 );
 
         PG_ASSERT( mesh.indices.size() % 4 == 0 );
-        size_t triBufferSize      = mesh.indices.size() * sizeof( u8 );
-        size_t meshletsSize       = mesh.meshlets.size() * sizeof( Meshlet );
-        size_t stagingBufferSize  = Max( totalVertexSizeInBytes, Max( triBufferSize, meshletsSize ) );
-        Gfx::Buffer stagingBuffer = rg.device.NewStagingBuffer( stagingBufferSize );
-
-        char* stagingData = stagingBuffer.Map();
-        memcpy( stagingData, mesh.positions.data(), mesh.positions.size() * sizeof( vec3 ) );
-        stagingData += mesh.positions.size() * sizeof( vec3 );
-        memcpy( stagingData, mesh.normals.data(), mesh.normals.size() * sizeof( vec3 ) );
-        stagingData += mesh.normals.size() * sizeof( vec3 );
-        if ( mesh.hasTexCoords )
-        {
-            memcpy( stagingData, mesh.texCoords.data(), mesh.texCoords.size() * sizeof( vec2 ) );
-            stagingData += mesh.texCoords.size() * sizeof( vec2 );
-        }
-        if ( mesh.hasTangents )
-        {
-            memcpy( stagingData, mesh.tangents.data(), mesh.tangents.size() * sizeof( vec4 ) );
-            stagingData += mesh.tangents.size() * sizeof( vec4 );
-        }
-        // stagingData = stagingBuffer.Map() + mesh.indexOffset;
-        // memcpy( stagingData, mesh.indices.data(), mesh.indices.size() * sizeof( u8 ) );
+        size_t triBufferSize = mesh.indices.size() * sizeof( u8 );
+        size_t meshletsSize  = mesh.meshlets.size() * sizeof( Meshlet );
 
         BufferCreateInfo vbCreateInfo{};
         vbCreateInfo.size               = totalVertexSizeInBytes;
@@ -272,17 +319,26 @@ void Model::UploadToGPU()
         mesh.triBuffer     = rg.device.NewBuffer( tbCreateInfo );
         mesh.meshletBuffer = rg.device.NewBuffer( mbCreateInfo );
 #endif // #else // #if USING( ASSET_NAMES )
-        rg.ImmediateSubmit(
-            [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.vertexBuffer, stagingBuffer, totalVertexSizeInBytes ); } );
 
-        memcpy( stagingBuffer.Map(), mesh.indices.data(), triBufferSize );
-        rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.triBuffer, stagingBuffer, triBufferSize ); } );
+        size_t numVertices = mesh.positions.size();
+        size_t offset      = 0;
+        rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.positions.data(), numVertices * sizeof( vec3 ), offset );
+        offset += numVertices * sizeof( vec3 );
+        rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.normals.data(), numVertices * sizeof( vec3 ), offset );
+        offset += numVertices * sizeof( vec3 );
+        if ( mesh.hasTexCoords )
+        {
+            rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.texCoords.data(), numVertices * sizeof( vec2 ), offset );
+            offset += numVertices * sizeof( vec2 );
+        }
+        if ( mesh.hasTangents )
+        {
+            rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.tangents.data(), numVertices * sizeof( vec4 ), offset );
+            offset += numVertices * sizeof( vec4 );
+        }
 
-        stagingData = stagingBuffer.Map();
-        memcpy( stagingData, mesh.meshlets.data(), meshletsSize );
-        rg.ImmediateSubmit( [&]( CommandBuffer& cmdBuf ) { cmdBuf.CopyBuffer( mesh.meshletBuffer, stagingBuffer, meshletsSize ); } );
-
-        stagingBuffer.Free();
+        rg.device.AddUploadRequest( mesh.meshletBuffer, mesh.meshlets.data(), meshletsSize );
+        rg.device.AddUploadRequest( mesh.triBuffer, mesh.indices.data(), triBufferSize );
 
         mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
     }

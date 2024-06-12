@@ -1,4 +1,5 @@
 #include "renderer/graphics_api/synchronization.hpp"
+#include "core/cpu_profiling.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/assert.hpp"
 
@@ -13,6 +14,7 @@ void Fence::Free()
 
 void Fence::WaitFor()
 {
+    PGP_ZONE_SCOPEDN( "Fence::WaitFor" );
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
     VK_CHECK( vkWaitForFences( rg.device, 1, &m_handle, VK_TRUE, UINT64_MAX ) );
 }
@@ -41,7 +43,7 @@ void Semaphore::Unsignal() const
     submitInfo.pWaitSemaphores    = &m_handle;
     submitInfo.pWaitDstStageMask  = &psw;
 
-    vkQueueSubmit( rg.device.GetQueue(), 1, &submitInfo, VK_NULL_HANDLE );
+    vkQueueSubmit( rg.device.GetMainQueue(), 1, &submitInfo, VK_NULL_HANDLE );
 }
 
 VkSemaphore Semaphore::GetHandle() const { return m_handle; }

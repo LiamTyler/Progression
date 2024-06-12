@@ -30,10 +30,21 @@ bool Device::Create( const vkb::Device& vkbDevice )
         LOG_ERR( "Could not get graphics queue. Error: %s", queueRet.error().message().c_str() );
         return false;
     }
-    m_queue.queue       = queueRet.value();
-    m_queue.familyIndex = vkbDevice.get_queue_index( vkb::QueueType::graphics ).value();
-    m_queue.queueIndex  = 0; // ?
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( m_queue.queue, "Primary GCT" );
+    m_mainQueue.queue       = queueRet.value();
+    m_mainQueue.familyIndex = vkbDevice.get_queue_index( vkb::QueueType::graphics ).value();
+    m_mainQueue.queueIndex  = 0;
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( m_mainQueue.queue, "Primary GCT" );
+
+    queueRet = vkbDevice.get_dedicated_queue( vkb::QueueType::transfer );
+    if ( !queueRet )
+    {
+        LOG_ERR( "Could not get dedicated transfer queue. Error: %s", queueRet.error().message().c_str() );
+        return false;
+    }
+    m_transferQueue.queue       = queueRet.value();
+    m_transferQueue.familyIndex = vkbDevice.get_dedicated_queue_index( vkb::QueueType::transfer ).value();
+    m_transferQueue.queueIndex  = 0;
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( m_transferQueue.queue, "Dedicated Transfer" );
 
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
     allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
@@ -43,11 +54,23 @@ bool Device::Create( const vkb::Device& vkbDevice )
     allocatorCreateInfo.instance               = rg.instance;
     VK_CHECK( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
 
+    BufferCreateInfo bCI{};
+    bCI.size               = 64 * 1024 * 1024;
+    bCI.bufferUsage        = BufferUsage::TRANSFER_SRC;
+    bCI.memoryUsage        = VMA_MEMORY_USAGE_AUTO;
+    bCI.flags              = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
+    bCI.addToBindlessArray = false;
+    m_stagingBuffer        = NewBuffer( bCI, "device staging" );
+
+    m_currentStagingSize = 0;
+    m_uploadRequests.reserve( 64 );
+
     return true;
 }
 
 void Device::Free()
 {
+    m_stagingBuffer.Free();
     vmaDestroyAllocator( m_vmaAllocator );
     if ( m_handle != VK_NULL_HANDLE )
     {
@@ -74,17 +97,17 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
     info.pCommandBufferInfos    = &cmdBufInfo;
 
     VkFence vkFence = fence ? fence->GetHandle() : VK_NULL_HANDLE;
-    VK_CHECK( vkQueueSubmit2( m_queue.queue, 1, &info, vkFence ) );
+    VK_CHECK( vkQueueSubmit2( m_mainQueue.queue, 1, &info, vkFence ) );
 }
 
-void Device::WaitForIdle() const { VK_CHECK( vkQueueWaitIdle( m_queue.queue ) ); }
+void Device::WaitForIdle() const { VK_CHECK( vkDeviceWaitIdle( m_handle ) ); }
 
 CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, std::string_view name ) const
 {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     poolInfo.flags                   = PGToVulkanCommandPoolCreateFlags( flags );
-    poolInfo.queueFamilyIndex        = m_queue.familyIndex;
+    poolInfo.queueFamilyIndex        = m_mainQueue.familyIndex;
 
     CommandPool cmdPool;
     VK_CHECK( vkCreateCommandPool( m_handle, &poolInfo, nullptr, &cmdPool.m_handle ) );
@@ -199,7 +222,7 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
     return buffer;
 }
 
-Buffer Device::NewStagingBuffer( size_t size ) const
+Buffer Device::NewStagingBuffer( u64 size ) const
 {
     BufferCreateInfo info{};
     info.size               = size;
@@ -270,8 +293,85 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     return tex;
 }
 
-Texture Device::NewTextureWithData( TextureCreateInfo& desc, void* data, std::string_view name ) const
+Texture Device::NewTextureWithData( TextureCreateInfo& desc, const void* data, std::string_view name )
 {
+#if 1
+    desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    Texture tex = NewTexture( desc, name );
+
+    UploadRequest& tbReq              = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_TRANSITION );
+    tbReq.image                       = tex.GetImage();
+    tbReq.texTransitionReq.prevLayout = ImageLayout::UNDEFINED;
+    tbReq.texTransitionReq.newLayout  = ImageLayout::TRANSFER_DST;
+
+    std::vector<VkBufferImageCopy> bufferCopyRegions;
+    u32 numMips     = tex.GetMipLevels();
+    u32 width       = tex.GetWidth();
+    u32 height      = tex.GetHeight();
+    u64 localOffset = 0;
+    for ( u32 mip = 0; mip < numMips; ++mip )
+    {
+        for ( u32 face = 0; face < tex.GetArrayLayers(); ++face )
+        {
+            VkBufferImageCopy region               = {};
+            region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+            region.imageSubresource.mipLevel       = mip;
+            region.imageSubresource.baseArrayLayer = face;
+            region.imageSubresource.layerCount     = 1;
+            region.imageExtent.width               = width;
+            region.imageExtent.height              = height;
+            region.imageExtent.depth               = 1;
+
+            u64 size = NumBytesPerPixel( tex.GetPixelFormat() );
+            if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
+            {
+                u32 roundedWidth  = ( width + 3 ) & ~3u;
+                u32 roundedHeight = ( height + 3 ) & ~3u;
+                u32 numBlocksX    = roundedWidth / 4;
+                u32 numBlocksY    = roundedHeight / 4;
+                size *= numBlocksX * numBlocksY;
+            }
+            else
+            {
+                size *= width * height;
+            }
+
+            if ( m_currentStagingSize + size > m_stagingBuffer.GetSize() )
+            {
+                if ( !bufferCopyRegions.empty() )
+                {
+                    UploadRequest& req = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_UPLOAD );
+                    req.image          = tex.GetImage();
+                    req.texReq.copies  = bufferCopyRegions;
+                }
+                FlushUploadRequests();
+                bufferCopyRegions.clear();
+            }
+            memcpy( m_stagingBuffer.GetMappedPtr() + m_currentStagingSize, (const char*)data + localOffset, size );
+            region.bufferOffset = m_currentStagingSize;
+            bufferCopyRegions.push_back( region );
+
+            m_currentStagingSize += size;
+            localOffset += size;
+            PG_ASSERT( m_currentStagingSize <= m_stagingBuffer.GetSize() );
+        }
+        width  = Max( width >> 1, 1u );
+        height = Max( height >> 1, 1u );
+    }
+
+    UploadRequest& req = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_UPLOAD );
+    req.type           = UploadCommandType::TEXTURE_UPLOAD;
+    req.image          = tex.GetImage();
+    req.texReq.copies  = bufferCopyRegions;
+
+    UploadRequest& taReq              = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_TRANSITION );
+    taReq.image                       = tex.GetImage();
+    taReq.texTransitionReq.prevLayout = ImageLayout::TRANSFER_DST;
+    taReq.texTransitionReq.newLayout  = ImageLayout::SHADER_READ_ONLY;
+
+    return tex;
+#else
+
     desc.usage |= VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     Texture tex          = NewTexture( desc, name );
     size_t imSize        = desc.TotalSizeInBytes();
@@ -335,6 +435,55 @@ Texture Device::NewTextureWithData( TextureCreateInfo& desc, void* data, std::st
     stagingBuffer.Free();
 
     return tex;
+#endif
+}
+
+void Device::AddUploadRequest( const Buffer& buffer, const void* data, u64 size, size_t offset )
+{
+    if ( size == 0 )
+        return;
+
+    if ( m_currentStagingSize + size > m_stagingBuffer.GetSize() )
+        FlushUploadRequests();
+
+    UploadRequest& req                  = m_uploadRequests.emplace_back( UploadCommandType::BUFFER_UPLOAD );
+    req.buffer                          = buffer;
+    req.bufferReq.size                  = static_cast<u32>( size );
+    req.bufferReq.dstOffset             = offset;
+    req.bufferReq.offsetInStagingBuffer = static_cast<u32>( m_currentStagingSize );
+
+    memcpy( m_stagingBuffer.GetMappedPtr() + m_currentStagingSize, (const char*)data, size );
+    m_currentStagingSize += size;
+}
+
+void Device::FlushUploadRequests()
+{
+    rg.ImmediateSubmit(
+        [this]( CommandBuffer& cmdBuf )
+        {
+            for ( const UploadRequest& req : m_uploadRequests )
+            {
+                if ( req.type == UploadCommandType::BUFFER_UPLOAD )
+                {
+                    VkBufferCopy copyRegion;
+                    copyRegion.dstOffset = req.bufferReq.dstOffset;
+                    copyRegion.srcOffset = req.bufferReq.offsetInStagingBuffer;
+                    copyRegion.size      = req.bufferReq.size;
+                    vkCmdCopyBuffer( cmdBuf, m_stagingBuffer, req.buffer, 1, &copyRegion );
+                }
+                else if ( req.type == UploadCommandType::TEXTURE_TRANSITION )
+                {
+                    cmdBuf.TransitionImageLayout( req.image, req.texTransitionReq.prevLayout, req.texTransitionReq.newLayout );
+                }
+                else if ( req.type == UploadCommandType::TEXTURE_UPLOAD )
+                {
+                    vkCmdCopyBufferToImage( cmdBuf, m_stagingBuffer, req.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
+                        static_cast<u32>( req.texReq.copies.size() ), req.texReq.copies.data() );
+                }
+            }
+        } );
+    m_uploadRequests.clear();
+    m_currentStagingSize = 0;
 }
 
 Sampler Device::NewSampler( const SamplerCreateInfo& desc ) const
@@ -381,14 +530,15 @@ bool Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores    = &vkSemaphore;
 
-    VkResult res      = vkQueuePresentKHR( m_queue.queue, &presentInfo );
+    VkResult res      = vkQueuePresentKHR( m_mainQueue.queue, &presentInfo );
     bool resizeNeeded = res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR;
     PG_ASSERT( res == VK_SUCCESS || resizeNeeded, "vkQueuePresentKHR failed with error %d", res );
     return !resizeNeeded;
 }
 
 VkDevice Device::GetHandle() const { return m_handle; }
-Queue Device::GetQueue() const { return m_queue; }
+Queue Device::GetMainQueue() const { return m_mainQueue; }
+Queue Device::GetTransferQueue() const { return m_transferQueue; }
 VmaAllocator Device::GetAllocator() const { return m_vmaAllocator; }
 Device::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 

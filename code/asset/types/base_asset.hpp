@@ -1,9 +1,16 @@
 #pragma once
 
+#include "core/cpu_profiling.hpp"
 #include "shared/platform_defines.hpp"
 #include <string>
 
 #define ASSET_NAMES USE_IF( !USING( GAME ) || !USING( SHIP_BUILD ) )
+
+#if USING( ASSET_NAMES )
+#define PGP_ZONE_SCOPED_ASSET( name ) PGP_ZONE_SCOPED_FMT( name " %s", m_name )
+#else // #if USING( ASSET_NAMES )
+#define PGP_ZONE_SCOPED_ASSET( name ) PGP_ZONE_SCOPEDN( name )
+#endif // #else // #if USING( ASSET_NAMES )
 
 class Serializer;
 

@@ -1,5 +1,6 @@
 #include "core/scene.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/cpu_profiling.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
 #include "ecs/component_factory.hpp"
@@ -191,6 +192,7 @@ Scene::~Scene()
 
 Scene* Scene::Load( const std::string& filename )
 {
+    PGP_ZONE_SCOPEDN( "Scene::Load" );
     Scene* scene = new Scene;
     scene->name  = GetFilenameStem( filename );
     rapidjson::Document document;
@@ -207,11 +209,13 @@ Scene* Scene::Load( const std::string& filename )
     Lua::State()["scene"] = scene;
 
 #if USING( GAME )
+    auto startTime = Time::GetTimePoint();
     if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
     {
         delete scene;
         return nullptr;
     }
+    LOG( "Scene %s loaded in %.3f sec", scene->name.c_str(), Time::GetTimeSince( startTime ) / 1000.0f );
 #endif // #if USING( GAME )
 
     static JSONFunctionMapperBoolCheck<Scene*> mapping( {
@@ -263,6 +267,7 @@ void Scene::Start()
 
 void Scene::Update()
 {
+    PGP_ZONE_SCOPEDN( "Scene::Update" );
     Lua::State()["ECS"]    = &registry;
     Lua::State()["scene"]  = this;
     auto luaTimeNamespace  = Lua::State()["Time"].get<sol::table>();

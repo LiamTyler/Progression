@@ -21,7 +21,47 @@ struct Queue
     u32 queueIndex  = ~0u;
 
     operator VkQueue() const { return queue; }
-    operator u32() const { return familyIndex; }
+};
+
+enum class UploadCommandType : u8
+{
+    BUFFER_UPLOAD,
+    TEXTURE_UPLOAD,
+    TEXTURE_TRANSITION,
+};
+
+struct BufferUploadRequest
+{
+    u64 dstOffset;
+    u32 size;
+    u32 offsetInStagingBuffer;
+};
+
+struct TextureUploadRequest
+{
+    std::vector<VkBufferImageCopy> copies;
+};
+
+struct TextureTransitionRequest
+{
+    ImageLayout prevLayout;
+    ImageLayout newLayout;
+};
+
+struct UploadRequest
+{
+    UploadRequest() = default;
+    UploadRequest( UploadCommandType inType ) : type( inType ) {}
+
+    UploadCommandType type;
+    union
+    {
+        VkImage image;
+        VkBuffer buffer;
+    };
+    TextureTransitionRequest texTransitionReq;
+    BufferUploadRequest bufferReq;
+    TextureUploadRequest texReq;
 };
 
 class Device
@@ -39,9 +79,12 @@ public:
     AccelerationStructure NewAccelerationStructure( AccelerationStructureType type, size_t size ) const;
 
     Buffer NewBuffer( const BufferCreateInfo& info, std::string_view name = "" ) const;
-    Buffer NewStagingBuffer( size_t size ) const;
+    Buffer NewStagingBuffer( u64 size ) const;
     Texture NewTexture( const TextureCreateInfo& desc, std::string_view name = "" ) const;
-    Texture NewTextureWithData( TextureCreateInfo& desc, void* data, std::string_view name = "" ) const;
+    Texture NewTextureWithData( TextureCreateInfo& desc, const void* data, std::string_view name = "" );
+
+    void AddUploadRequest( const Buffer& buffer, const void* data, u64 size, u64 offset = 0 );
+    void FlushUploadRequests();
 
     Sampler NewSampler( const SamplerCreateInfo& desc ) const;
     Fence NewFence( bool signaled = false, std::string_view name = "" ) const;
@@ -55,12 +98,18 @@ public:
     operator bool() const;
     operator VkDevice() const { return m_handle; }
     VkDevice GetHandle() const;
-    Queue GetQueue() const;
+    Queue GetMainQueue() const;
+    Queue GetTransferQueue() const;
     VmaAllocator GetAllocator() const;
 
 private:
-    VkDevice m_handle = VK_NULL_HANDLE;
-    Queue m_queue     = {};
+    std::vector<UploadRequest> m_uploadRequests;
+    size_t m_currentStagingSize;
+    Buffer m_stagingBuffer;
+
+    VkDevice m_handle     = VK_NULL_HANDLE;
+    Queue m_mainQueue     = {};
+    Queue m_transferQueue = {};
     VmaAllocator m_vmaAllocator;
 };
 

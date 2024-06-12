@@ -525,7 +525,7 @@ std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )
         {
             std::getline( in, line );
         } while ( line.empty() );
-        
+
         do
         {
             materials.push_back( line );

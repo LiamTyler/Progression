@@ -748,6 +748,7 @@ bool GfxImage::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool GfxImage::FastfileLoad( Serializer* serializer )
 {
+    PGP_ZONE_SCOPED_ASSET( "GfxImage::FastfileLoad" );
     serializer->Read( width );
     serializer->Read( height );
     serializer->Read( depth );
@@ -759,10 +760,35 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
     serializer->Read( clampHorizontal );
     serializer->Read( clampVertical );
     serializer->Read( filterMode );
+
+#if USING( GPU_DATA )
+    using namespace Gfx;
+
+    if ( gpuTexture )
+    {
+        gpuTexture.Free();
+    }
+
+    const u8* pixels = serializer->GetData();
+    serializer->Skip( totalSizeInBytes );
+
+    TextureCreateInfo desc;
+    desc.format      = pixelFormat;
+    desc.type        = imageType;
+    desc.width       = static_cast<u16>( width );
+    desc.height      = static_cast<u16>( height );
+    desc.depth       = static_cast<u16>( depth );
+    desc.arrayLayers = static_cast<u16>( numFaces );
+    desc.mipLevels   = static_cast<u8>( mipLevels );
+    desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+
+    gpuTexture = rg.device.NewTextureWithData( desc, pixels, USING( ASSET_NAMES ) ? m_name : nullptr );
+    // free( pixels );
+    pixels = nullptr;
+#else  // #if USING( GPU )
     pixels = static_cast<u8*>( malloc( totalSizeInBytes ) );
     serializer->Read( pixels, totalSizeInBytes );
-
-    UploadToGpu();
+#endif // #else // #if USING( GPU )
 
     return true;
 }

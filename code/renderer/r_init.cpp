@@ -202,18 +202,6 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
 #endif // #if !USING( SHIP_BUILD )
 
     vkb::DeviceBuilder device_builder{ vkbPhysicalDevice };
-    // std::vector<vkb::CustomQueueDescription> queue_descriptions;
-    // const auto& queue_families = vkbPhysicalDevice.get_queue_families();
-    // VkQueueFlags qFlags = VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT | VK_QUEUE_TRANSFER_BIT;
-    // for ( u32 i = 0; i < static_cast<u32>( queue_families.size() ); ++i )
-    //{
-    //     if ( queue_families[i].queueFlags & qFlags )
-    //     {
-    //         if (
-    //         queue_descriptions.push_back( vkb::CustomQueueDescription( i, std::vector<f32>( 1, 1.0f ) ) );
-    //     }
-    // }
-    // device_builder.custom_queue_setup( queue_descriptions );
 
     auto dev_ret = device_builder.build();
     if ( !dev_ret )

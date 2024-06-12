@@ -155,8 +155,8 @@ bool Init( PixelFormat colorAttachmentFormat )
     init_info.Instance                  = rg.instance;
     init_info.PhysicalDevice            = rg.physicalDevice;
     init_info.Device                    = rg.device;
-    init_info.QueueFamily               = rg.device.GetQueue().familyIndex;
-    init_info.Queue                     = rg.device.GetQueue();
+    init_info.QueueFamily               = rg.device.GetMainQueue().familyIndex;
+    init_info.Queue                     = rg.device.GetMainQueue();
     init_info.PipelineCache             = VK_NULL_HANDLE;
     init_info.DescriptorPool            = s_descriptorPool;
     init_info.Subpass                   = 0;

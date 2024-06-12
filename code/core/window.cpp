@@ -1,4 +1,5 @@
 #include "core/window.hpp"
+#include "core/cpu_profiling.hpp"
 #include "core/engine_globals.hpp"
 #include "core/input.hpp"
 #include "core/lua.hpp"
@@ -111,6 +112,7 @@ void Window::EndFrame()
         s_framesDrawnSinceLastFPSUpdate = 0;
         s_lastFPSUpdateTime             = Time::GetTimePoint();
     }
+    PGP_FRAME_MARK;
 }
 
 void Window::SetRelativeMouse( bool b )

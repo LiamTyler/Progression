@@ -1,9 +1,14 @@
 #include "init.hpp"
 #include "asset/asset_manager.hpp"
+#include "core/cpu_profiling.hpp"
 #include "core/dvars.hpp"
 #include "core/engine_globals.hpp"
 #include "core/lua.hpp"
 #include "core/time.hpp"
+#include "shared/logger.hpp"
+#include "shared/random.hpp"
+#include <ctime>
+
 #if USING( GAME )
 #include "core/input.hpp"
 #include "core/scene.hpp"
@@ -12,9 +17,6 @@
 #include "renderer/render_system.hpp"
 #include "ui/ui_system.hpp"
 #endif // #if USING( GAME )
-#include "shared/logger.hpp"
-#include "shared/random.hpp"
-#include <ctime>
 
 #if !USING( GAME )
 #include <omp.h>
@@ -25,6 +27,7 @@ namespace PG
 
 bool EngineInitialize( EngineInitInfo info )
 {
+    PGP_ZONE_SCOPED;
 #if !USING( GAME )
     omp_set_nested( 1 );
 #endif // #if !USING( GAME )

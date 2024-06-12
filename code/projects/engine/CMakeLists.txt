@@ -32,6 +32,7 @@ set(
     ${CODE_DIR}/core/camera.hpp
     ${CODE_DIR}/core/console_commands.cpp
     ${CODE_DIR}/core/console_commands.hpp
+    ${CODE_DIR}/core/cpu_profiling.hpp
     ${CODE_DIR}/core/dvars.cpp
     ${CODE_DIR}/core/dvars.hpp
     ${CODE_DIR}/core/engine_globals.cpp
@@ -148,6 +149,10 @@ set(
 	${CODE_DIR}/external/vma/vk_mem_alloc.h
     ${CODE_DIR}/external/vma/vma_usage.cpp
     
+    ${CODE_DIR}/external/tracy/tracy/Tracy.hpp
+    ${CODE_DIR}/external/tracy/tracy/TracyVulkan.hpp
+    ${CODE_DIR}/external/tracy/TracyClient.cpp
+    
     ${CODE_DIR}/external/imgui/imgui.h
     ${CODE_DIR}/external/imgui/imgui.cpp
     ${CODE_DIR}/external/imgui/imgui_demo.cpp
@@ -162,9 +167,21 @@ set(
 
 set(ALL_FILES ${SRC} ${EXTERNALS} ${ALL_EXT_FILES} ${SHADERS})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
-set_source_files_properties(${ALL_EXT_FILES} ${SHADERS} ${VULKAN_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
+set_source_files_properties(
+    ${ALL_EXT_FILES}
+    ${SHADERS}
+    ${VULKAN_EXT_FILES}
+    PROPERTIES HEADER_FILE_ONLY TRUE
+)
+
 add_executable(${PROJECT_NAME} ${ALL_FILES} ${VULKAN_EXT_FILES})
-target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_GAME ${ALL_EXT_COMPILE_DEFS})
+target_compile_definitions(${PROJECT_NAME} PUBLIC
+    CMAKE_DEFINE_GAME
+    ${ALL_EXT_COMPILE_DEFS}
+    TRACY_ENABLE
+    #TRACY_ON_DEMAND
+    #TRACY_NO_SYSTEM_TRACING
+)
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX _d
@@ -172,10 +189,15 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 	SHIP_POSTFIX _s
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
-    ${COMMON_INCLUDE_DIRS} ${GLFW_INCLUDES} ${IMAGELIB_INCLUDES} ${LUA_INCLUDES} ${Vulkan_INCLUDE_DIR}
+    ${COMMON_INCLUDE_DIRS}
+    ${GLFW_INCLUDES}
+    ${IMAGELIB_INCLUDES}
+    ${LUA_INCLUDES}
+    ${Vulkan_INCLUDE_DIR}
     ${PROGRESSION_DIR}/assets/
     ${PROGRESSION_DIR}/assets/shaders/
     ${CODE_DIR}/external/imgui/
+    ${CODE_DIR}/external/tracy/
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} ${GLFW_LIBS} lua lz4)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

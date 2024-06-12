@@ -16,7 +16,7 @@ char* LZ4CompressBuffer( const char* uncompressedData, size_t size, i32& compres
     }
     const i32 maxDstSize = LZ4_compressBound( (int)size );
     char* compressedData = (char*)malloc( maxDstSize );
-    compressedSize = LZ4_compress_default( uncompressedData, compressedData, (int)size, maxDstSize );
+    compressedSize       = LZ4_compress_default( uncompressedData, compressedData, (int)size, maxDstSize );
 
     if ( compressedSize <= 0 )
     {
@@ -38,7 +38,7 @@ char* LZ4CompressBufferHC( const char* uncompressedData, size_t size, int compre
     }
     const i32 maxDstSize = LZ4_compressBound( (int)size );
     char* compressedData = (char*)malloc( maxDstSize );
-    compressedSize = LZ4_compress_HC( uncompressedData, compressedData, (int)size, maxDstSize, compressionLevel );
+    compressedSize       = LZ4_compress_HC( uncompressedData, compressedData, (int)size, maxDstSize, compressionLevel );
 
     if ( compressedSize <= 0 )
     {
@@ -52,7 +52,7 @@ char* LZ4CompressBufferHC( const char* uncompressedData, size_t size, int compre
 
 char* LZ4DecompressBuffer( const char* compressedData, i32 compressedSize, i32 uncompressedSize )
 {
-    char* uncompressedBuffer   = (char*) malloc( uncompressedSize );
+    char* uncompressedBuffer   = (char*)malloc( uncompressedSize );
     const i32 decompressedSize = LZ4_decompress_safe( compressedData, uncompressedBuffer, compressedSize, uncompressedSize );
     if ( decompressedSize != compressedSize )
     {

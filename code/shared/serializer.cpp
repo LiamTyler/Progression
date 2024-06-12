@@ -64,6 +64,12 @@ size_t Serializer::BytesLeft() const
     return 0;
 }
 
+const u8* Serializer::GetData() const
+{
+    PG_ASSERT( memMappedFile.isValid() );
+    return currentReadPos;
+}
+
 void Serializer::Write( const void* buffer, size_t bytes )
 {
     PG_ASSERT( writeFile.good() && ( buffer || ( !buffer && !bytes ) ) );

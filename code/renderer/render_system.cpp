@@ -3,6 +3,7 @@
 #include "c_shared/bindless.h"
 #include "c_shared/dvar_defines.h"
 #include "c_shared/scene_globals.h"
+#include "core/cpu_profiling.hpp"
 #include "core/engine_globals.hpp"
 #include "core/scene.hpp"
 #include "core/window.hpp"
@@ -50,6 +51,7 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
+    PGP_ZONE_SCOPEDN( "Mesh Pass" );
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
     bool useDebugShader = false;
@@ -180,6 +182,7 @@ bool Init_TaskGraph()
 
 bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight, bool headless )
 {
+    PGP_ZONE_SCOPEDN( "RenderSystem::Init" );
     rg.sceneWidth    = sceneWidth;
     rg.sceneHeight   = sceneHeight;
     rg.displayWidth  = displayWidth;
@@ -222,6 +225,7 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
 
 void Resize( u32 displayWidth, u32 displayHeight )
 {
+    PGP_ZONE_SCOPEDN( "Resize" );
     f32 oldRatioX  = rg.sceneWidth / (f32)rg.displayWidth;
     f32 oldRatioY  = rg.sceneHeight / (f32)rg.displayHeight;
     rg.sceneWidth  = static_cast<u32>( displayWidth * oldRatioX + 0.5f );
@@ -257,6 +261,7 @@ void Shutdown()
 
 static void UpdateGPUSceneData( Scene* scene )
 {
+    PGP_ZONE_SCOPEDN( "UpdateGPUSceneData" );
     FrameData& frameData     = rg.GetFrameData();
     mat4* gpuModelMatricies  = reinterpret_cast<mat4*>( frameData.objectModelMatricesBuffer.GetMappedPtr() );
     mat4* gpuNormalMatricies = reinterpret_cast<mat4*>( frameData.objectNormalMatricesBuffer.GetMappedPtr() );
@@ -332,6 +337,7 @@ void Render()
         frameData.swapchainSemaphore.Unsignal();
         return;
     }
+    PGP_ZONE_SCOPEDN( "Render" );
     frameData.renderingCompleteFence.Reset();
     UpdateGPUSceneData( GetPrimaryScene() );
 

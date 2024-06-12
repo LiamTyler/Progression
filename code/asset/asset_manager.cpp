@@ -1,11 +1,16 @@
 #include "asset/asset_manager.hpp"
 #include "asset/asset_versions.hpp"
+#include "core/cpu_profiling.hpp"
 #include "core/lua.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include "ui/ui_system.hpp"
 #include <unordered_map>
+
+#if USING( GAME )
+#include "renderer/r_globals.hpp"
+#endif // #if USING( GAME )
 
 namespace PG::AssetManager
 {
@@ -150,6 +155,8 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
 
 bool LoadFastFile( const std::string& fname )
 {
+    PGP_ZONE_SCOPED_FMT( "LoadFastFile %s", fname.c_str() );
+
     LOG( "Loading fastfile '%s'...", fname.c_str() );
     std::string fullName = PG_ASSET_DIR "cache/fastfiles/" + fname + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     // std::string fullName = "assets/cache/fastfiles/" + fname + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
@@ -177,6 +184,10 @@ bool LoadFastFile( const std::string& fname )
         default: LOG_ERR( "Unknown asset type '%d'", static_cast<i32>( assetType ) ); return false;
         }
     }
+
+#if USING( GAME )
+    PG::Gfx::rg.device.FlushUploadRequests();
+#endif // #if USING( GAME )
 
     return true;
 }

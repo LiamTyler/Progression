@@ -1,4 +1,5 @@
 #include "renderer/graphics_api/swapchain.hpp"
+#include "core/cpu_profiling.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_bindless_manager.hpp"
@@ -12,6 +13,7 @@ namespace PG::Gfx
 
 bool Swapchain::Create( u32 width, u32 height )
 {
+    PGP_ZONE_SCOPEDN( "Swapchain::Create" );
     vkb::SwapchainBuilder swapchainBuilder{ rg.physicalDevice, rg.device, rg.surface };
 
     swapchainBuilder
@@ -76,6 +78,7 @@ bool Swapchain::Recreate( u32 preferredWidth, u32 preferredHeight )
 
 bool Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
 {
+    PGP_ZONE_SCOPEDN( "Swapchain::AcquireNextImage" );
     VkResult res = vkAcquireNextImageKHR( rg.device, m_handle, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, &m_currentImageIdx );
     bool resizeNeeded = res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR;
     PG_ASSERT( res == VK_SUCCESS || resizeNeeded, "vkAcquireNextImageKHR failed with error %d", res );

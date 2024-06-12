@@ -14,7 +14,7 @@ void R_Globals::SubmitImmediateCommandBuffer()
     info.commandBufferInfoCount = 1;
     info.pCommandBufferInfos    = &cmdBufInfo;
 
-    VK_CHECK( vkQueueSubmit2( rg.device.GetQueue(), 1, &info, immediateFence ) );
+    VK_CHECK( vkQueueSubmit2( rg.device.GetMainQueue(), 1, &info, immediateFence ) );
     rg.immediateFence.WaitFor();
 }
 

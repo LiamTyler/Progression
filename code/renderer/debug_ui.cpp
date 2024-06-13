@@ -123,6 +123,7 @@ static void DevControlsInputCallback( const Input::CallbackInput& cInput )
 
 bool Init( PixelFormat colorAttachmentFormat )
 {
+    PGP_ZONE_SCOPEDN( "UIOverlay::Init" );
     s_updated = false;
     s_drawFunctions.reserve( 64 );
 
@@ -145,7 +146,12 @@ bool Init( PixelFormat colorAttachmentFormat )
     ImGuiIO& io = ImGui::GetIO();
     (void)io;
     io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard; // Enable Keyboard Controls
-    io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+
+    // For some reason, the first time glfwGetGamepadState is called causes a ~130ms hitch on my machine.
+    // I don't know how to change that, but can at least get it out of the way during init
+    // io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;  // Enable Gamepad Controls
+    // GLFWgamepadstate gamepad;
+    // glfwGetGamepadState( GLFW_JOYSTICK_1, &gamepad );
 
     ImGui::StyleColorsDark();
 
@@ -212,6 +218,7 @@ void AddDrawFunction( const std::function<void()>& func ) { s_drawFunctions.push
 
 void BeginFrame()
 {
+    PGP_ZONE_SCOPEDN( "UIOverlay::BeginFrame" );
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();

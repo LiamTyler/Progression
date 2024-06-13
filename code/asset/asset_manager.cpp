@@ -185,6 +185,11 @@ bool LoadFastFile( const std::string& fname )
         }
     }
 
+    // TODO: Takes a surprisingly long time to close the file (50-100ms for sponza_intel)
+    PGP_MANUAL_ZONEN( SerializerClose, "Serializerclose" );
+    serializer.Close();
+    PGP_MANUAL_ZONE_END( SerializerClose );
+
 #if USING( GAME )
     PG::Gfx::rg.device.FlushUploadRequests();
 #endif // #if USING( GAME )

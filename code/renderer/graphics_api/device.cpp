@@ -20,6 +20,7 @@ namespace PG::Gfx
 
 bool Device::Create( const vkb::Device& vkbDevice )
 {
+    PGP_ZONE_SCOPEDN( "Device::Create" );
     m_handle = vkbDevice.device;
     PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( m_handle, "Primary" );
 
@@ -301,10 +302,8 @@ void Device::AddUploadRequest( const Buffer& buffer, const void* data, u64 size,
 void Device::AddUploadRequest( const Texture& tex, const void* data )
 {
     PGP_ZONE_SCOPEDN( "AddUploadRequest_Texture" );
-    UploadRequest tbReq( UploadCommandType::TEXTURE_TRANSITION );
-    tbReq.image                       = tex.GetImage();
-    tbReq.texTransitionReq.prevLayout = ImageLayout::UNDEFINED;
-    tbReq.texTransitionReq.newLayout  = ImageLayout::TRANSFER_DST;
+    UploadRequest tbReq( UploadCommandType::TEXTURE_TRANSITION_1 );
+    tbReq.image = tex.GetImage();
     m_uploadBufferManager.AddRequest( tbReq, nullptr );
 
     UploadRequest req( UploadCommandType::TEXTURE_UPLOAD );
@@ -348,14 +347,35 @@ void Device::AddUploadRequest( const Texture& tex, const void* data )
         height = Max( height >> 1, 1u );
     }
 
-    UploadRequest taReq( UploadCommandType::TEXTURE_TRANSITION );
-    taReq.image                       = tex.GetImage();
-    taReq.texTransitionReq.prevLayout = ImageLayout::TRANSFER_DST;
-    taReq.texTransitionReq.newLayout  = ImageLayout::SHADER_READ_ONLY;
+    UploadRequest taReq( UploadCommandType::TEXTURE_TRANSITION_2 );
+    taReq.image = tex.GetImage();
     m_uploadBufferManager.AddRequest( taReq, nullptr );
 }
 
-void Device::FlushUploadRequests() { m_uploadBufferManager.FlushAll(); }
+void Device::FlushUploadRequests()
+{
+    PGP_ZONE_SCOPEDN( "FlushUploadRequests" );
+    m_uploadBufferManager.FlushAll();
+}
+
+void Device::AcquirePendingTransfers()
+{
+    std::vector<VkBufferMemoryBarrier2>& pendingBuffers = m_uploadBufferManager.pendingBufferBarriers;
+    std::vector<VkImageMemoryBarrier2>& pendingImages   = m_uploadBufferManager.pendingImageBarriers;
+    if ( pendingBuffers.empty() && pendingImages.empty() )
+        return;
+
+    VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    depInfo.bufferMemoryBarrierCount = (u32)pendingBuffers.size();
+    depInfo.pBufferMemoryBarriers    = pendingBuffers.data();
+    depInfo.imageMemoryBarrierCount  = (u32)pendingImages.size();
+    depInfo.pImageMemoryBarriers     = pendingImages.data();
+
+    vkCmdPipelineBarrier2( rg.GetFrameData().primaryCmdBuffer, &depInfo );
+
+    pendingBuffers.clear();
+    pendingImages.clear();
+}
 
 Sampler Device::NewSampler( const SamplerCreateInfo& desc ) const
 {
@@ -413,9 +433,24 @@ Queue Device::GetTransferQueue() const { return m_transferQueue; }
 VmaAllocator Device::GetAllocator() const { return m_vmaAllocator; }
 Device::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 
+#define TRANSFER_QUEUE 1
+
 void Device::UploadBufferManager::Init()
 {
+#if TRANSFER_QUEUE
+    VkCommandPoolCreateInfo poolInfo = {};
+    poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
+    poolInfo.flags                   = PGToVulkanCommandPoolCreateFlags( COMMAND_POOL_RESET_COMMAND_BUFFER );
+    poolInfo.queueFamilyIndex        = rg.device.GetTransferQueue().familyIndex;
+    VK_CHECK( vkCreateCommandPool( rg.device, &poolInfo, nullptr, &cmdPool.m_handle ) );
+    PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( cmdPool, "UploadBufferManager" );
+
+#else
     cmdPool = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, "UploadBufferManager" );
+#endif // #if TRANSFER_QUEUE
+    pendingBufferBarriers.reserve( 256 );
+    pendingImageBarriers.reserve( 256 );
+
     for ( u32 i = 0; i < NUM_BUFFERS; ++i )
     {
         std::string iStr = std::to_string( i );
@@ -463,9 +498,9 @@ void Device::UploadBufferManager::AddRequest( const Device::UploadRequest& req, 
 void Device::UploadBufferManager::StartUploads()
 {
     PGP_ZONE_SCOPEDN( "UploadBufferManager::StartUploads" );
-    Fence& fence          = fences[currentBufferIdx];
-    auto& requestList     = requests[currentBufferIdx];
-    CommandBuffer& cmdBuf = cmdBufs[currentBufferIdx];
+    Fence& fence                            = fences[currentBufferIdx];
+    std::vector<UploadRequest>& requestList = requests[currentBufferIdx];
+    CommandBuffer& cmdBuf                   = cmdBufs[currentBufferIdx];
 
     if ( requestList.empty() )
         return;
@@ -475,6 +510,30 @@ void Device::UploadBufferManager::StartUploads()
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
     size_t stagingOffset  = 0;
     Buffer& stagingBuffer = stagingBuffers[currentBufferIdx];
+
+    u32 transferQueueFamilyIndex = rg.device.GetTransferQueue().familyIndex;
+    u32 mainQueueFamilyIndex     = rg.device.GetMainQueue().familyIndex;
+
+    VkBufferMemoryBarrier2 releaseBufferBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+    releaseBufferBarrier.srcStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    releaseBufferBarrier.srcAccessMask       = VK_ACCESS_2_MEMORY_WRITE_BIT;
+    releaseBufferBarrier.srcQueueFamilyIndex = transferQueueFamilyIndex;
+    releaseBufferBarrier.dstQueueFamilyIndex = mainQueueFamilyIndex;
+
+    VkBufferMemoryBarrier2 acquireBufferBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+    acquireBufferBarrier.dstStageMask        = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT; // VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT
+    acquireBufferBarrier.dstAccessMask       = VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
+    acquireBufferBarrier.srcQueueFamilyIndex = transferQueueFamilyIndex;
+    acquireBufferBarrier.dstQueueFamilyIndex = mainQueueFamilyIndex;
+
+    VkImageMemoryBarrier2 acquireTextureBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+    acquireTextureBarrier.dstStageMask        = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT; // VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT
+    acquireTextureBarrier.dstAccessMask       = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
+    acquireTextureBarrier.srcQueueFamilyIndex = transferQueueFamilyIndex;
+    acquireTextureBarrier.dstQueueFamilyIndex = mainQueueFamilyIndex;
+    acquireTextureBarrier.oldLayout           = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
+    acquireTextureBarrier.newLayout           = PGToVulkanImageLayout( ImageLayout::SHADER_READ_ONLY );
+    acquireTextureBarrier.subresourceRange    = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
 
     VkBufferImageCopy region = {};
     for ( UploadRequest& req : requestList )
@@ -486,10 +545,36 @@ void Device::UploadBufferManager::StartUploads()
             copyRegion.srcOffset = stagingOffset;
             copyRegion.size      = req.size;
             vkCmdCopyBuffer( cmdBuf, stagingBuffer, req.buffer, 1, &copyRegion );
+
+#if TRANSFER_QUEUE
+            releaseBufferBarrier.buffer = req.buffer;
+            releaseBufferBarrier.size   = req.size;
+            releaseBufferBarrier.offset = req.offset;
+            cmdBuf.PipelineBufferBarrier2( releaseBufferBarrier );
+
+            acquireBufferBarrier.buffer = req.buffer;
+            acquireBufferBarrier.size   = req.size;
+            acquireBufferBarrier.offset = req.offset;
+            pendingBufferBarriers.push_back( acquireBufferBarrier );
+#endif // #if TRANSFER_QUEUE
         }
-        else if ( req.type == UploadCommandType::TEXTURE_TRANSITION )
+        else if ( req.type == UploadCommandType::TEXTURE_TRANSITION_1 )
         {
-            cmdBuf.TransitionImageLayout( req.image, req.texTransitionReq.prevLayout, req.texTransitionReq.newLayout );
+            cmdBuf.TransitionImageLayout(
+                req.image, ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST, 0, VK_PIPELINE_STAGE_2_TRANSFER_BIT );
+        }
+        else if ( req.type == UploadCommandType::TEXTURE_TRANSITION_2 )
+        {
+#if TRANSFER_QUEUE
+            cmdBuf.TransitionImageLayout( req.image, ImageLayout::TRANSFER_DST, ImageLayout::SHADER_READ_ONLY,
+                VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, transferQueueFamilyIndex, mainQueueFamilyIndex );
+
+            acquireTextureBarrier.image = req.image;
+            pendingImageBarriers.push_back( acquireTextureBarrier );
+#else
+            cmdBuf.TransitionImageLayout(
+                req.image, req.texTransitionReq.prevLayout, req.texTransitionReq.newLayout, VK_PIPELINE_STAGE_2_TRANSFER_BIT );
+#endif // #if TRANSFER_QUEUE
         }
         else if ( req.type == UploadCommandType::TEXTURE_UPLOAD )
         {
@@ -511,7 +596,7 @@ void Device::UploadBufferManager::StartUploads()
     info.commandBufferInfoCount = 1;
     info.pCommandBufferInfos    = &cmdBufInfo;
 
-    VK_CHECK( vkQueueSubmit2( rg.device.GetMainQueue(), 1, &info, fence ) );
+    VK_CHECK( vkQueueSubmit2( rg.device.GetTransferQueue(), 1, &info, fence ) );
 }
 
 void Device::UploadBufferManager::SwapBuffers()

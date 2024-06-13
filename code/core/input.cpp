@@ -179,6 +179,7 @@ static void MouseButtonCallback( GLFWwindow* window, i32 button, i32 action, i32
 
 bool Init()
 {
+    PGP_ZONE_SCOPEDN( "Input::Init" );
     s_contextManager.ClearAll();
     if ( !s_contextManager.LoadContexts() )
     {

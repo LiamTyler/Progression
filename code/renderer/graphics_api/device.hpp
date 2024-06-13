@@ -44,6 +44,7 @@ public:
     void AddUploadRequest( const Buffer& buffer, const void* data, u64 size, u64 offset = 0 );
     void AddUploadRequest( const Texture& texture, const void* data );
     void FlushUploadRequests();
+    void AcquirePendingTransfers();
 
     Sampler NewSampler( const SamplerCreateInfo& desc ) const;
     Fence NewFence( bool signaled = false, std::string_view name = "" ) const;
@@ -72,7 +73,8 @@ private:
     {
         BUFFER_UPLOAD,
         TEXTURE_UPLOAD,
-        TEXTURE_TRANSITION,
+        TEXTURE_TRANSITION_1,
+        TEXTURE_TRANSITION_2,
     };
 
     struct BufferUploadRequest
@@ -86,12 +88,6 @@ private:
     {
         VkImageSubresourceLayers imageSubresource;
         VkExtent3D imageExtent;
-    };
-
-    struct TextureTransitionRequest
-    {
-        ImageLayout prevLayout;
-        ImageLayout newLayout;
     };
 
     struct UploadRequest
@@ -109,7 +105,6 @@ private:
         union
         {
             u64 offset;
-            TextureTransitionRequest texTransitionReq;
             TextureUploadRequest texReq;
         };
     };
@@ -125,6 +120,8 @@ private:
         Fence fences[NUM_BUFFERS];
         CommandPool cmdPool;
         CommandBuffer cmdBufs[NUM_BUFFERS];
+        std::vector<VkBufferMemoryBarrier2> pendingBufferBarriers;
+        std::vector<VkImageMemoryBarrier2> pendingImageBarriers;
 
         u32 currentBufferIdx;
 
@@ -137,7 +134,6 @@ private:
         void FlushAll();
     };
 
-    std::vector<UploadRequest> m_uploadRequests;
     UploadBufferManager m_uploadBufferManager;
 };
 

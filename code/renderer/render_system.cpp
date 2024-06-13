@@ -128,6 +128,7 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 
 bool Init_TaskGraph()
 {
+    PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
     TaskGraphBuilder builder;
     // ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
     // TGBTextureRef litOutput =
@@ -341,15 +342,18 @@ void Render()
     frameData.renderingCompleteFence.Reset();
     UpdateGPUSceneData( GetPrimaryScene() );
 
+    PGP_MANUAL_ZONEN( __high, "CommandBufReset" );
     CommandBuffer& cmdBuf = frameData.primaryCmdBuffer;
     cmdBuf.Reset();
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
+    PGP_MANUAL_ZONE_END( __high );
     PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdBuf, "Frame" );
     PG_PROFILE_GPU_START_FRAME( cmdBuf );
     PG_PROFILE_GPU_START( cmdBuf, Frame, "Frame" );
 
     BindlessManager::Update();
     UIOverlay::BeginFrame();
+    rg.device.AcquirePendingTransfers();
 
     TGExecuteData tgData;
     tgData.scene     = GetPrimaryScene();
@@ -374,7 +378,5 @@ void Render()
 
     rg.EndFrame();
 }
-
-void CreateTLAS( Scene* scene ) {}
 
 } // namespace PG::RenderSystem

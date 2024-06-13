@@ -80,6 +80,15 @@ void CommandBuffer::BindIndexBuffer( const Buffer& buffer, IndexType indexType, 
     vkCmdBindIndexBuffer( m_handle, buffer, offset, PGToVulkanIndexType( indexType ) );
 }
 
+void CommandBuffer::PipelineBufferBarrier2( const VkBufferMemoryBarrier2& barrier ) const
+{
+    VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    depInfo.bufferMemoryBarrierCount = 1;
+    depInfo.pBufferMemoryBarriers    = &barrier;
+
+    vkCmdPipelineBarrier2( m_handle, &depInfo );
+}
+
 void CommandBuffer::PipelineImageBarrier2( const VkImageMemoryBarrier2& imageBarrier ) const
 {
     VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
@@ -138,7 +147,7 @@ void CommandBuffer::BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, 
 }
 
 void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkPipelineStageFlags2 srcStageMask,
-    VkPipelineStageFlags2 dstStageMask ) const
+    VkPipelineStageFlags2 dstStageMask, u32 srcQueueFamilyIndex, u32 dstQueueFamilyIndex ) const
 {
     VkImageLayout vkOldLayout          = PGToVulkanImageLayout( oldLayout );
     VkImageLayout vkNewLayout          = PGToVulkanImageLayout( newLayout );
@@ -147,6 +156,8 @@ void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout,
     imageBarrier.srcAccessMask         = 0;
     imageBarrier.dstStageMask          = dstStageMask;
     imageBarrier.dstAccessMask         = 0;
+    imageBarrier.srcQueueFamilyIndex   = srcQueueFamilyIndex;
+    imageBarrier.dstQueueFamilyIndex   = dstQueueFamilyIndex;
 
     imageBarrier.oldLayout = vkOldLayout;
     imageBarrier.newLayout = vkNewLayout;

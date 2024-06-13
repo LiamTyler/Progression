@@ -32,6 +32,7 @@ void RegisterLuaFunctions_Window( lua_State* state )
 
 void InitWindowSystem( const WindowCreateInfo& info )
 {
+    PGP_ZONE_SCOPEDN( "InitWindowSystem" );
     if ( !glfwInit() )
     {
         LOG_ERR( "Could not initialize GLFW" );

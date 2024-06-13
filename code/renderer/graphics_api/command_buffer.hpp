@@ -34,6 +34,7 @@ public:
     void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, u32 firstBinding = 0 ) const;
     void BindVertexBuffers( u32 numBuffers, const Buffer* buffers, size_t* offsets, u32 firstBinding = 0 ) const;
     void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;
+    void PipelineBufferBarrier2( const VkBufferMemoryBarrier2& barrier ) const;
     void PipelineImageBarrier2( const VkImageMemoryBarrier2& barrier ) const;
     void SetViewport( const Viewport& viewport ) const;
     void SetScissor( const Scissor& scissor ) const;
@@ -51,7 +52,8 @@ public:
     void BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, ImageLayout dstLayout, const VkImageBlit& region ) const;
     void TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout,
         VkPipelineStageFlags2 srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
-        VkPipelineStageFlags2 dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT ) const;
+        VkPipelineStageFlags2 dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, u32 srcQueueFamilyIndex = 0,
+        u32 dstQueueFamilyIndex = 0 ) const;
 
     void Draw( u32 firstVert, u32 vertCount, u32 instanceCount = 1, u32 firstInstance = 0 ) const;
     void DrawIndexed( u32 firstIndex, u32 indexCount, i32 vertexOffset = 0, u32 firstInstance = 0, u32 instanceCount = 1 ) const;

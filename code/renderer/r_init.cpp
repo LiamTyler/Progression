@@ -73,13 +73,16 @@ static void InitSyncObjects()
 
 bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
 {
+    PGP_ZONE_SCOPEDN( "R_Init" );
     rg.currentFrameIdx = rg.totalFrameCount = 0;
 
+    PGP_MANUAL_ZONEN( __tracyInstBuild, "Instance Builder" );
     vkb::InstanceBuilder builder;
     builder.request_validation_layers( !USING( SHIP_BUILD ) );
     builder.set_debug_callback( DebugCallback );
     builder.require_api_version( 1, 3, 0 );
     auto inst_ret = builder.build();
+    PGP_MANUAL_ZONE_END( __tracyInstBuild );
 
     if ( !inst_ret )
     {
@@ -94,6 +97,7 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     rg.surface = VK_NULL_HANDLE;
     if ( !headless )
     {
+        PGP_ZONE_SCOPEDN( "glfwCreateWindowSurface" );
         VK_CHECK( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetGLFWHandle(), nullptr, &rg.surface ) );
     }
 
@@ -184,7 +188,9 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     if ( !headless )
         pDevSelector.set_surface( rg.surface );
 
+    PGP_MANUAL_ZONEN( __prof__pDevSelect, "Physical Device Selection" );
     auto pDevSelectorRet = pDevSelector.select();
+    PGP_MANUAL_ZONE_END( __prof__pDevSelect );
     if ( !pDevSelectorRet )
     {
         LOG_ERR( "No compatible physical device found! " );

@@ -5,6 +5,7 @@
 #if USING( PG_TRACY_PROFILING )
 
 #include "tracy/Tracy.hpp"
+#include "tracy/TracyC.h"
 
 #define PGP_FRAME_MARK FrameMark
 #define PGP_ZONE_SCOPED ZoneScoped
@@ -13,6 +14,9 @@
     ZoneScoped;                         \
     ZoneNameF( fmt, __VA_ARGS__ )
 
+#define PGP_MANUAL_ZONEN( varName, name ) TracyCZoneN( varName, name, true )
+#define PGP_MANUAL_ZONE_END( varName ) TracyCZoneEnd( varName )
+
 #else // #if USING( PG_TRACY_PROFILING )
 
 // clang-format off
@@ -20,6 +24,9 @@
 #define PGP_ZONE_SCOPED do {} while( 0 )
 #define PGP_ZONE_SCOPEDN( name ) do {} while( 0 )
 #define PGP_ZONE_SCOPED_FMT( fmt, ... ) do {} while( 0 )
+
+#define PGP_MANUAL_ZONEN( varName, name ) do {} while( 0 )
+#define PGP_MANUAL_ZONE_END( varName ) do {} while( 0 )
 
 // clang-format on
 

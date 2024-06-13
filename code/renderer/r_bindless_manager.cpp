@@ -66,6 +66,7 @@ namespace PG::Gfx::BindlessManager
 
 void Init()
 {
+    PGP_ZONE_SCOPEDN( "BindlessManager::Init" );
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         s_frameData[i].pendingTextureRemovals.reserve( 128 );
@@ -162,6 +163,7 @@ GpuData::Material CpuToGpuMaterial( const Material* mat )
 
 void Update()
 {
+    PGP_ZONE_SCOPEDN( "BindlessManager::Update" );
     for ( TextureIndex idx : s_currFrameData->pendingTextureRemovals )
         s_freeTextureSlots.FreeSlot( idx );
     for ( BufferIndex idx : s_currFrameData->pendingBufferRemovals )

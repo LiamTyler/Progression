@@ -766,6 +766,7 @@ void TaskGraph::Print()
 
 void TaskGraph::Execute( TGExecuteData& data )
 {
+    PGP_ZONE_SCOPEDN( "TaskGraph::Execute" );
     data.taskGraph = this;
     for ( auto& [bufHandle, extBufFunc] : m_externalBuffers )
     {

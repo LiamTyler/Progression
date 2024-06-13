@@ -30,6 +30,7 @@ static VkPipelineCache s_pipelineCache;
 
 void Init()
 {
+    PGP_ZONE_SCOPEDN( "PipelineManager::Init" );
     IF_PIPELINE_STATS( s_timeSpentBuildingPipelinesMS = 0 );
     IF_PIPELINE_STATS( auto startTime = Time::GetTimePoint() );
 

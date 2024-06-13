@@ -59,9 +59,53 @@ struct UploadRequest
         VkImage image;
         VkBuffer buffer;
     };
+    const void* data;
     TextureTransitionRequest texTransitionReq;
     BufferUploadRequest bufferReq;
     TextureUploadRequest texReq;
+};
+
+struct UploadRequest2
+{
+    UploadRequest2() = default;
+    UploadRequest2( UploadCommandType inType ) : type( inType ) {}
+
+    UploadCommandType type;
+    union
+    {
+        VkImage image;
+        VkBuffer buffer;
+    };
+    const char* data;
+    u32 size = 0;
+    u64 offset;
+
+    TextureTransitionRequest texTransitionReq;
+    // TextureUploadRequest texReq;
+    VkBufferImageCopy texReq;
+};
+
+struct UploadBufferManager
+{
+    static constexpr u32 NUM_BUFFERS = 2;
+    static constexpr u32 BUFF_SIZE   = 64 * 1024 * 1024;
+
+    Buffer stagingBuffers[NUM_BUFFERS];
+    u64 currentSizes[NUM_BUFFERS];
+    std::vector<UploadRequest2> requests[NUM_BUFFERS];
+    Fence fences[NUM_BUFFERS];
+    CommandPool cmdPool;
+    CommandBuffer cmdBufs[NUM_BUFFERS];
+
+    u32 currentBufferIdx;
+
+    void Init();
+    void Free();
+
+    void AddRequest( const UploadRequest2& req );
+    void StartUploads();
+    void SwapBuffers();
+    void FlushAll();
 };
 
 class Device
@@ -81,9 +125,9 @@ public:
     Buffer NewBuffer( const BufferCreateInfo& info, std::string_view name = "" ) const;
     Buffer NewStagingBuffer( u64 size ) const;
     Texture NewTexture( const TextureCreateInfo& desc, std::string_view name = "" ) const;
-    Texture NewTextureWithData( TextureCreateInfo& desc, const void* data, std::string_view name = "" );
 
     void AddUploadRequest( const Buffer& buffer, const void* data, u64 size, u64 offset = 0 );
+    void AddUploadRequest( const Texture& texture, const void* data );
     void FlushUploadRequests();
 
     Sampler NewSampler( const SamplerCreateInfo& desc ) const;
@@ -106,6 +150,7 @@ private:
     std::vector<UploadRequest> m_uploadRequests;
     size_t m_currentStagingSize;
     Buffer m_stagingBuffer;
+    UploadBufferManager m_uploadBufferManager;
 
     VkDevice m_handle     = VK_NULL_HANDLE;
     Queue m_mainQueue     = {};

@@ -1,9 +1,10 @@
 #pragma once
 
 #include "core/feature_defines.hpp"
-#include "tracy/Tracy.hpp"
 
 #if USING( PG_TRACY_PROFILING )
+
+#include "tracy/Tracy.hpp"
 
 #define PGP_FRAME_MARK FrameMark
 #define PGP_ZONE_SCOPED ZoneScoped

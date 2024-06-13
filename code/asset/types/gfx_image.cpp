@@ -67,33 +67,6 @@ u8* GfxImage::GetPixels( u32 face, u32 mip, u32 depthLevel ) const
     return pixels + offset;
 }
 
-void GfxImage::UploadToGpu()
-{
-#if USING( GPU_DATA )
-    using namespace Gfx;
-    PG_ASSERT( pixels );
-
-    if ( gpuTexture )
-    {
-        gpuTexture.Free();
-    }
-
-    TextureCreateInfo desc;
-    desc.format      = pixelFormat;
-    desc.type        = imageType;
-    desc.width       = static_cast<u16>( width );
-    desc.height      = static_cast<u16>( height );
-    desc.depth       = static_cast<u16>( depth );
-    desc.arrayLayers = static_cast<u16>( numFaces );
-    desc.mipLevels   = static_cast<u8>( mipLevels );
-    desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
-
-    gpuTexture = rg.device.NewTextureWithData( desc, pixels, USING( ASSET_NAMES ) ? m_name : nullptr );
-    free( pixels );
-    pixels = nullptr;
-#endif // #if USING( GPU )
-}
-
 static std::string GetImageFullPath( const std::string& filename )
 {
     return IsImageFilenameBuiltin( filename ) ? filename : PG_ASSET_DIR + filename;
@@ -782,7 +755,8 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
     desc.mipLevels   = static_cast<u8>( mipLevels );
     desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    gpuTexture = rg.device.NewTextureWithData( desc, pixels, USING( ASSET_NAMES ) ? m_name : nullptr );
+    gpuTexture = rg.device.NewTexture( desc, USING( ASSET_NAMES ) ? m_name : nullptr );
+    rg.device.AddUploadRequest( gpuTexture, pixels );
     // free( pixels );
     pixels = nullptr;
 #else  // #if USING( GPU )

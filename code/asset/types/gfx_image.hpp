@@ -60,7 +60,6 @@ struct GfxImage : public BaseAsset
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
     u8* GetPixels( u32 face, u32 mip, u32 depthLevel = 0 ) const;
-    void UploadToGpu();
 
     size_t totalSizeInBytes = 0;
     u8* pixels              = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc

@@ -54,17 +54,6 @@ bool Device::Create( const vkb::Device& vkbDevice )
     allocatorCreateInfo.instance               = rg.instance;
     VK_CHECK( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
 
-    BufferCreateInfo bCI{};
-    bCI.size               = 64 * 1024 * 1024;
-    bCI.bufferUsage        = BufferUsage::TRANSFER_SRC;
-    bCI.memoryUsage        = VMA_MEMORY_USAGE_AUTO;
-    bCI.flags              = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-    bCI.addToBindlessArray = false;
-    m_stagingBuffer        = NewBuffer( bCI, "device staging" );
-
-    m_currentStagingSize = 0;
-    m_uploadRequests.reserve( 64 );
-
     m_uploadBufferManager.Init();
 
     return true;
@@ -73,7 +62,6 @@ bool Device::Create( const vkb::Device& vkbDevice )
 void Device::Free()
 {
     m_uploadBufferManager.Free();
-    m_stagingBuffer.Free();
     vmaDestroyAllocator( m_vmaAllocator );
     if ( m_handle != VK_NULL_HANDLE )
     {
@@ -296,120 +284,31 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     return tex;
 }
 
-#define NEW_UPLOAD 1
-
 void Device::AddUploadRequest( const Buffer& buffer, const void* data, u64 size, u64 offset )
 {
     if ( size == 0 )
         return;
 
-#if !NEW_UPLOAD
-    if ( m_currentStagingSize + size > m_stagingBuffer.GetSize() )
-        FlushUploadRequests();
-
-    UploadRequest& req                  = m_uploadRequests.emplace_back( UploadCommandType::BUFFER_UPLOAD );
-    req.buffer                          = buffer;
-    req.bufferReq.size                  = static_cast<u32>( size );
-    req.bufferReq.dstOffset             = offset;
-    req.bufferReq.offsetInStagingBuffer = static_cast<u32>( m_currentStagingSize );
-
-    memcpy( m_stagingBuffer.GetMappedPtr() + m_currentStagingSize, (const char*)data, size );
-    m_currentStagingSize += size;
-#else
-    UploadRequest2 req;
+    UploadRequest req;
     req.type   = UploadCommandType::BUFFER_UPLOAD;
     req.buffer = buffer;
-    req.data   = (const char*)data;
     req.size   = static_cast<u32>( size );
     req.offset = offset;
 
-    m_uploadBufferManager.AddRequest( req );
-#endif
+    m_uploadBufferManager.AddRequest( req, (const char*)data );
 }
 
 void Device::AddUploadRequest( const Texture& tex, const void* data )
 {
     PGP_ZONE_SCOPEDN( "AddUploadRequest_Texture" );
-#if !NEW_UPLOAD
-    UploadRequest& tbReq              = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_TRANSITION );
+    UploadRequest tbReq( UploadCommandType::TEXTURE_TRANSITION );
     tbReq.image                       = tex.GetImage();
     tbReq.texTransitionReq.prevLayout = ImageLayout::UNDEFINED;
     tbReq.texTransitionReq.newLayout  = ImageLayout::TRANSFER_DST;
+    m_uploadBufferManager.AddRequest( tbReq, nullptr );
 
-    std::vector<VkBufferImageCopy> bufferCopyRegions;
-    u32 numMips     = tex.GetMipLevels();
-    u32 width       = tex.GetWidth();
-    u32 height      = tex.GetHeight();
-    u64 localOffset = 0;
-    for ( u32 mip = 0; mip < numMips; ++mip )
-    {
-        for ( u32 face = 0; face < tex.GetArrayLayers(); ++face )
-        {
-            VkBufferImageCopy region               = {};
-            region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.mipLevel       = mip;
-            region.imageSubresource.baseArrayLayer = face;
-            region.imageSubresource.layerCount     = 1;
-            region.imageExtent.width               = width;
-            region.imageExtent.height              = height;
-            region.imageExtent.depth               = 1;
-
-            u64 size = NumBytesPerPixel( tex.GetPixelFormat() );
-            if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
-            {
-                u32 roundedWidth  = ( width + 3 ) & ~3u;
-                u32 roundedHeight = ( height + 3 ) & ~3u;
-                u32 numBlocksX    = roundedWidth / 4;
-                u32 numBlocksY    = roundedHeight / 4;
-                size *= numBlocksX * numBlocksY;
-            }
-            else
-            {
-                size *= width * height;
-            }
-
-            if ( m_currentStagingSize + size > m_stagingBuffer.GetSize() )
-            {
-                if ( !bufferCopyRegions.empty() )
-                {
-                    UploadRequest& req = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_UPLOAD );
-                    req.image          = tex.GetImage();
-                    req.texReq.copies  = bufferCopyRegions;
-                }
-                FlushUploadRequests();
-                bufferCopyRegions.clear();
-            }
-            memcpy( m_stagingBuffer.GetMappedPtr() + m_currentStagingSize, (const char*)data + localOffset, size );
-            region.bufferOffset = m_currentStagingSize;
-            bufferCopyRegions.push_back( region );
-
-            m_currentStagingSize += size;
-            localOffset += size;
-            PG_ASSERT( m_currentStagingSize <= m_stagingBuffer.GetSize() );
-        }
-        width  = Max( width >> 1, 1u );
-        height = Max( height >> 1, 1u );
-    }
-
-    UploadRequest& req = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_UPLOAD );
-    req.type           = UploadCommandType::TEXTURE_UPLOAD;
-    req.image          = tex.GetImage();
-    req.texReq.copies  = bufferCopyRegions;
-
-    UploadRequest& taReq              = m_uploadRequests.emplace_back( UploadCommandType::TEXTURE_TRANSITION );
-    taReq.image                       = tex.GetImage();
-    taReq.texTransitionReq.prevLayout = ImageLayout::TRANSFER_DST;
-    taReq.texTransitionReq.newLayout  = ImageLayout::SHADER_READ_ONLY;
-#else
-    UploadRequest2 tbReq( UploadCommandType::TEXTURE_TRANSITION );
-    tbReq.image                       = tex.GetImage();
-    tbReq.texTransitionReq.prevLayout = ImageLayout::UNDEFINED;
-    tbReq.texTransitionReq.newLayout  = ImageLayout::TRANSFER_DST;
-    m_uploadBufferManager.AddRequest( tbReq );
-
-    UploadRequest2 req( UploadCommandType::TEXTURE_UPLOAD );
+    UploadRequest req( UploadCommandType::TEXTURE_UPLOAD );
     req.image       = tex.GetImage();
-    req.data        = (const char*)data;
     u32 numMips     = tex.GetMipLevels();
     u32 width       = tex.GetWidth();
     u32 height      = tex.GetHeight();
@@ -419,14 +318,13 @@ void Device::AddUploadRequest( const Texture& tex, const void* data )
     {
         for ( u32 face = 0; face < tex.GetArrayLayers(); ++face )
         {
-            VkBufferImageCopy region               = {};
-            region.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-            region.imageSubresource.mipLevel       = mip;
-            region.imageSubresource.baseArrayLayer = face;
-            region.imageSubresource.layerCount     = 1;
-            region.imageExtent.width               = width;
-            region.imageExtent.height              = height;
-            region.imageExtent.depth               = 1;
+            req.texReq.imageSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+            req.texReq.imageSubresource.mipLevel       = mip;
+            req.texReq.imageSubresource.baseArrayLayer = face;
+            req.texReq.imageSubresource.layerCount     = 1;
+            req.texReq.imageExtent.width               = width;
+            req.texReq.imageExtent.height              = height;
+            req.texReq.imageExtent.depth               = 1;
 
             u32 size = NumBytesPerPixel( tex.GetPixelFormat() );
             if ( PixelFormatIsCompressed( tex.GetPixelFormat() ) )
@@ -442,60 +340,22 @@ void Device::AddUploadRequest( const Texture& tex, const void* data )
                 size *= width * height;
             }
 
-            req.data   = (const char*)data + localOffset;
-            req.size   = size;
-            req.texReq = region;
-            m_uploadBufferManager.AddRequest( req );
-            // req.data += size;
+            req.size = size;
+            m_uploadBufferManager.AddRequest( req, (const char*)data + localOffset );
             localOffset += size;
         }
         width  = Max( width >> 1, 1u );
         height = Max( height >> 1, 1u );
     }
 
-    // m_uploadBufferManager.AddRequest( req );
-
-    UploadRequest2 taReq( UploadCommandType::TEXTURE_TRANSITION );
+    UploadRequest taReq( UploadCommandType::TEXTURE_TRANSITION );
     taReq.image                       = tex.GetImage();
     taReq.texTransitionReq.prevLayout = ImageLayout::TRANSFER_DST;
     taReq.texTransitionReq.newLayout  = ImageLayout::SHADER_READ_ONLY;
-    m_uploadBufferManager.AddRequest( taReq );
-#endif
+    m_uploadBufferManager.AddRequest( taReq, nullptr );
 }
 
-void Device::FlushUploadRequests()
-{
-#if NEW_UPLOAD
-    m_uploadBufferManager.FlushAll();
-#else
-    rg.ImmediateSubmit(
-        [this]( CommandBuffer& cmdBuf )
-        {
-            for ( const UploadRequest& req : m_uploadRequests )
-            {
-                if ( req.type == UploadCommandType::BUFFER_UPLOAD )
-                {
-                    VkBufferCopy copyRegion;
-                    copyRegion.dstOffset = req.bufferReq.dstOffset;
-                    copyRegion.srcOffset = req.bufferReq.offsetInStagingBuffer;
-                    copyRegion.size      = req.bufferReq.size;
-                    vkCmdCopyBuffer( cmdBuf, m_stagingBuffer, req.buffer, 1, &copyRegion );
-                }
-                else if ( req.type == UploadCommandType::TEXTURE_TRANSITION )
-                {
-                    cmdBuf.TransitionImageLayout( req.image, req.texTransitionReq.prevLayout, req.texTransitionReq.newLayout );
-                }
-                else if ( req.type == UploadCommandType::TEXTURE_UPLOAD )
-                {
-                    vkCmdCopyBufferToImage( cmdBuf, m_stagingBuffer, req.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
-                        static_cast<u32>( req.texReq.copies.size() ), req.texReq.copies.data() );
-                }
-            }
-        } );
-    m_uploadRequests.clear();
-    m_currentStagingSize = 0;
-#endif
-}
+void Device::FlushUploadRequests() { m_uploadBufferManager.FlushAll(); }
 
 Sampler Device::NewSampler( const SamplerCreateInfo& desc ) const
 {
@@ -553,7 +413,7 @@ Queue Device::GetTransferQueue() const { return m_transferQueue; }
 VmaAllocator Device::GetAllocator() const { return m_vmaAllocator; }
 Device::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 
-void UploadBufferManager::Init()
+void Device::UploadBufferManager::Init()
 {
     cmdPool = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, "UploadBufferManager" );
     for ( u32 i = 0; i < NUM_BUFFERS; ++i )
@@ -569,12 +429,12 @@ void UploadBufferManager::Init()
         currentSizes[i]        = 0;
         fences[i]              = rg.device.NewFence( true, "UploadBufferManager fence " + iStr );
         cmdBufs[i]             = cmdPool.NewCommandBuffer( "UploadBufferManager cmdbuf " + iStr );
-        requests[i].reserve( 64 );
+        requests[i].reserve( 128 );
     }
     currentBufferIdx = 0;
 }
 
-void UploadBufferManager::Free()
+void Device::UploadBufferManager::Free()
 {
     for ( u32 i = 0; i < UploadBufferManager::NUM_BUFFERS; ++i )
     {
@@ -584,25 +444,29 @@ void UploadBufferManager::Free()
     cmdPool.Free();
 }
 
-void UploadBufferManager::AddRequest( const UploadRequest2& req )
+void Device::UploadBufferManager::AddRequest( const Device::UploadRequest& req, const char* data )
 {
     PG_ASSERT( req.size < BUFF_SIZE, "either piecemeal it, or use larger buffer(s)" );
     if ( currentSizes[currentBufferIdx] + req.size > BUFF_SIZE )
     {
         SwapBuffers();
     }
-    currentSizes[currentBufferIdx] += req.size;
+    if ( req.size )
+    {
+        char* dst = stagingBuffers[currentBufferIdx].GetMappedPtr() + currentSizes[currentBufferIdx];
+        memcpy( dst, data, req.size );
+        currentSizes[currentBufferIdx] += req.size;
+    }
     requests[currentBufferIdx].push_back( req );
 }
 
-void UploadBufferManager::StartUploads()
+void Device::UploadBufferManager::StartUploads()
 {
     PGP_ZONE_SCOPEDN( "UploadBufferManager::StartUploads" );
     Fence& fence          = fences[currentBufferIdx];
     auto& requestList     = requests[currentBufferIdx];
     CommandBuffer& cmdBuf = cmdBufs[currentBufferIdx];
 
-    fence.WaitFor();
     if ( requestList.empty() )
         return;
 
@@ -611,12 +475,12 @@ void UploadBufferManager::StartUploads()
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
     size_t stagingOffset  = 0;
     Buffer& stagingBuffer = stagingBuffers[currentBufferIdx];
-    for ( UploadRequest2& req : requestList )
+
+    VkBufferImageCopy region = {};
+    for ( UploadRequest& req : requestList )
     {
         if ( req.type == UploadCommandType::BUFFER_UPLOAD )
         {
-            memcpy( stagingBuffer.GetMappedPtr() + stagingOffset, req.data, req.size );
-
             VkBufferCopy copyRegion;
             copyRegion.dstOffset = req.offset;
             copyRegion.srcOffset = stagingOffset;
@@ -629,12 +493,12 @@ void UploadBufferManager::StartUploads()
         }
         else if ( req.type == UploadCommandType::TEXTURE_UPLOAD )
         {
-            req.texReq.bufferOffset = stagingOffset;
-            memcpy( stagingBuffer.GetMappedPtr() + stagingOffset, req.data, req.size );
-            vkCmdCopyBufferToImage( cmdBuf, stagingBuffer, req.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &req.texReq );
+            region.bufferOffset     = stagingOffset;
+            region.imageSubresource = req.texReq.imageSubresource;
+            region.imageExtent      = req.texReq.imageExtent;
+            vkCmdCopyBufferToImage( cmdBuf, stagingBuffer, req.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region );
         }
         stagingOffset += req.size;
-        PG_ASSERT( stagingOffset <= stagingBuffer.GetSize() );
     }
     cmdBuf.EndRecording();
     requestList.clear();
@@ -650,17 +514,17 @@ void UploadBufferManager::StartUploads()
     VK_CHECK( vkQueueSubmit2( rg.device.GetMainQueue(), 1, &info, fence ) );
 }
 
-void UploadBufferManager::SwapBuffers()
+void Device::UploadBufferManager::SwapBuffers()
 {
     StartUploads();
     currentBufferIdx = ( currentBufferIdx + 1 ) % NUM_BUFFERS;
+    fences[currentBufferIdx].WaitFor();
 }
 
-void UploadBufferManager::FlushAll()
+void Device::UploadBufferManager::FlushAll()
 {
     SwapBuffers();
     SwapBuffers();
-    fences[currentBufferIdx].WaitFor();
 }
 
 } // namespace PG::Gfx

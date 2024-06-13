@@ -23,91 +23,6 @@ struct Queue
     operator VkQueue() const { return queue; }
 };
 
-enum class UploadCommandType : u8
-{
-    BUFFER_UPLOAD,
-    TEXTURE_UPLOAD,
-    TEXTURE_TRANSITION,
-};
-
-struct BufferUploadRequest
-{
-    u64 dstOffset;
-    u32 size;
-    u32 offsetInStagingBuffer;
-};
-
-struct TextureUploadRequest
-{
-    std::vector<VkBufferImageCopy> copies;
-};
-
-struct TextureTransitionRequest
-{
-    ImageLayout prevLayout;
-    ImageLayout newLayout;
-};
-
-struct UploadRequest
-{
-    UploadRequest() = default;
-    UploadRequest( UploadCommandType inType ) : type( inType ) {}
-
-    UploadCommandType type;
-    union
-    {
-        VkImage image;
-        VkBuffer buffer;
-    };
-    const void* data;
-    TextureTransitionRequest texTransitionReq;
-    BufferUploadRequest bufferReq;
-    TextureUploadRequest texReq;
-};
-
-struct UploadRequest2
-{
-    UploadRequest2() = default;
-    UploadRequest2( UploadCommandType inType ) : type( inType ) {}
-
-    UploadCommandType type;
-    union
-    {
-        VkImage image;
-        VkBuffer buffer;
-    };
-    const char* data;
-    u32 size = 0;
-    u64 offset;
-
-    TextureTransitionRequest texTransitionReq;
-    // TextureUploadRequest texReq;
-    VkBufferImageCopy texReq;
-};
-
-struct UploadBufferManager
-{
-    static constexpr u32 NUM_BUFFERS = 2;
-    static constexpr u32 BUFF_SIZE   = 64 * 1024 * 1024;
-
-    Buffer stagingBuffers[NUM_BUFFERS];
-    u64 currentSizes[NUM_BUFFERS];
-    std::vector<UploadRequest2> requests[NUM_BUFFERS];
-    Fence fences[NUM_BUFFERS];
-    CommandPool cmdPool;
-    CommandBuffer cmdBufs[NUM_BUFFERS];
-
-    u32 currentBufferIdx;
-
-    void Init();
-    void Free();
-
-    void AddRequest( const UploadRequest2& req );
-    void StartUploads();
-    void SwapBuffers();
-    void FlushAll();
-};
-
 class Device
 {
 public:
@@ -147,15 +62,83 @@ public:
     VmaAllocator GetAllocator() const;
 
 private:
-    std::vector<UploadRequest> m_uploadRequests;
-    size_t m_currentStagingSize;
-    Buffer m_stagingBuffer;
-    UploadBufferManager m_uploadBufferManager;
-
     VkDevice m_handle     = VK_NULL_HANDLE;
     Queue m_mainQueue     = {};
     Queue m_transferQueue = {};
     VmaAllocator m_vmaAllocator;
+
+private:
+    enum class UploadCommandType : u8
+    {
+        BUFFER_UPLOAD,
+        TEXTURE_UPLOAD,
+        TEXTURE_TRANSITION,
+    };
+
+    struct BufferUploadRequest
+    {
+        u64 dstOffset;
+        u32 size;
+        u32 offsetInStagingBuffer;
+    };
+
+    struct TextureUploadRequest
+    {
+        VkImageSubresourceLayers imageSubresource;
+        VkExtent3D imageExtent;
+    };
+
+    struct TextureTransitionRequest
+    {
+        ImageLayout prevLayout;
+        ImageLayout newLayout;
+    };
+
+    struct UploadRequest
+    {
+        UploadRequest() = default;
+        UploadRequest( UploadCommandType inType ) : type( inType ) {}
+
+        UploadCommandType type;
+        u32 size = 0;
+        union
+        {
+            VkImage image;
+            VkBuffer buffer;
+        };
+        union
+        {
+            u64 offset;
+            TextureTransitionRequest texTransitionReq;
+            TextureUploadRequest texReq;
+        };
+    };
+
+    struct UploadBufferManager
+    {
+        static constexpr u32 NUM_BUFFERS = 2;
+        static constexpr u32 BUFF_SIZE   = 64 * 1024 * 1024;
+
+        Buffer stagingBuffers[NUM_BUFFERS];
+        u64 currentSizes[NUM_BUFFERS];
+        std::vector<UploadRequest> requests[NUM_BUFFERS];
+        Fence fences[NUM_BUFFERS];
+        CommandPool cmdPool;
+        CommandBuffer cmdBufs[NUM_BUFFERS];
+
+        u32 currentBufferIdx;
+
+        void Init();
+        void Free();
+
+        void AddRequest( const UploadRequest& req, const char* data );
+        void StartUploads();
+        void SwapBuffers();
+        void FlushAll();
+    };
+
+    std::vector<UploadRequest> m_uploadRequests;
+    UploadBufferManager m_uploadBufferManager;
 };
 
 } // namespace PG::Gfx

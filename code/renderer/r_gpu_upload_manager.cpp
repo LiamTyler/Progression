@@ -14,7 +14,7 @@ void UploadManager::Init()
     CommandPoolCreateInfo cmdPoolCI;
     cmdPoolCI.flags     = COMMAND_POOL_RESET_COMMAND_BUFFER;
     cmdPoolCI.queueType = USING( TRANSFER_QUEUE_UPLOADS ) ? QueueType::TRANSFER : QueueType::GRAPHICS;
-    cmdPool             = rg.device.NewCommandPool( cmdPoolCI, "GpuUploadManager" );
+    cmdPool             = rg.device.NewCommandPool( cmdPoolCI, "UploadManager" );
     pendingBufferBarriers.reserve( 1024 );
     pendingImageBarriers.reserve( 1024 );
 
@@ -27,10 +27,10 @@ void UploadManager::Init()
         bCI.memoryUsage        = VMA_MEMORY_USAGE_AUTO;
         bCI.flags              = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
         bCI.addToBindlessArray = false;
-        stagingBuffers[i]      = rg.device.NewBuffer( bCI, "GpuUploadManager buf " + iStr );
+        stagingBuffers[i]      = rg.device.NewBuffer( bCI, "UploadManager " + iStr );
         currentSizes[i]        = 0;
-        fences[i]              = rg.device.NewFence( true, "GpuUploadManager fence " + iStr );
-        cmdBufs[i]             = cmdPool.NewCommandBuffer( "GpuUploadManager cmdbuf " + iStr );
+        fences[i]              = rg.device.NewFence( true, "UploadManager " + iStr );
+        cmdBufs[i]             = cmdPool.NewCommandBuffer( "UploadManager " + iStr );
         requests[i].reserve( 1024 );
     }
     currentBufferIdx = 0;
@@ -75,7 +75,7 @@ void UploadManager::AddRequest( const UploadRequest& req, const char* data )
 
 void UploadManager::StartUploads()
 {
-    PGP_ZONE_SCOPEDN( "GpuUploadManager::StartUploads" );
+    PGP_ZONE_SCOPEDN( "UploadManager::StartUploads" );
     Fence& fence                            = fences[currentBufferIdx];
     std::vector<UploadRequest>& requestList = requests[currentBufferIdx];
     CommandBuffer& cmdBuf                   = cmdBufs[currentBufferIdx];
@@ -117,7 +117,6 @@ void UploadManager::StartUploads()
     acquireTextureBarrier.newLayout           = PGToVulkanImageLayout( ImageLayout::SHADER_READ_ONLY );
     acquireTextureBarrier.subresourceRange    = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
 
-    LOG( "requestList: %zu", requestList.size() );
     VkBufferImageCopy region = {};
     for ( UploadRequest& req : requestList )
     {

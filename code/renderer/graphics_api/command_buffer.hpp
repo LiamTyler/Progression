@@ -2,6 +2,7 @@
 
 #include "renderer/graphics_api/buffer.hpp"
 #include "renderer/graphics_api/pipeline.hpp"
+#include "renderer/graphics_api/queue.hpp"
 #include "renderer/graphics_api/texture.hpp"
 
 namespace PG::Gfx
@@ -75,6 +76,12 @@ typedef enum CommandPoolCreateFlagBits
 } CommandPoolCreateFlagBits;
 
 typedef u32 CommandPoolCreateFlags;
+
+struct CommandPoolCreateInfo
+{
+    CommandPoolCreateFlags flags = 0;
+    QueueType queueType          = QueueType::GRAPHICS;
+};
 
 class CommandPool
 {

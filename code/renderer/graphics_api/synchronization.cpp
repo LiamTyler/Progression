@@ -43,7 +43,7 @@ void Semaphore::Unsignal() const
     submitInfo.pWaitSemaphores    = &m_handle;
     submitInfo.pWaitDstStageMask  = &psw;
 
-    vkQueueSubmit( rg.device.GetMainQueue(), 1, &submitInfo, VK_NULL_HANDLE );
+    vkQueueSubmit( rg.device.GetQueue( QueueType::GRAPHICS ), 1, &submitInfo, VK_NULL_HANDLE );
 }
 
 VkSemaphore Semaphore::GetHandle() const { return m_handle; }

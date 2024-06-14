@@ -7,14 +7,7 @@ R_Globals rg;
 
 void R_Globals::SubmitImmediateCommandBuffer()
 {
-    VkCommandBufferSubmitInfo cmdBufInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
-    cmdBufInfo.commandBuffer = rg.immediateCmdBuffer;
-
-    VkSubmitInfo2 info          = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
-    info.commandBufferInfoCount = 1;
-    info.pCommandBufferInfos    = &cmdBufInfo;
-
-    VK_CHECK( vkQueueSubmit2( rg.device.GetMainQueue(), 1, &info, immediateFence ) );
+    rg.device.Submit( QueueType::GRAPHICS, immediateCmdBuffer, nullptr, nullptr, &immediateFence );
     rg.immediateFence.WaitFor();
 }
 

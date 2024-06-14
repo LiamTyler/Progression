@@ -9,19 +9,11 @@
 #include "renderer/graphics_api/swapchain.hpp"
 #include "renderer/graphics_api/synchronization.hpp"
 #include "renderer/graphics_api/texture.hpp"
+#include "renderer/r_gpu_upload_manager.hpp"
 #include "vk-bootstrap/VkBootstrap.h"
 
 namespace PG::Gfx
 {
-
-struct Queue
-{
-    VkQueue queue   = VK_NULL_HANDLE;
-    u32 familyIndex = ~0u;
-    u32 queueIndex  = ~0u;
-
-    operator VkQueue() const { return queue; }
-};
 
 class Device
 {
@@ -31,22 +23,22 @@ public:
     bool Create( const vkb::Device& vkbDevice );
     void Free();
 
-    void Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo = nullptr,
+    void Submit( QueueType queue, const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo = nullptr,
         const VkSemaphoreSubmitInfo* signalSemaphoreInfo = nullptr, Fence* fence = nullptr ) const;
     void WaitForIdle() const;
-    CommandPool NewCommandPool( CommandPoolCreateFlags flags = 0, std::string_view name = "" ) const;
+    CommandPool NewCommandPool( const CommandPoolCreateInfo& info, std::string_view name = "" ) const;
     AccelerationStructure NewAccelerationStructure( AccelerationStructureType type, size_t size ) const;
 
     Buffer NewBuffer( const BufferCreateInfo& info, std::string_view name = "" ) const;
     Buffer NewStagingBuffer( u64 size ) const;
-    Texture NewTexture( const TextureCreateInfo& desc, std::string_view name = "" ) const;
+    Texture NewTexture( const TextureCreateInfo& info, std::string_view name = "" ) const;
 
     void AddUploadRequest( const Buffer& buffer, const void* data, u64 size, u64 offset = 0 );
     void AddUploadRequest( const Texture& texture, const void* data );
     void FlushUploadRequests();
     void AcquirePendingTransfers();
 
-    Sampler NewSampler( const SamplerCreateInfo& desc ) const;
+    Sampler NewSampler( const SamplerCreateInfo& info ) const;
     Fence NewFence( bool signaled = false, std::string_view name = "" ) const;
     Semaphore NewSemaphore( std::string_view name = "" ) const;
 
@@ -58,83 +50,14 @@ public:
     operator bool() const;
     operator VkDevice() const { return m_handle; }
     VkDevice GetHandle() const;
-    Queue GetMainQueue() const;
-    Queue GetTransferQueue() const;
+    Queue GetQueue( QueueType type ) const;
     VmaAllocator GetAllocator() const;
 
 private:
-    VkDevice m_handle     = VK_NULL_HANDLE;
-    Queue m_mainQueue     = {};
-    Queue m_transferQueue = {};
+    VkDevice m_handle = VK_NULL_HANDLE;
+    Queue m_queues[Underlying( QueueType::COUNT )];
     VmaAllocator m_vmaAllocator;
-
-private:
-    enum class UploadCommandType : u8
-    {
-        BUFFER_UPLOAD,
-        TEXTURE_UPLOAD,
-        TEXTURE_TRANSITION_1,
-        TEXTURE_TRANSITION_2,
-    };
-
-    struct BufferUploadRequest
-    {
-        u64 dstOffset;
-        u32 size;
-        u32 offsetInStagingBuffer;
-    };
-
-    struct TextureUploadRequest
-    {
-        VkImageSubresourceLayers imageSubresource;
-        VkExtent3D imageExtent;
-    };
-
-    struct UploadRequest
-    {
-        UploadRequest() = default;
-        UploadRequest( UploadCommandType inType ) : type( inType ) {}
-
-        UploadCommandType type;
-        u32 size = 0;
-        union
-        {
-            VkImage image;
-            VkBuffer buffer;
-        };
-        union
-        {
-            u64 offset;
-            TextureUploadRequest texReq;
-        };
-    };
-
-    struct UploadBufferManager
-    {
-        static constexpr u32 NUM_BUFFERS = 2;
-        static constexpr u32 BUFF_SIZE   = 64 * 1024 * 1024;
-
-        Buffer stagingBuffers[NUM_BUFFERS];
-        u64 currentSizes[NUM_BUFFERS];
-        std::vector<UploadRequest> requests[NUM_BUFFERS];
-        Fence fences[NUM_BUFFERS];
-        CommandPool cmdPool;
-        CommandBuffer cmdBufs[NUM_BUFFERS];
-        std::vector<VkBufferMemoryBarrier2> pendingBufferBarriers;
-        std::vector<VkImageMemoryBarrier2> pendingImageBarriers;
-
-        u32 currentBufferIdx;
-
-        void Init();
-        void Free();
-
-        void AddRequest( const UploadRequest& req, const char* data );
-        void StartUploads();
-        void SwapBuffers();
-        void FlushAll();
-    };
-
-    UploadBufferManager m_uploadBufferManager;
+    UploadManager m_uploadBufferManager;
 };
 
 } // namespace PG::Gfx

@@ -82,6 +82,7 @@ set(
     ${CODE_DIR}/renderer/graphics_api/physical_device.cpp
     ${CODE_DIR}/renderer/graphics_api/physical_device.hpp
     ${CODE_DIR}/renderer/graphics_api/pipeline.hpp
+    ${CODE_DIR}/renderer/graphics_api/queue.hpp
     ${CODE_DIR}/renderer/graphics_api/sampler.cpp
     ${CODE_DIR}/renderer/graphics_api/sampler.hpp
     ${CODE_DIR}/renderer/graphics_api/swapchain.cpp
@@ -108,6 +109,8 @@ set(
     ${CODE_DIR}/renderer/r_dvars.hpp
     ${CODE_DIR}/renderer/r_globals.cpp
     ${CODE_DIR}/renderer/r_globals.hpp
+    ${CODE_DIR}/renderer/r_gpu_upload_manager.cpp
+    ${CODE_DIR}/renderer/r_gpu_upload_manager.hpp
     ${CODE_DIR}/renderer/r_init.cpp
     ${CODE_DIR}/renderer/r_init.hpp
     ${CODE_DIR}/renderer/r_pipeline_manager.cpp

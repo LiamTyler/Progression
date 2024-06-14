@@ -48,13 +48,18 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 
 static void InitCommandObjects()
 {
+    CommandPoolCreateInfo cmdPoolCI;
+    cmdPoolCI.flags     = COMMAND_POOL_RESET_COMMAND_BUFFER;
+    cmdPoolCI.queueType = QueueType::GRAPHICS;
+
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        rg.frameData[i].cmdPool          = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, "frame" + std::to_string( i ) );
+        rg.frameData[i].cmdPool          = rg.device.NewCommandPool( cmdPoolCI, "frame" + std::to_string( i ) );
         rg.frameData[i].primaryCmdBuffer = rg.frameData[i].cmdPool.NewCommandBuffer( "primary" + std::to_string( i ) );
     }
 
-    rg.immediateCmdPool   = rg.device.NewCommandPool( COMMAND_POOL_TRANSIENT | COMMAND_POOL_RESET_COMMAND_BUFFER, "immediate" );
+    cmdPoolCI.flags |= COMMAND_POOL_TRANSIENT;
+    rg.immediateCmdPool   = rg.device.NewCommandPool( cmdPoolCI, "immediate" );
     rg.immediateCmdBuffer = rg.immediateCmdPool.NewCommandBuffer( "immediate" );
 }
 

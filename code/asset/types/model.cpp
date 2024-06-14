@@ -237,9 +237,9 @@ bool Model::FastfileLoad( Serializer* serializer )
         BufferCreateInfo mbCreateInfo = vbCreateInfo;
         mbCreateInfo.size             = meshletsSize;
 
-        mesh.vertexBuffer        = rg.device.NewBuffer( vbCreateInfo, std::string( m_name ) + "_vb_" + mesh.name );
-        mesh.triBuffer           = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + "_tb_" + mesh.name );
-        mesh.meshletBuffer       = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + "_mb_" + mesh.name );
+        mesh.vertexBuffer        = rg.device.NewBuffer( vbCreateInfo, std::string( m_name ) + mesh.name + "_vb" );
+        mesh.triBuffer           = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + mesh.name + "_tb" );
+        mesh.meshletBuffer       = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + mesh.name + "_mb" );
         mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
 
         size_t offset = 0;

@@ -31,10 +31,11 @@ bool Device::Create( const vkb::Device& vkbDevice )
         LOG_ERR( "Could not get graphics queue. Error: %s", queueRet.error().message().c_str() );
         return false;
     }
-    m_mainQueue.queue       = queueRet.value();
-    m_mainQueue.familyIndex = vkbDevice.get_queue_index( vkb::QueueType::graphics ).value();
-    m_mainQueue.queueIndex  = 0;
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( m_mainQueue.queue, "Primary GCT" );
+    Queue& mainQ      = m_queues[Underlying( QueueType::GRAPHICS )];
+    mainQ.queue       = queueRet.value();
+    mainQ.familyIndex = vkbDevice.get_queue_index( vkb::QueueType::graphics ).value();
+    mainQ.queueIndex  = 0;
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( mainQ.queue, "Primary GCT" );
 
     queueRet = vkbDevice.get_dedicated_queue( vkb::QueueType::transfer );
     if ( !queueRet )
@@ -42,10 +43,11 @@ bool Device::Create( const vkb::Device& vkbDevice )
         LOG_ERR( "Could not get dedicated transfer queue. Error: %s", queueRet.error().message().c_str() );
         return false;
     }
-    m_transferQueue.queue       = queueRet.value();
-    m_transferQueue.familyIndex = vkbDevice.get_dedicated_queue_index( vkb::QueueType::transfer ).value();
-    m_transferQueue.queueIndex  = 0;
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( m_transferQueue.queue, "Dedicated Transfer" );
+    Queue& transferQ      = m_queues[Underlying( QueueType::TRANSFER )];
+    transferQ.queue       = queueRet.value();
+    transferQ.familyIndex = vkbDevice.get_dedicated_queue_index( vkb::QueueType::transfer ).value();
+    transferQ.queueIndex  = 0;
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( transferQ.queue, "Dedicated Transfer" );
 
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
     allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
@@ -71,7 +73,7 @@ void Device::Free()
     }
 }
 
-void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo,
+void Device::Submit( QueueType queue, const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo,
     const VkSemaphoreSubmitInfo* signalSemaphoreInfo, Fence* fence ) const
 {
     VkCommandBufferSubmitInfo cmdBufInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
@@ -89,17 +91,17 @@ void Device::Submit( const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* w
     info.pCommandBufferInfos    = &cmdBufInfo;
 
     VkFence vkFence = fence ? fence->GetHandle() : VK_NULL_HANDLE;
-    VK_CHECK( vkQueueSubmit2( m_mainQueue.queue, 1, &info, vkFence ) );
+    VK_CHECK( vkQueueSubmit2( GetQueue( queue ), 1, &info, vkFence ) );
 }
 
 void Device::WaitForIdle() const { VK_CHECK( vkDeviceWaitIdle( m_handle ) ); }
 
-CommandPool Device::NewCommandPool( CommandPoolCreateFlags flags, std::string_view name ) const
+CommandPool Device::NewCommandPool( const CommandPoolCreateInfo& info, std::string_view name ) const
 {
     VkCommandPoolCreateInfo poolInfo = {};
     poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags                   = PGToVulkanCommandPoolCreateFlags( flags );
-    poolInfo.queueFamilyIndex        = m_mainQueue.familyIndex;
+    poolInfo.flags                   = PGToVulkanCommandPoolCreateFlags( info.flags );
+    poolInfo.queueFamilyIndex        = GetQueue( info.queueType ).familyIndex;
 
     CommandPool cmdPool;
     VK_CHECK( vkCreateCommandPool( m_handle, &poolInfo, nullptr, &cmdPool.m_handle ) );
@@ -302,7 +304,7 @@ void Device::AddUploadRequest( const Buffer& buffer, const void* data, u64 size,
 void Device::AddUploadRequest( const Texture& tex, const void* data )
 {
     PGP_ZONE_SCOPEDN( "AddUploadRequest_Texture" );
-    UploadRequest tbReq( UploadCommandType::TEXTURE_TRANSITION_1 );
+    UploadRequest tbReq( UploadCommandType::LAYOUT_TRANSITION_PRE );
     tbReq.image = tex.GetImage();
     m_uploadBufferManager.AddRequest( tbReq, nullptr );
 
@@ -347,7 +349,7 @@ void Device::AddUploadRequest( const Texture& tex, const void* data )
         height = Max( height >> 1, 1u );
     }
 
-    UploadRequest taReq( UploadCommandType::TEXTURE_TRANSITION_2 );
+    UploadRequest taReq( UploadCommandType::LAYOUT_TRANSITION_POST );
     taReq.image = tex.GetImage();
     m_uploadBufferManager.AddRequest( taReq, nullptr );
 }
@@ -421,195 +423,15 @@ bool Device::Present( const Swapchain& swapchain, const Semaphore& waitSemaphore
     presentInfo.waitSemaphoreCount = 1;
     presentInfo.pWaitSemaphores    = &vkSemaphore;
 
-    VkResult res      = vkQueuePresentKHR( m_mainQueue.queue, &presentInfo );
+    VkResult res      = vkQueuePresentKHR( GetQueue( QueueType::GRAPHICS ), &presentInfo );
     bool resizeNeeded = res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR;
     PG_ASSERT( res == VK_SUCCESS || resizeNeeded, "vkQueuePresentKHR failed with error %d", res );
     return !resizeNeeded;
 }
 
 VkDevice Device::GetHandle() const { return m_handle; }
-Queue Device::GetMainQueue() const { return m_mainQueue; }
-Queue Device::GetTransferQueue() const { return m_transferQueue; }
+Queue Device::GetQueue( QueueType type ) const { return m_queues[Underlying( type )]; }
 VmaAllocator Device::GetAllocator() const { return m_vmaAllocator; }
 Device::operator bool() const { return m_handle != VK_NULL_HANDLE; }
-
-#define TRANSFER_QUEUE 1
-
-void Device::UploadBufferManager::Init()
-{
-#if TRANSFER_QUEUE
-    VkCommandPoolCreateInfo poolInfo = {};
-    poolInfo.sType                   = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
-    poolInfo.flags                   = PGToVulkanCommandPoolCreateFlags( COMMAND_POOL_RESET_COMMAND_BUFFER );
-    poolInfo.queueFamilyIndex        = rg.device.GetTransferQueue().familyIndex;
-    VK_CHECK( vkCreateCommandPool( rg.device, &poolInfo, nullptr, &cmdPool.m_handle ) );
-    PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( cmdPool, "UploadBufferManager" );
-
-#else
-    cmdPool = rg.device.NewCommandPool( COMMAND_POOL_RESET_COMMAND_BUFFER, "UploadBufferManager" );
-#endif // #if TRANSFER_QUEUE
-    pendingBufferBarriers.reserve( 256 );
-    pendingImageBarriers.reserve( 256 );
-
-    for ( u32 i = 0; i < NUM_BUFFERS; ++i )
-    {
-        std::string iStr = std::to_string( i );
-        BufferCreateInfo bCI{};
-        bCI.size               = BUFF_SIZE;
-        bCI.bufferUsage        = BufferUsage::TRANSFER_SRC;
-        bCI.memoryUsage        = VMA_MEMORY_USAGE_AUTO;
-        bCI.flags              = VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT | VMA_ALLOCATION_CREATE_MAPPED_BIT;
-        bCI.addToBindlessArray = false;
-        stagingBuffers[i]      = rg.device.NewBuffer( bCI, "UploadBufferManager buf " + iStr );
-        currentSizes[i]        = 0;
-        fences[i]              = rg.device.NewFence( true, "UploadBufferManager fence " + iStr );
-        cmdBufs[i]             = cmdPool.NewCommandBuffer( "UploadBufferManager cmdbuf " + iStr );
-        requests[i].reserve( 128 );
-    }
-    currentBufferIdx = 0;
-}
-
-void Device::UploadBufferManager::Free()
-{
-    for ( u32 i = 0; i < UploadBufferManager::NUM_BUFFERS; ++i )
-    {
-        stagingBuffers[i].Free();
-        fences[i].Free();
-    }
-    cmdPool.Free();
-}
-
-void Device::UploadBufferManager::AddRequest( const Device::UploadRequest& req, const char* data )
-{
-    PG_ASSERT( req.size < BUFF_SIZE, "either piecemeal it, or use larger buffer(s)" );
-    if ( currentSizes[currentBufferIdx] + req.size > BUFF_SIZE )
-    {
-        SwapBuffers();
-    }
-    if ( req.size )
-    {
-        char* dst = stagingBuffers[currentBufferIdx].GetMappedPtr() + currentSizes[currentBufferIdx];
-        memcpy( dst, data, req.size );
-        currentSizes[currentBufferIdx] += req.size;
-    }
-    requests[currentBufferIdx].push_back( req );
-}
-
-void Device::UploadBufferManager::StartUploads()
-{
-    PGP_ZONE_SCOPEDN( "UploadBufferManager::StartUploads" );
-    Fence& fence                            = fences[currentBufferIdx];
-    std::vector<UploadRequest>& requestList = requests[currentBufferIdx];
-    CommandBuffer& cmdBuf                   = cmdBufs[currentBufferIdx];
-
-    if ( requestList.empty() )
-        return;
-
-    fence.Reset();
-    cmdBuf.Reset();
-    cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    size_t stagingOffset  = 0;
-    Buffer& stagingBuffer = stagingBuffers[currentBufferIdx];
-
-    u32 transferQueueFamilyIndex = rg.device.GetTransferQueue().familyIndex;
-    u32 mainQueueFamilyIndex     = rg.device.GetMainQueue().familyIndex;
-
-    VkBufferMemoryBarrier2 releaseBufferBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-    releaseBufferBarrier.srcStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-    releaseBufferBarrier.srcAccessMask       = VK_ACCESS_2_MEMORY_WRITE_BIT;
-    releaseBufferBarrier.srcQueueFamilyIndex = transferQueueFamilyIndex;
-    releaseBufferBarrier.dstQueueFamilyIndex = mainQueueFamilyIndex;
-
-    VkBufferMemoryBarrier2 acquireBufferBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-    acquireBufferBarrier.dstStageMask        = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT; // VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT
-    acquireBufferBarrier.dstAccessMask       = VK_ACCESS_2_SHADER_STORAGE_READ_BIT;
-    acquireBufferBarrier.srcQueueFamilyIndex = transferQueueFamilyIndex;
-    acquireBufferBarrier.dstQueueFamilyIndex = mainQueueFamilyIndex;
-
-    VkImageMemoryBarrier2 acquireTextureBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-    acquireTextureBarrier.dstStageMask        = VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT; // VK_PIPELINE_STAGE_2_MESH_SHADER_BIT_EXT
-    acquireTextureBarrier.dstAccessMask       = VK_ACCESS_2_SHADER_SAMPLED_READ_BIT;
-    acquireTextureBarrier.srcQueueFamilyIndex = transferQueueFamilyIndex;
-    acquireTextureBarrier.dstQueueFamilyIndex = mainQueueFamilyIndex;
-    acquireTextureBarrier.oldLayout           = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
-    acquireTextureBarrier.newLayout           = PGToVulkanImageLayout( ImageLayout::SHADER_READ_ONLY );
-    acquireTextureBarrier.subresourceRange    = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
-
-    VkBufferImageCopy region = {};
-    for ( UploadRequest& req : requestList )
-    {
-        if ( req.type == UploadCommandType::BUFFER_UPLOAD )
-        {
-            VkBufferCopy copyRegion;
-            copyRegion.dstOffset = req.offset;
-            copyRegion.srcOffset = stagingOffset;
-            copyRegion.size      = req.size;
-            vkCmdCopyBuffer( cmdBuf, stagingBuffer, req.buffer, 1, &copyRegion );
-
-#if TRANSFER_QUEUE
-            releaseBufferBarrier.buffer = req.buffer;
-            releaseBufferBarrier.size   = req.size;
-            releaseBufferBarrier.offset = req.offset;
-            cmdBuf.PipelineBufferBarrier2( releaseBufferBarrier );
-
-            acquireBufferBarrier.buffer = req.buffer;
-            acquireBufferBarrier.size   = req.size;
-            acquireBufferBarrier.offset = req.offset;
-            pendingBufferBarriers.push_back( acquireBufferBarrier );
-#endif // #if TRANSFER_QUEUE
-        }
-        else if ( req.type == UploadCommandType::TEXTURE_TRANSITION_1 )
-        {
-            cmdBuf.TransitionImageLayout(
-                req.image, ImageLayout::UNDEFINED, ImageLayout::TRANSFER_DST, 0, VK_PIPELINE_STAGE_2_TRANSFER_BIT );
-        }
-        else if ( req.type == UploadCommandType::TEXTURE_TRANSITION_2 )
-        {
-#if TRANSFER_QUEUE
-            cmdBuf.TransitionImageLayout( req.image, ImageLayout::TRANSFER_DST, ImageLayout::SHADER_READ_ONLY,
-                VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, transferQueueFamilyIndex, mainQueueFamilyIndex );
-
-            acquireTextureBarrier.image = req.image;
-            pendingImageBarriers.push_back( acquireTextureBarrier );
-#else
-            cmdBuf.TransitionImageLayout(
-                req.image, req.texTransitionReq.prevLayout, req.texTransitionReq.newLayout, VK_PIPELINE_STAGE_2_TRANSFER_BIT );
-#endif // #if TRANSFER_QUEUE
-        }
-        else if ( req.type == UploadCommandType::TEXTURE_UPLOAD )
-        {
-            region.bufferOffset     = stagingOffset;
-            region.imageSubresource = req.texReq.imageSubresource;
-            region.imageExtent      = req.texReq.imageExtent;
-            vkCmdCopyBufferToImage( cmdBuf, stagingBuffer, req.image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &region );
-        }
-        stagingOffset += req.size;
-    }
-    cmdBuf.EndRecording();
-    requestList.clear();
-    currentSizes[currentBufferIdx] = 0;
-
-    VkCommandBufferSubmitInfo cmdBufInfo{ VK_STRUCTURE_TYPE_COMMAND_BUFFER_SUBMIT_INFO };
-    cmdBufInfo.commandBuffer = cmdBuf;
-
-    VkSubmitInfo2 info          = { VK_STRUCTURE_TYPE_SUBMIT_INFO_2 };
-    info.commandBufferInfoCount = 1;
-    info.pCommandBufferInfos    = &cmdBufInfo;
-
-    VK_CHECK( vkQueueSubmit2( rg.device.GetTransferQueue(), 1, &info, fence ) );
-}
-
-void Device::UploadBufferManager::SwapBuffers()
-{
-    StartUploads();
-    currentBufferIdx = ( currentBufferIdx + 1 ) % NUM_BUFFERS;
-    fences[currentBufferIdx].WaitFor();
-}
-
-void Device::UploadBufferManager::FlushAll()
-{
-    SwapBuffers();
-    SwapBuffers();
-}
 
 } // namespace PG::Gfx

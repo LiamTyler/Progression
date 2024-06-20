@@ -9,10 +9,11 @@
 
 #define PG_ASSERT( ... ) _PG_VA_SELECT( _PG_ASSERT, __VA_ARGS__ )
 
-#define _PG_ASSERT_START( X ) \
-    if ( !( X ) )             \
-    {                         \
-        Logger_Log( LogSeverity::ERR, "Failed assertion: (%s) at line %d in file %s\n", #X, __LINE__, __FILE__ );
+#define _PG_ASSERT_START( X )                                                             \
+    if ( !( X ) )                                                                         \
+    {                                                                                     \
+        Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, \
+            "Failed assertion: (%s) at line %d in file %s\n", #X, __LINE__, __FILE__ );
 
 #define _PG_ASSERT_END() \
     abort();             \
@@ -41,79 +42,83 @@
     _PG_ASSERT_START( X ) \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT2( X, MSG )            \
-    _PG_ASSERT_START( X )                \
-    Logger_Log( LogSeverity::ERR, MSG ); \
+#define _PG_ASSERT2( X, MSG )                                                                \
+    _PG_ASSERT_START( X )                                                                    \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, MSG ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT3( X, FMT, A1 )                               \
-    _PG_ASSERT_START( X )                                       \
-    _PG_FMG_CHK1( FMT, A1 );                                    \
-    HANDLE_FORMAT_ERROR();                                      \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1 ); \
+#define _PG_ASSERT3( X, FMT, A1 )                                                                                   \
+    _PG_ASSERT_START( X )                                                                                           \
+    _PG_FMG_CHK1( FMT, A1 );                                                                                        \
+    HANDLE_FORMAT_ERROR();                                                                                          \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT4( X, FMT, A1, A2 )                               \
-    _PG_ASSERT_START( X )                                           \
-    _PG_FMG_CHK2( FMT, A1, A2 );                                    \
-    HANDLE_FORMAT_ERROR();                                          \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2 ); \
+#define _PG_ASSERT4( X, FMT, A1, A2 )                                                                                   \
+    _PG_ASSERT_START( X )                                                                                               \
+    _PG_FMG_CHK2( FMT, A1, A2 );                                                                                        \
+    HANDLE_FORMAT_ERROR();                                                                                              \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT5( X, FMT, A1, A2, A3 )                               \
-    _PG_ASSERT_START( X )                                               \
-    _PG_FMG_CHK3( FMT, A1, A2, A3 );                                    \
-    HANDLE_FORMAT_ERROR();                                              \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3 ); \
+#define _PG_ASSERT5( X, FMT, A1, A2, A3 )                                                                                   \
+    _PG_ASSERT_START( X )                                                                                                   \
+    _PG_FMG_CHK3( FMT, A1, A2, A3 );                                                                                        \
+    HANDLE_FORMAT_ERROR();                                                                                                  \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT6( X, FMT, A1, A2, A3, A4 )                               \
-    _PG_ASSERT_START( X )                                                   \
-    _PG_FMG_CHK4( FMT, A1, A2, A3, A4 );                                    \
-    HANDLE_FORMAT_ERROR();                                                  \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3, A4 ); \
+#define _PG_ASSERT6( X, FMT, A1, A2, A3, A4 )                                                                                   \
+    _PG_ASSERT_START( X )                                                                                                       \
+    _PG_FMG_CHK4( FMT, A1, A2, A3, A4 );                                                                                        \
+    HANDLE_FORMAT_ERROR();                                                                                                      \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3, A4 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT7( X, FMT, A1, A2, A3, A4, A5 )                               \
-    _PG_ASSERT_START( X )                                                       \
-    _PG_FMG_CHK5( FMT, A1, A2, A3, A4, A5 );                                    \
-    HANDLE_FORMAT_ERROR();                                                      \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3, A4, A5 ); \
+#define _PG_ASSERT7( X, FMT, A1, A2, A3, A4, A5 )                                                                                   \
+    _PG_ASSERT_START( X )                                                                                                           \
+    _PG_FMG_CHK5( FMT, A1, A2, A3, A4, A5 );                                                                                        \
+    HANDLE_FORMAT_ERROR();                                                                                                          \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3, A4, A5 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT8( X, FMT, A1, A2, A3, A4, A5, A6 )                               \
-    _PG_ASSERT_START( X )                                                           \
-    _PG_FMG_CHK6( FMT, A1, A2, A3, A4, A5, A6 );                                    \
-    HANDLE_FORMAT_ERROR();                                                          \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3, A4, A5, A6 ); \
+#define _PG_ASSERT8( X, FMT, A1, A2, A3, A4, A5, A6 )                                                                                   \
+    _PG_ASSERT_START( X )                                                                                                               \
+    _PG_FMG_CHK6( FMT, A1, A2, A3, A4, A5, A6 );                                                                                        \
+    HANDLE_FORMAT_ERROR();                                                                                                              \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3, A4, A5, A6 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT9( X, FMT, A1, A2, A3, A4, A5, A6, A7 )                               \
-    _PG_ASSERT_START( X )                                                               \
-    _PG_FMG_CHK7( FMT, A1, A2, A3, A4, A5, A6, A7 );                                    \
-    HANDLE_FORMAT_ERROR();                                                              \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7 ); \
+#define _PG_ASSERT9( X, FMT, A1, A2, A3, A4, A5, A6, A7 )                                                                           \
+    _PG_ASSERT_START( X )                                                                                                           \
+    _PG_FMG_CHK7( FMT, A1, A2, A3, A4, A5, A6, A7 );                                                                                \
+    HANDLE_FORMAT_ERROR();                                                                                                          \
+    Logger_Log(                                                                                                                     \
+        LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT10( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8 )                              \
-    _PG_ASSERT_START( X )                                                                   \
-    _PG_FMG_CHK8( FMT, A1, A2, A3, A4, A5, A6, A7, A8 );                                    \
-    HANDLE_FORMAT_ERROR();                                                                  \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7, A8 ); \
+#define _PG_ASSERT10( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8 )                                                                          \
+    _PG_ASSERT_START( X )                                                                                                               \
+    _PG_FMG_CHK8( FMT, A1, A2, A3, A4, A5, A6, A7, A8 );                                                                                \
+    HANDLE_FORMAT_ERROR();                                                                                                              \
+    Logger_Log(                                                                                                                         \
+        LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7, A8 ); \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT11( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9 )                              \
-    _PG_ASSERT_START( X )                                                                       \
-    _PG_FMG_CHK9( FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9 );                                    \
-    HANDLE_FORMAT_ERROR();                                                                      \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9 ); \
+#define _PG_ASSERT11( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9 )                                                                        \
+    _PG_ASSERT_START( X )                                                                                                                 \
+    _PG_FMG_CHK9( FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9 );                                                                              \
+    HANDLE_FORMAT_ERROR();                                                                                                                \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7, \
+        A8, A9 );                                                                                                                         \
     _PG_ASSERT_END()
 
-#define _PG_ASSERT12( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 )                              \
-    _PG_ASSERT_START( X )                                                                            \
-    _PG_FMG_CHK10( FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 );                                   \
-    HANDLE_FORMAT_ERROR();                                                                           \
-    Logger_Log( LogSeverity::ERR, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 ); \
+#define _PG_ASSERT12( X, FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 )                                                                   \
+    _PG_ASSERT_START( X )                                                                                                                 \
+    _PG_FMG_CHK10( FMT, A1, A2, A3, A4, A5, A6, A7, A8, A9, A10 );                                                                        \
+    HANDLE_FORMAT_ERROR();                                                                                                                \
+    Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, "Assert message: " FMT, A1, A2, A3, A4, A5, A6, A7, \
+        A8, A9, A10 );                                                                                                                    \
     _PG_ASSERT_END()
 
 #else // #if !USING( SHIP_BUILD )

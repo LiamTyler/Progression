@@ -240,7 +240,7 @@ bool Init_TaskGraph()
         LOG_ERR( "Could not compile the task graph" );
         return false;
     }
-    TG_DEBUG_ONLY( s_taskGraph.Print() );
+    //TG_DEBUG_ONLY( s_taskGraph.Print() );
 
     return true;
 }

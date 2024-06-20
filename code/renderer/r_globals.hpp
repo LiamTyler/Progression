@@ -47,6 +47,7 @@ struct R_Globals
     u32 sceneHeight;
     u32 displayWidth;
     u32 displayHeight;
+    bool headless;
 
     CommandPool immediateCmdPool;
     CommandBuffer immediateCmdBuffer;

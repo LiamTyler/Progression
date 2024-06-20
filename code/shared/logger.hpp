@@ -1,14 +1,35 @@
 #pragma once
+#pragma once
 
 #include "shared/platform_defines.hpp"
 #include <cstdio>
 #include <string>
 
-enum class LogSeverity
+enum class LogSeverity : u8
 {
     DEBUG,
     WARN,
     ERR
+};
+
+// foreground colors only
+enum class TerminalColorCode : u8
+{
+    BLACK   = 30,
+    RED     = 31,
+    GREEN   = 32,
+    YELLOW  = 33,
+    BLUE    = 34,
+    MAGENTA = 35,
+    CYAN    = 36,
+    WHITE   = 37,
+};
+
+enum class TerminalEmphasisCode : u8
+{
+    NONE      = 0,
+    BOLD      = 1,
+    UNDERLINE = 4
 };
 
 void Logger_Init();
@@ -23,7 +44,7 @@ void Logger_RemoveLogLocation( std::string_view name );
 
 void Logger_ChangeLocationColored( std::string_view name, bool colored );
 
-void Logger_Log( LogSeverity sev, const char* fmt, ... );
+void Logger_Log( LogSeverity sev, TerminalColorCode color, TerminalEmphasisCode emphasis, const char* fmt, ... );
 
 #if USING( SHIP_BUILD )
 
@@ -383,28 +404,28 @@ consteval FormatCheckError CheckFormat( std::string_view fmt )
 #define CHECK_FORMAT( fmt, ... ) \
     constexpr FormatCheckError _pgFmtError = CheckFormat<PG_DWRAP_VARGS( __VA_ARGS__ )>( std::string_view( fmt ) );
 
-#define LOG( fmt, ... )                                                   \
-    do                                                                    \
-    {                                                                     \
-        CHECK_FORMAT( fmt, __VA_ARGS__ );                                 \
-        HANDLE_FORMAT_ERROR();                                            \
-        Logger_Log( LogSeverity::DEBUG, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
+#define LOG( fmt, ... )                                                                                                         \
+    do                                                                                                                          \
+    {                                                                                                                           \
+        CHECK_FORMAT( fmt, __VA_ARGS__ );                                                                                       \
+        HANDLE_FORMAT_ERROR();                                                                                                  \
+        Logger_Log( LogSeverity::DEBUG, TerminalColorCode::GREEN, TerminalEmphasisCode::NONE, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
     } while ( false )
 
-#define LOG_WARN( fmt, ... )                                             \
-    do                                                                   \
-    {                                                                    \
-        CHECK_FORMAT( fmt, __VA_ARGS__ );                                \
-        HANDLE_FORMAT_ERROR();                                           \
-        Logger_Log( LogSeverity::WARN, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
+#define LOG_WARN( fmt, ... )                                                                                                    \
+    do                                                                                                                          \
+    {                                                                                                                           \
+        CHECK_FORMAT( fmt, __VA_ARGS__ );                                                                                       \
+        HANDLE_FORMAT_ERROR();                                                                                                  \
+        Logger_Log( LogSeverity::WARN, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
     } while ( false )
 
-#define LOG_ERR( fmt, ... )                                             \
-    do                                                                  \
-    {                                                                   \
-        CHECK_FORMAT( fmt, __VA_ARGS__ );                               \
-        HANDLE_FORMAT_ERROR();                                          \
-        Logger_Log( LogSeverity::ERR, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
+#define LOG_ERR( fmt, ... )                                                                                                 \
+    do                                                                                                                      \
+    {                                                                                                                       \
+        CHECK_FORMAT( fmt, __VA_ARGS__ );                                                                                   \
+        HANDLE_FORMAT_ERROR();                                                                                              \
+        Logger_Log( LogSeverity::ERR, TerminalColorCode::RED, TerminalEmphasisCode::NONE, fmt __VA_OPT__(, ) __VA_ARGS__ ); \
     } while ( false )
 
 // #undef WRAPF

@@ -11,26 +11,6 @@
 #include <io.h>
 #endif // #if USING( WINDOWS_PROGRAM )
 
-// foreground colors only
-enum class TerminalColorCode
-{
-    BLACK   = 30,
-    RED     = 31,
-    GREEN   = 32,
-    YELLOW  = 33,
-    BLUE    = 34,
-    MAGENTA = 35,
-    CYAN    = 36,
-    WHITE   = 37,
-};
-
-enum class TerminalEmphasisCode
-{
-    NONE      = 0,
-    BOLD      = 1,
-    UNDERLINE = 4
-};
-
 // For special windows consoles like cmd.exe that use the SetConsoleTextAttribute function for coloring
 i32 TerminalCodesToWindowsCodes( TerminalColorCode color, TerminalEmphasisCode emphasis )
 {
@@ -192,24 +172,20 @@ void Logger_ChangeLocationColored( std::string_view name, bool colored )
     s_loggerLock.unlock();
 }
 
-void Logger_Log( LogSeverity severity, const char* fmt, ... )
+void Logger_Log( LogSeverity severity, TerminalColorCode color, TerminalEmphasisCode emphasis, const char* fmt, ... )
 {
-    std::string_view severityText     = "";
-    TerminalColorCode colorCode       = TerminalColorCode::GREEN;
-    TerminalEmphasisCode emphasisCode = TerminalEmphasisCode::NONE;
+    std::string_view severityText = "";
     if ( severity == LogSeverity::WARN )
     {
         severityText = "WARNING  ";
-        colorCode    = TerminalColorCode::YELLOW;
     }
     else if ( severity == LogSeverity::ERR )
     {
         severityText = "ERROR    ";
-        colorCode    = TerminalColorCode::RED;
     }
 
     char colorEncoding[12];
-    sprintf( colorEncoding, "\033[%d;%dm", static_cast<i32>( emphasisCode ), static_cast<i32>( colorCode ) );
+    sprintf( colorEncoding, "\033[%d;%dm", static_cast<i32>( emphasis ), static_cast<i32>( color ) );
     char fullFormat[512];
     size_t formatLen  = strlen( fmt );
     char* currentSpot = fullFormat;
@@ -231,7 +207,7 @@ void Logger_Log( LogSeverity severity, const char* fmt, ... )
 #if USING( WINDOWS_PROGRAM )
             if ( s_loggerLocations[i].IsSpecialWindowsConsole() )
             {
-                i32 windowsCode = TerminalCodesToWindowsCodes( colorCode, emphasisCode );
+                i32 windowsCode = TerminalCodesToWindowsCodes( color, emphasis );
                 HANDLE hConsole = GetStdHandle( s_loggerLocations[i].GetOutputFile() == stdout ? STD_OUTPUT_HANDLE : STD_ERROR_HANDLE );
                 SetConsoleTextAttribute( hConsole, windowsCode );
                 vfprintf( s_loggerLocations[i].GetOutputFile(), fullFormat, args );

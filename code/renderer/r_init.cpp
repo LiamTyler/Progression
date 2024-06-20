@@ -7,11 +7,11 @@
 #include "shared/logger.hpp"
 #include "vk-bootstrap/VkBootstrap.h"
 #include <cstring>
-
 #include <iostream>
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
-VkDescriptorSetLayout s_emptyDescriptSetLayout;
+
+#define SHADER_DEBUG_PRINTF USE_IF( !USING( SHIP_BUILD ) )
 
 namespace PG::Gfx
 {
@@ -21,7 +21,20 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 {
     PG_UNUSED( pUserData );
 
-    std::string messageTypeString;
+#if USING( SHADER_DEBUG_PRINTF )
+    if ( !strcmp( pCallbackData->pMessageIdName, "WARNING-DEBUG-PRINTF" ) )
+    {
+        std::string_view msg = pCallbackData->pMessage;
+        size_t idx           = msg.find( "vkQueueSubmit(): " );
+        PG_ASSERT( idx != std::string_view::npos );
+        idx += 17; // length of "vkQueueSubmit(): "
+        Logger_Log(
+            LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s", msg.substr( idx ).data() );
+        return VK_FALSE;
+    }
+#endif // #if USING( SHADER_DEBUG_PRINTF )
+
+    const char* messageTypeString;
     switch ( messageType )
     {
     case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: return VK_FALSE;
@@ -32,15 +45,15 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 
     if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT )
     {
-        LOG_ERR( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_ERR( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
     }
     else if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT )
     {
-        LOG_WARN( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG_WARN( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
     }
     else
     {
-        LOG( "Vulkan message type '%s': '%s'", messageTypeString.c_str(), pCallbackData->pMessage );
+        LOG( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
     }
 
     return VK_FALSE;
@@ -76,26 +89,43 @@ static void InitSyncObjects()
     rg.immediateFence = rg.device.NewFence( false, "immediate" );
 }
 
-bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
+static vkb::Result<vkb::Instance> GetInstance()
 {
-    PGP_ZONE_SCOPEDN( "R_Init" );
-    rg.currentFrameIdx = rg.totalFrameCount = 0;
-
     PGP_MANUAL_ZONEN( __tracyInstBuild, "Instance Builder" );
     vkb::InstanceBuilder builder;
-    builder.request_validation_layers( !USING( SHIP_BUILD ) );
+
+#if !USING( SHIP_BUILD )
+    builder.request_validation_layers( true );
+    builder.add_validation_feature_enable( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
     builder.set_debug_callback( DebugCallback );
+    VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+#if USING( SHADER_DEBUG_PRINTF )
+    debugMessageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+#endif // #if USING( SHADER_DEBUG_PRINTF )
+    builder.set_debug_messenger_severity( debugMessageSeverity );
+#endif // !USING( SHIP_BUILD )
+
     builder.require_api_version( 1, 3, 0 );
     auto inst_ret = builder.build();
     PGP_MANUAL_ZONE_END( __tracyInstBuild );
 
-    if ( !inst_ret )
+    return inst_ret;
+}
+
+bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
+{
+    PGP_ZONE_SCOPEDN( "R_Init" );
+    rg.currentFrameIdx = rg.totalFrameCount = 0;
+    rg.headless                             = headless;
+
+    auto instRet = GetInstance();
+    if ( !instRet )
     {
-        LOG_ERR( "Failed to create vulkan instance. Error: %s", inst_ret.error().message().c_str() );
+        LOG_ERR( "Failed to create vulkan instance. Error: %s", instRet.error().message().c_str() );
         return false;
     }
-
-    vkb::Instance vkb_inst = inst_ret.value();
+    vkb::Instance vkb_inst = instRet.value();
     rg.instance            = vkb_inst.instance;
     s_debugMessenger       = vkb_inst.debug_messenger;
 
@@ -184,13 +214,16 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     pDevSelector.add_required_extension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME );
+#if USING( SHADER_DEBUG_PRINTF )
+    pDevSelector.add_required_extension( VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME );
+#endif // #if USING( SHADER_DEBUG_PRINTF )
     pDevSelector.set_minimum_version( 1, 3 );
-    pDevSelector.require_present( !headless );
+    pDevSelector.require_present( !rg.headless );
     pDevSelector.set_required_features_13( features13 );
     pDevSelector.set_required_features_12( features12 );
     pDevSelector.set_required_features( features );
 
-    if ( !headless )
+    if ( !rg.headless )
         pDevSelector.set_surface( rg.surface );
 
     PGP_MANUAL_ZONEN( __prof__pDevSelect, "Physical Device Selection" );
@@ -272,7 +305,5 @@ void R_Shutdown()
     vkb::destroy_debug_utils_messenger( rg.instance, s_debugMessenger );
     vkDestroyInstance( rg.instance, nullptr );
 }
-
-VkDescriptorSetLayout GetEmptyDescriptorSetLayout() { return s_emptyDescriptSetLayout; }
 
 } // namespace PG::Gfx

@@ -237,9 +237,8 @@ void Task::Print( TaskGraph* taskGraph ) const
     }
 }
 
-void ComputeTask::Print( TaskGraph* taskGraph ) const
+void PipelineTask::Print( TaskGraph* taskGraph ) const
 {
-    LOG( "    Task Type: Compute" );
     LOG( "    Pre-Clear Image Barriers: %zu", imageBarriersPreClears.size() );
     for ( size_t i = 0; i < imageBarriersPreClears.size(); ++i )
     {
@@ -282,7 +281,7 @@ void ComputeTask::Print( TaskGraph* taskGraph ) const
     }
 
     LOG( "    Input Textures: %zu", inputTextures.size() );
-    for ( size_t i = 0; i < inputBuffers.size(); ++i )
+    for ( size_t i = 0; i < inputTextures.size(); ++i )
     {
         const Texture* tex = taskGraph->GetTexture( inputTextures[i] );
         LOG( "      [%zu]: Texture %u ('%s')", i, inputTextures[i], tex->GetDebugName() );
@@ -296,10 +295,16 @@ void ComputeTask::Print( TaskGraph* taskGraph ) const
     }
 }
 
+void ComputeTask::Print( TaskGraph* taskGraph ) const
+{
+    LOG( "    Task Type: Compute" );
+    PipelineTask::Print( taskGraph );
+}
+
 void GraphicsTask::Print( TaskGraph* taskGraph ) const
 {
     LOG( "    Task Type: Graphics" );
-    Task::Print( taskGraph );
+    PipelineTask::Print( taskGraph );
     LOG( "    Num Color Attachments: %zu", colorAttachments.size() );
     for ( size_t i = 0; i < colorAttachments.size(); ++i )
     {

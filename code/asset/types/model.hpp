@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
+#include "core/bounding_box.hpp"
 #include "core/feature_defines.hpp"
 #include "shared/math_vec.hpp"
 #include <vector>
@@ -25,26 +26,34 @@ struct Material;
 
 struct Mesh
 {
+    enum
+    {
+        VERTEX_BUFFER  = 0,
+        TRI_BUFFER     = 1,
+        MESHLET_BUFFER = 2,
+
+        BUFFER_COUNT = 3
+    };
+
 #if USING( ASSET_NAMES )
     std::string name;
 #endif // #if USING( ASSET_NAMES )
     Material* material;
+
+#if USING( GPU_DATA )
+    Gfx::Buffer* buffers;
+    u32 numVertices;
+    u32 numMeshlets;
+    bool hasTexCoords;
+    bool hasTangents;
+    u32 bindlessBuffersSlot;
+#else
     std::vector<Meshlet> meshlets;
     std::vector<vec3> positions;
     std::vector<vec3> normals;
     std::vector<vec2> texCoords;
     std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
     std::vector<u8> indices;
-
-#if USING( GPU_DATA )
-    Gfx::Buffer vertexBuffer;
-    Gfx::Buffer triBuffer;
-    Gfx::Buffer meshletBuffer;
-    u32 numVertices;
-    u32 numMeshlets;
-    bool hasTexCoords;
-    bool hasTangents;
-    u32 bindlessBuffersSlot;
 #endif // #if USING( GPU_DATA )
 };
 
@@ -63,11 +72,11 @@ struct Model : public BaseAsset
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
     void Free() override;
-    void UploadToGPU();
     void FreeCPU();
     void FreeGPU();
 
     std::vector<Mesh> meshes;
+    std::vector<AABB> meshAABBs;
 };
 
 } // namespace PG

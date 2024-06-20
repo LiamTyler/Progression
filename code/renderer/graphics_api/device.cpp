@@ -161,7 +161,7 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
 Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view name ) const
 {
     VkBufferCreateInfo vkBufInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    vkBufInfo.usage       = PGToVulkanBufferType( createInfo.bufferUsage );
+    vkBufInfo.usage       = PGToVulkanBufferType( createInfo.bufferUsage | BufferUsage::DEVICE_ADDRESS );
     vkBufInfo.size        = createInfo.size;
     vkBufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -171,7 +171,7 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
 
     Buffer buffer        = {};
     buffer.m_size        = createInfo.size;
-    buffer.m_bufferUsage = createInfo.bufferUsage;
+    buffer.m_bufferUsage = createInfo.bufferUsage | BufferUsage::DEVICE_ADDRESS;
     buffer.m_memoryUsage = createInfo.memoryUsage;
     VmaAllocationInfo allocReturnInfo;
     vmaCreateBuffer( m_vmaAllocator, &vkBufInfo, &vmaAllocInfo, &buffer.m_handle, &buffer.m_allocation, &allocReturnInfo );
@@ -184,6 +184,11 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
     PG_ASSERT( !( buffer.m_persistent && !buffer.m_coherent ), "Persistently mapped buffers should be coherent" );
 
     buffer.m_mappedPtr = buffer.m_persistent ? allocReturnInfo.pMappedData : nullptr;
+
+    VkBufferDeviceAddressInfo bdaInfo{};
+    bdaInfo.sType          = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+    bdaInfo.buffer         = buffer.m_handle;
+    buffer.m_deviceAddress = vkGetBufferDeviceAddress( m_handle, &bdaInfo );
 
     if ( createInfo.addToBindlessArray )
         buffer.m_bindlessIndex = BindlessManager::AddBuffer( &buffer );

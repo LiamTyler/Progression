@@ -24,7 +24,7 @@ constexpr i32 g_assetVersions[] = {
     9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
     10, // ASSET_TYPE_MATERIAL,  "New name serialization"
     1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
-    4,  // ASSET_TYPE_MODEL,     "Shorter mat name serialization"
+    5,  // ASSET_TYPE_MODEL,     "Adding mesh bounding boxes"
     4,  // ASSET_TYPE_SHADER,    "New name serialization"
     8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
     3,  // ASSET_TYPE_PIPELINE,  "New name serialization"

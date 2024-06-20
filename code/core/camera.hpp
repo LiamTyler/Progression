@@ -12,10 +12,8 @@ class Camera
 public:
     Camera();
 
-    void UpdateFrustum();
+    void Update();
     void UpdateOrientationVectors();
-    void UpdateViewMatrix();
-    void UpdateProjectionMatrix();
 
     mat4 GetV() const;
     mat4 GetP() const;
@@ -23,7 +21,7 @@ public:
     vec3 GetForwardDir() const;
     vec3 GetUpDir() const;
     vec3 GetRightDir() const;
-    Frustum GetFrustum() const;
+    const Frustum& GetFrustum() const;
 
     vec3 position;
     vec3 rotation;

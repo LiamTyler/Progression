@@ -14,11 +14,15 @@
     }},
 	{ "Skybox": "kloppenheim" },
 	{ "Script": "cameraController" },
-    { "_BackgroundColor": [ 0,0,1 ] },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
-    { "Entity": {
+    { "_Entity": {
         "NameComponent": "dragon",
         "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 90, 0, 90 ], "scale": [ 1, 1, 1 ] },
         "ModelRenderer": { "model": "dragon", "material": "green" }
+    }},
+    { "Entity": {
+        "NameComponent": "cube",
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "cube", "material": "test_normals_1" }
     }}
 ]

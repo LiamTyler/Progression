@@ -5,7 +5,7 @@
 namespace PG::Gfx
 {
 
-TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
+TGBTextureRef PipelineTaskBuilder::AddTextureOutput(
     std::string_view name, PixelFormat format, const vec4& clearColor, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels )
 {
     TGBTextureRef ref = builder->AddTexture( name, format, width, height, depth, arrayLayers, mipLevels, nullptr,
@@ -14,7 +14,7 @@ TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
     return ref;
 }
 
-TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
+TGBTextureRef PipelineTaskBuilder::AddTextureOutput(
     std::string_view name, PixelFormat format, u32 width, u32 height, u32 depth, u32 arrayLayers, u32 mipLevels )
 {
     TGBTextureRef ref = builder->AddTexture(
@@ -23,7 +23,7 @@ TGBTextureRef ComputeTaskBuilder::AddTextureOutput(
     return ref;
 }
 
-void ComputeTaskBuilder::AddTextureOutput( TGBTextureRef& ref )
+void PipelineTaskBuilder::AddTextureOutput( TGBTextureRef& ref )
 {
     builder->UpdateTextureLifetimeAndUsage( ref, taskHandle, VK_IMAGE_USAGE_STORAGE_BIT );
     for ( TGBTextureInfo& tInfo : textures )
@@ -38,7 +38,7 @@ void ComputeTaskBuilder::AddTextureOutput( TGBTextureRef& ref )
     textures.emplace_back( vec4( 0 ), ref, false, ResourceState::WRITE );
 }
 
-void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& ref )
+void PipelineTaskBuilder::AddTextureInput( TGBTextureRef& ref )
 {
     builder->UpdateTextureLifetimeAndUsage( ref, taskHandle, VK_IMAGE_USAGE_STORAGE_BIT );
 #if USING( TG_DEBUG )
@@ -51,20 +51,22 @@ void ComputeTaskBuilder::AddTextureInput( TGBTextureRef& ref )
     textures.emplace_back( vec4( 0 ), ref, false, ResourceState::READ );
 }
 
-TGBBufferRef ComputeTaskBuilder::AddBufferOutput(
+TGBBufferRef PipelineTaskBuilder::AddBufferOutput(
     std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal )
 {
     TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr, taskHandle.index );
     buffers.emplace_back( clearVal, ref, true, ResourceState::WRITE );
     return ref;
 }
-TGBBufferRef ComputeTaskBuilder::AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size )
+
+TGBBufferRef PipelineTaskBuilder::AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size )
 {
     TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr, taskHandle.index );
     buffers.emplace_back( 0, ref, false, ResourceState::WRITE );
     return ref;
 }
-void ComputeTaskBuilder::AddBufferOutput( TGBBufferRef& ref )
+
+void PipelineTaskBuilder::AddBufferOutput( TGBBufferRef& ref )
 {
     builder->UpdateBufferLifetime( ref, taskHandle );
     for ( TGBBufferInfo& bInfo : buffers )
@@ -78,7 +80,8 @@ void ComputeTaskBuilder::AddBufferOutput( TGBBufferRef& ref )
     }
     buffers.emplace_back( 0, ref, false, ResourceState::WRITE );
 }
-void ComputeTaskBuilder::AddBufferInput( TGBBufferRef& ref )
+
+void PipelineTaskBuilder::AddBufferInput( TGBBufferRef& ref )
 {
     builder->UpdateBufferLifetime( ref, taskHandle );
 #if USING( TG_DEBUG )
@@ -90,6 +93,7 @@ void ComputeTaskBuilder::AddBufferInput( TGBBufferRef& ref )
 #endif // #if USING( TG_DEBUG )
     buffers.emplace_back( 0, ref, false, ResourceState::READ );
 }
+
 void ComputeTaskBuilder::SetFunction( ComputeFunction func ) { function = func; }
 
 TGBTextureRef GraphicsTaskBuilder::AddColorAttachment(

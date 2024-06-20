@@ -16,15 +16,16 @@ Camera::Camera()
     nearPlane   = 0.1f;
     farPlane    = 100.0f;
     exposure    = 0.0f;
-    UpdateFrustum();
-    UpdateProjectionMatrix();
+    Update();
 }
 
-void Camera::UpdateFrustum()
+void Camera::Update()
 {
     UpdateOrientationVectors();
-    UpdateViewMatrix();
-    m_frustum.Update( vFov, nearPlane, farPlane, aspectRatio, position, m_currDir, m_currUp, m_currRight );
+
+    m_projectionMatrix = glm::perspective( vFov, aspectRatio, nearPlane, farPlane );
+    m_viewMatrix       = glm::lookAt( position, position + m_currDir, m_currUp );
+    m_frustum.ExtractFromVPMatrix( GetVP() );
 }
 
 void Camera::UpdateOrientationVectors()
@@ -37,17 +38,13 @@ void Camera::UpdateOrientationVectors()
     m_currRight = Cross( m_currDir, m_currUp );
 }
 
-void Camera::UpdateViewMatrix() { m_viewMatrix = lookAt( position, position + m_currDir, m_currUp ); }
-
-void Camera::UpdateProjectionMatrix() { m_projectionMatrix = glm::perspective( vFov, aspectRatio, nearPlane, farPlane ); }
-
 mat4 Camera::GetV() const { return m_viewMatrix; }
 mat4 Camera::GetP() const { return m_projectionMatrix; }
 mat4 Camera::GetVP() const { return m_projectionMatrix * m_viewMatrix; }
 vec3 Camera::GetForwardDir() const { return m_currDir; }
 vec3 Camera::GetUpDir() const { return m_currUp; }
 vec3 Camera::GetRightDir() const { return m_currRight; }
-Frustum Camera::GetFrustum() const { return m_frustum; }
+const Frustum& Camera::GetFrustum() const { return m_frustum; }
 
 void RegisterLuaFunctions_Camera( lua_State* L )
 {
@@ -59,10 +56,8 @@ void RegisterLuaFunctions_Camera( lua_State* L )
     camera_type["aspectRatio"]              = &Camera::aspectRatio;
     camera_type["nearPlane"]                = &Camera::nearPlane;
     camera_type["farPlane"]                 = &Camera::farPlane;
-    camera_type["UpdateFrustum"]            = &Camera::UpdateFrustum;
+    camera_type["Update"]                   = &Camera::Update;
     camera_type["UpdateOrientationVectors"] = &Camera::UpdateOrientationVectors;
-    camera_type["UpdateViewMatrix"]         = &Camera::UpdateViewMatrix;
-    camera_type["UpdateProjectionMatrix"]   = &Camera::UpdateProjectionMatrix;
     camera_type["GetV"]                     = &Camera::GetV;
     camera_type["GetP"]                     = &Camera::GetP;
     camera_type["GetVP"]                    = &Camera::GetVP;

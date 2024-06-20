@@ -91,7 +91,7 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
     {
         TGBBuffer& buildBuffer  = builder.buffers[i];
         Buffer& gfxBuffer       = m_buffers[i];
-        gfxBuffer.m_bufferUsage = buildBuffer.bufferUsage;
+        gfxBuffer.m_bufferUsage = buildBuffer.bufferUsage | BufferUsage::DEVICE_ADDRESS;
         gfxBuffer.m_memoryUsage = buildBuffer.memoryUsage; // TODO: support others?
         gfxBuffer.m_mappedPtr   = nullptr;
         gfxBuffer.m_size        = buildBuffer.size;
@@ -114,8 +114,8 @@ void TaskGraph::Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& 
         ResourceData& data = resourceDatas.emplace_back();
         data.resType       = ResourceType::BUFFER;
         data.bufRef        = { (TGResourceHandle)i };
-        data.firstTask     = builder.textureLifetimes[i].firstTask;
-        data.lastTask      = builder.textureLifetimes[i].lastTask;
+        data.firstTask     = builder.bufferLifetimes[i].firstTask;
+        data.lastTask      = builder.bufferLifetimes[i].lastTask;
 
         VkBufferCreateInfo info{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
         info.usage = PGToVulkanBufferType( gfxBuffer.m_bufferUsage ) | VK_BUFFER_USAGE_TRANSFER_SRC_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
@@ -190,9 +190,14 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
             }
             else
             {
-                VkBuffer buf = m_buffers[bRes.resHandle.index].m_handle;
-                VK_CHECK( vmaBindBufferMemory2( allocator, alloc, bRes.offset, buf, nullptr ) );
+                Buffer& buf = m_buffers[bRes.resHandle.index];
+                VK_CHECK( vmaBindBufferMemory2( allocator, alloc, bRes.offset, buf.m_handle, nullptr ) );
                 TG_STAT( LOG( "    Buf %u '%s'. Offset: %zu, Size: %zu", resIdx, m_buffers[resIdx].debugName, bRes.offset, bRes.size ) );
+
+                VkBufferDeviceAddressInfo bdaInfo{};
+                bdaInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
+                bdaInfo.buffer      = buf;
+                buf.m_deviceAddress = vkGetBufferDeviceAddress( rg.device, &bdaInfo );
             }
         }
     }
@@ -223,24 +228,11 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
 }
 
 // if we knew the specific shader stages the buffer was used in, we could a lot more specific with the stages here
-static VkPipelineStageFlags2 GetGeneralStageFlags( TaskType taskType )
+static VkPipelineStageFlags2 GetStageFlags( TaskType taskType, BufferUsage bufUsage = BufferUsage::NONE )
 {
     switch ( taskType )
     {
     case TaskType::NONE: return VK_PIPELINE_STAGE_2_NONE;
-    case TaskType::COMPUTE: return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-    case TaskType::GRAPHICS: return VK_PIPELINE_STAGE_2_ALL_GRAPHICS_BIT;
-    case TaskType::TRANSFER: return VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
-    }
-
-    return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
-}
-
-static VkPipelineStageFlags2 GetDstStageFlags( TaskType taskType, BufferUsage bufUsage )
-{
-    TG_ASSERT( taskType != TaskType::NONE );
-    switch ( taskType )
-    {
     case TaskType::COMPUTE: return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
     case TaskType::GRAPHICS:
     {
@@ -260,7 +252,35 @@ static VkPipelineStageFlags2 GetDstStageFlags( TaskType taskType, BufferUsage bu
     return VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
 }
 
-static VkAccessFlags2 GetAccessFlags( TaskType taskType, ResourceState resState, ResourceType resType = ResourceType::NONE )
+static VkAccessFlags2 GetAccessFlagsBuffer( TaskType taskType, ResourceState resState, BufferUsage bufUsage = BufferUsage::NONE )
+{
+    switch ( taskType )
+    {
+    case TaskType::COMPUTE:
+    case TaskType::GRAPHICS:
+    {
+        if ( IsSet( bufUsage, BufferUsage::INDIRECT ) )
+            return VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+
+        if ( resState == ResourceState::READ )
+            return VK_ACCESS_2_SHADER_READ_BIT;
+        else if ( resState == ResourceState::WRITE )
+            return VK_ACCESS_2_SHADER_WRITE_BIT;
+        else
+            return VK_ACCESS_2_SHADER_READ_BIT | VK_ACCESS_2_SHADER_WRITE_BIT;
+    }
+    case TaskType::TRANSFER:
+    {
+        TG_ASSERT( resState != ResourceState::READ_WRITE );
+        return resState == ResourceState::READ ? VK_ACCESS_2_TRANSFER_READ_BIT : VK_ACCESS_2_TRANSFER_WRITE_BIT;
+    }
+    case TaskType::PRESENT: return VK_ACCESS_2_NONE;
+    }
+
+    return VK_ACCESS_2_NONE;
+}
+
+static VkAccessFlags2 GetAccessFlagsTexture( TaskType taskType, ResourceState resState, ResourceType resType = ResourceType::NONE )
 {
     switch ( taskType )
     {
@@ -326,20 +346,34 @@ static ImageLayout GetImageLayoutFromType( ResourceType type )
     return ImageLayout::GENERAL;
 }
 
+static ImageLayout InferImageLayout( TaskType taskType, ResourceState state, PixelFormat pixelFormat )
+{
+    ImageLayout layout = ImageLayout::GENERAL;
+    if ( taskType == TaskType::GRAPHICS )
+    {
+        if ( state == ResourceState::READ )
+        {
+            bool hasDepth   = PixelFormatHasDepthFormat( pixelFormat );
+            bool hasStencil = PixelFormatHasStencil( pixelFormat );
+            if ( hasDepth && hasStencil )
+                layout = ImageLayout::DEPTH_STENCIL_READ_ONLY;
+            else if ( hasDepth )
+                layout = ImageLayout::DEPTH_READ_ONLY;
+            else if ( hasStencil )
+                layout = ImageLayout::STENCIL_READ_ONLY;
+            else
+                layout = ImageLayout::SHADER_READ_ONLY;
+        }
+    }
+
+    return layout;
+}
+
 void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, CompileInfo& compileInfo )
 {
     // create tasks + figure out synchronization barriers needed
-    static constexpr u16 NO_TASK = UINT16_MAX;
-    struct ResourceTrackingInfo
-    {
-        ImageLayout currLayout = ImageLayout::UNDEFINED;
-        u16 prevTask           = NO_TASK;
-        TaskType prevTaskType  = TaskType::NONE;
-        ResourceState prevState;
-        ResourceType prevResType = ResourceType::NONE;
-    };
-    std::vector<ResourceTrackingInfo> texTracking( builder.textures.size() );
-    std::vector<ResourceTrackingInfo> bufTracking( builder.buffers.size() );
+    builder.texTracking.resize( builder.textures.size() );
+    builder.bufTracking.resize( builder.buffers.size() );
 
     m_tasks.reserve( builder.tasks.size() );
     for ( u16 taskIndex = 0; taskIndex < (u16)builder.tasks.size(); ++taskIndex )
@@ -350,313 +384,19 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
         TaskType taskType = builderTask->taskHandle.type;
         if ( taskType == TaskType::COMPUTE )
         {
-            TG_STAT( m_stats.numComputeTasks++ );
-            ComputeTaskBuilder* bcTask = static_cast<ComputeTaskBuilder*>( builderTask );
-            ComputeTask* cTask         = new ComputeTask;
-            task                       = cTask;
-            cTask->function            = bcTask->function;
-            TG_ASSERT( cTask->function, "Compute tasks are required to have a function!" );
-
-            for ( const TGBBufferInfo& bufInfo : bcTask->buffers )
-            {
-                TGResourceHandle index          = bufInfo.ref.index;
-                const TGBBuffer& buildBuffer    = builder.buffers[index];
-                ResourceTrackingInfo& trackInfo = bufTracking[index];
-                ResourceType resType            = ResourceType::BUFFER;
-                if ( bufInfo.isCleared )
-                {
-                    TG_ASSERT(
-                        trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
-                        "Shouldn't be clearing a texture you just wrote to" );
-                    TG_ASSERT( bufInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
-                    cTask->bufferClears.emplace_back( index, bufInfo.clearVal );
-
-                    // barrier to wait for the clear to be done before running the actual task
-                    VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-                    barrier.srcStageMask  = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
-                    barrier.srcAccessMask = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                    barrier.dstStageMask  = GetDstStageFlags( taskType, buildBuffer.bufferUsage );
-                    barrier.dstAccessMask = GetAccessFlags( taskType, bufInfo.state );
-                    barrier.size          = VK_WHOLE_SIZE;
-                    barrier.buffer        = reinterpret_cast<VkBuffer>( index );
-                    task->bufferBarriers.push_back( barrier );
-                }
-                else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )
-                {
-                    // barrier to wait for any previous writes to be complete
-                    VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
-                    barrier.srcStageMask  = GetGeneralStageFlags( trackInfo.prevTaskType );
-                    barrier.srcAccessMask = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState );
-                    barrier.dstStageMask  = GetDstStageFlags( taskType, buildBuffer.bufferUsage );
-                    barrier.dstAccessMask = GetAccessFlags( taskType, bufInfo.state );
-                    barrier.size          = VK_WHOLE_SIZE;
-                    barrier.buffer        = reinterpret_cast<VkBuffer>( index );
-                    task->bufferBarriers.push_back( barrier );
-                }
-
-                if ( bufInfo.state == ResourceState::READ || bufInfo.state == ResourceState::READ_WRITE )
-                    cTask->inputBuffers.push_back( index );
-                if ( bufInfo.state == ResourceState::WRITE || bufInfo.state == ResourceState::READ_WRITE )
-                    cTask->outputBuffers.push_back( index );
-
-                trackInfo.prevTask     = taskIndex;
-                trackInfo.prevState    = bufInfo.state;
-                trackInfo.prevTaskType = taskType;
-                trackInfo.prevResType  = resType;
-            }
-
-            for ( const TGBTextureInfo& texInfo : bcTask->textures )
-            {
-                TGResourceHandle index          = texInfo.ref.index;
-                const TGBTexture& buildTexture  = builder.textures[index];
-                ResourceTrackingInfo& trackInfo = texTracking[index];
-                ResourceType resType            = ResourceType::TEXTURE;
-                if ( texInfo.isCleared )
-                {
-                    TG_ASSERT(
-                        trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
-                        "Shouldn't be clearing a texture you just wrote to" );
-                    TG_ASSERT( texInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
-                    cTask->textureClears.emplace_back( index, texInfo.clearColor );
-
-                    // image layout transition, if necessary
-                    if ( trackInfo.currLayout != ImageLayout::TRANSFER_DST )
-                    {
-                        VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-                        barrier.srcStageMask     = VK_PIPELINE_STAGE_2_NONE;
-                        barrier.srcAccessMask    = VK_ACCESS_2_NONE;
-                        barrier.dstStageMask     = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-                        barrier.dstAccessMask    = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                        barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
-                        barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
-                        barrier.image            = reinterpret_cast<VkImage>( index );
-                        barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
-                        cTask->imageBarriersPreClears.push_back( barrier );
-                    }
-
-                    // barrier to wait for the clear to be done before running the actual task
-                    VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-                    barrier.srcStageMask     = VK_PIPELINE_STAGE_2_ALL_TRANSFER_BIT;
-                    barrier.srcAccessMask    = VK_ACCESS_2_TRANSFER_WRITE_BIT;
-                    barrier.dstStageMask     = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
-                    barrier.dstAccessMask    = VK_ACCESS_2_SHADER_WRITE_BIT;
-                    barrier.oldLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
-                    barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
-                    barrier.image            = reinterpret_cast<VkImage>( index );
-                    barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
-                    task->imageBarriers.push_back( barrier );
-                }
-                else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )
-                {
-                    // barrier to wait for any previous writes to be complete
-                    VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-                    barrier.srcStageMask     = GetGeneralStageFlags( trackInfo.prevTaskType );
-                    barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType );
-                    barrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                    barrier.dstAccessMask    = GetAccessFlags( taskType, texInfo.state, resType );
-                    barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
-                    barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
-                    barrier.image            = reinterpret_cast<VkImage>( index );
-                    barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
-                    task->imageBarriers.push_back( barrier );
-                }
-                else if ( trackInfo.prevTask == NO_TASK )
-                {
-                    TG_ASSERT( trackInfo.currLayout == ImageLayout::UNDEFINED, "Should be the first use of this texture" );
-                    VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-                    barrier.srcStageMask     = VK_PIPELINE_STAGE_2_NONE;
-                    barrier.srcAccessMask    = VK_ACCESS_2_NONE;
-                    barrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                    barrier.dstAccessMask    = GetAccessFlags( taskType, texInfo.state );
-                    barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
-                    barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::GENERAL );
-                    barrier.image            = reinterpret_cast<VkImage>( index );
-                    barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
-                    task->imageBarriers.push_back( barrier );
-                }
-
-                if ( texInfo.state == ResourceState::READ || texInfo.state == ResourceState::READ_WRITE )
-                    cTask->inputTextures.push_back( index );
-                if ( texInfo.state == ResourceState::WRITE || texInfo.state == ResourceState::READ_WRITE )
-                    cTask->outputTextures.push_back( index );
-
-                trackInfo.currLayout   = ImageLayout::GENERAL;
-                trackInfo.prevTask     = taskIndex;
-                trackInfo.prevState    = texInfo.state;
-                trackInfo.prevTaskType = taskType;
-                trackInfo.prevResType  = resType;
-            }
-
-            TG_STAT( m_stats.numBarriers_Image += (u32)cTask->imageBarriersPreClears.size() );
+            task = Compile_ComputeTask( builderTask, builder, compileInfo );
         }
         else if ( taskType == TaskType::GRAPHICS )
         {
-            TG_STAT( m_stats.numGraphicsTasks++ );
-            GraphicsTaskBuilder* bgTask = static_cast<GraphicsTaskBuilder*>( builderTask );
-            GraphicsTask* gTask         = new GraphicsTask;
-            task                        = gTask;
-            gTask->function             = bgTask->function;
-
-            u32 minAttachWidth  = ~0u;
-            u32 minAttachHeight = ~0u;
-            for ( const TGBAttachmentInfo& bAttachInfo : bgTask->attachments )
-            {
-                TGResourceHandle texHandle      = bAttachInfo.ref.index;
-                const Texture& tex              = m_textures[texHandle];
-                ResourceTrackingInfo& trackInfo = texTracking[texHandle];
-                bool isDepthAttach              = PixelFormatHasDepthFormat( tex.GetPixelFormat() );
-                ResourceType resType            = bAttachInfo.type;
-
-                ImageLayout desiredLayout = GetImageLayoutFromType( bAttachInfo.type );
-                if ( trackInfo.currLayout != desiredLayout )
-                {
-                    VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-                    barrier.srcStageMask     = GetGeneralStageFlags( trackInfo.prevTaskType );
-                    barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType );
-                    barrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                    barrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::WRITE, resType );
-                    barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
-                    barrier.newLayout        = PGToVulkanImageLayout( desiredLayout );
-                    barrier.image            = reinterpret_cast<VkImage>( texHandle );
-                    barrier.subresourceRange = ImageSubresourceRange( GetImageAspectFromFormat( tex.GetPixelFormat() ) );
-                    gTask->imageBarriers.push_back( barrier );
-                }
-
-                VkRenderingAttachmentInfo* vkAttach;
-                if ( isDepthAttach )
-                {
-                    TG_ASSERT( !gTask->depthAttach, "can't have multiple depth attachments" );
-                    gTask->depthAttach = new VkRenderingAttachmentInfo;
-                    vkAttach           = gTask->depthAttach;
-                }
-                else
-                {
-                    vkAttach = &gTask->colorAttachments.emplace_back();
-                }
-                vkAttach->sType              = VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO;
-                vkAttach->pNext              = nullptr;
-                vkAttach->imageView          = reinterpret_cast<VkImageView>( texHandle );
-                vkAttach->imageLayout        = PGToVulkanImageLayout( desiredLayout );
-                vkAttach->resolveMode        = VK_RESOLVE_MODE_NONE;
-                vkAttach->resolveImageView   = VK_NULL_HANDLE;
-                vkAttach->resolveImageLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-                vkAttach->storeOp            = VK_ATTACHMENT_STORE_OP_STORE;
-                if ( bAttachInfo.isCleared )
-                    vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
-                else if ( trackInfo.currLayout == ImageLayout::UNDEFINED )
-                    vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
-                else
-                    vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
-
-                TG_ASSERT( !PixelFormatHasStencil( tex.GetPixelFormat() ), "handle stencil clears" );
-                if ( isDepthAttach )
-                    vkAttach->clearValue.depthStencil.depth = bAttachInfo.clearColor.x;
-                else
-                    memcpy( vkAttach->clearValue.color.float32, &bAttachInfo.clearColor.x, sizeof( vec4 ) );
-
-                minAttachWidth  = Min( minAttachWidth, m_textures[texHandle].GetWidth() );
-                minAttachHeight = Min( minAttachHeight, m_textures[texHandle].GetHeight() );
-
-                trackInfo.currLayout   = desiredLayout;
-                trackInfo.prevTask     = taskIndex;
-                trackInfo.prevState    = ResourceState::WRITE;
-                trackInfo.prevTaskType = taskType;
-                trackInfo.prevResType  = resType;
-            }
-
-            gTask->renderingInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
-            gTask->renderingInfo.pNext                = nullptr;
-            gTask->renderingInfo.flags                = 0;
-            gTask->renderingInfo.renderArea           = { 0, 0, minAttachWidth, minAttachHeight };
-            gTask->renderingInfo.layerCount           = 1;
-            gTask->renderingInfo.viewMask             = 0;
-            gTask->renderingInfo.colorAttachmentCount = (u32)gTask->colorAttachments.size();
-            gTask->renderingInfo.pColorAttachments    = gTask->colorAttachments.data();
-            gTask->renderingInfo.pDepthAttachment     = gTask->depthAttach;
-            gTask->renderingInfo.pStencilAttachment   = nullptr;
+            task = Compile_GraphicsTask( builderTask, builder, compileInfo );
         }
         else if ( taskType == TaskType::TRANSFER )
         {
-            TG_STAT( m_stats.numTransferTasks++ );
-            TransferTaskBuilder* btTask = static_cast<TransferTaskBuilder*>( builderTask );
-            TransferTask* tTask         = new TransferTask;
-            task                        = tTask;
-
-            for ( const TGBTextureTransfer& transfer : btTask->textureBlits )
-            {
-                ResourceTrackingInfo& srcTrackInfo = texTracking[transfer.src.index];
-                ResourceTrackingInfo& dstTrackInfo = texTracking[transfer.dst.index];
-                TG_ASSERT( srcTrackInfo.prevTask != NO_TASK && srcTrackInfo.currLayout != ImageLayout::UNDEFINED,
-                    "Need valid data to blit to another image!" );
-
-                ResourceType resType = ResourceType::TEXTURE;
-                VkImageMemoryBarrier2 srcBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-                srcBarrier.srcStageMask     = GetGeneralStageFlags( srcTrackInfo.prevTaskType );
-                srcBarrier.srcAccessMask    = GetAccessFlags( srcTrackInfo.prevTaskType, srcTrackInfo.prevState, srcTrackInfo.prevResType );
-                srcBarrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                srcBarrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::READ, resType );
-                srcBarrier.oldLayout        = PGToVulkanImageLayout( srcTrackInfo.currLayout );
-                srcBarrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_SRC );
-                srcBarrier.image            = reinterpret_cast<VkImage>( transfer.src.index );
-                srcBarrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
-                tTask->imageBarriers.push_back( srcBarrier );
-
-                VkImageMemoryBarrier2 dstBarrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-                dstBarrier.srcStageMask     = GetGeneralStageFlags( dstTrackInfo.prevTaskType );
-                dstBarrier.srcAccessMask    = GetAccessFlags( dstTrackInfo.prevTaskType, dstTrackInfo.prevState, dstTrackInfo.prevResType );
-                dstBarrier.dstStageMask     = GetGeneralStageFlags( taskType );
-                dstBarrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::WRITE, resType );
-                dstBarrier.oldLayout        = PGToVulkanImageLayout( dstTrackInfo.currLayout );
-                dstBarrier.newLayout        = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
-                dstBarrier.image            = reinterpret_cast<VkImage>( transfer.dst.index );
-                dstBarrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT ); // todo: support depth + stencil
-                task->imageBarriers.push_back( dstBarrier );
-
-                srcTrackInfo.currLayout   = ImageLayout::TRANSFER_SRC;
-                srcTrackInfo.prevTask     = taskIndex;
-                srcTrackInfo.prevState    = ResourceState::READ;
-                srcTrackInfo.prevTaskType = taskType;
-                srcTrackInfo.prevResType  = resType;
-
-                dstTrackInfo.currLayout   = ImageLayout::TRANSFER_DST;
-                dstTrackInfo.prevTask     = taskIndex;
-                dstTrackInfo.prevState    = ResourceState::WRITE;
-                dstTrackInfo.prevTaskType = taskType;
-                dstTrackInfo.prevResType  = resType;
-
-                tTask->textureBlits.emplace_back( transfer.dst.index, transfer.src.index );
-            }
+            task = Compile_TransferTask( builderTask, builder, compileInfo );
         }
         else if ( taskType == TaskType::PRESENT )
         {
-            PresentTaskBuilder* bpTask = static_cast<PresentTaskBuilder*>( builderTask );
-            PresentTask* pTask         = new PresentTask;
-            task                       = pTask;
-
-            ResourceTrackingInfo& trackInfo = texTracking[bpTask->presentationTex.index];
-            TG_ASSERT( trackInfo.prevTask != NO_TASK && trackInfo.currLayout != ImageLayout::UNDEFINED,
-                "Need to have written data to the image you're about to present!" );
-
-            VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
-            barrier.srcStageMask     = GetGeneralStageFlags( trackInfo.prevTaskType );
-            barrier.srcAccessMask    = GetAccessFlags( trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType );
-            barrier.dstStageMask     = GetGeneralStageFlags( taskType );
-            barrier.dstAccessMask    = GetAccessFlags( taskType, ResourceState::READ );
-            barrier.oldLayout        = PGToVulkanImageLayout( trackInfo.currLayout );
-            barrier.newLayout        = PGToVulkanImageLayout( ImageLayout::PRESENT_SRC_KHR );
-            barrier.image            = reinterpret_cast<VkImage>( bpTask->presentationTex.index );
-            barrier.subresourceRange = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
-            pTask->imageBarriers.push_back( barrier );
-
-            trackInfo.currLayout   = ImageLayout::PRESENT_SRC_KHR;
-            trackInfo.prevTask     = taskIndex;
-            trackInfo.prevState    = ResourceState::READ;
-            trackInfo.prevTaskType = taskType;
-            trackInfo.prevResType  = ResourceType::TEXTURE;
-        }
-        else
-        {
-            TG_ASSERT( false, "Need to handle this new task type!" );
+            task = Compile_PresentTask( builderTask, builder, compileInfo );
         }
 
 #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
@@ -667,6 +407,278 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
 
         m_tasks.push_back( task );
     }
+}
+
+VkBufferMemoryBarrier2 GetBufferBarrier( TGResourceHandle bufIndex, TaskType srcTType, ResourceState srcState, TaskType dstTType,
+    ResourceState dstState, BufferUsage dstBufferUsage )
+{
+    VkBufferMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
+    barrier.srcStageMask  = GetStageFlags( srcTType );
+    barrier.srcAccessMask = GetAccessFlagsBuffer( srcTType, srcState );
+    barrier.dstStageMask  = GetStageFlags( dstTType, dstBufferUsage );
+    barrier.dstAccessMask = GetAccessFlagsBuffer( dstTType, dstState, dstBufferUsage );
+    barrier.size          = VK_WHOLE_SIZE;
+    barrier.buffer        = reinterpret_cast<VkBuffer>( bufIndex );
+
+    return barrier;
+}
+
+VkImageMemoryBarrier2 GetImageBarrier( TGResourceHandle imageIndex, TaskType srcTType, ResourceState srcState, ResourceType srcResType,
+    TaskType dstTType, ResourceState dstState, ResourceType dstResType, ImageLayout oldLayout, ImageLayout newLayout )
+{
+    VkImageMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER_2 };
+    barrier.srcStageMask  = GetStageFlags( srcTType );
+    barrier.srcAccessMask = GetAccessFlagsTexture( srcTType, srcState, srcResType );
+    barrier.dstStageMask  = GetStageFlags( dstTType );
+    barrier.dstAccessMask = GetAccessFlagsTexture( dstTType, dstState, dstResType );
+    barrier.oldLayout     = PGToVulkanImageLayout( oldLayout );
+    barrier.newLayout     = PGToVulkanImageLayout( newLayout );
+    barrier.image         = reinterpret_cast<VkImage>( imageIndex );
+
+    VkImageAspectFlags aspect = VK_IMAGE_ASPECT_COLOR_BIT;
+    if ( newLayout == ImageLayout::DEPTH_READ_ONLY || newLayout == ImageLayout::DEPTH_ATTACHMENT )
+        aspect = VK_IMAGE_ASPECT_DEPTH_BIT;
+    else if ( newLayout == ImageLayout::STENCIL_READ_ONLY || newLayout == ImageLayout::STENCIL_ATTACHMENT )
+        aspect = VK_IMAGE_ASPECT_STENCIL_BIT;
+    else if ( newLayout == ImageLayout::DEPTH_STENCIL_READ_ONLY || newLayout == ImageLayout::DEPTH_STENCIL_ATTACHMENT ||
+              newLayout == ImageLayout::DEPTH_READ_ONLY_STENCIL_ATTACHMENT || newLayout == ImageLayout::DEPTH_ATTACHMENT_STENCIL_READ_ONLY )
+        aspect = VK_IMAGE_ASPECT_DEPTH_BIT | VK_IMAGE_ASPECT_STENCIL_BIT;
+    barrier.subresourceRange = ImageSubresourceRange( aspect );
+
+    return barrier;
+}
+
+void TaskGraph::Compile_PipelineTask( PipelineTask* pTask, PipelineTaskBuilder* bpTask, TaskGraphBuilder& builder )
+{
+    u16 taskIndex     = bpTask->taskHandle.index;
+    TaskType taskType = bpTask->taskHandle.type;
+    for ( const TGBBufferInfo& bufInfo : bpTask->buffers )
+    {
+        TGResourceHandle index          = bufInfo.ref.index;
+        const TGBBuffer& buildBuffer    = builder.buffers[index];
+        ResourceTrackingInfo& trackInfo = builder.bufTracking[index];
+        ResourceType resType            = ResourceType::BUFFER;
+        if ( bufInfo.isCleared )
+        {
+            TG_ASSERT( trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
+                "Shouldn't be clearing a texture you just wrote to" );
+            TG_ASSERT( bufInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
+            pTask->bufferClears.emplace_back( index, bufInfo.clearVal );
+
+            VkBufferMemoryBarrier2 barrier =
+                GetBufferBarrier( index, TaskType::TRANSFER, ResourceState::WRITE, taskType, bufInfo.state, buildBuffer.bufferUsage );
+            pTask->bufferBarriers.push_back( barrier );
+        }
+        else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )
+        {
+            // barrier to wait for any previous writes to be complete
+            VkBufferMemoryBarrier2 barrier =
+                GetBufferBarrier( index, trackInfo.prevTaskType, trackInfo.prevState, taskType, bufInfo.state, buildBuffer.bufferUsage );
+            pTask->bufferBarriers.push_back( barrier );
+        }
+
+        if ( bufInfo.state == ResourceState::READ || bufInfo.state == ResourceState::READ_WRITE )
+            pTask->inputBuffers.push_back( index );
+        if ( bufInfo.state == ResourceState::WRITE || bufInfo.state == ResourceState::READ_WRITE )
+            pTask->outputBuffers.push_back( index );
+
+        trackInfo = ResourceTrackingInfo( taskIndex, taskType, bufInfo.state, resType );
+    }
+
+    for ( const TGBTextureInfo& texInfo : bpTask->textures )
+    {
+        TGResourceHandle index          = texInfo.ref.index;
+        const TGBTexture& buildTexture  = builder.textures[index];
+        ResourceTrackingInfo& trackInfo = builder.texTracking[index];
+        ResourceType resType            = ResourceType::TEXTURE;
+        ImageLayout desiredLayout       = InferImageLayout( taskType, texInfo.state, buildTexture.format );
+
+        if ( texInfo.isCleared )
+        {
+            TG_ASSERT( trackInfo.prevTask == NO_TASK || ( trackInfo.prevTask != NO_TASK && trackInfo.prevState == ResourceState::READ ),
+                "Shouldn't be clearing a texture you just wrote to" );
+            TG_ASSERT( texInfo.state == ResourceState::WRITE, "Don't think reading from a just-cleared resource is intended" );
+            pTask->textureClears.emplace_back( index, texInfo.clearColor );
+
+            // image layout transition, if necessary
+            if ( trackInfo.currLayout != ImageLayout::TRANSFER_DST )
+            {
+                VkImageMemoryBarrier2 barrier = GetImageBarrier( index, TaskType::NONE, ResourceState::UNUSED, trackInfo.prevResType,
+                    TaskType::TRANSFER, ResourceState::WRITE, resType, trackInfo.currLayout, ImageLayout::TRANSFER_DST );
+                pTask->imageBarriersPreClears.push_back( barrier );
+            }
+
+            // barrier to wait for the clear to be done before running the actual task
+            VkImageMemoryBarrier2 barrier = GetImageBarrier( index, TaskType::TRANSFER, ResourceState::WRITE, trackInfo.prevResType,
+                taskType, ResourceState::WRITE, resType, ImageLayout::TRANSFER_DST, desiredLayout );
+            pTask->imageBarriers.push_back( barrier );
+        }
+        else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )
+        {
+            // barrier to wait for any previous writes to be complete
+            VkImageMemoryBarrier2 barrier = GetImageBarrier( index, trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType,
+                taskType, texInfo.state, resType, trackInfo.currLayout, desiredLayout );
+            pTask->imageBarriers.push_back( barrier );
+        }
+        else if ( trackInfo.prevTask == NO_TASK )
+        {
+            TG_ASSERT( trackInfo.currLayout == ImageLayout::UNDEFINED, "Should be the first use of this texture" );
+            VkImageMemoryBarrier2 barrier = GetImageBarrier( index, TaskType::NONE, ResourceState::UNUSED, trackInfo.prevResType, taskType,
+                texInfo.state, resType, trackInfo.currLayout, desiredLayout );
+            pTask->imageBarriers.push_back( barrier );
+        }
+
+        if ( texInfo.state == ResourceState::READ || texInfo.state == ResourceState::READ_WRITE )
+            pTask->inputTextures.push_back( index );
+        if ( texInfo.state == ResourceState::WRITE || texInfo.state == ResourceState::READ_WRITE )
+            pTask->outputTextures.push_back( index );
+
+        trackInfo = ResourceTrackingInfo( ImageLayout::GENERAL, taskIndex, taskType, texInfo.state, resType );
+    }
+
+    TG_STAT( m_stats.numBarriers_Image += (u32)pTask->imageBarriersPreClears.size() );
+}
+
+Task* TaskGraph::Compile_ComputeTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo )
+{
+    TG_STAT( m_stats.numComputeTasks++ );
+    ComputeTaskBuilder* bcTask = static_cast<ComputeTaskBuilder*>( builderTask );
+    ComputeTask* cTask         = new ComputeTask;
+    cTask->function            = bcTask->function;
+    TG_ASSERT( cTask->function, "Compute tasks are required to have a function!" );
+    Compile_PipelineTask( cTask, bcTask, builder );
+
+    return cTask;
+}
+
+Task* TaskGraph::Compile_GraphicsTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo )
+{
+    TG_STAT( m_stats.numGraphicsTasks++ );
+    GraphicsTaskBuilder* bgTask = static_cast<GraphicsTaskBuilder*>( builderTask );
+    GraphicsTask* gTask         = new GraphicsTask;
+    gTask->function             = bgTask->function;
+    Compile_PipelineTask( gTask, bgTask, builder );
+
+    u16 taskIndex       = builderTask->taskHandle.index;
+    TaskType taskType   = builderTask->taskHandle.type;
+    u32 minAttachWidth  = ~0u;
+    u32 minAttachHeight = ~0u;
+    for ( const TGBAttachmentInfo& bAttachInfo : bgTask->attachments )
+    {
+        TGResourceHandle texHandle      = bAttachInfo.ref.index;
+        const Texture& tex              = m_textures[texHandle];
+        ResourceTrackingInfo& trackInfo = builder.texTracking[texHandle];
+        bool isDepthAttach              = PixelFormatHasDepthFormat( tex.GetPixelFormat() );
+        ResourceType resType            = bAttachInfo.type;
+
+        ImageLayout desiredLayout = GetImageLayoutFromType( bAttachInfo.type );
+        if ( trackInfo.currLayout != desiredLayout )
+        {
+            VkImageMemoryBarrier2 barrier = GetImageBarrier( texHandle, trackInfo.prevTaskType, trackInfo.prevState, trackInfo.prevResType,
+                taskType, ResourceState::WRITE, resType, trackInfo.currLayout, desiredLayout );
+            gTask->imageBarriers.push_back( barrier );
+        }
+
+        VkRenderingAttachmentInfo* vkAttach;
+        if ( isDepthAttach )
+        {
+            TG_ASSERT( !gTask->depthAttach, "can't have multiple depth attachments" );
+            gTask->depthAttach = new VkRenderingAttachmentInfo;
+            vkAttach           = gTask->depthAttach;
+        }
+        else
+        {
+            vkAttach = &gTask->colorAttachments.emplace_back();
+        }
+        *vkAttach             = VkRenderingAttachmentInfo{ VK_STRUCTURE_TYPE_RENDERING_ATTACHMENT_INFO };
+        vkAttach->imageView   = reinterpret_cast<VkImageView>( texHandle );
+        vkAttach->imageLayout = PGToVulkanImageLayout( desiredLayout );
+        vkAttach->storeOp     = VK_ATTACHMENT_STORE_OP_STORE;
+        if ( bAttachInfo.isCleared )
+            vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+        else if ( trackInfo.currLayout == ImageLayout::UNDEFINED )
+            vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+        else
+            vkAttach->loadOp = VK_ATTACHMENT_LOAD_OP_LOAD;
+
+        TG_ASSERT( !PixelFormatHasStencil( tex.GetPixelFormat() ), "handle stencil clears" );
+        if ( isDepthAttach )
+            vkAttach->clearValue.depthStencil.depth = bAttachInfo.clearColor.x;
+        else
+            memcpy( vkAttach->clearValue.color.float32, &bAttachInfo.clearColor.x, sizeof( vec4 ) );
+
+        minAttachWidth  = Min( minAttachWidth, m_textures[texHandle].GetWidth() );
+        minAttachHeight = Min( minAttachHeight, m_textures[texHandle].GetHeight() );
+
+        trackInfo = ResourceTrackingInfo( desiredLayout, taskIndex, taskType, ResourceState::WRITE, resType );
+    }
+
+    gTask->renderingInfo.sType                = VK_STRUCTURE_TYPE_RENDERING_INFO;
+    gTask->renderingInfo.pNext                = nullptr;
+    gTask->renderingInfo.flags                = 0;
+    gTask->renderingInfo.renderArea           = { 0, 0, minAttachWidth, minAttachHeight };
+    gTask->renderingInfo.layerCount           = 1;
+    gTask->renderingInfo.viewMask             = 0;
+    gTask->renderingInfo.colorAttachmentCount = (u32)gTask->colorAttachments.size();
+    gTask->renderingInfo.pColorAttachments    = gTask->colorAttachments.data();
+    gTask->renderingInfo.pDepthAttachment     = gTask->depthAttach;
+    gTask->renderingInfo.pStencilAttachment   = nullptr;
+
+    return gTask;
+}
+
+Task* TaskGraph::Compile_TransferTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo )
+{
+    TG_STAT( m_stats.numTransferTasks++ );
+    TransferTaskBuilder* btTask = static_cast<TransferTaskBuilder*>( builderTask );
+    TransferTask* tTask         = new TransferTask;
+
+    u16 taskIndex     = btTask->taskHandle.index;
+    TaskType taskType = btTask->taskHandle.type;
+
+    for ( const TGBTextureTransfer& transfer : btTask->textureBlits )
+    {
+        ResourceTrackingInfo& srcTrackInfo = builder.texTracking[transfer.src.index];
+        ResourceTrackingInfo& dstTrackInfo = builder.texTracking[transfer.dst.index];
+        TG_ASSERT( srcTrackInfo.prevTask != NO_TASK && srcTrackInfo.currLayout != ImageLayout::UNDEFINED,
+            "Need valid data to blit to another image!" );
+
+        ResourceType resType             = ResourceType::TEXTURE;
+        VkImageMemoryBarrier2 srcBarrier = GetImageBarrier( transfer.src.index, srcTrackInfo.prevTaskType, srcTrackInfo.prevState,
+            srcTrackInfo.prevResType, taskType, ResourceState::READ, resType, srcTrackInfo.currLayout, ImageLayout::TRANSFER_SRC );
+        tTask->imageBarriers.push_back( srcBarrier );
+
+        VkImageMemoryBarrier2 dstBarrier = GetImageBarrier( transfer.dst.index, dstTrackInfo.prevTaskType, dstTrackInfo.prevState,
+            dstTrackInfo.prevResType, taskType, ResourceState::WRITE, resType, dstTrackInfo.currLayout, ImageLayout::TRANSFER_DST );
+        tTask->imageBarriers.push_back( dstBarrier );
+
+        srcTrackInfo = ResourceTrackingInfo( ImageLayout::TRANSFER_SRC, taskIndex, taskType, ResourceState::READ, resType );
+        dstTrackInfo = ResourceTrackingInfo( ImageLayout::TRANSFER_DST, taskIndex, taskType, ResourceState::WRITE, resType );
+
+        tTask->textureBlits.emplace_back( transfer.dst.index, transfer.src.index );
+    }
+
+    return tTask;
+}
+
+Task* TaskGraph::Compile_PresentTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo )
+{
+    PresentTaskBuilder* bpTask = static_cast<PresentTaskBuilder*>( builderTask );
+    PresentTask* pTask         = new PresentTask;
+    u16 taskIndex              = bpTask->taskHandle.index;
+    TaskType taskType          = bpTask->taskHandle.type;
+
+    ResourceTrackingInfo& trackInfo = builder.texTracking[bpTask->presentationTex.index];
+    TG_ASSERT( trackInfo.prevTask != NO_TASK && trackInfo.currLayout != ImageLayout::UNDEFINED,
+        "Need to have written data to the image you're about to present!" );
+
+    VkImageMemoryBarrier2 barrier = GetImageBarrier( bpTask->presentationTex.index, trackInfo.prevTaskType, trackInfo.prevState,
+        trackInfo.prevResType, taskType, ResourceState::READ, ResourceType::TEXTURE, trackInfo.currLayout, ImageLayout::PRESENT_SRC_KHR );
+    pTask->imageBarriers.push_back( barrier );
+
+    trackInfo = ResourceTrackingInfo( ImageLayout::PRESENT_SRC_KHR, taskIndex, taskType, ResourceState::READ, ResourceType::TEXTURE );
+
+    return pTask;
 }
 
 bool TaskGraph::Compile( TaskGraphBuilder& builder, CompileInfo& compileInfo )

@@ -35,6 +35,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         return false;
 
     meshes.resize( pmodel.meshes.size() );
+    meshAABBs.resize( pmodel.meshes.size() );
     for ( u32 meshIdx = 0; meshIdx < (u32)meshes.size(); ++meshIdx )
     {
         Mesh& m                   = meshes[meshIdx];
@@ -71,9 +72,9 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             // meshopt_optimizeMeshlet( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
             //     meshlet.triangle_count, meshlet.vertex_count );
 
-            // meshopt_Bounds bounds =
-            //     meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
-            //         meshlet.triangle_count, &pMesh.vertices[0].pos, meshlet.vertex_count, sizeof( PNodel::Vertex ) );
+            meshopt_Bounds bounds =
+                meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
+                    meshlet.triangle_count, &pMesh.vertices[0].pos.x, meshlet.vertex_count, sizeof( PModel::Vertex ) );
 
             PG_ASSERT( numVerts == meshlet.vertex_offset );
             pgMeshlet.vertexOffset  = meshlet.vertex_offset;
@@ -95,6 +96,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
         u32 numZeroNormals  = 0;
         u32 numZeroTangents = 0;
+        AABB& meshAABB      = meshAABBs[meshIdx];
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& moMeshlet = meshlets[meshletIdx];
@@ -105,7 +107,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 size_t globalPGIdx       = pgMeshlet.vertexOffset + localVIdx;
                 const PModel::Vertex& v  = pMesh.vertices[meshletVertices[globalMOIdx]];
                 m.positions[globalPGIdx] = v.pos;
-                m.normals[globalPGIdx]   = v.normal;
+                meshAABB.Encompass( v.pos );
+                m.normals[globalPGIdx] = v.normal;
                 if ( Length( v.normal ) <= 0.00001f )
                     ++numZeroNormals;
 
@@ -156,8 +159,9 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 bool Model::FastfileLoad( Serializer* serializer )
 {
     PGP_ZONE_SCOPED_ASSET( "Model::FastfileLoad" );
-    size_t numMeshes;
-    serializer->Read( numMeshes );
+    u32 numMeshes = serializer->Read<u32>();
+    meshAABBs.resize( numMeshes );
+    serializer->Read( meshAABBs.data(), numMeshes * sizeof( AABB ) );
     meshes.resize( numMeshes );
     for ( Mesh& mesh : meshes )
     {
@@ -184,7 +188,7 @@ bool Model::FastfileLoad( Serializer* serializer )
         serializer->Read( mesh.tangents );
         serializer->Read( mesh.indices );
         serializer->Read( mesh.meshlets );
-#else  // #if !USING( GPU_DATA )
+#else // #if !USING( GPU_DATA )
         size_t numPos, numNormal, numTexCoords, numTan, numIndices, numMeshlets;
         const void *posData, *normalData, *uvData, *tanData, *indexData, *meshletData;
         serializer->Read( numPos );
@@ -237,22 +241,29 @@ bool Model::FastfileLoad( Serializer* serializer )
         BufferCreateInfo mbCreateInfo = vbCreateInfo;
         mbCreateInfo.size             = meshletsSize;
 
-        mesh.vertexBuffer        = rg.device.NewBuffer( vbCreateInfo, std::string( m_name ) + mesh.name + "_vb" );
-        mesh.triBuffer           = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + mesh.name + "_tb" );
-        mesh.meshletBuffer       = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + mesh.name + "_mb" );
+        mesh.buffers = new Gfx::Buffer[Mesh::BUFFER_COUNT];
+#if USING( ASSET_NAMES )
+        mesh.buffers[Mesh::VERTEX_BUFFER]  = rg.device.NewBuffer( vbCreateInfo, std::string( m_name ) + mesh.name + "_vb" );
+        mesh.buffers[Mesh::TRI_BUFFER]     = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + mesh.name + "_tb" );
+        mesh.buffers[Mesh::MESHLET_BUFFER] = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + mesh.name + "_mb" );
+#else  // #if USING( ASSET_NAMES )
+        mesh.buffers[Mesh::VERTEX_BUFFER]  = rg.device.NewBuffer( vbCreateInfo );
+        mesh.buffers[Mesh::TRI_BUFFER]     = rg.device.NewBuffer( tbCreateInfo );
+        mesh.buffers[Mesh::MESHLET_BUFFER] = rg.device.NewBuffer( mbCreateInfo );
+#endif // #else // #if USING( ASSET_NAMES )
         mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
 
         size_t offset = 0;
-        rg.device.AddUploadRequest( mesh.vertexBuffer, posData, numPos * sizeof( vec3 ), offset );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], posData, numPos * sizeof( vec3 ), offset );
         offset += numPos * sizeof( vec3 );
-        rg.device.AddUploadRequest( mesh.vertexBuffer, normalData, numNormal * sizeof( vec3 ), offset );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], normalData, numNormal * sizeof( vec3 ), offset );
         offset += numNormal * sizeof( vec3 );
-        rg.device.AddUploadRequest( mesh.vertexBuffer, uvData, numTexCoords * sizeof( vec2 ), offset );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], uvData, numTexCoords * sizeof( vec2 ), offset );
         offset += numTexCoords * sizeof( vec2 );
-        rg.device.AddUploadRequest( mesh.vertexBuffer, tanData, numTan * sizeof( vec4 ), offset );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], tanData, numTan * sizeof( vec4 ), offset );
 
-        rg.device.AddUploadRequest( mesh.meshletBuffer, meshletData, meshletsSize );
-        rg.device.AddUploadRequest( mesh.triBuffer, indexData, triBufferSize );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::MESHLET_BUFFER], meshletData, meshletsSize );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::TRI_BUFFER], indexData, triBufferSize );
 #endif // #else // #if !USING( GPU_DATA )
     }
 
@@ -261,8 +272,10 @@ bool Model::FastfileLoad( Serializer* serializer )
 
 bool Model::FastfileSave( Serializer* serializer ) const
 {
+#if !USING( GPU_DATA )
     SerializeName( serializer );
-    serializer->Write( meshes.size() );
+    serializer->Write( (u32)meshes.size() );
+    serializer->Write( meshAABBs.data(), meshAABBs.size() * sizeof( AABB ) );
     for ( const Mesh& mesh : meshes )
     {
         serializer->Write<u16>( mesh.name );
@@ -274,75 +287,9 @@ bool Model::FastfileSave( Serializer* serializer ) const
         serializer->Write( mesh.indices );
         serializer->Write( mesh.meshlets );
     }
+#endif // #if !USING( GPU_DATA )
 
     return true;
-}
-
-void Model::UploadToGPU()
-{
-#if USING( GPU_DATA )
-    FreeGPU();
-    for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
-    {
-        Mesh& mesh                    = meshes[meshIdx];
-        mesh.numVertices              = static_cast<u32>( mesh.positions.size() );
-        mesh.numMeshlets              = static_cast<u32>( mesh.meshlets.size() );
-        mesh.hasTexCoords             = !mesh.texCoords.empty();
-        mesh.hasTangents              = !mesh.tangents.empty();
-        size_t totalVertexSizeInBytes = 0;
-        totalVertexSizeInBytes += mesh.positions.size() * sizeof( vec3 );
-        totalVertexSizeInBytes += mesh.normals.size() * sizeof( vec3 );
-        totalVertexSizeInBytes += mesh.texCoords.size() * sizeof( vec2 );
-        totalVertexSizeInBytes += mesh.tangents.size() * sizeof( vec4 );
-
-        PG_ASSERT( mesh.indices.size() % 4 == 0 );
-        size_t triBufferSize = mesh.indices.size() * sizeof( u8 );
-        size_t meshletsSize  = mesh.meshlets.size() * sizeof( Meshlet );
-
-        BufferCreateInfo vbCreateInfo{};
-        vbCreateInfo.size               = totalVertexSizeInBytes;
-        vbCreateInfo.bufferUsage        = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
-        vbCreateInfo.addToBindlessArray = false; // since BindlessManager::AddMeshBuffers will take care of it
-
-        BufferCreateInfo tbCreateInfo = vbCreateInfo;
-        tbCreateInfo.size             = triBufferSize;
-
-        BufferCreateInfo mbCreateInfo = vbCreateInfo;
-        mbCreateInfo.size             = meshletsSize;
-
-#if USING( ASSET_NAMES )
-        mesh.vertexBuffer  = rg.device.NewBuffer( vbCreateInfo, std::string( m_name ) + "_vb_" + mesh.name );
-        mesh.triBuffer     = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + "_tb_" + mesh.name );
-        mesh.meshletBuffer = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + "_mb_" + mesh.name );
-#else  // #if USING( ASSET_NAMES )
-        mesh.vertexBuffer  = rg.device.NewBuffer( vbCreateInfo );
-        mesh.triBuffer     = rg.device.NewBuffer( tbCreateInfo );
-        mesh.meshletBuffer = rg.device.NewBuffer( mbCreateInfo );
-#endif // #else // #if USING( ASSET_NAMES )
-
-        size_t numVertices = mesh.positions.size();
-        size_t offset      = 0;
-        rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.positions.data(), numVertices * sizeof( vec3 ), offset );
-        offset += numVertices * sizeof( vec3 );
-        rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.normals.data(), numVertices * sizeof( vec3 ), offset );
-        offset += numVertices * sizeof( vec3 );
-        if ( mesh.hasTexCoords )
-        {
-            rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.texCoords.data(), numVertices * sizeof( vec2 ), offset );
-            offset += numVertices * sizeof( vec2 );
-        }
-        if ( mesh.hasTangents )
-        {
-            rg.device.AddUploadRequest( mesh.vertexBuffer, mesh.tangents.data(), numVertices * sizeof( vec4 ), offset );
-            offset += numVertices * sizeof( vec4 );
-        }
-
-        rg.device.AddUploadRequest( mesh.meshletBuffer, mesh.meshlets.data(), meshletsSize );
-        rg.device.AddUploadRequest( mesh.triBuffer, mesh.indices.data(), triBufferSize );
-
-        mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
-    }
-#endif // #if USING( GPU_DATA )
 }
 
 void Model::Free()
@@ -353,6 +300,7 @@ void Model::Free()
 
 void Model::FreeCPU()
 {
+#if !USING( GPU_DATA )
     for ( Mesh& mesh : meshes )
     {
         mesh.meshlets  = std::vector<Meshlet>();
@@ -362,6 +310,7 @@ void Model::FreeCPU()
         mesh.tangents  = std::vector<vec4>();
         mesh.indices   = std::vector<u8>();
     }
+#endif // #if !USING( GPU_DATA )
 }
 
 void Model::FreeGPU()
@@ -374,12 +323,18 @@ void Model::FreeGPU()
             Gfx::BindlessManager::RemoveMeshBuffers( &mesh );
             DEBUG_BUILD_ONLY( mesh.bindlessBuffersSlot = PG_INVALID_BUFFER_INDEX );
         }
-        if ( mesh.vertexBuffer )
-            mesh.vertexBuffer.Free();
-        if ( mesh.triBuffer )
-            mesh.triBuffer.Free();
-        if ( mesh.meshletBuffer )
-            mesh.meshletBuffer.Free();
+        if ( mesh.buffers )
+        {
+            for ( int i = 0; i < Mesh::BUFFER_COUNT; ++i )
+                mesh.buffers[i].Free();
+            delete[] mesh.buffers;
+        }
+        // if ( mesh.vertexBuffer )
+        //     mesh.vertexBuffer.Free();
+        // if ( mesh.triBuffer )
+        //     mesh.triBuffer.Free();
+        // if ( mesh.meshletBuffer )
+        //     mesh.meshletBuffer.Free();
     }
 #endif // #if USING( GPU_DATA )
 }

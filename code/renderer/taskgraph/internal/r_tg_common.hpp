@@ -37,9 +37,10 @@ PG_DEFINE_ENUM_OPS( ResourceType )
 
 enum class ResourceState : u8
 {
-    READ       = 0,
-    WRITE      = 1,
-    READ_WRITE = 2,
+    UNUSED     = 0,
+    READ       = 1,
+    WRITE      = 2,
+    READ_WRITE = 3,
 
     COUNT
 };

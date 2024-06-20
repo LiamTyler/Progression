@@ -41,8 +41,7 @@ static bool ParseCamera( const rapidjson::Value& v, Scene* scene )
 
     mapping.ForEachMember( v, camera );
 
-    camera.UpdateFrustum();
-    camera.UpdateProjectionMatrix();
+    camera.Update();
     return true;
 }
 

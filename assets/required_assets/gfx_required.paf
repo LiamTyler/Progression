@@ -1,7 +1,11 @@
 [
     { "Pipeline": {
-        "name": "gradient",
-        "computeShader": "gradient.comp"
+        "name": "frustum_cull_meshes",
+        "computeShader": "frustum_cull_meshes.comp"
+    } },
+    { "Pipeline": {
+        "name": "compute_debug",
+        "computeShader": "compute_debug.comp"
     } },
     { "Pipeline": {
         "name": "post_process",

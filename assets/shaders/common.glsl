@@ -15,5 +15,10 @@
 { \
     type data[]; \
 }
+
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec2Buffer, vec2 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec3Buffer, vec3 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec4Buffer, vec4 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, UintBuffer, uint );
     
 #endif // #ifndef __COMMON_GLSL__

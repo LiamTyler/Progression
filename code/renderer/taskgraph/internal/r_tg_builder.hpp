@@ -133,11 +133,11 @@ public:
 #endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
 };
 
-class ComputeTaskBuilder : public TaskBuilder
+class PipelineTaskBuilder : public TaskBuilder
 {
 public:
-    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, std::string_view inName )
-        : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::COMPUTE ), inName )
+    PipelineTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, TaskType taskType, std::string_view inName )
+        : TaskBuilder( inBuilder, TaskHandle( taskIndex, taskType ), inName )
     {
     }
 
@@ -153,10 +153,20 @@ public:
     void AddBufferOutput( TGBBufferRef& buffer );
     void AddBufferInput( TGBBufferRef& buffer );
 
-    void SetFunction( ComputeFunction func );
-
     std::vector<TGBBufferInfo> buffers;
     std::vector<TGBTextureInfo> textures;
+};
+
+class ComputeTaskBuilder : public PipelineTaskBuilder
+{
+public:
+    ComputeTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, std::string_view inName )
+        : PipelineTaskBuilder( inBuilder, taskIndex, TaskType::COMPUTE, inName )
+    {
+    }
+
+    void SetFunction( ComputeFunction func );
+
     ComputeFunction function;
 };
 
@@ -168,11 +178,11 @@ struct TGBAttachmentInfo
     bool isCleared;
 };
 
-class GraphicsTaskBuilder : public TaskBuilder
+class GraphicsTaskBuilder : public PipelineTaskBuilder
 {
 public:
     GraphicsTaskBuilder( TaskGraphBuilder* inBuilder, u16 taskIndex, std::string_view inName )
-        : TaskBuilder( inBuilder, TaskHandle( taskIndex, TaskType::GRAPHICS ), inName )
+        : PipelineTaskBuilder( inBuilder, taskIndex, TaskType::GRAPHICS, inName )
     {
     }
 
@@ -224,8 +234,29 @@ public:
     TGBTextureRef presentationTex;
 };
 
+static constexpr u16 NO_TASK = UINT16_MAX;
+struct ResourceTrackingInfo
+{
+    ImageLayout currLayout = ImageLayout::UNDEFINED;
+    u16 prevTask           = NO_TASK;
+    TaskType prevTaskType  = TaskType::NONE;
+    ResourceState prevState;
+    ResourceType prevResType = ResourceType::NONE;
+
+    ResourceTrackingInfo() = default;
+    ResourceTrackingInfo( u16 task, TaskType type, ResourceState state, ResourceType rType )
+        : prevTask( task ), prevTaskType( type ), prevState( state ), prevResType( rType )
+    {
+    }
+    ResourceTrackingInfo( ImageLayout layout, u16 task, TaskType type, ResourceState state, ResourceType rType )
+        : currLayout( layout ), prevTask( task ), prevTaskType( type ), prevState( state ), prevResType( rType )
+    {
+    }
+};
+
 class TaskGraphBuilder
 {
+    friend class PipelineTaskBuilder;
     friend class ComputeTaskBuilder;
     friend class GraphicsTaskBuilder;
     friend class TransferTaskBuilder;
@@ -266,6 +297,11 @@ private:
     void UpdateBufferLifetime( TGBBufferRef ref, TaskHandle task );
 
     u16 numTasks;
+
+private:
+    // used during task graph compilation
+    std::vector<ResourceTrackingInfo> texTracking;
+    std::vector<ResourceTrackingInfo> bufTracking;
 };
 
 } // namespace PG::Gfx

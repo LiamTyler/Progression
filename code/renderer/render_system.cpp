@@ -3,6 +3,7 @@
 #include "c_shared/bindless.h"
 #include "c_shared/dvar_defines.h"
 #include "c_shared/scene_globals.h"
+#include "core/bounding_box.hpp"
 #include "core/cpu_profiling.hpp"
 #include "core/engine_globals.hpp"
 #include "core/scene.hpp"
@@ -23,30 +24,86 @@
 using namespace PG;
 using namespace Gfx;
 
-#define MAX_OBJECTS_PER_FRAME 4096
+#define MAX_MODELS_PER_FRAME 4096u
+#define MAX_MESHES_PER_FRAME 65536u
 
 namespace PG::RenderSystem
 {
 
 static TaskGraph s_taskGraph;
 
-void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
+void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "gradient" ) );
+    GpuData::PerObjectData* meshDrawData = (GpuData::PerObjectData*)data->frameData->meshDrawDataBuffer.GetMappedPtr();
+    AABB* meshBounds                     = (AABB*)data->frameData->meshBoundsBuffer.GetMappedPtr();
+    u32 modelNum                         = 0;
+    u32 meshNum                          = 0;
+
+    data->scene->registry.view<ModelRenderer, Transform>().each(
+        [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
+        {
+            if ( modelNum == MAX_MODELS_PER_FRAME || meshNum == MAX_MESHES_PER_FRAME )
+                return;
+
+            const Model* model = modelRenderer.model;
+
+            u32 meshesToAdd = Min( MAX_MESHES_PER_FRAME, (u32)model->meshes.size() );
+            memcpy( meshBounds + meshNum, model->meshAABBs.data(), meshesToAdd * sizeof( AABB ) );
+
+            for ( u32 i = 0; i < meshesToAdd; ++i )
+            {
+                GpuData::PerObjectData constants;
+                constants.bindlessRangeStart = model->meshes[i].bindlessBuffersSlot;
+                constants.objectIdx          = modelNum;
+                constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
+                meshDrawData[meshNum + i]    = constants;
+            }
+
+            meshNum += meshesToAdd;
+            ++modelNum;
+        } );
+
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "frustum_cull_meshes" ) );
     cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
     {
-        vec4 topColor;
-        vec4 botColor;
+        VkDeviceAddress meshDrawDataBDA;
+        VkDeviceAddress meshBoundsBDA;
+        VkDeviceAddress outputBuffer;
+        vec4 frustumPlanes[6];
+        u32 numMeshes;
+        u32 _pad;
+    };
+    ComputePushConstants push;
+    push.meshDrawDataBDA = data->frameData->meshDrawDataBuffer.GetDeviceAddress();
+    push.meshBoundsBDA   = data->frameData->meshBoundsBuffer.GetDeviceAddress();
+    push.outputBuffer    = data->taskGraph->GetBuffer( task->outputBuffers[0] )->GetDeviceAddress();
+    memcpy( push.frustumPlanes, data->scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
+    push.numMeshes = meshNum;
+    cmdBuf.PushConstants( push );
+    cmdBuf.Dispatch_AutoSized( meshNum, 1, 1 );
+}
+
+void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
+{
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "compute_debug" ) );
+    cmdBuf.BindGlobalDescriptors();
+
+    struct ComputePushConstants
+    {
+        VkDeviceAddress cullBuffer;
         u32 imageIndex;
     };
     Texture* tex = data->taskGraph->GetTexture( task->outputTextures[0] );
-    ComputePushConstants push{ vec4( 1, 0, 0, 1 ), vec4( 0, 0, 1, 1 ), tex->GetBindlessIndex() };
+    Buffer* buff = data->taskGraph->GetBuffer( task->inputBuffers[0] );
+    ComputePushConstants push{ buff->GetDeviceAddress(), tex->GetBindlessIndex() };
     cmdBuf.PushConstants( push );
-    cmdBuf.Dispatch_AutoSized( tex->GetWidth(), tex->GetHeight(), 1 );
+    cmdBuf.Dispatch( 2, 2, 1 );
 }
 
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
@@ -69,11 +126,11 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
 
-    u32 objectNum = 0;
+    u32 modelNum = 0;
     data->scene->registry.view<ModelRenderer, Transform>().each(
         [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
         {
-            if ( objectNum == MAX_OBJECTS_PER_FRAME )
+            if ( modelNum == MAX_MODELS_PER_FRAME )
                 return;
 
             const Model* model = modelRenderer.model;
@@ -84,7 +141,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
                 GpuData::PerObjectData constants;
                 constants.bindlessRangeStart = mesh.bindlessBuffersSlot;
-                constants.objectIdx          = objectNum;
+                constants.objectIdx          = modelNum;
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
 
                 cmdBuf.PushConstants( constants );
@@ -93,7 +150,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
                 cmdBuf.DrawMeshTasks( mesh.numMeshlets, 1, 1 );
             }
 
-            ++objectNum;
+            ++modelNum;
         } );
 }
 
@@ -130,16 +187,23 @@ bool Init_TaskGraph()
 {
     PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
     TaskGraphBuilder builder;
-    // ComputeTaskBuilder* cTask = builder.AddComputeTask( "gradient" );
-    // TGBTextureRef litOutput =
-    //     cTask->AddTextureOutput( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 1, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
-    // cTask->SetFunction( ComputeDrawFunc );
+    ComputeTaskBuilder* cTask       = builder.AddComputeTask( "FrustumCullMeshes" );
+    TGBBufferRef indirectMeshesBuff = cTask->AddBufferOutput(
+        "visibleMeshes", BufferUsage::INDIRECT | BufferUsage::STORAGE, VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 5 * sizeof( u32 ) );
+    cTask->SetFunction( ComputeFrustumCullMeshes );
 
-    GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "mesh" );
+    GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "DrawMeshes" );
+    mTask->AddBufferInput( indirectMeshesBuff );
     TGBTextureRef litOutput =
         mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 0, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
     mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
+
+    cTask = builder.AddComputeTask( "ComputeDraw" );
+    cTask->AddBufferInput( indirectMeshesBuff );
+    cTask->AddTextureInput( litOutput );
+    cTask->AddTextureOutput( litOutput );
+    cTask->SetFunction( ComputeDrawFunc );
 
     TGBTextureRef swapImg = builder.RegisterExternalTexture(
         "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } );
@@ -152,7 +216,7 @@ bool Init_TaskGraph()
         litImgDisplaySized = swapImg;
     }
 
-    ComputeTaskBuilder* cTask = builder.AddComputeTask( "post_process" );
+    cTask = builder.AddComputeTask( "post_process" );
     cTask->AddTextureInput( litImgDisplaySized );
     cTask->AddTextureOutput( swapImg );
     cTask->SetFunction( PostProcessFunc );
@@ -176,7 +240,7 @@ bool Init_TaskGraph()
         LOG_ERR( "Could not compile the task graph" );
         return false;
     }
-    // TG_DEBUG_ONLY( s_taskGraph.Print() );
+    TG_DEBUG_ONLY( s_taskGraph.Print() );
 
     return true;
 }
@@ -207,12 +271,17 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
     {
         FrameData& fData = rg.frameData[i];
 
-        BufferCreateInfo oBufInfo        = {};
-        oBufInfo.size                    = MAX_OBJECTS_PER_FRAME * sizeof( mat4 );
-        oBufInfo.bufferUsage             = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
-        oBufInfo.flags                   = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        fData.objectModelMatricesBuffer  = rg.device.NewBuffer( oBufInfo, "objectModelMatricesBuffer" );
-        fData.objectNormalMatricesBuffer = rg.device.NewBuffer( oBufInfo, "objectNormalMatricesBuffer" );
+        BufferCreateInfo modelBufInfo = {};
+        modelBufInfo.size             = MAX_MODELS_PER_FRAME * sizeof( mat4 );
+        modelBufInfo.bufferUsage      = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
+        modelBufInfo.flags            = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        fData.modelMatricesBuffer     = rg.device.NewBuffer( modelBufInfo, "modelMatricesBuffer" );
+        fData.normalMatricesBuffer    = rg.device.NewBuffer( modelBufInfo, "normalMatricesBuffer" );
+
+        modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( AABB );
+        fData.meshBoundsBuffer   = rg.device.NewBuffer( modelBufInfo, "meshBoundsBuffer" );
+        modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::PerObjectData );
+        fData.meshDrawDataBuffer = rg.device.NewBuffer( modelBufInfo, "meshDrawDataBuffer" );
 
         BufferCreateInfo sgBufInfo = {};
         sgBufInfo.size             = sizeof( GpuData::SceneGlobals );
@@ -248,8 +317,10 @@ void Shutdown()
 
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        rg.frameData[i].objectModelMatricesBuffer.Free();
-        rg.frameData[i].objectNormalMatricesBuffer.Free();
+        rg.frameData[i].meshBoundsBuffer.Free();
+        rg.frameData[i].meshDrawDataBuffer.Free();
+        rg.frameData[i].modelMatricesBuffer.Free();
+        rg.frameData[i].normalMatricesBuffer.Free();
         rg.frameData[i].sceneGlobalsBuffer.Free();
     }
 
@@ -264,26 +335,26 @@ static void UpdateGPUSceneData( Scene* scene )
 {
     PGP_ZONE_SCOPEDN( "UpdateGPUSceneData" );
     FrameData& frameData     = rg.GetFrameData();
-    mat4* gpuModelMatricies  = reinterpret_cast<mat4*>( frameData.objectModelMatricesBuffer.GetMappedPtr() );
-    mat4* gpuNormalMatricies = reinterpret_cast<mat4*>( frameData.objectNormalMatricesBuffer.GetMappedPtr() );
+    mat4* gpuModelMatricies  = reinterpret_cast<mat4*>( frameData.modelMatricesBuffer.GetMappedPtr() );
+    mat4* gpuNormalMatricies = reinterpret_cast<mat4*>( frameData.normalMatricesBuffer.GetMappedPtr() );
 
-    auto view     = scene->registry.view<ModelRenderer, PG::Transform>();
-    u32 objectNum = 0;
+    auto view    = scene->registry.view<ModelRenderer, PG::Transform>();
+    u32 modelNum = 0;
     for ( auto entity : view )
     {
-        if ( objectNum == MAX_OBJECTS_PER_FRAME )
+        if ( modelNum == MAX_MODELS_PER_FRAME )
         {
             LOG_WARN( "Too many objects in the scene! Some objects may be missing when in final render" );
             break;
         }
 
-        PG::Transform& transform     = view.get<PG::Transform>( entity );
-        mat4 M                       = transform.Matrix();
-        gpuModelMatricies[objectNum] = M;
+        PG::Transform& transform    = view.get<PG::Transform>( entity );
+        mat4 M                      = transform.Matrix();
+        gpuModelMatricies[modelNum] = M;
 
-        mat4 N                        = Transpose( Inverse( M ) );
-        gpuNormalMatricies[objectNum] = N;
-        ++objectNum;
+        mat4 N                       = Transpose( Inverse( M ) );
+        gpuNormalMatricies[modelNum] = N;
+        ++modelNum;
     }
 
     GpuData::SceneGlobals globalData;
@@ -295,8 +366,8 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.cameraPos                = vec4( scene->camera.position, 1 );
     VEC3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
     globalData.cameraExposureAndSkyTint = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
-    globalData.modelMatriciesIdx        = frameData.objectModelMatricesBuffer.GetBindlessIndex();
-    globalData.normalMatriciesIdx       = frameData.objectNormalMatricesBuffer.GetBindlessIndex();
+    globalData.modelMatriciesIdx        = frameData.modelMatricesBuffer.GetBindlessIndex();
+    globalData.normalMatriciesIdx       = frameData.normalMatricesBuffer.GetBindlessIndex();
     globalData.r_tonemap                = r_tonemap.GetUint();
 
 #if !USING( SHIP_BUILD )

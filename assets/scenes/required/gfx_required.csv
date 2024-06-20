@@ -1,3 +1,4 @@
-Pipeline,gradient
+Pipeline,frustum_cull_meshes
+Pipeline,compute_debug
 Pipeline,post_process
 Pipeline,litModel

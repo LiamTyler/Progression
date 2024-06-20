@@ -40,10 +40,9 @@ struct TextureClearSubTask
 class ComputeTask;
 using ComputeFunction = std::function<void( ComputeTask*, TGExecuteData* )>;
 
-class ComputeTask : public Task
+class PipelineTask : public Task
 {
 public:
-    void Execute( TGExecuteData* data ) override;
     TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 
     std::vector<BufferClearSubTask> bufferClears;
@@ -54,6 +53,13 @@ public:
     std::vector<TGResourceHandle> outputBuffers;
     std::vector<TGResourceHandle> inputTextures;
     std::vector<TGResourceHandle> outputTextures;
+};
+
+class ComputeTask : public PipelineTask
+{
+public:
+    void Execute( TGExecuteData* data ) override;
+    TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 
     ComputeFunction function;
 };
@@ -61,7 +67,7 @@ public:
 class GraphicsTask;
 using GraphicsFunction = std::function<void( GraphicsTask*, TGExecuteData* )>;
 
-class GraphicsTask : public Task
+class GraphicsTask : public PipelineTask
 {
 public:
     ~GraphicsTask();

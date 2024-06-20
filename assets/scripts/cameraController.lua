@@ -59,7 +59,7 @@ function Update()
     local up = camera:GetUpDir()
     local step = currentSpeed * Time.dt
     camera.position = camera.position + vec3.scale( velocity.y * step, forward ) + vec3.scale( velocity.x * step, right ) + vec3.scale( velocity.z * step, up )
-    camera:UpdateViewMatrix()
+    camera:Update()
     
     currentSpeed = regularSpeed
 end

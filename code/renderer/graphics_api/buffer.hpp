@@ -135,7 +135,7 @@ public:
     void UnMap();
     void FlushCpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
     void FlushGpuWrites( size_t size = VK_WHOLE_SIZE, size_t offset = 0 );
-    VkDeviceAddress GetDeviceAddress() const;
+
     VkDescriptorType GetDescriptorType() const;
 
     operator bool() const { return m_handle != VK_NULL_HANDLE; }
@@ -144,6 +144,7 @@ public:
     VkBuffer GetHandle() const { return m_handle; }
     VmaAllocation GetAllocation() const { return m_allocation; }
     char* GetMappedPtr() const { return static_cast<char*>( m_mappedPtr ); }
+    VkDeviceAddress GetDeviceAddress() const { return m_deviceAddress; }
     u16 GetBindlessIndex() const { return m_bindlessIndex; }
     DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );
 
@@ -155,6 +156,7 @@ private:
     void* m_mappedPtr = nullptr;
     BufferUsage m_bufferUsage;
     VmaMemoryUsage m_memoryUsage;
+    VkDeviceAddress m_deviceAddress;
     u16 m_bindlessIndex;
     bool m_persistent = false;
     bool m_coherent   = false;

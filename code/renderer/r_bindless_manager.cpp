@@ -313,11 +313,11 @@ void RemoveBuffer( BufferIndex index )
 BufferIndex AddMeshBuffers( Mesh* mesh )
 {
     BufferIndex firstSlot = s_freeBufferSlots.GetConsecutiveFreeSlots( MESH_NUM_BUFFERS );
-    s_pendingBufferAdds.emplace_back( mesh->meshletBuffer.GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLETS );
+    s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::MESHLET_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLETS );
 
-    s_pendingBufferAdds.emplace_back( mesh->triBuffer.GetDeviceAddress(), firstSlot + MESH_BUFFER_TRIS );
+    s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::TRI_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_TRIS );
 
-    VkDeviceAddress vData = mesh->vertexBuffer.GetDeviceAddress();
+    VkDeviceAddress vData = mesh->buffers[Mesh::VERTEX_BUFFER].GetDeviceAddress();
     s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_POSITIONS );
 
     vData += mesh->numVertices * sizeof( vec3 );

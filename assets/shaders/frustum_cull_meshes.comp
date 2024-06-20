@@ -1,0 +1,63 @@
+#version 460
+
+#include "global_descriptors.glsl"
+
+struct AABB
+{
+    vec3 bMin;
+    vec3 bMax;
+};
+
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshBoundsBuffer, AABB );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDrawDataBuffer, PerObjectData );
+
+layout( scalar, push_constant ) uniform PushConstants
+{
+    MeshDrawDataBuffer meshDrawDataBDA;
+    MeshBoundsBuffer meshBoundsBDA;
+    UintBuffer outputBuffer;
+    vec4 frustumPlanes[6];
+    uint numMeshes;
+    uint _pad;
+} pConstants;
+
+// get furthest point along the normal vector
+vec3 GetP( const AABB aabb, const vec3 planeNormal )
+{
+    vec3 p = aabb.bMin;
+    if ( planeNormal.x >= 0 )
+        p.x = aabb.bMax.x;
+    if ( planeNormal.y >= 0 )
+        p.y = aabb.bMax.y;
+    if ( planeNormal.z >= 0 )
+        p.z = aabb.bMax.z;
+        
+    return p;
+}
+
+bool IsInFrustum( const AABB aabb )
+{
+    int shouldCull = 0;
+    for ( int i = 0; i < 6; ++i )
+    {
+        vec4 plane = pConstants.frustumPlanes[i];
+        vec3 p = GetP( aabb, plane.xyz );
+        shouldCull += int( dot( vec4( p, 1 ), plane ) < 0 );
+    }
+    
+    return shouldCull != 0;
+}
+
+layout (local_size_x = 64, local_size_y = 1) in;
+void main() 
+{
+    uint meshIdx = gl_GlobalInvocationID.x;
+    if ( meshIdx >= pConstants.numMeshes )
+        return;
+    
+    AABB aabb = pConstants.meshBoundsBDA.data[meshIdx];
+    if ( IsInFrustum( aabb ) )
+    {
+        atomicAdd( pConstants.outputBuffer.data[0], 1 );
+    }
+}

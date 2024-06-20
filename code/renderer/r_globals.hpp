@@ -25,8 +25,10 @@ struct FrameData
     CommandPool cmdPool;
     CommandBuffer primaryCmdBuffer;
 
-    Buffer objectModelMatricesBuffer;
-    Buffer objectNormalMatricesBuffer;
+    Buffer meshDrawDataBuffer;
+    Buffer meshBoundsBuffer;
+    Buffer modelMatricesBuffer;
+    Buffer normalMatricesBuffer;
     Buffer sceneGlobalsBuffer;
 };
 

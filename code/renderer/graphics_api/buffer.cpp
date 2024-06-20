@@ -122,14 +122,6 @@ void Buffer::FlushGpuWrites( size_t size, size_t offset )
         vmaInvalidateAllocation( rg.device.GetAllocator(), m_allocation, offset, size );
 }
 
-VkDeviceAddress Buffer::GetDeviceAddress() const
-{
-    VkBufferDeviceAddressInfo info{};
-    info.sType  = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
-    info.buffer = m_handle;
-    return vkGetBufferDeviceAddress( rg.device, &info );
-}
-
 VkDescriptorType Buffer::GetDescriptorType() const
 {
     if ( IsSet( m_bufferUsage, BufferUsage::STORAGE ) )

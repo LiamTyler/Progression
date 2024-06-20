@@ -1,0 +1,27 @@
+#version 460
+
+#include "global_descriptors.glsl"
+
+layout (local_size_x = 16, local_size_y = 16) in;
+
+layout( push_constant ) uniform PushConstants
+{
+    UintBuffer cullBuffer;
+    uint imageIndex;
+    uint _pad;
+} pConstants;
+
+
+void main() 
+{
+    ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
+    ivec2 size = imageSize( RImages2D[pConstants.imageIndex] );
+    
+    if ( texelCoord.x < size.x && texelCoord.y < size.y )
+    {
+        vec4 color = vec4( 1, 0, 0, 1 );
+        if ( pConstants.cullBuffer.data[0] == 1 )
+            color = vec4( 0, 1, 0, 1 );
+        imageStore( RWImages2D[pConstants.imageIndex], texelCoord, color );
+    }
+}

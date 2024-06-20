@@ -35,6 +35,7 @@ void CommandBuffer::EndRecording() const { VK_CHECK( vkEndCommandBuffer( m_handl
 
 void CommandBuffer::BindPipeline( Pipeline* pipeline )
 {
+    PG_ASSERT( pipeline );
     vkCmdBindPipeline( m_handle, pipeline->GetPipelineBindPoint(), pipeline->GetHandle() );
     m_boundPipeline = pipeline;
 }

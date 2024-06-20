@@ -82,6 +82,12 @@ private:
     void Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& compileInfo, std::vector<ResourceData>& resourceDatas );
     void Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, CompileInfo& compileInfo );
 
+    void Compile_PipelineTask( PipelineTask* pTask, PipelineTaskBuilder* bpTask, TaskGraphBuilder& builder );
+    Task* Compile_ComputeTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo );
+    Task* Compile_GraphicsTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo );
+    Task* Compile_TransferTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo );
+    Task* Compile_PresentTask( TaskBuilder* builderTask, TaskGraphBuilder& builder, CompileInfo& compileInfo );
+
     std::vector<Task*> m_tasks;
     std::vector<Buffer> m_buffers;
     std::vector<Texture> m_textures;

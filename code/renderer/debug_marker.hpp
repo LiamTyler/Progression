@@ -59,7 +59,8 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 #define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name ) \
     PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf, name, PG::Gfx::DebugMarker::GetNextRegionColor() )
 #define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf ) PG::Gfx::DebugMarker::EndRegion_CmdBuf( cmdbuf )
-#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, fmt, ... ) PG::Gfx::DebugMarker::Insert_CmdBuf( cmdbuf, vec4( 0 ), fmt, __VA_ARGS__ )
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, fmt, ... ) \
+    PG::Gfx::DebugMarker::Insert_CmdBuf( cmdbuf, vec4( 0 ), fmt __VA_OPT__(, ) __VA_ARGS__ )
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color ) PG::Gfx::DebugMarker::BeginRegion_Queue( cmdbuf, name, color )
 #define PG_DEBUG_MARKER_END_REGION_QUEUE( queue ) PG::Gfx::DebugMarker::EndRegion_Queue( cmdbuf )

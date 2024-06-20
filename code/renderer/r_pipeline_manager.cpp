@@ -189,11 +189,17 @@ public:
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable     = VK_FALSE;
 
+        VkPipelineVertexInputStateCreateInfo vertexInputStateCI{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
+
+        VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
+        inputAssembly.topology               = PGToVulkanPrimitiveType( gInfo.primitiveType );
+        inputAssembly.primitiveRestartEnable = VK_FALSE;
+
         VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
         pipelineInfo.stageCount          = (u32)createInfo.shaders.size();
         pipelineInfo.pStages             = shaderStages;
-        pipelineInfo.pVertexInputState   = nullptr; // assuming pull-style vertex fetching always
-        pipelineInfo.pInputAssemblyState = nullptr;
+        pipelineInfo.pVertexInputState   = useMeshShading ? nullptr : &vertexInputStateCI; // assuming pull-style vertex fetching always
+        pipelineInfo.pInputAssemblyState = useMeshShading ? nullptr : &inputAssembly;
         pipelineInfo.pViewportState      = &viewportState;
         pipelineInfo.pRasterizationState = &rasterizer;
         pipelineInfo.pMultisampleState   = &multisampling;
@@ -202,7 +208,6 @@ public:
         pipelineInfo.pDynamicState       = &dynamicState;
         pipelineInfo.layout              = p.m_pipelineLayout;
 
-        VkFormat colorFmt = PGToVulkanPixelFormat( PixelFormat::R16_G16_B16_A16_FLOAT );
         VkPipelineRenderingCreateInfo dynRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
         dynRenderingCreateInfo.colorAttachmentCount    = (u32)gInfo.colorAttachments.size();
         dynRenderingCreateInfo.pColorAttachmentFormats = colorAttachmentFormats;

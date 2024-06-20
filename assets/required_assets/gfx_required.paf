@@ -5,7 +5,7 @@
     } },
     { "Pipeline": {
         "name": "compute_debug",
-        "computeShader": "compute_debug.comp"
+        "computeShader": "debug/compute_debug.comp"
     } },
     { "Pipeline": {
         "name": "post_process",
@@ -18,5 +18,13 @@
         "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
         "depthAttachment": { "format": "DEPTH_32_FLOAT" },
         "generateDebugPermutation": true
+    } },
+    { "Pipeline": {
+        "name": "debug_lines",
+        "vertexShader": "debug/debug_lines.vert",
+        "fragmentShader": "debug/debug_lines.frag",
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM" },
+        "depthAttachment": { "format": "DEPTH_32_FLOAT" },
+        "primitiveType": "LINES"
     } }
 ]

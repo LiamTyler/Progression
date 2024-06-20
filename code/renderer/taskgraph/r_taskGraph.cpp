@@ -159,14 +159,12 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         buckets = PackResources( resourceDatas );
     }
 
-    TG_STAT( LOG( "Task Graph Memory Aliasing Stats" ) );
     TG_STAT( auto allocStartTime = Time::GetTimePoint() );
     VmaAllocator allocator = rg.device.GetAllocator();
     m_vmaAllocations.resize( buckets.size() );
     for ( size_t bucketIdx = 0; bucketIdx < buckets.size(); ++bucketIdx )
     {
-        const MemoryBucket& bucket = buckets[bucketIdx];
-        TG_STAT( LOG( "Bucket[%zu]: Num Resources: %zu", bucketIdx, bucket.resources.size() ) );
+        const MemoryBucket& bucket       = buckets[bucketIdx];
         VkMemoryRequirements finalMemReq = {};
         finalMemReq.size                 = bucket.bucketSize;
         finalMemReq.alignment            = bucket.initialAlignment;
@@ -186,13 +184,11 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
             {
                 VkImage img = m_textures[resIdx].m_image;
                 VK_CHECK( vmaBindImageMemory2( allocator, alloc, bRes.offset, img, nullptr ) );
-                TG_STAT( LOG( "    Tex %u '%s'. Offset: %zu, Size: %zu", resIdx, m_textures[resIdx].debugName, bRes.offset, bRes.size ) );
             }
             else
             {
                 Buffer& buf = m_buffers[bRes.resHandle.index];
                 VK_CHECK( vmaBindBufferMemory2( allocator, alloc, bRes.offset, buf.m_handle, nullptr ) );
-                TG_STAT( LOG( "    Buf %u '%s'. Offset: %zu, Size: %zu", resIdx, m_buffers[resIdx].debugName, bRes.offset, bRes.size ) );
 
                 VkBufferDeviceAddressInfo bdaInfo{};
                 bdaInfo.sType       = VK_STRUCTURE_TYPE_BUFFER_DEVICE_ADDRESS_INFO;
@@ -202,6 +198,36 @@ void TaskGraph::Compile_MemoryAliasing( TaskGraphBuilder& builder, CompileInfo& 
         }
     }
     TG_STAT( m_stats.resAllocTimeMSec = (f32)Time::GetTimeSince( allocStartTime ) );
+
+#if USING( TG_DEBUG )
+    if ( compileInfo.showStats )
+    {
+        LOG( "Task Graph Memory Aliasing Stats" );
+        for ( size_t bucketIdx = 0; bucketIdx < buckets.size(); ++bucketIdx )
+        {
+            const MemoryBucket& bucket = buckets[bucketIdx];
+            TG_STAT( LOG( "Bucket[%zu]: Num Resources: %zu", bucketIdx, bucket.resources.size() ) );
+
+            for ( size_t bResIdx = 0; bResIdx < bucket.resources.size(); ++bResIdx )
+            {
+                const BucketResource& bRes = bucket.resources[bResIdx];
+                u16 resIdx                 = bRes.resHandle.index;
+                if ( bRes.resHandle.isTex )
+                {
+                    VkImage img = m_textures[resIdx].m_image;
+                    TG_STAT(
+                        LOG( "    Tex %u '%s'. Offset: %zu, Size: %zu", resIdx, m_textures[resIdx].debugName, bRes.offset, bRes.size ) );
+                }
+                else
+                {
+                    Buffer& buf = m_buffers[bRes.resHandle.index];
+                    TG_STAT(
+                        LOG( "    Buf %u '%s'. Offset: %zu, Size: %zu", resIdx, m_buffers[resIdx].debugName, bRes.offset, bRes.size ) );
+                }
+            }
+        }
+    }
+#endif // #if USING( TG_DEBUG )
 
     // Vulkan doesn't allow you to make image views until the memory is bound
     for ( size_t i = 0; i < m_textures.size(); ++i )

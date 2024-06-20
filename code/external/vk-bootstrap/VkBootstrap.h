@@ -172,9 +172,34 @@ struct GenericFeaturesPNextNode {
 
     static bool match(GenericFeaturesPNextNode const& requested, GenericFeaturesPNextNode const& supported) noexcept;
 
+    void combine(GenericFeaturesPNextNode const& right) noexcept;
+
     VkStructureType sType = static_cast<VkStructureType>(0);
     void* pNext = nullptr;
     VkBool32 fields[field_capacity];
+};
+
+struct GenericFeatureChain {
+    std::vector<GenericFeaturesPNextNode> nodes;
+
+    template <typename T> void add(T const& features) noexcept {
+        // If this struct is already in the list, combine it
+        for (auto& node : nodes) {
+            if (features.sType == node.sType) {
+                node.combine(features);
+                return;
+            }
+        }
+        // Otherwise append to the end
+        nodes.push_back(features);
+    }
+
+    bool match_all(GenericFeatureChain const& extension_requested) const noexcept;
+    bool find_and_match(GenericFeatureChain const& extension_requested) const noexcept;
+
+    void chain_up(VkPhysicalDeviceFeatures2& feats2) noexcept;
+
+    void combine(GenericFeatureChain const& right) noexcept;
 };
 
 } // namespace detail
@@ -504,6 +529,11 @@ struct PhysicalDevice {
     // Returns true if an extension should be enabled on the device
     bool is_extension_present(const char* extension) const;
 
+    // Returns true if all the features are present
+    template <typename T> bool are_extension_features_present(T const& features) const {
+        return is_features_node_present(detail::GenericFeaturesPNextNode(features));
+    }
+
     // If the given extension is present, make the extension be enabled on the device.
     // Returns true the extension is present.
     bool enable_extension_if_present(const char* extension);
@@ -511,6 +541,16 @@ struct PhysicalDevice {
     // If all the given extensions are present, make all the extensions be enabled on the device.
     // Returns true if all the extensions are present.
     bool enable_extensions_if_present(const std::vector<const char*>& extensions);
+
+    // If the features from VkPhysicalDeviceFeatures are all present, make all of the features be enable on the device.
+    // Returns true if all the features are present.
+    bool enable_features_if_present(const VkPhysicalDeviceFeatures& features_to_enable);
+
+    // If the features from the provided features struct are all present, make all of the features be enable on the
+    // device. Returns true if all of the features are present.
+    template <typename T> bool enable_extension_features_if_present(T const& features_check) {
+        return enable_features_node_if_present(detail::GenericFeaturesPNextNode(features_check));
+    }
 
     // A conversion function which allows this PhysicalDevice to be used
     // in places where VkPhysicalDevice would have been used.
@@ -521,8 +561,7 @@ struct PhysicalDevice {
     std::vector<std::string> extensions_to_enable;
     std::vector<std::string> available_extensions;
     std::vector<VkQueueFamilyProperties> queue_families;
-    std::vector<detail::GenericFeaturesPNextNode> extended_features_chain;
-    VkPhysicalDeviceFeatures2 features2{};
+    detail::GenericFeatureChain extended_features_chain;
 
     bool defer_surface_initialization = false;
     bool properties2_ext_enabled = false;
@@ -530,6 +569,9 @@ struct PhysicalDevice {
     Suitable suitable = Suitable::yes;
     friend class PhysicalDeviceSelector;
     friend class DeviceBuilder;
+
+    bool is_features_node_present(detail::GenericFeaturesPNextNode const& node) const;
+    bool enable_features_node_if_present(detail::GenericFeaturesPNextNode const& node);
 };
 
 enum class PreferredDeviceType { other = 0, integrated = 1, discrete = 2, virtual_gpu = 3, cpu = 4 };
@@ -620,7 +662,7 @@ class PhysicalDeviceSelector {
     // If this function is used, the user should not put their own VkPhysicalDeviceFeatures2 in
     // the pNext chain of VkDeviceCreateInfo.
     template <typename T> PhysicalDeviceSelector& add_required_extension_features(T const& features) {
-        criteria.extended_features_chain.push_back(features);
+        criteria.extended_features_chain.add(features);
         return *this;
     }
 
@@ -629,15 +671,15 @@ class PhysicalDeviceSelector {
 #if defined(VKB_VK_API_VERSION_1_2)
     // Require a physical device which supports the features in VkPhysicalDeviceVulkan11Features.
     // Must have vulkan version 1.2 - This is due to the VkPhysicalDeviceVulkan11Features struct being added in 1.2, not 1.1
-    PhysicalDeviceSelector& set_required_features_11(VkPhysicalDeviceVulkan11Features features_11);
+    PhysicalDeviceSelector& set_required_features_11(VkPhysicalDeviceVulkan11Features& features_11);
     // Require a physical device which supports the features in VkPhysicalDeviceVulkan12Features.
     // Must have vulkan version 1.2
-    PhysicalDeviceSelector& set_required_features_12(VkPhysicalDeviceVulkan12Features features_12);
+    PhysicalDeviceSelector& set_required_features_12(VkPhysicalDeviceVulkan12Features& features_12);
 #endif
 #if defined(VKB_VK_API_VERSION_1_3)
     // Require a physical device which supports the features in VkPhysicalDeviceVulkan13Features.
     // Must have vulkan version 1.3
-    PhysicalDeviceSelector& set_required_features_13(VkPhysicalDeviceVulkan13Features features_13);
+    PhysicalDeviceSelector& set_required_features_13(VkPhysicalDeviceVulkan13Features& features_13);
 #endif
 
     // Used when surface creation happens after physical device selection.
@@ -681,14 +723,14 @@ class PhysicalDeviceSelector {
         VkPhysicalDeviceFeatures required_features{};
         VkPhysicalDeviceFeatures2 required_features2{};
 
-        std::vector<detail::GenericFeaturesPNextNode> extended_features_chain;
+        detail::GenericFeatureChain extended_features_chain;
         bool defer_surface_initialization = false;
         bool use_first_gpu_unconditionally = false;
         bool enable_portability_subset = true;
     } criteria;
 
-    PhysicalDevice populate_device_details(VkPhysicalDevice phys_device,
-        std::vector<detail::GenericFeaturesPNextNode> const& src_extended_features_chain) const;
+    PhysicalDevice populate_device_details(
+        VkPhysicalDevice phys_device, detail::GenericFeatureChain const& src_extended_features_chain) const;
 
     PhysicalDevice::Suitable is_device_suitable(PhysicalDevice const& phys_device) const;
 

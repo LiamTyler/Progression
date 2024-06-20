@@ -143,7 +143,11 @@ public:
     size_t GetSize() const { return m_size; }
     VkBuffer GetHandle() const { return m_handle; }
     VmaAllocation GetAllocation() const { return m_allocation; }
-    char* GetMappedPtr() const { return static_cast<char*>( m_mappedPtr ); }
+    template <typename T = char>
+    T* GetMappedPtr() const
+    {
+        return static_cast<T*>( m_mappedPtr );
+    }
     VkDeviceAddress GetDeviceAddress() const { return m_deviceAddress; }
     u16 GetBindlessIndex() const { return m_bindlessIndex; }
     DEBUG_BUILD_ONLY( const char* GetDebugName() const { return debugName; } );

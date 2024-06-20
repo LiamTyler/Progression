@@ -19,7 +19,7 @@ void main()
     
     if ( all( equal( texelCoord, ivec2( 0 ) ) ) )
     {
-        debugPrintfEXT( "InFrustum: %d", pConstants.cullBuffer.data[0] );
+        //debugPrintfEXT( "InFrustum: %d", pConstants.cullBuffer.data[0] );
     }
     
     if ( texelCoord.x < size.x && texelCoord.y < size.y )

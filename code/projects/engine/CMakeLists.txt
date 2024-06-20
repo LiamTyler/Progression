@@ -94,6 +94,8 @@ set(
     
     ${CODE_DIR}/renderer/brdf_functions.cpp
     ${CODE_DIR}/renderer/brdf_functions.hpp
+    ${CODE_DIR}/renderer/debug_draw.cpp
+    ${CODE_DIR}/renderer/debug_draw.hpp
     ${CODE_DIR}/renderer/debug_marker.cpp
     ${CODE_DIR}/renderer/debug_marker.hpp
     ${CODE_DIR}/renderer/debug_ui.cpp

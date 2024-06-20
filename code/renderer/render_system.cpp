@@ -16,6 +16,7 @@
 #include "r_globals.hpp"
 #include "r_init.hpp"
 #include "r_pipeline_manager.hpp"
+#include "renderer/debug_draw.hpp"
 #include "renderer/debug_ui.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "shared/logger.hpp"
@@ -36,8 +37,8 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    GpuData::PerObjectData* meshDrawData = (GpuData::PerObjectData*)data->frameData->meshDrawDataBuffer.GetMappedPtr();
-    AABB* meshBounds                     = (AABB*)data->frameData->meshBoundsBuffer.GetMappedPtr();
+    GpuData::PerObjectData* meshDrawData = data->frameData->meshDrawDataBuffer.GetMappedPtr<GpuData::PerObjectData>();
+    AABB* meshBounds                     = data->frameData->meshBoundsBuffer.GetMappedPtr<AABB>();
     u32 modelNum                         = 0;
     u32 meshNum                          = 0;
 
@@ -183,6 +184,15 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     UIOverlay::Render( cmdBuf );
 }
 
+void UI_3D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
+{
+    PGP_ZONE_SCOPEDN( "UI 3D" );
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    DebugDraw::AddLine( vec3( 0 ), vec3( 5, 0, 0 ) );
+    DebugDraw::Draw( cmdBuf );
+}
+
 bool Init_TaskGraph()
 {
     PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
@@ -196,7 +206,7 @@ bool Init_TaskGraph()
     mTask->AddBufferInput( indirectMeshesBuff );
     TGBTextureRef litOutput =
         mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 0, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
-    mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
+    TGBTextureRef sceneDepth = mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
     cTask = builder.AddComputeTask( "ComputeDraw" );
@@ -225,6 +235,11 @@ bool Init_TaskGraph()
     gTask->AddColorAttachment( swapImg );
     gTask->SetFunction( UI_2D_DrawFunc );
 
+    gTask = builder.AddGraphicsTask( "UI_3D" );
+    gTask->AddColorAttachment( swapImg );
+    gTask->AddDepthAttachment( sceneDepth );
+    gTask->SetFunction( UI_3D_DrawFunc );
+
     PresentTaskBuilder* pTask = builder.AddPresentTask();
     pTask->SetPresentationImage( swapImg );
 
@@ -240,7 +255,7 @@ bool Init_TaskGraph()
         LOG_ERR( "Could not compile the task graph" );
         return false;
     }
-    //TG_DEBUG_ONLY( s_taskGraph.Print() );
+    // TG_DEBUG_ONLY( s_taskGraph.Print() );
 
     return true;
 }
@@ -290,6 +305,8 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
         fData.sceneGlobalsBuffer   = rg.device.NewBuffer( sgBufInfo, "sceneGlobalsBuffer" );
     }
 
+    DebugDraw::Init();
+
     return true;
 }
 
@@ -315,6 +332,7 @@ void Shutdown()
 {
     rg.device.WaitForIdle();
 
+    DebugDraw::Shutdown();
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         rg.frameData[i].meshBoundsBuffer.Free();
@@ -422,6 +440,7 @@ void Render()
     PG_PROFILE_GPU_START_FRAME( cmdBuf );
     PG_PROFILE_GPU_START( cmdBuf, Frame, "Frame" );
 
+    DebugDraw::StartFrame();
     BindlessManager::Update();
     UIOverlay::BeginFrame();
     rg.device.AcquirePendingTransfers();

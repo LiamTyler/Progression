@@ -22,14 +22,17 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
     PG_UNUSED( pUserData );
 
 #if USING( SHADER_DEBUG_PRINTF )
-    if ( !strcmp( pCallbackData->pMessageIdName, "WARNING-DEBUG-PRINTF" ) )
+    if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT )
     {
-        std::string_view msg = pCallbackData->pMessage;
-        size_t idx           = msg.find( "vkQueueSubmit(): " );
-        PG_ASSERT( idx != std::string_view::npos );
-        idx += 17; // length of "vkQueueSubmit(): "
-        Logger_Log(
-            LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s", msg.substr( idx ).data() );
+        if ( !strcmp( pCallbackData->pMessageIdName, "WARNING-DEBUG-PRINTF" ) )
+        {
+            std::string_view msg = pCallbackData->pMessage;
+            size_t idx           = msg.find( "vkQueueSubmit(): " );
+            PG_ASSERT( idx != std::string_view::npos );
+            idx += 17; // length of "vkQueueSubmit(): "
+            Logger_Log(
+                LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s", msg.substr( idx ).data() );
+        }
         return VK_FALSE;
     }
 #endif // #if USING( SHADER_DEBUG_PRINTF )
@@ -96,11 +99,11 @@ static vkb::Result<vkb::Instance> GetInstance()
 
 #if !USING( SHIP_BUILD )
     builder.request_validation_layers( true );
-    builder.add_validation_feature_enable( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
     builder.set_debug_callback( DebugCallback );
     VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
 #if USING( SHADER_DEBUG_PRINTF )
+    builder.add_validation_feature_enable( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
     debugMessageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 #endif // #if USING( SHADER_DEBUG_PRINTF )
     builder.set_debug_messenger_severity( debugMessageSeverity );
@@ -177,10 +180,6 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     pDevSelector.add_required_extension( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
 #endif // #if USING( PG_RTX )
 
-#if USING( DEBUG_BUILD ) // perf hit
-    pDevSelector.add_required_extension( VK_EXT_ROBUSTNESS_2_EXTENSION_NAME );
-#endif // #if USING( DEBUG_BUILD )
-
 #if USING( PG_MUTABLE_DESCRIPTORS )
     pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
     VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
@@ -202,7 +201,8 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR baryFeaturesKHR = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR };
     baryFeaturesKHR.fragmentShaderBarycentric = true;
-    ADD_PNEXT_FEATURES12( baryFeaturesKHR );
+    // ADD_PNEXT_FEATURES12( baryFeaturesKHR );
+    pDevSelector.add_required_extension_features( baryFeaturesKHR );
 #endif // #if !USING( SHIP_BUILD )
 
     VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT };

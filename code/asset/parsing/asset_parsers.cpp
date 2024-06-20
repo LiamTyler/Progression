@@ -174,6 +174,15 @@ BEGIN_STR_TO_ENUM_MAP_SCOPED( CompareFunction, Gfx )
     STR_TO_ENUM_VALUE( Gfx::CompareFunction, ALWAYS )
 END_STR_TO_ENUM_MAP( Gfx::CompareFunction, NUM_COMPARE_FUNCTION )
 
+BEGIN_STR_TO_ENUM_MAP_SCOPED( PrimitiveType, Gfx )
+    STR_TO_ENUM_VALUE( Gfx::PrimitiveType, POINTS )
+    STR_TO_ENUM_VALUE( Gfx::PrimitiveType, LINES )
+    STR_TO_ENUM_VALUE( Gfx::PrimitiveType, LINE_STRIP )
+    STR_TO_ENUM_VALUE( Gfx::PrimitiveType, TRIANGLES )
+    STR_TO_ENUM_VALUE( Gfx::PrimitiveType, TRIANGLE_STRIP )
+    STR_TO_ENUM_VALUE( Gfx::PrimitiveType, TRIANGLE_FAN )
+END_STR_TO_ENUM_MAP( Gfx::PrimitiveType, NUM_PRIMITIVE_TYPE )
+
 bool PipelineParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<Gfx::PipelineColorAttachmentInfo&> cMapping(
@@ -205,7 +214,7 @@ bool PipelineParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
             cMapping.ForEachMember( v, attach );
         }},
         { "depthAttachment", [&]( const rapidjson::Value& v, PipelineCreateInfo& s ) { dMapping.ForEachMember( v, s.graphicsInfo.depthInfo ); }},
-
+        { "primitiveType", [&]( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.graphicsInfo.primitiveType = PrimitiveType_StringToEnum( ParseString( v ) ); }},
     });
     mapping.ForEachMember( value, *info );
 

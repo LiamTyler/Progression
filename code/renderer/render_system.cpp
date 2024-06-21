@@ -92,9 +92,10 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
         u32 _pad;
     };
     ComputePushConstants push;
-    push.meshDrawDataBDA = data->frameData->meshDrawDataBuffer.GetDeviceAddress();
-    push.meshBoundsBDA   = data->frameData->meshBoundsBuffer.GetDeviceAddress();
-    push.outputBuffer    = data->taskGraph->GetBuffer( task->outputBuffers[0] )->GetDeviceAddress();
+    push.meshDrawDataBDA   = data->frameData->meshDrawDataBuffer.GetDeviceAddress();
+    push.meshBoundsBDA     = data->frameData->meshBoundsBuffer.GetDeviceAddress();
+    push.outputBuffer      = data->taskGraph->GetBuffer( task->outputBuffers[0] )->GetDeviceAddress();
+    const Frustum& frustum = data->scene->camera.GetFrustum();
     memcpy( push.frustumPlanes, data->scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
     push.numMeshes = meshNum;
     cmdBuf.PushConstants( push );
@@ -218,12 +219,11 @@ bool Init_TaskGraph()
     PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
     TaskGraphBuilder builder;
     ComputeTaskBuilder* cTask       = builder.AddComputeTask( "FrustumCullMeshes" );
-    TGBBufferRef indirectMeshesBuff = cTask->AddBufferOutput(
-        "visibleMeshes", BufferUsage::INDIRECT | BufferUsage::STORAGE, VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 5 * sizeof( u32 ) );
+    TGBBufferRef indirectMeshesBuff = cTask->AddBufferOutput( "visibleMeshes", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 5 * sizeof( u32 ), 0 );
     cTask->SetFunction( ComputeFrustumCullMeshes );
 
     GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "DrawMeshes" );
-    mTask->AddBufferInput( indirectMeshesBuff );
+    mTask->AddBufferInput( indirectMeshesBuff, BufferUsage::INDIRECT );
     TGBTextureRef litOutput =
         mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 0, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
     TGBTextureRef sceneDepth = mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
@@ -275,7 +275,7 @@ bool Init_TaskGraph()
         LOG_ERR( "Could not compile the task graph" );
         return false;
     }
-    // TG_DEBUG_ONLY( s_taskGraph.Print() );
+    TG_DEBUG_ONLY( s_taskGraph.Print() );
 
     return true;
 }

@@ -286,7 +286,10 @@ static VkAccessFlags2 GetAccessFlagsBuffer( TaskType taskType, ResourceState res
     case TaskType::GRAPHICS:
     {
         if ( IsSet( bufUsage, BufferUsage::INDIRECT ) )
+        {
+            PG_ASSERT( resState == ResourceState::READ );
             return VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
+        }
 
         if ( resState == ResourceState::READ )
             return VK_ACCESS_2_SHADER_READ_BIT;
@@ -492,7 +495,7 @@ void TaskGraph::Compile_PipelineTask( PipelineTask* pTask, PipelineTaskBuilder* 
             pTask->bufferClears.emplace_back( index, bufInfo.clearVal );
 
             VkBufferMemoryBarrier2 barrier =
-                GetBufferBarrier( index, TaskType::TRANSFER, ResourceState::WRITE, taskType, bufInfo.state, buildBuffer.bufferUsage );
+                GetBufferBarrier( index, TaskType::TRANSFER, ResourceState::WRITE, taskType, bufInfo.state, bufInfo.usageInTask );
             pTask->bufferBarriers.push_back( barrier );
         }
         else if ( trackInfo.prevTask != NO_TASK && trackInfo.prevState != ResourceState::READ )

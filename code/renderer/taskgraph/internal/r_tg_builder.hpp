@@ -100,6 +100,7 @@ struct TGBBufferInfo
     TGBBufferRef ref;
     bool isCleared;
     ResourceState state;
+    BufferUsage usageInTask;
 };
 
 struct TGBTextureInfo
@@ -148,10 +149,11 @@ public:
     void AddTextureOutput( TGBTextureRef& texture );
     void AddTextureInput( TGBTextureRef& texture );
 
-    TGBBufferRef AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal );
-    TGBBufferRef AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size );
+    // TODO: infer memoryUsage
+    TGBBufferRef AddBufferOutput( std::string_view name, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal );
+    TGBBufferRef AddBufferOutput( std::string_view name, VmaMemoryUsage memoryUsage, size_t size );
     void AddBufferOutput( TGBBufferRef& buffer );
-    void AddBufferInput( TGBBufferRef& buffer );
+    void AddBufferInput( TGBBufferRef& buffer, BufferUsage usageForThisTask = BufferUsage::STORAGE );
 
     std::vector<TGBBufferInfo> buffers;
     std::vector<TGBTextureInfo> textures;

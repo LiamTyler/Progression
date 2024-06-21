@@ -51,18 +51,17 @@ void PipelineTaskBuilder::AddTextureInput( TGBTextureRef& ref )
     textures.emplace_back( vec4( 0 ), ref, false, ResourceState::READ );
 }
 
-TGBBufferRef PipelineTaskBuilder::AddBufferOutput(
-    std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal )
+TGBBufferRef PipelineTaskBuilder::AddBufferOutput( std::string_view name, VmaMemoryUsage memoryUsage, size_t size, u32 clearVal )
 {
-    TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr, taskHandle.index );
-    buffers.emplace_back( clearVal, ref, true, ResourceState::WRITE );
+    TGBBufferRef ref = builder->AddBuffer( name, BufferUsage::STORAGE, memoryUsage, size, nullptr, taskHandle.index );
+    buffers.emplace_back( clearVal, ref, true, ResourceState::WRITE, BufferUsage::STORAGE );
     return ref;
 }
 
-TGBBufferRef PipelineTaskBuilder::AddBufferOutput( std::string_view name, BufferUsage bufferUsage, VmaMemoryUsage memoryUsage, size_t size )
+TGBBufferRef PipelineTaskBuilder::AddBufferOutput( std::string_view name, VmaMemoryUsage memoryUsage, size_t size )
 {
-    TGBBufferRef ref = builder->AddBuffer( name, bufferUsage, memoryUsage, size, nullptr, taskHandle.index );
-    buffers.emplace_back( 0, ref, false, ResourceState::WRITE );
+    TGBBufferRef ref = builder->AddBuffer( name, BufferUsage::STORAGE, memoryUsage, size, nullptr, taskHandle.index );
+    buffers.emplace_back( 0, ref, false, ResourceState::WRITE, BufferUsage::STORAGE );
     return ref;
 }
 
@@ -81,9 +80,10 @@ void PipelineTaskBuilder::AddBufferOutput( TGBBufferRef& ref )
     buffers.emplace_back( 0, ref, false, ResourceState::WRITE );
 }
 
-void PipelineTaskBuilder::AddBufferInput( TGBBufferRef& ref )
+void PipelineTaskBuilder::AddBufferInput( TGBBufferRef& ref, BufferUsage usageForThisTask )
 {
     builder->UpdateBufferLifetime( ref, taskHandle );
+    builder->buffers[ref.index].bufferUsage |= usageForThisTask;
 #if USING( TG_DEBUG )
     for ( TGBBufferInfo& bInfo : buffers )
     {
@@ -91,7 +91,7 @@ void PipelineTaskBuilder::AddBufferInput( TGBBufferRef& ref )
                                      "AddBufferOutput for this texture" );
     }
 #endif // #if USING( TG_DEBUG )
-    buffers.emplace_back( 0, ref, false, ResourceState::READ );
+    buffers.emplace_back( 0, ref, false, ResourceState::READ, usageForThisTask );
 }
 
 void ComputeTaskBuilder::SetFunction( ComputeFunction func ) { function = func; }

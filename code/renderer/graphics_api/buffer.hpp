@@ -101,8 +101,8 @@ enum class BufferUsage : u32
     DEVICE_ADDRESS = 0x00020000,
 
     // Provided by VK_KHR_acceleration_structure
-    AS_BUILD_INPUT_READ_ONLY = 0x00080000,
-    AS_STORAGE               = 0x00100000,
+    ACCEL_BUILD_INPUT_READ_ONLY = 0x00080000,
+    ACCEL_STORAGE               = 0x00100000,
 
     // Provided by VK_KHR_ray_tracing_pipeline
     SHADER_BINDING_TABLE = 0x00000400,

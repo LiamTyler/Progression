@@ -28,8 +28,18 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
         {
             std::string_view msg = pCallbackData->pMessage;
             size_t idx           = msg.find( "vkQueueSubmit(): " );
-            PG_ASSERT( idx != std::string_view::npos );
-            idx += 17; // length of "vkQueueSubmit(): "
+            if ( idx != std::string_view::npos )
+            {
+                idx += 17; // length of "vkQueueSubmit(): "
+            }
+            else
+            {
+                idx = msg.find( "vkQueueSubmit2(): pSubmits[0] " );
+                if ( idx != std::string_view::npos )
+                    idx += 30; // length of "vkQueueSubmit2(): pSubmits[0] "
+                else
+                    idx = 0;
+            }
             Logger_Log(
                 LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s", msg.substr( idx ).data() );
         }

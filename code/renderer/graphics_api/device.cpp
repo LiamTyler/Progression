@@ -137,7 +137,7 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
 {
     BufferCreateInfo bufferCreateInfo = {};
     bufferCreateInfo.size             = size;
-    bufferCreateInfo.bufferUsage |= BufferUsage::AS_STORAGE;
+    bufferCreateInfo.bufferUsage |= BufferUsage::ACCEL_STORAGE;
     bufferCreateInfo.memoryUsage = VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
 
     AccelerationStructure accelerationStructure;

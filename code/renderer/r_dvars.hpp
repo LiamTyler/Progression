@@ -21,6 +21,7 @@ extern Dvar r_wireframeThickness;
 extern Dvar r_debugInt;
 extern Dvar r_debugUint;
 extern Dvar r_debugFloat;
+extern Dvar r_frustumCullingDebug;
 
 #endif // #if !USING( SHIP_BUILD )
 

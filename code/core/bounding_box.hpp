@@ -21,6 +21,7 @@ public:
     vec3 N( const vec3& planeNormal ) const;
     vec3 Offset( const vec3& p ) const;
 
+    void Scale( vec3 v );
     void MoveCenterTo( const vec3& point );
     void Encompass( const AABB& aabb );
     void Encompass( const AABB& aabb, const mat4& transform );

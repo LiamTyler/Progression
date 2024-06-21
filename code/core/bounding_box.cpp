@@ -92,6 +92,12 @@ vec3 AABB::Offset( const vec3& p ) const
     return rel;
 }
 
+void AABB::Scale( vec3 v )
+{
+    min *= v;
+    max *= v;
+}
+
 void AABB::MoveCenterTo( const vec3& point )
 {
     vec3 halfExtent = 0.5f * ( max - min );

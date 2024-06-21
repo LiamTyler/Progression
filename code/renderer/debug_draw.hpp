@@ -1,6 +1,7 @@
 #pragma once
 
 #include "core/bounding_box.hpp"
+#include "core/frustum.hpp"
 #include "renderer/graphics_api/command_buffer.hpp"
 
 #define DEBUG_DRAW USE_IF( !USING( SHIP_BUILD ) )
@@ -31,5 +32,6 @@ void Draw( CommandBuffer& cmdBuf );
 // all functions expect positions in world space
 void AddLine( vec3 begin, vec3 end, Color color = Color::GREEN );
 void AddAABB( const AABB& aabb, Color color = Color::GREEN );
+void AddFrustum( const Frustum& frustum, Color color = Color::GREEN );
 
 } // namespace PG::Gfx::DebugDraw

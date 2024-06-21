@@ -4,11 +4,11 @@ namespace PG
 {
 
 void Frustum::Update(
-    f32 fov, f32 nearPlane, f32 farPlane, f32 aspect, const vec3& pos, const vec3& forward, const vec3& up, const vec3& right )
+    f32 vFov, f32 nearPlane, f32 farPlane, f32 aspect, const vec3& pos, const vec3& forward, const vec3& up, const vec3& right )
 {
     vec3 ntl, ntr, nbl, nbr, ftl, ftr, fbr, fbl;
     f32 nearHeight, nearWidth, farHeight, farWidth;
-    f32 angle = 0.5f * fov;
+    f32 angle = 0.5f * vFov;
 
     nearHeight = nearPlane * tanf( angle );
     farHeight  = farPlane * tanf( angle );
@@ -35,9 +35,20 @@ void Frustum::Update(
     SetPlane( 3, nbl, nbr, fbr ); // bottom
     SetPlane( 4, ntl, ntr, nbr ); // near
     SetPlane( 5, ftr, ftl, fbl ); // far
+
+#if !USING( SHIP_BUILD )
+    corners[0] = ntl;
+    corners[1] = ntr;
+    corners[2] = nbr;
+    corners[3] = nbl;
+    corners[4] = ftl;
+    corners[5] = ftr;
+    corners[6] = fbr;
+    corners[7] = fbl;
+#endif // #if !USING( SHIP_BUILD )
 }
 
-void Frustum::ExtractFromVPMatrix( const glm::mat4& VP )
+void Frustum::ExtractFromVPMatrix( const mat4& VP )
 {
     // left plane
     // 4th col + 1st col
@@ -85,6 +96,24 @@ void Frustum::ExtractFromVPMatrix( const glm::mat4& VP )
     {
         planes[i] /= Length( vec3( planes[i] ) );
     }
+
+#if !USING( SHIP_BUILD )
+    corners[0] = vec3( -1, -1, 0 );
+    corners[1] = vec3( 1, -1, 0 );
+    corners[2] = vec3( 1, 1, 0 );
+    corners[3] = vec3( -1, 1, 0 );
+    corners[4] = vec3( -1, -1, 1 );
+    corners[5] = vec3( 1, -1, 1 );
+    corners[6] = vec3( 1, 1, 1 );
+    corners[7] = vec3( -1, 1, 1 );
+
+    mat4 invVP = Inverse( VP );
+    for ( int i = 0; i < 8; ++i )
+    {
+        vec4 p     = invVP * vec4( corners[i], 1 );
+        corners[i] = vec3( p ) / p.w;
+    }
+#endif // #if !USING( SHIP_BUILD )
 }
 
 bool Frustum::BoxInFrustum( const AABB& aabb ) const

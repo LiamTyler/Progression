@@ -60,6 +60,19 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
                 constants.objectIdx          = modelNum;
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
                 meshDrawData[meshNum + i]    = constants;
+
+#if !USING( SHIP_BUILD )
+                if ( r_frustumCullingDebug.GetBool() )
+                {
+                    AABB dAABB = model->meshAABBs[i];
+                    dAABB.Scale( vec3( 1.01f ) );
+                    DebugDraw::Color color = DebugDraw::Color::GREEN;
+                    if ( !rg.debugCullingFrustum.BoxInFrustum( dAABB ) )
+                        color = DebugDraw::Color::RED;
+
+                    DebugDraw::AddAABB( dAABB, color );
+                }
+#endif // #if !USING( SHIP_BUILD )
             }
 
             meshNum += meshesToAdd;
@@ -189,7 +202,14 @@ void UI_3D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     PGP_ZONE_SCOPEDN( "UI 3D" );
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    DebugDraw::AddLine( vec3( 0 ), vec3( 5, 0, 0 ) );
+    // DebugDraw::AddLine( vec3( 0 ), vec3( 5, 0, 0 ) );
+    // DebugDraw::AddAABB( { vec3( -2 ), vec3( 2 ) } );
+#if !USING( SHIP_BUILD )
+    if ( r_frustumCullingDebug.GetBool() )
+    {
+        DebugDraw::AddFrustum( rg.debugCullingFrustum, DebugDraw::Color::YELLOW );
+    }
+#endif // #if !USING( SHIP_BUILD )
     DebugDraw::Draw( cmdBuf );
 }
 
@@ -403,6 +423,11 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.debugInt              = r_debugInt.GetInt();
     globalData.debugUint             = r_debugUint.GetUint();
     globalData.debugFloat            = r_debugFloat.GetFloat();
+
+    if ( !r_frustumCullingDebug.GetBool() )
+    {
+        rg.debugCullingFrustum = scene->camera.GetFrustum();
+    }
 #endif // #if !USING( SHIP_BUILD )
 
     memcpy( frameData.sceneGlobalsBuffer.GetMappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );

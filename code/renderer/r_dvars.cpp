@@ -59,6 +59,8 @@ Dvar r_wireframeThickness( "r_wireframeThickness", 0.5f, 0.0f, 100.0f, "Thicknes
 Dvar r_debugInt( "r_debugInt", 0, INT_MIN, INT_MAX, "Just used as an optional debug value when doing shader dev" );
 Dvar r_debugUint( "r_debugUint", 0u, 0u, UINT_MAX, "Just used as an optional debug value when doing shader dev" );
 Dvar r_debugFloat( "r_debugFloat", 0.0f, -FLT_MAX, FLT_MAX, "Just used as an optional debug value when doing shader dev" );
+Dvar r_frustumCullingDebug( "r_frustumCullingDebug", false, "Enabling will freeze the frustum used for culling and visualize it" );
+
 #endif // #if !USING( SHIP_BUILD )
 
 } // namespace PG

@@ -3,7 +3,7 @@
 #include "r_globals.hpp"
 #include "r_pipeline_manager.hpp"
 
-#define MAX_DEBUG_LINES 256
+#define MAX_DEBUG_PRIMS 512
 
 namespace PG::Gfx::DebugDraw
 {
@@ -30,7 +30,11 @@ static float GetPackedColor( Color color )
 struct LocalFrameData
 {
     Buffer debugLinesGPU;
-    std::vector<float> debugLinesCPU; // Line is 7 floats: vec3 p0, vec3 p1, uint packedColor
+    Buffer debugAABBsGPU;
+    // Both an AABB and a Line are 7 floats: vec3 p0, vec3 p1, uint packedColor
+    std::vector<float> debugLinesCPU;
+    std::vector<float> debugAABBsCPU;
+    u32 totalPrims;
     bool warnedThisFrame;
 };
 
@@ -44,13 +48,16 @@ void Init()
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         s_localFrameDatas[i].warnedThisFrame = false;
-        s_localFrameDatas[i].debugLinesCPU.reserve( MAX_DEBUG_LINES * 7 );
+        s_localFrameDatas[i].totalPrims      = 0;
+        s_localFrameDatas[i].debugLinesCPU.reserve( MAX_DEBUG_PRIMS * 7 );
+        s_localFrameDatas[i].debugAABBsCPU.reserve( MAX_DEBUG_PRIMS * 7 );
 
         BufferCreateInfo dbgLinesBufInfo   = {};
-        dbgLinesBufInfo.size               = MAX_DEBUG_LINES * 7 * sizeof( float );
+        dbgLinesBufInfo.size               = MAX_DEBUG_PRIMS * 7 * sizeof( float );
         dbgLinesBufInfo.bufferUsage        = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
         dbgLinesBufInfo.flags              = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         s_localFrameDatas[i].debugLinesGPU = rg.device.NewBuffer( dbgLinesBufInfo, "debugLines" );
+        s_localFrameDatas[i].debugAABBsGPU = rg.device.NewBuffer( dbgLinesBufInfo, "debugAABBs" );
     }
 }
 
@@ -59,43 +66,71 @@ void Shutdown()
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         s_localFrameDatas[i].debugLinesGPU.Free();
+        s_localFrameDatas[i].debugAABBsGPU.Free();
     }
 }
 
 void StartFrame()
 {
-    LocalData().warnedThisFrame = false;
+    LocalData().totalPrims = 0;
     LocalData().debugLinesCPU.clear();
+    LocalData().debugAABBsCPU.clear();
 }
 
 void Draw( CommandBuffer& cmdBuf )
 {
     LocalFrameData& localData = LocalData();
-    float* linesGPU           = localData.debugLinesGPU.GetMappedPtr<float>();
-    memcpy( linesGPU, localData.debugLinesCPU.data(), localData.debugLinesCPU.size() * 7 * sizeof( float ) );
-
-    VkDeviceAddress vertexBuffer = localData.debugLinesGPU.GetDeviceAddress();
+    if ( localData.totalPrims == 0 )
+        return;
 
     cmdBuf.BindPipeline( PipelineManager::GetPipeline( "debug_lines" ) );
     cmdBuf.BindGlobalDescriptors();
 
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
-    cmdBuf.PushConstants( vertexBuffer );
 
-    PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw Debug Lines" );
-    u32 numVerts = 2 * (u32)localData.debugLinesCPU.size() / 7;
-    cmdBuf.Draw( 0, numVerts );
+    struct PushConstants
+    {
+        VkDeviceAddress vertexBuffer;
+        u32 mode;
+        u32 _pad;
+    };
+    PushConstants constants;
+
+    if ( !localData.debugLinesCPU.empty() )
+    {
+        PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw Debug Lines" );
+        float* linesGPU = localData.debugLinesGPU.GetMappedPtr<float>();
+        memcpy( linesGPU, localData.debugLinesCPU.data(), localData.debugLinesCPU.size() * 7 * sizeof( float ) );
+
+        constants.vertexBuffer = localData.debugLinesGPU.GetDeviceAddress();
+        constants.mode         = 0;
+        cmdBuf.PushConstants( constants );
+        u32 numLines = (u32)localData.debugLinesCPU.size() / 7;
+        cmdBuf.Draw( 0, 2 * numLines );
+    }
+
+    if ( !localData.debugAABBsCPU.empty() )
+    {
+        PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw Debug AABBs" );
+        float* aabbsGPU = localData.debugAABBsGPU.GetMappedPtr<float>();
+        memcpy( aabbsGPU, localData.debugAABBsCPU.data(), localData.debugAABBsCPU.size() * 7 * sizeof( float ) );
+
+        constants.vertexBuffer = localData.debugAABBsGPU.GetDeviceAddress();
+        constants.mode         = 1;
+        cmdBuf.PushConstants( constants );
+        u32 numAABBs = (u32)localData.debugAABBsCPU.size() / 7;
+        cmdBuf.Draw( 0, 24, numAABBs );
+    }
 }
 
 void AddLine( vec3 begin, vec3 end, Color color )
 {
-    u64 numLines = LocalData().debugLinesCPU.size();
-    if ( numLines >= MAX_DEBUG_LINES )
+    if ( LocalData().totalPrims >= MAX_DEBUG_PRIMS )
     {
         if ( !LocalData().warnedThisFrame )
         {
-            LOG_WARN( "Reached the max number of debug lines on this frame. Skipping all future lines" );
+            LOG_WARN( "Reached the max number of debug primitives on this frame. Skipping all future debug prims" );
             LocalData().warnedThisFrame = true;
         }
         return;
@@ -108,6 +143,57 @@ void AddLine( vec3 begin, vec3 end, Color color )
     LocalData().debugLinesCPU.push_back( end.y );
     LocalData().debugLinesCPU.push_back( end.z );
     LocalData().debugLinesCPU.push_back( GetPackedColor( color ) );
+    LocalData().totalPrims++;
+}
+
+void AddAABB( const AABB& aabb, Color color )
+{
+    if ( LocalData().totalPrims >= MAX_DEBUG_PRIMS )
+    {
+        if ( !LocalData().warnedThisFrame )
+        {
+            LOG_WARN( "Reached the max number of debug primitives on this frame. Skipping all future debug prims" );
+            LocalData().warnedThisFrame = true;
+        }
+        return;
+    }
+
+    LocalData().debugAABBsCPU.push_back( aabb.min.x );
+    LocalData().debugAABBsCPU.push_back( aabb.min.y );
+    LocalData().debugAABBsCPU.push_back( aabb.min.z );
+    LocalData().debugAABBsCPU.push_back( aabb.max.x );
+    LocalData().debugAABBsCPU.push_back( aabb.max.y );
+    LocalData().debugAABBsCPU.push_back( aabb.max.z );
+    LocalData().debugAABBsCPU.push_back( GetPackedColor( color ) );
+    LocalData().totalPrims++;
+}
+
+void AddFrustum( const Frustum& frustum, Color color )
+{
+    if ( LocalData().totalPrims >= MAX_DEBUG_PRIMS )
+    {
+        if ( !LocalData().warnedThisFrame )
+        {
+            LOG_WARN( "Reached the max number of debug primitives on this frame. Skipping all future debug prims" );
+            LocalData().warnedThisFrame = true;
+        }
+        return;
+    }
+
+    AddLine( frustum.corners[0], frustum.corners[1], color );
+    AddLine( frustum.corners[1], frustum.corners[2], color );
+    AddLine( frustum.corners[2], frustum.corners[3], color );
+    AddLine( frustum.corners[3], frustum.corners[0], color );
+
+    // AddLine( frustum.corners[4], frustum.corners[5], color );
+    // AddLine( frustum.corners[5], frustum.corners[6], color );
+    // AddLine( frustum.corners[6], frustum.corners[7], color );
+    // AddLine( frustum.corners[7], frustum.corners[4], color );
+
+    AddLine( frustum.corners[0], frustum.corners[4], color );
+    AddLine( frustum.corners[1], frustum.corners[5], color );
+    AddLine( frustum.corners[2], frustum.corners[6], color );
+    AddLine( frustum.corners[3], frustum.corners[7], color );
 }
 
 #else  // #if USING( DEBUG_DRAW )
@@ -116,10 +202,17 @@ void Init() {}
 void Shutdown() {}
 void StartFrame() {}
 
-void AddLine( vec3 begin, vec3 end )
+void AddLine( vec3 begin, vec3 end, Color color )
 {
     PG_UNUSED( begin );
     PG_UNUSED( end );
+    PG_UNUSED( color );
+}
+
+void AddAABB( const AABB& aabb, Color color )
+{
+    PG_UNUSED( aabb );
+    PG_UNUSED( color );
 }
 #endif // #else // #if USING( DEBUG_DRAW )
 

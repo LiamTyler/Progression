@@ -7,13 +7,26 @@ using std::vector;
 namespace PG::Gfx
 {
 
+Task::~Task()
+{
+#if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
+    if ( name )
+        free( (void*)name );
+#endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
+}
+
+Buffer& PipelineTask::GetInputBuffer( u32 index ) const { return taskGraph->GetBuffer( inputBuffers[index] ); }
+Buffer& PipelineTask::GetOutputBuffer( u32 index ) const { return taskGraph->GetBuffer( outputBuffers[index] ); }
+Texture& PipelineTask::GetInputTexture( u32 index ) const { return taskGraph->GetTexture( inputTextures[index] ); }
+Texture& PipelineTask::GetOutputTexture( u32 index ) const { return taskGraph->GetTexture( outputTextures[index] ); }
+
 static void FillBufferBarriers( TaskGraph* taskGraph, vector<VkBufferMemoryBarrier2>& scratch, vector<VkBufferMemoryBarrier2>& source )
 {
     scratch = source;
     for ( VkBufferMemoryBarrier2& barrier : scratch )
     {
         TGResourceHandle bufHandle = GetEmbeddedResHandle( barrier.buffer );
-        barrier.buffer             = *taskGraph->GetBuffer( bufHandle );
+        barrier.buffer             = taskGraph->GetBuffer( bufHandle );
     }
 }
 
@@ -23,7 +36,7 @@ static void FillImageBarriers( TaskGraph* taskGraph, vector<VkImageMemoryBarrier
     for ( VkImageMemoryBarrier2& barrier : scratch )
     {
         TGResourceHandle imgHandle = GetEmbeddedResHandle( barrier.image );
-        barrier.image              = taskGraph->GetTexture( imgHandle )->GetImage();
+        barrier.image              = taskGraph->GetTexture( imgHandle ).GetImage();
     }
 }
 
@@ -34,7 +47,7 @@ static void FillAttachmentInfos(
     for ( VkRenderingAttachmentInfo& attach : scratch )
     {
         TGResourceHandle imgHandle = GetEmbeddedResHandle( attach.imageView );
-        attach.imageView           = taskGraph->GetTexture( imgHandle )->GetView();
+        attach.imageView           = taskGraph->GetTexture( imgHandle ).GetView();
     }
 }
 
@@ -69,16 +82,16 @@ void ComputeTask::Execute( TGExecuteData* data )
 
     for ( const BufferClearSubTask& clear : bufferClears )
     {
-        Buffer* buf = data->taskGraph->GetBuffer( clear.bufferHandle );
-        vkCmdFillBuffer( *data->cmdBuf, *buf, 0, VK_WHOLE_SIZE, clear.clearVal );
+        const Buffer& buf = data->taskGraph->GetBuffer( clear.bufferHandle );
+        vkCmdFillBuffer( *data->cmdBuf, buf, 0, VK_WHOLE_SIZE, clear.clearVal );
     }
     for ( const TextureClearSubTask& clear : textureClears )
     {
-        Texture* tex = data->taskGraph->GetTexture( clear.textureHandle );
+        const Texture& tex = data->taskGraph->GetTexture( clear.textureHandle );
         VkClearColorValue clearColor;
         memcpy( &clearColor, &clear.clearVal.x, sizeof( vec4 ) );
         VkImageSubresourceRange range = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
-        vkCmdClearColorImage( *data->cmdBuf, tex->GetImage(), PGToVulkanImageLayout( ImageLayout::TRANSFER_DST ), &clearColor, 1, &range );
+        vkCmdClearColorImage( *data->cmdBuf, tex.GetImage(), PGToVulkanImageLayout( ImageLayout::TRANSFER_DST ), &clearColor, 1, &range );
     }
 
     SubmitBarriers( data );
@@ -102,7 +115,7 @@ void GraphicsTask::Execute( TGExecuteData* data )
     {
         data->scratchDepthAttachmentInfo           = *depthAttach;
         TGResourceHandle imgHandle                 = GetEmbeddedResHandle( depthAttach->imageView );
-        data->scratchDepthAttachmentInfo.imageView = data->taskGraph->GetTexture( imgHandle )->GetView();
+        data->scratchDepthAttachmentInfo.imageView = data->taskGraph->GetTexture( imgHandle ).GetView();
         renderingInfo.pDepthAttachment             = &data->scratchDepthAttachmentInfo;
     }
 
@@ -117,16 +130,16 @@ void TransferTask::Execute( TGExecuteData* data )
 
     for ( const TextureTransfer& texBlit : textureBlits )
     {
-        Texture* srcTex = data->taskGraph->GetTexture( texBlit.src );
-        Texture* dstTex = data->taskGraph->GetTexture( texBlit.dst );
+        const Texture& srcTex = data->taskGraph->GetTexture( texBlit.src );
+        const Texture& dstTex = data->taskGraph->GetTexture( texBlit.dst );
 
         VkImageBlit2 blitRegion{ VK_STRUCTURE_TYPE_IMAGE_BLIT_2 };
-        blitRegion.srcOffsets[1].x = srcTex->GetWidth();
-        blitRegion.srcOffsets[1].y = srcTex->GetHeight();
+        blitRegion.srcOffsets[1].x = srcTex.GetWidth();
+        blitRegion.srcOffsets[1].y = srcTex.GetHeight();
         blitRegion.srcOffsets[1].z = 1;
 
-        blitRegion.dstOffsets[1].x = dstTex->GetWidth();
-        blitRegion.dstOffsets[1].y = dstTex->GetHeight();
+        blitRegion.dstOffsets[1].x = dstTex.GetWidth();
+        blitRegion.dstOffsets[1].y = dstTex.GetHeight();
         blitRegion.dstOffsets[1].z = 1;
 
         blitRegion.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
@@ -140,9 +153,9 @@ void TransferTask::Execute( TGExecuteData* data )
         blitRegion.dstSubresource.mipLevel       = 0;
 
         VkBlitImageInfo2 blitInfo{ VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2 };
-        blitInfo.dstImage       = dstTex->GetImage();
+        blitInfo.dstImage       = dstTex.GetImage();
         blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        blitInfo.srcImage       = srcTex->GetImage();
+        blitInfo.srcImage       = srcTex.GetImage();
         blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
         blitInfo.filter         = VK_FILTER_LINEAR;
         blitInfo.regionCount    = 1;
@@ -220,7 +233,7 @@ void Task::Print( TaskGraph* taskGraph ) const
     {
         const VkBufferMemoryBarrier2& barrier = bufferBarriers[i];
         TGResourceHandle bufHandle            = GetEmbeddedResHandle( barrier.buffer );
-        LOG( "      [%zu]: Buffer: %u '%s'", i, bufHandle, taskGraph->GetBuffer( bufHandle )->GetDebugName() );
+        LOG( "      [%zu]: Buffer: %u '%s'", i, bufHandle, taskGraph->GetBuffer( bufHandle ).GetDebugName() );
         LOG( "        SRCStage:  %s", PipelineStageFlagsToString( barrier.srcStageMask ) );
         LOG( "        SRCAccess: %s", AccessFlagsToString( barrier.srcAccessMask ) );
         LOG( "        DSTStage:  %s", PipelineStageFlagsToString( barrier.dstStageMask ) );
@@ -232,7 +245,7 @@ void Task::Print( TaskGraph* taskGraph ) const
     {
         const VkImageMemoryBarrier2& barrier = imageBarriers[i];
         TGResourceHandle imgHandle           = GetEmbeddedResHandle( barrier.image );
-        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle )->GetDebugName() );
+        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle ).GetDebugName() );
         PrintImageBarrier( "        ", barrier );
     }
 }
@@ -244,7 +257,7 @@ void PipelineTask::Print( TaskGraph* taskGraph ) const
     {
         const VkImageMemoryBarrier2& barrier = imageBarriersPreClears[i];
         TGResourceHandle imgHandle           = GetEmbeddedResHandle( barrier.image );
-        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle )->GetDebugName() );
+        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, taskGraph->GetTexture( imgHandle ).GetDebugName() );
         PrintImageBarrier( "        ", barrier );
     }
     Task::Print( taskGraph );
@@ -253,45 +266,45 @@ void PipelineTask::Print( TaskGraph* taskGraph ) const
     for ( size_t i = 0; i < bufferClears.size(); ++i )
     {
         const BufferClearSubTask& c = bufferClears[i];
-        const Buffer* buf           = taskGraph->GetBuffer( c.bufferHandle );
-        LOG( "      [%zu]: Buffer %u ('%s'), Clear Val: %u", i, c.bufferHandle, buf->GetDebugName(), c.clearVal );
+        const Buffer& buf           = taskGraph->GetBuffer( c.bufferHandle );
+        LOG( "      [%zu]: Buffer %u ('%s'), Clear Val: %u", i, c.bufferHandle, buf.GetDebugName(), c.clearVal );
     }
 
     LOG( "    Texture Clears: %zu", textureClears.size() );
     for ( size_t i = 0; i < textureClears.size(); ++i )
     {
         const TextureClearSubTask& c = textureClears[i];
-        const Texture* tex           = taskGraph->GetTexture( c.textureHandle );
-        LOG( "      [%zu]: Texture %u ('%s'), Clear Color: %g %g %g %g", i, c.textureHandle, tex->GetDebugName(), c.clearVal.r,
-            c.clearVal.g, c.clearVal.b, c.clearVal.a );
+        const Texture& tex           = taskGraph->GetTexture( c.textureHandle );
+        LOG( "      [%zu]: Texture %u ('%s'), Clear Color: %g %g %g %g", i, c.textureHandle, tex.GetDebugName(), c.clearVal.r, c.clearVal.g,
+            c.clearVal.b, c.clearVal.a );
     }
 
     LOG( "    Input Buffers: %zu", inputBuffers.size() );
     for ( size_t i = 0; i < inputBuffers.size(); ++i )
     {
-        const Buffer* buf = taskGraph->GetBuffer( inputBuffers[i] );
-        LOG( "      [%zu]: Buffer %u ('%s')", i, inputBuffers[i], buf->GetDebugName() );
+        const Buffer& buf = taskGraph->GetBuffer( inputBuffers[i] );
+        LOG( "      [%zu]: Buffer %u ('%s')", i, inputBuffers[i], buf.GetDebugName() );
     }
 
     LOG( "    Output Buffers: %zu", outputBuffers.size() );
     for ( size_t i = 0; i < outputBuffers.size(); ++i )
     {
-        const Buffer* buf = taskGraph->GetBuffer( outputBuffers[i] );
-        LOG( "      [%zu]: Buffer %u ('%s')", i, outputBuffers[i], buf->GetDebugName() );
+        const Buffer& buf = taskGraph->GetBuffer( outputBuffers[i] );
+        LOG( "      [%zu]: Buffer %u ('%s')", i, outputBuffers[i], buf.GetDebugName() );
     }
 
     LOG( "    Input Textures: %zu", inputTextures.size() );
     for ( size_t i = 0; i < inputTextures.size(); ++i )
     {
-        const Texture* tex = taskGraph->GetTexture( inputTextures[i] );
-        LOG( "      [%zu]: Texture %u ('%s')", i, inputTextures[i], tex->GetDebugName() );
+        const Texture& tex = taskGraph->GetTexture( inputTextures[i] );
+        LOG( "      [%zu]: Texture %u ('%s')", i, inputTextures[i], tex.GetDebugName() );
     }
 
     LOG( "    Output Textures: %zu", outputTextures.size() );
     for ( size_t i = 0; i < outputTextures.size(); ++i )
     {
-        const Texture* tex = taskGraph->GetTexture( outputTextures[i] );
-        LOG( "      [%zu]: Texture %u ('%s')", i, outputTextures[i], tex->GetDebugName() );
+        const Texture& tex = taskGraph->GetTexture( outputTextures[i] );
+        LOG( "      [%zu]: Texture %u ('%s')", i, outputTextures[i], tex.GetDebugName() );
     }
 }
 
@@ -310,8 +323,8 @@ void GraphicsTask::Print( TaskGraph* taskGraph ) const
     {
         const VkRenderingAttachmentInfo& attach = colorAttachments[i];
         TGResourceHandle imgHandle              = GetEmbeddedResHandle( attach.imageView );
-        const Texture* tex                      = taskGraph->GetTexture( imgHandle );
-        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, tex->GetDebugName() );
+        const Texture& tex                      = taskGraph->GetTexture( imgHandle );
+        LOG( "      [%zu]: Image: %u '%s'", i, imgHandle, tex.GetDebugName() );
         LOG( "      Layout: %s", ImgLayoutToString( attach.imageLayout ) );
         LOG( "      LoadOp:  %s", LoadOpToString( attach.loadOp ) );
         if ( attach.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR )
@@ -327,8 +340,8 @@ void GraphicsTask::Print( TaskGraph* taskGraph ) const
         LOG( "    Depth Attachment: Yes" );
         const VkRenderingAttachmentInfo& attach = *depthAttach;
         TGResourceHandle imgHandle              = GetEmbeddedResHandle( attach.imageView );
-        const Texture* tex                      = taskGraph->GetTexture( imgHandle );
-        LOG( "      Image: %u '%s'", imgHandle, tex->GetDebugName() );
+        const Texture& tex                      = taskGraph->GetTexture( imgHandle );
+        LOG( "      Image: %u '%s'", imgHandle, tex.GetDebugName() );
         LOG( "      Layout: %s", ImgLayoutToString( attach.imageLayout ) );
         LOG( "      LoadOp:  %s", LoadOpToString( attach.loadOp ) );
         if ( attach.loadOp == VK_ATTACHMENT_LOAD_OP_CLEAR )
@@ -351,9 +364,9 @@ void TransferTask::Print( TaskGraph* taskGraph ) const
     for ( size_t i = 0; i < textureBlits.size(); ++i )
     {
         const TextureTransfer& t = textureBlits[i];
-        const Texture* src       = taskGraph->GetTexture( t.src );
-        const Texture* dst       = taskGraph->GetTexture( t.dst );
-        LOG( "      [%zu]: %u -> %u ('%s' -> '%s')", i, t.src, t.dst, src->GetDebugName(), dst->GetDebugName() );
+        const Texture& src       = taskGraph->GetTexture( t.src );
+        const Texture& dst       = taskGraph->GetTexture( t.dst );
+        LOG( "      [%zu]: %u -> %u ('%s' -> '%s')", i, t.src, t.dst, src.GetDebugName(), dst.GetDebugName() );
     }
 }
 

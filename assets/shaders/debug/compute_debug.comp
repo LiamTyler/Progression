@@ -1,12 +1,19 @@
 #version 460
 
 #include "global_descriptors.glsl"
+#include "c_shared/cull_data.h"
+
+#extension GL_EXT_debug_printf : require
 
 layout (local_size_x = 16, local_size_y = 16) in;
 
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
+
 layout( push_constant ) uniform PushConstants
 {
-    UintBuffer cullBuffer;
+    UintBuffer countBuffer;
+    //UintBuffer meshDrawDataBuffer;
+    MeshletDrawCommandBuffer meshDrawCmdBuffer;
     uint imageIndex;
     uint _pad;
 } pConstants;
@@ -16,13 +23,33 @@ void main()
 {
     ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
     ivec2 size = imageSize( RImages2D[pConstants.imageIndex] );
+    uint numDraws = pConstants.countBuffer.data[0];
+    
+    if ( texelCoord.x == 0 && texelCoord.y == 0 )
+    {
+        debugPrintfEXT("Num Draw Calls: %u", numDraws );
+        for ( uint i = 0; i < numDraws; ++i )
+        {
+            debugPrintfEXT("  Draw[%u]", i );
+            //debugPrintfEXT("    groupsX: %u",   pConstants.meshDrawCmdBuffer.data[4 * i + 0] );
+            //debugPrintfEXT("    groupsY: %u",   pConstants.meshDrawCmdBuffer.data[4 * i + 1] );
+            //debugPrintfEXT("    groupsZ: %u",   pConstants.meshDrawCmdBuffer.data[4 * i + 2] );
+            //debugPrintfEXT("    meshIndex: %u", pConstants.meshDrawCmdBuffer.data[4 * i + 3] );
+            MeshletDrawCommand cmd = pConstants.meshDrawCmdBuffer.data[i];
+            debugPrintfEXT("    groupsX: %u",   cmd.groupCountX );
+            debugPrintfEXT("    groupsY: %u",   cmd.groupCountY );
+            debugPrintfEXT("    groupsZ: %u",   cmd.groupCountZ );
+            debugPrintfEXT("    meshIndex: %u", cmd.meshIndex );
+        }
+        debugPrintfEXT("", numDraws );
+    }
     
     if ( texelCoord.x < size.x && texelCoord.y < size.y )
     {
         vec4 color = vec4( 1, 0, 0, 1 );
-        if ( pConstants.cullBuffer.data[0] == 1 )
+        if ( numDraws == 1 )
             color = vec4( 0, 1, 0, 1 );
-            if ( pConstants.cullBuffer.data[0] == 2 )
+            if ( numDraws == 2 )
             color = vec4( 0, 1, 1, 1 );
         imageStore( RWImages2D[pConstants.imageIndex], texelCoord, color );
     }

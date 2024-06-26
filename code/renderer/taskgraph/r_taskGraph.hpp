@@ -74,8 +74,8 @@ public:
     void Execute( TGExecuteData& data );
 
     // only to be used by tasks internally, during Execute()
-    Buffer* GetBuffer( TGResourceHandle handle );
-    Texture* GetTexture( TGResourceHandle handle );
+    Buffer& GetBuffer( TGResourceHandle handle );
+    Texture& GetTexture( TGResourceHandle handle );
 
 private:
     void Compile_BuildResources( TaskGraphBuilder& builder, CompileInfo& compileInfo, std::vector<ResourceData>& resourceDatas );

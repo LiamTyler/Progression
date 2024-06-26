@@ -1,7 +1,8 @@
 #pragma once
 
 #include "r_tg_common.hpp"
-#include <functional>
+#include "renderer/graphics_api/buffer.hpp"
+#include "renderer/graphics_api/texture.hpp"
 
 namespace PG::Gfx
 {
@@ -11,14 +12,19 @@ class TaskGraph;
 
 class Task
 {
+    friend class TaskGraph;
+
+protected:
+    TaskGraph* taskGraph;
+
 public:
 #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
-    std::string name;
+    const char* name;
 #endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
     std::vector<VkImageMemoryBarrier2> imageBarriers;
     std::vector<VkBufferMemoryBarrier2> bufferBarriers;
 
-    virtual ~Task()                                    = default;
+    virtual ~Task();
     virtual void Execute( TGExecuteData* executeData ) = 0;
     virtual void SubmitBarriers( TGExecuteData* executeData );
 
@@ -38,7 +44,7 @@ struct TextureClearSubTask
 };
 
 class ComputeTask;
-using ComputeFunction = std::function<void( ComputeTask*, TGExecuteData* )>;
+using ComputeFunction = void ( * )( ComputeTask*, TGExecuteData* );
 
 class PipelineTask : public Task
 {
@@ -53,6 +59,11 @@ public:
     std::vector<TGResourceHandle> outputBuffers;
     std::vector<TGResourceHandle> inputTextures;
     std::vector<TGResourceHandle> outputTextures;
+
+    Buffer& GetInputBuffer( u32 index ) const;
+    Buffer& GetOutputBuffer( u32 index ) const;
+    Texture& GetInputTexture( u32 index ) const;
+    Texture& GetOutputTexture( u32 index ) const;
 };
 
 class ComputeTask : public PipelineTask
@@ -65,7 +76,7 @@ public:
 };
 
 class GraphicsTask;
-using GraphicsFunction = std::function<void( GraphicsTask*, TGExecuteData* )>;
+using GraphicsFunction = void ( * )( GraphicsTask*, TGExecuteData* );
 
 class GraphicsTask : public PipelineTask
 {

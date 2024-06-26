@@ -1,4 +1,5 @@
 ﻿#include "renderer/r_init.hpp"
+#include "core/dvars.hpp"
 #include "core/window.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_bindless_manager.hpp"
@@ -16,6 +17,8 @@ VkDebugUtilsMessengerEXT s_debugMessenger;
 namespace PG::Gfx
 {
 
+Dvar r_shaderDebugPrint( "r_shaderDebugPrint", false, "Enable/disable logging of shader debug printf messages" );
+
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData )
 {
@@ -26,6 +29,9 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
     {
         if ( !strcmp( pCallbackData->pMessageIdName, "WARNING-DEBUG-PRINTF" ) )
         {
+            if ( !r_shaderDebugPrint.GetBool() )
+                return VK_FALSE;
+
             std::string_view msg = pCallbackData->pMessage;
             size_t idx           = msg.find( "vkQueueSubmit(): " );
             if ( idx != std::string_view::npos )
@@ -42,8 +48,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
             }
             Logger_Log(
                 LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s", msg.substr( idx ).data() );
+            return VK_FALSE;
         }
-        return VK_FALSE;
     }
 #endif // #if USING( SHADER_DEBUG_PRINTF )
 

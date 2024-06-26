@@ -7,7 +7,7 @@
 #include "c_shared/cull_data.h"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 32, MeshletBuffer, Meshlet );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDrawDataBuffer, PerObjectData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 #define INDIRECT 1
@@ -17,8 +17,8 @@ DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawComman
 #extension GL_ARB_shader_draw_parameters : enable
 layout(scalar, push_constant) uniform Registers
 {
-    MeshDrawDataBuffer meshDrawBuffer;
-    MeshletDrawCommandBuffer meshletDrawBuffer;
+    MeshDataBuffer meshDataBuffer;
+    MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
 };
 
 #else // INDIRECT
@@ -103,8 +103,8 @@ void main()
     const uint threadID = gl_LocalInvocationIndex;
     
     #if INDIRECT
-        const uint meshIndex = meshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
-        PerObjectData objectData = meshDrawBuffer.data[meshIndex];
+        const uint meshIndex = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
+        PerObjectData objectData = meshDataBuffer.data[meshIndex];
     #endif
     
     const uint baseBuffer = objectData.bindlessRangeStart;

@@ -428,8 +428,14 @@ void TaskGraph::Compile_SynchronizationAndTasks( TaskGraphBuilder& builder, Comp
             task = Compile_PresentTask( builderTask, builder, compileInfo );
         }
 
+        task->taskGraph = this;
 #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
-        task->name = builderTask->name;
+        task->name = nullptr;
+        if ( !builderTask->name.empty() )
+        {
+            task->name = (char*)malloc( builderTask->name.length() + 1 );
+            strcpy( (char*)task->name, builderTask->name.c_str() );
+        }
 #endif // #if USING( PG_GPU_PROFILING ) || USING( TG_DEBUG )
         TG_STAT( m_stats.numBarriers_Buffer += (u32)task->bufferBarriers.size() );
         TG_STAT( m_stats.numBarriers_Image += (u32)task->imageBarriers.size() );
@@ -799,7 +805,7 @@ void TaskGraph::Print()
     for ( size_t taskIdx = 0; taskIdx < m_tasks.size(); ++taskIdx )
     {
         Task* task = m_tasks[taskIdx];
-        LOG( "  Task[%zu]: '%s'", taskIdx, task->name.c_str() );
+        LOG( "  Task[%zu]: '%s'", taskIdx, task->name );
         task->Print( this );
     }
 }
@@ -828,7 +834,7 @@ void TaskGraph::Execute( TGExecuteData& data )
     }
 }
 
-Buffer* TaskGraph::GetBuffer( TGResourceHandle handle ) { return &m_buffers[handle]; }
-Texture* TaskGraph::GetTexture( TGResourceHandle handle ) { return &m_textures[handle]; }
+Buffer& TaskGraph::GetBuffer( TGResourceHandle handle ) { return m_buffers[handle]; }
+Texture& TaskGraph::GetTexture( TGResourceHandle handle ) { return m_textures[handle]; }
 
 } // namespace PG::Gfx

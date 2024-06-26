@@ -70,12 +70,9 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
 #if !USING( SHIP_BUILD )
                 if ( r_visualizeBoundingBoxes.GetBool() )
                 {
-                    AABB transformedAABB   = model->meshAABBs[i].Transform( transform.Matrix() );
-                    DebugDraw::Color color = DebugDraw::Color::GREEN;
-                    if ( !rg.debugCullingFrustum.BoxInFrustum( transformedAABB ) )
-                        color = DebugDraw::Color::RED;
-
-                    DebugDraw::AddAABB( transformedAABB, color );
+                    AABB transformedAABB = model->meshAABBs[i].Transform( transform.Matrix() );
+                    if ( rg.debugCullingFrustum.BoxInFrustum( transformedAABB ) )
+                        DebugDraw::AddAABB( transformedAABB );
                 }
 #endif // #if !USING( SHIP_BUILD )
             }
@@ -97,8 +94,8 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
     };
     ComputePushConstants push;
     push.cullDataBuffer          = data->frameData->meshCullData.GetDeviceAddress();
-    push.outputCountBuffer       = data->taskGraph->GetBuffer( task->outputBuffers[1] )->GetDeviceAddress();
-    push.indirectCmdOutputBuffer = data->taskGraph->GetBuffer( task->outputBuffers[0] )->GetDeviceAddress();
+    push.outputCountBuffer       = task->GetOutputBuffer( 0 ).GetDeviceAddress();
+    push.indirectCmdOutputBuffer = task->GetOutputBuffer( 1 ).GetDeviceAddress();
     push.numMeshes               = meshNum;
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch_AutoSized( meshNum, 1, 1 );
@@ -113,12 +110,16 @@ void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
 
     struct ComputePushConstants
     {
-        VkDeviceAddress cullBuffer;
+        VkDeviceAddress countBuffer;
+        VkDeviceAddress meshDrawDataBuffer;
         u32 imageIndex;
+        u32 _pad;
     };
-    Texture* tex = data->taskGraph->GetTexture( task->outputTextures[0] );
-    Buffer* buff = data->taskGraph->GetBuffer( task->inputBuffers[0] );
-    ComputePushConstants push{ buff->GetDeviceAddress(), tex->GetBindlessIndex() };
+    const Texture& tex = task->GetOutputTexture( 0 );
+    ComputePushConstants push;
+    push.countBuffer        = task->GetInputBuffer( 0 ).GetDeviceAddress();
+    push.meshDrawDataBuffer = task->GetInputBuffer( 1 ).GetDeviceAddress();
+    push.imageIndex         = tex.GetBindlessIndex();
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch( 2, 2, 1 );
 }
@@ -144,20 +145,20 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.SetScissor( SceneSizedScissor() );
 
 #if 1
-    const Buffer& indirectMeshletDrawBuff  = *data->taskGraph->GetBuffer( task->inputBuffers[0] );
-    const Buffer& indirectMeshletCountBuff = *data->taskGraph->GetBuffer( task->inputBuffers[1] );
+    const Buffer& indirectCountBuff       = task->GetInputBuffer( 0 );
+    const Buffer& indirectMeshletDrawBuff = task->GetInputBuffer( 1 );
     struct ComputePushConstants
     {
-        VkDeviceAddress meshDrawBuffer;
-        VkDeviceAddress meshletDrawBuffer;
+        VkDeviceAddress meshDataBuffer;
+        VkDeviceAddress indirectMeshletDrawBuffer;
     };
     ComputePushConstants push;
-    push.meshDrawBuffer    = indirectMeshletDrawBuff.GetDeviceAddress();
-    push.meshletDrawBuffer = indirectMeshletCountBuff.GetDeviceAddress();
-    // cmdBuf.PushConstants( push );
-    //
-    // cmdBuf.DrawMeshTasksIndirectCount(
-    //     indirectMeshletDrawBuff, 0, indirectMeshletCountBuff, 0, MAX_MESHES_PER_FRAME, sizeof( GpuData::MeshletDrawCommand ) );
+    push.meshDataBuffer            = data->frameData->meshDrawDataBuffer.GetDeviceAddress();
+    push.indirectMeshletDrawBuffer = indirectMeshletDrawBuff.GetDeviceAddress();
+    cmdBuf.PushConstants( push );
+
+    cmdBuf.DrawMeshTasksIndirectCount(
+        indirectMeshletDrawBuff, 0, indirectCountBuff, 0, MAX_MESHES_PER_FRAME, sizeof( GpuData::MeshletDrawCommand ) );
 #else
     u32 modelNum = 0;
     data->scene->registry.view<ModelRenderer, Transform>().each(
@@ -200,20 +201,20 @@ void PostProcessFunc( ComputeTask* task, TGExecuteData* data )
         u32 inputImageIndex;
         u32 outputImageIndex;
     };
-    Texture* inputTex  = data->taskGraph->GetTexture( task->inputTextures[0] );
-    Texture* outputTex = data->taskGraph->GetTexture( task->outputTextures[0] );
-    PG_ASSERT( inputTex->GetWidth() == outputTex->GetWidth() );
-    PG_ASSERT( inputTex->GetHeight() == outputTex->GetHeight() );
-    ComputePushConstants push{ inputTex->GetBindlessIndex(), outputTex->GetBindlessIndex() };
+    const Texture& inputTex  = task->GetInputTexture( 0 );
+    const Texture& outputTex = task->GetOutputTexture( 0 );
+    PG_ASSERT( inputTex.GetWidth() == outputTex.GetWidth() );
+    PG_ASSERT( inputTex.GetHeight() == outputTex.GetHeight() );
+    ComputePushConstants push{ inputTex.GetBindlessIndex(), outputTex.GetBindlessIndex() };
     cmdBuf.PushConstants( push );
-    cmdBuf.Dispatch_AutoSized( inputTex->GetWidth(), inputTex->GetHeight(), 1 );
+    cmdBuf.Dispatch_AutoSized( inputTex.GetWidth(), inputTex.GetHeight(), 1 );
 }
 
 void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
+    // UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
 }
 
@@ -222,8 +223,6 @@ void UI_3D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     PGP_ZONE_SCOPEDN( "UI 3D" );
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    // DebugDraw::AddLine( vec3( 0 ), vec3( 5, 0, 0 ) );
-    // DebugDraw::AddAABB( { vec3( -2 ), vec3( 2 ) } );
 #if !USING( SHIP_BUILD )
     if ( r_frustumCullingDebug.GetBool() )
     {
@@ -237,23 +236,23 @@ bool Init_TaskGraph()
 {
     PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
     TaskGraphBuilder builder;
-    ComputeTaskBuilder* cTask            = builder.AddComputeTask( "FrustumCullMeshes" );
+    ComputeTaskBuilder* cTask      = builder.AddComputeTask( "FrustumCullMeshes" );
+    TGBBufferRef indirectCountBuff = cTask->AddBufferOutput( "indirectCountBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ), 0 );
     TGBBufferRef indirectMeshletDrawBuff = cTask->AddBufferOutput(
         "indirectMeshletDrawBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( GpuData::MeshletDrawCommand ) * MAX_MESHES_PER_FRAME );
-    TGBBufferRef indirectMeshletCountBuff =
-        cTask->AddBufferOutput( "indirectMeshletCountBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ), 0 );
     cTask->SetFunction( ComputeFrustumCullMeshes );
 
     GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "DrawMeshes" );
+    mTask->AddBufferInput( indirectCountBuff, BufferUsage::INDIRECT );
     mTask->AddBufferInput( indirectMeshletDrawBuff, BufferUsage::INDIRECT );
-    mTask->AddBufferInput( indirectMeshletCountBuff, BufferUsage::INDIRECT );
     TGBTextureRef litOutput =
         mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 0, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
     TGBTextureRef sceneDepth = mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
     cTask = builder.AddComputeTask( "ComputeDraw" );
-    cTask->AddBufferInput( indirectMeshletCountBuff );
+    cTask->AddBufferInput( indirectCountBuff );
+    cTask->AddBufferInput( indirectMeshletDrawBuff );
     cTask->AddTextureInput( litOutput );
     cTask->AddTextureOutput( litOutput );
     cTask->SetFunction( ComputeDrawFunc );
@@ -420,14 +419,13 @@ static void UpdateGPUSceneData( Scene* scene )
 
     GpuData::SceneGlobals globalData;
     memset( &globalData, 0, sizeof( globalData ) );
-    globalData.V                        = scene->camera.GetV();
-    globalData.P                        = scene->camera.GetP();
-    globalData.VP                       = scene->camera.GetVP();
-    globalData.invVP                    = Inverse( scene->camera.GetVP() );
-    globalData.cameraPos                = vec4( scene->camera.position, 1 );
-    vec3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
-    globalData.cameraExposureAndSkyTint = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
-    memcpy( globalData.frustumPlanes, scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
+    globalData.V                          = scene->camera.GetV();
+    globalData.P                          = scene->camera.GetP();
+    globalData.VP                         = scene->camera.GetVP();
+    globalData.invVP                      = Inverse( scene->camera.GetVP() );
+    globalData.cameraPos                  = vec4( scene->camera.position, 1 );
+    vec3 skyTint                          = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
+    globalData.cameraExposureAndSkyTint   = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
     globalData.modelMatriciesBufferIndex  = frameData.modelMatricesBuffer.GetBindlessIndex();
     globalData.normalMatriciesBufferIndex = frameData.normalMatricesBuffer.GetBindlessIndex();
     globalData.r_tonemap                  = r_tonemap.GetUint();
@@ -452,6 +450,9 @@ static void UpdateGPUSceneData( Scene* scene )
     {
         rg.debugCullingFrustum = scene->camera.GetFrustum();
     }
+    memcpy( globalData.frustumPlanes, rg.debugCullingFrustum.planes, sizeof( vec4 ) * 6 );
+#else
+    memcpy( globalData.frustumPlanes, scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
 #endif // #if !USING( SHIP_BUILD )
 
     memcpy( frameData.sceneGlobalsBuffer.GetMappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );

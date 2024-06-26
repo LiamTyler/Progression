@@ -3,49 +3,45 @@
 
 #include "c_shared/defines.h"
 
-#ifndef PG_SHADER_CODE
-namespace GpuData
-{
-#endif // #ifndef PG_SHADER_CODE
+BEGIN_GPU_DATA_NAMESPACE()
 
 struct SceneGlobals
 {
-    MAT4 V;
-    MAT4 P;
-    MAT4 VP;
-    MAT4 invVP;
-    VEC4 cameraPos; // w is 1, for convenience
-    VEC4 cameraExposureAndSkyTint; // x = exposure, yzw = sky tint
-    UVEC4 lightCountAndPad3; // x = light count, yzw = pad
+    mat4 V;
+    mat4 P;
+    mat4 VP;
+    mat4 invVP;
+    vec4 cameraPos; // w is 1, for convenience
+    vec4 cameraExposureAndSkyTint; // x = exposure, yzw = sky tint
+    vec4 frustumPlanes[6];
+    uvec4 lightCountAndPad3; // x = light count, yzw = pad
     
-    UINT modelMatriciesIdx;
-    UINT normalMatriciesIdx;
-    UINT r_tonemap;
-    UINT _pad;
+    uint modelMatriciesBufferIndex;
+    uint normalMatriciesBufferIndex;
+    uint r_tonemap;
+    uint _pad;
 
     // debug vals
-    UINT r_geometryViz;
-    UINT r_materialViz;
-    UINT r_lightingViz;
-    UINT r_postProcessing;
+    uint r_geometryViz;
+    uint r_materialViz;
+    uint r_lightingViz;
+    uint r_postProcessing;
     
-    VEC4 debug_wireframeData; // x,y,z = color, w = thickness
+    vec4 debug_wireframeData; // x,y,z = color, w = thickness
 
-    UINT debug_PackedDvarBools;
+    uint debug_PackedDvarBools;
     int debugInt; // r_debugInt
-    UINT debugUint; // r_debugUint
+    uint debugUint; // r_debugUint
     float debugFloat; // r_debugFloat
 };
 
 struct PerObjectData
 {
-    UINT bindlessRangeStart;
-    UINT objectIdx;
-    UINT materialIdx;
+    uint bindlessRangeStart;
+    uint modelIdx;
+    uint materialIdx;
 };
 
-#ifndef PG_SHADER_CODE
-} // namespace GpuData
-#endif // #ifndef PG_SHADER_CODE
+END_GPU_DATA_NAMESPACE()
 
 #endif // #ifndef __SCENE_GLOBALS_H__

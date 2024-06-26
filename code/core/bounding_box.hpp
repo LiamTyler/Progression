@@ -24,9 +24,10 @@ public:
     void Scale( vec3 v );
     void MoveCenterTo( const vec3& point );
     void Encompass( const AABB& aabb );
-    void Encompass( const AABB& aabb, const mat4& transform );
     void Encompass( vec3 point );
     void Encompass( vec3* points, i32 numPoints );
+
+    AABB Transform( const mat4& transform ) const;
 
     vec3 min;
     vec3 max;

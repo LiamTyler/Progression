@@ -219,6 +219,7 @@ bool Model::FastfileLoad( Serializer* serializer )
         mesh.numMeshlets  = static_cast<u32>( numMeshlets );
         mesh.hasTexCoords = numTexCoords != 0;
         mesh.hasTangents  = numTan != 0;
+        PG_ASSERT( numMeshlets <= 65535, "Vulkan limits. Split mesh during converter if this isn't true" );
 
         size_t totalVertexSizeInBytes = 0;
         totalVertexSizeInBytes += numPos * sizeof( vec3 );

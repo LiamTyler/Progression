@@ -1,22 +1,17 @@
 #version 460
 
 #include "global_descriptors.glsl"
+#include "c_shared/cull_data.h"
+#include "lib/intrinsics.glsl"
 
-struct AABB
-{
-    vec3 bMin;
-    vec3 bMax;
-};
-
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshBoundsBuffer, AABB );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDrawDataBuffer, PerObjectData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, CullData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 16, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 layout( scalar, push_constant ) uniform PushConstants
 {
-    MeshDrawDataBuffer meshDrawDataBDA;
-    MeshBoundsBuffer meshBoundsBDA;
-    UintBuffer outputBuffer;
-    vec4 frustumPlanes[6];
+    CullDataBuffer cullDataBuffer;
+    UintBuffer outputCountBuffer;
+    MeshletDrawCommandBuffer indirectCmdOutputBuffer;
     uint numMeshes;
     uint _pad;
 } pConstants;
@@ -24,14 +19,10 @@ layout( scalar, push_constant ) uniform PushConstants
 // get furthest point along the normal vector
 vec3 GetP( const AABB aabb, const vec3 planeNormal )
 {
-    vec3 p = aabb.bMin;
-    if ( planeNormal.x >= 0 )
-        p.x = aabb.bMax.x;
-    if ( planeNormal.y >= 0 )
-        p.y = aabb.bMax.y;
-    if ( planeNormal.z >= 0 )
-        p.z = aabb.bMax.z;
-        
+    vec3 p;
+    p.x = planeNormal.x >= 0 ? aabb.max.x : aabb.min.x;
+    p.y = planeNormal.y >= 0 ? aabb.max.y : aabb.min.y;
+    p.z = planeNormal.z >= 0 ? aabb.max.z : aabb.min.z;
     return p;
 }
 
@@ -40,12 +31,31 @@ bool IsInFrustum( const AABB aabb )
     int shouldCull = 0;
     for ( int i = 0; i < 6; ++i )
     {
-        vec4 plane = pConstants.frustumPlanes[i];
+        vec4 plane = globals.frustumPlanes[i];
         vec3 p = GetP( aabb, plane.xyz );
         shouldCull += int( dot( vec4( p, 1 ), plane ) < 0 );
     }
     
     return shouldCull == 0;
+}
+
+AABB TransformAABB( const mat4 transform, const AABB aabb )
+{
+    AABB transformedAABB;
+    transformedAABB.min = transformedAABB.max = transform[3].xyz;
+    for ( int i = 0; i < 3; i++ )
+    {
+        for ( int j = 0; j < 3; j++ )
+        {
+            float a = transform[j][i] * aabb.min[j];
+            float b = transform[j][i] * aabb.max[j];
+
+            transformedAABB.min[i] += min( a, b );
+            transformedAABB.max[i] += max( a, b );
+        }
+    }
+    
+    return transformedAABB;
 }
 
 layout (local_size_x = 64, local_size_y = 1) in;
@@ -55,10 +65,31 @@ void main()
     if ( meshIdx >= pConstants.numMeshes )
         return;
     
-    AABB aabb = pConstants.meshBoundsBDA.data[meshIdx];
-    if ( IsInFrustum( aabb ) )
+    CullData data = pConstants.cullDataBuffer.data[meshIdx];
+    AABB localAABB = data.aabb;
+    AABB worldAABB = TransformAABB( GetModelMatrix( data.modelIndex ), localAABB );
+    bool visible = IsInFrustum( worldAABB );
+    uint numVisibleInWave = WaveActiveCountBits( visible );
+    uint localIndexInWave = WavePrefixCountBits( visible );
+    
+    uint globalBaseIndex;
+    if ( WaveIsFirstLane() )
     {
-        atomicAdd( pConstants.outputBuffer.data[0], 1 );
-        //pConstants.outputBuffer.data[0] = 1;
+        globalBaseIndex = atomicAdd( pConstants.outputCountBuffer.data[0], numVisibleInWave );
+    }
+    globalBaseIndex = WaveReadLaneFirst( globalBaseIndex );
+    
+    if ( visible )
+    {
+        uint globalIndex = globalBaseIndex + localIndexInWave;
+        MeshletDrawCommand cmd;
+        cmd.groupCountX = data.numMeshlets;
+        cmd.groupCountY = 1;
+        cmd.groupCountZ = 1;
+        cmd.meshIndex   = meshIdx;
+        pConstants.indirectCmdOutputBuffer.data[globalIndex] = cmd;
+        //pConstants.indirectCmdOutputBuffer.data[3 * globalIndex + 0] = data.numMeshlets;
+        //pConstants.indirectCmdOutputBuffer.data[3 * globalIndex + 1] = 1;
+        //pConstants.indirectCmdOutputBuffer.data[3 * globalIndex + 2] = 1;        
     }
 }

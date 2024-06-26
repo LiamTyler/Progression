@@ -1,6 +1,7 @@
 #include "render_system.hpp"
 #include "asset/asset_manager.hpp"
 #include "c_shared/bindless.h"
+#include "c_shared/cull_data.h"
 #include "c_shared/dvar_defines.h"
 #include "c_shared/scene_globals.h"
 #include "core/bounding_box.hpp"
@@ -38,7 +39,7 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
     GpuData::PerObjectData* meshDrawData = data->frameData->meshDrawDataBuffer.GetMappedPtr<GpuData::PerObjectData>();
-    AABB* meshBounds                     = data->frameData->meshBoundsBuffer.GetMappedPtr<AABB>();
+    GpuData::CullData* cullData          = data->frameData->meshCullData.GetMappedPtr<GpuData::CullData>();
     u32 modelNum                         = 0;
     u32 meshNum                          = 0;
 
@@ -51,26 +52,30 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
             const Model* model = modelRenderer.model;
 
             u32 meshesToAdd = Min( MAX_MESHES_PER_FRAME, (u32)model->meshes.size() );
-            memcpy( meshBounds + meshNum, model->meshAABBs.data(), meshesToAdd * sizeof( AABB ) );
-
             for ( u32 i = 0; i < meshesToAdd; ++i )
             {
                 GpuData::PerObjectData constants;
                 constants.bindlessRangeStart = model->meshes[i].bindlessBuffersSlot;
-                constants.objectIdx          = modelNum;
+                constants.modelIdx           = modelNum;
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
                 meshDrawData[meshNum + i]    = constants;
 
+                GpuData::CullData cData;
+                cData.aabb.min        = model->meshAABBs[i].min;
+                cData.aabb.max        = model->meshAABBs[i].max;
+                cData.modelIndex      = modelNum;
+                cData.numMeshlets     = model->meshes[i].numMeshlets;
+                cullData[meshNum + i] = cData;
+
 #if !USING( SHIP_BUILD )
-                if ( r_frustumCullingDebug.GetBool() )
+                if ( r_visualizeBoundingBoxes.GetBool() )
                 {
-                    AABB dAABB = model->meshAABBs[i];
-                    dAABB.Scale( vec3( 1.01f ) );
+                    AABB transformedAABB   = model->meshAABBs[i].Transform( transform.Matrix() );
                     DebugDraw::Color color = DebugDraw::Color::GREEN;
-                    if ( !rg.debugCullingFrustum.BoxInFrustum( dAABB ) )
+                    if ( !rg.debugCullingFrustum.BoxInFrustum( transformedAABB ) )
                         color = DebugDraw::Color::RED;
 
-                    DebugDraw::AddAABB( dAABB, color );
+                    DebugDraw::AddAABB( transformedAABB, color );
                 }
 #endif // #if !USING( SHIP_BUILD )
             }
@@ -84,20 +89,17 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
 
     struct ComputePushConstants
     {
-        VkDeviceAddress meshDrawDataBDA;
-        VkDeviceAddress meshBoundsBDA;
-        VkDeviceAddress outputBuffer;
-        vec4 frustumPlanes[6];
+        VkDeviceAddress cullDataBuffer;
+        VkDeviceAddress outputCountBuffer;
+        VkDeviceAddress indirectCmdOutputBuffer;
         u32 numMeshes;
         u32 _pad;
     };
     ComputePushConstants push;
-    push.meshDrawDataBDA   = data->frameData->meshDrawDataBuffer.GetDeviceAddress();
-    push.meshBoundsBDA     = data->frameData->meshBoundsBuffer.GetDeviceAddress();
-    push.outputBuffer      = data->taskGraph->GetBuffer( task->outputBuffers[0] )->GetDeviceAddress();
-    const Frustum& frustum = data->scene->camera.GetFrustum();
-    memcpy( push.frustumPlanes, data->scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
-    push.numMeshes = meshNum;
+    push.cullDataBuffer          = data->frameData->meshCullData.GetDeviceAddress();
+    push.outputCountBuffer       = data->taskGraph->GetBuffer( task->outputBuffers[1] )->GetDeviceAddress();
+    push.indirectCmdOutputBuffer = data->taskGraph->GetBuffer( task->outputBuffers[0] )->GetDeviceAddress();
+    push.numMeshes               = meshNum;
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch_AutoSized( meshNum, 1, 1 );
 }
@@ -141,6 +143,22 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
 
+#if 1
+    const Buffer& indirectMeshletDrawBuff  = *data->taskGraph->GetBuffer( task->inputBuffers[0] );
+    const Buffer& indirectMeshletCountBuff = *data->taskGraph->GetBuffer( task->inputBuffers[1] );
+    struct ComputePushConstants
+    {
+        VkDeviceAddress meshDrawBuffer;
+        VkDeviceAddress meshletDrawBuffer;
+    };
+    ComputePushConstants push;
+    push.meshDrawBuffer    = indirectMeshletDrawBuff.GetDeviceAddress();
+    push.meshletDrawBuffer = indirectMeshletCountBuff.GetDeviceAddress();
+    // cmdBuf.PushConstants( push );
+    //
+    // cmdBuf.DrawMeshTasksIndirectCount(
+    //     indirectMeshletDrawBuff, 0, indirectMeshletCountBuff, 0, MAX_MESHES_PER_FRAME, sizeof( GpuData::MeshletDrawCommand ) );
+#else
     u32 modelNum = 0;
     data->scene->registry.view<ModelRenderer, Transform>().each(
         [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
@@ -156,7 +174,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
                 GpuData::PerObjectData constants;
                 constants.bindlessRangeStart = mesh.bindlessBuffersSlot;
-                constants.objectIdx          = modelNum;
+                constants.modelIdx           = modelNum;
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
 
                 cmdBuf.PushConstants( constants );
@@ -167,6 +185,7 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
             ++modelNum;
         } );
+#endif
 }
 
 void PostProcessFunc( ComputeTask* task, TGExecuteData* data )
@@ -194,7 +213,7 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    // UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
+    UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
 }
 
@@ -218,19 +237,23 @@ bool Init_TaskGraph()
 {
     PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
     TaskGraphBuilder builder;
-    ComputeTaskBuilder* cTask       = builder.AddComputeTask( "FrustumCullMeshes" );
-    TGBBufferRef indirectMeshesBuff = cTask->AddBufferOutput( "visibleMeshes", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 5 * sizeof( u32 ), 0 );
+    ComputeTaskBuilder* cTask            = builder.AddComputeTask( "FrustumCullMeshes" );
+    TGBBufferRef indirectMeshletDrawBuff = cTask->AddBufferOutput(
+        "indirectMeshletDrawBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( GpuData::MeshletDrawCommand ) * MAX_MESHES_PER_FRAME );
+    TGBBufferRef indirectMeshletCountBuff =
+        cTask->AddBufferOutput( "indirectMeshletCountBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ), 0 );
     cTask->SetFunction( ComputeFrustumCullMeshes );
 
     GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "DrawMeshes" );
-    mTask->AddBufferInput( indirectMeshesBuff, BufferUsage::INDIRECT );
+    mTask->AddBufferInput( indirectMeshletDrawBuff, BufferUsage::INDIRECT );
+    mTask->AddBufferInput( indirectMeshletCountBuff, BufferUsage::INDIRECT );
     TGBTextureRef litOutput =
         mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 0, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
     TGBTextureRef sceneDepth = mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
     cTask = builder.AddComputeTask( "ComputeDraw" );
-    cTask->AddBufferInput( indirectMeshesBuff );
+    cTask->AddBufferInput( indirectMeshletCountBuff );
     cTask->AddTextureInput( litOutput );
     cTask->AddTextureOutput( litOutput );
     cTask->SetFunction( ComputeDrawFunc );
@@ -264,18 +287,18 @@ bool Init_TaskGraph()
     pTask->SetPresentationImage( swapImg );
 
     TaskGraph::CompileInfo compileInfo;
-    compileInfo.sceneWidth    = rg.sceneWidth;
-    compileInfo.sceneHeight   = rg.sceneHeight;
-    compileInfo.displayWidth  = rg.displayWidth;
-    compileInfo.displayHeight = rg.displayHeight;
-    // compileInfo.mergeResources = false;
+    compileInfo.sceneWidth     = rg.sceneWidth;
+    compileInfo.sceneHeight    = rg.sceneHeight;
+    compileInfo.displayWidth   = rg.displayWidth;
+    compileInfo.displayHeight  = rg.displayHeight;
+    compileInfo.mergeResources = false;
     // TG_DEBUG_ONLY( compileInfo.showStats = true );
     if ( !s_taskGraph.Compile( builder, compileInfo ) )
     {
         LOG_ERR( "Could not compile the task graph" );
         return false;
     }
-    TG_DEBUG_ONLY( s_taskGraph.Print() );
+    // TG_DEBUG_ONLY( s_taskGraph.Print() );
 
     return true;
 }
@@ -313,8 +336,8 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
         fData.modelMatricesBuffer     = rg.device.NewBuffer( modelBufInfo, "modelMatricesBuffer" );
         fData.normalMatricesBuffer    = rg.device.NewBuffer( modelBufInfo, "normalMatricesBuffer" );
 
-        modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( AABB );
-        fData.meshBoundsBuffer   = rg.device.NewBuffer( modelBufInfo, "meshBoundsBuffer" );
+        modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::CullData );
+        fData.meshCullData       = rg.device.NewBuffer( modelBufInfo, "meshCullData" );
         modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::PerObjectData );
         fData.meshDrawDataBuffer = rg.device.NewBuffer( modelBufInfo, "meshDrawDataBuffer" );
 
@@ -355,7 +378,7 @@ void Shutdown()
     DebugDraw::Shutdown();
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        rg.frameData[i].meshBoundsBuffer.Free();
+        rg.frameData[i].meshCullData.Free();
         rg.frameData[i].meshDrawDataBuffer.Free();
         rg.frameData[i].modelMatricesBuffer.Free();
         rg.frameData[i].normalMatricesBuffer.Free();
@@ -402,11 +425,12 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.VP                       = scene->camera.GetVP();
     globalData.invVP                    = Inverse( scene->camera.GetVP() );
     globalData.cameraPos                = vec4( scene->camera.position, 1 );
-    VEC3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
+    vec3 skyTint                        = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
     globalData.cameraExposureAndSkyTint = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
-    globalData.modelMatriciesIdx        = frameData.modelMatricesBuffer.GetBindlessIndex();
-    globalData.normalMatriciesIdx       = frameData.normalMatricesBuffer.GetBindlessIndex();
-    globalData.r_tonemap                = r_tonemap.GetUint();
+    memcpy( globalData.frustumPlanes, scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
+    globalData.modelMatriciesBufferIndex  = frameData.modelMatricesBuffer.GetBindlessIndex();
+    globalData.normalMatriciesBufferIndex = frameData.normalMatricesBuffer.GetBindlessIndex();
+    globalData.r_tonemap                  = r_tonemap.GetUint();
 
 #if !USING( SHIP_BUILD )
     globalData.r_geometryViz    = r_geometryViz.GetUint();

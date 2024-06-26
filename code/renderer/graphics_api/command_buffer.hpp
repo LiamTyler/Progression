@@ -61,7 +61,10 @@ public:
     void Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) const;
     void Dispatch_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const;
     void DrawMeshTasks( u32 groupsX, u32 groupsY, u32 groupsZ ) const;
-    void DrawMeshTasks_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const;
+    void DrawMeshTasksIndirect(
+        const Buffer& buffer, u32 drawCount, u64 offset = 0, u32 stride = sizeof( VkDrawMeshTasksIndirectCommandEXT ) ) const;
+    void DrawMeshTasksIndirectCount( const Buffer& indirectCmdsBuffer, u64 indirectOffset, const Buffer& countBuffer, u64 countOffset,
+        u32 maxDrawCount, u32 stride = sizeof( VkDrawMeshTasksIndirectCommandEXT ) ) const;
 
 private:
     VkCommandPool m_pool      = VK_NULL_HANDLE;

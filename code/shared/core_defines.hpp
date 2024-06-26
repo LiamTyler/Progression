@@ -79,10 +79,11 @@ constexpr T ARRAY_SUM( const T ( &arr )[SIZE] )
     }                                                                                                        \
     constexpr bool IsSet( T a, T b ) { return ( a & b ) == b; }
 
-using u8  = uint8_t;
-using u16 = uint16_t;
-using u32 = uint32_t;
-using u64 = uint64_t;
+using u8   = uint8_t;
+using u16  = uint16_t;
+using u32  = uint32_t;
+using uint = u32; // mainly just to share code easier between shader files
+using u64  = uint64_t;
 
 using i8  = int8_t;
 using i16 = int16_t;

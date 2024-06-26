@@ -59,13 +59,13 @@ bool IsWireframeEnabled()
 }
 
 #else // #if PG_SHADER_CODE
-inline void PackMeshletVizBit( UINT& debug_PackedDvarBools, bool enabled )
+inline void PackMeshletVizBit( uint& debug_PackedDvarBools, bool enabled )
 {
     if ( enabled )
         debug_PackedDvarBools |= 1u << PG_R_MESHLET_VIZ_BIT;
 }
 
-inline void PackWireframeBit( UINT& debug_PackedDvarBools, bool enabled )
+inline void PackWireframeBit( uint& debug_PackedDvarBools, bool enabled )
 {
     if ( enabled )
         debug_PackedDvarBools |= 1u << PG_R_WIREFRAME_BIT;

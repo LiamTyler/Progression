@@ -30,7 +30,7 @@ struct FrameData
     CommandBuffer primaryCmdBuffer;
 
     Buffer meshDrawDataBuffer;
-    Buffer meshBoundsBuffer;
+    Buffer meshCullData;
     Buffer modelMatricesBuffer;
     Buffer normalMatricesBuffer;
     Buffer sceneGlobalsBuffer;

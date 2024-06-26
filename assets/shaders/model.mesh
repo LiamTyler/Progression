@@ -4,24 +4,42 @@
 
 #include "global_descriptors.glsl"
 #include "c_shared/model.h"
+#include "c_shared/cull_data.h"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 32, MeshletBuffer, Meshlet );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDrawDataBuffer, PerObjectData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
-layout(push_constant) uniform Registers
+#define INDIRECT 1
+
+#if INDIRECT
+
+#extension GL_ARB_shader_draw_parameters : enable
+layout(scalar, push_constant) uniform Registers
 {
-    PerObjectData constants;
+    MeshDrawDataBuffer meshDrawBuffer;
+    MeshletDrawCommandBuffer meshletDrawBuffer;
 };
 
-Meshlet GetMeshlet( uint meshletID )
+#else // INDIRECT
+
+layout(scalar, push_constant) uniform Registers
 {
-    uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_MESHLETS];
+    PerObjectData objectData;
+};
+
+#endif // #else // INDIRECT
+
+Meshlet GetMeshlet( uint meshletID, uint baseBuffer )
+{
+    uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_MESHLETS];
     MeshletBuffer mBuffer = MeshletBuffer( ptr );
     return mBuffer.data[meshletID];
 }
 
-uvec3 GetTri( const Meshlet meshlet, uint index )
+uvec3 GetTri( const Meshlet meshlet, uint baseBuffer, uint index )
 {
-    uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_TRIS];
+    uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_TRIS];
     UintBuffer tBuffer = UintBuffer( ptr );
     uint packedTri = tBuffer.data[meshlet.triOffset + index];
     uvec3 tri;
@@ -31,23 +49,23 @@ uvec3 GetTri( const Meshlet meshlet, uint index )
     return tri;
 }
 
-vec3 GetPos( const Meshlet meshlet, uint index )
+vec3 GetPos( const Meshlet meshlet, uint baseBuffer, uint index )
 {
-    uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_POSITIONS];
+    uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_POSITIONS];
     Vec3Buffer buff = Vec3Buffer( ptr );
     return buff.data[meshlet.vertexOffset + index];
 }
 
-vec4 GetNormal( const Meshlet meshlet, uint index )
+vec4 GetNormal( const Meshlet meshlet, uint baseBuffer, uint index )
 {
-    uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_NORMALS];
+    uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_NORMALS];
     Vec3Buffer buff = Vec3Buffer( ptr );
     return vec4( buff.data[meshlet.vertexOffset + index], 0 );
 }
 
-vec2 GetUV( const Meshlet meshlet, uint index )
+vec2 GetUV( const Meshlet meshlet, uint baseBuffer, uint index )
 {
-    uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_UVS];
+    uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_UVS];
     if ( ptr == 0 )
         return vec2( 0 );
     
@@ -55,9 +73,9 @@ vec2 GetUV( const Meshlet meshlet, uint index )
     return buff.data[meshlet.vertexOffset + index];
 }
 
-vec4 GetTangentAndSign( const Meshlet meshlet, uint index )
+vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, uint index )
 {
-    uint64_t ptr = bindlessBuffers[constants.bindlessRangeStart + MESH_BUFFER_TANGENTS];
+    uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_TANGENTS];
     if ( ptr == 0 )
         return vec4( 0 );
     
@@ -73,6 +91,7 @@ layout (location = 0) out PerVertexData
     vec3 normal;
     vec4 tangentAndSign;
     vec2 uv;
+    flat uint materialIdx;
 #if IS_DEBUG_SHADER
     flat uint meshletIdx;
 #endif // #if IS_DEBUG_SHADER
@@ -82,8 +101,15 @@ void main()
 {
     const uint meshletID = gl_WorkGroupID.x;
     const uint threadID = gl_LocalInvocationIndex;
+    
+    #if INDIRECT
+        const uint meshIndex = meshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
+        PerObjectData objectData = meshDrawBuffer.data[meshIndex];
+    #endif
+    
+    const uint baseBuffer = objectData.bindlessRangeStart;
 
-    Meshlet meshlet = GetMeshlet( meshletID );
+    Meshlet meshlet = GetMeshlet( meshletID, baseBuffer );
     if ( threadID == 0 )
     {
         SetMeshOutputsEXT( meshlet.vertexCount, meshlet.triangleCount );
@@ -91,21 +117,22 @@ void main()
 
     if ( threadID < meshlet.vertexCount )
     {
-        mat4 modelMatrix = GetModelMatrix( constants.objectIdx );
+        mat4 modelMatrix = GetModelMatrix( objectData.modelIdx );
         
-        vec4 localPos = vec4( GetPos( meshlet, threadID ), 1 );
+        vec4 localPos = vec4( GetPos( meshlet, baseBuffer, threadID ), 1 );
         vec4 worldPos = modelMatrix * localPos;
         gl_MeshVerticesEXT[threadID].gl_Position = globals.VP * worldPos;
         
-        vec4 localNormal = GetNormal( meshlet, threadID );
-        v_out[threadID].normal = (GetNormalMatrix( constants.objectIdx ) * localNormal).xyz;
+        vec4 localNormal = GetNormal( meshlet, baseBuffer, threadID );
+        v_out[threadID].normal = (GetNormalMatrix( objectData.modelIdx ) * localNormal).xyz;
         
-        v_out[threadID].uv = GetUV( meshlet, threadID );
+        v_out[threadID].uv = GetUV( meshlet, baseBuffer, threadID );
         
-        vec4 tangentAndSign = GetTangentAndSign( meshlet, threadID );
+        vec4 tangentAndSign = GetTangentAndSign( meshlet, baseBuffer, threadID );
         vec3 worldTangent = (modelMatrix * vec4( tangentAndSign.xyz, 0 )).xyz;
         v_out[threadID].tangentAndSign = vec4( worldTangent, tangentAndSign.w );
         
+        v_out[threadID].materialIdx = objectData.materialIdx;
     #if IS_DEBUG_SHADER
         v_out[threadID].meshletIdx = meshletID;
     #endif // #if IS_DEBUG_SHADER
@@ -114,12 +141,12 @@ void main()
     uint tri1_ID = 2 * threadID + 0;
     if ( tri1_ID < meshlet.triangleCount )
     {
-        gl_PrimitiveTriangleIndicesEXT[tri1_ID] = GetTri( meshlet, tri1_ID );
+        gl_PrimitiveTriangleIndicesEXT[tri1_ID] = GetTri( meshlet, baseBuffer, tri1_ID );
     }
     
     uint tri2_ID = 2 * threadID + 1;
     if ( tri2_ID < meshlet.triangleCount )
     {
-        gl_PrimitiveTriangleIndicesEXT[tri2_ID] = GetTri( meshlet, tri2_ID );
+        gl_PrimitiveTriangleIndicesEXT[tri2_ID] = GetTri( meshlet, baseBuffer, tri2_ID );
     }
 }

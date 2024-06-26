@@ -48,16 +48,16 @@ DEFINE_BUFFER_REFERENCE( 64 ) TransformBuffer
     mat4 transforms[];
 };
 
-mat4 GetModelMatrix( uint objectIdx )
+mat4 GetModelMatrix( uint modelIdx )
 {
-    TransformBuffer tBuffer = TransformBuffer( bindlessBuffers[globals.modelMatriciesIdx] );
-    return tBuffer.transforms[objectIdx];
+    TransformBuffer tBuffer = TransformBuffer( bindlessBuffers[globals.modelMatriciesBufferIndex] );
+    return tBuffer.transforms[modelIdx];
 }
 
-mat4 GetNormalMatrix( uint objectIdx )
+mat4 GetNormalMatrix( uint modelIdx )
 {
-    TransformBuffer tBuffer = TransformBuffer( bindlessBuffers[globals.normalMatriciesIdx] );
-    return tBuffer.transforms[objectIdx];
+    TransformBuffer tBuffer = TransformBuffer( bindlessBuffers[globals.normalMatriciesBufferIndex] );
+    return tBuffer.transforms[modelIdx];
 }
 
 Material GetMaterial( uint matIdx )

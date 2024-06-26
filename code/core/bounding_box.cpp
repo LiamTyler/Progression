@@ -11,15 +11,14 @@ vec3 AABB::Center() const { return 0.5f * ( max + min ); }
 
 void AABB::Points( vec3* data ) const
 {
-    vec3 extent = max - min;
-    data[0]     = min;
-    data[1]     = min + vec3( extent.x, 0, 0 );
-    data[2]     = min + vec3( extent.x, 0, extent.z );
-    data[3]     = min + vec3( 0, 0, extent.z );
-    data[4]     = max;
-    data[5]     = max - vec3( extent.x, 0, 0 );
-    data[6]     = max - vec3( extent.x, 0, extent.z );
-    data[7]     = max - vec3( 0, 0, extent.z );
+    data[0] = vec3( min.x, min.y, min.z );
+    data[1] = vec3( min.x, max.y, min.z );
+    data[2] = vec3( max.x, min.y, min.z );
+    data[3] = vec3( max.x, max.y, min.z );
+    data[4] = vec3( min.x, min.y, max.z );
+    data[5] = vec3( min.x, max.y, max.z );
+    data[6] = vec3( max.x, min.y, max.z );
+    data[7] = vec3( max.x, max.y, max.z );
 }
 
 i32 AABB::LongestDimension() const
@@ -111,19 +110,6 @@ void AABB::Encompass( const AABB& aabb )
     max = Max( max, aabb.max );
 }
 
-void AABB::Encompass( const AABB& aabb, const mat4& transform )
-{
-    vec3 points[8];
-    aabb.Points( points );
-    vec3 halfExt = 0.5f * ( aabb.max - aabb.min );
-    for ( i32 i = 0; i < 8; ++i )
-    {
-        vec3 tmp = vec3( transform * vec4( points[i] - halfExt, 1 ) ) + halfExt;
-        min      = Min( min, tmp );
-        max      = Max( max, tmp );
-    }
-}
-
 void AABB::Encompass( vec3 point )
 {
     min = Min( min, point );
@@ -137,6 +123,26 @@ void AABB::Encompass( vec3* points, i32 numPoints )
         min = Min( min, points[i] );
         max = Max( max, points[i] );
     }
+}
+
+AABB AABB::Transform( const mat4& transform ) const
+{
+    vec3 pos = transform[3];
+    AABB aabb( pos, pos );
+    for ( int i = 0; i < 3; i++ )
+    {
+        for ( int j = 0; j < 3; j++ )
+        {
+            // [j][i] not [i][j] because transform is column major
+            float a = transform[j][i] * min[j];
+            float b = transform[j][i] * max[j];
+
+            aabb.min[i] += Min( a, b );
+            aabb.max[i] += Max( a, b );
+        }
+    }
+
+    return aabb;
 }
 
 } // namespace PG

@@ -15,10 +15,10 @@
 	{ "Skybox": "kloppenheim" },
 	{ "Script": "cameraController" },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ 0, 0, -1 ] } },
-    { "_Entity": {
+    { "Entity": {
         "NameComponent": "dragon",
-        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 90, 0, 90 ], "scale": [ 1, 1, 1 ] },
-        "ModelRenderer": { "model": "dragon", "material": "green" }
+        "Transform": { "position": [ 3, 0, 0 ], "rotation": [ 90, 0, 90 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "dragon", "material": "blue" }
     }},
     { "Entity": {
         "NameComponent": "cube",

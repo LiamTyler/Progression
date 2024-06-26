@@ -19,12 +19,12 @@ namespace GpuData
 
 struct UIElementData
 {
-    UINT flags;
-    UINT type;
-	UINT packedTint;
-	UINT textureIndex;
-	VEC2 pos;
-	VEC2 dimensions;
+    uint flags;
+    uint type;
+	uint packedTint;
+	uint textureIndex;
+	vec2 pos;
+	vec2 dimensions;
 };
 
 #ifndef PG_SHADER_CODE

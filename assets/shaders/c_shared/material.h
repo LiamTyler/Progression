@@ -3,29 +3,24 @@
 
 #include "c_shared/defines.h"
 
-#ifndef PG_SHADER_CODE
-namespace GpuData
-{
-#endif // #ifndef PG_SHADER_CODE
+BEGIN_GPU_DATA_NAMESPACE()
 
 struct Material
 {
-    VEC3 albedoTint;
+    vec3 albedoTint;
     float metalnessTint;
     
     float roughnessTint;
-    UINT albedoMetalnessMapIndex;
-    UINT normalRoughnessMapIndex;
+    uint albedoMetalnessMapIndex;
+    uint normalRoughnessMapIndex;
     float _pad2;
     
-    VEC3 emissiveTint;
-    UINT emissiveMapIndex;
+    vec3 emissiveTint;
+    uint emissiveMapIndex;
     
-    VEC4 MorePad;
+    vec4 MorePad;
 };
 
-#ifndef PG_SHADER_CODE
-} // namespace GpuData
-#endif // #ifndef PG_SHADER_CODE
+END_GPU_DATA_NAMESPACE()
 
 #endif // #ifndef __MATERIAL_H__

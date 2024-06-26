@@ -17,16 +17,13 @@ void main()
     ivec2 texelCoord = ivec2( gl_GlobalInvocationID.xy );
     ivec2 size = imageSize( RImages2D[pConstants.imageIndex] );
     
-    if ( all( equal( texelCoord, ivec2( 0 ) ) ) )
-    {
-        debugPrintfEXT( "InFrustum: %d", pConstants.cullBuffer.data[0] );
-    }
-    
     if ( texelCoord.x < size.x && texelCoord.y < size.y )
     {
         vec4 color = vec4( 1, 0, 0, 1 );
         if ( pConstants.cullBuffer.data[0] == 1 )
             color = vec4( 0, 1, 0, 1 );
+            if ( pConstants.cullBuffer.data[0] == 2 )
+            color = vec4( 0, 1, 1, 1 );
         imageStore( RWImages2D[pConstants.imageIndex], texelCoord, color );
     }
 }

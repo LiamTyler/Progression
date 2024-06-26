@@ -175,6 +175,9 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     features12.scalarBlockLayout                                  = true;
     features12.hostQueryReset                                     = true;
 
+    VkPhysicalDeviceVulkan11Features features11{};
+    features11.shaderDrawParameters = true; // for drawid in shader (gl_DrawIDARB)
+
     VkPhysicalDeviceFeatures features{};
     features.shaderInt64       = true;
     features.samplerAnisotropy = true;
@@ -231,6 +234,7 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     pDevSelector.require_present( !rg.headless );
     pDevSelector.set_required_features_13( features13 );
     pDevSelector.set_required_features_12( features12 );
+    pDevSelector.set_required_features_11( features11 );
     pDevSelector.set_required_features( features );
 
     if ( !rg.headless )

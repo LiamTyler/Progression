@@ -8,6 +8,7 @@ layout (location = 0) in PerVertexData
     vec3 normal;
     vec4 tangentAndSign;
     vec2 uv;
+    flat uint materialIdx;
 #if IS_DEBUG_SHADER
     flat uint meshletIdx;
 #endif // #if IS_DEBUG_SHADER
@@ -74,7 +75,8 @@ struct ShaderMaterial
 
 ShaderMaterial GetShaderMaterial()
 {
-    Material m = GetMaterial( constants.materialIdx );
+    //Material m = GetMaterial( constants.materialIdx );
+    Material m = GetMaterial( fragInput.materialIdx );
     ShaderMaterial sm;
     GetAlbedoMetalness( m, fragInput.uv, sm.albedo, sm.metalness );
     GetNormalRoughness( m, fragInput.uv, sm.N, sm.roughness );

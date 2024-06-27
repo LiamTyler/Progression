@@ -54,7 +54,6 @@ const char* Dvar::TypeToString( Type t )
 
 Dvar::Dvar( const char* const inName, bool defaultVal, const char* const desc ) : type( Type::BOOL ), name( inName ), description( desc )
 {
-    PG_ASSERT( IsNameValid( inName ) );
     value.bVal = defaultVal;
     RegisterDvar( this );
 }

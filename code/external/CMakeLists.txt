@@ -198,7 +198,11 @@ else()
     endif()
 endif()
 set(FREETYPE_INCLUDES ${EXT_DIR}/freetype-2.13.2/include/ PARENT_SCOPE)
-set(FREETYPE_LIBS freetype PARENT_SCOPE)
+if (WIN32)
+    set(FREETYPE_LIBS freetype PARENT_SCOPE)
+else()
+    set(FREETYPE_LIBS freetype bz2 PARENT_SCOPE)
+endif()
 
 #-------------------------------MSDFGEN--------------------------------------------
 if(MSVC)

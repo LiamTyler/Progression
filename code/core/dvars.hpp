@@ -3,6 +3,7 @@
 #include "shared/logger.hpp"
 #include "shared/math_vec.hpp"
 #include "shared/platform_defines.hpp"
+#include <typeinfo>
 #include <unordered_map>
 
 #define DVAR_DEBUGGING USE_IF( USING( DEBUG_BUILD ) )
@@ -11,12 +12,14 @@
 #include "shared/assert.hpp"
 #include <typeinfo>
 #define DVAR_ASSERT( ... ) PG_ASSERT( __VA_ARGS__ )
+
 #else // #if USING( DVAR_DEBUGGING )
+
 #define DVAR_ASSERT( ... ) \
     do                     \
     {                      \
     } while ( 0 )
-#endif // #if USING( DVAR_DEBUGGING )
+#endif // #else // #if USING( DVAR_DEBUGGING )
 
 namespace PG
 {
@@ -168,7 +171,3 @@ const std::unordered_map<std::string_view, Dvar*>& GetAllDvars();
 void ExportDvars();
 
 } // namespace PG
-
-#if USING( DVAR_DEBUGGING )
-#undef DVAR_ASSERT
-#endif // #if USING( DVAR_DEBUGGING )

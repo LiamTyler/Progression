@@ -2,13 +2,14 @@
 #include "debug_marker.hpp"
 #include "r_globals.hpp"
 #include "r_pipeline_manager.hpp"
+#include <bit>
 
 #define MAX_DEBUG_PRIMS 512
 
 namespace PG::Gfx::DebugDraw
 {
 
-static float GetPackedColor( Color color )
+static f32 GetPackedColor( Color color )
 {
     static u32 packed[] = {
         0xFF000000, // BLACK,
@@ -23,8 +24,7 @@ static float GetPackedColor( Color color )
     };
     static_assert( ARRAY_COUNT( packed ) == Underlying( Color::COUNT ) );
 
-    u32 p = packed[Underlying( color )];
-    return *reinterpret_cast<float*>( &p );
+    return std::bit_cast<f32>( packed[Underlying( color )] );
 }
 
 struct LocalFrameData
@@ -32,8 +32,8 @@ struct LocalFrameData
     Buffer debugLinesGPU;
     Buffer debugAABBsGPU;
     // Both an AABB and a Line are 7 floats: vec3 p0, vec3 p1, uint packedColor
-    std::vector<float> debugLinesCPU;
-    std::vector<float> debugAABBsCPU;
+    std::vector<f32> debugLinesCPU;
+    std::vector<f32> debugAABBsCPU;
     u32 totalPrims;
     bool warnedThisFrame;
 };
@@ -53,7 +53,7 @@ void Init()
         s_localFrameDatas[i].debugAABBsCPU.reserve( MAX_DEBUG_PRIMS * 7 );
 
         BufferCreateInfo dbgLinesBufInfo   = {};
-        dbgLinesBufInfo.size               = MAX_DEBUG_PRIMS * 7 * sizeof( float );
+        dbgLinesBufInfo.size               = MAX_DEBUG_PRIMS * 7 * sizeof( f32 );
         dbgLinesBufInfo.bufferUsage        = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
         dbgLinesBufInfo.flags              = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         s_localFrameDatas[i].debugLinesGPU = rg.device.NewBuffer( dbgLinesBufInfo, "debugLines" );
@@ -100,8 +100,8 @@ void Draw( CommandBuffer& cmdBuf )
     if ( !localData.debugLinesCPU.empty() )
     {
         PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw Debug Lines" );
-        float* linesGPU = localData.debugLinesGPU.GetMappedPtr<float>();
-        memcpy( linesGPU, localData.debugLinesCPU.data(), localData.debugLinesCPU.size() * 7 * sizeof( float ) );
+        f32* linesGPU = localData.debugLinesGPU.GetMappedPtr<float>();
+        memcpy( linesGPU, localData.debugLinesCPU.data(), localData.debugLinesCPU.size() * 7 * sizeof( f32 ) );
 
         constants.vertexBuffer = localData.debugLinesGPU.GetDeviceAddress();
         constants.mode         = 0;
@@ -113,8 +113,8 @@ void Draw( CommandBuffer& cmdBuf )
     if ( !localData.debugAABBsCPU.empty() )
     {
         PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw Debug AABBs" );
-        float* aabbsGPU = localData.debugAABBsGPU.GetMappedPtr<float>();
-        memcpy( aabbsGPU, localData.debugAABBsCPU.data(), localData.debugAABBsCPU.size() * 7 * sizeof( float ) );
+        f32* aabbsGPU = localData.debugAABBsGPU.GetMappedPtr<float>();
+        memcpy( aabbsGPU, localData.debugAABBsCPU.data(), localData.debugAABBsCPU.size() * 7 * sizeof( f32 ) );
 
         constants.vertexBuffer = localData.debugAABBsGPU.GetDeviceAddress();
         constants.mode         = 1;

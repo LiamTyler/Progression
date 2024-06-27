@@ -132,6 +132,11 @@
 
 #else // #if USING( DEVELOPMENT_BUILD )
 
+#define PG_DBG_ASSERT( ... ) \
+    do                       \
+    {                        \
+    } while ( 0 )
+
 #define PG_ASSERT( ... ) \
     do                   \
     {                    \

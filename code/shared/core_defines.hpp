@@ -50,16 +50,6 @@ constexpr relaxed_underlying_type<T>::type Underlying( T val )
     return static_cast<relaxed_underlying_type<T>::type>( val );
 }
 
-template <typename T, size_t SIZE>
-constexpr T ARRAY_SUM( const T ( &arr )[SIZE] )
-{
-    T sum = 0;
-    for ( size_t i = 0; i < SIZE; ++i )
-        sum += arr[i];
-
-    return sum;
-}
-
 #define PG_DEFINE_ENUM_OPS( T )                                                                              \
     constexpr inline T operator~( T a ) { return static_cast<T>( ~Underlying( a ) ); }                       \
     constexpr inline T operator|( T a, T b ) { return static_cast<T>( Underlying( a ) | Underlying( b ) ); } \
@@ -96,3 +86,13 @@ using f64 = double;
 #ifndef FLT_MAX
 #define FLT_MAX 3.402823466e+38F
 #endif // #ifndef FLT_MAX
+
+template <typename T, u64 SIZE>
+constexpr T ARRAY_SUM( const T ( &arr )[SIZE] )
+{
+    T sum = 0;
+    for ( u64 i = 0; i < SIZE; ++i )
+        sum += arr[i];
+
+    return sum;
+}

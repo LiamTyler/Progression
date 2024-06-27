@@ -96,7 +96,7 @@ std::string ImageLayoutToString( ImageLayout layout )
     case ImageLayout::READ_ONLY: return "READ_ONLY";
     case ImageLayout::ATTACHMENT: return "ATTACHMENT";
     case ImageLayout::PRESENT_SRC_KHR: return "PRESENT_SRC_KHR";
-    default: PG_ASSERT( false, "Invalid image layout %d", Underlying( layout ) );
+    default: PG_ASSERT( false, "Invalid image layout %d", Underlying( layout ) ); return "";
     }
 }
 

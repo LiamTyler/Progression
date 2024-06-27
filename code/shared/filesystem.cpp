@@ -7,7 +7,10 @@ namespace fs = std::filesystem;
 
 FileReadResult ReadFile( std::string_view filename, bool binary )
 {
-    std::ifstream file( filename.data(), binary ? std::ios::binary : 0 );
+    auto mode = std::ios::in;
+    if ( binary )
+        mode |= std::ios::binary;
+    std::ifstream file( filename.data(), mode );
     if ( !file )
         return {};
 
@@ -34,7 +37,10 @@ FileReadResult ReadFile( std::string_view filename, bool binary )
 
 bool WriteFile( std::string_view filename, char* data, size_t size, bool binary )
 {
-    std::ofstream file( filename.data(), binary ? std::ios::binary : 0 );
+    auto mode = std::ios::out;
+    if ( binary )
+        mode |= std::ios::binary;
+    std::ofstream file( filename.data(), mode );
 
     if ( !file.is_open() )
         return false;

@@ -1,5 +1,6 @@
 #include "lights.hpp"
 #include "shared/float_conversions.hpp"
+#include <bit>
 
 namespace PG
 {
@@ -8,7 +9,7 @@ static f32 PackRadius( f32 radius )
 {
     f32 inv    = 1.0f / radius;
     u32 packed = Float32ToFloat16( radius, inv * inv );
-    return *reinterpret_cast<f32*>( &packed );
+    return std::bit_cast<f32>( packed );
 }
 
 /*

@@ -2,6 +2,7 @@
 
 #include "memory_map/MemoryMapped.h"
 #include "shared/core_defines.hpp"
+#include <cstring>
 #include <fstream>
 #include <string>
 #include <vector>

@@ -1,0 +1,79 @@
+{
+    "version": 8,
+    "configurePresets": [
+        {
+            "name": "Debug",
+            "displayName": "Debug",
+            "description": "",
+            "binaryDir": "${sourceDir}/build_debug",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "Release",
+            "displayName": "Release",
+            "description": "",
+            "binaryDir": "${sourceDir}/build_release",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "Profile",
+            "displayName": "Profile",
+            "description": "",
+            "binaryDir": "${sourceDir}/build_profile",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_BUILD_TYPE": "Profile"
+            }
+        },
+        {
+            "name": "Ship",
+            "displayName": "Ship",
+            "description": "",
+            "binaryDir": "${sourceDir}/build_ship",
+            "cacheVariables": {
+                "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
+                "CMAKE_C_COMPILER": "/usr/bin/gcc",
+                "CMAKE_CXX_COMPILER": "/usr/bin/g++",
+                "CMAKE_BUILD_TYPE": "Ship"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "Debug",
+            "description": "Debug",
+            "displayName": "Debug",
+            "configurePreset": "Debug"
+        },
+        {
+            "name": "Release",
+            "description": "Release",
+            "displayName": "Release",
+            "configurePreset": "Release"
+        },
+        {
+            "name": "Profile",
+            "description": "Profile",
+            "displayName": "Profile",
+            "configurePreset": "Profile"
+        },
+        {
+            "name": "Ship",
+            "description": "Ship",
+            "displayName": "Ship",
+            "configurePreset": "Ship"
+        }
+    ]
+}

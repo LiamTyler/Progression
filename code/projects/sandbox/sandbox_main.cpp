@@ -2,7 +2,6 @@
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #include "shared/lz4_compressor.hpp"
-#include <intrin.h>
 #include <iostream>
 
 using namespace std;

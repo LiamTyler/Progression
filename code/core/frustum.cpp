@@ -36,7 +36,7 @@ void Frustum::Update(
     SetPlane( 4, ntl, ntr, nbr ); // near
     SetPlane( 5, ftr, ftl, fbl ); // far
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     corners[0] = ntl;
     corners[1] = ntr;
     corners[2] = nbr;
@@ -45,7 +45,7 @@ void Frustum::Update(
     corners[5] = ftr;
     corners[6] = fbr;
     corners[7] = fbl;
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 }
 
 void Frustum::ExtractFromVPMatrix( const mat4& VP )
@@ -97,7 +97,7 @@ void Frustum::ExtractFromVPMatrix( const mat4& VP )
         planes[i] /= Length( vec3( planes[i] ) );
     }
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     corners[0] = vec3( -1, -1, 0 );
     corners[1] = vec3( 1, -1, 0 );
     corners[2] = vec3( 1, 1, 0 );
@@ -113,7 +113,7 @@ void Frustum::ExtractFromVPMatrix( const mat4& VP )
         vec4 p     = invVP * vec4( corners[i], 1 );
         corners[i] = vec3( p ) / p.w;
     }
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 }
 
 bool Frustum::BoxInFrustum( const AABB& aabb ) const

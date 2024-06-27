@@ -2,9 +2,11 @@
 
 #include "core/feature_defines.hpp"
 
-#include "imgui/imgui.h"
 #include "renderer/graphics_api/command_buffer.hpp"
 #include <functional>
+#if USING( PG_DEBUG_UI )
+#include "imgui/imgui.h"
+#endif // #if USING( PG_DEBUG_UI )
 
 namespace PG::Gfx::UIOverlay
 {

@@ -3,9 +3,10 @@
 #include "shared/math_base.hpp"
 #include <cstring>
 #include <stdexcept>
-#if !USING( SHIP_BUILD )
+
+#if USING( DEVELOPMENT_BUILD )
 #include <fstream>
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 namespace PG
 {
@@ -99,49 +100,37 @@ const char* const Dvar::GetDescription() const { return description; }
 
 bool Dvar::GetBool() const
 {
-#if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::BOOL, "Calling GetBool() on a non-bool dvar. Name %s, type %s", name, TypeToString( type ) );
-#endif // #if USING( DVAR_DEBUGGING )
+    DVAR_ASSERT( type == Type::BOOL, "Calling GetBool() on a non-bool dvar. Name %s, type %s", name, TypeToString( type ) );
     return value.bVal;
 }
 
 i32 Dvar::GetInt() const
 {
-#if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::INT, "Calling GetInt() on a non-int dvar. Name %s, type %s", name, TypeToString( type ) );
-#endif // #if USING( DVAR_DEBUGGING )
+    DVAR_ASSERT( type == Type::INT, "Calling GetInt() on a non-int dvar. Name %s, type %s", name, TypeToString( type ) );
     return value.iVal;
 }
 
 u32 Dvar::GetUint() const
 {
-#if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::UINT, "Calling GetUint() on a non-uint dvar. Name %s, type %s", name, TypeToString( type ) );
-#endif // #if USING( DVAR_DEBUGGING )
+    DVAR_ASSERT( type == Type::UINT, "Calling GetUint() on a non-uint dvar. Name %s, type %s", name, TypeToString( type ) );
     return value.uVal;
 }
 
 f32 Dvar::GetFloat() const
 {
-#if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::FLOAT, "Calling GetFloat() on a non-f32 dvar. Name %s, type %s", name, TypeToString( type ) );
-#endif // #if USING( DVAR_DEBUGGING )
+    DVAR_ASSERT( type == Type::FLOAT, "Calling GetFloat() on a non-f32 dvar. Name %s, type %s", name, TypeToString( type ) );
     return value.fVal;
 }
 
 f64 Dvar::GetDouble() const
 {
-#if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::INT, "Calling GetDouble() on a non-f64 dvar. Name %s, type %s", name, TypeToString( type ) );
-#endif // #if USING( DVAR_DEBUGGING )
+    DVAR_ASSERT( type == Type::INT, "Calling GetDouble() on a non-f64 dvar. Name %s, type %s", name, TypeToString( type ) );
     return value.dVal;
 }
 
 vec4 Dvar::GetVec4() const
 {
-#if USING( DVAR_DEBUGGING )
-    PG_ASSERT( type == Type::VEC4, "Calling GetVec4() on a non-vec4 dvar. Name %s, type %s", name, TypeToString( type ) );
-#endif // #if USING( DVAR_DEBUGGING )
+    DVAR_ASSERT( type == Type::VEC4, "Calling GetVec4() on a non-vec4 dvar. Name %s, type %s", name, TypeToString( type ) );
     return value.vVal;
 }
 
@@ -219,10 +208,10 @@ Dvar* GetDvar( std::string_view name ) { return DvarMap().contains( name ) ? Dva
 
 const std::unordered_map<std::string_view, Dvar*>& GetAllDvars() { return DvarMap(); }
 
-#if !USING( SHIP_BUILD )
 // Make sure this filename lines up with the filename in remote_console_main.cpp
 void ExportDvars()
 {
+#if USING( DEVELOPMENT_BUILD )
     std::ofstream outFile( PG_BIN_DIR "../dvars_exported.bin", std::ios::binary );
     if ( !outFile )
     {
@@ -243,7 +232,7 @@ void ExportDvars()
         outFile.write( (char*)&l, sizeof( l ) );
         outFile.write( dvar->GetDescription(), l );
     }
+#endif // #if USING( DEVELOPMENT_BUILD )
 }
-#endif // !USING( SHIP_BUILD )
 
 } // namespace PG

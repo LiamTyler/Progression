@@ -2,14 +2,25 @@ project(Engine LANGUAGES CXX C)
 
 include(helpful_functions)
 
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Ship")
+set(CMAKE_CONFIGURATION_TYPES "Debug;Release;Profile;Ship")
 SET_BIN_AND_LIB_DIRS(${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib)
+
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_PROFILE ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_PROFILE ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_PROFILE ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/bin)
 set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/lib)
 set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_SHIP ${CMAKE_BINARY_DIR}/lib)
 
 if(UNIX AND NOT APPLE)
 elseif(MSVC)
+    # CMAKE_CXX_FLAGS_PROFILE are set by SET_TARGET_COMPILE_OPTIONS_DEFAULT()
+    set(CMAKE_C_FLAGS_PROFILE "" CACHE STRING "" FORCE)
+    set(CMAKE_EXE_LINKER_FLAGS_PROFILE "" CACHE STRING "" FORCE)
+    set(CMAKE_SHARED_LINKER_FLAGS_PROFILE "" CACHE STRING "" FORCE)
+    mark_as_advanced(CMAKE_CXX_FLAGS_PROFILE CMAKE_C_FLAGS_PROFILE CMAKE_EXE_LINKER_FLAGS_PROFILE CMAKE_SHARED_LINKER_FLAGS_PROFILE)
+    
+    # CMAKE_CXX_FLAGS_SHIP are set by SET_TARGET_COMPILE_OPTIONS_DEFAULT()
     set(CMAKE_C_FLAGS_SHIP "" CACHE STRING "" FORCE)
     set(CMAKE_EXE_LINKER_FLAGS_SHIP "" CACHE STRING "" FORCE)
     set(CMAKE_SHARED_LINKER_FLAGS_SHIP "" CACHE STRING "" FORCE)
@@ -154,20 +165,24 @@ set(
 	${CODE_DIR}/external/vma/vk_mem_alloc.h
     ${CODE_DIR}/external/vma/vma_usage.cpp
     
-    ${CODE_DIR}/external/tracy/tracy/Tracy.hpp
-    ${CODE_DIR}/external/tracy/tracy/TracyVulkan.hpp
-    ${CODE_DIR}/external/tracy/TracyClient.cpp
+    $<$<NOT:$<CONFIG:SHIP>>:
+        ${CODE_DIR}/external/tracy/tracy/Tracy.hpp
+        ${CODE_DIR}/external/tracy/tracy/TracyVulkan.hpp
+        ${CODE_DIR}/external/tracy/TracyClient.cpp
+    >
     
-    ${CODE_DIR}/external/imgui/imgui.h
-    ${CODE_DIR}/external/imgui/imgui.cpp
-    ${CODE_DIR}/external/imgui/imgui_demo.cpp
-    ${CODE_DIR}/external/imgui/imgui_draw.cpp
-    ${CODE_DIR}/external/imgui/imgui_tables.cpp
-    ${CODE_DIR}/external/imgui/imgui_widgets.cpp
-    ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
-    ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.h
-    ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
-    ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.h
+    $<$<NOT:$<CONFIG:PROFILE,SHIP>>:
+        ${CODE_DIR}/external/imgui/imgui.h
+        ${CODE_DIR}/external/imgui/imgui.cpp
+        ${CODE_DIR}/external/imgui/imgui_demo.cpp
+        ${CODE_DIR}/external/imgui/imgui_draw.cpp
+        ${CODE_DIR}/external/imgui/imgui_tables.cpp
+        ${CODE_DIR}/external/imgui/imgui_widgets.cpp
+        ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
+        ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.h
+        ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
+        ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.h
+    >
 )
 
 set(ALL_FILES ${SRC} ${EXTERNALS} ${ALL_EXT_FILES} ${SHADERS})
@@ -183,14 +198,22 @@ add_executable(${PROJECT_NAME} ${ALL_FILES} ${VULKAN_EXT_FILES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     CMAKE_DEFINE_GAME
     ${ALL_EXT_COMPILE_DEFS}
-    TRACY_ENABLE
-    #TRACY_ON_DEMAND
-    #TRACY_NO_SYSTEM_TRACING
+    $<$<CONFIG:DEBUG>: TRACY_ENABLE>
+    $<$<CONFIG:RELEASE>: TRACY_ENABLE>
+    $<$<CONFIG:PROFILE>: TRACY_ENABLE>
 )
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
+if(UNIX AND NOT APPLE)
+    target_compile_options(${PROJECT_NAME} PUBLIC $<$<CONFIG:PROFILE,SHIP>: -O3>)
+elseif(MSVC)
+    target_compile_options(${PROJECT_NAME} PUBLIC $<$<CONFIG:PROFILE,SHIP>: /O2 /GL /Zi>)
+    target_link_options(${PROJECT_NAME} PUBLIC $<$<CONFIG:PROFILE,SHIP>: /LTCG /INCREMENTAL:NO>)
+endif()
+
 set_target_properties(${PROJECT_NAME} PROPERTIES
 	DEBUG_POSTFIX _d
 	RELEASE_POSTFIX _r
+	PROFILE_POSTFIX _p
 	SHIP_POSTFIX _s
 )
 target_include_directories(${PROJECT_NAME} PUBLIC

@@ -201,7 +201,7 @@ void AddFrustum( const Frustum& frustum, Color color )
 void Init() {}
 void Shutdown() {}
 void StartFrame() {}
-
+void Draw( CommandBuffer& cmdBuf ) { PG_UNUSED( cmdBuf ); }
 void AddLine( vec3 begin, vec3 end, Color color )
 {
     PG_UNUSED( begin );

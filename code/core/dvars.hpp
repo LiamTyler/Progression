@@ -165,9 +165,7 @@ private:
 Dvar* GetDvar( std::string_view name );
 const std::unordered_map<std::string_view, Dvar*>& GetAllDvars();
 
-#if !USING( SHIP_BUILD )
 void ExportDvars();
-#endif // !USING( SHIP_BUILD )
 
 } // namespace PG
 

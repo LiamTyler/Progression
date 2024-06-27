@@ -4,9 +4,9 @@
 #include "graphics_api/physical_device.hpp"
 #include "graphics_api/swapchain.hpp"
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
 #include "core/frustum.hpp"
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 namespace PG::Gfx
 {
@@ -57,9 +57,9 @@ struct R_Globals
     CommandBuffer immediateCmdBuffer;
     Fence immediateFence;
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     Frustum debugCullingFrustum;
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     FrameData& GetFrameData() { return frameData[currentFrameIdx]; }
 

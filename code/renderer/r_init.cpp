@@ -12,13 +12,14 @@
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
 
-#define SHADER_DEBUG_PRINTF USE_IF( !USING( SHIP_BUILD ) )
+#define SHADER_DEBUG_PRINTF USE_IF( USING( DEVELOPMENT_BUILD ) )
 
 namespace PG::Gfx
 {
 
 Dvar r_shaderDebugPrint( "r_shaderDebugPrint", false, "Enable/disable logging of shader debug printf messages" );
 
+#if USING( DEVELOPMENT_BUILD )
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData )
 {
@@ -77,6 +78,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 
     return VK_FALSE;
 }
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 static void InitCommandObjects()
 {
@@ -113,7 +115,7 @@ static vkb::Result<vkb::Instance> GetInstance()
     PGP_MANUAL_ZONEN( __tracyInstBuild, "Instance Builder" );
     vkb::InstanceBuilder builder;
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     builder.request_validation_layers( true );
     builder.set_debug_callback( DebugCallback );
     VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =
@@ -123,7 +125,7 @@ static vkb::Result<vkb::Instance> GetInstance()
     debugMessageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 #endif // #if USING( SHADER_DEBUG_PRINTF )
     builder.set_debug_messenger_severity( debugMessageSeverity );
-#endif // !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     builder.require_api_version( 1, 3, 0 );
     auto inst_ret = builder.build();
@@ -214,7 +216,7 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     ADD_PNEXT_FEATURES12( descriptorBufferExt );
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     // for solid wireframe debug mode
     pDevSelector.add_required_extension( VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME );
     VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR baryFeaturesKHR = {
@@ -222,7 +224,7 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     baryFeaturesKHR.fragmentShaderBarycentric = true;
     // ADD_PNEXT_FEATURES12( baryFeaturesKHR );
     pDevSelector.add_required_extension_features( baryFeaturesKHR );
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT };
     meshShaderFeatures.meshShader = true;
@@ -261,9 +263,9 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", rg.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor,
         pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     DebugMarker::Init( rg.instance );
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     vkb::DeviceBuilder device_builder{ vkbPhysicalDevice };
 

@@ -5,9 +5,18 @@
 #include <cstdio>
 #include <cstdlib>
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
 
 #define PG_ASSERT( ... ) _PG_VA_SELECT( _PG_ASSERT, __VA_ARGS__ )
+
+#if USING( DEBUG_BUILD )
+#define PG_DBG_ASSERT( ... ) _PG_VA_SELECT( _PG_ASSERT, __VA_ARGS__ )
+#else // #if USING( DEBUG_BUILD )
+#define PG_DBG_ASSERT( ... ) \
+    do                       \
+    {                        \
+    } while ( 0 )
+#endif // #else // #if USING( DEBUG_BUILD )
 
 #define _PG_ASSERT_START( X )                                                             \
     if ( !( X ) )                                                                         \
@@ -121,11 +130,11 @@
         A8, A9, A10 );                                                                                                                    \
     _PG_ASSERT_END()
 
-#else // #if !USING( SHIP_BUILD )
+#else // #if USING( DEVELOPMENT_BUILD )
 
 #define PG_ASSERT( ... ) \
     do                   \
     {                    \
     } while ( 0 )
 
-#endif // #else // #if !USING( SHIP_BUILD )
+#endif // #else // #if USING( DEVELOPMENT_BUILD )

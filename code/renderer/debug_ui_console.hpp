@@ -1,10 +1,10 @@
 #pragma once
 
-#include "core/console_commands.hpp"
 #include "core/feature_defines.hpp"
+
+#if USING( PG_DEBUG_UI )
+#include "core/console_commands.hpp"
 #include "imgui/imgui.h"
-#include <string>
-#include <vector>
 
 namespace PG::Gfx::UIOverlay
 {
@@ -49,3 +49,5 @@ public:
 };
 
 } // namespace PG::Gfx::UIOverlay
+
+#endif // #if USING( PG_DEBUG_UI )

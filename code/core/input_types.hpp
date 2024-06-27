@@ -7,10 +7,10 @@ namespace PG::Input
 
 enum class Action : u16
 {
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     TOGGLE_DEV_CONSOLE,
     TOGGLE_DEBUG_UI,
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
     QUIT_GAME,
     TOGGLE_CAMERA_CONTROLS,
     CAMERA_SPRINT,

@@ -54,7 +54,7 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 
 } // namespace PG::Gfx::DebugMarker
 
-#if !USING( SHIP_BUILD ) && USING( GPU_DATA )
+#if USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA )
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name ) \
     PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf, name, PG::Gfx::DebugMarker::GetNextRegionColor() )
@@ -91,9 +91,9 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) PG::Gfx::DebugMarker::SetDescriptorPoolName( pool, name )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name ) PG::Gfx::DebugMarker::SetQueryPoolName( pool, name )
 
-#else // #if !USING( SHIP_BUILD ) && USING( GPU_DATA )
+#else // #if USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA )
 
-#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name, color )
+#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name )
 #define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )
 #define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name )
 
@@ -112,6 +112,7 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 #define PG_DEBUG_MARKER_SET_MEMORY_NAME( memory, name )
 #define PG_DEBUG_MARKER_SET_SHADER_NAME( shader, name )
 #define PG_DEBUG_MARKER_SET_PIPELINE_NAME( pipeline, name )
+#define PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( pipeline, name )
 #define PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( layout, name )
 #define PG_DEBUG_MARKER_SET_DESC_SET_NAME( set, name )
 #define PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( semaphore, name )
@@ -123,4 +124,4 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )
 
-#endif // #else // #if !USING( SHIP_BUILD ) && USING( GPU_DATA )
+#endif // #else // #if USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA )

@@ -67,14 +67,14 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
                 cData.numMeshlets     = model->meshes[i].numMeshlets;
                 cullData[meshNum + i] = cData;
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
                 if ( r_visualizeBoundingBoxes.GetBool() )
                 {
                     AABB transformedAABB = model->meshAABBs[i].Transform( transform.Matrix() );
                     if ( rg.debugCullingFrustum.BoxInFrustum( transformedAABB ) )
                         DebugDraw::AddAABB( transformedAABB );
                 }
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
             }
 
             meshNum += meshesToAdd;
@@ -101,11 +101,11 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
     cmdBuf.Dispatch_AutoSized( meshNum, 1, 1 );
 }
 
-void ComputeDrawFunc( ComputeTask* task, TGExecuteData* data )
+void DebugComputeCullFunc( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "compute_debug" ) );
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "culling_compute_debug" ) );
     cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
@@ -130,13 +130,13 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
     bool useDebugShader = false;
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     useDebugShader = useDebugShader || r_geometryViz.GetUint();
     useDebugShader = useDebugShader || r_materialViz.GetUint();
     useDebugShader = useDebugShader || r_lightingViz.GetUint();
     useDebugShader = useDebugShader || r_meshletViz.GetBool();
     useDebugShader = useDebugShader || r_wireframe.GetBool();
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
     cmdBuf.BindPipeline( PipelineManager::GetPipeline( "litModel", useDebugShader ) );
 
     cmdBuf.BindGlobalDescriptors();
@@ -223,12 +223,12 @@ void UI_3D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     PGP_ZONE_SCOPEDN( "UI 3D" );
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     if ( r_frustumCullingDebug.GetBool() )
     {
         DebugDraw::AddFrustum( rg.debugCullingFrustum, DebugDraw::Color::YELLOW );
     }
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
     DebugDraw::Draw( cmdBuf );
 }
 
@@ -250,12 +250,14 @@ bool Init_TaskGraph()
     TGBTextureRef sceneDepth = mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
+#if USING( DEVELOPMENT_BUILD )
     cTask = builder.AddComputeTask( "ComputeDraw" );
     cTask->AddBufferInput( indirectCountBuff );
     cTask->AddBufferInput( indirectMeshletDrawBuff );
     cTask->AddTextureInput( litOutput );
     cTask->AddTextureOutput( litOutput );
-    cTask->SetFunction( ComputeDrawFunc );
+    cTask->SetFunction( DebugComputeCullFunc );
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     TGBTextureRef swapImg = builder.RegisterExternalTexture(
         "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } );
@@ -430,7 +432,7 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.normalMatriciesBufferIndex = frameData.normalMatricesBuffer.GetBindlessIndex();
     globalData.r_tonemap                  = r_tonemap.GetUint();
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     globalData.r_geometryViz    = r_geometryViz.GetUint();
     globalData.r_materialViz    = r_materialViz.GetUint();
     globalData.r_lightingViz    = r_lightingViz.GetUint();
@@ -451,9 +453,9 @@ static void UpdateGPUSceneData( Scene* scene )
         rg.debugCullingFrustum = scene->camera.GetFrustum();
     }
     memcpy( globalData.frustumPlanes, rg.debugCullingFrustum.planes, sizeof( vec4 ) * 6 );
-#else
+#else  // #if USING( DEVELOPMENT_BUILD )
     memcpy( globalData.frustumPlanes, scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
-#endif // #if !USING( SHIP_BUILD )
+#endif // #else // #if USING( DEVELOPMENT_BUILD )
 
     memcpy( frameData.sceneGlobalsBuffer.GetMappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );
 

@@ -4,7 +4,7 @@
 #include "shared/platform_defines.hpp"
 #include <string>
 
-#define ASSET_NAMES USE_IF( !USING( GAME ) || !USING( SHIP_BUILD ) )
+#define ASSET_NAMES USE_IF( !USING( GAME ) || USING( DEVELOPMENT_BUILD ) )
 
 #if USING( ASSET_NAMES )
 #define PGP_ZONE_SCOPED_ASSET( name ) PGP_ZONE_SCOPED_FMT( name " %s", m_name )
@@ -50,8 +50,9 @@ public:
 
 protected:
 #if USING( ASSET_NAMES )
-    char* m_name = nullptr; // the AssetManager always takes care of deserializing this
-#endif                      // #if USING( ASSET_NAMES )
+    // the AssetManager always takes care of deserializing this
+    char* m_name = nullptr;
+#endif // #if USING( ASSET_NAMES )
 
     void SerializeName( Serializer* serializer ) const;
 };

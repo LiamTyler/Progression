@@ -11,7 +11,7 @@ Dvar r_tonemap( "r_tonemap", 1u, 0u, PG_TONEMAP_METHOD_COUNT,
     "2 - Uncharted 2\n"
     "3 - Reinhard" );
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
 
 // NOTE! keep these in sync with c_shared/dvar_defines.h
 Dvar r_geometryViz( "r_geometryViz", 0u, 0u, PG_DEBUG_GEOM_COUNT,
@@ -62,6 +62,6 @@ Dvar r_debugFloat( "r_debugFloat", 0.0f, -FLT_MAX, FLT_MAX, "Just used as an opt
 Dvar r_visualizeBoundingBoxes( "r_visualizeBoundingBoxes", false, "Enable/disable drawing the AABB for each mesh" );
 Dvar r_frustumCullingDebug( "r_frustumCullingDebug", false, "Enabling will freeze the frustum used for culling and visualize it" );
 
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 } // namespace PG

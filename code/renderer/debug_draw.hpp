@@ -4,7 +4,7 @@
 #include "core/frustum.hpp"
 #include "renderer/graphics_api/command_buffer.hpp"
 
-#define DEBUG_DRAW USE_IF( !USING( SHIP_BUILD ) )
+#define DEBUG_DRAW USE_IF( USING( DEVELOPMENT_BUILD ) )
 
 namespace PG::Gfx::DebugDraw
 {

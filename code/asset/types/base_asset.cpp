@@ -24,8 +24,20 @@ void BaseAsset::SetName( std::string_view inName )
 #endif // #if USING( ASSET_NAMES )
 }
 
-const char* BaseAsset::GetName() const { return m_name; }
+const char* BaseAsset::GetName() const
+{
+#if USING( ASSET_NAMES )
+    return m_name;
+#else  // #if USING( ASSET_NAMES )
+    return nullptr;
+#endif // #else // #if USING( ASSET_NAMES )
+}
 
-void BaseAsset::SerializeName( Serializer* serializer ) const { serializer->Write<u16>( m_name ); }
+void BaseAsset::SerializeName( Serializer* serializer ) const
+{
+#if USING( ASSET_NAMES )
+    serializer->Write<u16>( m_name );
+#endif // #if USING( ASSET_NAMES )
+}
 
 } // namespace PG

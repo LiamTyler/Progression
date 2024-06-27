@@ -9,7 +9,7 @@
 // needs to be debug mode, since TaskGraph::Print relies on the Buffer::debugName and Texture::debugName,
 //  which only exist in debug builds
 #define TG_DEBUG USE_IF( USING( DEBUG_BUILD ) )
-#define TG_STATS USE_IF( !USING( SHIP_BUILD ) )
+#define TG_STATS USE_IF( USING( DEVELOPMENT_BUILD ) )
 
 #if USING( TG_DEBUG )
 #define TG_DEBUG_ONLY( x ) x

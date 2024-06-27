@@ -291,13 +291,13 @@ void CommandBuffer::DrawIndexed( u32 firstIndex, u32 indexCount, i32 vertexOffse
 
 void CommandBuffer::Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) const
 {
-    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
+    PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
     vkCmdDispatch( m_handle, groupsX, groupsY, groupsZ );
 }
 
 void CommandBuffer::Dispatch_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const
 {
-    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
+    PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::COMPUTE );
     uvec3 gSize = m_boundPipeline->GetWorkgroupSize();
     u32 groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
     u32 groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
@@ -307,20 +307,20 @@ void CommandBuffer::Dispatch_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) con
 
 void CommandBuffer::DrawMeshTasks( u32 groupsX, u32 groupsY, u32 groupsZ ) const
 {
-    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
+    PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
     vkCmdDrawMeshTasksEXT( m_handle, groupsX, groupsY, groupsZ );
 }
 
 void CommandBuffer::DrawMeshTasksIndirect( const Buffer& buffer, u32 drawCount, u64 offset, u32 stride ) const
 {
-    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
+    PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
     vkCmdDrawMeshTasksIndirectEXT( m_handle, buffer, offset, drawCount, stride );
 }
 
 void CommandBuffer::DrawMeshTasksIndirectCount(
     const Buffer& indirectCmdsBuffer, u64 indirectOffset, const Buffer& countBuffer, u64 countOffset, u32 maxDrawCount, u32 stride ) const
 {
-    PG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
+    PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
     vkCmdDrawMeshTasksIndirectCountEXT( m_handle, indirectCmdsBuffer, indirectOffset, countBuffer, countOffset, maxDrawCount, stride );
 }
 

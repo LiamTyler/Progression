@@ -41,13 +41,13 @@ void EndTimestamp( const CommandBuffer& cmdbuf, QueryRecord& record );
     do                                       \
     {                                        \
     } while ( 0 )
-#define PG_PROFILE_GPU_START( cmdbuf, name ) \
-    do                                       \
-    {                                        \
+#define PG_PROFILE_GPU_START( cmdbuf, identifier, name ) \
+    do                                                   \
+    {                                                    \
     } while ( 0 )
-#define PG_PROFILE_GPU_END( cmdbuf, name ) \
-    do                                     \
-    {                                      \
+#define PG_PROFILE_GPU_END( cmdbuf, identifier ) \
+    do                                           \
+    {                                            \
     } while ( 0 )
 
 #endif // #else // #if USING( PG_GPU_PROFILING )

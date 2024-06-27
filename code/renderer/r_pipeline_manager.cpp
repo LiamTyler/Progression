@@ -10,7 +10,7 @@ using namespace PG::Gfx;
 static const char* s_pipelineCacheFilename = PG_ASSET_DIR "cache/pipeline_cache.bin";
 
 #define PIPELINE_CACHE IN_USE
-#define PIPELINE_STATS USE_IF( !USING( SHIP_BUILD ) )
+#define PIPELINE_STATS USE_IF( USING( DEVELOPMENT_BUILD ) )
 
 #if USING( PIPELINE_STATS )
 #include "core/time.hpp"
@@ -283,13 +283,13 @@ void CreatePipeline( Pipeline* pipeline, const PipelineCreateInfo& createInfo )
 
 Pipeline* GetPipeline( const std::string& name, bool debugPermuation )
 {
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     if ( debugPermuation )
     {
         return AssetManager::Get<Pipeline>( name + "_debug" );
     }
     else
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
     {
         return AssetManager::Get<Pipeline>( name );
     }

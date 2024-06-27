@@ -128,16 +128,20 @@ function( SET_TARGET_COMPILE_OPTIONS_DEFAULT )
 		set_property(TARGET ${arg} PROPERTY CXX_STANDARD 20)
         if(UNIX AND NOT APPLE)
             target_compile_options(${arg} PUBLIC -Wall -Wno-unused-function -Wno-unused-variable -Wno-unused-but-set-variable -Wno-switch -Wno-format)
-            target_compile_options(${arg} PUBLIC $<$<CONFIG:DEBUG>: -g>)
-            target_compile_options(${arg} PUBLIC $<$<CONFIG:RELEASE>: -O2>)
-            target_compile_options(${arg} PUBLIC $<$<CONFIG:SHIP>:-O3>)
+            target_compile_options(${arg} PUBLIC
+                $<$<CONFIG:DEBUG>: -g>
+                $<$<CONFIG:RELEASE>: -O2>
+            )
         elseif(MSVC)
-            target_compile_options(${arg} PUBLIC $<$<CONFIG:DEBUG>: /Od /Oi>)
-            target_compile_options(${arg} PUBLIC $<$<CONFIG:RELEASE>: /O2 /Zi /Oi /Ot>)
-            target_compile_options(${arg} PUBLIC $<$<CONFIG:SHIP>: /O2 /Oi /GL /Ot>)
+            target_compile_options(${arg} PUBLIC
+                $<$<CONFIG:DEBUG>: /Od /Oi>
+                $<$<CONFIG:RELEASE>: /O2 /Zi>
+            )
             target_compile_options(${arg} PRIVATE /MD /MP /Zc:preprocessor /wd5105)
-            target_link_options(${arg} PUBLIC $<$<CONFIG:RELEASE>: /DEBUG /LTCG>)
-            target_link_options(${arg} PUBLIC $<$<CONFIG:SHIP>: /LTCG>)
+            target_link_options(${arg} PUBLIC
+                $<$<CONFIG:DEBUG>: /DEBUG>
+                $<$<CONFIG:RELEASE>: /DEBUG>
+            )
             target_compile_definitions(${arg} PRIVATE -D_CRT_SECURE_NO_WARNINGS -D_ITERATOR_DEBUG_LEVEL=0)
         endif()
     endforeach()
@@ -150,8 +154,6 @@ function(SET_TARGET_POSTFIX)
             ${arg}
             PROPERTIES
             DEBUG_POSTFIX _d
-            #RELEASE_POSTFIX _release
-            #SHIP_POSTFIX _ship
         )
     endforeach()
 endfunction()

@@ -1,6 +1,4 @@
 #include "renderer/debug_ui.hpp"
-#include "core/input.hpp"
-#include "renderer/debug_ui_console.hpp"
 
 #if !USING( PG_DEBUG_UI )
 
@@ -87,6 +85,7 @@ bool Updated() { return false; }
 #include "core/window.hpp"
 #include "imgui/backends/imgui_impl_glfw.h"
 #include "imgui/backends/imgui_impl_vulkan.h"
+#include "renderer/debug_ui_console.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/vulkan.hpp"
@@ -196,7 +195,7 @@ bool Init( PixelFormat colorAttachmentFormat )
 
     s_console = new Console;
 
-    Input::InputContext* devContext = Input::GetContext( Input::InputContextID::DEV_CONTROLS );
+    Input::InputContext* devContext = Input::GetContext( Input::InputContextID::GLOBAL_CONTROLS );
     devContext->AddRawButtonToAction( Input::RawButton::BACK_TICK, Input::Action::TOGGLE_DEV_CONSOLE );
     devContext->AddRawButtonToAction( Input::RawButton::F1, Input::Action::TOGGLE_DEBUG_UI );
     devContext->AddCallback( DevControlsInputCallback );

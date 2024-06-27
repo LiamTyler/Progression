@@ -2,7 +2,7 @@
 
 #include "shared/platform_defines.hpp"
 
-#define REMOTE_CONSOLE_SERVER USE_IF( USING( GAME ) && !USING( SHIP_BUILD ) && USING( WINDOWS_PROGRAM ) )
+#define REMOTE_CONSOLE_SERVER USE_IF( USING( GAME ) && USING( DEVELOPMENT_BUILD ) && USING( WINDOWS_PROGRAM ) )
 
 namespace PG::RemoteConsoleServer
 {

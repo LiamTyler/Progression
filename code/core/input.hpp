@@ -22,9 +22,7 @@ enum class InputContextBlockLevel : u8
 
 enum class InputContextID : u8
 {
-#if !USING( SHIP_BUILD )
-    DEV_CONTROLS,
-#endif // #if !USING( SHIP_BUILD )
+    GLOBAL_CONTROLS,
     CAMERA_CONTROLS,
 
     COUNT

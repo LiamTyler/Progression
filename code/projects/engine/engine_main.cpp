@@ -5,9 +5,7 @@
 #include "core/init.hpp"
 #include "core/scene.hpp"
 #include "image.hpp"
-#include "renderer/debug_ui.hpp"
 #include "renderer/render_system.hpp"
-#include "shared/logger.hpp"
 #include "ui/ui_system.hpp"
 
 using namespace PG;
@@ -48,7 +46,6 @@ int main( int argc, char* argv[] )
     window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
     // window->SetRelativeMouse( false );
 
-    // Input::PollEvents();
     Time::Reset();
 
     while ( !eg.shutdown )

@@ -6,9 +6,9 @@
 #include "shared/logger.hpp"
 #include <unordered_set>
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
 #include "imgui/imgui.h"
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 namespace PG::Input
 {
@@ -333,27 +333,23 @@ InputContextManager::InputContextManager()
         layer.contexts.reserve( 8 );
 }
 
-#if !USING( SHIP_BUILD )
-static void DevControlsInputCallback( const CallbackInput& cInput )
+static void GlobalControlsInputCallback( const CallbackInput& cInput )
 {
     if ( cInput.ActionJustPressed( Action::QUIT_GAME ) )
         eg.shutdown = true;
 }
-#endif // #if !USING( SHIP_BUILD )
 
 bool InputContextManager::LoadContexts()
 {
     s_allInputContexts.resize( Underlying( InputContextID::COUNT ) );
     InputContext* context;
 
-#if !USING( SHIP_BUILD )
-    context = new InputContext( InputContextID::DEV_CONTROLS );
+    context = new InputContext( InputContextID::GLOBAL_CONTROLS );
     context->SetBlockLevel( InputContextBlockLevel::BLOCK_MAPPED_CONTROLS );
     context->AddRawButtonToAction( RawButton::ESC, Action::QUIT_GAME );
-    context->AddCallback( DevControlsInputCallback );
+    context->AddCallback( GlobalControlsInputCallback );
 
-    s_allInputContexts[Underlying( InputContextID::DEV_CONTROLS )] = context;
-#endif // #if !USING( SHIP_BUILD )
+    s_allInputContexts[Underlying( InputContextID::GLOBAL_CONTROLS )] = context;
 
     context = new InputContext( InputContextID::CAMERA_CONTROLS );
     context->SetBlockLevel( InputContextBlockLevel::BLOCK_MAPPED_CONTROLS );
@@ -381,13 +377,13 @@ void InputContextManager::Update()
     RawInputTracker inputTracker = s_inputTracker;
     CallbackInput cInput;
 
-    // always process the dev controls + handle imgui first, in developement builds
-#if !USING( SHIP_BUILD )
-    InputContext* devContext = s_allInputContexts[Underlying( InputContextID::DEV_CONTROLS )];
+    // always process the global controls + handle imgui right after (in developement builds)
+    InputContext* devContext = s_allInputContexts[Underlying( InputContextID::GLOBAL_CONTROLS )];
     inputTracker.CreateCallbackInput( devContext, cInput );
     devContext->ProcessCallbacks( cInput );
     inputTracker.UpdateBasedOnContext( devContext );
 
+#if USING( DEVELOPMENT_BUILD )
     ImGuiIO& io = ImGui::GetIO();
     if ( io.WantCaptureKeyboard )
         inputTracker.m_activeButtons.clear();
@@ -398,7 +394,7 @@ void InputContextManager::Update()
 
     if ( !inputTracker.HasInput() )
         return;
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     // make copy, in case the callbacks edit the context list/order
     static std::vector<InputContext*> scratchContexts;
@@ -487,9 +483,7 @@ void RegisterLuaFunctions( lua_State* L )
 const char* InputContextIDToString( InputContextID id )
 {
     static const char* names[] = {
-#if !USING( SHIP_BUILD )
-        "DEV_CONTROLS",
-#endif // #if !USING( SHIP_BUILD )
+        "GLOBAL_CONTROLS",
         "CAMERA_CONTROLS",
     };
     static_assert( Underlying( InputContextID::COUNT ) == ARRAY_COUNT( names ), "don't forget to update" );

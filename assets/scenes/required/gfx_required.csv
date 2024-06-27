@@ -1,5 +1,5 @@
 Pipeline,frustum_cull_meshes
-Pipeline,compute_debug
+Pipeline,culling_compute_debug
 Pipeline,post_process
 Pipeline,litModel
 Pipeline,debug_lines

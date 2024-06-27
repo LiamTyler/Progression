@@ -1,4 +1,6 @@
 #include "debug_ui_console.hpp"
+
+#if USING( PG_DEBUG_UI )
 #include "core/console_commands.hpp"
 #include "core/dvars.hpp"
 #include "core/window.hpp"
@@ -410,3 +412,4 @@ i32 Console::TextEditCallback( ImGuiInputTextCallbackData* data )
 }
 
 } // namespace PG::Gfx::UIOverlay
+#endif // #if USING( PG_DEBUG_UI )

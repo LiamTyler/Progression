@@ -6,7 +6,7 @@ namespace PG
 {
 extern Dvar r_tonemap;
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
 
 extern Dvar r_geometryViz;
 extern Dvar r_materialViz;
@@ -24,6 +24,6 @@ extern Dvar r_debugFloat;
 extern Dvar r_visualizeBoundingBoxes;
 extern Dvar r_frustumCullingDebug;
 
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 } // namespace PG

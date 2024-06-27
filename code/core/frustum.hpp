@@ -19,10 +19,10 @@ public:
 
     vec4 planes[6];
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     // just kept around in non-ship builds for frustum debug drawing
     vec3 corners[8];
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 private:
     void SetPlane( i32 planeIndex, const vec3& p1, const vec3& p2, const vec3& p3 );

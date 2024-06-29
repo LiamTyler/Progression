@@ -55,7 +55,7 @@ int main( int argc, char* argv[] )
         AssetManager::ProcessPendingLiveUpdates();
         Input::PollEvents();
         f32 dt = Time::DeltaTime();
-        if ( dt > 0.0024f )
+        if ( dt > 0.018f )
             LOG( "T: %f, Dt: %f", Time::Time() / 1000.0f, dt );
 
         if ( eg.resizeRequested )

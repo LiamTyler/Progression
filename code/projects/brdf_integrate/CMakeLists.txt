@@ -20,8 +20,7 @@ set(
 	EXTERNALS
 )
 
-set(ALL_FILES ${SRC} ${EXTERNALS} ${ALL_EXT_FILES})
-set_source_files_properties(${ALL_EXT_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
+set(ALL_FILES ${SRC} ${EXTERNALS})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
 
 

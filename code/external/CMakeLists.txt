@@ -1,27 +1,12 @@
 set(EXT_DIR ${CMAKE_SOURCE_DIR}/code/external)
 
+include(FetchContent)
+set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "" FORCE)
+
 #----------------------------ASSIMP--------------------------------------------
 if(MSVC)
-	# from the primary assimp cmakelists.txt file
-	IF(MSVC_TOOLSET_VERSION)
-		SET(MSVC_PREFIX "vc${MSVC_TOOLSET_VERSION}")
-		SET(ASSIMP_MSVC_VERSION ${MSVC_PREFIX})
-	ELSE()
-		IF(MSVC12)
-			SET(ASSIMP_MSVC_VERSION vc120)
-		ELSEIF(MSVC14)
-			SET(ASSIMP_MSVC_VERSION vc140)
-		ELSEIF(MSVC15)
-			SET(ASSIMP_MSVC_VERSION vc141)
-		ELSEIF(MSV142)
-			SET(ASSIMP_MSVC_VERSION vc142)
-		ELSEIF(MSVC143)
-			SET(ASSIMP_MSVC_VERSION vc143)
-		ENDIF()
-	ENDIF()
-    set(ASSIMP_LIB assimp-${ASSIMP_MSVC_VERSION}-mt)
-	
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/${ASSIMP_LIB}.lib)
+    set(ASSIMP_LIB assimp-vc${MSVC_TOOLSET_VERSION}-mt.dll)
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/${ASSIMP_LIB})
         CONFIG_TIME_COMPILE(${EXT_DIR}/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release)
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/bin/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/lib/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
@@ -40,9 +25,10 @@ set(ASSIMP_INCLUDES
 	${CMAKE_BINARY_DIR}/ext/assimp/include
 	PARENT_SCOPE
 )
-if(WIN32)
-    SET_LOCAL_AND_PARENT(ASSIMP_COMPILE_DEFS "ASSIMP_DLL")
-endif()
+##this isn't needed for some reason?
+#if(WIN32)
+#    SET_LOCAL_AND_PARENT(ASSIMP_COMPILE_DEFS "ASSIMP_DLL")
+#endif()
 
 #------------------------------LZ4---------------------------------------------
 if(MSVC)
@@ -58,25 +44,63 @@ else()
 endif()
 
 #------------------------------GLFW--------------------------------------------
+set(FETCHCONTENT_UPDATES_DISCONNECTED_GLFW ON CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  glfw
+  GIT_REPOSITORY https://github.com/glfw/glfw.git
+  GIT_TAG origin/master
+  SOURCE_DIR ${EXT_DIR}/glfw
+  EXCLUDE_FROM_ALL
+)
+
+set(GLFW_CONFIG_ARGS -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_DOCS=OFF -DGLFW_INSTALL=OFF)
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/glfw3dll.lib)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release ${GLFW_CONFIG_ARGS})
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
     endif()
     set(GLFW_LIBS glfw3dll PARENT_SCOPE)
 else()
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libglfw.so)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release ${GLFW_CONFIG_ARGS})
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
     endif()
     set(GLFW_LIBS glfw PARENT_SCOPE)
 endif()
+
 set(GLFW_INCLUDES ${EXT_DIR}/glfw/include PARENT_SCOPE)
 SET_LOCAL_AND_PARENT(GLFW_EXT_FILES ${EXT_DIR}/glfw/include/GLFW/glfw3.h)
 if(WIN32)
     SET_LOCAL_AND_PARENT(GLFW_COMPILE_DEFS "GLFW_DLL")
 endif()
 
+#------------------------------SDL3--------------------------------------------
+set(FETCHCONTENT_UPDATES_DISCONNECTED_SDL3 ON CACHE BOOL "" FORCE)
+FetchContent_Declare(
+  sdl3
+  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+  GIT_TAG origin/main
+  SOURCE_DIR ${EXT_DIR}/sdl3
+  EXCLUDE_FROM_ALL
+)
+
+if(MSVC)
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/SDL3.lib)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/sdl3 ${CMAKE_BINARY_DIR}/ext/sdl3 Release)
+        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/sdl3/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib SDL3)
+    endif()
+    set(SDL_LIBS SDL3 PARENT_SCOPE)
+else()
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libsdl3.so)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/sdl3 ${CMAKE_BINARY_DIR}/ext/sdl3 Release)
+        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/sdl3 ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib SDL3)
+    endif()
+    set(SDL_LIBS SDL3 PARENT_SCOPE)
+endif()
+
+set(SDL_INCLUDES ${EXT_DIR}/sdl3/include PARENT_SCOPE)
+file(GLOB tmpSDLFiles ${EXT_DIR}/sdl3/include/SDL3/*)
+SET_LOCAL_AND_PARENT(SDL_EXT_FILES ${tmpSDLFiles})
 
 #-------------------------------LUA--------------------------------------------
 if(MSVC)
@@ -92,7 +116,7 @@ else()
 endif()
 set(LUA_INCLUDES ${PROGRESSION_DIR}/code/external/lua/ PARENT_SCOPE)
 
-#-------------------------------SHADERC + SPIRVCROSS--------------------------------------------
+#-------------------------------SHADERC + SPIRVCROSS---------------------------
 if(MSVC)
 	set(VULKAN_LIBS
 		${Vulkan_LIBRARIES}
@@ -113,7 +137,7 @@ else()
     SET_LOCAL_AND_PARENT(VULKAN_EXT_FILES ${tmpFiles})
 endif()
 
-#-------------------------------BC7ENC--------------------------------------------
+#-------------------------------BC7ENC-----------------------------------------
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/bc7enc.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/bc7enc_rdo ${CMAKE_BINARY_DIR}/ext/bc7enc Release)
@@ -126,7 +150,7 @@ else()
     endif()
 endif()
 
-#-------------------------------LIBTIFF--------------------------------------------
+#-------------------------------LIBTIFF----------------------------------------
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/tiff.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/libtiff ${CMAKE_BINARY_DIR}/ext/libtiff Release)
@@ -139,7 +163,7 @@ else()
     endif()
 endif()
 
-#-------------------------------IMAGELIB--------------------------------------------
+#-------------------------------IMAGELIB---------------------------------------
 # much more likely to be edited than the other projects, so always recompile
 CONFIG_TIME_COMPILE_DEBUG_AND_RELEASE(${EXT_DIR}/ImageLib ${CMAKE_BINARY_DIR}/ext/ImageLib)
 if(MSVC)
@@ -179,13 +203,13 @@ SET_LOCAL_AND_PARENT(IMAGELIB_EXT_FILES
 	${EXT_DIR}/ImageLib/image_save.cpp
 )
 
-#-------------------------------PUGIXML--------------------------------------------
+#-------------------------------PUGIXML----------------------------------------
 # Actually using the header only, not compiling the library
 set(PUGIXML_INCLUDES ${EXT_DIR}/pugixml-1.13/src/ PARENT_SCOPE)
 file(GLOB tmpFiles ${EXT_DIR}/pugixml-1.13/src/*)
 SET_LOCAL_AND_PARENT(PUGIXML_EXT_FILES ${tmpFiles})
 
-#-------------------------------FREETYPE2--------------------------------------------
+#-------------------------------FREETYPE2--------------------------------------
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/freetype.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/freetype-2.13.2 ${CMAKE_BINARY_DIR}/ext/freetype Release)
@@ -204,12 +228,12 @@ else()
     set(FREETYPE_LIBS freetype bz2 PARENT_SCOPE)
 endif()
 
-#-------------------------------MSDFGEN--------------------------------------------
+#-------------------------------MSDFGEN----------------------------------------
 if(MSVC)
-    #if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/msdfgen-core.lib)
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/msdfgen-core.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/msdfgen ${CMAKE_BINARY_DIR}/ext/msdfgen Release)
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/msdfgen/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib msdfgen)
-    #endif()
+    endif()
 else()
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libmsdfgen-core.so)
         CONFIG_TIME_COMPILE(${EXT_DIR}/msdfgen ${CMAKE_BINARY_DIR}/ext/msdfgen Release)
@@ -224,7 +248,7 @@ if(WIN32)
     SET_LOCAL_AND_PARENT(MSDFGEN_COMPILE_DEFS "MSDFGEN_PUBLIC=__declspec(dllimport)")
 endif()
 
-#-------------------------------ISOCLINE--------------------------------------------
+#-------------------------------ISOCLINE---------------------------------------
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/isocline.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/isocline ${CMAKE_BINARY_DIR}/ext/isocline Release)
@@ -241,7 +265,7 @@ set(ISOCLINE_LIBS isocline PARENT_SCOPE)
 file(GLOB tmpFiles ${EXT_DIR}/isocline/src/* ${EXT_DIR}/isocline/include/*)
 SET_LOCAL_AND_PARENT(ISOCLINE_EXT_FILES ${tmpFiles})
 
-#-------------------------------MESHOPTIMIZER--------------------------------------------
+#-------------------------------MESHOPTIMIZER----------------------------------
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/meshoptimizer.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/meshoptimizer ${CMAKE_BINARY_DIR}/ext/meshoptimizer Release)
@@ -257,10 +281,3 @@ endif()
 set(MESHOPT_LIBS meshoptimizer PARENT_SCOPE)
 file(GLOB tmpFiles ${EXT_DIR}/meshoptimizer/src/*)
 SET_LOCAL_AND_PARENT(MESHOPT_EXT_FILES ${tmpFiles})
-
-
-
-#-----------------------------------------------------------------------------------
-# intentionally not adding VULKAN_EXT_FILES below, since it ALL_EXT_FILES is usually used with source_group(TREE, and the files are not in the project root
-set(ALL_EXT_FILES ${GLFW_EXT_FILES} ${IMAGELIB_EXT_FILES} ${PUGIXML_EXT_FILES} ${MSDFGEN_EXT_FILES} ${ISOCLINE_EXT_FILES} ${MESHOPT_EXT_FILES} PARENT_SCOPE)
-set(ALL_EXT_COMPILE_DEFS ${ASSIMP_COMPILE_DEFS} ${GLFW_COMPILE_DEFS} ${MSDFGEN_COMPILE_DEFS} PARENT_SCOPE)

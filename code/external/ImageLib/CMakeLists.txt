@@ -70,9 +70,6 @@ add_library(${PROJECT_NAME} ${SRC_ALL})
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 
-message("CMAKE_BINARY_DIR ${CMAKE_BINARY_DIR}")
-message("PG_ROOT_BUILD_DIR ${PG_ROOT_BUILD_DIR}")
-
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${ROOT_DIR}/code/
     ${ROOT_DIR}/code/external/

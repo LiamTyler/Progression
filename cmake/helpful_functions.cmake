@@ -72,33 +72,21 @@ function(COPY_BUILD_FILES_ALL_CONFIGS source_dir dst_bin_dir dst_lib_dir prefix)
 	COPY_BUILD_FILES( ${source_dir}/Release ${dst_bin_dir} ${dst_lib_dir} ${prefix} )
 endfunction()
 
-
+# ARGN is extra config-time params, like setting options
 function(CONFIG_TIME_COMPILE source_dir build_dir CONFIG)
     file(MAKE_DIRECTORY ${build_dir})
 	if(WIN32)
-		# Appveyor defaults to the windows sdk 10.0.17763.0, which doesnt work with the /Zc:preprocessor flag
-		if (PG_IS_APPVEYOR_BUILD)
-			execute_process(
-				COMMAND ${CMAKE_COMMAND} -DPG_BUILD_DIR=${build_dir} -DWINDOWS_SYSTEM_VERSION=10.0.18362.0 -G ${CMAKE_GENERATOR} -A ${CMAKE_GENERATOR_PLATFORM} ${source_dir}
-				WORKING_DIRECTORY ${build_dir}
-			)
-			execute_process(
-				COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIG}
-				WORKING_DIRECTORY ${build_dir}
-			)
-		else()
-			execute_process(
-				COMMAND ${CMAKE_COMMAND} -DPG_BUILD_DIR=${build_dir} -G ${CMAKE_GENERATOR} -A ${CMAKE_GENERATOR_PLATFORM} ${source_dir}
-				WORKING_DIRECTORY ${build_dir}
-			)
-			execute_process(
-				COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIG}
-				WORKING_DIRECTORY ${build_dir}
-			)
-		endif()
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} ${ARGN} -DPG_BUILD_DIR=${build_dir} -G ${CMAKE_GENERATOR} -A ${CMAKE_GENERATOR_PLATFORM} ${source_dir}
+            WORKING_DIRECTORY ${build_dir}
+        )
+        execute_process(
+            COMMAND ${CMAKE_COMMAND} --build . --config ${CONFIG}
+            WORKING_DIRECTORY ${build_dir}
+        )
     else() # LINUX
 		execute_process(
-			COMMAND ${CMAKE_COMMAND} -DPG_BUILD_DIR=${build_dir} -DCMAKE_BUILD_TYPE=${CONFIG} ${source_dir}
+			COMMAND ${CMAKE_COMMAND} ${ARGN} -DPG_BUILD_DIR=${build_dir} -DCMAKE_BUILD_TYPE=${CONFIG} ${source_dir}
 			WORKING_DIRECTORY ${build_dir}
 		)
 		execute_process(

@@ -104,11 +104,13 @@ void Window::StartFrame()
 
 void Window::EndFrame()
 {
-    Time::EndFrame();
     ++s_framesDrawnSinceLastFPSUpdate;
-    if ( Time::GetTimeSince( s_lastFPSUpdateTime ) > 1000.0f )
+    f64 msSinceLastUpdate = Time::GetTimeSince( s_lastFPSUpdateTime );
+    if ( msSinceLastUpdate > 1000.0 )
     {
-        std::string titleWithFps = m_title + " -- FPS: " + std::to_string( s_framesDrawnSinceLastFPSUpdate );
+        f64 msPerFrame           = msSinceLastUpdate / s_framesDrawnSinceLastFPSUpdate;
+        int fps                  = (int)round( 1000.0 / msPerFrame );
+        std::string titleWithFps = m_title + " -- FPS: " + std::to_string( fps );
         glfwSetWindowTitle( m_window, titleWithFps.c_str() );
         s_framesDrawnSinceLastFPSUpdate = 0;
         s_lastFPSUpdateTime             = Time::GetTimePoint();

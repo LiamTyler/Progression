@@ -15,6 +15,7 @@ public:
     void Free();
     void WaitFor();
     void Reset();
+    VkResult GetStatus() const;
     VkFence GetHandle() const;
     operator bool() const;
     operator VkFence() const;

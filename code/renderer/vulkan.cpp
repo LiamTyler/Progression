@@ -231,16 +231,16 @@ VKAPI_ATTR void VKAPI_CALL vkCmdDrawMeshTasksEXT( VkCommandBuffer commandBuffer,
 namespace PG::Gfx
 {
 
-#if USING( SHIP_BUILD )
+#if !USING( DEVELOPMENT_BUILD )
 #define LOAD_VK_FUNC( funcName ) pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );
-#else // #if USING( SHIP_BUILD )
+#else // #if !USING( DEVELOPMENT_BUILD )
 #define LOAD_VK_FUNC( funcName )                                                                            \
     pfn_##funcName = (PFN_##funcName)vkGetDeviceProcAddr( device, #funcName );                              \
     if ( !pfn_##funcName )                                                                                  \
     {                                                                                                       \
         LOG_ERR( "Failed to load vulkan function '" #funcName "'. Did you forget to load the extension?" ); \
     }
-#endif // #else // #if USING( SHIP_BUILD )
+#endif // #else // #if !USING( DEVELOPMENT_BUILD )
 
 void LoadVulkanExtensions( VkDevice device )
 {

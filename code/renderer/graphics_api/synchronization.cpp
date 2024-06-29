@@ -25,6 +25,8 @@ void Fence::Reset()
     VK_CHECK( vkResetFences( rg.device, 1, &m_handle ) );
 }
 
+VkResult Fence::GetStatus() const { return vkGetFenceStatus( rg.device, m_handle ); }
+
 VkFence Fence::GetHandle() const { return m_handle; }
 
 Fence::operator bool() const { return m_handle != VK_NULL_HANDLE; }

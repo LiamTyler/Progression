@@ -55,7 +55,7 @@ endif()
 set(GLFW_CONFIG_ARGS
     -DBUILD_SHARED_LIBS=ON
     -DGLFW_BUILD_EXAMPLES=OFF
-    -GLFW_BUILD_TESTS=OFF 
+    -DGLFW_BUILD_TESTS=OFF 
     -DGLFW_BUILD_DOCS=OFF
     -DGLFW_INSTALL=OFF
 )
@@ -80,16 +80,16 @@ if(WIN32)
 endif()
 
 #------------------------------SDL3--------------------------------------------
-
+set(SDL_CONFIG_ARGS -DSDL_TEST_LIBRARY=OFF)
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/SDL3.lib)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/sdl3 ${CMAKE_BINARY_DIR}/ext/sdl3 Release)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/sdl3 ${CMAKE_BINARY_DIR}/ext/sdl3 Release ${SDL_CONFIG_ARGS})
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/sdl3/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib SDL3)
     endif()
     set(SDL_LIBS SDL3 PARENT_SCOPE)
 else()
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libsdl3.so)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/sdl3 ${CMAKE_BINARY_DIR}/ext/sdl3 Release)
+    if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libSDL3.so)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/sdl3 ${CMAKE_BINARY_DIR}/ext/sdl3 Release ${SDL_CONFIG_ARGS})
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/sdl3 ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib SDL3)
     endif()
     set(SDL_LIBS SDL3 PARENT_SCOPE)

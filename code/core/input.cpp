@@ -49,12 +49,15 @@ public:
     {
         m_characters.clear();
         m_activeAxes.clear();
-        for ( auto it = m_activeButtons.begin(); it != m_activeButtons.end(); ++it )
+        for ( auto it = m_activeButtons.begin(); it != m_activeButtons.end(); )
         {
+            auto nextIt = std::next( it );
             if ( it->second == RawButtonState::PRESSED )
                 it->second = RawButtonState::HELD;
             if ( it->second == RawButtonState::RELEASED )
-                m_activeButtons.erase( it );
+                nextIt = m_activeButtons.erase( it );
+
+            it = nextIt;
         }
     }
 
@@ -111,18 +114,17 @@ public:
             return;
         }
 
-        for ( auto it = m_activeButtons.begin(); it != m_activeButtons.end(); ++it )
+        for ( auto it = m_activeButtons.begin(); it != m_activeButtons.end(); )
         {
-            bool isMapped = context->m_rawButtonToActionMap.contains( it->first ) || context->m_rawButtonToAxisMap.contains( it->first );
-            if ( isMapped )
-                m_activeButtons.erase( it );
+            const RawButton button = it->first;
+            bool isMapped          = context->m_rawButtonToActionMap.contains( button ) || context->m_rawButtonToAxisMap.contains( button );
+            it                     = isMapped ? m_activeButtons.erase( it ) : std::next( it );
         }
 
         for ( auto it = m_activeAxes.begin(); it != m_activeAxes.end(); ++it )
         {
             bool isMapped = context->m_rawAxisToAxisMap.contains( it->first );
-            if ( isMapped )
-                m_activeAxes.erase( it );
+            it            = isMapped ? m_activeAxes.erase( it ) : std::next( it );
         }
     }
 };

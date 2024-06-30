@@ -1,21 +1,29 @@
 set(EXT_DIR ${CMAKE_SOURCE_DIR}/code/external)
 
-include(FetchContent)
-set(FETCHCONTENT_UPDATES_DISCONNECTED ON CACHE BOOL "" FORCE)
-
 #----------------------------ASSIMP--------------------------------------------
+set(ASSIMP_CONFIG_ARGS
+    -DASSIMP_BUILD_TESTS=OFF
+    -DASSIMP_INSTALL=OFF
+    -DASSIMP_NO_EXPORT=ON
+    -DASSIMP_BUILD_ALL_IMPORTERS_BY_DEFAULT=OFF
+    -DASSIMP_BUILD_FBX_IMPORTER=ON
+    -DASSIMP_BUILD_3DS_IMPORTER=ON
+    -DASSIMP_BUILD_PLY_IMPORTER=ON
+    -DASSIMP_BUILD_COLLADA_IMPORTER=ON
+    -DASSIMP_BUILD_STL_IMPORTER=ON
+    -DASSIMP_BUILD_GLTF_IMPORTER=ON
+)
 if(MSVC)
     set(ASSIMP_LIB assimp-vc${MSVC_TOOLSET_VERSION}-mt.dll)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/${ASSIMP_LIB})
-        CONFIG_TIME_COMPILE(${EXT_DIR}/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release ${ASSIMP_CONFIG_ARGS})
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/bin/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/lib/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
     endif()
-	
     set(ASSIMP_LIBS ${ASSIMP_LIB} PARENT_SCOPE)
 else()
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libassimp.so)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release)
+        CONFIG_TIME_COMPILE(${EXT_DIR}/assimp ${CMAKE_BINARY_DIR}/ext/assimp Release ${ASSIMP_CONFIG_ARGS})
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/assimp/bin/ ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib assimp)
     endif()
     set(ASSIMP_LIBS assimp PARENT_SCOPE)
@@ -44,16 +52,13 @@ else()
 endif()
 
 #------------------------------GLFW--------------------------------------------
-set(FETCHCONTENT_UPDATES_DISCONNECTED_GLFW ON CACHE BOOL "" FORCE)
-FetchContent_Declare(
-  glfw
-  GIT_REPOSITORY https://github.com/glfw/glfw.git
-  GIT_TAG origin/master
-  SOURCE_DIR ${EXT_DIR}/glfw
-  EXCLUDE_FROM_ALL
+set(GLFW_CONFIG_ARGS
+    -DBUILD_SHARED_LIBS=ON
+    -DGLFW_BUILD_EXAMPLES=OFF
+    -GLFW_BUILD_TESTS=OFF 
+    -DGLFW_BUILD_DOCS=OFF
+    -DGLFW_INSTALL=OFF
 )
-
-set(GLFW_CONFIG_ARGS -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_DOCS=OFF -DGLFW_INSTALL=OFF)
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/glfw3dll.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release ${GLFW_CONFIG_ARGS})
@@ -75,14 +80,6 @@ if(WIN32)
 endif()
 
 #------------------------------SDL3--------------------------------------------
-set(FETCHCONTENT_UPDATES_DISCONNECTED_SDL3 ON CACHE BOOL "" FORCE)
-FetchContent_Declare(
-  sdl3
-  GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
-  GIT_TAG origin/main
-  SOURCE_DIR ${EXT_DIR}/sdl3
-  EXCLUDE_FROM_ALL
-)
 
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/SDL3.lib)

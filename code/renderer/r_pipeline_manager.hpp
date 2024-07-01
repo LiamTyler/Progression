@@ -7,6 +7,7 @@ namespace PG::Gfx::PipelineManager
 
 void Init();
 void Shutdown();
+VkPipelineCache GetPipelineCache();
 
 void CreatePipeline( Pipeline* pipeline, const PipelineCreateInfo& createInfo );
 Pipeline* GetPipeline( const std::string& name, bool debugPermuation = false );

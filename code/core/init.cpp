@@ -52,7 +52,8 @@ bool EngineInitialize( EngineInitInfo info )
         winCreate.height  = info.windowHeight;
         winCreate.visible = true;
         winCreate.vsync   = false;
-        InitWindowSystem( winCreate );
+        if ( !InitWindowSystem( winCreate ) )
+            return false;
         Input::Init();
         framebufferWidth  = GetMainWindow()->FramebufferWidth();
         framebufferHeight = GetMainWindow()->FramebufferHeight();

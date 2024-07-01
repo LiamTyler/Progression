@@ -1,7 +1,11 @@
 #pragma once
 
+#ifdef PG_USE_SDL
+#include "SDL3/SDL.h"
+#else // #ifdef PG_USE_SDL
 #define GLFW_INCLUDE_VULKAN
 #include "GLFW/glfw3.h"
+#endif // #else // #ifdef PG_USE_SDL
 #include "shared/core_defines.hpp"
 #include <string>
 
@@ -30,7 +34,7 @@ public:
     void StartFrame();
     void EndFrame();
 
-    GLFWwindow* GetGLFWHandle() const { return m_window; }
+    auto GetHandle() const { return m_window; }
     i32 Width() const { return m_width; }
     i32 Height() const { return m_height; }
     i32 FramebufferWidth() const { return m_framebufferWidth; }
@@ -40,7 +44,11 @@ public:
     void SetTitle( const std::string& title );
 
 protected:
-    GLFWwindow* m_window    = nullptr;
+#ifdef PG_USE_SDL
+    SDL_Window* m_window = nullptr;
+#else  // #ifdef PG_USE_SDL
+    GLFWwindow* m_window = nullptr;
+#endif // #else // #ifdef PG_USE_SDL
     std::string m_title     = "";
     i32 m_width             = 0;
     i32 m_height            = 0;
@@ -51,7 +59,7 @@ protected:
 };
 
 void RegisterLuaFunctions_Window( lua_State* state );
-void InitWindowSystem( const WindowCreateInfo& info );
+bool InitWindowSystem( const WindowCreateInfo& info );
 void ShutdownWindowSystem();
 Window* GetMainWindow();
 

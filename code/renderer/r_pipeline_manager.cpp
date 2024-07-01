@@ -26,7 +26,7 @@ static f64 s_timeSpentBuildingPipelinesMS;
 namespace PG::Gfx::PipelineManager
 {
 
-static VkPipelineCache s_pipelineCache;
+static VkPipelineCache s_pipelineCache = VK_NULL_HANDLE;
 
 void Init()
 {
@@ -70,6 +70,8 @@ void Shutdown()
 #endif // #if USING( PIPELINE_CACHE )
     IF_PIPELINE_STATS( LOG( "Time spent building pipelines: %.2fms", s_timeSpentBuildingPipelinesMS ) );
 }
+
+VkPipelineCache GetPipelineCache() { return s_pipelineCache; }
 
 class PipelineBuilder
 {

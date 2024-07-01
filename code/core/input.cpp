@@ -121,7 +121,7 @@ public:
             it                     = isMapped ? m_activeButtons.erase( it ) : std::next( it );
         }
 
-        for ( auto it = m_activeAxes.begin(); it != m_activeAxes.end(); ++it )
+        for ( auto it = m_activeAxes.begin(); it != m_activeAxes.end(); )
         {
             bool isMapped = context->m_rawAxisToAxisMap.contains( it->first );
             it            = isMapped ? m_activeAxes.erase( it ) : std::next( it );
@@ -132,6 +132,55 @@ public:
 static std::vector<InputContext*> s_allInputContexts;
 static InputContextManager s_contextManager;
 static RawInputTracker s_inputTracker;
+
+#ifdef PG_USE_SDL
+
+static void HandleEvents_SDL()
+{
+    SDL_Event e;
+    while ( SDL_PollEvent( &e ) )
+    {
+        if ( e.type == SDL_EVENT_QUIT )
+            eg.shutdown = true;
+
+        if ( e.type == SDL_EVENT_KEY_DOWN || e.type == SDL_EVENT_KEY_UP )
+        {
+            RawButton button = SDL3KeyToRawButton( e.key );
+            if ( button == RawButton::UNKNOWN )
+            {
+                LOG_WARN( "Unknown key pressed!" );
+                return;
+            }
+
+            RawButtonState state = e.key.state == SDL_PRESSED ? RawButtonState::PRESSED : RawButtonState::RELEASED;
+            s_inputTracker.AddOrUpdateButton( button, state );
+        }
+        else if ( e.type == SDL_EVENT_MOUSE_MOTION )
+        {
+            vec2 diff = { e.motion.xrel, e.motion.yrel };
+            if ( !s_cursorStateChanged )
+            {
+                s_inputTracker.AddAxisValue( RawAxis::MOUSE_X, e.motion.xrel );
+                s_inputTracker.AddAxisValue( RawAxis::MOUSE_Y, e.motion.yrel );
+            }
+            s_prevMousePos = { e.motion.x, e.motion.y };
+        }
+        else if ( e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP )
+        {
+            RawButton rawButton = SDL3MouseButtonToRawButton( e.button );
+            if ( rawButton == RawButton::UNKNOWN )
+            {
+                LOG_WARN( "Unknown mouse button pressed!" );
+                return;
+            }
+
+            RawButtonState state = e.button.state == SDL_PRESSED ? RawButtonState::PRESSED : RawButtonState::RELEASED;
+            s_inputTracker.AddOrUpdateButton( rawButton, state );
+        }
+    }
+}
+
+#else // #ifdef PG_USE_SDL
 
 static void KeyCallback( GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods )
 {
@@ -171,13 +220,15 @@ static void MouseButtonCallback( GLFWwindow* window, i32 button, i32 action, i32
     RawButton rawButton = GlfwMouseButtonToRawButton( button );
     if ( rawButton == RawButton::UNKNOWN )
     {
-        LOG_WARN( "Unknown key pressed!" );
+        LOG_WARN( "Unknown mouse button pressed!" );
         return;
     }
 
     RawButtonState state = action == GLFW_PRESS ? RawButtonState::PRESSED : RawButtonState::RELEASED;
     s_inputTracker.AddOrUpdateButton( rawButton, state );
 }
+
+#endif // #else // #ifdef PG_USE_SDL
 
 bool Init()
 {
@@ -191,13 +242,17 @@ bool Init()
 
     s_contextManager.PushLayer( InputContextID::CAMERA_CONTROLS );
 
-    GLFWwindow* window = GetMainWindow()->GetGLFWHandle();
+    ResetMousePosition();
+#ifdef PG_USE_SDL
+    if ( !SDL_SetHint( SDL_HINT_KEYCODE_OPTIONS, "unmodified" ) )
+        LOG_WARN( "SDL failed to set the unmodified key hint. Some controls might not work!" );
+#else  // #ifdef PG_USE_SDL
+    GLFWwindow* window = GetMainWindow()->GetHandle();
     glfwSetKeyCallback( window, KeyCallback );
     glfwSetCharCallback( window, CharCallback );
     glfwSetMouseButtonCallback( window, MouseButtonCallback );
-
-    ResetMousePosition();
     glfwSetCursorPosCallback( window, MousePosCallback );
+#endif // #else // #ifdef PG_USE_SDL
 
     return true;
 }
@@ -207,23 +262,33 @@ void Shutdown()
     for ( InputContext* context : s_allInputContexts )
         delete context;
 
+#ifndef PG_USE_SDL
     glfwPollEvents();
+#endif // #ifndef PG_USE_SDL
 }
 
 void PollEvents()
 {
     PGP_ZONE_SCOPEDN( "Input::PollEvents" );
     s_inputTracker.StartFrame();
+#ifdef PG_USE_SDL
+    HandleEvents_SDL();
+#else  // #ifdef PG_USE_SDL
     glfwPollEvents();
+#endif // #else // #ifdef PG_USE_SDL
     s_contextManager.Update();
     s_cursorStateChanged = false;
 }
 
 void ResetMousePosition()
 {
+#ifdef PG_USE_SDL
+    SDL_GetMouseState( &s_prevMousePos.x, &s_prevMousePos.y );
+#else  // #ifdef PG_USE_SDL
     f64 mouse_x, mouse_y;
-    glfwGetCursorPos( GetMainWindow()->GetGLFWHandle(), &mouse_x, &mouse_y );
+    glfwGetCursorPos( GetMainWindow()->GetHandle(), &mouse_x, &mouse_y );
     s_prevMousePos = vec2( (f32)mouse_x, (f32)mouse_y );
+#endif // #else  // #ifdef PG_USE_SDL
 }
 
 void MouseCursorChange() { s_cursorStateChanged = true; }

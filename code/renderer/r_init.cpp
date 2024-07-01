@@ -9,6 +9,9 @@
 #include "vk-bootstrap/VkBootstrap.h"
 #include <cstring>
 #include <iostream>
+#ifdef PG_USE_SDL
+#include "SDL3/SDL_vulkan.h"
+#endif // #ifdef PG_USE_SDL
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
 
@@ -153,8 +156,12 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     rg.surface = VK_NULL_HANDLE;
     if ( !headless )
     {
-        PGP_ZONE_SCOPEDN( "glfwCreateWindowSurface" );
-        VK_CHECK( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetGLFWHandle(), nullptr, &rg.surface ) );
+        PGP_ZONE_SCOPEDN( "CreateSurfaceFromWindow" );
+#ifdef PG_USE_SDL
+        SDL_Vulkan_CreateSurface( GetMainWindow()->GetHandle(), rg.instance, nullptr, &rg.surface );
+#else  // #ifdef PG_USE_SDL
+        VK_CHECK( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetHandle(), nullptr, &rg.surface ) );
+#endif // #else // #ifdef PG_USE_SDL
     }
 
     VkPhysicalDeviceVulkan13Features features13{};

@@ -178,14 +178,19 @@ set(
         ${CODE_DIR}/external/imgui/imgui_draw.cpp
         ${CODE_DIR}/external/imgui/imgui_tables.cpp
         ${CODE_DIR}/external/imgui/imgui_widgets.cpp
-        ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
-        ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.h
+        $<IF:$<BOOL:${PG_USE_SDL}>,
+            ${CODE_DIR}/external/imgui/backends/imgui_impl_sdl3.cpp
+            ${CODE_DIR}/external/imgui/backends/imgui_impl_sdl3.h,
+            ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
+            ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.h
+        >
+        
         ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
         ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.h
     >
 )
 
-set(INTELLISENSE_ONLY ${IMAGELIB_EXT_FILES})
+set(INTELLISENSE_ONLY ${IMAGELIB_EXT_FILES} ${GLFW_EXT_FILES} ${SDL_EXT_FILES})
 
 set(ALL_FILES ${SRC} ${EXTERNALS} ${INTELLISENSE_ONLY} ${SHADERS})
 source_group(TREE ${CMAKE_SOURCE_DIR} FILES ${ALL_FILES})
@@ -199,10 +204,8 @@ set_source_files_properties(
 add_executable(${PROJECT_NAME} ${ALL_FILES} ${VULKAN_EXT_FILES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     CMAKE_DEFINE_GAME
-    ${GLFW_COMPILE_DEFS}
-    $<$<CONFIG:DEBUG>: TRACY_ENABLE>
-    $<$<CONFIG:RELEASE>: TRACY_ENABLE>
-    $<$<CONFIG:PROFILE>: TRACY_ENABLE>
+    $<IF:$<BOOL:${PG_USE_SDL}>,"PG_USE_SDL",${GLFW_COMPILE_DEFS}>
+    $<$<NOT:$<CONFIG:SHIP>>: TRACY_ENABLE>
 )
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 if(UNIX AND NOT APPLE)
@@ -220,7 +223,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${COMMON_INCLUDE_DIRS}
-    ${GLFW_INCLUDES}
+    $<IF:$<BOOL:${PG_USE_SDL}>,${SDL_INCLUDES},${GLFW_INCLUDES}>
     ${IMAGELIB_INCLUDES}
     ${LUA_INCLUDES}
     ${Vulkan_INCLUDE_DIR}
@@ -229,5 +232,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CODE_DIR}/external/imgui/
     ${CODE_DIR}/external/tracy/
 )
-target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} ${GLFW_LIBS} lua lz4)
+target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4
+    $<IF:$<BOOL:${PG_USE_SDL}>,${SDL_LIBS},${GLFW_LIBS}>
+)
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

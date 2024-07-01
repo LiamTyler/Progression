@@ -79,15 +79,21 @@ bool Updated() { return false; }
 
 #else // #if !USING( PG_DEBUG_UI )
 
+#include "SDL3/SDL_vulkan.h"
 #include "core/dvars.hpp"
 #include "core/input.hpp"
 #include "core/time.hpp"
 #include "core/window.hpp"
+#ifdef PG_USE_SDL
+#include "imgui/backends/imgui_impl_sdl3.h"
+#else // #ifdef PG_USE_SDL
 #include "imgui/backends/imgui_impl_glfw.h"
+#endif // #else // #ifdef PG_USE_SDL
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include "renderer/debug_ui_console.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
+#include "renderer/r_pipeline_manager.hpp"
 #include "renderer/vulkan.hpp"
 #include "shared/logger.hpp"
 
@@ -154,25 +160,33 @@ bool Init( PixelFormat colorAttachmentFormat )
 
     ImGui::StyleColorsDark();
 
-    // Setup Platform/Renderer backends
-    ImGui_ImplGlfw_InitForVulkan( GetMainWindow()->GetGLFWHandle(), true );
-    ImGui_ImplVulkan_InitInfo init_info = {};
-    init_info.Instance                  = rg.instance;
-    init_info.PhysicalDevice            = rg.physicalDevice;
-    init_info.Device                    = rg.device;
-    init_info.QueueFamily               = rg.device.GetQueue( QueueType::GRAPHICS ).familyIndex;
-    init_info.Queue                     = rg.device.GetQueue( QueueType::GRAPHICS );
-    init_info.PipelineCache             = VK_NULL_HANDLE;
-    init_info.DescriptorPool            = s_descriptorPool;
-    init_info.Subpass                   = 0;
-    init_info.MinImageCount             = rg.swapchain.GetNumImages(); // ?
-    init_info.ImageCount                = rg.swapchain.GetNumImages(); // ?
-    init_info.MSAASamples               = VK_SAMPLE_COUNT_1_BIT;
-    init_info.Allocator                 = nullptr;
-    init_info.CheckVkResultFn           = CheckVkResult;
-    init_info.UseDynamicRendering       = true;
-    init_info.ColorAttachmentFormat     = PGToVulkanPixelFormat( colorAttachmentFormat );
-    ImGui_ImplVulkan_Init( &init_info, VK_NULL_HANDLE );
+#ifdef PG_USE_SDL
+    ImGui_ImplSDL3_InitForVulkan( GetMainWindow()->GetHandle() );
+#else  // #ifdef PG_USE_SDL
+    ImGui_ImplGlfw_InitForVulkan( GetMainWindow()->GetHandle(), true );
+#endif // #else // #ifdef PG_USE_SDL
+
+    VkFormat vkColorAttachmentFormat = PGToVulkanPixelFormat( colorAttachmentFormat );
+    VkPipelineRenderingCreateInfo dynRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
+    dynRenderingCreateInfo.colorAttachmentCount    = 1;
+    dynRenderingCreateInfo.pColorAttachmentFormats = &vkColorAttachmentFormat;
+
+    ImGui_ImplVulkan_InitInfo init_info   = {};
+    init_info.Instance                    = rg.instance;
+    init_info.PhysicalDevice              = rg.physicalDevice;
+    init_info.Device                      = rg.device;
+    init_info.QueueFamily                 = rg.device.GetQueue( QueueType::GRAPHICS ).familyIndex;
+    init_info.Queue                       = rg.device.GetQueue( QueueType::GRAPHICS );
+    init_info.DescriptorPool              = s_descriptorPool;
+    init_info.MinImageCount               = rg.swapchain.GetNumImages(); // ?
+    init_info.ImageCount                  = rg.swapchain.GetNumImages(); // ?
+    init_info.MSAASamples                 = VK_SAMPLE_COUNT_1_BIT;
+    init_info.PipelineCache               = Gfx::PipelineManager::GetPipelineCache();
+    init_info.UseDynamicRendering         = true;
+    init_info.PipelineRenderingCreateInfo = dynRenderingCreateInfo;
+    init_info.Allocator                   = nullptr;
+    init_info.CheckVkResultFn             = CheckVkResult;
+    ImGui_ImplVulkan_Init( &init_info );
 
     PG_DEBUG_MARKER_SET_SHADER_NAME( ImGui_ImplVulkan_GetVertShaderModule(), "ImGui Vert" );
     PG_DEBUG_MARKER_SET_SHADER_NAME( ImGui_ImplVulkan_GetFragShaderModule(), "ImGui Frag" );
@@ -207,7 +221,11 @@ void Shutdown()
 {
     delete s_console;
     ImGui_ImplVulkan_Shutdown();
+#ifdef PG_USE_SDL
+    ImGui_ImplSDL3_Shutdown();
+#else  // #ifdef PG_USE_SDL
     ImGui_ImplGlfw_Shutdown();
+#endif // #else // #ifdef PG_USE_SDL
     ImGui::DestroyContext();
     vkDestroyDescriptorPool( rg.device, s_descriptorPool, nullptr );
     s_drawFunctions.clear();
@@ -219,7 +237,11 @@ void BeginFrame()
 {
     PGP_ZONE_SCOPEDN( "UIOverlay::BeginFrame" );
     ImGui_ImplVulkan_NewFrame();
+#ifdef PG_USE_SDL
+    ImGui_ImplSDL3_NewFrame();
+#else  // #ifdef PG_USE_SDL
     ImGui_ImplGlfw_NewFrame();
+#endif // #else // #ifdef PG_USE_SDL
     ImGui::NewFrame();
 }
 

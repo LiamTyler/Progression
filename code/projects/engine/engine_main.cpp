@@ -63,8 +63,8 @@ int main( int argc, char* argv[] )
             RenderSystem::Resize( window->FramebufferWidth(), window->FramebufferHeight() );
         }
 
-        scene->camera.position.x += 3.0f * Time::DeltaTime();
-        scene->camera.Update();
+        // scene->camera.position.x += 3.0f * Time::DeltaTime();
+        // scene->camera.Update();
 
         if ( auto primaryScenePtr = GetPrimaryScene() )
         {

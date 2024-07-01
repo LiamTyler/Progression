@@ -8,6 +8,9 @@
 
 #if USING( DEVELOPMENT_BUILD )
 #include "imgui/imgui.h"
+#ifdef PG_USE_SDL
+#include "imgui/backends/imgui_impl_sdl3.h"
+#endif // #ifdef PG_USE_SDL
 #endif // #if USING( DEVELOPMENT_BUILD )
 
 namespace PG::Input
@@ -140,6 +143,7 @@ static void HandleEvents_SDL()
     SDL_Event e;
     while ( SDL_PollEvent( &e ) )
     {
+        ImGui_ImplSDL3_ProcessEvent( &e );
         if ( e.type == SDL_EVENT_QUIT )
             eg.shutdown = true;
 

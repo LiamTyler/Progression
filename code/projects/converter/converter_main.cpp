@@ -188,7 +188,8 @@ bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
     outOfDateAssetList.reserve( 100 );
     for ( u8 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
     {
-        const auto& pendingConvertList = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
+        AssetType assetType            = (AssetType)assetTypeIdx;
+        const auto& pendingConvertList = GetUsedAssetsOfType( assetType );
         for ( const std::shared_ptr<BaseAssetCreateInfo>& createInfo : pendingConvertList )
         {
             ++totalAssets;
@@ -201,7 +202,7 @@ bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
             else if ( status == AssetStatus::OUT_OF_DATE )
             {
                 ++outOfDateAssets;
-                outOfDateAssetList.emplace_back( (AssetType)assetTypeIdx, createInfo );
+                outOfDateAssetList.emplace_back( assetType, createInfo );
             }
         }
     }

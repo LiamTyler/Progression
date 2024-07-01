@@ -54,6 +54,9 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
             u32 meshesToAdd = Min( MAX_MESHES_PER_FRAME, (u32)model->meshes.size() );
             for ( u32 i = 0; i < meshesToAdd; ++i )
             {
+                if ( modelRenderer.materials[i]->type == MaterialType::DECAL )
+                    continue;
+
                 GpuData::PerObjectData constants;
                 constants.bindlessRangeStart = model->meshes[i].bindlessBuffersSlot;
                 constants.modelIdx           = modelNum;
@@ -251,12 +254,12 @@ bool Init_TaskGraph()
     mTask->SetFunction( MeshDrawFunc );
 
 #if USING( DEVELOPMENT_BUILD )
-    cTask = builder.AddComputeTask( "ComputeDraw" );
-    cTask->AddBufferInput( indirectCountBuff );
-    cTask->AddBufferInput( indirectMeshletDrawBuff );
-    cTask->AddTextureInput( litOutput );
-    cTask->AddTextureOutput( litOutput );
-    cTask->SetFunction( DebugComputeCullFunc );
+    // cTask = builder.AddComputeTask( "ComputeDraw" );
+    // cTask->AddBufferInput( indirectCountBuff );
+    // cTask->AddBufferInput( indirectMeshletDrawBuff );
+    // cTask->AddTextureInput( litOutput );
+    // cTask->AddTextureOutput( litOutput );
+    // cTask->SetFunction( DebugComputeCullFunc );
 #endif // #if USING( DEVELOPMENT_BUILD )
 
     TGBTextureRef swapImg = builder.RegisterExternalTexture(

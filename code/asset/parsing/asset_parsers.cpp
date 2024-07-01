@@ -97,7 +97,7 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
 BEGIN_STR_TO_ENUM_MAP( MaterialType )
     STR_TO_ENUM_VALUE( MaterialType, SURFACE )
     STR_TO_ENUM_VALUE( MaterialType, DECAL )
-END_STR_TO_ENUM_MAP( MaterialType, COUNT )
+END_STR_TO_ENUM_MAP( MaterialType, SURFACE )
 
 bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
 {

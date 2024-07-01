@@ -101,12 +101,20 @@ set(
     SHADERS
     
     ${SHADER_DIR}/common.glsl
+    ${SHADER_DIR}/frustum_cull_meshes.comp
     ${SHADER_DIR}/global_descriptors.glsl
     ${SHADER_DIR}/lit.frag
     ${SHADER_DIR}/model.mesh
+    ${SHADER_DIR}/post_process.comp
+
+    ${SHADER_DIR}/debug/culling_compute_debug.comp
+    ${SHADER_DIR}/debug/debug_lines.frag
+    ${SHADER_DIR}/debug/debug_lines.vert
     
     ${SHADER_DIR}/lib/debug_coloring.glsl
+    ${SHADER_DIR}/lib/debug_wireframe.glsl
     ${SHADER_DIR}/lib/gamma.glsl
+    ${SHADER_DIR}/lib/intrinsics.glsl
     ${SHADER_DIR}/lib/lights.glsl
     ${SHADER_DIR}/lib/packing.glsl
     ${SHADER_DIR}/lib/pbr.glsl
@@ -117,6 +125,7 @@ set(
     C_SHARED_SHADERS
     
     ${SHADER_DIR}/c_shared/bindless.h
+    ${SHADER_DIR}/c_shared/cull_data.h
     ${SHADER_DIR}/c_shared/defines.h
     ${SHADER_DIR}/c_shared/dvar_defines.h
     ${SHADER_DIR}/c_shared/limits.h

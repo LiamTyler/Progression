@@ -102,6 +102,7 @@ void Window::Init( const WindowCreateInfo& createInfo )
         SDL_Quit();
         exit( EXIT_FAILURE );
     }
+    SDL_GetWindowSizeInPixels( m_window, &m_framebufferWidth, &m_framebufferHeight );
 #else  // #ifdef PG_USE_SDL
     glfwWindowHint( GLFW_VISIBLE, m_visible );
     glfwWindowHint( GLFW_CLIENT_API, GLFW_NO_API );
@@ -126,17 +127,20 @@ void Window::Init( const WindowCreateInfo& createInfo )
 void Window::StartFrame()
 {
     Time::StartFrame();
-#ifndef PG_USE_SDL
-    glfwGetWindowSize( m_window, &m_width, &m_height );
     i32 fW, fH;
+#ifdef PG_USE_SDL
+    SDL_GetWindowSize( m_window, &m_width, &m_height );
+    SDL_GetWindowSizeInPixels( m_window, &fW, &fH );
+#else  // #ifdef PG_USE_SDL
+    glfwGetWindowSize( m_window, &m_width, &m_height );
     glfwGetFramebufferSize( m_window, &fW, &fH );
+#endif // #else // #ifdef PG_USE_SDL
     if ( fW != m_framebufferWidth || fH != m_framebufferHeight )
     {
         eg.resizeRequested  = true;
         m_framebufferWidth  = fW;
         m_framebufferHeight = fH;
     }
-#endif // #ifndef PG_USE_SDL
 }
 
 void Window::EndFrame()

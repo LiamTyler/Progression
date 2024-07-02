@@ -24,7 +24,7 @@ constexpr i32 g_assetVersions[] = {
     9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
     10, // ASSET_TYPE_MATERIAL,  "New name serialization"
     1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
-    5,  // ASSET_TYPE_MODEL,     "Adding mesh bounding boxes"
+    6,  // ASSET_TYPE_MODEL,     "Add meshlet cull data"
     4,  // ASSET_TYPE_SHADER,    "New name serialization"
     8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
     3,  // ASSET_TYPE_PIPELINE,  "New name serialization"
@@ -36,7 +36,7 @@ constexpr i32 g_assetVersions[] = {
     0, // ASSET_TYPE_TEXTURESET, "use slopeScale, metalness + roughness tints correctly"
 };
 
-constexpr u32 PG_FASTFILE_VERSION = 9 + ARRAY_SUM( g_assetVersions ); // smaller AssetType
+constexpr u32 PG_FASTFILE_VERSION = 10 + ARRAY_SUM( g_assetVersions ); // fixing meshlet cull data serialization
 
 inline const char* const g_assetNames[] = {
     "Image",      // ASSET_TYPE_GFX_IMAGE

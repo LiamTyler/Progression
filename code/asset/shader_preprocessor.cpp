@@ -65,14 +65,12 @@ std::string CleanUpPreproc( const std::string& preprocOutput )
 static const char* PGShaderStageToDefine( PG::ShaderStage stage )
 {
     static const char* shaderStageToDefine[] = {
-        "IS_VERTEX_SHADER",
-        "IS_TESS_CONTROL_SHADER",
-        "IS_TESS_EVAL_SHADER",
-        "IS_GEOMETRY_SHADER",
-        "IS_FRAGMENT_SHADER",
-        "IS_COMPUTE_SHADER",
-        "IS_TASK_SHADER",
-        "IS_MESH_SHADER",
+        "IS_VERTEX_SHADER",   // VERTEX
+        "IS_GEOMETRY_SHADER", // GEOMETRY
+        "IS_FRAGMENT_SHADER", // FRAGMENT
+        "IS_COMPUTE_SHADER",  // COMPUTE
+        "IS_TASK_SHADER",     // TASK
+        "IS_MESH_SHADER",     // MESH
     };
 
     i32 index = static_cast<i32>( stage );

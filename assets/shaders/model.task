@@ -1,0 +1,91 @@
+#version 450
+
+#extension GL_EXT_mesh_shader : require
+
+#include "global_descriptors.glsl"
+#include "c_shared/model.h"
+#include "c_shared/cull_data.h"
+#include "lib/intrinsics.glsl"
+
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, PackedMeshletCullData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
+
+#extension GL_ARB_shader_draw_parameters : enable
+
+layout(scalar, push_constant) uniform Registers
+{
+    MeshDataBuffer meshDataBuffer;
+    MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
+};
+
+struct MeshletCullData
+{
+    vec3 position;
+    float radius;
+    vec3 coneAxis;
+    float coneCutoff;
+};
+
+MeshletCullData GetMeshletCullData( uint meshletID, const PerObjectData objData )
+{
+    uint64_t ptr = bindlessBuffers[objData.bindlessRangeStart + MESH_BUFFER_MESHLET_CULL_DATA];
+    CullDataBuffer cBuffer = CullDataBuffer( ptr );
+    PackedMeshletCullData packedData = cBuffer.data[meshletID];
+    
+    MeshletCullData cullData;
+    cullData.position.xy = unpackHalf2x16( packedData.positionXY );
+    vec2 tmp = unpackHalf2x16( packedData.positionZAndRadius );
+    cullData.position.z = tmp.x;
+    cullData.radius = tmp.y;
+    vec4 tmp2 = unpackSnorm4x8( packedData.coneAxisAndCutoff );
+    cullData.coneAxis = tmp2.xyz;
+    cullData.coneCutoff = tmp2.w;
+    
+    return cullData;
+}
+
+struct Task
+{
+    uint meshIndex;   
+    uint baseID;
+    uint8_t deltaIDs[TASK_SHADER_WORKGROUP_SIZE];
+};
+
+taskPayloadSharedEXT Task OUT;
+
+
+layout(local_size_x = TASK_SHADER_WORKGROUP_SIZE) in;
+
+void main()
+{
+    const uint baseMeshletID   = gl_WorkGroupID.x * TASK_SHADER_WORKGROUP_SIZE;
+    const uint localMeshletID  = gl_LocalInvocationID.x;
+    const uint globalMeshletID = baseMeshletID + localMeshletID;
+    
+    const uint numMeshlets = indirectMeshletDrawBuffer.data[gl_DrawIDARB].numMeshlets;
+    const uint meshIndex   = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
+    
+    if ( globalMeshletID >= numMeshlets )
+        return;
+    
+    PerObjectData objectData = meshDataBuffer.data[meshIndex];
+    MeshletCullData cullData = GetMeshletCullData( globalMeshletID, objectData );
+    
+    // TODO
+    bool visible = globalMeshletID < numMeshlets;
+    
+    uint numVisibleInWave = WaveActiveCountBits( visible );
+    uint localIndexInWave = WavePrefixCountBits( visible );
+    if ( visible )
+    {
+        OUT.deltaIDs[localIndexInWave] = uint8_t(localMeshletID);
+    }
+    
+    if ( gl_LocalInvocationID.x == 0 )
+    {
+        OUT.meshIndex = meshIndex;
+        OUT.baseID = baseMeshletID;
+    }
+    EmitMeshTasksEXT( numVisibleInWave, 1, 1 );
+}

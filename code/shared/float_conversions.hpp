@@ -26,9 +26,9 @@ union FP16
     u16 u;
     struct
     {
-        u32 Mantissa : 10;
-        u32 Exponent : 5;
-        u32 Sign : 1;
+        u16 Mantissa : 10;
+        u16 Exponent : 5;
+        u16 Sign : 1;
     };
 };
 

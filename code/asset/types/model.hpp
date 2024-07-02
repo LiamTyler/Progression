@@ -22,17 +22,26 @@ struct Meshlet
     u32 triangleCount;
 };
 
+struct PackedMeshletCullData
+{
+    u32 positionXY;
+    u32 positionZAndRadius;
+    u32 coneAxisAndCutoff;
+    u32 _padTo16Bytes;
+};
+
 struct Material;
 
 struct Mesh
 {
     enum
     {
-        VERTEX_BUFFER  = 0,
-        TRI_BUFFER     = 1,
-        MESHLET_BUFFER = 2,
+        VERTEX_BUFFER    = 0,
+        TRI_BUFFER       = 1,
+        MESHLET_BUFFER   = 2,
+        CULL_DATA_BUFFER = 3,
 
-        BUFFER_COUNT = 3
+        BUFFER_COUNT = 4
     };
 
 #if USING( ASSET_NAMES )
@@ -49,6 +58,7 @@ struct Mesh
     u32 bindlessBuffersSlot;
 #else
     std::vector<Meshlet> meshlets;
+    std::vector<PackedMeshletCullData> meshletCullDatas;
     std::vector<vec3> positions;
     std::vector<vec3> normals;
     std::vector<vec2> texCoords;

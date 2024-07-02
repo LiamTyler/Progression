@@ -217,7 +217,7 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    // UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
+    UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
 }
 

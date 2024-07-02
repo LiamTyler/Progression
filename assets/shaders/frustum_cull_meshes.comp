@@ -5,7 +5,7 @@
 #include "lib/intrinsics.glsl"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, CullData );
-DEFINE_STANDARD_BUFFER_REFERENCE( 16, MeshletDrawCommandBuffer, MeshletDrawCommand );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 layout( scalar, push_constant ) uniform PushConstants
 {
@@ -83,13 +83,12 @@ void main()
     {
         uint globalIndex = globalBaseIndex + localIndexInWave;
         MeshletDrawCommand cmd;
-        cmd.groupCountX = data.numMeshlets;
+        cmd.groupCountX = ( data.numMeshlets + 31 ) / 32;
+        //cmd.groupCountX = data.numMeshlets;
         cmd.groupCountY = 1;
         cmd.groupCountZ = 1;
         cmd.meshIndex   = meshIdx;
-        pConstants.indirectCmdOutputBuffer.data[globalIndex] = cmd;
-        //pConstants.indirectCmdOutputBuffer.data[3 * globalIndex + 0] = data.numMeshlets;
-        //pConstants.indirectCmdOutputBuffer.data[3 * globalIndex + 1] = 1;
-        //pConstants.indirectCmdOutputBuffer.data[3 * globalIndex + 2] = 1;        
+        cmd.numMeshlets = data.numMeshlets;
+        pConstants.indirectCmdOutputBuffer.data[globalIndex] = cmd;        
     }
 }

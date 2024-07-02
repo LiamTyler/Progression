@@ -314,6 +314,7 @@ BufferIndex AddMeshBuffers( Mesh* mesh )
 {
     BufferIndex firstSlot = s_freeBufferSlots.GetConsecutiveFreeSlots( MESH_NUM_BUFFERS );
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::MESHLET_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLETS );
+    s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::CULL_DATA_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLET_CULL_DATA );
 
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::TRI_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_TRIS );
 

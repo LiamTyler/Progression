@@ -144,11 +144,18 @@ void GraphicsTaskBuilder::AddDepthAttachment( TGBTextureRef tex )
 
 void GraphicsTaskBuilder::SetFunction( GraphicsFunction func ) { function = func; }
 
-void TransferTaskBuilder::BlitTexture( TGBTextureRef dst, TGBTextureRef src )
+void TransferTaskBuilder::BlitTexture( TGBTextureRef dst, TGBTextureRef src, TextureFilter filter )
 {
-    textureBlits.emplace_back( dst, src );
+    textureBlits.emplace_back( dst, src, filter );
     builder->UpdateTextureLifetimeAndUsage( src, taskHandle, VK_IMAGE_USAGE_TRANSFER_SRC_BIT );
     builder->UpdateTextureLifetimeAndUsage( dst, taskHandle, VK_IMAGE_USAGE_TRANSFER_DST_BIT );
+}
+
+void TransferTaskBuilder::CopyBuffer( TGBBufferRef dstBuff, u64 dstOffset, TGBBufferRef srcBuff, u64 srcOffset, u64 size )
+{
+    bufferCopies.emplace_back( dstBuff, srcBuff, dstOffset, srcOffset, size );
+    builder->UpdateBufferLifetime( srcBuff, taskHandle );
+    builder->UpdateBufferLifetime( dstBuff, taskHandle );
 }
 
 void PresentTaskBuilder::SetPresentationImage( TGBTextureRef tex )

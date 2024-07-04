@@ -50,7 +50,8 @@ public:
     }
 
     void CopyBuffer( const Buffer& dst, const Buffer& src, size_t size = VK_WHOLE_SIZE, size_t srcOffset = 0, size_t dstOffset = 0 ) const;
-    void BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, ImageLayout dstLayout, const VkImageBlit& region ) const;
+    void BlitImage( const Texture& dst, const Texture& src, ImageLayout dstLayout, ImageLayout srcLayout, VkImageAspectFlags aspect,
+        TextureFilter filter, u8 mip = 0, u8 layer = 0 ) const;
     void TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout,
         VkPipelineStageFlags2 srcStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT,
         VkPipelineStageFlags2 dstStageMask = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, u32 srcQueueFamilyIndex = 0,

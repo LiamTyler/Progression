@@ -91,6 +91,14 @@ enum class ImageLayout
     NUM_IMAGE_LAYOUT = 18
 };
 
+enum class TextureFilter : u8
+{
+    NEAREST,
+    LINEAR,
+
+    COUNT
+};
+
 bool ImageLayoutHasDepthAspect( ImageLayout layout );
 bool ImageLayoutHasStencilAspect( ImageLayout layout );
 std::string ImageLayoutToString( ImageLayout layout );

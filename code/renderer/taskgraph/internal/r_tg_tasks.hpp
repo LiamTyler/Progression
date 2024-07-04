@@ -95,6 +95,16 @@ struct TextureTransfer
 {
     TGResourceHandle dst;
     TGResourceHandle src;
+    TextureFilter filter;
+};
+
+struct BufferTransfer
+{
+    TGResourceHandle dstBuff;
+    TGResourceHandle srcBuff;
+    u64 dstOffset;
+    u64 srcOffset;
+    u64 size;
 };
 
 class TransferTask : public Task
@@ -104,6 +114,7 @@ public:
     TG_DEBUG_ONLY( virtual void Print( TaskGraph* taskGraph ) const override );
 
     std::vector<TextureTransfer> textureBlits;
+    std::vector<BufferTransfer> bufferCopies;
 };
 
 class PresentTask : public Task

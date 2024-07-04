@@ -141,10 +141,38 @@ void CommandBuffer::CopyBuffer( const Buffer& dst, const Buffer& src, size_t siz
     vkCmdCopyBuffer( m_handle, src, dst, 1, &copyRegion );
 }
 
-void CommandBuffer::BlitImage( VkImage src, ImageLayout srcLayout, VkImage dst, ImageLayout dstLayout, const VkImageBlit& region ) const
+void CommandBuffer::BlitImage( const Texture& dst, const Texture& src, ImageLayout dstLayout, ImageLayout srcLayout,
+    VkImageAspectFlags aspect, TextureFilter filter, u8 mip, u8 layer ) const
 {
-    vkCmdBlitImage(
-        m_handle, src, PGToVulkanImageLayout( srcLayout ), dst, PGToVulkanImageLayout( dstLayout ), 1, &region, VK_FILTER_LINEAR );
+    VkImageBlit2 blitRegion{ VK_STRUCTURE_TYPE_IMAGE_BLIT_2 };
+    blitRegion.srcOffsets[1].x = src.GetWidth();
+    blitRegion.srcOffsets[1].y = src.GetHeight();
+    blitRegion.srcOffsets[1].z = 1;
+
+    blitRegion.dstOffsets[1].x = dst.GetWidth();
+    blitRegion.dstOffsets[1].y = dst.GetHeight();
+    blitRegion.dstOffsets[1].z = 1;
+
+    blitRegion.srcSubresource.aspectMask     = aspect;
+    blitRegion.srcSubresource.baseArrayLayer = layer;
+    blitRegion.srcSubresource.layerCount     = 1;
+    blitRegion.srcSubresource.mipLevel       = mip;
+
+    blitRegion.dstSubresource.aspectMask     = aspect;
+    blitRegion.dstSubresource.baseArrayLayer = layer;
+    blitRegion.dstSubresource.layerCount     = 1;
+    blitRegion.dstSubresource.mipLevel       = mip;
+
+    VkBlitImageInfo2 blitInfo{ VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2 };
+    blitInfo.dstImage       = dst.GetImage();
+    blitInfo.dstImageLayout = PGToVulkanImageLayout( dstLayout );
+    blitInfo.srcImage       = src.GetImage();
+    blitInfo.srcImageLayout = PGToVulkanImageLayout( srcLayout );
+    blitInfo.filter         = PGToVulkanFilter( filter );
+    blitInfo.regionCount    = 1;
+    blitInfo.pRegions       = &blitRegion;
+
+    vkCmdBlitImage2( m_handle, &blitInfo );
 }
 
 void CommandBuffer::TransitionImageLayout( VkImage image, ImageLayout oldLayout, ImageLayout newLayout, VkPipelineStageFlags2 srcStageMask,

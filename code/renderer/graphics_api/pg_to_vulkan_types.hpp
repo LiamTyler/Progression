@@ -408,4 +408,6 @@ constexpr VkAccelerationStructureTypeKHR PGToVulkanAccelerationStructureType( Ac
     return static_cast<VkAccelerationStructureTypeKHR>( type );
 }
 
+constexpr VkFilter PGToVulkanFilter( TextureFilter filter ) { return static_cast<VkFilter>( filter ); }
+
 } // namespace PG::Gfx

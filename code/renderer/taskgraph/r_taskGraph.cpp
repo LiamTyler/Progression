@@ -693,6 +693,29 @@ Task* TaskGraph::Compile_TransferTask( TaskBuilder* builderTask, TaskGraphBuilde
         tTask->textureBlits.emplace_back( transfer.dst.index, transfer.src.index );
     }
 
+    for ( const TGBBufferTransfer& transfer : btTask->bufferCopies )
+    {
+        ResourceTrackingInfo& srcTrackInfo = builder.bufTracking[transfer.srcBuff.index];
+        ResourceTrackingInfo& dstTrackInfo = builder.bufTracking[transfer.dstBuff.index];
+        TG_ASSERT( srcTrackInfo.prevTask != NO_TASK, "Need valid data to copy from!" );
+
+        ResourceType resType = ResourceType::BUFFER;
+
+        VkBufferMemoryBarrier2 srcBarrier = GetBufferBarrier( transfer.srcBuff.index, srcTrackInfo.prevTaskType, srcTrackInfo.prevState,
+            taskType, ResourceState::READ, BufferUsage::TRANSFER_SRC );
+        tTask->bufferBarriers.push_back( srcBarrier );
+
+        VkBufferMemoryBarrier2 dstBarrier = GetBufferBarrier( transfer.dstBuff.index, dstTrackInfo.prevTaskType, dstTrackInfo.prevState,
+            taskType, ResourceState::READ, BufferUsage::TRANSFER_DST );
+        tTask->bufferBarriers.push_back( srcBarrier );
+
+        srcTrackInfo = ResourceTrackingInfo( ImageLayout::TRANSFER_SRC, taskIndex, taskType, ResourceState::READ, resType );
+        dstTrackInfo = ResourceTrackingInfo( ImageLayout::TRANSFER_DST, taskIndex, taskType, ResourceState::WRITE, resType );
+
+        tTask->bufferCopies.emplace_back(
+            transfer.dstBuff.index, transfer.srcBuff.index, transfer.dstOffset, transfer.srcOffset, transfer.size );
+    }
+
     return tTask;
 }
 

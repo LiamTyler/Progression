@@ -208,6 +208,16 @@ struct TGBTextureTransfer
 {
     TGBTextureRef dst;
     TGBTextureRef src;
+    TextureFilter filter;
+};
+
+struct TGBBufferTransfer
+{
+    TGBBufferRef dstBuff;
+    TGBBufferRef srcBuff;
+    u64 dstOffset;
+    u64 srcOffset;
+    u64 size;
 };
 
 class TransferTaskBuilder : public TaskBuilder
@@ -218,9 +228,11 @@ public:
     {
     }
 
-    void BlitTexture( TGBTextureRef dst, TGBTextureRef src );
+    void BlitTexture( TGBTextureRef dst, TGBTextureRef src, TextureFilter filter = TextureFilter::LINEAR );
+    void CopyBuffer( TGBBufferRef dstBuff, u64 dstOffset, TGBBufferRef srcBuff, u64 srcOffset, u64 size );
 
     std::vector<TGBTextureTransfer> textureBlits;
+    std::vector<TGBBufferTransfer> bufferCopies;
 };
 
 class PresentTaskBuilder : public TaskBuilder

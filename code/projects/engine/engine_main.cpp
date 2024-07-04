@@ -54,17 +54,11 @@ int main( int argc, char* argv[] )
         ProcessPendingConsoleCommands();
         AssetManager::ProcessPendingLiveUpdates();
         Input::PollEvents();
-        f32 dt = Time::DeltaTime();
-        if ( dt > 0.018f )
-            LOG( "T: %f, Dt: %f", Time::Time() / 1000.0f, dt );
 
         if ( eg.resizeRequested )
         {
             RenderSystem::Resize( window->FramebufferWidth(), window->FramebufferHeight() );
         }
-
-        // scene->camera.position.x += 3.0f * Time::DeltaTime();
-        // scene->camera.Update();
 
         if ( auto primaryScenePtr = GetPrimaryScene() )
         {

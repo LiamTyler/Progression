@@ -132,36 +132,15 @@ void TransferTask::Execute( TGExecuteData* data )
     {
         const Texture& srcTex = data->taskGraph->GetTexture( texBlit.src );
         const Texture& dstTex = data->taskGraph->GetTexture( texBlit.dst );
+        data->cmdBuf->BlitImage(
+            dstTex, srcTex, ImageLayout::TRANSFER_DST, ImageLayout::TRANSFER_SRC, VK_IMAGE_ASPECT_COLOR_BIT, texBlit.filter );
+    }
 
-        VkImageBlit2 blitRegion{ VK_STRUCTURE_TYPE_IMAGE_BLIT_2 };
-        blitRegion.srcOffsets[1].x = srcTex.GetWidth();
-        blitRegion.srcOffsets[1].y = srcTex.GetHeight();
-        blitRegion.srcOffsets[1].z = 1;
-
-        blitRegion.dstOffsets[1].x = dstTex.GetWidth();
-        blitRegion.dstOffsets[1].y = dstTex.GetHeight();
-        blitRegion.dstOffsets[1].z = 1;
-
-        blitRegion.srcSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        blitRegion.srcSubresource.baseArrayLayer = 0;
-        blitRegion.srcSubresource.layerCount     = 1;
-        blitRegion.srcSubresource.mipLevel       = 0;
-
-        blitRegion.dstSubresource.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
-        blitRegion.dstSubresource.baseArrayLayer = 0;
-        blitRegion.dstSubresource.layerCount     = 1;
-        blitRegion.dstSubresource.mipLevel       = 0;
-
-        VkBlitImageInfo2 blitInfo{ VK_STRUCTURE_TYPE_BLIT_IMAGE_INFO_2 };
-        blitInfo.dstImage       = dstTex.GetImage();
-        blitInfo.dstImageLayout = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
-        blitInfo.srcImage       = srcTex.GetImage();
-        blitInfo.srcImageLayout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
-        blitInfo.filter         = VK_FILTER_LINEAR;
-        blitInfo.regionCount    = 1;
-        blitInfo.pRegions       = &blitRegion;
-
-        vkCmdBlitImage2( *data->cmdBuf, &blitInfo );
+    for ( const BufferTransfer& copy : bufferCopies )
+    {
+        const Buffer& dstBuffer = data->taskGraph->GetBuffer( copy.dstBuff );
+        const Buffer& srcBuffer = data->taskGraph->GetBuffer( copy.srcBuff );
+        data->cmdBuf->CopyBuffer( dstBuffer, srcBuffer, copy.size, copy.srcOffset, copy.dstOffset );
     }
 }
 

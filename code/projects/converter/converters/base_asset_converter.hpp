@@ -34,10 +34,23 @@ void AddFastfileDependency( time_t timestamp );
 void ClearAllFastfileDependencies();
 time_t GetLatestFastfileDependency();
 
+struct AssetList
+{
+    void Add( AssetType type, const std::string& str );
+    void Clear();
+    void Sort();
+    void Import( const std::string& sceneFile );
+    void Export( const std::string& sceneFile ) const;
+    bool operator==( const AssetList& list ) const;
+
+    std::vector<std::string> assets[ASSET_TYPE_COUNT];
+};
+
 using BaseCreateInfoPtr      = std::shared_ptr<BaseAssetCreateInfo>;
 using ConstBaseCreateInfoPtr = const std::shared_ptr<const BaseAssetCreateInfo>;
 void ClearAllUsedAssets();
 void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo );
+const AssetList& GetUsedAssetList();
 std::vector<BaseCreateInfoPtr> GetUsedAssetsOfType( AssetType assetType );
 
 class BaseAssetConverter

@@ -18,7 +18,7 @@ namespace PG::AssetManager
 {
 
 #if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
-extern std::unordered_map<std::string, BaseAsset*> g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
+extern std::unordered_map<std::string, BaseAsset*> g_resourceMaps[ASSET_TYPE_COUNT];
 #endif // #if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
 
 struct GetAssetTypeIDHelper
@@ -57,7 +57,7 @@ T* Get( const std::string& name )
     BaseAsset* asset;
 #if USING( CONVERTER )
     u32 assetTypeID = GetAssetTypeID<T>::ID();
-    PG_ASSERT( assetTypeID < AssetType::ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
+    PG_ASSERT( assetTypeID < ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = g_resourceMaps[assetTypeID].find( name );
     if ( it == g_resourceMaps[assetTypeID].end() )
     {

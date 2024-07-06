@@ -6,18 +6,19 @@
 
 struct FileReadResult
 {
-    char* data;
-    size_t size;
+    FileReadResult() = default;
+    ~FileReadResult() { Free(); }
 
-    void Free()
-    {
-        if ( data )
-        {
-            free( data );
-            data = nullptr;
-        }
-    }
+    FileReadResult( const FileReadResult& obj )            = delete;
+    FileReadResult& operator=( const FileReadResult& obj ) = delete;
+    FileReadResult( FileReadResult&& obj );
+    FileReadResult& operator=( FileReadResult&& obj );
+
+    void Free();
     operator bool() const { return data != nullptr; }
+
+    char* data  = nullptr;
+    size_t size = 0;
 };
 
 FileReadResult ReadFile( std::string_view filename, bool binary = true );
@@ -28,9 +29,9 @@ std::string BackToForwardSlashes( std::string str );
 
 std::string UnderscorePath( std::string str );
 
-// parent directory must exist.
-// i.e: for /dir1/dir2, dir1 must be created first, then another call to create dir2
-void CreateDirectory( const std::string& dir );
+// i.e: if dir='/dir1/dir2/dir3/' and only dir1 exists, then dir2 and dir3 will only be created
+// if createParentDirs is true. Otherwise it will error
+void CreateDirectory( const std::string& dir, bool createParentDirs = true );
 
 // returns false if there was an error. If overwriteExisting is false, and 'to' exists, returns true
 bool CopyFile( const std::string& from, const std::string& to, bool overwriteExisting );

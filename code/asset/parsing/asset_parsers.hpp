@@ -26,7 +26,7 @@ public:
     BaseAssetParser( AssetType inAssetType ) : assetType( inAssetType ) {}
     virtual ~BaseAssetParser() = default;
 
-    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value ) = 0;
+    virtual BaseInfoPtr Parse( const rapidjson::Value& value, ConstBaseInfoPtr parentCreateInfo ) = 0;
 };
 
 template <typename DerivedInfo>
@@ -38,9 +38,12 @@ public:
     BaseAssetParserTemplate( AssetType inAssetType ) : BaseAssetParser( inAssetType ) {}
     virtual ~BaseAssetParserTemplate() = default;
 
-    virtual std::shared_ptr<BaseAssetCreateInfo> Parse( const rapidjson::Value& value ) override
+    virtual BaseInfoPtr Parse( const rapidjson::Value& value, ConstBaseInfoPtr parentCreateInfo ) override
     {
-        auto info                   = std::make_shared<DerivedInfo>();
+        auto info = std::make_shared<DerivedInfo>();
+        if ( parentCreateInfo )
+            *info = *std::static_pointer_cast<const DerivedInfo>( parentCreateInfo );
+
         const std::string assetName = value["name"].GetString();
         info->name                  = assetName;
 
@@ -91,6 +94,6 @@ PG_DECLARE_ASSET_PARSER( UILayout, ASSET_TYPE_UI_LAYOUT, UILayoutCreateInfo );
 PG_DECLARE_ASSET_PARSER( Pipeline, ASSET_TYPE_UI_LAYOUT, PipelineCreateInfo );
 PG_DECLARE_ASSET_PARSER( Textureset, ASSET_TYPE_TEXTURESET, TexturesetCreateInfo );
 
-extern const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT];
+extern const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT];
 
 } // namespace PG

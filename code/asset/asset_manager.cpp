@@ -16,21 +16,21 @@ namespace PG::AssetManager
 {
 
 u32 GetAssetTypeIDHelper::IDCounter = 0;
-std::unordered_map<std::string, BaseAsset*> g_resourceMaps[AssetType::ASSET_TYPE_COUNT];
+std::unordered_map<std::string, BaseAsset*> g_resourceMaps[ASSET_TYPE_COUNT];
 
 #if USING( ASSET_LIVE_UPDATE )
-std::vector<BaseAsset*> s_pendingAssetUpdates[AssetType::ASSET_TYPE_COUNT];
+std::vector<BaseAsset*> s_pendingAssetUpdates[ASSET_TYPE_COUNT];
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
 void Init()
 {
-    GetAssetTypeID<GfxImage>::ID(); // AssetType::ASSET_TYPE_GFX_IMAGE
-    GetAssetTypeID<Material>::ID(); // AssetType::ASSET_TYPE_MATERIAL
-    GetAssetTypeID<Script>::ID();   // AssetType::ASSET_TYPE_SCRIPT
-    GetAssetTypeID<Model>::ID();    // AssetType::ASSET_TYPE_MODEL
-    GetAssetTypeID<Shader>::ID();   // AssetType::ASSET_TYPE_SHADER
-    GetAssetTypeID<UILayout>::ID(); // AssetType::ASSET_TYPE_UI_LAYOUT
-    GetAssetTypeID<Pipeline>::ID(); // AssetType::ASSET_TYPE_PIPELINE
+    GetAssetTypeID<GfxImage>::ID(); // ASSET_TYPE_GFX_IMAGE
+    GetAssetTypeID<Material>::ID(); // ASSET_TYPE_MATERIAL
+    GetAssetTypeID<Script>::ID();   // ASSET_TYPE_SCRIPT
+    GetAssetTypeID<Model>::ID();    // ASSET_TYPE_MODEL
+    GetAssetTypeID<Shader>::ID();   // ASSET_TYPE_SHADER
+    GetAssetTypeID<UILayout>::ID(); // ASSET_TYPE_UI_LAYOUT
+    GetAssetTypeID<Pipeline>::ID(); // ASSET_TYPE_PIPELINE
     PG_ASSERT( GetAssetTypeID<GfxImage>::ID() == ASSET_TYPE_GFX_IMAGE, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Material>::ID() == ASSET_TYPE_MATERIAL, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Script>::ID() == ASSET_TYPE_SCRIPT, "This needs to line up with AssetType ordering" );
@@ -49,7 +49,7 @@ static void ClearPendingLiveUpdates()
 {
 #if USING( ASSET_LIVE_UPDATE )
     u32 numIgnoredAssets = 0;
-    for ( u32 assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
+    for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
     {
         for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
         {
@@ -67,7 +67,7 @@ void ProcessPendingLiveUpdates()
 {
 #if USING( ASSET_LIVE_UPDATE )
     u32 numIgnoredAssets = 0;
-    for ( u32 assetIdx = 0; assetIdx < AssetType::ASSET_TYPE_COUNT; ++assetIdx )
+    for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
     {
         for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
         {
@@ -80,7 +80,7 @@ void ProcessPendingLiveUpdates()
             }
 
             // LOG( "Performing live update for asset '%s'", newAssetBase->GetName() );
-            // if ( assetIdx == AssetType::ASSET_TYPE_SCRIPT )
+            // if ( assetIdx == ASSET_TYPE_SCRIPT )
             //{
             //     Script* oldAsset = Get<Script>( newAssetBase->GetName() );
             //     Script* newAsset = (Script*)newAssetBase;
@@ -88,7 +88,7 @@ void ProcessPendingLiveUpdates()
             //     oldAsset->Free();
             //     *oldAsset = std::move( *newAsset );
             // }
-            // else if ( assetIdx == AssetType::ASSET_TYPE_UI_LAYOUT )
+            // else if ( assetIdx == ASSET_TYPE_UI_LAYOUT )
             //{
             //     UILayout* oldAsset = Get<UILayout>( newAssetBase->GetName() );
             //     UILayout* newAsset = (UILayout*)newAssetBase;
@@ -171,7 +171,7 @@ bool LoadFastFile( const std::string& fname )
     {
         AssetType assetType;
         serializer.Read( assetType );
-        PG_ASSERT( assetType < AssetType::ASSET_TYPE_COUNT );
+        PG_ASSERT( assetType < ASSET_TYPE_COUNT );
         switch ( assetType )
         {
             LOAD_FF_CASE( ASSET_TYPE_GFX_IMAGE, GfxImage );
@@ -221,7 +221,7 @@ void FreeRemainingGpuResources()
 
 void Shutdown()
 {
-    for ( u32 i = 0; i < AssetType::ASSET_TYPE_COUNT; ++i )
+    for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
         for ( const auto& it : g_resourceMaps[i] )
         {
@@ -272,7 +272,7 @@ void RegisterLuaFunctions( lua_State* L )
 
 BaseAsset* Get( u32 assetTypeID, const std::string& name )
 {
-    PG_ASSERT( assetTypeID < AssetType::ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
+    PG_ASSERT( assetTypeID < ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = g_resourceMaps[assetTypeID].find( name );
     return it == g_resourceMaps[assetTypeID].end() ? nullptr : it->second;
 }

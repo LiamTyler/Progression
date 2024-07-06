@@ -10,19 +10,19 @@
 namespace PG
 {
 
-std::shared_ptr<BaseAssetConverter> g_converters[ASSET_TYPE_COUNT];
+BaseAssetConverter* g_converters[ASSET_TYPE_COUNT];
 
 void InitConverters()
 {
-    g_converters[ASSET_TYPE_GFX_IMAGE] = std::make_shared<GfxImageConverter>();
-    g_converters[ASSET_TYPE_MATERIAL]  = std::make_shared<MaterialConverter>();
-    g_converters[ASSET_TYPE_SCRIPT]    = std::make_shared<ScriptConverter>();
-    g_converters[ASSET_TYPE_MODEL]     = std::make_shared<ModelConverter>();
-    g_converters[ASSET_TYPE_SHADER]    = std::make_shared<ShaderConverter>();
-    g_converters[ASSET_TYPE_UI_LAYOUT] = std::make_shared<UILayoutConverter>();
-    g_converters[ASSET_TYPE_PIPELINE]  = std::make_shared<PipelineConverter>();
+    g_converters[ASSET_TYPE_GFX_IMAGE] = new GfxImageConverter;
+    g_converters[ASSET_TYPE_MATERIAL]  = new MaterialConverter;
+    g_converters[ASSET_TYPE_SCRIPT]    = new ScriptConverter;
+    g_converters[ASSET_TYPE_MODEL]     = new ModelConverter;
+    g_converters[ASSET_TYPE_SHADER]    = new ShaderConverter;
+    g_converters[ASSET_TYPE_UI_LAYOUT] = new UILayoutConverter;
+    g_converters[ASSET_TYPE_PIPELINE]  = new PipelineConverter;
     // pass through, as texturesets aren't actually converted
-    g_converters[ASSET_TYPE_TEXTURESET] = std::make_shared<BaseAssetConverter>( ASSET_TYPE_TEXTURESET );
+    g_converters[ASSET_TYPE_TEXTURESET] = new BaseAssetConverter( ASSET_TYPE_TEXTURESET );
     static_assert( ASSET_TYPE_COUNT == 8 );
 
     InitShaderIncludeCache();
@@ -33,7 +33,7 @@ void ShutdownConverters()
     CloseShaderIncludeCache();
     for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
-        g_converters[i].reset();
+        delete g_converters[i];
     }
 }
 

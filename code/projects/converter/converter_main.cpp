@@ -156,7 +156,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             return false;
         }
 
-        for ( u8 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
+        for ( u8 assetTypeIdx = 0; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
         {
             AssetType assetType = (AssetType)assetTypeIdx;
             for ( auto [assetName, _] : AssetManager::g_resourceMaps[assetTypeIdx] )
@@ -186,7 +186,7 @@ bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
     u32 totalAssets       = 0;
     std::vector<std::pair<AssetType, std::shared_ptr<BaseAssetCreateInfo>>> outOfDateAssetList;
     outOfDateAssetList.reserve( 100 );
-    for ( u8 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
+    for ( u8 assetTypeIdx = 0; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
     {
         AssetType assetType            = (AssetType)assetTypeIdx;
         const auto& pendingConvertList = GetUsedAssetsOfType( assetType );
@@ -235,19 +235,20 @@ bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
     return convertErrors == 0;
 }
 
-bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets )
+bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets, const AssetList& prevAssetList )
 {
     std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
     time_t ffTimestamp       = GetFileTimestamp( fastfilePath );
 
-    bool createFastFile = false;
+    const AssetList& usedAssetList = GetUsedAssetList();
+    bool createFastFile            = false;
     if ( ffTimestamp == NO_TIMESTAMP )
     {
         LOG( "Fastfile %s is missing. Building...", fastfileName.c_str() );
         createFastFile = true;
     }
-    else if ( ffTimestamp < GetLatestFastfileDependency() || outOfDateAssets )
+    else if ( ffTimestamp < GetLatestFastfileDependency() || outOfDateAssets || prevAssetList != usedAssetList )
     {
         LOG( "Fastfile %s is out of date. Rebuilding...", fastfileName.c_str() );
         createFastFile = true;
@@ -263,7 +264,7 @@ bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets )
             return false;
         }
 
-        for ( u8 assetTypeIdx = 0; assetTypeIdx < AssetType::ASSET_TYPE_COUNT; ++assetTypeIdx )
+        for ( u8 assetTypeIdx = 0; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
         {
             const auto& listOfUsedAssets = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
             for ( const auto& baseInfo : listOfUsedAssets )
@@ -284,6 +285,7 @@ bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets )
             }
         }
         ff.Close();
+        usedAssetList.Export( sceneFile );
         LOG( "Build fastfile succeeded" );
     }
     else
@@ -307,7 +309,6 @@ bool ProcessSingleScene( const std::string& sceneFile )
         {
             return false;
         }
-        AddFastfileDependency( filename );
         foundScene = true;
     }
     filename = SCENE_DIR + sceneFile + ".json";
@@ -317,7 +318,6 @@ bool ProcessSingleScene( const std::string& sceneFile )
         {
             return false;
         }
-        AddFastfileDependency( filename );
         foundScene = true;
     }
     if ( !foundScene )
@@ -326,9 +326,12 @@ bool ProcessSingleScene( const std::string& sceneFile )
         return false;
     }
 
+    AssetList prevAssetList;
+    prevAssetList.Import( sceneFile );
+
     u32 outOfDateAssets;
     bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );
-    success      = success && OutputFastfile( sceneFile, outOfDateAssets );
+    success      = success && OutputFastfile( sceneFile, outOfDateAssets, prevAssetList );
     return success;
 }
 

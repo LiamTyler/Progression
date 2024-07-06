@@ -11,7 +11,19 @@
 namespace PG::AssetDatabase
 {
 
-static std::unordered_map<std::string, std::shared_ptr<BaseAssetCreateInfo>> s_assetInfos[AssetType::ASSET_TYPE_COUNT];
+static std::unordered_map<std::string, std::shared_ptr<BaseAssetCreateInfo>> s_assetInfos[ASSET_TYPE_COUNT];
+
+static bool IsNameValid( const std::string& name )
+{
+    for ( size_t i = 0; i < name.length(); ++i )
+    {
+        char c = name[i];
+        if ( !isalnum( c ) && c != '_' )
+            return false;
+    }
+
+    return true;
+}
 
 static bool ParseAssetFile( const std::string& filename )
 {
@@ -33,6 +45,12 @@ static bool ParseAssetFile( const std::string& filename )
             return false;
         }
         assetName = value["name"].GetString();
+        if ( !IsNameValid( assetName ) )
+        {
+            LOG_ERR( "Asset '%s' in file '%s' has an invalid name. Only letters, numbers, and '_' are allowed!", assetName.c_str(),
+                filename.c_str() );
+            return false;
+        }
 
         bool foundType           = false;
         std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
@@ -46,8 +64,12 @@ static bool ParseAssetFile( const std::string& filename )
                 }
                 else
                 {
+                    std::shared_ptr<BaseAssetCreateInfo> parentCreateInfo = nullptr;
+                    if ( value.HasMember( "parent" ) )
+                        parentCreateInfo = FindAssetInfo( (AssetType)typeIndex, value["parent"].GetString() );
+
                     std::shared_ptr<BaseAssetCreateInfo> info;
-                    info = g_assetParsers[typeIndex]->Parse( value );
+                    info = g_assetParsers[typeIndex]->Parse( value, parentCreateInfo );
                     if ( !info )
                     {
                         return false;
@@ -72,7 +94,7 @@ static bool ParseAssetFile( const std::string& filename )
 
 bool Init()
 {
-    // Time::Poi32 startTime = Time::GetTimePoint();
+    // Time::Point startTime = Time::GetTimePoint();
 
     namespace fs = std::filesystem;
     for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )

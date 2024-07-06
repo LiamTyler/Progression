@@ -3,7 +3,7 @@
 namespace PG
 {
 
-extern std::shared_ptr<BaseAssetConverter> g_converters[ASSET_TYPE_COUNT];
+extern BaseAssetConverter* g_converters[ASSET_TYPE_COUNT];
 
 void InitConverters();
 void ShutdownConverters();

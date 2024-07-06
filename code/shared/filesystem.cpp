@@ -5,6 +5,30 @@
 
 namespace fs = std::filesystem;
 
+FileReadResult::FileReadResult( FileReadResult&& obj )
+{
+    data     = obj.data;
+    size     = obj.size;
+    obj.data = nullptr;
+}
+
+FileReadResult& FileReadResult::operator=( FileReadResult&& obj )
+{
+    data     = obj.data;
+    size     = obj.size;
+    obj.data = nullptr;
+    return *this;
+}
+
+void FileReadResult::Free()
+{
+    if ( data )
+    {
+        free( data );
+        data = nullptr;
+    }
+}
+
 FileReadResult ReadFile( std::string_view filename, bool binary )
 {
     auto mode = std::ios::in;
@@ -76,53 +100,31 @@ std::string UnderscorePath( std::string str )
     return str;
 }
 
-void CreateDirectory( const std::string& dir ) { fs::create_directories( dir ); }
+void CreateDirectory( const std::string& dir, bool createParentDirs )
+{
+    if ( createParentDirs )
+        fs::create_directories( dir );
+    else
+        fs::create_directory( dir );
+}
 
 bool CopyFile( const std::string& from, const std::string& to, bool overwriteExisting )
 {
-    // For some reason, the overwrite_existing option doesnt work on my desktop
-    // fs::copy_options options;
-    // if ( overwriteExisting )
-    //{
-    //    options = fs::copy_options::overwrite_existing;
-    //}
-    // try
-    //{
-    //    fs::copy( from, to, fs::copy_options::overwrite_existing );
-    //}
-    // catch ( fs::filesystem_error &e )
-    //{
-    //    std::cout << "ERROR '" << e.what() << "'" << std::endl;
-    //    std::cout << "Equivalent? '" << fs::equivalent( from, to ) << std::endl;
-    //}
     if ( !overwriteExisting && PathExists( to ) )
     {
         return true;
     }
 
-    FILE* infile = fopen( from.c_str(), "rb" );
-    if ( infile == NULL )
-    {
+    FileReadResult inFile = ReadFile( from );
+    if ( !inFile )
         return false;
-    }
-
-    fseek( infile, 0L, SEEK_END );
-    long numBytes = ftell( infile );
-    fseek( infile, 0L, SEEK_SET );
-    char* buffer   = (char*)malloc( numBytes );
-    size_t numRead = fread( buffer, numBytes, 1, infile );
-    if ( numRead != 1 )
-    {
-        return false;
-    }
-    fclose( infile );
 
     FILE* outFile = fopen( to.c_str(), "wb" );
     if ( outFile == NULL )
     {
         return false;
     }
-    size_t numWritten = fwrite( buffer, numBytes, 1, outFile );
+    size_t numWritten = fwrite( inFile.data, inFile.size, 1, outFile );
     if ( numWritten != 1 )
     {
         return false;

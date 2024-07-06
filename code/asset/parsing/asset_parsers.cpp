@@ -5,15 +5,15 @@ namespace PG
 
 static_assert( ASSET_TYPE_COUNT == 8 );
 
-const std::shared_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
-    std::make_shared<GfxImageParser>(),   // ASSET_TYPE_GFX_IMAGE
-    std::make_shared<MaterialParser>(),   // ASSET_TYPE_MATERIAL
-    std::make_shared<ScriptParser>(),     // ASSET_TYPE_SCRIPT
-    std::make_shared<ModelParser>(),      // ASSET_TYPE_MODEL
-    std::make_shared<NullParser>(),       // ASSET_TYPE_SHADER
-    std::make_shared<UILayoutParser>(),   // ASSET_TYPE_UI_LAYOUT
-    std::make_shared<PipelineParser>(),   // ASSET_TYPE_PARSER
-    std::make_shared<TexturesetParser>(), // ASSET_TYPE_TEXTURESET
+const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
+    std::make_unique<GfxImageParser>(),   // ASSET_TYPE_GFX_IMAGE
+    std::make_unique<MaterialParser>(),   // ASSET_TYPE_MATERIAL
+    std::make_unique<ScriptParser>(),     // ASSET_TYPE_SCRIPT
+    std::make_unique<ModelParser>(),      // ASSET_TYPE_MODEL
+    std::make_unique<NullParser>(),       // ASSET_TYPE_SHADER
+    std::make_unique<UILayoutParser>(),   // ASSET_TYPE_UI_LAYOUT
+    std::make_unique<PipelineParser>(),   // ASSET_TYPE_PARSER
+    std::make_unique<TexturesetParser>(), // ASSET_TYPE_TEXTURESET
 };
 
 #define BEGIN_STR_TO_ENUM_MAP( EnumName )                           \

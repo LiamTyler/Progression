@@ -1,8 +1,8 @@
 #include "asset/types/script.hpp"
 #include "shared/assert.hpp"
+#include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
-#include <fstream>
 
 namespace PG
 {
@@ -11,21 +11,15 @@ std::string GetAbsPath_ScriptFilename( const std::string& filename ) { return PG
 
 bool Script::Load( const BaseAssetCreateInfo* baseInfo )
 {
-    PG_ASSERT( baseInfo );
     const ScriptCreateInfo* createInfo = (const ScriptCreateInfo*)baseInfo;
     SetName( createInfo->name );
-    std::ifstream in( GetAbsPath_ScriptFilename( createInfo->filename ), std::ios::binary );
-    if ( !in )
+    FileReadResult fileData = ReadFile( GetAbsPath_ScriptFilename( createInfo->filename ) );
+    if ( !fileData )
     {
         LOG_ERR( "Could not load script file '%s'", createInfo->filename.c_str() );
         return false;
     }
-
-    in.seekg( 0, std::ios::end );
-    size_t size = in.tellg();
-    scriptText.resize( size );
-    in.seekg( 0 );
-    in.read( &scriptText[0], size );
+    scriptText.assign( fileData.data, fileData.size );
 
     return true;
 }
@@ -39,7 +33,6 @@ bool Script::FastfileLoad( Serializer* serializer )
 
 bool Script::FastfileSave( Serializer* serializer ) const
 {
-    PG_ASSERT( serializer );
     SerializeName( serializer );
     serializer->Write( scriptText );
 

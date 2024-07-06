@@ -1,5 +1,4 @@
 [
-    { "Image": { "name": "white", "filename": "$white", "semantic": "COLOR" } },
     { "Image": { "name": "white_sky", "equirectangularFilename": "$white", "semantic": "ENVIRONMENT_MAP" } },
 	{ "Image": {
 		"name": "kloppenheim",

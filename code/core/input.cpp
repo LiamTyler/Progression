@@ -143,7 +143,9 @@ static void HandleEvents_SDL()
     SDL_Event e;
     while ( SDL_PollEvent( &e ) )
     {
+#if USING( DEVELOPMENT_BUILD )
         ImGui_ImplSDL3_ProcessEvent( &e );
+#endif // #if USING( DEVELOPMENT_BUILD )
         if ( e.type == SDL_EVENT_QUIT )
             eg.shutdown = true;
 

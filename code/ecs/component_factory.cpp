@@ -16,8 +16,8 @@ namespace PG
 static void ParseEntityMetadata( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
 {
     PG_ASSERT( value.IsObject() );
-    EntityMetaData& d = registry.emplace< EntityMetaData >( e );
-    static JSONFunctionMapper< entt::registry&, EntityMetaData& > mapping(
+    EntityMetaData& d = registry.emplace<EntityMetaData>( e );
+    static JSONFunctionMapper<entt::registry&, EntityMetaData&> mapping(
     {
         { "name", []( const rapidjson::Value& v, entt::registry& reg, EntityMetaData& d )
             {
@@ -47,8 +47,8 @@ static void ParseEntityMetadata( const rapidjson::Value& value, entt::entity e, 
 
 static void ParseTransform( const rapidjson::Value& value, entt::entity e, entt::registry& registry )
 {
-    Transform& t = registry.get_or_emplace< Transform >( e );
-    static JSONFunctionMapper< Transform& > mapping(
+    Transform& t = registry.get_or_emplace<Transform>( e );
+    static JSONFunctionMapper<Transform&> mapping(
     {
         { "position", []( const rapidjson::Value& v, Transform& t ) { t.position = ParseVec3( v ); } },
         { "rotation", []( const rapidjson::Value& v, Transform& t ) { t.rotation = DegToRad( ParseVec3( v ) ); } },
@@ -67,14 +67,14 @@ static void ParseModelRenderer( const rapidjson::Value& value, entt::entity e, e
         registry.emplace<Transform>( e );
     }
 
-    static JSONFunctionMapper< ModelRenderer& > mapping(
+    static JSONFunctionMapper<ModelRenderer&> mapping(
     {
         { "model", []( const rapidjson::Value& v, ModelRenderer& comp )
             {
-                comp.model = AssetManager::Get< Model >( ParseString( v ) );
+                comp.model = AssetManager::Get<Model>( ParseString( v ) );
                 PG_ASSERT( comp.model != nullptr, "Model with name '%s' not found", v.GetString() );
                 comp.materials.resize( comp.model->meshes.size() );
-                for ( size_t mIdx = 0; mIdx < comp.model->meshes.size(); ++mIdx )
+                for ( size_t mIdx = 0; mIdx <comp.model->meshes.size(); ++mIdx )
                 {
                     comp.materials[mIdx] = comp.model->meshes[mIdx].material;
                 }
@@ -100,7 +100,7 @@ static void ParseModelRenderer( const rapidjson::Value& value, entt::entity e, e
 
 void ParseComponent( const rapidjson::Value& value, entt::entity e, entt::registry& registry, const std::string& typeName )
 {
-    static JSONFunctionMapper< entt::entity, entt::registry& > mapping(
+    static JSONFunctionMapper<entt::entity, entt::registry&> mapping(
     {
         { "Metadata",        ParseEntityMetadata },
         { "Transform",       ParseTransform },

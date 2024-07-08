@@ -10,18 +10,12 @@ void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageI
 {
     if ( imageInfo->semantic == GfxImageSemantic::ENVIRONMENT_MAP )
     {
-        auto irradianceInfo  = std::make_shared<GfxImageCreateInfo>();
-        irradianceInfo->name = imageInfo->name + "_irradiance";
-        for ( i32 i = 0; i < ARRAY_COUNT( imageInfo->filenames ); ++i )
-            irradianceInfo->filenames[i] = imageInfo->filenames[i];
-        irradianceInfo->clampHorizontal = false;
-        irradianceInfo->clampVertical   = false;
-        irradianceInfo->flipVertically  = imageInfo->flipVertically;
-        irradianceInfo->semantic        = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
+        auto irradianceInfo      = std::make_shared<GfxImageCreateInfo>( *imageInfo );
+        irradianceInfo->name     = imageInfo->name + "_irradiance";
+        irradianceInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
         AddUsedAsset( ASSET_TYPE_GFX_IMAGE, irradianceInfo );
 
-        auto reflectionProbeInfo      = std::make_shared<GfxImageCreateInfo>();
-        *reflectionProbeInfo          = *irradianceInfo;
+        auto reflectionProbeInfo      = std::make_shared<GfxImageCreateInfo>( *imageInfo );
         reflectionProbeInfo->name     = imageInfo->name + "_reflectionProbe";
         reflectionProbeInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_REFLECTION_PROBE;
         AddUsedAsset( ASSET_TYPE_GFX_IMAGE, reflectionProbeInfo );

@@ -47,11 +47,7 @@ public:
         const std::string assetName = value["name"].GetString();
         info->name                  = assetName;
 
-        if ( !ParseInternal( value, info ) )
-        {
-            return nullptr;
-        }
-        return info;
+        return ParseInternal( value, info ) ? info : nullptr;
     }
 
 protected:

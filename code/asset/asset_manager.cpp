@@ -189,7 +189,7 @@ bool LoadFastFile( const std::string& fname )
     // Edit: looks like ::UnmapViewOfFile is the culprit. Cost for removing pages from the
     // address space just seems to be about ~75us per MB, which matches what some others online say
     // https://randomascii.wordpress.com/2014/12/10/hidden-costs-of-memory-allocation/
-    PGP_MANUAL_ZONEN( SerializerClose, "Serializerclose" );
+    PGP_MANUAL_ZONEN( SerializerClose, "SerializerClose" );
     serializer.Close();
     PGP_MANUAL_ZONE_END( SerializerClose );
 

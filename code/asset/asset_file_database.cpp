@@ -1,5 +1,4 @@
 #include "asset_file_database.hpp"
-// #include "asset/parsing/base_asset_parse.hpp"
 #include "asset/parsing/asset_parsers.hpp"
 #include "core/feature_defines.hpp"
 #include "core/time.hpp"
@@ -54,11 +53,11 @@ static bool ParseAssetFile( const std::string& filename )
 
         bool foundType           = false;
         std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
-        for ( u32 typeIndex = 0; typeIndex < ASSET_TYPE_COUNT; ++typeIndex )
+        for ( AssetType assetType = (AssetType)0; assetType < ASSET_TYPE_COUNT; assetType = (AssetType)( assetType + 1 ) )
         {
-            if ( assetTypeStr == g_assetNames[typeIndex] )
+            if ( assetTypeStr == g_assetNames[assetType] )
             {
-                if ( s_assetInfos[typeIndex].find( assetName ) != s_assetInfos[typeIndex].end() )
+                if ( s_assetInfos[assetType].contains( assetName ) )
                 {
                     LOG_WARN( "Duplicate %s named %s in file %s. Ignoring", assetTypeStr.c_str(), assetName.c_str(), filename.c_str() );
                 }
@@ -66,16 +65,16 @@ static bool ParseAssetFile( const std::string& filename )
                 {
                     std::shared_ptr<BaseAssetCreateInfo> parentCreateInfo = nullptr;
                     if ( value.HasMember( "parent" ) )
-                        parentCreateInfo = FindAssetInfo( (AssetType)typeIndex, value["parent"].GetString() );
+                        parentCreateInfo = FindAssetInfo( assetType, value["parent"].GetString() );
 
                     std::shared_ptr<BaseAssetCreateInfo> info;
-                    info = g_assetParsers[typeIndex]->Parse( value, parentCreateInfo );
+                    info = g_assetParsers[assetType]->Parse( value, parentCreateInfo );
                     if ( !info )
                     {
                         return false;
                     }
                     info->name                         = assetName;
-                    s_assetInfos[typeIndex][assetName] = info;
+                    s_assetInfos[assetType][assetName] = info;
                 }
 
                 foundType = true;

@@ -1,13 +1,29 @@
 # Progression [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 
 ## Description
-A rewrite of a C++ game engine I have been developing for Linux and Windows. Note: The older version of this engine can be found here: https://github.com/LiamTyler/Progression-Vulkan-Old. If you go way back in the commits, like to Dec 7th 2018 (80b7b20bfb3d3b499b4236cd65550474ec27f846) the old opengl tiled deferred renderer is there
+A C++ game engine I have been developing for Windows and Linux
+
+## Features
+- A fully bindless (textures, buffers, and materials) Vulkan 1.3 renderer
+- Custom render graph solution. Handles all of the resource allocation, render passes, barriers, and also aliases resources as much as possible
+- GPU frustum culling
+- Meshlet pipeline rendered using mesh shaders
+- A fairly extensive asset pipeline. It has a lot of features, including texture composition to reduce the number of fetches in shader, bc compression, meshlet generation, skipping rebuilds of assets that haven't changed at all, tightly packed serialization into binary packages for optimized loads, and more. For more info on that, see [here](https://liamtyler.github.io/posts/asset_pipeline_part_1/)
+- Optimized asset loads that batch gpu uploads in a double buffered queue on the transfer queue
+- CPU profiling using [Tracy](https://github.com/wolfpld/tracy)
+- GPU profiling using timestamps, automatically added for each render pass
+- An offline path tracer to help provide reference images. Very limited material support currently, still work in progress
+- Multiple build configurations to give various levels of optimization and debugging capability: Debug, Release, Profile, Ship
+- Lua scripting system for game logic
+- Entity component system
+- In game debug console to enter developer commands
+- A lot more :)
 
 ## Prerequisites
 ### Operating Systems and Compilers
 This engine requires at least C++ 20, and has only been tested on the following platforms and compilers:
 - Windows 10 or 11 with MSVC 2022
-- Ubuntu 22 with GCC 12 and Clang 15
+- Ubuntu 24 with GCC 13
 
 ### Libraries and SDKs
 1. ISPC:
@@ -20,7 +36,9 @@ It needs to be extracted and the ispc executable added to the PATH. If you are u
 
 2. Vulkan 1.3: The download for this can be found [here](https://vulkan.lunarg.com/)
 
-## Compiling Windows
+## Compiling
+
+### Windows
 From git bash:
 ```
 git clone --recursive https://github.com/LiamTyler/Progression.git
@@ -29,16 +47,26 @@ mkdir build
 cd build
 cmake -G "Visual Studio 17 2022" -A x64 ..
 ```
-Then either open the Visual Studio .sln file and build there (ctrl-shift-B) or you can build same git bash command line with `cmake --build . --config [Debug/Release]`
+Then either open the Visual Studio .sln file and build there (ctrl-shift-B) or you can build same git bash command line with `cmake --build . --config [Debug/Release/Profile/Ship]`
 
-## Compiling Linux
+### Linux
 From the command line:
 ```
 git clone --recursive https://github.com/LiamTyler/Progression.git
 cd Progression 
 mkdir build
 cd build
-cmake -DCMAKE_BUILD_TYPE=[Debug/Release/Ship] ..
+cmake -DCMAKE_BUILD_TYPE=[Debug/Release/Profile/Ship] ..
 make -j
 ```
-Note with building with gcc: gcc actually seems to timeout while doing a max parallel build of assimp with "make -j", so I do have to do "make -j6" instead
+
+## Usage
+At this point all the executables should be in the build/bin folder. Before you can run a scene, the converter first has to process. For example, processing the `sponza` scene would be done like this:
+```
+./build/bin/Converter.exe sponza
+```
+
+To actually run a scene once it's been converted, just pass the scene name as the first arg to the engine:
+```
+./build/bin/Engine_r.exe sponza
+```

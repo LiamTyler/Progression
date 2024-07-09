@@ -29,7 +29,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
     PG_UNUSED( pUserData );
 
 #if USING( SHADER_DEBUG_PRINTF )
-    if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT )
+    if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT && pCallbackData->pMessageIdName )
     {
         if ( !strcmp( pCallbackData->pMessageIdName, "WARNING-DEBUG-PRINTF" ) )
         {

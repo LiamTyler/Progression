@@ -1,5 +1,7 @@
 #include "asset_parsers.hpp"
 
+using cjval = const rapidjson::Value&;
+
 namespace PG
 {
 
@@ -16,14 +18,14 @@ const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     std::make_unique<TexturesetParser>(), // ASSET_TYPE_TEXTURESET
 };
 
-#define BEGIN_STR_TO_ENUM_MAP( EnumName )                           \
-    static EnumName EnumName##_StringToEnum( std::string_view str ) \
-    {                                                               \
+#define BEGIN_STR_TO_ENUM_MAP( EnumName )           \
+    static EnumName EnumName##_ParseEnum( cjval v ) \
+    {                                               \
         static std::pair<std::string, EnumName> arr[] = {
 
-#define BEGIN_STR_TO_ENUM_MAP_SCOPED( EnumName, Namespace )                    \
-    static Namespace::EnumName EnumName##_StringToEnum( std::string_view str ) \
-    {                                                                          \
+#define BEGIN_STR_TO_ENUM_MAP_SCOPED( EnumName, Namespace )    \
+    static Namespace::EnumName EnumName##_ParseEnum( cjval v ) \
+    {                                                          \
         static std::pair<std::string, Namespace::EnumName> arr[] = {
 
 #define STR_TO_ENUM_VALUE( EnumName, val ) { #val, EnumName::val },
@@ -32,6 +34,7 @@ const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     }                                                                                                          \
     ;                                                                                                          \
                                                                                                                \
+    const std::string str = ParseString( v );                                                                  \
     for ( i32 i = 0; i < ARRAY_COUNT( arr ); ++i )                                                             \
     {                                                                                                          \
         if ( arr[i].first == str )                                                                             \
@@ -62,21 +65,22 @@ BEGIN_STR_TO_ENUM_MAP( GfxImageFilterMode )
     STR_TO_ENUM_VALUE( GfxImageFilterMode, TRILINEAR )
 END_STR_TO_ENUM_MAP( GfxImageFilterMode, COUNT )
 
-bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+bool GfxImageParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper< GfxImageCreateInfo& > mapping(
     {
-        { "filename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0] = ParseString( v ); } },
-        { "equirectangularFilename", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[0]  = ParseString( v ); } },
-        { "left",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_LEFT]   = ParseString( v ); } },
-        { "right",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_RIGHT]  = ParseString( v ); } },
-        { "front",  []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_FRONT]  = ParseString( v ); } },
-        { "back",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BACK]   = ParseString( v ); } },
-        { "top",    []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_TOP]    = ParseString( v ); } },
-        { "bottom", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BOTTOM] = ParseString( v ); } },
-        { "flipVertically", []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.flipVertically = ParseBool( v ); } },
-        { "semantic",  []( const rapidjson::Value& v, GfxImageCreateInfo& i ) { i.semantic = GfxImageSemantic_StringToEnum( ParseString( v ) ); } },
-        { "dstFormat", []( const rapidjson::Value& v, GfxImageCreateInfo& i )
+        { "filename",       []( cjval v, GfxImageCreateInfo& s ) { s.filenames[0] = ParseString( v ); } },
+        { "equirectangularFilename",
+                            []( cjval v, GfxImageCreateInfo& s ) { s.filenames[0]  = ParseString( v ); } },
+        { "left",           []( cjval v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_LEFT]   = ParseString( v ); } },
+        { "right",          []( cjval v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_RIGHT]  = ParseString( v ); } },
+        { "front",          []( cjval v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_FRONT]  = ParseString( v ); } },
+        { "back",           []( cjval v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BACK]   = ParseString( v ); } },
+        { "top",            []( cjval v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_TOP]    = ParseString( v ); } },
+        { "bottom",         []( cjval v, GfxImageCreateInfo& s ) { s.filenames[CUBEMAP_FACE_BOTTOM] = ParseString( v ); } },
+        { "flipVertically", []( cjval v, GfxImageCreateInfo& i ) { i.flipVertically = ParseBool( v ); } },
+        { "semantic",       []( cjval v, GfxImageCreateInfo& i ) { i.semantic = GfxImageSemantic_ParseEnum( v ); } },
+        { "dstFormat",      []( cjval v, GfxImageCreateInfo& i )
             {
                 i.dstPixelFormat = PixelFormatFromString( ParseString( v ) );
                 if ( i.dstPixelFormat == PixelFormat::INVALID )
@@ -85,9 +89,9 @@ bool GfxImageParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPt
                 }
             }
         },
-        { "clampHorizontal", []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.clampHorizontal = ParseBool( v ); } },
-        { "clampVertical",   []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.clampVertical = ParseBool( v ); } },
-        { "filterMode",      []( const rapidjson::Value& v, GfxImageCreateInfo& s ) { s.filterMode = GfxImageFilterMode_StringToEnum( ParseString( v ) ); } },
+        { "clampHorizontal", []( cjval v, GfxImageCreateInfo& s ) { s.clampHorizontal = ParseBool( v ); } },
+        { "clampVertical",   []( cjval v, GfxImageCreateInfo& s ) { s.clampVertical = ParseBool( v ); } },
+        { "filterMode",      []( cjval v, GfxImageCreateInfo& s ) { s.filterMode = GfxImageFilterMode_ParseEnum( v ); } },
     });
     mapping.ForEachMember( value, *info );
 
@@ -99,37 +103,35 @@ BEGIN_STR_TO_ENUM_MAP( MaterialType )
     STR_TO_ENUM_VALUE( MaterialType, DECAL )
 END_STR_TO_ENUM_MAP( MaterialType, SURFACE )
 
-bool MaterialParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+bool MaterialParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     using namespace rapidjson;
     static JSONFunctionMapper< MaterialCreateInfo& > mapping(
     {
-        { "type", []( const Value& v, MaterialCreateInfo& i ) {
-            i.type = MaterialType_StringToEnum( ParseString( v ) );
-        } },
-        { "textureset", []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = ParseString( v ); } },
-        { "albedoTint", []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint = ParseVec3( v ); } },
-        { "metalnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint = ParseNumber<f32>( v ); } },
-        { "emissiveTint", []( const Value& v, MaterialCreateInfo& i ) { i.emissiveTint = ParseVec3( v ); } },
-        { "roughnessTint", []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint = ParseNumber<f32>( v ); } },
-        { "applyAlbedo", []( const Value& v, MaterialCreateInfo& i ) { i.applyAlbedo = ParseBool( v ); } },
+        { "type",           []( const Value& v, MaterialCreateInfo& i ) { i.type = MaterialType_ParseEnum( v ); } },
+        { "textureset",     []( const Value& v, MaterialCreateInfo& i ) { i.texturesetName = ParseString( v ); } },
+        { "albedoTint",     []( const Value& v, MaterialCreateInfo& i ) { i.albedoTint = ParseVec3( v ); } },
+        { "metalnessTint",  []( const Value& v, MaterialCreateInfo& i ) { i.metalnessTint = ParseNumber<f32>( v ); } },
+        { "emissiveTint",   []( const Value& v, MaterialCreateInfo& i ) { i.emissiveTint = ParseVec3( v ); } },
+        { "roughnessTint",  []( const Value& v, MaterialCreateInfo& i ) { i.roughnessTint = ParseNumber<f32>( v ); } },
+        { "applyAlbedo",    []( const Value& v, MaterialCreateInfo& i ) { i.applyAlbedo = ParseBool( v ); } },
         { "applyMetalness", []( const Value& v, MaterialCreateInfo& i ) { i.applyMetalness = ParseBool( v ); } },
-        { "applyNormals", []( const Value& v, MaterialCreateInfo& i ) { i.applyNormals = ParseBool( v ); } },
+        { "applyNormals",   []( const Value& v, MaterialCreateInfo& i ) { i.applyNormals = ParseBool( v ); } },
         { "applyRoughness", []( const Value& v, MaterialCreateInfo& i ) { i.applyRoughness = ParseBool( v ); } },
-        { "applyEmissive", []( const Value& v, MaterialCreateInfo& i ) { i.applyEmissive = ParseBool( v ); } },
+        { "applyEmissive",  []( const Value& v, MaterialCreateInfo& i ) { i.applyEmissive = ParseBool( v ); } },
     });
     mapping.ForEachMember( value, *info );
 
    return true;
 }
 
-bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+bool ModelParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ModelCreateInfo&> mapping(
     {
-        { "filename", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.filename = ParseString( v ); } },
-        { "flipTexCoordsVertically", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.flipTexCoordsVertically = ParseBool( v ); } },
-        { "recalculateNormals", []( const rapidjson::Value& v, ModelCreateInfo& i ) { i.recalculateNormals = ParseBool( v ); } },
+        { "filename",                []( cjval v, ModelCreateInfo& i ) { i.filename = ParseString( v ); } },
+        { "flipTexCoordsVertically", []( cjval v, ModelCreateInfo& i ) { i.flipTexCoordsVertically = ParseBool( v ); } },
+        { "recalculateNormals",      []( cjval v, ModelCreateInfo& i ) { i.recalculateNormals = ParseBool( v ); } },
     });
     mapping.ForEachMember( value, *info );
 
@@ -142,21 +144,21 @@ bool ModelParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr i
     return true;
 }
 
-bool ScriptParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+bool ScriptParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<ScriptCreateInfo&> mapping(
     {
-        { "filename", []( const rapidjson::Value& v, ScriptCreateInfo& s ) { s.filename = ParseString( v ); } },
+        { "filename", []( cjval v, ScriptCreateInfo& s ) { s.filename = ParseString( v ); } },
     });
     mapping.ForEachMember( value, *info );
     return true;
 }
 
-bool UILayoutParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+bool UILayoutParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<UILayoutCreateInfo&> mapping(
     {
-        { "filename", []( const rapidjson::Value& v, UILayoutCreateInfo& s ) { s.xmlFilename = ParseString( v ); } },
+        { "filename", []( cjval v, UILayoutCreateInfo& s ) { s.xmlFilename = ParseString( v ); } },
     });
     mapping.ForEachMember( value, *info );
 
@@ -183,38 +185,65 @@ BEGIN_STR_TO_ENUM_MAP_SCOPED( PrimitiveType, Gfx )
     STR_TO_ENUM_VALUE( Gfx::PrimitiveType, TRIANGLE_FAN )
 END_STR_TO_ENUM_MAP( Gfx::PrimitiveType, NUM_PRIMITIVE_TYPE )
 
-bool PipelineParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+BEGIN_STR_TO_ENUM_MAP_SCOPED( WindingOrder, Gfx )
+    STR_TO_ENUM_VALUE( Gfx::WindingOrder, COUNTER_CLOCKWISE )
+    STR_TO_ENUM_VALUE( Gfx::WindingOrder, CLOCKWISE )
+END_STR_TO_ENUM_MAP( Gfx::WindingOrder, COUNTER_CLOCKWISE )
+
+BEGIN_STR_TO_ENUM_MAP_SCOPED( CullFace, Gfx )
+    STR_TO_ENUM_VALUE( Gfx::CullFace, NONE )
+    STR_TO_ENUM_VALUE( Gfx::CullFace, FRONT )
+    STR_TO_ENUM_VALUE( Gfx::CullFace, BACK )
+    STR_TO_ENUM_VALUE( Gfx::CullFace, FRONT_AND_BACK )
+END_STR_TO_ENUM_MAP( Gfx::CullFace, NONE )
+
+BEGIN_STR_TO_ENUM_MAP_SCOPED( PolygonMode, Gfx )
+    STR_TO_ENUM_VALUE( Gfx::PolygonMode, FILL )
+    STR_TO_ENUM_VALUE( Gfx::PolygonMode, LINE )
+    STR_TO_ENUM_VALUE( Gfx::PolygonMode, POINT )
+END_STR_TO_ENUM_MAP( Gfx::PolygonMode, FILL )
+
+bool PipelineParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<Gfx::PipelineColorAttachmentInfo&> cMapping(
     {
-        { "format", []( const rapidjson::Value& v, Gfx::PipelineColorAttachmentInfo& s ) { s.format = PixelFormatFromString( ParseString( v ) ); } },
+        { "format", []( cjval v, Gfx::PipelineColorAttachmentInfo& s ) { s.format = PixelFormatFromString( ParseString( v ) ); } },
     });
 
     static JSONFunctionMapper<Gfx::PipelineDepthInfo&> dMapping(
     {
-        { "format",             []( const rapidjson::Value& v, Gfx::PipelineDepthInfo& s ) { s.format = PixelFormatFromString( ParseString( v ) ); } },
-        { "depthTestEnabled",   []( const rapidjson::Value& v, Gfx::PipelineDepthInfo& s ) { s.depthTestEnabled = ParseBool( v ); } },
-        { "depthWriteEnabled",  []( const rapidjson::Value& v, Gfx::PipelineDepthInfo& s ) { s.depthWriteEnabled = ParseBool( v ); } },
-        { "compareFunc",        []( const rapidjson::Value& v, Gfx::PipelineDepthInfo& s ) { s.compareFunc = CompareFunction_StringToEnum( ParseString( v ) ); } },
+        { "format",             []( cjval v, Gfx::PipelineDepthInfo& s ) { s.format = PixelFormatFromString( ParseString( v ) ); } },
+        { "depthTestEnabled",   []( cjval v, Gfx::PipelineDepthInfo& s ) { s.depthTestEnabled = ParseBool( v ); } },
+        { "depthWriteEnabled",  []( cjval v, Gfx::PipelineDepthInfo& s ) { s.depthWriteEnabled = ParseBool( v ); } },
+        { "compareFunc",        []( cjval v, Gfx::PipelineDepthInfo& s ) { s.compareFunc = CompareFunction_ParseEnum( v ); } },
+    });
+
+    static JSONFunctionMapper<Gfx::RasterizerInfo&> rMapping(
+    {
+        { "winding",         []( cjval v, Gfx::RasterizerInfo& r ) { r.winding = WindingOrder_ParseEnum( v ); } },
+        { "cullFace",        []( cjval v, Gfx::RasterizerInfo& r ) { r.cullFace = CullFace_ParseEnum( v ); } },
+        { "polygonMode",     []( cjval v, Gfx::RasterizerInfo& r ) { r.polygonMode = PolygonMode_ParseEnum( v ); } },
+        { "depthBiasEnable", []( cjval v, Gfx::RasterizerInfo& r ) { r.depthBiasEnable = ParseBool( v ); } },
     });
 
     static JSONFunctionMapper<PipelineCreateInfo&> mapping(
     {
-        { "name",           []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.name = ParseString( v ); } },
-        { "computeShader",  []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::COMPUTE ); } },
-        { "vertexShader",   []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::VERTEX ); } },
-        { "geometryShader", []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::GEOMETRY ); } },
-        { "fragmentShader", []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::FRAGMENT ); } },
-        { "taskShader",     []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::TASK ); } },
-        { "meshShader",     []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::MESH ); } },
-        { "define",         []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.defines.emplace_back( ParseString( v ) ); } },
-        { "generateDebugPermutation", []( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.generateDebugPermutation = ParseBool( v ); } },
-        { "colorAttachment", [&]( const rapidjson::Value& v, PipelineCreateInfo& s ) {
+        { "name",           []( cjval v, PipelineCreateInfo& s ) { s.name = ParseString( v ); } },
+        { "computeShader",  []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::COMPUTE ); } },
+        { "vertexShader",   []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::VERTEX ); } },
+        { "geometryShader", []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::GEOMETRY ); } },
+        { "fragmentShader", []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::FRAGMENT ); } },
+        { "taskShader",     []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::TASK ); } },
+        { "meshShader",     []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::MESH ); } },
+        { "define",         []( cjval v, PipelineCreateInfo& s ) { s.defines.emplace_back( ParseString( v ) ); } },
+        { "primitiveType",   []( cjval v, PipelineCreateInfo& s ) { s.graphicsInfo.primitiveType = PrimitiveType_ParseEnum( v ); } },
+        { "generateDebugPermutation", []( cjval v, PipelineCreateInfo& s ) { s.generateDebugPermutation = ParseBool( v ); } },
+        { "colorAttachment", [&]( cjval v, PipelineCreateInfo& s ) {
             Gfx::PipelineColorAttachmentInfo& attach = s.graphicsInfo.colorAttachments.emplace_back();
             cMapping.ForEachMember( v, attach );
         }},
-        { "depthAttachment", [&]( const rapidjson::Value& v, PipelineCreateInfo& s ) { dMapping.ForEachMember( v, s.graphicsInfo.depthInfo ); }},
-        { "primitiveType", [&]( const rapidjson::Value& v, PipelineCreateInfo& s ) { s.graphicsInfo.primitiveType = PrimitiveType_StringToEnum( ParseString( v ) ); }},
+        { "depthAttachment", [&]( cjval v, PipelineCreateInfo& s ) { dMapping.ForEachMember( v, s.graphicsInfo.depthInfo ); } },
+        { "rasterizerInfo",  [&]( cjval v, PipelineCreateInfo& s ) { rMapping.ForEachMember( v, s.graphicsInfo.rasterizerInfo ); } },
     });
     mapping.ForEachMember( value, *info );
 
@@ -228,26 +257,26 @@ BEGIN_STR_TO_ENUM_MAP( Channel )
     STR_TO_ENUM_VALUE( Channel, A )
 END_STR_TO_ENUM_MAP( Channel, R )
 
-bool TexturesetParser::ParseInternal( const rapidjson::Value& value, DerivedInfoPtr info )
+bool TexturesetParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<TexturesetCreateInfo&> mapping(
     {
-        //{ "name", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.name = ParseString( v ); } },
-        { "clampHorizontal", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampHorizontal = ParseBool( v ); } },
-        { "clampVertical", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.clampVertical = ParseBool( v ); } },
-        { "flipVertically", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.flipVertically = ParseBool( v ); } },
-        { "albedoMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.albedoMap = ParseString( v ); } },
-        { "metalnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessMap = ParseString( v ); } },
-        { "metalnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = Channel_StringToEnum( ParseString( v ) ); } },
-        { "metalnessScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.metalnessScale = ParseNumber<f32>( v ); } },
-        { "normalMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMap = ParseString( v ); } },
-        { "slopeScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<f32>( v ); } },
-        { "normalMapIsYUp", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.normalMapIsYUp = ParseBool( v ); } },
-        { "roughnessMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessMap = ParseString( v ); } },
-        { "roughnessSourceChannel", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_StringToEnum( ParseString( v ) ); } },
-        { "invertRoughness", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.invertRoughness = ParseBool( v ); } },
-        { "roughnessScale", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.roughnessScale = ParseBool( v ); } },
-        { "emissiveMap", []( const rapidjson::Value& v, TexturesetCreateInfo& s ) { s.emissiveMap = ParseString( v ); } },
+        { "name",                   []( cjval v, TexturesetCreateInfo& s ) { s.name = ParseString( v ); } },
+        { "clampHorizontal",        []( cjval v, TexturesetCreateInfo& s ) { s.clampHorizontal = ParseBool( v ); } },
+        { "clampVertical",          []( cjval v, TexturesetCreateInfo& s ) { s.clampVertical = ParseBool( v ); } },
+        { "flipVertically",         []( cjval v, TexturesetCreateInfo& s ) { s.flipVertically = ParseBool( v ); } },
+        { "albedoMap",              []( cjval v, TexturesetCreateInfo& s ) { s.albedoMap = ParseString( v ); } },
+        { "metalnessMap",           []( cjval v, TexturesetCreateInfo& s ) { s.metalnessMap = ParseString( v ); } },
+        { "metalnessSourceChannel", []( cjval v, TexturesetCreateInfo& s ) { s.metalnessSourceChannel = Channel_ParseEnum( v ); } },
+        { "metalnessScale",         []( cjval v, TexturesetCreateInfo& s ) { s.metalnessScale = ParseNumber<f32>( v ); } },
+        { "normalMap",              []( cjval v, TexturesetCreateInfo& s ) { s.normalMap = ParseString( v ); } },
+        { "slopeScale",             []( cjval v, TexturesetCreateInfo& s ) { s.slopeScale = ParseNumber<f32>( v ); } },
+        { "normalMapIsYUp",         []( cjval v, TexturesetCreateInfo& s ) { s.normalMapIsYUp = ParseBool( v ); } },
+        { "roughnessMap",           []( cjval v, TexturesetCreateInfo& s ) { s.roughnessMap = ParseString( v ); } },
+        { "roughnessSourceChannel", []( cjval v, TexturesetCreateInfo& s ) { s.roughnessSourceChannel = Channel_ParseEnum( v ); } },
+        { "invertRoughness",        []( cjval v, TexturesetCreateInfo& s ) { s.invertRoughness = ParseBool( v ); } },
+        { "roughnessScale",         []( cjval v, TexturesetCreateInfo& s ) { s.roughnessScale = ParseBool( v ); } },
+        { "emissiveMap",            []( cjval v, TexturesetCreateInfo& s ) { s.emissiveMap = ParseString( v ); } },
     });
     mapping.ForEachMember( value, *info );
 

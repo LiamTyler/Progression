@@ -15,6 +15,12 @@
 #define BEGIN_GPU_DATA_NAMESPACE() namespace GpuData {
 #define END_GPU_DATA_NAMESPACE() } // namespace GpuData
 
+#define FloatBuffer u64
+#define Vec2Buffer  u64
+#define Vec3Buffer  u64
+#define Vec4Buffer  u64
+#define UintBuffer  u64
+
 #endif // #if PG_SHADER_CODE
 
 #endif // #ifndef __DEFINES_H__

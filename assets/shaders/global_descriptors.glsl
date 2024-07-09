@@ -43,6 +43,11 @@ vec4 SampleTexture2D( uint texIndex, uint samplerIndex, vec2 uv )
     return texture( nonuniformEXT( sampler2D( Textures2D[texIndex], samplers[samplerIndex] ) ), uv );
 }
 
+vec4 SampleTexture2D_Uniform( uint texIndex, uint samplerIndex, vec2 uv )
+{
+    return texture( sampler2D( Textures2D[texIndex], samplers[samplerIndex] ), uv );
+}
+
 DEFINE_BUFFER_REFERENCE( 64 ) TransformBuffer
 {
     mat4 transforms[];

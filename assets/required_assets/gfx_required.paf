@@ -8,6 +8,15 @@
         "computeShader": "debug/culling_compute_debug.comp"
     } },
     { "Pipeline": {
+        "name": "sky",
+        "vertexShader": "sky.vert",
+        "fragmentShader": "sky.frag",
+        "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
+        "depthAttachment": { "format": "DEPTH_32_FLOAT", "compareFunc": "LEQUAL" },
+        "rasterizerInfo": { "winding": "CLOCKWISE" },
+        "generateDebugPermutation": true
+    } },
+    { "Pipeline": {
         "name": "post_process",
         "computeShader": "post_process.comp"
     } },

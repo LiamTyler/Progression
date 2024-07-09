@@ -9,17 +9,18 @@
 #include "core/engine_globals.hpp"
 #include "core/scene.hpp"
 #include "core/window.hpp"
+#include "debug_draw.hpp"
 #include "debug_marker.hpp"
+#include "debug_ui.hpp"
 #include "ecs/components/model_renderer.hpp"
 #include "ecs/components/transform.hpp"
+#include "graphics_api/pg_to_vulkan_types.hpp"
 #include "r_bindless_manager.hpp"
 #include "r_dvars.hpp"
 #include "r_globals.hpp"
 #include "r_init.hpp"
 #include "r_pipeline_manager.hpp"
-#include "renderer/debug_draw.hpp"
-#include "renderer/debug_ui.hpp"
-#include "renderer/graphics_api/pg_to_vulkan_types.hpp"
+#include "r_sky.hpp"
 #include "shared/logger.hpp"
 #include "taskgraph/r_taskGraph.hpp"
 
@@ -262,6 +263,8 @@ bool Init_TaskGraph()
     // cTask->SetFunction( DebugComputeCullFunc );
 #endif // #if USING( DEVELOPMENT_BUILD )
 
+    Sky::AddTask( builder, litOutput, sceneDepth );
+
     TGBTextureRef swapImg = builder.RegisterExternalTexture(
         "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } );
 
@@ -318,12 +321,13 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
     if ( !R_Init( headless, displayWidth, displayHeight ) )
         return false;
 
-    Profile::Init();
-
-    if ( !Init_TaskGraph() )
+    if ( !AssetManager::LoadFastFile( "gfx_required" ) )
         return false;
 
-    if ( !AssetManager::LoadFastFile( "gfx_required" ) )
+    Profile::Init();
+    Sky::Init();
+
+    if ( !Init_TaskGraph() )
         return false;
 
     if ( !UIOverlay::Init( rg.swapchain.GetFormat() ) )
@@ -392,6 +396,7 @@ void Shutdown()
     s_taskGraph.Free();
     UIOverlay::Shutdown();
     AssetManager::FreeRemainingGpuResources();
+    Sky::Shutdown();
     Profile::Shutdown();
     R_Shutdown();
 }

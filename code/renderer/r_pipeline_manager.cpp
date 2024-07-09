@@ -185,9 +185,11 @@ public:
         colorBlending.pAttachments    = colorBlendAttachment;
 
         VkPipelineDepthStencilStateCreateInfo depthStencil{ VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO };
-        depthStencil.depthTestEnable       = gInfo.depthInfo.depthTestEnabled;
-        depthStencil.depthWriteEnable      = gInfo.depthInfo.depthWriteEnabled;
-        depthStencil.depthCompareOp        = PGToVulkanCompareFunction( gInfo.depthInfo.compareFunc );
+        depthStencil.depthTestEnable  = gInfo.depthInfo.depthTestEnabled;
+        depthStencil.depthWriteEnable = gInfo.depthInfo.depthWriteEnabled;
+        depthStencil.depthCompareOp   = PGToVulkanCompareFunction( gInfo.depthInfo.compareFunc );
+        if ( depthStencil.depthCompareOp == VK_COMPARE_OP_LESS )
+            depthStencil.depthCompareOp = VK_COMPARE_OP_LESS_OR_EQUAL;
         depthStencil.depthBoundsTestEnable = VK_FALSE;
         depthStencil.stencilTestEnable     = VK_FALSE;
 

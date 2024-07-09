@@ -97,40 +97,9 @@ set(
 )
 
 set(SHADER_DIR ${PROGRESSION_DIR}/assets/shaders)
-set(
-    SHADERS
-    
-    ${SHADER_DIR}/common.glsl
-    ${SHADER_DIR}/frustum_cull_meshes.comp
-    ${SHADER_DIR}/global_descriptors.glsl
-    ${SHADER_DIR}/lit.frag
-    ${SHADER_DIR}/model.mesh
-    ${SHADER_DIR}/post_process.comp
+file(GLOB SHADER_ROOT_FILES ${SHADER_DIR}/*)
+file(GLOB SHADER_DEBUG_FILES ${SHADER_DIR}/lib/*)
+file(GLOB SHADER_LIB_FILES ${SHADER_DIR}/lib/*)
+set(SHADERS ${SHADER_ROOT_FILES} ${SHADER_DEBUG_FILES} ${SHADER_LIB_FILES})
 
-    ${SHADER_DIR}/debug/culling_compute_debug.comp
-    ${SHADER_DIR}/debug/debug_lines.frag
-    ${SHADER_DIR}/debug/debug_lines.vert
-    
-    ${SHADER_DIR}/lib/debug_coloring.glsl
-    ${SHADER_DIR}/lib/debug_wireframe.glsl
-    ${SHADER_DIR}/lib/gamma.glsl
-    ${SHADER_DIR}/lib/intrinsics.glsl
-    ${SHADER_DIR}/lib/lights.glsl
-    ${SHADER_DIR}/lib/packing.glsl
-    ${SHADER_DIR}/lib/pbr.glsl
-    ${SHADER_DIR}/lib/tonemap.glsl
-)
-
-set(
-    C_SHARED_SHADERS
-    
-    ${SHADER_DIR}/c_shared/bindless.h
-    ${SHADER_DIR}/c_shared/cull_data.h
-    ${SHADER_DIR}/c_shared/defines.h
-    ${SHADER_DIR}/c_shared/dvar_defines.h
-    ${SHADER_DIR}/c_shared/limits.h
-    ${SHADER_DIR}/c_shared/material.h
-    ${SHADER_DIR}/c_shared/model.h
-    ${SHADER_DIR}/c_shared/scene_globals.h
-    ${SHADER_DIR}/c_shared/ui.h
-)
+file(GLOB_RECURSE C_SHARED_SHADERS ${SHADER_DIR}/c_shared/*)

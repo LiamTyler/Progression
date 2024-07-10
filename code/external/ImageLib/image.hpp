@@ -108,8 +108,7 @@ constexpr ImageFormat GetFormatAfterDecompression( ImageFormat format )
 
 inline uint32_t BitsPerPixel( ImageFormat format )
 {
-    static uint8_t mapping[] =
-    {
+    static uint8_t mapping[] = {
         0,   // INVALID,
         8,   // R8_UNORM,
         16,  // R8_G8_UNORM,
@@ -145,8 +144,7 @@ inline uint32_t BitsPerPixel( ImageFormat format )
 
 inline uint32_t NumChannels( ImageFormat format )
 {
-    static constexpr uint8_t mapping[] =
-    {
+    static constexpr uint8_t mapping[] = {
         0, // INVALID,
         1, // R8_UNORM,
         2, // R8_G8_UNORM,
@@ -309,8 +307,6 @@ struct FloatImage2D
     void SetFromFloat4( uint32_t row, uint32_t col, const vec4& pixel );
 };
 
-void HDRImageToLDR( FloatImage2D& image );
-
 enum FaceIndex
 {
     FACE_BACK   = 0,
@@ -340,8 +336,8 @@ struct FloatImageCubemap
             faces[i] = FloatImage2D( size, size, inNumChannels );
     }
 
-    bool LoadFromEquirectangular( const std::string& filename );
-    bool LoadFromFaces( const std::string filenames[6] );
+    bool Load( const std::string filenames[6] );
+    bool Load( RawImage2D* rawImgs );
 
     // just for debug visualization + confirmation
     bool SaveUnfoldedFaces( const std::string& filename ) const;

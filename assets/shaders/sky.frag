@@ -1,10 +1,11 @@
 #version 450
 
 #include "global_descriptors.glsl"
+#include "c_shared/dvar_defines.h"
 #include "c_shared/sky.h"
 #include "lib/panorama_sampling_utils.glsl"
 
-layout( push_constant ) uniform PushConstants
+layout( scalar, push_constant ) uniform PushConstants
 {
     SkyDrawData drawData;
 };
@@ -22,6 +23,19 @@ void main()
     }
     else
     {
-        finalColor = vec4( 0, 1, 0, 1 );
+        finalColor = vec4( 1 );
     }
+    
+    finalColor.rgb *= drawData.scaleFactor;
+    
+#if IS_DEBUG_SHADER
+    if ( drawData.r_skyboxViz == PG_DEBUG_SKY_BLACK )
+    {
+        finalColor = vec4( 0, 0, 0, 1 );
+    }
+    else if ( drawData.r_skyboxViz == PG_DEBUG_SKY_WHITE )
+    {
+        finalColor = vec4( 1 );
+    }
+#endif // #if IS_DEBUG_SHADER
 }

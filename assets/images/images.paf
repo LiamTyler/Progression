@@ -10,6 +10,16 @@
 		"equirectangularFilename": "images/skies/cayley_interior_4k.exr",
 		"semantic": "ENVIRONMENT_MAP"
 	} },
+    { "Image": {
+		"name": "water_skybox",
+		"left":   "images/skies/learnopengl/left.jpg",
+		"right":  "images/skies/learnopengl/right.jpg",
+		"back":   "images/skies/learnopengl/back.jpg",
+		"front":  "images/skies/learnopengl/front.jpg",
+		"top":    "images/skies/learnopengl/top.jpg",
+		"bottom": "images/skies/learnopengl/bottom.jpg",
+		"semantic": "ENVIRONMENT_MAP"
+	} },
     { "Textureset": {
 		"name": "macaw",
 		"albedoMap": "images/macaw.png"

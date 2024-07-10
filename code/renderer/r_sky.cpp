@@ -2,6 +2,7 @@
 #include "asset/types/gfx_image.hpp"
 #include "c_shared/sky.h"
 #include "core/scene.hpp"
+#include "r_dvars.hpp"
 #include "r_pipeline_manager.hpp"
 
 namespace PG::Gfx::Sky
@@ -70,6 +71,7 @@ void Shutdown()
 void DrawSkyTask( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
+    const Scene* scene    = data->scene;
 
     cmdBuf.BindPipeline( s_pipeline );
     cmdBuf.BindGlobalDescriptors();
@@ -77,9 +79,13 @@ void DrawSkyTask( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.SetScissor( SceneSizedScissor() );
 
     GpuData::SkyDrawData pushConstants;
-    pushConstants.VP              = data->scene->camera.GetP() * mat4( mat3( data->scene->camera.GetV() ) );
+    pushConstants.VP              = scene->camera.GetP() * mat4( mat3( scene->camera.GetV() ) );
     pushConstants.vertexBuffer    = s_cubeVertexBuffer.GetDeviceAddress();
-    pushConstants.skyTextureIndex = data->scene->skybox->gpuTexture.GetBindlessIndex();
+    pushConstants.scaleFactor     = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
+    pushConstants.skyTextureIndex = scene->skybox ? scene->skybox->gpuTexture.GetBindlessIndex() : PG_INVALID_TEXTURE_INDEX;
+#if USING( DEVELOPMENT_BUILD )
+    pushConstants.r_skyboxViz = r_skyboxViz.GetUint();
+#endif // #if USING( DEVELOPMENT_BUILD )
     cmdBuf.PushConstants( pushConstants );
 
     cmdBuf.BindIndexBuffer( s_cubeIndexBuffer, IndexType::UNSIGNED_SHORT );

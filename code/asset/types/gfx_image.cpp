@@ -253,16 +253,25 @@ static bool Load_EnvironmentMap_EquiRectangular( GfxImage* gfxImage, const GfxIm
 {
     BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
     RawImage2D compressed = CompressToBC( img, compressorSettings );
-
-    PixelFormat format = ImageFormatToPixelFormat( compressed.format, false );
-    RawImage2DMipsToGfxImage( *gfxImage, { compressed }, format );
+    RawImage2DMipsToGfxImage( *gfxImage, { compressed }, PixelFormat::BC6H_UFLOAT );
 
     return gfxImage->pixels != nullptr;
 }
 
 static bool Load_EnvironmentMap_CubeMap( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo, RawImage2D ( &faces )[6] )
 {
-    return false; // TODO
+    FloatImageCubemap cubemap;
+    if ( !cubemap.Load( faces ) )
+        return false;
+
+    FloatImage2D equiImg = CubemapToEquirectangular( cubemap );
+    RawImage2D rawImg    = RawImage2DFromFloatImage( equiImg, ImageFormat::R16_G16_B16_FLOAT );
+
+    BCCompressorSettings compressorSettings( ImageFormat::BC6H_U16F, COMPRESSOR_QUALITY );
+    RawImage2D compressed = CompressToBC( rawImg, compressorSettings );
+    RawImage2DMipsToGfxImage( *gfxImage, { compressed }, PixelFormat::BC6H_UFLOAT );
+
+    return gfxImage->pixels != nullptr;
 }
 
 static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* createInfo )
@@ -273,10 +282,8 @@ static bool Load_EnvironmentMap( GfxImage* gfxImage, const GfxImageCreateInfo* c
     {
         if ( !createInfo->filenames[i].empty() )
         {
-            if ( !faces[i].Load( GetImageFullPath( createInfo->filenames[i] ) ) )
-            {
+            if ( !faces[numFaces].Load( GetImageFullPath( createInfo->filenames[i] ) ) )
                 return false;
-            }
             ++numFaces;
         }
     }
@@ -454,12 +461,15 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
     if ( numFaces == 1 )
     {
         PG_ASSERT( !filenames[0].empty(), "Filename must be in first slot, for equirectangular inputs" );
-        if ( !cubemap.LoadFromEquirectangular( filenames[0] ) )
+        FloatImage2D equiImg;
+        if ( !equiImg.Load( filenames[0] ) )
             return false;
+
+        cubemap = EquirectangularToCubemap( equiImg );
     }
     else if ( numFaces == 6 )
     {
-        if ( !cubemap.LoadFromFaces( filenames ) )
+        if ( !cubemap.Load( filenames ) )
             return false;
     }
     else
@@ -495,6 +505,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
         }
     }
 
+    LOG_WARN( "For the irradianceMap, we are using a low number of samples for now, for faster convert times" );
     FloatImageCubemap irradianceMap( 32, cubemap.numChannels );
     for ( i32 faceIdx = 0; faceIdx < 6; ++faceIdx )
     {
@@ -535,7 +546,7 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
                 irradiance *= (PI / numSamples);
                 irradianceMap.faces[faceIdx].SetFromFloat4( dstRow, dstCol, vec4( irradiance, 0 ) );
 #else
-                constexpr f32 angleDelta = PI / 180.0f;
+                constexpr f32 angleDelta = PI / 60.0f;
                 for ( f32 phi = 0; phi < 2 * PI; phi += angleDelta )
                 {
                     for ( f32 theta = 0; theta < PI / 2; theta += angleDelta )
@@ -553,7 +564,6 @@ static bool Load_EnvironmentMapIrradiance( GfxImage* gfxImage, const GfxImageCre
 #endif
             }
         }
-        LOG( "Convolved face %d / 6...", faceIdx + 1 );
     }
 
     ConvertPGCubemapToVkCubemap( irradianceMap );
@@ -588,12 +598,15 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
     if ( numFaces == 1 )
     {
         PG_ASSERT( !filenames[0].empty(), "Filename must be in first slot, for equirectangular inputs" );
-        if ( !cubemap.LoadFromEquirectangular( filenames[0] ) )
+        FloatImage2D equiImg;
+        if ( !equiImg.Load( filenames[0] ) )
             return false;
+
+        cubemap = EquirectangularToCubemap( equiImg );
     }
     else if ( numFaces == 6 )
     {
-        if ( !cubemap.LoadFromFaces( filenames ) )
+        if ( !cubemap.Load( filenames ) )
             return false;
     }
     else
@@ -602,8 +615,8 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
         return false;
     }
 
-    constexpr i32 FACE_SIZE  = 128;
-    constexpr i32 MIP_LEVELS = 8; // keep in sync with FACE_SIZE
+    constexpr i32 FACE_SIZE  = 64;
+    constexpr i32 MIP_LEVELS = 7; // keep in sync with FACE_SIZE
     FloatImageCubemap outputMips[MIP_LEVELS];
     for ( i32 mipLevel = 0; mipLevel < MIP_LEVELS; ++mipLevel )
     {
@@ -645,7 +658,6 @@ static bool Load_EnvironmentMapReflectionProbe( GfxImage* gfxImage, const GfxIma
                     outputMips[mipLevel].faces[faceIdx].SetFromFloat4( dstRow, dstCol, vec4( prefilteredColor, 0 ) );
                 }
             }
-            LOG( "Convolved face %d / 6...", faceIdx + 1 );
         }
     }
 

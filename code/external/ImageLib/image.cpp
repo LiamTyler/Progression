@@ -449,104 +449,29 @@ void FloatImage2D::SetFromFloat4( uint32_t pixelIndex, const vec4& pixel )
 
 void FloatImage2D::SetFromFloat4( uint32_t row, uint32_t col, const vec4& pixel ) { SetFromFloat4( row * width + col, pixel ); }
 
-void HDRImageToLDR( FloatImage2D& image )
+static bool LoadCubemapMetadata( FloatImageCubemap& cubemap )
 {
-    image.ForEachPixelIndex(
-        [&]( uint32_t pixelIdx )
-        {
-            vec4 p   = image.GetFloat4( pixelIdx );
-            vec3 rgb = p;
-            rgb /= ( rgb + vec3( 1.0f ) );
-            image.SetFromFloat4( pixelIdx, vec4( rgb, p.a ) );
-        } );
-}
-
-// +x -> right, +y -> forward, +z -> up
-// uv (0, 0) is upper left corner of image
-vec3 CubemapFaceUVToDirection( int cubeFace, vec2 uv )
-{
-    uv = 2.0f * uv - vec2( 1.0f );
-    vec3 dir( 0 );
-    switch ( cubeFace )
+    if ( cubemap.faces[0].width != cubemap.faces[0].height )
     {
-    case FACE_BACK: dir = vec3( -uv.x, -1, -uv.y ); break;
-    case FACE_LEFT: dir = vec3( -1, uv.x, -uv.y ); break;
-    case FACE_FRONT: dir = vec3( uv.x, 1, -uv.y ); break;
-    case FACE_RIGHT: dir = vec3( 1, -uv.x, -uv.y ); break;
-    case FACE_TOP: dir = vec3( uv.x, uv.y, 1 ); break;
-    case FACE_BOTTOM: dir = vec3( uv.x, -uv.y, -1 ); break;
-    }
-
-    return Normalize( dir );
-}
-
-// assumes direction is normalized, and right handed +Z up coordinates, upper left face coord = uv (0,0)
-vec2 CubemapDirectionToFaceUV( const vec3& direction, int& faceIndex )
-{
-    vec3 v    = direction;
-    vec3 vAbs = abs( v );
-    float ma;
-    vec2 uv;
-    if ( vAbs.y >= vAbs.x && vAbs.y >= vAbs.z )
-    {
-        faceIndex = v.y < 0.0f ? FACE_BACK : FACE_FRONT;
-        ma        = 0.5f / vAbs.y;
-        uv        = vec2( v.y < 0.0f ? -v.x : v.x, -v.z );
-    }
-    else if ( vAbs.z >= vAbs.x )
-    {
-        faceIndex = v.z < 0.0f ? FACE_BOTTOM : FACE_TOP;
-        ma        = 0.5f / vAbs.z;
-        uv        = vec2( v.x, v.z < 0.0f ? -v.y : v.y );
-    }
-    else
-    {
-        faceIndex = v.x < 0.0 ? FACE_LEFT : FACE_RIGHT;
-        ma        = 0.5f / vAbs.x;
-        uv        = vec2( v.x < 0.0f ? v.y : -v.y, -v.z );
-    }
-    return uv * ma + vec2( 0.5f );
-}
-
-// http://paulbourke.net/dome/dualfish2sphere/
-// NOTE: Keep in sync with skybox.frag
-// atan( x, y ) instead of ( y, x ) because im assume that the center pixel of a
-// lat-long image should correspond to the direction (0, +1, 0), which would be the
-// 'front' face if it was a cubemap
-vec2 DirectionToEquirectangularUV( const vec3& dir )
-{
-    // assumes normalized input dir
-    float lon = atan2( dir.x, dir.y ); // -pi to pi
-    float lat = acos( dir.z );         // 0 to pi
-    vec2 uv   = { 0.5f * lon / PI + 0.5f, lat / PI };
-
-    return uv;
-}
-
-vec3 EquirectangularUVToDirection( const vec2& uv )
-{
-    float lon = ( 2 * uv.x - 1 ) * PI; // -pi to pi
-    float lat = uv.y * PI;             // 0 to pi, with 0 being the top row of the image
-
-    vec3 dir;
-    dir.x = sin( lat ) * cos( lon );
-    dir.y = sin( lat ) * sin( lon );
-    dir.z = cos( lat );
-
-    return dir;
-}
-
-bool FloatImageCubemap::LoadFromEquirectangular( const std::string& filename )
-{
-    FloatImage2D equiImg;
-    if ( !equiImg.Load( filename ) )
+        LOG_ERR( "Cubemap images must all be the same size" );
         return false;
+    }
+    cubemap.size        = cubemap.faces[0].width;
+    cubemap.numChannels = cubemap.faces[0].numChannels;
+    for ( int i = 0; i < 6; ++i )
+    {
+        const FloatImage2D& face = cubemap.faces[i];
+        if ( face.width != cubemap.size || face.height != cubemap.size || face.numChannels != cubemap.numChannels )
+        {
+            LOG_ERR( "Cubemap images must all be the same size and number of channels" );
+            return false;
+        }
+    }
 
-    *this = EquirectangularToCubemap( equiImg );
     return true;
 }
 
-bool FloatImageCubemap::LoadFromFaces( const std::string filenames[6] )
+bool FloatImageCubemap::Load( const std::string filenames[6] )
 {
     for ( int i = 0; i < 6; ++i )
     {
@@ -554,7 +479,15 @@ bool FloatImageCubemap::LoadFromFaces( const std::string filenames[6] )
             return false;
     }
 
-    return true;
+    return LoadCubemapMetadata( *this );
+}
+
+bool FloatImageCubemap::Load( RawImage2D* rawImgs )
+{
+    for ( int i = 0; i < 6; ++i )
+        faces[i] = FloatImageFromRawImage2D( rawImgs[i] );
+
+    return LoadCubemapMetadata( *this );
 }
 
 static void CopyImageIntoAnother( FloatImage2D& dstImg, uint32_t dstRow, uint32_t dstCol, const FloatImage2D& srcImg )
@@ -811,51 +744,6 @@ std::vector<RawImage2D> RawImage2DFromFloatImages( const std::vector<FloatImage2
     }
 
     return rawImages;
-}
-
-FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg )
-{
-    FloatImageCubemap cubemap;
-    cubemap.size        = Max( 1u, equiImg.width / 4u );
-    cubemap.numChannels = equiImg.numChannels;
-    for ( uint32_t i = 0; i < 6; ++i )
-    {
-        cubemap.faces[i] = FloatImage2D( cubemap.size, cubemap.size, cubemap.numChannels );
-
-        #pragma omp parallel for
-        for ( int r = 0; r < (int)cubemap.size; ++r )
-        {
-            for ( int c = 0; c < (int)cubemap.size; ++c )
-            {
-                vec2 localUV = { ( c + 0.5f ) / (float)cubemap.size, ( r + 0.5f ) / (float)cubemap.size };
-                vec3 dir     = CubemapFaceUVToDirection( i, localUV );
-                vec2 equiUV  = DirectionToEquirectangularUV( dir );
-                cubemap.faces[i].SetFromFloat4( r, c, equiImg.Sample( equiUV, true, true ) );
-            }
-        }
-    }
-
-    return cubemap;
-}
-
-FloatImage2D CubemapToEquirectangular( const FloatImageCubemap& cubemap )
-{
-    FloatImage2D equiImg( 4 * cubemap.size, 2 * cubemap.size, cubemap.numChannels );
-    // #pragma omp parallel for
-    for ( int r = 0; r < (int)equiImg.height; ++r )
-    {
-        for ( int c = 0; c < (int)equiImg.width; ++c )
-        {
-            vec2 equiUV = { ( c + 0.5f ) / (float)equiImg.width, ( r + 0.5f ) / (float)equiImg.height };
-            vec3 dir    = EquirectangularUVToDirection( equiUV );
-            vec2 newUV  = DirectionToEquirectangularUV( dir );
-            PG_ASSERT( r == static_cast<int>( newUV.y * equiImg.height ) );
-            PG_ASSERT( c == static_cast<int>( newUV.x * equiImg.width ) );
-            equiImg.SetFromFloat4( r, c, cubemap.Sample( dir ) );
-        }
-    }
-
-    return equiImg;
 }
 
 std::vector<FloatImage2D> GenerateMipmaps( const FloatImage2D& image, const MipmapGenerationSettings& settings )

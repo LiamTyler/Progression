@@ -174,7 +174,7 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
 
 #if USING( CONVERTER )
     savedSpirv = std::move( spirv );
-    AddIncludeCacheEntry( cacheName, createInfo, preproc );
+    AddIncludeCacheEntry( createInfo, preproc );
 #endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
     m_handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );

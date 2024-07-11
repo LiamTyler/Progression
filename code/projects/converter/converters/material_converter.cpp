@@ -74,7 +74,8 @@ std::string MaterialConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     HashCombine( hash, info->emissiveTint );
     std::string texturesetName = info->texturesetName.empty() ? "default" : info->texturesetName;
     HashCombine( hash, texturesetName );
-    auto texsetInfo             = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );
+    auto texsetInfo = AssetDatabase::FindAssetInfo<TexturesetCreateInfo>( ASSET_TYPE_TEXTURESET, texturesetName );
+    PG_ASSERT( texsetInfo );
     std::string albedoMetalness = texsetInfo->GetAlbedoMetalnessImageName( info->applyAlbedo, info->applyMetalness );
     HashCombine( hash, albedoMetalness );
     std::string normalRoughness = texsetInfo->GetNormalRoughnessImageName( info->applyNormals, info->applyRoughness );

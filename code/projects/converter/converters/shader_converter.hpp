@@ -10,7 +10,7 @@ namespace PG
 void InitShaderIncludeCache();
 void CloseShaderIncludeCache();
 
-void AddIncludeCacheEntry( const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput );
+void AddIncludeCacheEntry( const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput );
 
 class ShaderConverter : public BaseAssetConverterTemplate<Shader, ShaderCreateInfo>
 {

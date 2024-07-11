@@ -207,12 +207,20 @@ bool PipelineParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<Gfx::PipelineColorAttachmentInfo&> cMapping(
     {
-        { "format", []( cjval v, Gfx::PipelineColorAttachmentInfo& s ) { s.format = PixelFormatFromString( ParseString( v ) ); } },
+        { "format", []( cjval v, Gfx::PipelineColorAttachmentInfo& s ) {
+            s.format = PixelFormatFromString( ParseString( v ) );
+            if ( s.format == PixelFormat::INVALID )
+                LOG_WARN( "Invalid color attachment format '%s'", v.GetString() );
+        } },
     });
 
     static JSONFunctionMapper<Gfx::PipelineDepthInfo&> dMapping(
     {
-        { "format",             []( cjval v, Gfx::PipelineDepthInfo& s ) { s.format = PixelFormatFromString( ParseString( v ) ); } },
+        { "format",             []( cjval v, Gfx::PipelineDepthInfo& s ) {
+            s.format = PixelFormatFromString( ParseString( v ) );
+            if ( s.format == PixelFormat::INVALID )
+                LOG_WARN( "Invalid depth attachment format '%s'", v.GetString() );
+        } },
         { "depthTestEnabled",   []( cjval v, Gfx::PipelineDepthInfo& s ) { s.depthTestEnabled = ParseBool( v ); } },
         { "depthWriteEnabled",  []( cjval v, Gfx::PipelineDepthInfo& s ) { s.depthWriteEnabled = ParseBool( v ); } },
         { "compareFunc",        []( cjval v, Gfx::PipelineDepthInfo& s ) { s.compareFunc = CompareFunction_ParseEnum( v ); } },

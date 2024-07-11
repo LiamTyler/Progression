@@ -159,7 +159,6 @@ bool LoadFastFile( const std::string& fname )
 
     LOG( "Loading fastfile '%s'...", fname.c_str() );
     std::string fullName = PG_ASSET_DIR "cache/fastfiles/" + fname + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
-    // std::string fullName = "assets/cache/fastfiles/" + fname + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     Serializer serializer;
     if ( !serializer.OpenForRead( fullName ) )
     {

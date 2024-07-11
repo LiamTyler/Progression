@@ -53,8 +53,7 @@ void PG::CloseShaderIncludeCache()
     }
 }
 
-void PG::AddIncludeCacheEntry(
-    const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
+void PG::AddIncludeCacheEntry( const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
 {
     std::vector<std::string> dependentFiles;
     dependentFiles.reserve( 1 + preprocOutput.includedFilesAbsPath.size() );
@@ -63,7 +62,7 @@ void PG::AddIncludeCacheEntry(
         dependentFiles.push_back( file );
 
     std::scoped_lock lock( s_shaderIncludeCacheLock );
-    s_shaderIncludeCache[cacheName] = std::move( dependentFiles );
+    s_shaderIncludeCache[createInfo->cacheName] = std::move( dependentFiles );
 }
 
 static bool GetIncludeCacheEntry( const std::string& cacheName, std::vector<std::string>& entry )
@@ -81,8 +80,7 @@ static bool GetIncludeCacheEntry( const std::string& cacheName, std::vector<std:
 #else  // #if USING( SHADER_INCLUDE_CACHE )
 void PG::InitShaderIncludeCache() {}
 void PG::CloseShaderIncludeCache() {}
-void PG::AddIncludeCacheEntry(
-    const std::string& cacheName, const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
+void PG::AddIncludeCacheEntry( const ShaderCreateInfo* createInfo, const ShaderPreprocessOutput& preprocOutput )
 {
     PG_UNUSED( cacheName );
     PG_UNUSED( createInfo );
@@ -101,9 +99,8 @@ std::string ShaderConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
 AssetStatus ShaderConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, time_t cacheTimestamp )
 {
 #if USING( SHADER_INCLUDE_CACHE )
-    std::string cacheName = GetCacheNameInternal( info );
     std::vector<std::string> includeList;
-    if ( GetIncludeCacheEntry( cacheName, includeList ) )
+    if ( GetIncludeCacheEntry( info->cacheName, includeList ) )
     {
         for ( const std::string& includeFname : includeList )
         {

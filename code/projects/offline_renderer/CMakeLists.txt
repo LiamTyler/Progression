@@ -7,10 +7,7 @@ include(source_files)
 set(
 	SRC
     ${ASSET_SRC}
-    ${ASSET_PARSE_SRC}
-    
-    ${CODE_DIR}/asset/asset_file_database.cpp
-    ${CODE_DIR}/asset/asset_file_database.hpp    
+    ${ASSET_PARSE_SRC}    
     ${CODE_DIR}/asset/shader_preprocessor.cpp
     ${CODE_DIR}/asset/shader_preprocessor.hpp
     

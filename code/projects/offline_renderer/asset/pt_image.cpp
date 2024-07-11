@@ -1,5 +1,4 @@
 #include "pt_image.hpp"
-#include "asset/asset_file_database.hpp"
 #include "asset/asset_manager.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "core/image_processing.hpp"

@@ -386,7 +386,7 @@ void GetRGBAOrder( PixelFormat format, i32 channelRemap[4] )
 
 std::string PixelFormatName( PixelFormat format )
 {
-    const char* names[] = {
+    static const char* names[] = {
         "INVALID",                       // INVALID
         "R8_UNORM",                      // R8_UNORM
         "R8_SNORM",                      // R8_SNORM
@@ -479,7 +479,7 @@ std::string PixelFormatName( PixelFormat format )
 
 PixelFormat PixelFormatFromString( const std::string& format )
 {
-    std::unordered_map<std::string, PixelFormat> pixelFormatMap = {
+    static std::unordered_map<std::string, PixelFormat> pixelFormatMap = {
         {"R8_UNORM",                      PixelFormat::R8_UNORM                     },
         {"R8_SNORM",                      PixelFormat::R8_SNORM                     },
         {"R8_UINT",                       PixelFormat::R8_UINT                      },
@@ -567,12 +567,7 @@ PixelFormat PixelFormatFromString( const std::string& format )
     };
 
     auto it = pixelFormatMap.find( format );
-    if ( it == pixelFormatMap.end() )
-    {
-        return PixelFormat::INVALID;
-    }
-
-    return it->second;
+    return it == pixelFormatMap.end() ? PixelFormat::INVALID : it->second;
 }
 
 } // namespace PG

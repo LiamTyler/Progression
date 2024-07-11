@@ -31,8 +31,7 @@ static_assert( ASSET_TYPE_COUNT == 8 );
 
 static std::string GetCachedPath( AssetType assetType, const std::string& assetCacheName )
 {
-    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + "_v" + std::to_string( g_assetVersions[assetType] ) +
-           assetCacheFileExtensions[assetType];
+    return ROOT_DIR + assetCacheFolders[assetType] + assetCacheName + assetCacheFileExtensions[assetType];
 }
 
 namespace PG::AssetCache

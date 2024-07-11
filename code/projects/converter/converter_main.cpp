@@ -248,7 +248,12 @@ bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets, co
         LOG( "Fastfile %s is missing. Building...", fastfileName.c_str() );
         createFastFile = true;
     }
-    else if ( ffTimestamp < GetLatestFastfileDependency() || outOfDateAssets || prevAssetList != usedAssetList )
+    else if ( ffTimestamp < GetLatestFastfileDependency() || outOfDateAssets )
+    {
+        LOG( "Fastfile %s is out of date. Rebuilding...", fastfileName.c_str() );
+        createFastFile = true;
+    }
+    else if ( prevAssetList != usedAssetList )
     {
         LOG( "Fastfile %s is out of date. Rebuilding...", fastfileName.c_str() );
         createFastFile = true;
@@ -271,7 +276,7 @@ bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets, co
             {
                 AssetType assetType = (AssetType)assetTypeIdx;
                 ff.Write( assetType );
-                const std::string cacheName = g_converters[assetTypeIdx]->GetCacheName( baseInfo );
+                const std::string cacheName = baseInfo->cacheName;
                 size_t numBytes;
                 auto assetRawBytes = AssetCache::GetCachedAssetRaw( assetType, cacheName, numBytes );
                 if ( !assetRawBytes )

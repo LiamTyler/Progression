@@ -20,6 +20,10 @@ namespace PG
 struct BaseAssetCreateInfo
 {
     std::string name;
+
+#if USING( CONVERTER )
+    std::string cacheName;
+#endif // #if USING( CONVERTER )
 };
 
 class BaseAsset
@@ -42,11 +46,6 @@ public:
 
     void SetName( std::string_view inName );
     const char* GetName() const;
-
-#if USING( CONVERTER )
-    // occassionally handy to have access to this during the Load() function, mostly uneeded though
-    std::string cacheName;
-#endif // #if USING( CONVERTER )
 
 protected:
 #if USING( ASSET_NAMES )

@@ -8,7 +8,6 @@ namespace PG
 
 ConverterConfigOptions g_converterConfigOptions;
 static time_t s_latestAssetTimestamp;
-static AssetList s_assetList;
 
 void AddFastfileDependency( const std::string& file )
 {
@@ -102,26 +101,36 @@ void ClearAllUsedAssets()
         s_pendingAssets[assetTypeIdx].clear();
         AssetManager::g_resourceMaps[assetTypeIdx].clear();
     }
-    s_assetList.Clear();
 }
 
-void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo )
+void AddUsedAsset( AssetType assetType, BaseCreateInfoPtr createInfo )
 {
     if ( createInfo == nullptr )
     {
         LOG_ERR( "Adding null asset for conversion! AssetType: %s", g_assetNames[assetType] );
         throw std::runtime_error( "Adding null asset for conversion! AssetType: " + std::string( g_assetNames[assetType] ) );
     }
+    createInfo->cacheName = g_converters[assetType]->GetCacheName( createInfo );
 
-    s_assetList.Add( assetType, createInfo->name );
     s_pendingAssets[assetType].insert( createInfo );
     g_converters[assetType]->AddReferencedAssets( createInfo );
 }
 
-const AssetList& GetUsedAssetList()
+AssetList GetUsedAssetList()
 {
-    s_assetList.Sort();
-    return s_assetList;
+    AssetList assetList;
+    for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
+    {
+        const auto& assetCIMap = s_pendingAssets[i];
+        assetList.assets->reserve( assetCIMap.size() );
+        for ( const BaseCreateInfoPtr& info : assetCIMap )
+        {
+            assetList.Add( (AssetType)i, info->cacheName );
+        }
+    }
+
+    assetList.Sort();
+    return assetList;
 }
 
 std::vector<BaseCreateInfoPtr> GetUsedAssetsOfType( AssetType assetType )

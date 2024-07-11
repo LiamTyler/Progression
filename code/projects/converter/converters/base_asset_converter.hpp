@@ -43,14 +43,15 @@ struct AssetList
     void Export( const std::string& sceneFile ) const;
     bool operator==( const AssetList& list ) const;
 
+    // cache names
     std::vector<std::string> assets[ASSET_TYPE_COUNT];
 };
 
 using BaseCreateInfoPtr      = std::shared_ptr<BaseAssetCreateInfo>;
 using ConstBaseCreateInfoPtr = const std::shared_ptr<const BaseAssetCreateInfo>;
 void ClearAllUsedAssets();
-void AddUsedAsset( AssetType assetType, const BaseCreateInfoPtr& createInfo );
-const AssetList& GetUsedAssetList();
+void AddUsedAsset( AssetType assetType, BaseCreateInfoPtr createInfo );
+AssetList GetUsedAssetList();
 std::vector<BaseCreateInfoPtr> GetUsedAssetsOfType( AssetType assetType );
 
 class BaseAssetConverter
@@ -79,7 +80,8 @@ public:
 
     virtual std::string GetCacheName( ConstBaseCreateInfoPtr& baseInfo )
     {
-        return GetCacheNameInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
+        return GetCacheNameInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) ) + "_v" +
+               std::to_string( g_assetVersions[assetType] );
     }
 
     virtual AssetStatus IsAssetOutOfDate( ConstBaseCreateInfoPtr& baseInfo ) override
@@ -90,7 +92,7 @@ public:
             return AssetStatus::OUT_OF_DATE;
         }
 
-        time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, GetCacheName( baseInfo ) );
+        time_t cachedTimestamp = AssetCache::GetAssetTimestamp( assetType, baseInfo->cacheName );
         if ( cachedTimestamp == NO_TIMESTAMP )
         {
             AddFastfileDependency( LATEST_TIMESTAMP );
@@ -120,8 +122,7 @@ protected:
     virtual bool ConvertInternal( ConstDerivedInfoPtr& derivedCreateInfo )
     {
         DerivedAsset asset;
-        const std::string cacheName = GetCacheName( derivedCreateInfo );
-        asset.cacheName             = cacheName;
+        const std::string& cacheName = derivedCreateInfo->cacheName;
         if ( !asset.Load( derivedCreateInfo.get() ) )
         {
             LOG_ERR( "Failed to convert asset %s %s", g_assetNames[assetType], derivedCreateInfo->name.c_str() );
@@ -130,8 +131,7 @@ protected:
 
         if ( !AssetCache::CacheAsset( assetType, cacheName, &asset ) )
         {
-            LOG_ERR(
-                "Failed to cache asset %s %s (%s)", g_assetNames[assetType], derivedCreateInfo->name.c_str(), asset.cacheName.c_str() );
+            LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], derivedCreateInfo->name.c_str(), cacheName.c_str() );
             return false;
         }
 

@@ -57,6 +57,8 @@ bool RawImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
         return data != nullptr;
     }
 
+    stbi_hdr_to_ldr_gamma( 1.0f );
+    stbi_hdr_to_ldr_scale( 1.0f );
     std::string ext = GetFileExtension( filename );
     if ( ext == ".jpg" || ext == ".png" || ext == ".tga" || ext == ".bmp" || ext == ".ppm" || ext == ".pbm" || ext == ".hdr" )
     {

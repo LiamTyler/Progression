@@ -1,7 +1,7 @@
 [
     { "Material": { "name": "red", "albedoTint": [ 1, 0, 0 ] } },
     { "Material": { "name": "green", "albedoTint": [ 0, 1, 0 ] } },
-    { "Material": { "name": "blue", "albedoTint": [ 0, 0, 0.5 ] } },
+    { "Material": { "name": "blue", "albedoTint": [ 0, 0, 1 ] } },
     { "Material": { "name": "white", "albedoTint": [ 1, 1, 1 ] } },
     { "Material": { "name": "black", "albedoTint": [ 0, 0, 0 ] } },
     { "Material": { "name": "yellow", "albedoTint": [ 1, 1, 0 ] } },

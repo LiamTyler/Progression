@@ -104,7 +104,7 @@ FloatImageCubemap EquirectangularToCubemap( const FloatImage2D& equiImg )
 FloatImage2D CubemapToEquirectangular( const FloatImageCubemap& cubemap )
 {
     FloatImage2D equiImg( 4 * cubemap.size, 2 * cubemap.size, cubemap.numChannels );
-    // #pragma omp parallel for
+#pragma omp parallel for
     for ( int r = 0; r < (int)equiImg.height; ++r )
     {
         for ( int c = 0; c < (int)equiImg.width; ++c )

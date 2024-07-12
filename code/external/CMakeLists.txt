@@ -198,6 +198,8 @@ SET_LOCAL_AND_PARENT(IMAGELIB_EXT_FILES
     ${EXT_DIR}/ImageLib/image.hpp
 	${EXT_DIR}/ImageLib/image_load.cpp
 	${EXT_DIR}/ImageLib/image_save.cpp
+    ${EXT_DIR}/ImageLib/image_transformations.cpp
+	${EXT_DIR}/ImageLib/image_transformations.hpp
 )
 
 #-------------------------------PUGIXML----------------------------------------

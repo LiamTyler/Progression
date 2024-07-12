@@ -61,6 +61,6 @@ void main()
         toneMappedColor = clamp( toneMappedColor, vec3( 0 ), vec3( 1 ) );
     }
 
-    toneMappedColor = LinearToGammaSRGB( toneMappedColor );
+    //toneMappedColor = LinearToGammaSRGB( toneMappedColor );
     imageStore( RWImages2D[PushConstants.outputImageIndex], texelCoord, vec4( toneMappedColor, 1 ) );
 }

@@ -55,4 +55,21 @@ TGResourceHandle GetEmbeddedResHandle( T val )
     return handle;
 }
 
+enum class TaskType : u16
+{
+    NONE     = 0, // only valid internally for signaling a resource has no previous task yet (first usage)
+    COMPUTE  = 1,
+    GRAPHICS = 2,
+    TRANSFER = 3,
+    PRESENT  = 4,
+};
+
+struct TaskHandle
+{
+    u16 index : 13;
+    TaskType type : 3;
+
+    TaskHandle( u16 inIndex, TaskType inType ) : index( inIndex ), type( inType ) {}
+};
+
 } // namespace PG::Gfx

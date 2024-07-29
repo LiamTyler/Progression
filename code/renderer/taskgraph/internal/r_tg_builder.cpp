@@ -26,7 +26,7 @@ TGBTextureRef PipelineTaskBuilder::AddTextureOutput(
 void PipelineTaskBuilder::AddTextureOutput( TGBTextureRef& ref )
 {
     builder->UpdateTextureLifetimeAndUsage( ref, taskHandle, VK_IMAGE_USAGE_STORAGE_BIT );
-    for ( TGBTextureInfo& tInfo : textures )
+    for ( TGBTextureTaskInfo& tInfo : textures )
     {
         if ( tInfo.ref == ref )
         {
@@ -42,7 +42,7 @@ void PipelineTaskBuilder::AddTextureInput( TGBTextureRef& ref )
 {
     builder->UpdateTextureLifetimeAndUsage( ref, taskHandle, VK_IMAGE_USAGE_STORAGE_BIT );
 #if USING( TG_DEBUG )
-    for ( TGBTextureInfo& tInfo : textures )
+    for ( TGBTextureTaskInfo& tInfo : textures )
     {
         PG_ASSERT( tInfo.ref != ref, "If a resource is RW for this task, the call to AddTextureInput must come before the corresponding "
                                      "AddTextureOutput for this texture" );
@@ -68,7 +68,7 @@ TGBBufferRef PipelineTaskBuilder::AddBufferOutput( std::string_view name, VmaMem
 void PipelineTaskBuilder::AddBufferOutput( TGBBufferRef& ref )
 {
     builder->UpdateBufferLifetime( ref, taskHandle );
-    for ( TGBBufferInfo& bInfo : buffers )
+    for ( TGBBufferTaskInfo& bInfo : buffers )
     {
         if ( bInfo.ref == ref )
         {
@@ -85,7 +85,7 @@ void PipelineTaskBuilder::AddBufferInput( TGBBufferRef& ref, BufferUsage usageFo
     builder->UpdateBufferLifetime( ref, taskHandle );
     builder->buffers[ref.index].bufferUsage |= usageForThisTask;
 #if USING( TG_DEBUG )
-    for ( TGBBufferInfo& bInfo : buffers )
+    for ( TGBBufferTaskInfo& bInfo : buffers )
     {
         PG_ASSERT( bInfo.ref != ref, "If a resource is RW for this task, the call to AddBufferInput must come before the corresponding "
                                      "AddBufferOutput for this texture" );

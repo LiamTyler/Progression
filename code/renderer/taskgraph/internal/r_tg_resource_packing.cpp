@@ -121,7 +121,7 @@ MemoryBucket::MemoryBucket( const ResourceData& res )
 
 bool MemoryBucket::AddResource( const ResourceData& res )
 {
-    TG_ASSERT( res.firstTask <= res.lastTask, "Only depth textures should maybe be used in only 1 pass" );
+    TG_ASSERT( res.firstTask <= res.lastTask );
     if ( res.memoryReq.size > bucketSize )
         return false;
     if ( !( memoryTypeBits & res.memoryReq.memoryTypeBits ) )

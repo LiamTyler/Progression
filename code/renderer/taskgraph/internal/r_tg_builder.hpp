@@ -38,8 +38,8 @@ constexpr u32 ResolveRelativeSize( u32 scene, u32 display, u32 relSize )
     }
 }
 
-using ExtTextureFunc = std::function<Texture()>;
-using ExtBufferFunc  = std::function<Buffer()>;
+using ExtTextureFunc = Texture(*)();
+using ExtBufferFunc  = Buffer(*)();
 
 struct TGBTexture
 {
@@ -63,23 +63,6 @@ struct TGBBuffer
     ExtBufferFunc externalFunc;
 };
 
-enum class TaskType : u16
-{
-    NONE     = 0, // only valid internally for signaling a resource has no previous task yet (first usage)
-    COMPUTE  = 1,
-    GRAPHICS = 2,
-    TRANSFER = 3,
-    PRESENT  = 4,
-};
-
-struct TaskHandle
-{
-    u16 index : 13;
-    TaskType type : 3;
-
-    TaskHandle( u16 inIndex, TaskType inType ) : index( inIndex ), type( inType ) {}
-};
-
 struct TGBTextureRef
 {
     TGResourceHandle index;
@@ -94,7 +77,7 @@ struct TGBBufferRef
     bool operator==( const TGBBufferRef& o ) const { return index == o.index; }
 };
 
-struct TGBBufferInfo
+struct TGBBufferTaskInfo
 {
     u32 clearVal;
     TGBBufferRef ref;
@@ -103,7 +86,7 @@ struct TGBBufferInfo
     BufferUsage usageInTask;
 };
 
-struct TGBTextureInfo
+struct TGBTextureTaskInfo
 {
     vec4 clearColor;
     TGBTextureRef ref;
@@ -155,8 +138,8 @@ public:
     void AddBufferOutput( TGBBufferRef& buffer );
     void AddBufferInput( TGBBufferRef& buffer, BufferUsage usageForThisTask = BufferUsage::STORAGE );
 
-    std::vector<TGBBufferInfo> buffers;
-    std::vector<TGBTextureInfo> textures;
+    std::vector<TGBBufferTaskInfo> buffers;
+    std::vector<TGBTextureTaskInfo> textures;
 };
 
 class ComputeTaskBuilder : public PipelineTaskBuilder

@@ -487,7 +487,7 @@ void TaskGraph::Compile_PipelineTask( PipelineTask* pTask, PipelineTaskBuilder* 
 {
     u16 taskIndex     = bpTask->taskHandle.index;
     TaskType taskType = bpTask->taskHandle.type;
-    for ( const TGBBufferInfo& bufInfo : bpTask->buffers )
+    for ( const TGBBufferTaskInfo& bufInfo : bpTask->buffers )
     {
         TGResourceHandle index          = bufInfo.ref.index;
         const TGBBuffer& buildBuffer    = builder.buffers[index];
@@ -520,7 +520,7 @@ void TaskGraph::Compile_PipelineTask( PipelineTask* pTask, PipelineTaskBuilder* 
         trackInfo = ResourceTrackingInfo( taskIndex, taskType, bufInfo.state, resType );
     }
 
-    for ( const TGBTextureInfo& texInfo : bpTask->textures )
+    for ( const TGBTextureTaskInfo& texInfo : bpTask->textures )
     {
         TGResourceHandle index          = texInfo.ref.index;
         const TGBTexture& buildTexture  = builder.textures[index];

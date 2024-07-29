@@ -249,8 +249,7 @@ bool Init_TaskGraph()
     GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "DrawMeshes" );
     mTask->AddBufferInput( indirectCountBuff, BufferUsage::INDIRECT );
     mTask->AddBufferInput( indirectMeshletDrawBuff, BufferUsage::INDIRECT );
-    TGBTextureRef litOutput =
-        mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, vec4( 0, 0, 0, 1 ), SIZE_SCENE(), SIZE_SCENE() );
+    TGBTextureRef litOutput  = mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE() );
     TGBTextureRef sceneDepth = mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     mTask->SetFunction( MeshDrawFunc );
 
@@ -265,8 +264,8 @@ bool Init_TaskGraph()
 
     Sky::AddTask( builder, litOutput, sceneDepth );
 
-    TGBTextureRef swapImg = builder.RegisterExternalTexture(
-        "swapchainImg", rg.swapchain.GetFormat(), SIZE_DISPLAY(), SIZE_DISPLAY(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } );
+    TGBTextureRef swapImg = builder.RegisterExternalTexture( "swapchainImg", rg.swapchain.GetFormat(), rg.swapchain.GetWidth(),
+        rg.swapchain.GetHeight(), 1, 1, 1, []() { return rg.swapchain.GetTexture(); } );
 
     TGBTextureRef litImgDisplaySized = litOutput;
     if ( rg.sceneWidth != rg.displayWidth || rg.sceneHeight != rg.displayHeight )

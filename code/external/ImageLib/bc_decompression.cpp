@@ -237,22 +237,21 @@ struct BC6ModeInfo
     uint8_t deltaBits[3];
 };
 
-BC6ModeInfo s_bc6ModeTable[] =
-{
-    { 1,  0b00,    2, 1, 5, 10, { 5, 5, 5 }   },
-    { 2,  0b01,    2, 1, 5, 7,  { 6, 6, 6 }   },
-    { 3,  0b00010, 2, 1, 5, 11, { 5, 4, 4 }   },
-    { 4,  0b00110, 2, 1, 5, 11, { 4, 5, 4 }   },
-    { 5,  0b01010, 2, 1, 5, 11, { 4, 4, 5 }   },
-    { 6,  0b01110, 2, 1, 5, 9,  { 5, 5, 5 }   },
-    { 7,  0b10010, 2, 1, 5, 8,  { 6, 5, 5 }   },
-    { 8,  0b10110, 2, 1, 5, 8,  { 5, 6, 5 }   },
-    { 9,  0b11010, 2, 1, 5, 8,  { 5, 5, 6 }   },
-    { 10, 0b11110, 2, 0, 5, 6,  { 6, 6, 6 }   },
-    { 11, 0b00011, 1, 0, 0, 10, { 10, 10, 10 }},
-    { 12, 0b00111, 1, 1, 0, 11, { 9, 9, 9 }   },
-    { 13, 0b01011, 1, 1, 0, 12, { 8, 8, 8 }   },
-    { 14, 0b01111, 1, 1, 0, 16, { 4, 4, 4 }   }
+BC6ModeInfo s_bc6ModeTable[] = {
+    {1,  0b00,    2, 1, 5, 10, { 5, 5, 5 }   },
+    {2,  0b01,    2, 1, 5, 7,  { 6, 6, 6 }   },
+    {3,  0b00010, 2, 1, 5, 11, { 5, 4, 4 }   },
+    {4,  0b00110, 2, 1, 5, 11, { 4, 5, 4 }   },
+    {5,  0b01010, 2, 1, 5, 11, { 4, 4, 5 }   },
+    {6,  0b01110, 2, 1, 5, 9,  { 5, 5, 5 }   },
+    {7,  0b10010, 2, 1, 5, 8,  { 6, 5, 5 }   },
+    {8,  0b10110, 2, 1, 5, 8,  { 5, 6, 5 }   },
+    {9,  0b11010, 2, 1, 5, 8,  { 5, 5, 6 }   },
+    {10, 0b11110, 2, 0, 5, 6,  { 6, 6, 6 }   },
+    {11, 0b00011, 1, 0, 0, 10, { 10, 10, 10 }},
+    {12, 0b00111, 1, 1, 0, 11, { 9, 9, 9 }   },
+    {13, 0b01011, 1, 1, 0, 12, { 8, 8, 8 }   },
+    {14, 0b01111, 1, 1, 0, 16, { 4, 4, 4 }   }
 };
 
 static bool BC6_GetModeInfo( uint32_t modeBits, BC6ModeInfo& info )
@@ -767,18 +766,17 @@ struct BC7ModeBitCounts
     uint8_t secondaryIndexBitsPerElement;
 };
 
-BC7ModeBitCounts s_bc7BitTable[8] =
-{
+BC7ModeBitCounts s_bc7BitTable[8] = {
     // numSubsets partitionBits rotationBits indexSelectionBits colorBits
     // alphaBits separatePBits sharedPBits indexBitsPerElement secondaryIndexBitsPerElement
-    { 3, 4, 0, 0, 4, 0, 1, 0, 3, 0}, // mode 0
-    { 2, 6, 0, 0, 6, 0, 0, 1, 3, 0}, // mode 1
-    { 3, 6, 0, 0, 5, 0, 0, 0, 2, 0}, // mode 2
-    { 2, 6, 0, 0, 7, 0, 1, 0, 2, 0}, // mode 3
-    { 1, 0, 2, 1, 5, 6, 0, 0, 2, 3}, // mode 4
-    { 1, 0, 2, 0, 7, 8, 0, 0, 2, 2}, // mode 5
-    { 1, 0, 0, 0, 7, 7, 1, 0, 4, 0}, // mode 6
-    { 2, 6, 0, 0, 5, 5, 1, 0, 2, 0}, // mode 7
+    {3, 4, 0, 0, 4, 0, 1, 0, 3, 0}, // mode 0
+    {2, 6, 0, 0, 6, 0, 0, 1, 3, 0}, // mode 1
+    {3, 6, 0, 0, 5, 0, 0, 0, 2, 0}, // mode 2
+    {2, 6, 0, 0, 7, 0, 1, 0, 2, 0}, // mode 3
+    {1, 0, 2, 1, 5, 6, 0, 0, 2, 3}, // mode 4
+    {1, 0, 2, 0, 7, 8, 0, 0, 2, 2}, // mode 5
+    {1, 0, 0, 0, 7, 7, 1, 0, 4, 0}, // mode 6
+    {2, 6, 0, 0, 5, 5, 1, 0, 2, 0}, // mode 7
 };
 
 static void BC7_ExtractEndpoints( uint32_t mode, uint8_t endPoints[3][2][4], const uint8_t* compressedBlock, uint32_t& currentBitOffset )
@@ -1019,7 +1017,7 @@ void Decompress_BC_Internal( const RawImage2D& compressedImage, RawImage2D& outp
     const int numBlocksX          = compressedImage.BlocksX();
     const int numBlocksY          = compressedImage.BlocksY();
 
-    #pragma omp parallel for
+#pragma omp parallel for
     for ( int blockY = 0; blockY < numBlocksY; ++blockY )
     {
         for ( int blockX = 0; blockX < numBlocksX; ++blockX )

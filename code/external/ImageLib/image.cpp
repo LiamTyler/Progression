@@ -13,10 +13,19 @@ static u16vec4 DEFAULT_PIXEL_SHORT   = u16vec4( 0, 0, 0, USHRT_MAX );
 static u16vec4 DEFAULT_PIXEL_FLOAT16 = u16vec4( 0, 0, 0, Float32ToFloat16( 1.0f ) );
 static vec4 DEFAULT_PIXEL_FLOAT32    = vec4( 0, 0, 0, 1 );
 
-uint8_t* RawImage2D::GetCompressedBlock( int blockX, int blockY )
+uint8_t* RawImage2D::GetCompressedBlock( int blockX, int blockY ) { return GetCompressedBlock( blockY * BlocksX() + blockX ); }
+
+const uint8_t* RawImage2D::GetCompressedBlock( int blockX, int blockY ) const { return GetCompressedBlock( blockY * BlocksX() + blockX ); }
+
+uint8_t* RawImage2D::GetCompressedBlock( int blockIndex )
 {
-    uint32_t numBlocksX = ( width + 3 ) / 4;
-    size_t offset       = 16 * BitsPerPixel() / 8 * ( blockY * numBlocksX + blockX );
+    size_t offset = blockIndex * 16 * BitsPerPixel() / 8;
+    return &data[offset];
+}
+
+const uint8_t* RawImage2D::GetCompressedBlock( int blockIndex ) const
+{
+    size_t offset = blockIndex * 16 * BitsPerPixel() / 8;
     return &data[offset];
 }
 
@@ -162,6 +171,66 @@ void RawImage2D::GetBlockClamped16F( int blockX, int blockY, float16* outputRGB 
     {
         memset( outputRGB, 0, 96 );
     }
+}
+
+uint8_t RawImage2D::GetPixelAsByte( int row, int col, int chan ) const
+{
+    uint32_t numChannels = NumChannels();
+    if ( chan >= (int)numChannels )
+    {
+        return DEFAULT_PIXEL_BYTE[chan];
+    }
+    int index = numChannels * ( row * width + col ) + chan;
+
+    if ( IsFormat8BitUnorm( format ) )
+    {
+        return Raw<uint8_t>()[index];
+    }
+
+    float fVal = 0;
+    if ( IsFormat16BitUnorm( format ) )
+    {
+        fVal = UNorm16ToFloat( Raw<uint16_t>()[index] );
+    }
+    else if ( IsFormat16BitFloat( format ) )
+    {
+        fVal = Float16ToFloat32( Raw<float16>()[index] );
+    }
+    else if ( IsFormat32BitFloat( format ) )
+    {
+        fVal = Raw<float>()[index];
+    }
+
+    return UNormFloatToByte( fVal );
+}
+
+u8vec4 RawImage2D::GetPixelAsByte4( int row, int col ) const
+{
+    u8vec4 pixel         = DEFAULT_PIXEL_FLOAT32;
+    uint32_t numChannels = NumChannels();
+    uint32_t index       = numChannels * ( row * width + col );
+    if ( IsFormat8BitUnorm( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = Raw<uint8_t>()[index + chan];
+    }
+    else if ( IsFormat16BitUnorm( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = UNormFloatToByte( UNorm16ToFloat( Raw<uint16_t>()[index + chan] ) );
+    }
+    else if ( IsFormat16BitFloat( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = UNormFloatToByte( Float16ToFloat32( Raw<float16>()[index + chan] ) );
+    }
+    else if ( IsFormat32BitFloat( format ) )
+    {
+        for ( uint32_t chan = 0; chan < numChannels; ++chan )
+            pixel[chan] = UNormFloatToByte( Raw<float>()[index + chan] );
+    }
+
+    return pixel;
 }
 
 float RawImage2D::GetPixelAsFloat( int row, int col, int chan ) const

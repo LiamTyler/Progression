@@ -223,6 +223,8 @@ struct RawImage2D
 
     RawImage2D Clone() const;
 
+    uint8_t GetPixelAsByte( int row, int col, int chan ) const;
+    u8vec4 GetPixelAsByte4( int row, int col ) const;
     float GetPixelAsFloat( int row, int col, int chan ) const;
     vec4 GetPixelAsFloat4( int row, int col ) const;
 
@@ -230,6 +232,9 @@ struct RawImage2D
     void SetPixelFromFloat4( int row, int col, vec4 pixel );
 
     uint8_t* GetCompressedBlock( int blockX, int blockY );
+    const uint8_t* GetCompressedBlock( int blockX, int blockY ) const;
+    uint8_t* GetCompressedBlock( int blockIndex );
+    const uint8_t* GetCompressedBlock( int blockIndex ) const;
     void GetBlockClamped8Bit( int blockX, int blockY, uint8_t* outputRGBA ) const;
     void GetBlockClamped16F( int blockX, int blockY, float16* outputRGB ) const;
 
@@ -239,6 +244,7 @@ struct RawImage2D
     uint32_t PaddedHeight() const { return ( height + 3 ) & ~3u; }
     uint32_t BlocksX() const { return ( width + 3 ) / 4; }
     uint32_t BlocksY() const { return ( height + 3 ) / 4; }
+    uint32_t TotalBlocks() const { return BlocksX() * BlocksY(); }
     uint32_t BytesPerBlock() const { return BitsPerPixel() * 16 / 8; }
 
     size_t TotalBytes() const

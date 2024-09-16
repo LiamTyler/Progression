@@ -136,10 +136,10 @@ endif()
 
 #-------------------------------BC7ENC-----------------------------------------
 if(MSVC)
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/bc7enc.lib)
+    #if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/bc7enc.lib)
         CONFIG_TIME_COMPILE(${EXT_DIR}/bc7enc_rdo ${CMAKE_BINARY_DIR}/ext/bc7enc Release)
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/bc7enc ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib bc7enc)
-    endif()
+    #endif()
 else()
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/libbc7enc.a)
         CONFIG_TIME_COMPILE(${EXT_DIR}/bc7enc_rdo ${CMAKE_BINARY_DIR}/ext/bc7enc Release)

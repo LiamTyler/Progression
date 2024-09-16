@@ -7,7 +7,7 @@ else
     fmtExe='clang-format'
 fi
 
-declare -a arr=("./code/asset/" "./code/core/" "./code/data_structures/" "./code/ecs/" "./code/projects/" "./code/renderer/" "./code/shared/" "./code/ui/" )
+declare -a arr=("./code/asset/" "./code/core/" "./code/data_structures/" "./code/ecs/" "./code/projects/" "./code/renderer/" "./code/shared/" "./code/ui/" "./code/external/ImageLib/" )
 
 for i in "${arr[@]}"
 do

@@ -54,7 +54,7 @@ char* LZ4DecompressBuffer( const char* compressedData, i32 compressedSize, i32 u
 {
     char* uncompressedBuffer   = (char*)malloc( uncompressedSize );
     const i32 decompressedSize = LZ4_decompress_safe( compressedData, uncompressedBuffer, compressedSize, uncompressedSize );
-    if ( decompressedSize != compressedSize )
+    if ( decompressedSize != uncompressedSize )
     {
         LOG_ERR( "Error while decompressing. LZ4 returned: %d", decompressedSize );
         free( uncompressedBuffer );

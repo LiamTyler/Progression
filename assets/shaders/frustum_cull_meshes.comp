@@ -1,7 +1,7 @@
 #version 460
 
 #include "global_descriptors.glsl"
-#include "c_shared/cull_data.h"
+#include "lib/culling.glsl"
 #include "lib/intrinsics.glsl"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, CullData );
@@ -16,25 +16,6 @@ layout( scalar, push_constant ) uniform PushConstants
     uint _pad;
 } pConstants;
 
-AABB TransformAABB( const mat4 transform, const AABB aabb )
-{
-    AABB transformedAABB;
-    transformedAABB.min = transformedAABB.max = transform[3].xyz;
-    for ( int i = 0; i < 3; i++ )
-    {
-        for ( int j = 0; j < 3; j++ )
-        {
-            float a = transform[j][i] * aabb.min[j];
-            float b = transform[j][i] * aabb.max[j];
-
-            transformedAABB.min[i] += min( a, b );
-            transformedAABB.max[i] += max( a, b );
-        }
-    }
-    
-    return transformedAABB;
-}
-
 layout (local_size_x = 64, local_size_y = 1) in;
 void main() 
 {
@@ -42,9 +23,9 @@ void main()
     if ( meshIdx >= pConstants.numMeshes )
         return;
     
-    CullData data = pConstants.cullDataBuffer.data[meshIdx];
-    AABB localAABB = data.aabb;
-    AABB worldAABB = TransformAABB( GetModelMatrix( data.modelIndex ), localAABB );
+    CullData cullData = pConstants.cullDataBuffer.data[meshIdx];
+    AABB localAABB = cullData.aabb;
+    AABB worldAABB = TransformAABB( GetModelMatrix( cullData.modelIndex ), localAABB );
     bool visible = IsInFrustum( worldAABB );
     uint numVisibleInWave = WaveActiveCountBits( visible );
     uint localIndexInWave = WavePrefixCountBits( visible );
@@ -58,14 +39,17 @@ void main()
     
     if ( visible )
     {
-        uint globalIndex = globalBaseIndex + localIndexInWave;
         MeshletDrawCommand cmd;
-        cmd.groupCountX = ( data.numMeshlets + 31 ) / 32;
+        cmd.groupCountX = ( cullData.numMeshlets + 31 ) / 32;
         //cmd.groupCountX = data.numMeshlets;
         cmd.groupCountY = 1;
         cmd.groupCountZ = 1;
+        cmd.modelIndex  = cullData.modelIndex;
         cmd.meshIndex   = meshIdx;
-        cmd.numMeshlets = data.numMeshlets;
+        cmd.numMeshlets = cullData.numMeshlets;
+        //cmd.meshletCullDataPtr = bindlessBuffers[objData.bindlessRangeStart + MESH_BUFFER_MESHLET_CULL_DATA];
+
+        uint globalIndex = globalBaseIndex + localIndexInWave;
         pConstants.indirectCmdOutputBuffer.data[globalIndex] = cmd;        
     }
 }

@@ -2,6 +2,7 @@
 
 #include "entt/entity/entity.hpp"
 #include "entt/entity/registry.hpp"
+#include <string>
 
 struct lua_State;
 

@@ -3,6 +3,25 @@
 
 #include "c_shared/cull_data.h"
 
+AABB TransformAABB( const mat4 transform, const AABB aabb )
+{
+    AABB transformedAABB;
+    transformedAABB.min = transformedAABB.max = transform[3].xyz;
+    for ( int i = 0; i < 3; i++ )
+    {
+        for ( int j = 0; j < 3; j++ )
+        {
+            float a = transform[j][i] * aabb.min[j];
+            float b = transform[j][i] * aabb.max[j];
+
+            transformedAABB.min[i] += min( a, b );
+            transformedAABB.max[i] += max( a, b );
+        }
+    }
+    
+    return transformedAABB;
+}
+
 // get furthest point along the normal vector
 vec3 GetP( const AABB aabb, const vec3 planeNormal )
 {

@@ -87,14 +87,20 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     meshlet.triangle_count, &pMesh.vertices[0].pos.x, meshlet.vertex_count, sizeof( PModel::Vertex ) );
 
             PackedMeshletCullData& cullData = m.meshletCullDatas[meshletIdx];
-            cullData.positionXY             = Float32ToFloat16( bounds.center[0], bounds.center[1] );
-            cullData.positionZAndRadius     = Float32ToFloat16( bounds.center[2], bounds.radius );
-            cullData.coneAxisAndCutoff      = 0;
-            cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[0] << 0 );
-            cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[1] << 8 );
-            cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[2] << 16 );
-            cullData.coneAxisAndCutoff |= ( bounds.cone_cutoff_s8 << 24 );
-            cullData._padTo16Bytes = 0;
+            // cullData.positionXY             = Float32ToFloat16( bounds.center[0], bounds.center[1] );
+            // cullData.positionZAndRadius     = Float32ToFloat16( bounds.center[2], bounds.radius );
+            // cullData.coneAxisAndCutoff      = 0;
+            // cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[0] << 0 );
+            // cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[1] << 8 );
+            // cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[2] << 16 );
+            // cullData.coneAxisAndCutoff |= ( bounds.cone_cutoff_s8 << 24 );
+            // cullData._padTo16Bytes = 0;
+
+            cullData.position   = vec3( bounds.center[0], bounds.center[1], bounds.center[2] );
+            cullData.radius     = bounds.radius;
+            cullData.coneAxis   = vec3( bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] );
+            cullData.coneCutoff = bounds.cone_cutoff;
+            cullData.coneApex   = vec3( bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] );
         }
 
         m.positions.resize( numVerts );

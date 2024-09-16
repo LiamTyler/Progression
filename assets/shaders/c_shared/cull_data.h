@@ -23,8 +23,10 @@ struct MeshletDrawCommand
     uint groupCountX;
     uint groupCountY;
     uint groupCountZ;
+    uint modelIndex;
     uint meshIndex;
     uint numMeshlets;
+    uint64_t meshletCullDataPtr;
 };
 
 END_GPU_DATA_NAMESPACE()

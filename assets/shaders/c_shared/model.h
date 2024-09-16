@@ -15,10 +15,27 @@ struct Meshlet
 
 struct PackedMeshletCullData
 {
-    uint positionXY;
-    uint positionZAndRadius;
-    uint coneAxisAndCutoff;
-    uint _padTo16Bytes;
+    //uint positionXY;
+    //uint positionZAndRadius;
+    //uint coneAxisAndCutoff;
+    //uint pad1;
+    //vec3 coneApex;
+    //uint pad2;
+    vec3 position;
+    float radius;
+    vec3 coneAxis;
+    float coneCutoff;
+    vec3 coneApex;
+    float pad;
+};
+
+struct MeshletCullData
+{
+    vec3 position;
+    float radius;
+    vec3 coneAxis;
+    float coneCutoff;
+    vec3 coneApex;
 };
 
 #define MESH_BUFFER_MESHLETS 0

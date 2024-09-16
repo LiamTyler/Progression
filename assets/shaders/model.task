@@ -6,6 +6,8 @@
 #include "c_shared/model.h"
 #include "c_shared/cull_data.h"
 #include "lib/intrinsics.glsl"
+#include "lib/culling.glsl"
+#include "c_shared/dvar_defines.h"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, PackedMeshletCullData );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
@@ -19,13 +21,6 @@ layout(scalar, push_constant) uniform Registers
     MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
 };
 
-struct MeshletCullData
-{
-    vec3 position;
-    float radius;
-    vec3 coneAxis;
-    float coneCutoff;
-};
 
 MeshletCullData GetMeshletCullData( uint meshletID, const PerObjectData objData )
 {
@@ -34,15 +29,59 @@ MeshletCullData GetMeshletCullData( uint meshletID, const PerObjectData objData 
     PackedMeshletCullData packedData = cBuffer.data[meshletID];
     
     MeshletCullData cullData;
-    cullData.position.xy = unpackHalf2x16( packedData.positionXY );
-    vec2 tmp = unpackHalf2x16( packedData.positionZAndRadius );
-    cullData.position.z = tmp.x;
-    cullData.radius = tmp.y;
-    vec4 tmp2 = unpackSnorm4x8( packedData.coneAxisAndCutoff );
-    cullData.coneAxis = tmp2.xyz;
-    cullData.coneCutoff = tmp2.w;
+    //cullData.position.xy = unpackHalf2x16( packedData.positionXY );
+    //vec2 tmp = unpackHalf2x16( packedData.positionZAndRadius );
+    //cullData.position.z = tmp.x;
+    //cullData.radius = tmp.y;
+    //
+    //vec4 tmp2 = unpackSnorm4x8( packedData.coneAxisAndCutoff );
+    //cullData.coneAxis = tmp2.xyz;
+    //cullData.coneCutoff = tmp2.w;
+    //
+    //cullData.coneApex = packedData.coneApex;
+
+    cullData.position = packedData.position;
+    cullData.radius = packedData.radius;
+    cullData.coneAxis = packedData.coneAxis;
+    cullData.coneCutoff = packedData.coneCutoff;
+    cullData.coneApex = packedData.coneApex;
     
     return cullData;
+}
+
+bool IsMeshletVisible( const uint modelIndex, const MeshletCullData meshletCullData )
+{
+    if ( !IsMeshletFrustumCullingEnabled() && !IsMeshletFrustumCullingEnabled() )
+        return true;
+
+    const mat4 M         = GetModelMatrix( modelIndex );
+    vec3 worldPos        = vec3( M * vec4( meshletCullData.position, 1 ) );
+    vec3 componentRadius = mat3( M ) * vec3( meshletCullData.radius );
+    float worldRadius    = max( componentRadius.x, max( componentRadius.y, componentRadius.z ) );
+
+    if ( IsMeshletFrustumCullingEnabled() )
+    {
+        if ( !IsSphereInFrustum( worldPos, worldRadius ) )
+            return false;
+    }
+
+    if ( IsMeshletBackfaceCullingEnabled() )
+    {
+        ////dot(center - camera_position, cone_axis) >= cone_cutoff * length(center - camera_position) + radius
+        //const mat4 N       = GetNormalMatrix( modelIndex );
+        //vec3 worldConeAxis = normalize( mat3( N ) * meshletCullData.coneAxis );
+        //vec3 camToMeshlet  = worldPos - globals.cullingCameraPos.xyz;
+        //if ( dot( camToMeshlet, worldConeAxis ) >= meshletCullData.coneCutoff * length( camToMeshlet ) + worldRadius )
+        //    return false;
+
+        vec3 worldApex = vec3( M * vec4( meshletCullData.coneApex, 1 ) );
+        const mat4 N       = GetNormalMatrix( modelIndex );
+        vec3 worldConeAxis = normalize( mat3( N ) * meshletCullData.coneAxis );
+        if ( dot( normalize( worldApex - globals.cullingCameraPos.xyz ), worldConeAxis ) >= meshletCullData.coneCutoff )
+            return false;
+    }
+    
+    return true;
 }
 
 struct Task
@@ -54,7 +93,6 @@ struct Task
 
 taskPayloadSharedEXT Task OUT;
 
-
 layout(local_size_x = TASK_SHADER_WORKGROUP_SIZE) in;
 
 void main()
@@ -64,17 +102,15 @@ void main()
     const uint globalMeshletID = baseMeshletID + localMeshletID;
     
     const uint numMeshlets = indirectMeshletDrawBuffer.data[gl_DrawIDARB].numMeshlets;
+    const uint modelIndex  = indirectMeshletDrawBuffer.data[gl_DrawIDARB].modelIndex;
     const uint meshIndex   = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
     
     if ( globalMeshletID >= numMeshlets )
         return;
     
-    PerObjectData objectData = meshDataBuffer.data[meshIndex];
-    MeshletCullData cullData = GetMeshletCullData( globalMeshletID, objectData );
+    MeshletCullData cullData = GetMeshletCullData( globalMeshletID, meshDataBuffer.data[meshIndex] );
     
-    // TODO
-    bool visible = globalMeshletID < numMeshlets;
-    
+    bool visible = IsMeshletVisible( modelIndex, cullData );
     uint numVisibleInWave = WaveActiveCountBits( visible );
     uint localIndexInWave = WavePrefixCountBits( visible );
     if ( visible )

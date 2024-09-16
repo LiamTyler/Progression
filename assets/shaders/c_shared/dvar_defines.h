@@ -47,6 +47,9 @@
 #define PG_R_MESHLET_VIZ_BIT 0
 #define PG_R_WIREFRAME_BIT 1
 
+#define PG_R_MESHLET_FRUSTUM_CULL_BIT 0
+#define PG_R_MESHLET_BACKFACE_CULL_BIT 1
+
 #if PG_SHADER_CODE
 bool IsMeshletVizEnabled()
 {
@@ -56,6 +59,16 @@ bool IsMeshletVizEnabled()
 bool IsWireframeEnabled()
 {
     return ((globals.debug_PackedDvarBools >> PG_R_WIREFRAME_BIT) & 0x1) > 0;
+}
+
+bool IsMeshletFrustumCullingEnabled()
+{
+    return ((globals.packedCullingDvarBools >> PG_R_MESHLET_FRUSTUM_CULL_BIT) & 0x1) > 0;
+}
+
+bool IsMeshletBackfaceCullingEnabled()
+{
+    return ((globals.packedCullingDvarBools >> PG_R_MESHLET_BACKFACE_CULL_BIT) & 0x1) > 0;
 }
 
 #else // #if PG_SHADER_CODE
@@ -69,6 +82,18 @@ inline void PackWireframeBit( uint& debug_PackedDvarBools, bool enabled )
 {
     if ( enabled )
         debug_PackedDvarBools |= 1u << PG_R_WIREFRAME_BIT;
+}
+
+inline void PackMeshletFrustumCullingBit( uint& packedCullingDvarBools, bool enabled )
+{
+    if ( enabled )
+        packedCullingDvarBools |= 1u << PG_R_MESHLET_FRUSTUM_CULL_BIT;
+}
+
+inline void PackMeshletBackfaceCullingBit( uint& packedCullingDvarBools, bool enabled )
+{
+    if ( enabled )
+        packedCullingDvarBools |= 1u << PG_R_MESHLET_BACKFACE_CULL_BIT;
 }
 #endif // #else // #if PG_SHADER_CODE
 

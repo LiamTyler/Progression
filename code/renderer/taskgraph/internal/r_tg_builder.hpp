@@ -38,8 +38,8 @@ constexpr u32 ResolveRelativeSize( u32 scene, u32 display, u32 relSize )
     }
 }
 
-using ExtTextureFunc = Texture(*)();
-using ExtBufferFunc  = Buffer(*)();
+using ExtTextureFunc = Texture ( * )();
+using ExtBufferFunc  = Buffer ( * )();
 
 struct TGBTexture
 {

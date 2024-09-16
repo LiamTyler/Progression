@@ -61,6 +61,8 @@ Dvar r_debugUint( "r_debugUint", 0u, 0u, UINT_MAX, "Just used as an optional deb
 Dvar r_debugFloat( "r_debugFloat", 0.0f, -FLT_MAX, FLT_MAX, "Just used as an optional debug value when doing shader dev" );
 Dvar r_visualizeBoundingBoxes( "r_visualizeBoundingBoxes", false, "Enable/disable drawing the AABB for each mesh" );
 Dvar r_frustumCullingDebug( "r_frustumCullingDebug", false, "Enabling will freeze the frustum used for culling and visualize it" );
+Dvar r_meshletCulling_frustum( "r_meshletCulling_frustum", true, "Enable/disable meshlet frustum culling" );
+Dvar r_meshletCulling_backface( "r_meshletCulling_backface", true, "Enable/disable meshlet backface culling" );
 
 #endif // #if USING( DEVELOPMENT_BUILD )
 

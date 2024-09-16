@@ -24,10 +24,18 @@ struct Meshlet
 
 struct PackedMeshletCullData
 {
-    u32 positionXY;
-    u32 positionZAndRadius;
-    u32 coneAxisAndCutoff;
-    u32 _padTo16Bytes;
+    // u32 positionXY;
+    // u32 positionZAndRadius;
+    // u32 coneAxisAndCutoff;
+    // u32 pad1;
+    // vec3 coneApex;
+    // u32 pad2;
+    vec3 position;
+    float radius;
+    vec3 coneAxis;
+    float coneCutoff;
+    vec3 coneApex;
+    float pad;
 };
 
 struct Material;

@@ -23,6 +23,8 @@ extern Dvar r_debugUint;
 extern Dvar r_debugFloat;
 extern Dvar r_visualizeBoundingBoxes;
 extern Dvar r_frustumCullingDebug;
+extern Dvar r_meshletCulling_frustum;
+extern Dvar r_meshletCulling_backface;
 
 #endif // #if USING( DEVELOPMENT_BUILD )
 

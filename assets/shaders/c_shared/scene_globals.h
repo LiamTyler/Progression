@@ -13,13 +13,14 @@ struct SceneGlobals
     mat4 invVP;
     vec4 cameraPos; // w is 1, for convenience
     vec4 cameraExposureAndSkyTint; // x = exposure, yzw = sky tint
+
     vec4 frustumPlanes[6];
-    uvec4 lightCountAndPad3; // x = light count, yzw = pad
+    vec4 cullingCameraPos;
     
+    uint packedCullingDvarBools;
     uint modelMatriciesBufferIndex;
     uint normalMatriciesBufferIndex;
     uint r_tonemap;
-    uint _pad;
 
     // debug vals
     uint r_geometryViz;

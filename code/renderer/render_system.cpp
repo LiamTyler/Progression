@@ -446,10 +446,7 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.r_postProcessing = r_postProcessing.GetBool();
     PackMeshletVizBit( globalData.debug_PackedDvarBools, r_meshletViz.GetBool() );
     PackWireframeBit( globalData.debug_PackedDvarBools, r_wireframe.GetBool() );
-    vec4 wireframeColor              = r_wireframeColor.GetVec4();
-    globalData.debug_wireframeData.r = wireframeColor.r;
-    globalData.debug_wireframeData.g = wireframeColor.g;
-    globalData.debug_wireframeData.b = wireframeColor.b;
+    globalData.debug_wireframeData   = r_wireframeColor.GetVec4();
     globalData.debug_wireframeData.a = r_wireframeThickness.GetFloat();
     globalData.debugInt              = r_debugInt.GetInt();
     globalData.debugUint             = r_debugUint.GetUint();
@@ -457,11 +454,17 @@ static void UpdateGPUSceneData( Scene* scene )
 
     if ( !r_frustumCullingDebug.GetBool() )
     {
-        rg.debugCullingFrustum = scene->camera.GetFrustum();
+        rg.debugCullingFrustum   = scene->camera.GetFrustum();
+        rg.debugCullingCameraPos = scene->camera.position;
     }
     memcpy( globalData.frustumPlanes, rg.debugCullingFrustum.planes, sizeof( vec4 ) * 6 );
+    globalData.cullingCameraPos = vec4( rg.debugCullingCameraPos, 1 );
+    PackMeshletFrustumCullingBit( globalData.packedCullingDvarBools, r_meshletCulling_frustum.GetBool() );
+    PackMeshletBackfaceCullingBit( globalData.packedCullingDvarBools, r_meshletCulling_backface.GetBool() );
 #else  // #if USING( DEVELOPMENT_BUILD )
     memcpy( globalData.frustumPlanes, scene->camera.GetFrustum().planes, sizeof( vec4 ) * 6 );
+    globalData.cullingCameraPos       = vec4( scene->camera.position, 1 );
+    globalData.packedCullingDvarBools = ~0u;
 #endif // #else // #if USING( DEVELOPMENT_BUILD )
 
     memcpy( frameData.sceneGlobalsBuffer.GetMappedPtr(), &globalData, sizeof( GpuData::SceneGlobals ) );

@@ -3,9 +3,9 @@
 #include "asset/types/shader.hpp"
 #include "core/pixel_formats.hpp"
 
-#if USING( GPU_DATA )
+#if USING( GPU_STRUCTS )
 #include "renderer/vulkan.hpp"
-#endif // #if USING( GPU_DATA )
+#endif // #if USING( GPU_STRUCTS )
 
 namespace PG
 {
@@ -54,6 +54,19 @@ enum class BlendEquation : u8
     NUM_BLEND_EQUATIONS
 };
 
+enum class BlendMode : u8
+{
+    NONE        = 0,
+    ADDITIVE    = 1,
+    ALPHA_BLEND = 2,
+
+    NUM_BLEND_MODES
+};
+
+#if USING( GPU_STRUCTS )
+void ConvertPGBlendModeToVK( BlendMode blendMode, VkPipelineColorBlendAttachmentState& state );
+#endif // #if USING( GPU_STRUCTS )
+
 enum class WindingOrder : u8
 {
     COUNTER_CLOCKWISE = 0,
@@ -86,7 +99,8 @@ struct PipelineColorAttachmentInfo
     PipelineColorAttachmentInfo() = default;
     PipelineColorAttachmentInfo( PixelFormat inFmt ) : format( inFmt ) {}
 
-    PixelFormat format = PixelFormat::INVALID;
+    PixelFormat format  = PixelFormat::INVALID;
+    BlendMode blendMode = BlendMode::NONE;
 };
 
 struct RasterizerInfo

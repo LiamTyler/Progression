@@ -11,6 +11,43 @@
 namespace PG
 {
 
+#if USING( GPU_STRUCTS )
+namespace Gfx
+{
+
+void ConvertPGBlendModeToVK( BlendMode blendMode, VkPipelineColorBlendAttachmentState& state )
+{
+    if ( blendMode == BlendMode::NONE )
+    {
+        state.blendEnable = false;
+        return;
+    }
+
+    state.blendEnable    = true;
+    state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    if ( blendMode == BlendMode::ADDITIVE )
+    {
+        state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE;
+        state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // ?
+        state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // ?
+        state.colorBlendOp        = VK_BLEND_OP_ADD;
+        state.alphaBlendOp        = VK_BLEND_OP_ADD;
+    }
+    else if ( blendMode == BlendMode::ALPHA_BLEND )
+    {
+        state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
+        state.dstColorBlendFactor = VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA;
+        state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // ?
+        state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ONE; // ?
+        state.colorBlendOp        = VK_BLEND_OP_ADD;
+        state.alphaBlendOp        = VK_BLEND_OP_ADD;
+    }
+}
+
+} // namespace Gfx
+#endif // #if USING( GPU_STRUCTS )
+
 bool Pipeline::Load( const BaseAssetCreateInfo* baseInfo )
 {
     PG_ASSERT( baseInfo );

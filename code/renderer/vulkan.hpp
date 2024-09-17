@@ -7,16 +7,16 @@
 #include <vulkan/vk_enum_string_helper.h>
 #include <vulkan/vulkan.h>
 
-#if USING( DEVELOPMENT_BUILD )
+#if !USING( DEVELOPMENT_BUILD )
 #define VK_CHECK( f ) f
-#else // #if USING( DEVELOPMENT_BUILD )
+#else // #if !USING( DEVELOPMENT_BUILD )
 #define VK_CHECK( f )                                                                                                                 \
     {                                                                                                                                 \
         VkResult pgVkRes = ( f );                                                                                                     \
         PG_ASSERT(                                                                                                                    \
             pgVkRes == VK_SUCCESS, "VkResult is %d (%s) in %s at line %d", pgVkRes, string_VkResult( pgVkRes ), __FILE__, __LINE__ ); \
     }
-#endif // #else // #if USING( DEVELOPMENT_BUILD )
+#endif // #else // #if !USING( DEVELOPMENT_BUILD )
 
 namespace PG::Gfx
 {

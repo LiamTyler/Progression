@@ -1,10 +1,14 @@
 #include "debug_draw.hpp"
+#include "asset/asset_manager.hpp"
+#include "c_shared/debug_text.h"
 #include "debug_marker.hpp"
 #include "r_globals.hpp"
 #include "r_pipeline_manager.hpp"
+#include "shared/float_conversions.hpp"
 #include <bit>
 
 #define MAX_DEBUG_PRIMS 512
+#define MAX_DEBUG_TEXT_CHARACTERS 65536u
 
 namespace PG::Gfx::DebugDraw
 {
@@ -35,10 +39,16 @@ struct LocalFrameData
     std::vector<f32> debugLinesCPU;
     std::vector<f32> debugAABBsCPU;
     u32 totalPrims;
-    bool warnedThisFrame;
+    bool warnedMaxDebugLinesThisFrame;
+
+    Buffer debugTextVB;
+    u32 numDebugTextCharacters;
+    bool warnedMaxDebugTextThisFrame;
 };
 
 static LocalFrameData s_localFrameDatas[NUM_FRAME_OVERLAP];
+static Pipeline* s_debugTextPipeline;
+static GfxImage* s_debugTextFontAtlas;
 
 #if USING( DEBUG_DRAW )
 inline LocalFrameData& LocalData() { return s_localFrameDatas[rg.currentFrameIdx]; }
@@ -47,8 +57,9 @@ void Init()
 {
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        s_localFrameDatas[i].warnedThisFrame = false;
-        s_localFrameDatas[i].totalPrims      = 0;
+        std::string iStr                                  = std::to_string( i );
+        s_localFrameDatas[i].warnedMaxDebugLinesThisFrame = false;
+        s_localFrameDatas[i].totalPrims                   = 0;
         s_localFrameDatas[i].debugLinesCPU.reserve( MAX_DEBUG_PRIMS * 7 );
         s_localFrameDatas[i].debugAABBsCPU.reserve( MAX_DEBUG_PRIMS * 7 );
 
@@ -56,9 +67,19 @@ void Init()
         dbgLinesBufInfo.size               = MAX_DEBUG_PRIMS * 7 * sizeof( f32 );
         dbgLinesBufInfo.bufferUsage        = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
         dbgLinesBufInfo.flags              = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        s_localFrameDatas[i].debugLinesGPU = rg.device.NewBuffer( dbgLinesBufInfo, "debugLines" );
-        s_localFrameDatas[i].debugAABBsGPU = rg.device.NewBuffer( dbgLinesBufInfo, "debugAABBs" );
+        s_localFrameDatas[i].debugLinesGPU = rg.device.NewBuffer( dbgLinesBufInfo, "debugLines_" + iStr );
+        s_localFrameDatas[i].debugAABBsGPU = rg.device.NewBuffer( dbgLinesBufInfo, "debugAABBs_" + iStr );
+
+        s_localFrameDatas[i].numDebugTextCharacters = 0;
+        BufferCreateInfo dbgTextCI                  = {};
+        dbgTextCI.size                              = MAX_DEBUG_TEXT_CHARACTERS * sizeof( vec4 );
+        dbgTextCI.bufferUsage                       = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
+        dbgTextCI.flags                             = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
+        s_localFrameDatas[i].debugTextVB            = rg.device.NewBuffer( dbgTextCI, "debug_text_VB_" + iStr );
     }
+
+    s_debugTextPipeline  = PipelineManager::GetPipeline( "debug_text" );
+    s_debugTextFontAtlas = AssetManager::Get<GfxImage>( "debug_font" );
 }
 
 void Shutdown()
@@ -67,6 +88,7 @@ void Shutdown()
     {
         s_localFrameDatas[i].debugLinesGPU.Free();
         s_localFrameDatas[i].debugAABBsGPU.Free();
+        s_localFrameDatas[i].debugTextVB.Free();
     }
 }
 
@@ -75,9 +97,32 @@ void StartFrame()
     LocalData().totalPrims = 0;
     LocalData().debugLinesCPU.clear();
     LocalData().debugAABBsCPU.clear();
+    LocalData().warnedMaxDebugLinesThisFrame = false;
+    LocalData().numDebugTextCharacters       = 0;
+    LocalData().warnedMaxDebugTextThisFrame  = false;
 }
 
-void Draw( CommandBuffer& cmdBuf )
+void DrawText( CommandBuffer& cmdBuf )
+{
+    LocalFrameData& localData = LocalData();
+    if ( localData.numDebugTextCharacters == 0 )
+        return;
+
+    cmdBuf.BindPipeline( s_debugTextPipeline );
+    cmdBuf.BindGlobalDescriptors();
+    cmdBuf.SetViewport( SceneSizedViewport( false ) );
+    cmdBuf.SetScissor( SceneSizedScissor() );
+
+    GpuData::TextDrawData constants;
+    constants.vertexBuffer = localData.debugTextVB.GetDeviceAddress();
+    constants.fontTexture  = s_debugTextFontAtlas->gpuTexture.GetBindlessIndex();
+    cmdBuf.PushConstants( constants );
+
+    PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw Debug Text" );
+    cmdBuf.Draw( 0, 6 * localData.numDebugTextCharacters );
+}
+
+void DrawLines( CommandBuffer& cmdBuf )
 {
     LocalFrameData& localData = LocalData();
     if ( localData.totalPrims == 0 )
@@ -124,14 +169,18 @@ void Draw( CommandBuffer& cmdBuf )
     }
 }
 
+void Draw3D( CommandBuffer& cmdBuf ) { DrawLines( cmdBuf ); }
+
+void Draw2D( CommandBuffer& cmdBuf ) { DrawText( cmdBuf ); }
+
 void AddLine( vec3 begin, vec3 end, Color color )
 {
     if ( LocalData().totalPrims >= MAX_DEBUG_PRIMS )
     {
-        if ( !LocalData().warnedThisFrame )
+        if ( !LocalData().warnedMaxDebugLinesThisFrame )
         {
             LOG_WARN( "Reached the max number of debug primitives on this frame. Skipping all future debug prims" );
-            LocalData().warnedThisFrame = true;
+            LocalData().warnedMaxDebugLinesThisFrame = true;
         }
         return;
     }
@@ -150,10 +199,10 @@ void AddAABB( const AABB& aabb, Color color )
 {
     if ( LocalData().totalPrims >= MAX_DEBUG_PRIMS )
     {
-        if ( !LocalData().warnedThisFrame )
+        if ( !LocalData().warnedMaxDebugLinesThisFrame )
         {
             LOG_WARN( "Reached the max number of debug primitives on this frame. Skipping all future debug prims" );
-            LocalData().warnedThisFrame = true;
+            LocalData().warnedMaxDebugLinesThisFrame = true;
         }
         return;
     }
@@ -172,10 +221,10 @@ void AddFrustum( const Frustum& frustum, Color color )
 {
     if ( LocalData().totalPrims >= MAX_DEBUG_PRIMS )
     {
-        if ( !LocalData().warnedThisFrame )
+        if ( !LocalData().warnedMaxDebugLinesThisFrame )
         {
             LOG_WARN( "Reached the max number of debug primitives on this frame. Skipping all future debug prims" );
-            LocalData().warnedThisFrame = true;
+            LocalData().warnedMaxDebugLinesThisFrame = true;
         }
         return;
     }
@@ -196,6 +245,61 @@ void AddFrustum( const Frustum& frustum, Color color )
     AddLine( frustum.corners[3], frustum.corners[7], color );
 }
 
+static constexpr f32 FONT_WIDTH         = 32;
+static constexpr f32 FONT_HEIGHT        = 32;
+static constexpr f32 FONT_ADVANCE_WIDTH = 10;
+static constexpr u32 ATLAS_ROWS         = 8;
+static constexpr u32 ATLAS_COLS         = 16;
+static const vec2 INV_ATLAS_SIZE( 1.0f / ATLAS_COLS, 1.0f / ATLAS_ROWS );
+
+void AddText2D( vec2 normalizedPos, Color color, const char* str )
+{
+    LocalFrameData& localData = LocalData();
+    u32 stringLen             = (u32)strlen( str );
+    if ( !stringLen )
+        return;
+
+    u32 startIndex = localData.numDebugTextCharacters;
+    u32 charsToAdd = Min( MAX_DEBUG_TEXT_CHARACTERS, localData.numDebugTextCharacters + stringLen );
+    localData.numDebugTextCharacters += charsToAdd;
+    if ( charsToAdd != stringLen && !LocalData().warnedMaxDebugTextThisFrame )
+    {
+        LOG_WARN( "Reached the max number of debug text characters on this frame. Skipping all future debug text" );
+        LocalData().warnedMaxDebugTextThisFrame = true;
+    }
+    if ( !charsToAdd )
+        return;
+
+    f32 packedColor             = GetPackedColor( color );
+    static vec2 quadPositions[] = {
+        vec2( 0, 0 ),
+        vec2( 0, 1 ),
+        vec2( 1, 1 ),
+        vec2( 0, 0 ),
+        vec2( 1, 1 ),
+        vec2( 1, 0 ),
+    };
+
+    vec2 scaleFactor( FONT_WIDTH / rg.displayWidth, FONT_HEIGHT / rg.displayHeight );
+    vec4* gpuData = localData.debugTextVB.GetMappedPtr<vec4>();
+    for ( u32 charIdx = 0; charIdx < charsToAdd; ++charIdx )
+    {
+        u32 c           = str[charIdx] - 32;
+        u32 col         = c % ATLAS_COLS;
+        u32 row         = c / ATLAS_COLS;
+        vec2 topLeft    = vec2( col, row ) * INV_ATLAS_SIZE;
+        u32 globalIndex = 6 * ( startIndex + charIdx );
+        for ( u32 i = 0; i < 6; ++i )
+        {
+            vec2 uv = topLeft + quadPositions[i] * INV_ATLAS_SIZE;
+            vec2 p  = normalizedPos + quadPositions[i] * scaleFactor;
+            p.x += charIdx * FONT_ADVANCE_WIDTH / rg.displayWidth;
+            f32 packedUV             = Float32ToFloat16AsFloat( uv.x, uv.y );
+            gpuData[globalIndex + i] = vec4( p, packedUV, packedColor );
+        }
+    }
+}
+
 #else  // #if USING( DEBUG_DRAW )
 
 void Init() {}
@@ -213,6 +317,13 @@ void AddAABB( const AABB& aabb, Color color )
 {
     PG_UNUSED( aabb );
     PG_UNUSED( color );
+}
+
+void AddText( vec2 normalizedPos, Color color, const char* str )
+{
+    PG_UNUSED( normalizedPos );
+    PG_UNUSED( color );
+    PG_UNUSED( str );
 }
 #endif // #else // #if USING( DEBUG_DRAW )
 

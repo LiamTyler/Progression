@@ -96,6 +96,14 @@ inline u32 Float32ToFloat16( f32 x, f32 y )
     return px | ( py << 16 );
 }
 
+inline f32 Float32ToFloat16AsFloat( f32 x, f32 y )
+{
+    u32 px = Float32ToFloat16( x );
+    u32 py = Float32ToFloat16( y );
+    uint packed = px | ( py << 16 );
+    return *reinterpret_cast<float*>( &packed );
+}
+
 inline f32 Float16ToFloat32( u16 f16 )
 {
     static const FP32 magic      = { 113 << 23 };

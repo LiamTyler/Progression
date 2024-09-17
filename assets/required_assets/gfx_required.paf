@@ -39,5 +39,11 @@
         "colorAttachment": { "format": "R8_G8_B8_A8_UNORM" },
         "depthAttachment": { "format": "DEPTH_32_FLOAT" },
         "primitiveType": "LINES"
+    } },
+    { "Pipeline": {
+        "name": "debug_text",
+        "vertexShader": "debug/debug_text.vert",
+        "fragmentShader": "debug/debug_text.frag",
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM" }
     } }
 ]

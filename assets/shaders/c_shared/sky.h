@@ -1,5 +1,5 @@
-#ifndef __CULL_DATA_H__
-#define __CULL_DATA_H__
+#ifndef __SKY_H__
+#define __SKY_H__
 
 #include "c_shared/defines.h"
 
@@ -19,4 +19,4 @@ struct SkyDrawData
 
 END_GPU_DATA_NAMESPACE()
 
-#endif // __CULL_DATA_H__
+#endif // __SKY_H__

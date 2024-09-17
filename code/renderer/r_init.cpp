@@ -57,10 +57,13 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
     }
 #endif // #if USING( SHADER_DEBUG_PRINTF )
 
+    if ( messageType == VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT && messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT )
+        return VK_FALSE;
+
     const char* messageTypeString;
     switch ( messageType )
     {
-    case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: return VK_FALSE;
+    case VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT: messageTypeString = "General"; break;
     case VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT: messageTypeString = "Validation"; break;
     case VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT: messageTypeString = "Performance"; break;
     default: messageTypeString = "Unknown";
@@ -76,7 +79,8 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
     }
     else
     {
-        LOG( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
+        if ( pCallbackData->messageIdNumber != 601872502 ) // just a message of which instance layers are enabled
+            LOG( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
     }
 
     return VK_FALSE;
@@ -123,6 +127,7 @@ static vkb::Result<vkb::Instance> GetInstance()
     builder.set_debug_callback( DebugCallback );
     VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =
         VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 #if USING( SHADER_DEBUG_PRINTF )
     builder.add_validation_feature_enable( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
     debugMessageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
@@ -326,8 +331,11 @@ void R_Shutdown()
     rg.immediateCmdPool.Free();
     rg.immediateFence.Free();
 
+    LOG( "Freeing swapchain..." );
     rg.swapchain.Free();
+    LOG( "Freeing surface..." );
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
+    LOG( "Freeing pipelines..." );
     PipelineManager::Shutdown();
     BindlessManager::Shutdown();
     FreeGlobalDescriptorData();

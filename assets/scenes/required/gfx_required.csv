@@ -4,3 +4,5 @@ Pipeline,sky
 Pipeline,post_process
 Pipeline,litModel
 Pipeline,debug_lines
+Pipeline,debug_text
+Image,debug_font

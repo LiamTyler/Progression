@@ -220,6 +220,7 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
+    DebugDraw::Draw2D( cmdBuf );
 }
 
 void UI_3D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
@@ -233,7 +234,7 @@ void UI_3D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
         DebugDraw::AddFrustum( rg.debugCullingFrustum, DebugDraw::Color::YELLOW );
     }
 #endif // #if USING( DEVELOPMENT_BUILD )
-    DebugDraw::Draw( cmdBuf );
+    DebugDraw::Draw3D( cmdBuf );
 }
 
 bool Init_TaskGraph()
@@ -280,14 +281,14 @@ bool Init_TaskGraph()
     cTask->AddTextureOutput( swapImg );
     cTask->SetFunction( PostProcessFunc );
 
-    GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_2D" );
-    gTask->AddColorAttachment( swapImg );
-    gTask->SetFunction( UI_2D_DrawFunc );
-
-    gTask = builder.AddGraphicsTask( "UI_3D" );
+    GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_3D" );
     gTask->AddColorAttachment( swapImg );
     gTask->AddDepthAttachment( sceneDepth );
     gTask->SetFunction( UI_3D_DrawFunc );
+
+    gTask = builder.AddGraphicsTask( "UI_2D" );
+    gTask->AddColorAttachment( swapImg );
+    gTask->SetFunction( UI_2D_DrawFunc );
 
     PresentTaskBuilder* pTask = builder.AddPresentTask();
     pTask->SetPresentationImage( swapImg );
@@ -297,7 +298,7 @@ bool Init_TaskGraph()
     compileInfo.sceneHeight    = rg.sceneHeight;
     compileInfo.displayWidth   = rg.displayWidth;
     compileInfo.displayHeight  = rg.displayHeight;
-    compileInfo.mergeResources = false;
+    compileInfo.mergeResources = true;
     // TG_DEBUG_ONLY( compileInfo.showStats = true );
     if ( !s_taskGraph.Compile( builder, compileInfo ) )
     {
@@ -503,6 +504,7 @@ void Render()
     PG_PROFILE_GPU_START( cmdBuf, Frame, "Frame" );
 
     DebugDraw::StartFrame();
+    DebugDraw::AddText2D( vec2( 0.47f, 0.38f ), DebugDraw::Color::GREEN, "Test dragon" );
     BindlessManager::Update();
     UIOverlay::BeginFrame();
     rg.device.AcquirePendingTransfers();

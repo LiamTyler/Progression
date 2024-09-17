@@ -1,0 +1,8 @@
+[
+	{ "Image": {
+		"name": "debug_font",
+		"filename": "fonts/debug_font_full.bmp",
+		"semantic": "GRAY",
+        "flipVertically": false
+	} }
+]

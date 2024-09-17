@@ -3,8 +3,6 @@
 #include "global_descriptors.glsl"
 #include "c_shared/sky.h"
 
-layout( location = 0 ) in vec3 vertex;
-
 layout( push_constant ) uniform PushConstants
 {
     SkyDrawData drawData;

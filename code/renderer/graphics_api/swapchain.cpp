@@ -87,6 +87,7 @@ bool Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
 
 void Swapchain::Free()
 {
+    rg.device.WaitForIdle();
     PG_ASSERT( m_handle != VK_NULL_HANDLE );
     for ( size_t i = 0; i < m_textures.size(); ++i )
     {

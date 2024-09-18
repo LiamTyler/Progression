@@ -15,16 +15,17 @@ namespace PG
 namespace Gfx
 {
 
-void ConvertPGBlendModeToVK( BlendMode blendMode, VkPipelineColorBlendAttachmentState& state )
+VkPipelineColorBlendAttachmentState ConvertPGBlendModeToVK( BlendMode blendMode )
 {
+    VkPipelineColorBlendAttachmentState state = {};
+    state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
     if ( blendMode == BlendMode::NONE )
     {
         state.blendEnable = false;
-        return;
+        return state;
     }
 
-    state.blendEnable    = true;
-    state.colorWriteMask = VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
+    state.blendEnable = true;
     if ( blendMode == BlendMode::ADDITIVE )
     {
         state.srcColorBlendFactor = VK_BLEND_FACTOR_SRC_ALPHA;
@@ -43,6 +44,8 @@ void ConvertPGBlendModeToVK( BlendMode blendMode, VkPipelineColorBlendAttachment
         state.colorBlendOp        = VK_BLEND_OP_ADD;
         state.alphaBlendOp        = VK_BLEND_OP_ADD;
     }
+
+    return state;
 }
 
 } // namespace Gfx

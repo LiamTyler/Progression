@@ -44,6 +44,6 @@
         "name": "debug_text",
         "vertexShader": "debug/debug_text.vert",
         "fragmentShader": "debug/debug_text.frag",
-        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM" }
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
     } }
 ]

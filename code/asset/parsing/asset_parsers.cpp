@@ -203,6 +203,12 @@ BEGIN_STR_TO_ENUM_MAP_SCOPED( PolygonMode, Gfx )
     STR_TO_ENUM_VALUE( Gfx::PolygonMode, POINT )
 END_STR_TO_ENUM_MAP( Gfx::PolygonMode, FILL )
 
+BEGIN_STR_TO_ENUM_MAP_SCOPED( BlendMode, Gfx )
+    STR_TO_ENUM_VALUE( Gfx::BlendMode, NONE )
+    STR_TO_ENUM_VALUE( Gfx::BlendMode, ADDITIVE )
+    STR_TO_ENUM_VALUE( Gfx::BlendMode, ALPHA_BLEND )
+END_STR_TO_ENUM_MAP( Gfx::BlendMode, NUM_BLEND_MODES )
+
 bool PipelineParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<Gfx::PipelineColorAttachmentInfo&> cMapping(
@@ -212,6 +218,7 @@ bool PipelineParser::ParseInternal( cjval value, DerivedInfoPtr info )
             if ( s.format == PixelFormat::INVALID )
                 LOG_WARN( "Invalid color attachment format '%s'", v.GetString() );
         } },
+        { "blendMode", []( cjval v, Gfx::PipelineColorAttachmentInfo& s ) { s.blendMode = BlendMode_ParseEnum( v ); } },
     });
 
     static JSONFunctionMapper<Gfx::PipelineDepthInfo&> dMapping(

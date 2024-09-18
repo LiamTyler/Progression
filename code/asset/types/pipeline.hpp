@@ -64,7 +64,7 @@ enum class BlendMode : u8
 };
 
 #if USING( GPU_STRUCTS )
-void ConvertPGBlendModeToVK( BlendMode blendMode, VkPipelineColorBlendAttachmentState& state );
+VkPipelineColorBlendAttachmentState ConvertPGBlendModeToVK( BlendMode blendMode );
 #endif // #if USING( GPU_STRUCTS )
 
 enum class WindingOrder : u8

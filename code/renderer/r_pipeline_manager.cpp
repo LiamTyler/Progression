@@ -160,27 +160,11 @@ public:
         for ( size_t i = 0; i < gInfo.colorAttachments.size(); ++i )
         {
             const PipelineColorAttachmentInfo& attach = gInfo.colorAttachments[i];
-
-            colorBlendAttachment[i] = {};
-            colorBlendAttachment[i].colorWriteMask =
-                VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT;
-            colorBlendAttachment[i].blendEnable = false;
-            // colorBlendAttachment[i].blendEnable = attach.blendingEnabled;
-            // if ( attach.blendingEnabled )
-            //{
-            //     colorBlendAttachment[i].srcColorBlendFactor = PGToVulkanBlendFactor( attach.srcColorBlendFactor );
-            //     colorBlendAttachment[i].dstColorBlendFactor = PGToVulkanBlendFactor( attach.dstColorBlendFactor );
-            //     colorBlendAttachment[i].srcAlphaBlendFactor = PGToVulkanBlendFactor( attach.srcAlphaBlendFactor );
-            //     colorBlendAttachment[i].dstAlphaBlendFactor = PGToVulkanBlendFactor( attach.dstAlphaBlendFactor );
-            //     colorBlendAttachment[i].colorBlendOp        = PGToVulkanBlendEquation( attach.colorBlendEquation );
-            //     colorBlendAttachment[i].alphaBlendOp        = PGToVulkanBlendEquation( attach.alphaBlendEquation );
-            // }
-            colorAttachmentFormats[i] = PGToVulkanPixelFormat( attach.format );
+            colorBlendAttachment[i]                   = ConvertPGBlendModeToVK( attach.blendMode );
+            colorAttachmentFormats[i]                 = PGToVulkanPixelFormat( attach.format );
         }
 
         VkPipelineColorBlendStateCreateInfo colorBlending{ VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO };
-        colorBlending.logicOpEnable   = VK_FALSE;
-        colorBlending.logicOp         = VK_LOGIC_OP_COPY;
         colorBlending.attachmentCount = (u32)gInfo.colorAttachments.size();
         colorBlending.pAttachments    = colorBlendAttachment;
 
@@ -196,8 +180,7 @@ public:
         VkPipelineVertexInputStateCreateInfo vertexInputStateCI{ VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO };
 
         VkPipelineInputAssemblyStateCreateInfo inputAssembly{ VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO };
-        inputAssembly.topology               = PGToVulkanPrimitiveType( gInfo.primitiveType );
-        inputAssembly.primitiveRestartEnable = VK_FALSE;
+        inputAssembly.topology = PGToVulkanPrimitiveType( gInfo.primitiveType );
 
         VkGraphicsPipelineCreateInfo pipelineInfo{ VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO };
         pipelineInfo.stageCount          = (u32)createInfo.shaders.size();

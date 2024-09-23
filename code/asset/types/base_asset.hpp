@@ -56,4 +56,6 @@ protected:
     void SerializeName( Serializer* serializer ) const;
 };
 
+std::string DeserializeAssetName( Serializer* serializer, BaseAsset* asset );
+
 } // namespace PG

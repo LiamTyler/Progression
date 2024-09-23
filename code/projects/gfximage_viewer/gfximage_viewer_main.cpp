@@ -54,6 +54,7 @@ int main( int argc, char* argv[] )
         return 0;
     }
     GfxImage image;
+    DeserializeAssetName( &in, &image );
     if ( !image.FastfileLoad( &in ) )
     {
         LOG_ERR( "Failed to deserialize image file '%s'", argv[1] );

@@ -5,6 +5,8 @@
 #include "msdfgen/ext/import-font.h"
 #define STB_RECT_PACK_IMPLEMENTATION
 #include "stb/stb_rect_pack.h"
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
 namespace PG
 {
@@ -28,10 +30,10 @@ AssetStatus FontConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, t
     if ( IsFileOutOfDate( cacheTimestamp, absFilename ) )
         return AssetStatus::OUT_OF_DATE;
 
-    //std::string outputTexCacheName = "#font_" + GetCacheNameInternal( info ) + std::to_string( g_assetVersions[ASSET_TYPE_GFX_IMAGE] );
-    //time_t texTimestamp = AssetCache::GetAssetTimestamp( ASSET_TYPE_GFX_IMAGE, outputTexCacheName );
-    //if ( IsFileOutOfDate( cacheTimestamp, texTimestamp ) )
-    //    return AssetStatus::OUT_OF_DATE;
+    // std::string outputTexCacheName = "#font_" + GetCacheNameInternal( info ) + std::to_string( g_assetVersions[ASSET_TYPE_GFX_IMAGE] );
+    // time_t texTimestamp = AssetCache::GetAssetTimestamp( ASSET_TYPE_GFX_IMAGE, outputTexCacheName );
+    // if ( IsFileOutOfDate( cacheTimestamp, texTimestamp ) )
+    //     return AssetStatus::OUT_OF_DATE;
     //
     return AssetStatus::UP_TO_DATE;
 }
@@ -45,7 +47,19 @@ struct GlyphData
     int rectId;
 };
 
-bool CreateFontAtlas( const FontCreateInfo& info, RawImage2D& atlasImg )
+double getFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScaling coordinateScaling )
+{
+    using namespace msdfgen;
+    switch ( coordinateScaling )
+    {
+    case FONT_SCALING_NONE: return 1;
+    case FONT_SCALING_EM_NORMALIZED: return 1. / ( face->units_per_EM ? face->units_per_EM : 1 );
+    case FONT_SCALING_LEGACY: return MSDFGEN_LEGACY_FONT_COORDINATE_SCALE;
+    }
+    return 1;
+}
+
+bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& atlasImg )
 {
     using namespace msdfgen;
     FreetypeHandle* ft = initializeFreetype();
@@ -54,23 +68,21 @@ bool CreateFontAtlas( const FontCreateInfo& info, RawImage2D& atlasImg )
         LOG_ERR( "Failed to initialize freetype" );
         return false;
     }
-    FontHandle* font = loadFont( ft, info.filename.c_str() );
+    FontHandle* font = loadFont( ft, GetAbsPath_FontFilename( info.filename ).c_str() );
     if ( !font )
     {
-        LOG_ERR( "Failed to load font %s", info.filename.c_str() );
+        LOG_ERR( "Failed to load font %s", GetAbsPath_FontFilename( info.filename ).c_str() );
         return false;
     }
 
-    const u32 firstChar  = 33;
-    const u32 lastChar   = 126;
-    const u32 totalChars = lastChar - firstChar;
+    const u32 TOTAL_CHARS = FONT_LAST_CHARACTER_CODE - FONT_FIRST_CHARACTER_CODE + 1;
     std::vector<GlyphData> glyphDatas;
     std::vector<stbrp_rect> rects;
-    glyphDatas.reserve( totalChars );
+    glyphDatas.reserve( TOTAL_CHARS );
     Range msdfRange( info.maxSignedDistance );
 
     i64 minAtlasPixelsNeeded = 0;
-    for ( u32 character = firstChar; character <= lastChar; ++character )
+    for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
     {
         GlyphData& data = glyphDatas.emplace_back();
         if ( !loadGlyph( data.shape, font, character, FONT_SCALING_EM_NORMALIZED ) )
@@ -97,7 +109,7 @@ bool CreateFontAtlas( const FontCreateInfo& info, RawImage2D& atlasImg )
         data.roundedSizeInPixels.y = static_cast<int>( ceil( data.size.y * info.glyphSize ) );
 
         stbrp_rect& rect = rects.emplace_back();
-        rect.id          = character - firstChar;
+        rect.id          = character - FONT_FIRST_CHARACTER_CODE;
         rect.w           = data.roundedSizeInPixels.x;
         rect.h           = data.roundedSizeInPixels.y;
         minAtlasPixelsNeeded += static_cast<i64>( rect.w * rect.h );
@@ -178,7 +190,45 @@ bool CreateFontAtlas( const FontCreateInfo& info, RawImage2D& atlasImg )
         }
     }
 
-    // atlasImg.Save( PG_ROOT_DIR "font_atlas.png" );
+    FT_Library library;
+    FT_Error error = FT_Init_FreeType( &library );
+    if ( error )
+    {
+        LOG_ERR( "Could not init freetype library" );
+        return false;
+    }
+
+    FT_Face face;
+    error = FT_New_Face( library, GetAbsPath_FontFilename( info.filename ).c_str(), 0, &face );
+    if ( error )
+    {
+        LOG_ERR( "Could not load font with freetype" );
+        return false;
+    }
+
+    double fontScale = getFontCoordinateScale( face, FONT_SCALING_EM_NORMALIZED );
+    for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
+    {
+        const GlyphData& data     = glyphDatas[character - FONT_FIRST_CHARACTER_CODE];
+        const stbrp_rect& rect    = rects[character - FONT_FIRST_CHARACTER_CODE];
+        Font::Glyph& pgGlyph      = fontAsset.glyphs.emplace_back();
+        pgGlyph.characterCode     = character;
+        pgGlyph.positionInAtlas.x = rect.x / (float)atlasImg.width;
+        pgGlyph.positionInAtlas.y = rect.y / (float)atlasImg.height;
+        pgGlyph.sizeInAtlas.x     = data.size.x / (float)atlasImg.width;
+        pgGlyph.sizeInAtlas.y     = data.size.y / (float)atlasImg.height;
+
+        FT_Error error = FT_Load_Glyph( face, FT_Get_Char_Index( face, character ), FT_LOAD_DEFAULT );
+        if ( error )
+            return false;
+
+        pgGlyph.bearing.x = static_cast<float>( fontScale * face->glyph->metrics.horiBearingX );
+        pgGlyph.bearing.y = static_cast<float>( fontScale * face->glyph->metrics.horiBearingY );
+        pgGlyph.advance   = static_cast<float>( fontScale * face->glyph->advance.x );
+    }
+
+    FT_Done_Face( face );
+    FT_Done_FreeType( library );
 
     return true;
 }
@@ -189,7 +239,7 @@ bool FontConverter::ConvertInternal( ConstDerivedInfoPtr& info )
     font.SetName( info->name );
 
     RawImage2D atlasImg;
-    if ( !CreateFontAtlas( *info, atlasImg ) )
+    if ( !CreateFontAtlas( *info, font, atlasImg ) )
     {
         LOG_ERR( "Could not create font atlas for font '%s'", info->name.c_str() );
         return false;
@@ -197,13 +247,14 @@ bool FontConverter::ConvertInternal( ConstDerivedInfoPtr& info )
 
     GfxImage gfxImage;
     RawImage2DMipsToGfxImage( gfxImage, { atlasImg }, PixelFormat::R8_G8_B8_A8_UNORM );
+    gfxImage.SetName( "font_atlas_" + info->name );
 
-    // std::string cacheName = GetCacheName( matInfo );
-    // if ( !AssetCache::CacheAsset( assetType, cacheName, &material ) )
-    //{
-    //     LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], matInfo->name.c_str(), cacheName.c_str() );
-    //     return false;
-    // }
+    std::string cacheName = GetCacheName( info );
+    if ( !AssetCache::CacheAsset( assetType, cacheName, &font ) )
+    {
+        LOG_ERR( "Failed to cache asset %s %s (%s)", g_assetNames[assetType], info->name.c_str(), cacheName.c_str() );
+        return false;
+    }
 
     return true;
 }

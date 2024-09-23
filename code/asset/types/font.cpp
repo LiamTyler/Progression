@@ -11,7 +11,9 @@ std::string GetAbsPath_FontFilename( const std::string& filename ) { return PG_A
 
 bool Font::FastfileLoad( Serializer* serializer )
 {
-    //serializer->Read( scriptText );
+    DeserializeAssetName( serializer, &fontAtlasTexture );
+    fontAtlasTexture.FastfileLoad( serializer );
+    serializer->Read( glyphs );
 
     return true;
 }
@@ -19,7 +21,7 @@ bool Font::FastfileLoad( Serializer* serializer )
 bool Font::FastfileSave( Serializer* serializer ) const
 {
     SerializeName( serializer );
-    //serializer->Write( scriptText );
+    serializer->Write( glyphs );
 
     return true;
 }

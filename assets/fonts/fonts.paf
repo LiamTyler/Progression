@@ -4,5 +4,9 @@
 		"filename": "fonts/debug_font_full.bmp",
 		"semantic": "GRAY",
         "flipVertically": false
-	} }
+	} },
+    { "Font": {
+        "name": "arial",
+        "filename": "fonts/arial.ttf"
+    } }
 ]

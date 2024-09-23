@@ -40,4 +40,16 @@ void BaseAsset::SerializeName( Serializer* serializer ) const
 #endif // #if USING( ASSET_NAMES )
 }
 
+std::string DeserializeAssetName( Serializer* serializer, BaseAsset* asset )
+{
+    std::string assetName;
+    u16 assetNameLen;
+    serializer->Read( assetNameLen );
+    assetName.resize( assetNameLen );
+    serializer->Read( &assetName[0], assetNameLen );
+    asset->SetName( assetName );
+
+    return assetName;
+}
+
 } // namespace PG

@@ -1,3 +1,4 @@
+#include "asset/types/font.hpp"
 #include "image.hpp"
 #include "shared/bitops.hpp"
 #include "shared/filesystem.hpp"
@@ -12,19 +13,34 @@
 #include "stb/stb_rect_pack.h"
 
 // using namespace msdfgen;
+using namespace PG;
+#include <ft2build.h>
+#include FT_FREETYPE_H
 
-// #include <ft2build.h>
-// #include FT_FREETYPE_H
+double getFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScaling coordinateScaling )
+{
+    using namespace msdfgen;
+    switch ( coordinateScaling )
+    {
+    case FONT_SCALING_NONE: return 1;
+    case FONT_SCALING_EM_NORMALIZED: return 1. / ( face->units_per_EM ? face->units_per_EM : 1 );
+    case FONT_SCALING_LEGACY: return MSDFGEN_LEGACY_FONT_COORDINATE_SCALE;
+    }
+    return 1;
+}
 
 using namespace std;
 
 struct GlyphData
 {
+    char character;
     msdfgen::Shape shape;
     vec2 translation; // in em
     vec2 size;        // in em
     ivec2 roundedSizeInPixels;
     int rectId;
+    msdfgen::GlyphIndex glyphIndex;
+    std::vector<float> kernings;
 };
 
 bool CreateFontAtlas( const std::string& fontFilename, int glyphSize, float emRange )
@@ -53,11 +69,16 @@ bool CreateFontAtlas( const std::string& fontFilename, int glyphSize, float emRa
     const u32 lastChar       = 126;
     for ( u32 character = firstChar; character <= lastChar; ++character )
     {
-        LOG( "%u: %c", character, (char)character );
         GlyphData& data = glyphDatas.emplace_back();
+        data.character  = (char)character;
         if ( !loadGlyph( data.shape, font, character, FONT_SCALING_EM_NORMALIZED ) )
         {
             LOG_ERR( "Failed to load glyph data for character '%u'", character );
+            return false;
+        }
+        if ( !getGlyphIndex( data.glyphIndex, font, character ) )
+        {
+            LOG_ERR( "Failed to get glyph index" );
             return false;
         }
 
@@ -85,6 +106,17 @@ bool CreateFontAtlas( const std::string& fontFilename, int glyphSize, float emRa
         minAtlasPixelsNeeded += static_cast<i64>( rect.w * rect.h );
         rect.x = rect.y = rect.was_packed = 0;
     }
+
+    auto& A         = glyphDatas['A' - 33];
+    auto& L         = glyphDatas['V' - 33];
+    double kerning1 = 0;
+    double kerning2 = 0;
+    double kerning3 = 0;
+    bool success    = getKerning( kerning1, font, A.glyphIndex, L.glyphIndex, msdfgen::FONT_SCALING_EM_NORMALIZED );
+    success         = getKerning( kerning2, font, A.glyphIndex, L.glyphIndex, msdfgen::FONT_SCALING_LEGACY );
+    success         = getKerning( kerning3, font, A.glyphIndex, L.glyphIndex, msdfgen::FONT_SCALING_NONE );
+
+    // FontMetrics metrics;
 
     int width  = 64;
     int height = 64;
@@ -130,9 +162,9 @@ bool CreateFontAtlas( const std::string& fontFilename, int glyphSize, float emRa
     }
 
     RawImage2D atlasImg( width, height, ImageFormat::R8_G8_B8_A8_UNORM );
-    for ( int r = 0; r < atlasImg.height; ++r )
+    for ( u32 r = 0; r < atlasImg.height; ++r )
     {
-        for ( int c = 0; c < atlasImg.width; ++c )
+        for ( u32 c = 0; c < atlasImg.width; ++c )
         {
             atlasImg.SetPixelFromFloat4( r, c, vec4( 0, 0, 0, 1 ) );
         }
@@ -160,6 +192,40 @@ bool CreateFontAtlas( const std::string& fontFilename, int glyphSize, float emRa
         }
     }
 
+    FT_Library library;
+    FT_Error error = FT_Init_FreeType( &library );
+    if ( error )
+    {
+        LOG_ERR( "Could not init freetype library" );
+        return false;
+    }
+
+    FT_Face face;
+    error = FT_New_Face( library, fontFilename.c_str(), 0, &face );
+
+    double fontScale = getFontCoordinateScale( face, FONT_SCALING_EM_NORMALIZED );
+    std::vector<Font::Glyph> pgGlyphs;
+    for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
+    {
+        const GlyphData& data     = glyphDatas[character - FONT_FIRST_CHARACTER_CODE];
+        const stbrp_rect& rect    = rects[character - FONT_FIRST_CHARACTER_CODE];
+        Font::Glyph& pgGlyph      = pgGlyphs.emplace_back();
+        pgGlyph.characterCode     = character;
+        pgGlyph.positionInAtlas.x = rect.x / (float)atlasImg.width;
+        pgGlyph.positionInAtlas.y = rect.y / (float)atlasImg.height;
+        pgGlyph.sizeInAtlas.x     = rect.w / (float)atlasImg.width;
+        pgGlyph.sizeInAtlas.y     = rect.h / (float)atlasImg.height;
+
+        // FT_Error error = FT_Load_Glyph( font->face, data.glyphIndex, FT_LOAD_NO_SCALE );
+        FT_Error error = FT_Load_Glyph( face, data.glyphIndex.getIndex(), FT_LOAD_DEFAULT );
+        if ( error )
+            return false;
+
+        pgGlyph.advance   = static_cast<float>( fontScale * face->glyph->advance.x );
+        pgGlyph.bearing.x = static_cast<float>( fontScale * face->glyph->metrics.horiBearingX );
+        pgGlyph.bearing.y = static_cast<float>( fontScale * face->glyph->metrics.horiBearingY );
+    }
+
     atlasImg.Save( PG_ROOT_DIR "font_atlas.png" );
 
     return true;
@@ -175,68 +241,6 @@ int main( int argc, char* argv[] )
     {
         LOG_ERR( "Could not create atlas" );
         return 0;
-    }
-
-#define MSDF 0
-    const int SIZE        = 64;
-    const int PADDED_SIZE = SIZE + 16;
-    RawImage2D img( PADDED_SIZE, PADDED_SIZE, ImageFormat::R8_G8_B8_A8_UNORM );
-
-    if ( FreetypeHandle* ft = initializeFreetype() )
-    {
-        if ( FontHandle* font = loadFont( ft, PG_ASSET_DIR "fonts/arial.ttf" ) )
-        {
-            FontMetrics metrics;
-            if ( !getFontMetrics( metrics, font, msdfgen::FONT_SCALING_NONE ) )
-            {
-                LOG_ERR( "Failed to get metrics" );
-                return 0;
-            }
-            Shape shape;
-
-            for ( char character = 33; character <= 126; ++character )
-            {
-                if ( !loadGlyph( shape, font, 'M', FONT_SCALING_EM_NORMALIZED ) )
-                {
-                    shape.normalize();
-                    Shape::Bounds bounds = shape.getBounds();
-                    Range range( 8.0 / SIZE );
-                    double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
-                    l += range.lower, b += range.lower;
-                    r -= range.lower, t -= range.lower;
-                    double vR = t - b;
-                    double hR = r - l;
-                    edgeColoringSimple( shape, 3.0 );
-                    // edgeColoringInkTrap( shape, 3.0 );
-#if MSDF
-                    Bitmap<float, 3> msdf( SIZE, SIZE );
-                    SDFTransformation t( Projection( SIZE, Vector2( 0.125, 0.125 ) ), Range( 0.125 ) );
-                    generateMSDF( msdf, shape, t );
-#else
-                    Bitmap<float, 1> msdf( PADDED_SIZE, PADDED_SIZE );
-                    Vector2 translate = Vector2( -l, -b );
-                    generateSDF( msdf, shape, range, Vector2( SIZE, SIZE ), translate );
-#endif
-
-                    for ( int r = 0; r < msdf.height(); ++r )
-                    {
-                        for ( int c = 0; c < msdf.width(); ++c )
-                        {
-                            img.SetPixelFromFloat4( r, c, vec4( 0, 0, 0, 1 ) );
-                            for ( int i = 0; i < ( MSDF ? 3 : 1 ); ++i )
-                            {
-                                float x = msdf( c, msdf.height() - r - 1 )[i];
-                                img.SetPixelFromFloat( r, c, i, Saturate( x ) );
-                            }
-                        }
-                    }
-
-                    img.Save( PG_ROOT_DIR "font_msdf.png" );
-                }
-            }
-            destroyFont( font );
-        }
-        deinitializeFreetype( ft );
     }
 
     return 0;

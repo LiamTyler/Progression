@@ -107,18 +107,6 @@ void ProcessPendingLiveUpdates()
 #endif // #if USING( ASSET_LIVE_UPDATE )
 }
 
-std::string DeserializeAssetName( Serializer* serializer, BaseAsset* asset )
-{
-    std::string assetName;
-    u16 assetNameLen;
-    serializer->Read( assetNameLen );
-    assetName.resize( assetNameLen );
-    serializer->Read( &assetName[0], assetNameLen );
-    asset->SetName( assetName );
-
-    return assetName;
-}
-
 template <typename ActualAssetType>
 bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
 {

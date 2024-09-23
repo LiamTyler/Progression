@@ -57,6 +57,8 @@ set(
     
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/base_asset_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/base_asset_converter.hpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters/font_converter.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/converters/font_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/gfx_image_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/material_converter.cpp

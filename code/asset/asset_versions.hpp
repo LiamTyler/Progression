@@ -12,10 +12,11 @@ enum AssetType : u8
     ASSET_TYPE_SHADER    = 4,
     ASSET_TYPE_UI_LAYOUT = 5,
     ASSET_TYPE_PIPELINE  = 6,
+    ASSET_TYPE_FONT      = 7,
 
     // put all assets that don't actually have a struct below.
     // Eg: types that exist in JSON but only have CreateInfo's that get used by other assets
-    ASSET_TYPE_TEXTURESET = 7,
+    ASSET_TYPE_TEXTURESET = 8,
 
     ASSET_TYPE_COUNT
 };
@@ -28,6 +29,7 @@ constexpr i32 g_assetVersions[] = {
     4,  // ASSET_TYPE_SHADER,    "New name serialization"
     8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
     4,  // ASSET_TYPE_PIPELINE,  "Adding blend mode"
+    1,  // ASSET_TYPE_FONT,      "New asset"
 
     // put all assets that don't actually have a struct below.
     // Note: this means that bumping the image versions doesn't do anything :(
@@ -46,5 +48,6 @@ inline const char* const g_assetNames[] = {
     "Shader",     // ASSET_TYPE_SHADER
     "UILayout",   // ASSET_TYPE_UI_LAYOUT
     "Pipeline",   // ASSET_TYPE_PIPELINE
+    "Font",       // ASSET_TYPE_FONT
     "Textureset", // ASSET_TYPE_TEXTURESET
 };

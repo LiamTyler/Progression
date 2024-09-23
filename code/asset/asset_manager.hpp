@@ -1,7 +1,7 @@
 #pragma once
 
 #include "asset/asset_versions.hpp"
-#include "asset/types/base_asset.hpp"
+#include "asset/types/font.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/material.hpp"
 #include "asset/types/model.hpp"

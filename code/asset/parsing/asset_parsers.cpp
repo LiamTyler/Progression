@@ -5,7 +5,7 @@ using cjval = const rapidjson::Value&;
 namespace PG
 {
 
-static_assert( ASSET_TYPE_COUNT == 8 );
+static_assert( ASSET_TYPE_COUNT == 9 );
 
 const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     std::make_unique<GfxImageParser>(),   // ASSET_TYPE_GFX_IMAGE
@@ -14,7 +14,8 @@ const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     std::make_unique<ModelParser>(),      // ASSET_TYPE_MODEL
     std::make_unique<NullParser>(),       // ASSET_TYPE_SHADER
     std::make_unique<UILayoutParser>(),   // ASSET_TYPE_UI_LAYOUT
-    std::make_unique<PipelineParser>(),   // ASSET_TYPE_PARSER
+    std::make_unique<PipelineParser>(),   // ASSET_TYPE_PIPELINE
+    std::make_unique<FontParser>(),       // ASSET_TYPE_FONT
     std::make_unique<TexturesetParser>(), // ASSET_TYPE_TEXTURESET
 };
 
@@ -261,6 +262,30 @@ bool PipelineParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "rasterizerInfo",  [&]( cjval v, PipelineCreateInfo& s ) { rMapping.ForEachMember( v, s.graphicsInfo.rasterizerInfo ); } },
     });
     mapping.ForEachMember( value, *info );
+
+    return true;
+}
+
+bool FontParser::ParseInternal( cjval value, DerivedInfoPtr info )
+{
+    static JSONFunctionMapper<FontCreateInfo&> mapping(
+    {
+        { "filename",          []( cjval v, FontCreateInfo& s ) { s.filename = ParseString( v ); } },
+        { "glyphSize",         []( cjval v, FontCreateInfo& s ) { s.glyphSize = ParseNumber<i32>( v ); } },
+        { "maxSignedDistance", []( cjval v, FontCreateInfo& s ) { s.maxSignedDistance = ParseNumber<f32>( v ); } },
+    });
+    mapping.ForEachMember( value, *info );
+
+    if ( info->glyphSize < 8 || info->glyphSize > 128 )
+    {
+        info->glyphSize = Max( 8, Min( 128, info->glyphSize ) );
+        LOG_WARN( "glyphSize for font '%s' needs to be within [8, 128]. Clamping to %d", info->name.c_str(), info->glyphSize );
+    }
+    if ( info->maxSignedDistance < 0.0f || info->maxSignedDistance > 0.5f )
+    {
+        info->maxSignedDistance = Max( 0.0f, Min( 0.5f, info->maxSignedDistance ) );
+        LOG_WARN( "maxSignedDistance for font '%s' needs to be within [0.0, 0.5]. Clamping to %.2f", info->name.c_str(), info->maxSignedDistance );
+    }
 
     return true;
 }

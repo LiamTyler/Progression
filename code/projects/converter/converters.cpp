@@ -1,4 +1,5 @@
 #include "converters.hpp"
+#include "converters/font_converter.hpp"
 #include "converters/gfx_image_converter.hpp"
 #include "converters/material_converter.hpp"
 #include "converters/model_converter.hpp"
@@ -21,9 +22,10 @@ void InitConverters()
     g_converters[ASSET_TYPE_SHADER]    = new ShaderConverter;
     g_converters[ASSET_TYPE_UI_LAYOUT] = new UILayoutConverter;
     g_converters[ASSET_TYPE_PIPELINE]  = new PipelineConverter;
+    g_converters[ASSET_TYPE_FONT]      = new FontConverter;
     // pass through, as texturesets aren't actually converted
     g_converters[ASSET_TYPE_TEXTURESET] = new BaseAssetConverter( ASSET_TYPE_TEXTURESET );
-    static_assert( ASSET_TYPE_COUNT == 8 );
+    static_assert( ASSET_TYPE_COUNT == 9 );
 
     InitShaderIncludeCache();
 }

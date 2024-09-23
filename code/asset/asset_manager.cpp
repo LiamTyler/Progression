@@ -30,7 +30,8 @@ void Init()
     GetAssetTypeID<Model>::ID();    // ASSET_TYPE_MODEL
     GetAssetTypeID<Shader>::ID();   // ASSET_TYPE_SHADER
     GetAssetTypeID<UILayout>::ID(); // ASSET_TYPE_UI_LAYOUT
-    GetAssetTypeID<Pipeline>::ID(); // ASSET_TYPE_PIPELINE
+    GetAssetTypeID<Pipeline>::ID(); // ASSET_TYPE_PIPELINE ASSET_TYPE_FONT
+    GetAssetTypeID<Font>::ID();     // ASSET_TYPE_FONT
     PG_ASSERT( GetAssetTypeID<GfxImage>::ID() == ASSET_TYPE_GFX_IMAGE, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Material>::ID() == ASSET_TYPE_MATERIAL, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Script>::ID() == ASSET_TYPE_SCRIPT, "This needs to line up with AssetType ordering" );
@@ -38,7 +39,8 @@ void Init()
     PG_ASSERT( GetAssetTypeID<Shader>::ID() == ASSET_TYPE_SHADER, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<UILayout>::ID() == ASSET_TYPE_UI_LAYOUT, "This needs to line up with AssetType ordering" );
     PG_ASSERT( GetAssetTypeID<Pipeline>::ID() == ASSET_TYPE_PIPELINE, "This needs to line up with AssetType ordering" );
-    PG_ASSERT( ASSET_TYPE_COUNT == 8, "Dont forget to add GetAssetTypeID for new assets" );
+    PG_ASSERT( GetAssetTypeID<Font>::ID() == ASSET_TYPE_FONT, "This needs to line up with AssetType ordering" );
+    PG_ASSERT( ASSET_TYPE_COUNT == 9, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
 #if USING( ASSET_LIVE_UPDATE )
@@ -180,6 +182,7 @@ bool LoadFastFile( const std::string& fname )
             LOAD_FF_CASE( ASSET_TYPE_SHADER, Shader );
             LOAD_FF_CASE( ASSET_TYPE_UI_LAYOUT, UILayout );
             LOAD_FF_CASE( ASSET_TYPE_PIPELINE, Pipeline );
+            LOAD_FF_CASE( ASSET_TYPE_FONT, Font );
         default: LOG_ERR( "Unknown asset type '%d'", static_cast<i32>( assetType ) ); return false;
         }
     }

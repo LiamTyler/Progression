@@ -17,6 +17,14 @@ time_t GetFileTimestamp( const std::string& file )
     return NO_TIMESTAMP;
 }
 
+bool IsFileOutOfDate( time_t outputTimestamp, time_t dependencyTimestamp )
+{
+    if ( outputTimestamp == NO_TIMESTAMP || dependencyTimestamp == NO_TIMESTAMP )
+        return true;
+
+    return outputTimestamp < dependencyTimestamp;
+}
+
 bool IsFileOutOfDate( const std::string& file, const std::string& dependentFile )
 {
     return IsFileOutOfDate( GetFileTimestamp( file ), dependentFile );
@@ -35,24 +43,17 @@ bool IsFileOutOfDate( const std::string& file, const std::vector<std::string>& d
 
 bool IsFileOutOfDate( time_t timestamp, const std::string& dependentFile )
 {
-    if ( timestamp == NO_TIMESTAMP )
-        return true;
     auto dependentTimestamp = GetFileTimestamp( dependentFile );
-    return dependentTimestamp == NO_TIMESTAMP || timestamp < dependentTimestamp;
+    return IsFileOutOfDate( timestamp, dependentTimestamp );
 }
 
 bool IsFileOutOfDate( time_t timestamp, const std::string* dependencies, size_t numDependencies )
 {
-    if ( timestamp == NO_TIMESTAMP )
-        return true;
-
     for ( size_t i = 0; i < numDependencies; ++i )
     {
         auto dependentTimestamp = GetFileTimestamp( dependencies[i] );
-        if ( dependentTimestamp == NO_TIMESTAMP || timestamp < dependentTimestamp )
-        {
+        if ( IsFileOutOfDate( timestamp, dependentTimestamp ) )
             return true;
-        }
     }
 
     return false;

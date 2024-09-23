@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset/asset_versions.hpp"
+#include "asset/types/font.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "asset/types/material.hpp"
 #include "asset/types/model.hpp"
@@ -87,7 +88,8 @@ PG_DECLARE_ASSET_PARSER( Material, ASSET_TYPE_MATERIAL, MaterialCreateInfo );
 PG_DECLARE_ASSET_PARSER( Model, ASSET_TYPE_MODEL, ModelCreateInfo );
 PG_DECLARE_ASSET_PARSER( Script, ASSET_TYPE_SCRIPT, ScriptCreateInfo );
 PG_DECLARE_ASSET_PARSER( UILayout, ASSET_TYPE_UI_LAYOUT, UILayoutCreateInfo );
-PG_DECLARE_ASSET_PARSER( Pipeline, ASSET_TYPE_UI_LAYOUT, PipelineCreateInfo );
+PG_DECLARE_ASSET_PARSER( Pipeline, ASSET_TYPE_PIPELINE, PipelineCreateInfo );
+PG_DECLARE_ASSET_PARSER( Font, ASSET_TYPE_FONT, FontCreateInfo );
 PG_DECLARE_ASSET_PARSER( Textureset, ASSET_TYPE_TEXTURESET, TexturesetCreateInfo );
 
 extern const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT];

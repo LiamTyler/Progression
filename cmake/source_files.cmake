@@ -5,6 +5,8 @@ set(
     
     ${CODE_DIR}/asset/types/base_asset.cpp
     ${CODE_DIR}/asset/types/base_asset.hpp
+    ${CODE_DIR}/asset/types/font.cpp
+    ${CODE_DIR}/asset/types/font.hpp
     ${CODE_DIR}/asset/types/gfx_image.cpp
     ${CODE_DIR}/asset/types/gfx_image.hpp
     ${CODE_DIR}/asset/types/material.cpp

@@ -62,6 +62,8 @@ set(
     ${CODE_DIR}/ui/ui_element.hpp
     ${CODE_DIR}/ui/ui_system.cpp
     ${CODE_DIR}/ui/ui_system.hpp
+    ${CODE_DIR}/ui/ui_text.cpp
+    ${CODE_DIR}/ui/ui_text.hpp
 )
 
 set(

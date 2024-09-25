@@ -26,4 +26,6 @@ bool Font::FastfileSave( Serializer* serializer ) const
     return true;
 }
 
+const Font::Glyph& Font::GetGlyph( char c ) const { return glyphs[(u32)c - FONT_FIRST_CHARACTER_CODE]; }
+
 } // namespace PG

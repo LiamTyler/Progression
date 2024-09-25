@@ -33,6 +33,7 @@ public:
 
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
+    const Glyph& GetGlyph( char c ) const;
 
     GfxImage fontAtlasTexture;
     std::vector<Glyph> glyphs;

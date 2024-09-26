@@ -28,8 +28,8 @@ constexpr i32 g_assetVersions[] = {
     8,  // ASSET_TYPE_MODEL,     "unpack meshlet data for debugging"
     4,  // ASSET_TYPE_SHADER,    "New name serialization"
     8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
-    4,  // ASSET_TYPE_PIPELINE,  "Adding blend mode"
-    1,  // ASSET_TYPE_FONT,      "New asset"
+    5,  // ASSET_TYPE_PIPELINE,  "Forgot to add new blend mode to the cache name"
+    2,  // ASSET_TYPE_FONT,      "Fixing font atlas serialization + fixing sizes"
 
     // put all assets that don't actually have a struct below.
     // Note: this means that bumping the image versions doesn't do anything :(

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "asset/types/font.hpp"
+#include "renderer/graphics_api/command_buffer.hpp"
 
 namespace PG::UI::Text
 {
@@ -26,5 +27,7 @@ struct TextDrawInfo
 };
 
 void Draw2D( const TextDrawInfo& textDrawInfo, const char* str );
+
+void Render( Gfx::CommandBuffer& cmdBuf );
 
 } // namespace PG::UI::Text

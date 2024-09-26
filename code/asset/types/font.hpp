@@ -24,6 +24,7 @@ public:
     {
         vec2 positionInAtlas;
         vec2 sizeInAtlas;
+        vec2 nonSDFSize;
         vec2 bearing;
         f32 advance;
         u32 characterCode;
@@ -31,6 +32,7 @@ public:
 
     Font() = default;
 
+    void Free() override;
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
     const Glyph& GetGlyph( char c ) const;

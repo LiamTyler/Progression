@@ -46,7 +46,9 @@ std::string PipelineConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     for ( const Gfx::PipelineColorAttachmentInfo& cAttach : info->graphicsInfo.colorAttachments )
     {
         HashCombine( hash, cAttach.format );
+        HashCombine( hash, cAttach.blendMode );
     }
+
     static_assert( sizeof( Gfx::RasterizerInfo ) == 4 && sizeof( Gfx::PipelineDepthInfo ) == 4 );
     HashCombine( hash, *reinterpret_cast<const u32*>( &info->graphicsInfo.rasterizerInfo ) );
     HashCombine( hash, *reinterpret_cast<const u32*>( &info->graphicsInfo.depthInfo ) );

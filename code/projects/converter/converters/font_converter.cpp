@@ -94,6 +94,7 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
         data.shape.normalize();
         const double maxCornerAngle = 3.0;
         edgeColoringInkTrap( data.shape, maxCornerAngle );
+        // edgeColoringSimple( data.shape, maxCornerAngle );
         Shape::Bounds bounds = data.shape.getBounds();
         double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
         l += msdfRange.lower, b += msdfRange.lower;
@@ -168,11 +169,14 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
         }
     }
 
+#define DEBUG_ATLAS IN_USE
+
     const int maxSize = 2 * info.glyphSize;
     Bitmap<float, 1> bitmap( maxSize, maxSize );
-    for ( const GlyphData& glyph : glyphDatas )
+    for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
     {
-        Vector2 translation = Vector2( glyph.translation.x, glyph.translation.y );
+        const GlyphData& glyph = glyphDatas[character - FONT_FIRST_CHARACTER_CODE];
+        Vector2 translation    = Vector2( glyph.translation.x, glyph.translation.y );
         generateSDF( bitmap, glyph.shape, msdfRange, Vector2( info.glyphSize, info.glyphSize ), translation );
 
         const stbrp_rect& rect = rects[glyph.rectId];
@@ -188,7 +192,31 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
                 }
             }
         }
+
+#if USING( DEBUG_ATLAS )
+        if ( character == 'H' )
+        {
+            RawImage2D charImg( maxSize, maxSize, ImageFormat::R8_G8_B8_A8_UNORM );
+            for ( int r = 0; r < bitmap.height(); ++r )
+            {
+                for ( int c = 0; c < bitmap.width(); ++c )
+                {
+                    charImg.SetPixelFromFloat4( r, c, vec4( 0, 0, 0, 1 ) );
+                    for ( int i = 0; i < 1; ++i )
+                    {
+                        // float x = bitmap( c, bitmap.height() - r - 1 )[i];
+                        float x = bitmap( c, r )[i];
+                        charImg.SetPixelFromFloat( r, c, i, Saturate( x ) );
+                    }
+                }
+            }
+            charImg.Save( PG_BIN_DIR "charImg.png" );
+        }
+#endif // #if USING( DEBUG_ATLAS )
     }
+#if USING( DEBUG_ATLAS )
+    atlasImg.Save( PG_BIN_DIR "fontAtlas.png" );
+#endif // #if USING( DEBUG_ATLAS )
 
     FT_Library library;
     FT_Error error = FT_Init_FreeType( &library );
@@ -206,25 +234,29 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
         return false;
     }
 
-    double fontScale = getFontCoordinateScale( face, FONT_SCALING_EM_NORMALIZED );
+    float fontScale = (float)getFontCoordinateScale( face, FONT_SCALING_EM_NORMALIZED );
     for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
     {
+        if ( character == 'H' )
+            printf( "" );
         const GlyphData& data     = glyphDatas[character - FONT_FIRST_CHARACTER_CODE];
         const stbrp_rect& rect    = rects[character - FONT_FIRST_CHARACTER_CODE];
         Font::Glyph& pgGlyph      = fontAsset.glyphs.emplace_back();
         pgGlyph.characterCode     = character;
         pgGlyph.positionInAtlas.x = rect.x / (float)atlasImg.width;
         pgGlyph.positionInAtlas.y = rect.y / (float)atlasImg.height;
-        pgGlyph.sizeInAtlas.x     = data.size.x / (float)atlasImg.width;
-        pgGlyph.sizeInAtlas.y     = data.size.y / (float)atlasImg.height;
+        pgGlyph.sizeInAtlas.x     = rect.w / (float)atlasImg.width;
+        pgGlyph.sizeInAtlas.y     = rect.h / (float)atlasImg.height;
+        // pgGlyph.sizeInAtlas.x     = data.size.x * info.glyphSize / (float)atlasImg.width;
+        // pgGlyph.sizeInAtlas.y     = data.size.y * info.glyphSize / (float)atlasImg.height;
 
         FT_Error error = FT_Load_Glyph( face, FT_Get_Char_Index( face, character ), FT_LOAD_DEFAULT );
         if ( error )
             return false;
 
-        pgGlyph.bearing.x = static_cast<float>( fontScale * face->glyph->metrics.horiBearingX );
-        pgGlyph.bearing.y = static_cast<float>( fontScale * face->glyph->metrics.horiBearingY );
-        pgGlyph.advance   = static_cast<float>( fontScale * face->glyph->advance.x );
+        pgGlyph.nonSDFSize = fontScale * vec2( face->glyph->metrics.width, face->glyph->metrics.height );
+        pgGlyph.bearing    = fontScale * vec2( face->glyph->metrics.horiBearingX, face->glyph->metrics.horiBearingY );
+        pgGlyph.advance    = fontScale * face->glyph->advance.x;
     }
 
     FT_Done_Face( face );
@@ -246,8 +278,8 @@ bool FontConverter::ConvertInternal( ConstDerivedInfoPtr& info )
     }
 
     GfxImage gfxImage;
-    RawImage2DMipsToGfxImage( gfxImage, { atlasImg }, PixelFormat::R8_G8_B8_A8_UNORM );
-    gfxImage.SetName( "font_atlas_" + info->name );
+    RawImage2DMipsToGfxImage( font.fontAtlasTexture, { atlasImg }, PixelFormat::R8_G8_B8_A8_UNORM );
+    font.fontAtlasTexture.SetName( "font_atlas_" + info->name );
 
     std::string cacheName = GetCacheName( info );
     if ( !AssetCache::CacheAsset( assetType, cacheName, &font ) )

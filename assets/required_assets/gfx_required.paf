@@ -45,5 +45,11 @@
         "vertexShader": "debug/debug_text.vert",
         "fragmentShader": "debug/debug_text.frag",
         "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
+    } },
+    { "Pipeline": {
+        "name": "text2D",
+        "vertexShader": "ui/text.vert",
+        "fragmentShader": "ui/text.frag",
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
     } }
 ]

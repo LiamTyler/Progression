@@ -23,6 +23,7 @@
 #include "r_sky.hpp"
 #include "shared/logger.hpp"
 #include "taskgraph/r_taskGraph.hpp"
+#include "ui/ui_text.hpp"
 
 using namespace PG;
 using namespace Gfx;
@@ -218,6 +219,13 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
+    UI::Text::TextDrawInfo tDrawInfo = {};
+    tDrawInfo.pos                    = vec2( 0.1f, 0.4f );
+    tDrawInfo.fontSize               = 12;
+    tDrawInfo.justification          = UI::Text::Justification::LEFT;
+    UI::Text::Draw2D( tDrawInfo, "HELLO" );
+
+    UI::Text::Render( cmdBuf );
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
     DebugDraw::Draw2D( cmdBuf );
@@ -356,6 +364,7 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
         fData.sceneGlobalsBuffer   = rg.device.NewBuffer( sgBufInfo, "sceneGlobalsBuffer" );
     }
 
+    UI::Text::Init();
     DebugDraw::Init();
 
     return true;
@@ -384,6 +393,7 @@ void Shutdown()
     rg.device.WaitForIdle();
 
     DebugDraw::Shutdown();
+    UI::Text::Shutdown();
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         rg.frameData[i].meshCullData.Free();
@@ -504,7 +514,6 @@ void Render()
     PG_PROFILE_GPU_START( cmdBuf, Frame, "Frame" );
 
     DebugDraw::StartFrame();
-    DebugDraw::AddText2D( vec2( 0.47f, 0.38f ), DebugDraw::Color::GREEN, "Test dragon" );
     BindlessManager::Update();
     UIOverlay::BeginFrame();
     rg.device.AcquirePendingTransfers();

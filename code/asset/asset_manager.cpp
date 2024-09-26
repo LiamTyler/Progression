@@ -196,7 +196,7 @@ void FreeRemainingGpuResources()
 {
     ClearPendingLiveUpdates();
     const AssetType typesWithGpuData[] = {
-        ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MATERIAL, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE };
+        ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MATERIAL, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE, ASSET_TYPE_FONT };
     for ( u32 i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
     {
         AssetType type = typesWithGpuData[i];

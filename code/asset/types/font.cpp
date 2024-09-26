@@ -9,6 +9,8 @@ namespace PG
 
 std::string GetAbsPath_FontFilename( const std::string& filename ) { return PG_ASSET_DIR + filename; }
 
+void Font::Free() { fontAtlasTexture.Free(); }
+
 bool Font::FastfileLoad( Serializer* serializer )
 {
     DeserializeAssetName( serializer, &fontAtlasTexture );
@@ -21,6 +23,7 @@ bool Font::FastfileLoad( Serializer* serializer )
 bool Font::FastfileSave( Serializer* serializer ) const
 {
     SerializeName( serializer );
+    fontAtlasTexture.FastfileSave( serializer );
     serializer->Write( glyphs );
 
     return true;

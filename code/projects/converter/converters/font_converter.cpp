@@ -41,9 +41,11 @@ AssetStatus FontConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, t
 struct GlyphData
 {
     msdfgen::Shape shape;
+    ivec2 atlasSize;
+    vec2 atlasPos;
+
     vec2 translation; // in em
     vec2 size;        // in em
-    ivec2 roundedSizeInPixels;
     int rectId;
 };
 
@@ -57,6 +59,71 @@ double getFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScali
     case FONT_SCALING_LEGACY: return MSDFGEN_LEGACY_FONT_COORDINATE_SCALE;
     }
     return 1;
+}
+
+bool PackAtlas( std::vector<GlyphData>& glyphs, int& width, int& height )
+{
+    i64 minAtlasPixelsNeeded = 0;
+    std::vector<stbrp_rect> rects;
+    for ( size_t i = 0; i < glyphs.size(); ++i )
+    {
+        const GlyphData& glyph = glyphs[i];
+        stbrp_rect& rect       = rects.emplace_back();
+        rect.id                = (int)i;
+        rect.w                 = glyph.atlasSize.x;
+        rect.h                 = glyph.atlasSize.y;
+        rect.x = rect.y = rect.was_packed = 0;
+
+        minAtlasPixelsNeeded += static_cast<i64>( rect.w * rect.h );
+    }
+
+    width  = 64;
+    height = 64;
+    while ( width * height < minAtlasPixelsNeeded )
+    {
+        if ( width == height )
+            width *= 2;
+        else
+            height = width;
+    }
+
+    if ( width > 4096 || height > 4096 )
+    {
+        LOG_ERR( "Atlas needs over 4k x 4k texture size according to the packer. Retry with smaller sizes" );
+        return false;
+    }
+
+    stbrp_context packingContext;
+    int everythingPacked = 0;
+    do
+    {
+        std::vector<stbrp_node> scratchNodes( width );
+        stbrp_init_target( &packingContext, width, height, scratchNodes.data(), (int)scratchNodes.size() );
+        everythingPacked = stbrp_pack_rects( &packingContext, rects.data(), (int)rects.size() );
+        if ( !everythingPacked )
+        {
+            if ( width == height )
+                width *= 2;
+            else
+                height = width;
+
+            if ( width > 4096 || height > 4096 )
+            {
+                LOG_ERR( "Atlas needs over 4k x 4k texture size according to the packer. Retry with smaller sizes" );
+                return false;
+            }
+        }
+    } while ( !everythingPacked );
+
+    for ( size_t i = 0; i < rects.size(); ++i )
+    {
+        const stbrp_rect& rect = rects[i];
+        GlyphData& glyph = glyphs[rect.id];
+        glyph.atlasPos.x = rect.x;
+        glyph.atlasPos.y = rect.y;
+    }
+
+    return true;
 }
 
 bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& atlasImg )
@@ -77,11 +144,9 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
 
     const u32 TOTAL_CHARS = FONT_LAST_CHARACTER_CODE - FONT_FIRST_CHARACTER_CODE + 1;
     std::vector<GlyphData> glyphDatas;
-    std::vector<stbrp_rect> rects;
+
     glyphDatas.reserve( TOTAL_CHARS );
     Range msdfRange( info.maxSignedDistance );
-
-    i64 minAtlasPixelsNeeded = 0;
     for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
     {
         GlyphData& data = glyphDatas.emplace_back();
@@ -106,58 +171,13 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
             LOG_ERR( "Glyph is too large for rendering into bitmap! Size %f x %f", data.size.x, data.size.y );
             return false;
         }
-        data.roundedSizeInPixels.x = static_cast<int>( ceil( data.size.x * info.glyphSize ) );
-        data.roundedSizeInPixels.y = static_cast<int>( ceil( data.size.y * info.glyphSize ) );
-
-        stbrp_rect& rect = rects.emplace_back();
-        rect.id          = character - FONT_FIRST_CHARACTER_CODE;
-        rect.w           = data.roundedSizeInPixels.x;
-        rect.h           = data.roundedSizeInPixels.y;
-        minAtlasPixelsNeeded += static_cast<i64>( rect.w * rect.h );
-        rect.x = rect.y = rect.was_packed = 0;
     }
 
-    int width  = 64;
-    int height = 64;
-    while ( width * height < minAtlasPixelsNeeded )
+    int width, height;
+    if ( !PackAtlas( glyphDatas, width, height ) )
     {
-        if ( width == height )
-            width *= 2;
-        else
-            height = width;
-    }
-
-    if ( width > 4096 || height > 4096 )
-    {
-        LOG_ERR( "Atlas needs over 4k x 4k texture size according to the packer. Retry with smaller sizes" );
+        LOG_ERR( "Failed to pack all glyphs into an atlas!" );
         return false;
-    }
-
-    stbrp_context packingContext;
-    int everythingPacked = 0;
-    do
-    {
-        std::vector<stbrp_node> scratchNodes( width );
-        stbrp_init_target( &packingContext, width, height, scratchNodes.data(), (int)scratchNodes.size() );
-        everythingPacked = stbrp_pack_rects( &packingContext, rects.data(), (int)glyphDatas.size() );
-        if ( !everythingPacked )
-        {
-            if ( width == height )
-                width *= 2;
-            else
-                height = width;
-
-            if ( width > 4096 || height > 4096 )
-            {
-                LOG_ERR( "Atlas needs over 4k x 4k texture size according to the packer. Retry with smaller sizes" );
-                return false;
-            }
-        }
-    } while ( !everythingPacked );
-
-    for ( u64 i = 0; i < rects.size(); ++i )
-    {
-        glyphDatas[rects[i].id].rectId = (int)i;
     }
 
     atlasImg = RawImage2D( width, height, ImageFormat::R8_G8_B8_A8_UNORM );

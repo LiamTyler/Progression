@@ -222,6 +222,7 @@ struct RawImage2D
     RawImage2D Convert( ImageFormat dstFormat ) const;
 
     RawImage2D Clone() const;
+    void Clear( vec4 color = vec4( 0, 0, 0, 1 ) );
 
     uint8_t GetPixelAsByte( int row, int col, int chan ) const;
     u8vec4 GetPixelAsByte4( int row, int col ) const;

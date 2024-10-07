@@ -38,15 +38,58 @@ AssetStatus FontConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, t
     return AssetStatus::UP_TO_DATE;
 }
 
+#define FONT_Y_DOWN 1
+
+struct Config
+{
+    Config()
+    {
+        glyphSize              = 32;
+        emRange                = 0.125f;
+        pxAlignOriginX         = true;
+        pxAlignOriginY         = true;
+        scanlinePass           = true;
+        gconfig                = {};
+        gconfig.overlapSupport = true;
+
+        gconfig.errorCorrection.mode              = msdfgen::ErrorCorrectionConfig::EDGE_PRIORITY;
+        gconfig.errorCorrection.distanceCheckMode = msdfgen::ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+    }
+
+    int glyphSize;
+    float emRange;
+    bool pxAlignOriginX;
+    bool pxAlignOriginY;
+    bool scanlinePass;
+    msdfgen::MSDFGeneratorConfig gconfig;
+};
+
 struct GlyphData
 {
-    msdfgen::Shape shape;
+    char character;
     ivec2 atlasSize;
-    vec2 atlasPos;
+    ivec2 atlasPos;
+    std::vector<float> kernings;
 
     vec2 translation; // in em
     vec2 size;        // in em
-    int rectId;
+    float scale;
+    msdfgen::GlyphIndex glyphIndex;
+    msdfgen::Shape shape;
+
+    // GlyphGeometry.cpp::GlyphGeometry::getQuadPlaneBounds()
+    void getQuadAtlasBounds( float& l, float& b, float& r, float& t ) const
+    {
+        l = b = r = t = 0;
+        if ( atlasSize.x > 0 && atlasSize.y > 0 )
+        {
+            float invScale = 1.0f / scale;
+            l              = ( -translation.x + ( .5f ) * invScale );
+            b              = ( -translation.y + ( .5f ) * invScale );
+            r              = ( -translation.x + ( atlasSize.x - .5f ) * invScale );
+            t              = ( -translation.y + ( atlasSize.y - .5f ) * invScale );
+        }
+    }
 };
 
 double getFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScaling coordinateScaling )
@@ -118,57 +161,149 @@ bool PackAtlas( std::vector<GlyphData>& glyphs, int& width, int& height )
     for ( size_t i = 0; i < rects.size(); ++i )
     {
         const stbrp_rect& rect = rects[i];
-        GlyphData& glyph = glyphs[rect.id];
-        glyph.atlasPos.x = rect.x;
-        glyph.atlasPos.y = rect.y;
+        GlyphData& glyph       = glyphs[rect.id];
+        glyph.atlasPos.x       = rect.x;
+        glyph.atlasPos.y       = rect.y;
     }
 
     return true;
 }
 
-bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& atlasImg )
+bool GetFontMetrics(
+    const std::string& fontFilename, const std::vector<GlyphData>& glyphDatas, const RawImage2D& atlasImg, Font& fontAsset )
 {
-    using namespace msdfgen;
-    FreetypeHandle* ft = initializeFreetype();
+    FT_Library library;
+    FT_Error error = FT_Init_FreeType( &library );
+    if ( error )
+    {
+        LOG_ERR( "Could not init freetype library" );
+        return false;
+    }
+
+    FT_Face face;
+    error = FT_New_Face( library, GetAbsPath_FontFilename( fontFilename ).c_str(), 0, &face );
+
+    double fontScale = getFontCoordinateScale( face, msdfgen::FONT_SCALING_EM_NORMALIZED );
+
+    fontAsset.metrics.emSize             = static_cast<float>( fontScale * face->units_per_EM );
+    fontAsset.metrics.emSize             = static_cast<float>( fontScale * face->units_per_EM );
+    fontAsset.metrics.lineHeight         = static_cast<float>( fontScale * face->height );
+    fontAsset.metrics.underlineThickness = static_cast<float>( fontScale * face->underline_thickness );
+    fontAsset.metrics.underlineY         = static_cast<float>( fontScale * face->underline_position );
+    fontAsset.metrics.ascenderY          = static_cast<float>( fontScale * face->ascender );
+    fontAsset.metrics.descenderY         = static_cast<float>( fontScale * face->descender );
+
+    fontAsset.glyphs.reserve( glyphDatas.size() );
+    for ( size_t i = 0; i < glyphDatas.size(); ++i )
+    {
+        const GlyphData& data   = glyphDatas[i];
+        Font::Glyph& glyphAsset = fontAsset.glyphs.emplace_back();
+
+        float planeL, planeB, planeR, planeT;
+        data.getQuadAtlasBounds( planeL, planeB, planeR, planeT );
+        glyphAsset.planeMin = { planeL, FONT_Y_DOWN ? -planeT : planeB };
+        glyphAsset.planeMax = { planeR, FONT_Y_DOWN ? -planeB : planeT };
+        glyphAsset.uvMin.x  = ( data.atlasPos.x + 0.5f ) / (float)atlasImg.width;
+        glyphAsset.uvMin.y  = ( data.atlasPos.y + 0.5f ) / (float)atlasImg.height;
+        glyphAsset.uvMax.x  = glyphAsset.uvMin.x + ( data.atlasSize.x - 0.5f ) / (float)atlasImg.width;
+        glyphAsset.uvMax.y  = glyphAsset.uvMin.y + ( data.atlasSize.y - 0.5f ) / (float)atlasImg.height;
+
+        // FT_Error error = FT_Load_Glyph( font->face, data.glyphIndex, FT_LOAD_NO_SCALE );
+        FT_Error error = FT_Load_Glyph( face, data.glyphIndex.getIndex(), FT_LOAD_DEFAULT );
+        if ( error )
+            return false;
+
+        glyphAsset.advance       = static_cast<float>( fontScale * face->glyph->advance.x );
+        glyphAsset.characterCode = data.character;
+    }
+
+    FT_Done_Face( face );
+    FT_Done_FreeType( library );
+
+    return true;
+}
+
+#define MTSDF NOT_IN_USE
+
+bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& atlasImg, const Config& config )
+{
+    msdfgen::FreetypeHandle* ft = msdfgen::initializeFreetype();
     if ( !ft )
     {
         LOG_ERR( "Failed to initialize freetype" );
         return false;
     }
-    FontHandle* font = loadFont( ft, GetAbsPath_FontFilename( info.filename ).c_str() );
+    msdfgen::FontHandle* font = msdfgen::loadFont( ft, GetAbsPath_FontFilename( info.filename ).c_str() );
     if ( !font )
     {
         LOG_ERR( "Failed to load font %s", GetAbsPath_FontFilename( info.filename ).c_str() );
         return false;
     }
 
-    const u32 TOTAL_CHARS = FONT_LAST_CHARACTER_CODE - FONT_FIRST_CHARACTER_CODE + 1;
-    std::vector<GlyphData> glyphDatas;
+    fontAsset.metrics.fontSize               = (float)info.glyphSize;
+    fontAsset.metrics.maxSignedDistanceRange = fontAsset.metrics.fontSize * info.maxSignedDistance;
 
-    glyphDatas.reserve( TOTAL_CHARS );
-    Range msdfRange( info.maxSignedDistance );
+    const int MAX_GLYPH_SIZE = 2 * info.glyphSize;
+    msdfgen::Range msdfRange( info.maxSignedDistance );
+
+    std::vector<GlyphData> glyphDatas;
+    glyphDatas.reserve( FONT_TOTAL_CHARACTERS );
     for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
     {
         GlyphData& data = glyphDatas.emplace_back();
-        if ( !loadGlyph( data.shape, font, character, FONT_SCALING_EM_NORMALIZED ) )
+        data.character  = (char)character;
+        if ( !msdfgen::loadGlyph( data.shape, font, character, msdfgen::FONT_SCALING_EM_NORMALIZED ) )
         {
             LOG_ERR( "Failed to load glyph data for character '%u'", character );
+            return false;
+        }
+        if ( !msdfgen::getGlyphIndex( data.glyphIndex, font, character ) )
+        {
+            LOG_ERR( "Failed to get glyph index" );
             return false;
         }
 
         data.shape.normalize();
         const double maxCornerAngle = 3.0;
-        edgeColoringInkTrap( data.shape, maxCornerAngle );
-        // edgeColoringSimple( data.shape, maxCornerAngle );
-        Shape::Bounds bounds = data.shape.getBounds();
+        msdfgen::edgeColoringInkTrap( data.shape, maxCornerAngle );
+        msdfgen::Shape::Bounds bounds = data.shape.getBounds();
         double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
         l += msdfRange.lower, b += msdfRange.lower;
         r -= msdfRange.lower, t -= msdfRange.lower;
-        data.translation = vec2( -l, -b );
-        data.size        = vec2( r - l, t - b );
-        if ( data.size.x >= 2.0f || data.size.y >= 2.0f )
+
+        float scale = (float)config.glyphSize;
+        data.scale  = scale;
+        if ( config.pxAlignOriginX )
         {
-            LOG_ERR( "Glyph is too large for rendering into bitmap! Size %f x %f", data.size.x, data.size.y );
+            int sl             = (int)floor( scale * l - .5 );
+            int sr             = (int)ceil( scale * r + .5 );
+            data.atlasSize.x   = sr - sl;
+            data.translation.x = -sl / scale;
+        }
+        else
+        {
+            double w           = scale * ( r - l );
+            data.atlasSize.x   = (int)ceil( w ) + 1;
+            data.translation.x = static_cast<float>( -l + .5 * ( data.atlasSize.x - w ) / scale );
+        }
+
+        if ( config.pxAlignOriginY )
+        {
+            int sb             = (int)floor( scale * b - .5 );
+            int st             = (int)ceil( scale * t + .5 );
+            data.atlasSize.y   = st - sb;
+            data.translation.y = -sb / scale;
+        }
+        else
+        {
+            double h           = scale * ( t - b );
+            data.atlasSize.y   = (int)ceil( h ) + 1;
+            data.translation.y = static_cast<float>( -b + .5 * ( data.atlasSize.y - h ) / scale );
+        }
+
+        if ( data.atlasSize.x >= MAX_GLYPH_SIZE || data.atlasSize.y >= MAX_GLYPH_SIZE )
+        {
+            LOG_ERR( "Glyph is too large for rendering into bitmap! Size %d x %d", data.atlasSize.x, data.atlasSize.y );
             return false;
         }
     }
@@ -181,106 +316,72 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
     }
 
     atlasImg = RawImage2D( width, height, ImageFormat::R8_G8_B8_A8_UNORM );
-    for ( u32 r = 0; r < atlasImg.height; ++r )
+    atlasImg.Clear( vec4( 0, 0, 0, 1 ) );
+
+#if USING( MTSDF )
+    msdfgen::MSDFGeneratorConfig preConfig  = config.gconfig;
+    msdfgen::MSDFGeneratorConfig postConfig = config.gconfig;
+    if ( config.scanlinePass )
     {
-        for ( u32 c = 0; c < atlasImg.width; ++c )
-        {
-            atlasImg.SetPixelFromFloat4( r, c, vec4( 0, 0, 0, 1 ) );
-        }
+        preConfig.errorCorrection.mode               = msdfgen::ErrorCorrectionConfig::DISABLED;
+        preConfig.errorCorrection.distanceCheckMode  = msdfgen::ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
+        postConfig.errorCorrection.distanceCheckMode = msdfgen::ErrorCorrectionConfig::DO_NOT_CHECK_DISTANCE;
     }
+    msdfgen::Bitmap<float, 4> outBitmap( MAX_GLYPH_SIZE, MAX_GLYPH_SIZE );
+#else  // #if USING( MTSDF )
+    msdfgen::Bitmap<float, 1> outBitmap( MAX_GLYPH_SIZE, MAX_GLYPH_SIZE );
+#endif // #else // #if USING( MTSDF )
 
-#define DEBUG_ATLAS IN_USE
-
-    const int maxSize = 2 * info.glyphSize;
-    Bitmap<float, 1> bitmap( maxSize, maxSize );
-    for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
+    for ( const GlyphData& glyph : glyphDatas )
     {
-        const GlyphData& glyph = glyphDatas[character - FONT_FIRST_CHARACTER_CODE];
-        Vector2 translation    = Vector2( glyph.translation.x, glyph.translation.y );
-        generateSDF( bitmap, glyph.shape, msdfRange, Vector2( info.glyphSize, info.glyphSize ), translation );
+        msdfgen::Vector2 scale     = msdfgen::Vector2( glyph.scale );
+        msdfgen::Vector2 translate = msdfgen::Vector2( glyph.translation.x, glyph.translation.y );
+        msdfgen::Projection proj( scale, translate );
 
-        const stbrp_rect& rect = rects[glyph.rectId];
-        for ( int r = 0; r < rect.h; ++r )
+#if USING( MTSDF )
+        // glyph-generators.cpp::mtsdfGenerator()
+        msdfgen::generateMTSDF( outBitmap, glyph.shape, proj, msdfRange, preConfig );
+        if ( config.scanlinePass )
         {
-            for ( int c = 0; c < rect.w; ++c )
+            msdfgen::distanceSignCorrection( outBitmap, glyph.shape, proj, msdfgen::FILL_NONZERO );
+            if ( postConfig.errorCorrection.mode != msdfgen::ErrorCorrectionConfig::DISABLED )
             {
-                atlasImg.SetPixelFromFloat4( rect.y + r, rect.x + c, vec4( 0, 0, 0, 1 ) );
-                for ( int i = 0; i < 1; ++i )
+                msdfgen::msdfErrorCorrection( outBitmap, glyph.shape, proj, msdfRange, postConfig );
+            }
+        }
+#else  // #if USING( MTSDF )
+        msdfgen::generateSDF( outBitmap, glyph.shape, proj, msdfRange, config.gconfig );
+        if ( config.scanlinePass )
+            msdfgen::distanceSignCorrection( outBitmap, glyph.shape, proj, msdfgen::FILL_NONZERO );
+#endif // #else // #if USING( MTSDF )
+
+        for ( int r = 0; r < glyph.atlasSize.y; ++r )
+        {
+            for ( int c = 0; c < glyph.atlasSize.x; ++c )
+            {
+                atlasImg.SetPixelFromFloat4( glyph.atlasPos.y + r, glyph.atlasPos.x + c, vec4( 0, 0, 0, 1 ) );
+                for ( int i = 0; i < ( USING( MTSDF ) ? 4 : 1 ); ++i )
                 {
-                    float x = bitmap( c, rect.h - r - 1 )[i];
-                    atlasImg.SetPixelFromFloat( rect.y + r, rect.x + c, i, Saturate( x ) );
+                    float x = outBitmap( c, glyph.atlasSize.y - r - 1 )[i];
+                    atlasImg.SetPixelFromFloat( glyph.atlasPos.y + r, glyph.atlasPos.x + c, i, Saturate( x ) );
                 }
             }
         }
+    }
+
+#define DEBUG_ATLAS NOT_IN_USE
 
 #if USING( DEBUG_ATLAS )
-        if ( character == 'H' )
-        {
-            RawImage2D charImg( maxSize, maxSize, ImageFormat::R8_G8_B8_A8_UNORM );
-            for ( int r = 0; r < bitmap.height(); ++r )
-            {
-                for ( int c = 0; c < bitmap.width(); ++c )
-                {
-                    charImg.SetPixelFromFloat4( r, c, vec4( 0, 0, 0, 1 ) );
-                    for ( int i = 0; i < 1; ++i )
-                    {
-                        // float x = bitmap( c, bitmap.height() - r - 1 )[i];
-                        float x = bitmap( c, r )[i];
-                        charImg.SetPixelFromFloat( r, c, i, Saturate( x ) );
-                    }
-                }
-            }
-            charImg.Save( PG_BIN_DIR "charImg.png" );
-        }
-#endif // #if USING( DEBUG_ATLAS )
-    }
-#if USING( DEBUG_ATLAS )
-    atlasImg.Save( PG_BIN_DIR "fontAtlas.png" );
+    atlasImg.Save( PG_ROOT_DIR "fontAtlas.png" );
 #endif // #if USING( DEBUG_ATLAS )
 
-    FT_Library library;
-    FT_Error error = FT_Init_FreeType( &library );
-    if ( error )
+    msdfgen::deinitializeFreetype( ft );
+
+    if ( !GetFontMetrics( info.filename, glyphDatas, atlasImg, fontAsset ) )
     {
-        LOG_ERR( "Could not init freetype library" );
+        LOG_ERR( "Could not get font metrics!" );
         return false;
     }
-
-    FT_Face face;
-    error = FT_New_Face( library, GetAbsPath_FontFilename( info.filename ).c_str(), 0, &face );
-    if ( error )
-    {
-        LOG_ERR( "Could not load font with freetype" );
-        return false;
-    }
-
-    float fontScale = (float)getFontCoordinateScale( face, FONT_SCALING_EM_NORMALIZED );
-    for ( u32 character = FONT_FIRST_CHARACTER_CODE; character <= FONT_LAST_CHARACTER_CODE; ++character )
-    {
-        if ( character == 'H' )
-            printf( "" );
-        const GlyphData& data     = glyphDatas[character - FONT_FIRST_CHARACTER_CODE];
-        const stbrp_rect& rect    = rects[character - FONT_FIRST_CHARACTER_CODE];
-        Font::Glyph& pgGlyph      = fontAsset.glyphs.emplace_back();
-        pgGlyph.characterCode     = character;
-        pgGlyph.positionInAtlas.x = rect.x / (float)atlasImg.width;
-        pgGlyph.positionInAtlas.y = rect.y / (float)atlasImg.height;
-        pgGlyph.sizeInAtlas.x     = rect.w / (float)atlasImg.width;
-        pgGlyph.sizeInAtlas.y     = rect.h / (float)atlasImg.height;
-        // pgGlyph.sizeInAtlas.x     = data.size.x * info.glyphSize / (float)atlasImg.width;
-        // pgGlyph.sizeInAtlas.y     = data.size.y * info.glyphSize / (float)atlasImg.height;
-
-        FT_Error error = FT_Load_Glyph( face, FT_Get_Char_Index( face, character ), FT_LOAD_DEFAULT );
-        if ( error )
-            return false;
-
-        pgGlyph.nonSDFSize = fontScale * vec2( face->glyph->metrics.width, face->glyph->metrics.height );
-        pgGlyph.bearing    = fontScale * vec2( face->glyph->metrics.horiBearingX, face->glyph->metrics.horiBearingY );
-        pgGlyph.advance    = fontScale * face->glyph->advance.x;
-    }
-
-    FT_Done_Face( face );
-    FT_Done_FreeType( library );
 
     return true;
 }
@@ -290,8 +391,12 @@ bool FontConverter::ConvertInternal( ConstDerivedInfoPtr& info )
     Font font;
     font.SetName( info->name );
 
+    Config config    = {};
+    config.glyphSize = info->glyphSize;
+    config.emRange   = info->maxSignedDistance;
+
     RawImage2D atlasImg;
-    if ( !CreateFontAtlas( *info, font, atlasImg ) )
+    if ( !CreateFontAtlas( *info, font, atlasImg, config ) )
     {
         LOG_ERR( "Could not create font atlas for font '%s'", info->name.c_str() );
         return false;

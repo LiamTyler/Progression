@@ -22,7 +22,7 @@ struct TextDrawInfo
 {
     vec2 pos;
     vec4 color                  = vec4( 1, 1, 1, 1 );
-    float fontSize              = 12;
+    float fontSize              = 16;
     Justification justification = Justification::LEFT;
 };
 

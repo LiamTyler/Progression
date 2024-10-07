@@ -221,9 +221,10 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 
     UI::Text::TextDrawInfo tDrawInfo = {};
     tDrawInfo.pos                    = vec2( 0.1f, 0.4f );
-    tDrawInfo.fontSize               = 12;
+    tDrawInfo.color                  = vec4( 0, 1, 0, 1.0f );
+    tDrawInfo.fontSize               = 100;
     tDrawInfo.justification          = UI::Text::Justification::LEFT;
-    UI::Text::Draw2D( tDrawInfo, "HELLO" );
+    UI::Text::Draw2D( tDrawInfo, "Hello World, TitleT." );
 
     UI::Text::Render( cmdBuf );
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );

@@ -23,15 +23,14 @@ void main()
     uint localVIdx = gl_VertexIndex % 6;
     uint charIdx = gl_VertexIndex / 6;
     
-    vec2 pos    = drawData.invScale * drawData.vertexBuffer.data[4 * charIdx + 0];
-    vec2 size   = drawData.invScale * drawData.vertexBuffer.data[4 * charIdx + 1];
+    vec2 pos    = drawData.vertexBuffer.data[4 * charIdx + 0];
+    vec2 size   = drawData.vertexBuffer.data[4 * charIdx + 1];
     vec2 uvUL   = drawData.vertexBuffer.data[4 * charIdx + 2];
     vec2 uvSize = drawData.vertexBuffer.data[4 * charIdx + 3];
 
     vec2 offset = GetOffset( localVIdx );
     pos = pos + size * offset;
-    gl_Position = vec4( 2 * pos - vec2( 1 ), 0, 1 );
+    gl_Position = drawData.projMatrix * vec4( pos, 0, 1 );
+    
     UV = uvUL + uvSize * offset;
-    //UV = unpackHalf2x16( floatBitsToUint( vertData.z ) );
-    //color = unpackUnorm4x8( floatBitsToUint( vertData.w ) );
 }

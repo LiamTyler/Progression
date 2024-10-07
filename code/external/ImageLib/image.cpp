@@ -382,6 +382,17 @@ RawImage2D RawImage2D::Clone() const
     return ret;
 }
 
+void RawImage2D::Clear( vec4 color )
+{
+    for ( u32 r = 0; r < height; ++r )
+    {
+        for ( u32 c = 0; c < width; ++c )
+        {
+            SetPixelFromFloat4( r, c, color );
+        }
+    }
+}
+
 // TODO: load directly
 bool FloatImage2D::Load( const std::string& filename, ImageLoadFlags loadFlags )
 {

@@ -16,6 +16,7 @@ bool Font::FastfileLoad( Serializer* serializer )
     DeserializeAssetName( serializer, &fontAtlasTexture );
     fontAtlasTexture.FastfileLoad( serializer );
     serializer->Read( glyphs );
+    serializer->Read( metrics );
 
     return true;
 }
@@ -25,10 +26,18 @@ bool Font::FastfileSave( Serializer* serializer ) const
     SerializeName( serializer );
     fontAtlasTexture.FastfileSave( serializer );
     serializer->Write( glyphs );
+    serializer->Write( metrics );
 
     return true;
 }
 
-const Font::Glyph& Font::GetGlyph( char c ) const { return glyphs[(u32)c - FONT_FIRST_CHARACTER_CODE]; }
+const Font::Glyph& Font::GetGlyph( char c ) const
+{
+    u32 charCode = (u32)c;
+    if ( charCode < FONT_FIRST_CHARACTER_CODE || charCode > FONT_LAST_CHARACTER_CODE )
+        return glyphs[(u32)'?' - FONT_FIRST_CHARACTER_CODE];
+    else
+        return glyphs[charCode - FONT_FIRST_CHARACTER_CODE];
+}
 
 } // namespace PG

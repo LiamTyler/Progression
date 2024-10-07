@@ -5,6 +5,8 @@
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
 
+#include "glm/gtc/matrix_transform.hpp"
+
 namespace PG::UI::Text
 {
 
@@ -13,10 +15,20 @@ using namespace Gfx;
 static Pipeline* s_text2DPipeline;
 static const Font* s_font;
 
+struct PackedTextDrawData
+{
+    u32 numChars;
+    u32 vertOffset;
+    float unitRange; // = fontSize/fontSizeInAtlas*sdfPixelRange
+    u32 unorm8Color;
+};
+
 struct LocalFrameData
 {
     Gfx::Buffer textVB;
     u32 numTextCharacters;
+
+    std::vector<PackedTextDrawData> text2DDrawCalls;
 };
 
 #define MAX_TEXT_CHARS_PER_FRAME 65536
@@ -42,6 +54,7 @@ void Init()
         textCI.flags                           = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
         s_localFrameDatas[i].textVB            = rg.device.NewBuffer( textCI, "ui_text_VB_" + std::to_string( i ) );
         s_localFrameDatas[i].numTextCharacters = 0;
+        s_localFrameDatas[i].text2DDrawCalls.reserve( 128 );
     }
 }
 
@@ -65,62 +78,72 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
     if ( !sLen )
         return;
 
-    vec2 displaySize = vec2( rg.displayWidth, rg.displayHeight );
-    vec2 scale       = vec2( textDrawInfo.fontSize );
-    float drawWidth  = 0;
-    for ( u32 i = 0; i < sLen; ++i )
-    {
-        char c                   = str[i];
-        const Font::Glyph& glyph = s_font->GetGlyph( c );
-        drawWidth += scale.x * glyph.advance;
-    }
-    // const Font::Glyph& finalGlyph = s_font->GetGlyph( str[sLen - 1] );
-    // drawArea.x = drawArea - (finalGlyph.advance - finalGlyph.xMax);
+    const float spaceWidth = s_font->GetGlyph( ' ' ).advance;
+    vec2 displaySize       = vec2( rg.displayWidth, rg.displayHeight );
+    float scale            = textDrawInfo.fontSize / ( s_font->metrics.ascenderY - s_font->metrics.descenderY );
 
-    vec2 posOffset = vec2( 0 );
-    if ( textDrawInfo.justification == Justification::CENTER )
-        posOffset.x -= drawWidth / 2.0f;
-    else if ( textDrawInfo.justification == Justification::RIGHT )
-        posOffset.x -= drawWidth;
+    vec2 startPos = displaySize * textDrawInfo.pos;
+    vec2 pos      = startPos;
+
+    PackedTextDrawData drawData;
+    drawData.vertOffset = LocalData().numTextCharacters;
 
     vec2* gpuData = LocalData().textVB.GetMappedPtr<vec2>();
-    vec2 pos      = displaySize * textDrawInfo.pos + posOffset;
     for ( u32 i = 0; i < sLen; ++i )
     {
-        char c                   = str[i];
+        char c = str[i];
+        if ( c == '\r' )
+            continue;
+
+        if ( c == ' ' )
+        {
+            pos.x += scale * spaceWidth;
+            continue;
+        }
+        else if ( c == '\t' )
+        {
+            pos.x += scale * 4 * spaceWidth;
+            continue;
+        }
+        else if ( c == '\n' )
+        {
+            pos.x = startPos.x;
+            pos.y += scale * s_font->metrics.lineHeight;
+            continue;
+        }
+
         const Font::Glyph& glyph = s_font->GetGlyph( c );
 
-        vec2 p = pos + scale * vec2( glyph.bearing.x, glyph.nonSDFSize.y - glyph.bearing.y );
+        vec2 quadMin = scale * glyph.planeMin;
+        vec2 quadMax = scale * glyph.planeMax;
 
-        gpuData[4 * LocalData().numTextCharacters + 0] = p;
-        gpuData[4 * LocalData().numTextCharacters + 1] = scale * glyph.nonSDFSize;
-        gpuData[4 * LocalData().numTextCharacters + 2] = glyph.positionInAtlas;
-        gpuData[4 * LocalData().numTextCharacters + 3] = glyph.sizeInAtlas;
+        gpuData[4 * LocalData().numTextCharacters + 0] = pos + quadMin;
+        gpuData[4 * LocalData().numTextCharacters + 1] = quadMax - quadMin;
+        gpuData[4 * LocalData().numTextCharacters + 2] = glyph.uvMin;
+        gpuData[4 * LocalData().numTextCharacters + 3] = glyph.uvMax - glyph.uvMin;
 
         LocalData().numTextCharacters += 1;
 
-        // vec2 uvUL = glyph.positionInAtlas;
-        // vec2 uvBR = glyph.positionInAtlas + glyph.sizeInAtlas;
-        // vec2 size = scale * glyph.sizeInAtlas;
-        // vec4 vertices[6] = {
-        //     {p.x,           p.y,          uvUL.x, uvUL.y},
-        //     { p.x,          p.y + size.y, uvUL.x, uvBR.y},
-        //     { p.x + size.x, p.y + size.y, uvBR.x, uvBR.y},
-        //
-        //     { p.x,          p.y,          uvUL.x, uvUL.y},
-        //     { p.x + size.x, p.y + size.y, uvBR.x, uvBR.y},
-        //     { p.x + size.x, p.y,          uvBR.x, uvUL.y}
-        // };
-
-        pos.x += scale.x * glyph.advance;
+        pos.x += scale * glyph.advance;
     }
+
+    drawData.numChars = LocalData().numTextCharacters - drawData.vertOffset;
+    if ( drawData.numChars == 0 )
+        return;
+
+    drawData.unitRange   = textDrawInfo.fontSize / s_font->metrics.fontSize * s_font->metrics.maxSignedDistanceRange;
+    drawData.unorm8Color = UNormFloat4ToU32( textDrawInfo.color );
+    LocalData().text2DDrawCalls.push_back( drawData );
 }
 
 void Render( Gfx::CommandBuffer& cmdBuf )
 {
     LocalFrameData& localData = LocalData();
-    if ( localData.numTextCharacters == 0 )
+    if ( localData.numTextCharacters == 0 || localData.text2DDrawCalls.empty() )
+    {
+        localData.numTextCharacters = 0;
         return;
+    }
 
     cmdBuf.BindPipeline( s_text2DPipeline );
     cmdBuf.BindGlobalDescriptors();
@@ -128,14 +151,24 @@ void Render( Gfx::CommandBuffer& cmdBuf )
     cmdBuf.SetScissor( SceneSizedScissor() );
 
     GpuData::TextDrawData constants;
-    constants.vertexBuffer    = localData.textVB.GetDeviceAddress();
+    constants.projMatrix      = glm::ortho<float>( 0, (float)rg.displayWidth, 0, (float)rg.displayHeight );
     constants.sdfFontAtlasTex = s_font->fontAtlasTexture.gpuTexture.GetBindlessIndex();
-    constants.invScale        = vec2( 1.0f / rg.displayWidth, 1.0f / rg.displayHeight );
-    cmdBuf.PushConstants( constants );
+    u64 vertexBuffer          = localData.textVB.GetDeviceAddress();
 
-    PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw Text2D" );
-    cmdBuf.Draw( 0, 6 * localData.numTextCharacters );
+    u64 vbOffset = 0;
+    for ( const PackedTextDrawData& drawCall : localData.text2DDrawCalls )
+    {
+        constants.vertexBuffer = vertexBuffer + vbOffset;
+        constants.unitRange    = drawCall.unitRange;
+        constants.packedColor  = drawCall.unorm8Color;
+        cmdBuf.PushConstants( constants );
+        cmdBuf.Draw( 0, 6 * drawCall.numChars );
+
+        vbOffset += sizeof( vec2 ) * drawCall.numChars;
+    }
+
     localData.numTextCharacters = 0;
+    localData.text2DDrawCalls.clear();
 }
 
 } // namespace PG::UI::Text

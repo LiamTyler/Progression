@@ -12,7 +12,7 @@ static constexpr u32 FONT_TOTAL_CHARACTERS     = FONT_LAST_CHARACTER_CODE - FONT
 struct FontCreateInfo : public BaseAssetCreateInfo
 {
     std::string filename;
-    int glyphSize           = 16;     // in pixels
+    int glyphSize           = 32;     // in pixels
     float maxSignedDistance = 0.125f; // in em units
 };
 

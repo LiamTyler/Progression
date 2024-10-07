@@ -92,6 +92,8 @@ struct GlyphData
     }
 };
 
+bool IsWhiteSpace( char c ) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
+
 double getFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScaling coordinateScaling )
 {
     using namespace msdfgen;
@@ -111,10 +113,13 @@ bool PackAtlas( std::vector<GlyphData>& glyphs, int& width, int& height )
     for ( size_t i = 0; i < glyphs.size(); ++i )
     {
         const GlyphData& glyph = glyphs[i];
-        stbrp_rect& rect       = rects.emplace_back();
-        rect.id                = (int)i;
-        rect.w                 = glyph.atlasSize.x;
-        rect.h                 = glyph.atlasSize.y;
+        if ( IsWhiteSpace( glyph.character ) )
+            continue;
+
+        stbrp_rect& rect = rects.emplace_back();
+        rect.id          = (int)i;
+        rect.w           = glyph.atlasSize.x;
+        rect.h           = glyph.atlasSize.y;
         rect.x = rect.y = rect.was_packed = 0;
 
         minAtlasPixelsNeeded += static_cast<i64>( rect.w * rect.h );
@@ -205,11 +210,26 @@ bool GetFontMetrics(
         glyphAsset.planeMax = { planeR, FONT_Y_DOWN ? -planeB : planeT };
         glyphAsset.uvMin.x  = ( data.atlasPos.x + 0.5f ) / (float)atlasImg.width;
         glyphAsset.uvMin.y  = ( data.atlasPos.y + 0.5f ) / (float)atlasImg.height;
-        glyphAsset.uvMax.x  = glyphAsset.uvMin.x + ( data.atlasSize.x - 0.5f ) / (float)atlasImg.width;
-        glyphAsset.uvMax.y  = glyphAsset.uvMin.y + ( data.atlasSize.y - 0.5f ) / (float)atlasImg.height;
+        glyphAsset.uvMax.x  = ( data.atlasPos.x + data.atlasSize.x - 0.5f ) / (float)atlasImg.width;
+        glyphAsset.uvMax.y  = ( data.atlasPos.y + data.atlasSize.y - 0.5f ) / (float)atlasImg.height;
 
-        // FT_Error error = FT_Load_Glyph( font->face, data.glyphIndex, FT_LOAD_NO_SCALE );
-        FT_Error error = FT_Load_Glyph( face, data.glyphIndex.getIndex(), FT_LOAD_DEFAULT );
+        if ( data.character == 'l' )
+        {
+            LOG( "left: %f", glyphAsset.planeMin.x );
+            LOG( "bottom: %f", glyphAsset.planeMin.y );
+            LOG( "right: %f", glyphAsset.planeMax.x );
+            LOG( "top: %f", glyphAsset.planeMax.y );
+        }
+
+        u32 glyphIndex = FT_Get_Char_Index( face, data.character );
+        if ( !glyphIndex )
+        {
+            LOG_ERR( "Failed to get glyph index for character %u", glyphIndex );
+            FT_Done_Face( face );
+            FT_Done_FreeType( library );
+            return false;
+        }
+        FT_Error error = FT_Load_Glyph( face, glyphIndex, FT_LOAD_DEFAULT );
         if ( error )
             return false;
 
@@ -223,7 +243,7 @@ bool GetFontMetrics(
     return true;
 }
 
-#define MTSDF NOT_IN_USE
+#define MTSDF IN_USE
 
 bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& atlasImg, const Config& config )
 {
@@ -252,14 +272,12 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
     {
         GlyphData& data = glyphDatas.emplace_back();
         data.character  = (char)character;
+        if ( IsWhiteSpace( data.character ) )
+            continue;
+
         if ( !msdfgen::loadGlyph( data.shape, font, character, msdfgen::FONT_SCALING_EM_NORMALIZED ) )
         {
             LOG_ERR( "Failed to load glyph data for character '%u'", character );
-            return false;
-        }
-        if ( !msdfgen::getGlyphIndex( data.glyphIndex, font, character ) )
-        {
-            LOG_ERR( "Failed to get glyph index" );
             return false;
         }
 
@@ -334,6 +352,9 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
 
     for ( const GlyphData& glyph : glyphDatas )
     {
+        if ( IsWhiteSpace( glyph.character ) )
+            continue;
+
         msdfgen::Vector2 scale     = msdfgen::Vector2( glyph.scale );
         msdfgen::Vector2 translate = msdfgen::Vector2( glyph.translation.x, glyph.translation.y );
         msdfgen::Projection proj( scale, translate );

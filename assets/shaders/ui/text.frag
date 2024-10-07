@@ -21,8 +21,8 @@ vec4 GetFontColor() { return unpackUnorm4x8( drawData.packedColor ); }
 void main()
 {
     vec4 texSample = SampleTexture2D_Uniform( drawData.sdfFontAtlasTex, SAMPLER_BILINEAR, inUV );
-    //float sd = Median( texSample.r, texSample.g, texSample.b );
-    float sd = texSample.r;
+    float sd = Median( texSample.r, texSample.g, texSample.b );
+    //float sd = texSample.a;
 
     // const float cutoff = 0.5f;
     // const float smoothness = .1f;

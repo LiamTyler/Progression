@@ -41,6 +41,7 @@ public:
         vec2 uvMax; // bottom right corner
         f32 advance;
         u32 characterCode;
+        std::vector<float> kernings;
     };
 
     Font() = default;
@@ -49,6 +50,7 @@ public:
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
     const Glyph& GetGlyph( char c ) const;
+    float GetKerning( char from, char to ) const;
 
     GfxImage fontAtlasTexture;
     std::vector<Glyph> glyphs;

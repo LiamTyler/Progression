@@ -38,7 +38,8 @@ AssetStatus FontConverter::IsAssetOutOfDateInternal( ConstDerivedInfoPtr info, t
     return AssetStatus::UP_TO_DATE;
 }
 
-#define FONT_Y_DOWN 1
+#define DEBUG_ATLAS NOT_IN_USE
+#define MTSDF IN_USE
 
 struct Config
 {
@@ -94,7 +95,7 @@ struct GlyphData
 
 bool IsWhiteSpace( char c ) { return c == ' ' || c == '\t' || c == '\r' || c == '\n'; }
 
-double getFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScaling coordinateScaling )
+double GetFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScaling coordinateScaling )
 {
     using namespace msdfgen;
     switch ( coordinateScaling )
@@ -188,9 +189,8 @@ bool GetFontMetrics(
     FT_Face face;
     error = FT_New_Face( library, GetAbsPath_FontFilename( fontFilename ).c_str(), 0, &face );
 
-    double fontScale = getFontCoordinateScale( face, msdfgen::FONT_SCALING_EM_NORMALIZED );
+    double fontScale = GetFontCoordinateScale( face, msdfgen::FONT_SCALING_EM_NORMALIZED );
 
-    fontAsset.metrics.emSize             = static_cast<float>( fontScale * face->units_per_EM );
     fontAsset.metrics.emSize             = static_cast<float>( fontScale * face->units_per_EM );
     fontAsset.metrics.lineHeight         = static_cast<float>( fontScale * face->height );
     fontAsset.metrics.underlineThickness = static_cast<float>( fontScale * face->underline_thickness );
@@ -206,20 +206,13 @@ bool GetFontMetrics(
 
         float planeL, planeB, planeR, planeT;
         data.getQuadAtlasBounds( planeL, planeB, planeR, planeT );
-        glyphAsset.planeMin = { planeL, FONT_Y_DOWN ? -planeT : planeB };
-        glyphAsset.planeMax = { planeR, FONT_Y_DOWN ? -planeB : planeT };
+        // because msdfgen assumes Y up, and we are using Y down
+        glyphAsset.planeMin = { planeL, -planeT };
+        glyphAsset.planeMax = { planeR, -planeB };
         glyphAsset.uvMin.x  = ( data.atlasPos.x + 0.5f ) / (float)atlasImg.width;
         glyphAsset.uvMin.y  = ( data.atlasPos.y + 0.5f ) / (float)atlasImg.height;
         glyphAsset.uvMax.x  = ( data.atlasPos.x + data.atlasSize.x - 0.5f ) / (float)atlasImg.width;
         glyphAsset.uvMax.y  = ( data.atlasPos.y + data.atlasSize.y - 0.5f ) / (float)atlasImg.height;
-
-        if ( data.character == 'l' )
-        {
-            LOG( "left: %f", glyphAsset.planeMin.x );
-            LOG( "bottom: %f", glyphAsset.planeMin.y );
-            LOG( "right: %f", glyphAsset.planeMax.x );
-            LOG( "top: %f", glyphAsset.planeMax.y );
-        }
 
         u32 glyphIndex = FT_Get_Char_Index( face, data.character );
         if ( !glyphIndex )
@@ -235,6 +228,24 @@ bool GetFontMetrics(
 
         glyphAsset.advance       = static_cast<float>( fontScale * face->glyph->advance.x );
         glyphAsset.characterCode = data.character;
+
+        if ( FT_HAS_KERNING( face ) )
+        {
+            for ( const GlyphData& nextGlyph : glyphDatas )
+            {
+                float kerning = 0;
+                FT_Vector kerningVec;
+                if ( !FT_Get_Kerning( face, glyphIndex, FT_Get_Char_Index( face, nextGlyph.character ), FT_KERNING_UNSCALED, &kerningVec ) )
+                {
+                    kerning = static_cast<float>( fontScale * kerningVec.x );
+                }
+                glyphAsset.kernings.push_back( kerning );
+            }
+        }
+        else
+        {
+            glyphAsset.kernings.resize( FONT_TOTAL_CHARACTERS, 0.0f );
+        }
     }
 
     FT_Done_Face( face );
@@ -242,8 +253,6 @@ bool GetFontMetrics(
 
     return true;
 }
-
-#define MTSDF IN_USE
 
 bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& atlasImg, const Config& config )
 {
@@ -283,7 +292,8 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
 
         data.shape.normalize();
         const double maxCornerAngle = 3.0;
-        msdfgen::edgeColoringInkTrap( data.shape, maxCornerAngle );
+        // msdfgen::edgeColoringInkTrap( data.shape, maxCornerAngle );
+        msdfgen::edgeColoringByDistance( data.shape, maxCornerAngle );
         msdfgen::Shape::Bounds bounds = data.shape.getBounds();
         double l = bounds.l, b = bounds.b, r = bounds.r, t = bounds.t;
         l += msdfRange.lower, b += msdfRange.lower;
@@ -350,6 +360,9 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
     msdfgen::Bitmap<float, 1> outBitmap( MAX_GLYPH_SIZE, MAX_GLYPH_SIZE );
 #endif // #else // #if USING( MTSDF )
 
+    double outK;
+    msdfgen::getKerning( outK, font, 'V', 'A', msdfgen::FONT_SCALING_EM_NORMALIZED );
+
     for ( const GlyphData& glyph : glyphDatas )
     {
         if ( IsWhiteSpace( glyph.character ) )
@@ -389,8 +402,6 @@ bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& a
             }
         }
     }
-
-#define DEBUG_ATLAS NOT_IN_USE
 
 #if USING( DEBUG_ATLAS )
     atlasImg.Save( PG_ROOT_DIR "fontAtlas.png" );

@@ -1,6 +1,7 @@
 #include "ui/ui_text.hpp"
 #include "asset/asset_manager.hpp"
 #include "c_shared/text.h"
+#include "core/dvars.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
@@ -9,6 +10,9 @@
 
 namespace PG::UI::Text
 {
+
+// NOTE! keep these in sync with c_shared/dvar_defines.h
+Dvar text_kerning( "text_kerning", true, "Enable/disable text kerning" );
 
 using namespace Gfx;
 
@@ -78,6 +82,8 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
     if ( !sLen )
         return;
 
+    bool useKerning = text_kerning.GetBool();
+
     const float spaceWidth = s_font->GetGlyph( ' ' ).advance;
     vec2 displaySize       = vec2( rg.displayWidth, rg.displayHeight );
     float scale            = textDrawInfo.fontSize / ( s_font->metrics.ascenderY - s_font->metrics.descenderY );
@@ -125,6 +131,11 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
         LocalData().numTextCharacters += 1;
 
         pos.x += scale * glyph.advance;
+        if ( useKerning && i < ( sLen - 1 ) )
+        {
+            float kerning = s_font->GetKerning( c, str[i + 1] );
+            pos.x += scale * kerning;
+        }
     }
 
     drawData.numChars = LocalData().numTextCharacters - drawData.vertOffset;

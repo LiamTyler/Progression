@@ -29,7 +29,7 @@ constexpr i32 g_assetVersions[] = {
     4,  // ASSET_TYPE_SHADER,    "New name serialization"
     8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
     5,  // ASSET_TYPE_PIPELINE,  "Forgot to add new blend mode to the cache name"
-    4,  // ASSET_TYPE_FONT,      "Changing glyph data & adding font metrics"
+    5,  // ASSET_TYPE_FONT,      "Kerning + switched the edge coloring mode"
 
     // put all assets that don't actually have a struct below.
     // Note: this means that bumping the image versions doesn't do anything :(

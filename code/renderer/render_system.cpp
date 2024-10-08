@@ -222,9 +222,9 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     UI::Text::TextDrawInfo tDrawInfo = {};
     tDrawInfo.pos                    = vec2( 0.1f, 0.4f );
     tDrawInfo.color                  = vec4( 0, 1, 0, 1.0f );
-    tDrawInfo.fontSize               = 32;
+    tDrawInfo.fontSize               = 100;
     tDrawInfo.justification          = UI::Text::Justification::LEFT;
-    UI::Text::Draw2D( tDrawInfo, "Hello World! L.T.abcdefghi" );
+    UI::Text::Draw2D( tDrawInfo, "I love you Morgan <3\nL.T. <3" );
 
     UI::Text::Render( cmdBuf );
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );

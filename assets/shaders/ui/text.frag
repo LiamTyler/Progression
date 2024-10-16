@@ -12,9 +12,20 @@ layout( location = 0 ) in vec2 inUV;
 
 layout( location = 0 ) out vec4 outColor;
 
-float ScreenPxRange() { return drawData.unitRange; }
+float ScreenPxRange()
+{
+    return drawData.unitRange;
+}
 
-float Median( float r, float g, float b ) { return max( min( r, g ), min( max( r, g ), b ) ); }
+float ScreenPxRange3D( vec2 texCoord ) {
+    vec2 screenTexSize = vec2( 1.0 ) / fwidth( texCoord );
+    return max( 0.5*dot( drawData.unitRange3D, screenTexSize ), 1.0 );
+}
+
+float Median( float r, float g, float b )
+{
+    return max( min( r, g ), min( max( r, g ), b ) );
+}
 
 vec4 GetFontColor() { return unpackUnorm4x8( drawData.packedColor ); }
 
@@ -22,14 +33,9 @@ void main()
 {
     vec4 texSample = SampleTexture2D_Uniform( drawData.sdfFontAtlasTex, SAMPLER_BILINEAR, inUV );
     float sd = Median( texSample.r, texSample.g, texSample.b );
-    //float sd = texSample.a;
 
-    // const float cutoff = 0.5f;
-    // const float smoothness = .1f;
-    // float alpha = smoothstep( smoothness, -smoothness, cutoff - sd );
-    // outColor = vec4( 1, 1, 1, alpha );
-
-    float screenPxDistance = ScreenPxRange() * ( sd - 0.5 );
+    //float screenPxDistance = ScreenPxRange() * ( sd - 0.5 );
+    float screenPxDistance = ScreenPxRange3D( inUV ) * ( sd - 0.5 );
     float opacity          = clamp( screenPxDistance + 0.5, 0.0, 1.0 );
     outColor               = GetFontColor();
     outColor.a *= opacity;

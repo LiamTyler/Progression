@@ -23,8 +23,9 @@ struct PackedTextDrawData
 {
     u32 numChars;
     u32 vertOffset;
-    float unitRange; // = fontSize/fontSizeInAtlas*sdfPixelRange
     u32 unorm8Color;
+    float unitRange; // = fontSize/fontSizeInAtlas*sdfPixelRange
+    vec2 unitRange3D;
 };
 
 struct LocalFrameData
@@ -142,7 +143,9 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
     if ( drawData.numChars == 0 )
         return;
 
+    vec2 atlasSize       = vec2( s_font->fontAtlasTexture.width, s_font->fontAtlasTexture.height );
     drawData.unitRange   = textDrawInfo.fontSize / s_font->metrics.fontSize * s_font->metrics.maxSignedDistanceRange;
+    drawData.unitRange3D = vec2( s_font->metrics.maxSignedDistanceRange ) / atlasSize;
     drawData.unorm8Color = UNormFloat4ToU32( textDrawInfo.color );
     LocalData().text2DDrawCalls.push_back( drawData );
 }
@@ -171,6 +174,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
     {
         constants.vertexBuffer = vertexBuffer + vbOffset;
         constants.unitRange    = drawCall.unitRange;
+        constants.unitRange3D  = drawCall.unitRange3D;
         constants.packedColor  = drawCall.unorm8Color;
         cmdBuf.PushConstants( constants );
         cmdBuf.Draw( 0, 6 * drawCall.numChars );

@@ -13,6 +13,7 @@ struct TextDrawData
     uint packedColor;
     float unitRange;
     uint _pad;
+    vec2 unitRange3D;
 };
 
 END_GPU_DATA_NAMESPACE()

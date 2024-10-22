@@ -106,7 +106,7 @@ void Init()
     bufInfo.flags            = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
     s_bindlessBufferPointers = rg.device.NewBuffer( bufInfo, "global_bindlessBufferPointers" );
 
-    bufInfo.size        = PG_MAX_BINDLESS_MATERIALS * sizeof( GpuData::Material );
+    bufInfo.size        = PG_MAX_BINDLESS_MATERIALS * sizeof( GpuData::PackedMaterial );
     bufInfo.bufferUsage = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
     bufInfo.flags       = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_RANDOM_BIT;
     s_bindlessMaterials = rg.device.NewBuffer( bufInfo, "global_bindlessMaterials" );
@@ -145,9 +145,9 @@ void Shutdown()
     s_pendingMaterialAdds = vector<PendingMaterialAdd>();
 }
 
-GpuData::Material CpuToGpuMaterial( const Material* mat )
+GpuData::PackedMaterial CpuToGpuMaterial( const Material* mat )
 {
-    GpuData::Material gpuMat;
+    GpuData::PackedMaterial gpuMat;
     gpuMat.albedoTint    = mat->albedoTint;
     gpuMat.metalnessTint = mat->metalnessTint;
     gpuMat.roughnessTint = mat->roughnessTint;
@@ -253,7 +253,7 @@ void Update()
     }
     s_pendingBufferAdds.clear();
 
-    GpuData::Material* gpuMatData = reinterpret_cast<GpuData::Material*>( s_bindlessMaterials.GetMappedPtr() );
+    GpuData::PackedMaterial* gpuMatData = reinterpret_cast<GpuData::PackedMaterial*>( s_bindlessMaterials.GetMappedPtr() );
     for ( const PendingMaterialAdd& pendingAdd : s_pendingMaterialAdds )
     {
         gpuMatData[pendingAdd.slot] = CpuToGpuMaterial( pendingAdd.material );

@@ -19,6 +19,7 @@
 #include "r_dvars.hpp"
 #include "r_globals.hpp"
 #include "r_init.hpp"
+#include "r_lighting.hpp"
 #include "r_pipeline_manager.hpp"
 #include "r_sky.hpp"
 #include "shared/logger.hpp"
@@ -219,13 +220,6 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    UI::Text::TextDrawInfo tDrawInfo = {};
-    tDrawInfo.pos                    = vec2( 0.1f, 0.4f );
-    tDrawInfo.color                  = vec4( 0, 1, 0, 1.0f );
-    tDrawInfo.fontSize               = 100;
-    tDrawInfo.justification          = UI::Text::Justification::LEFT;
-    UI::Text::Draw2D( tDrawInfo, "I love you Morgan <3\nL.T. <3" );
-
     UI::Text::Render( cmdBuf );
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
@@ -365,6 +359,7 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
         fData.sceneGlobalsBuffer   = rg.device.NewBuffer( sgBufInfo, "sceneGlobalsBuffer" );
     }
 
+    Lighting::Init();
     UI::Text::Init();
     DebugDraw::Init();
 
@@ -395,6 +390,7 @@ void Shutdown()
 
     DebugDraw::Shutdown();
     UI::Text::Shutdown();
+    Lighting::Shutdown();
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
         rg.frameData[i].meshCullData.Free();
@@ -450,6 +446,11 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.modelMatriciesBufferIndex  = frameData.modelMatricesBuffer.GetBindlessIndex();
     globalData.normalMatriciesBufferIndex = frameData.normalMatricesBuffer.GetBindlessIndex();
     globalData.r_tonemap                  = r_tonemap.GetUint();
+
+    Lighting::UpdateLightBuffer( scene );
+    globalData.numLights.x  = Lighting::GetLightCount();
+    globalData.lightBuffer  = Lighting::GetLightBufferAddress();
+    globalData.ambientColor = vec4( r_ambientScale.GetFloat() * scene->ambientColor, 0 );
 
 #if USING( DEVELOPMENT_BUILD )
     globalData.r_geometryViz    = r_geometryViz.GetUint();

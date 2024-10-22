@@ -5,7 +5,7 @@
 
 BEGIN_GPU_DATA_NAMESPACE()
 
-struct Material
+struct PackedMaterial
 {
     vec3 albedoTint;
     float metalnessTint;

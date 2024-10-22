@@ -66,8 +66,14 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
         { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } }
     });
 
-    DirectionalLight& light = scene->directionalLights.emplace_back();
-    mapping.ForEachMember( value, light );
+    if ( scene->directionalLight )
+    {
+        LOG_WARN( "Scene already has a directional light! Only 1 allowed. Skipping this one" );
+        return true;
+    }
+    scene->directionalLight = new DirectionalLight;
+
+    mapping.ForEachMember( value, *scene->directionalLight );
     return true;
 }
 
@@ -93,8 +99,9 @@ static bool ParsePointLight( const rapidjson::Value& value, Scene* scene )
         { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius    = ParseNumber< f32 >( v ); } },
     });
 
-    PointLight& light = scene->pointLights.emplace_back();
-    mapping.ForEachMember( value, light );
+    PointLight* light = new PointLight;
+    scene->lights.emplace_back( light );
+    mapping.ForEachMember( value, *light );
     return true;
 }
 
@@ -112,8 +119,9 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
         { "outerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerAngle = DegToRad( ParseNumber< f32 >( v ) ); } },
     });
 
-    SpotLight& light = scene->spotLights.emplace_back();
-    mapping.ForEachMember( value, light );
+    SpotLight* light = new SpotLight;
+    scene->lights.emplace_back( light );
+    mapping.ForEachMember( value, *light );
     return true;
 }
 
@@ -184,8 +192,12 @@ Scene::~Scene()
             CHECK_SOL_FUNCTION_CALL( endFn() );
         }
     }
+
+    for ( Light* light : lights )
+        delete light;
+
 #if USING( GPU_DATA )
-    // tlas.Free();
+        // tlas.Free();
 #endif // #if USING( GPU_DATA )
 }
 

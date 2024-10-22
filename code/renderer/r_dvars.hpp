@@ -5,6 +5,7 @@
 namespace PG
 {
 extern Dvar r_tonemap;
+extern Dvar r_ambientScale;
 
 #if USING( DEVELOPMENT_BUILD )
 

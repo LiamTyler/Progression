@@ -11,6 +11,8 @@ Dvar r_tonemap( "r_tonemap", 1u, 0u, PG_TONEMAP_METHOD_COUNT,
     "2 - Uncharted 2\n"
     "3 - Reinhard" );
 
+Dvar r_ambientScale( "r_ambientScale", 1.0f, 0.0f, 10000.0f, "How much to scale the scene's ambientColor value by" );
+
 #if USING( DEVELOPMENT_BUILD )
 
 // NOTE! keep these in sync with c_shared/dvar_defines.h
@@ -36,9 +38,7 @@ Dvar r_lightingViz( "r_lightingViz", 0u, 0u, PG_DEBUG_LIGHTING_COUNT,
     "0 - Default\n"
     "1 - Direct\n"
     "2 - Indirect\n"
-    "3 - Diffuse Indirect\n"
-    "4 - Specular Indirect\n"
-    "5 - Emissive" );
+    "3 - Emissive" );
 
 Dvar r_skyboxViz( "r_skyboxViz", 0u, 0u, PG_DEBUG_SKY_COUNT,
     "0 - Regular Sky\n"

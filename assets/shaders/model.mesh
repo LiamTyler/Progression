@@ -99,6 +99,7 @@ layout(triangles, max_vertices = 64, max_primitives = 124) out;
 
 layout (location = 0) out PerVertexData
 {
+    vec3 worldPos;
     vec3 normal;
     vec4 tangentAndSign;
     vec2 uv;
@@ -142,6 +143,7 @@ void main()
         
         vec4 localPos = vec4( GetPos( meshlet, baseBuffer, threadID ), 1 );
         vec4 worldPos = modelMatrix * localPos;
+        v_out[threadID].worldPos = worldPos.xyz;
         gl_MeshVerticesEXT[threadID].gl_Position = globals.VP * worldPos;
         
         vec4 localNormal = GetNormal( meshlet, baseBuffer, threadID );

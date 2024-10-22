@@ -11,7 +11,8 @@
     { "Script": "cameraController" },
     { "SkyTint": [ 1, 1, 1 ] },
     { "SkyEVAdjust": 5.0 },
-    { "DirectionalLight": { "color": [ 12, 10, 8 ], "direction": [ 0, -6, 0 ] } },
+    { "AmbientColor": [ 0.2, 0.2, 0.2 ] },
+    { "DirectionalLight": { "color": [ 12, 10, 8 ], "direction": [ -1, 0, -1 ] } },
     { "Entity": {
         "NameComponent": "sponza",
         "Transform": { "rotation": [ 90, 90, 0 ] },

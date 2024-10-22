@@ -22,6 +22,10 @@ struct SceneGlobals
     uint normalMatriciesBufferIndex;
     uint r_tonemap;
 
+    uint64_t lightBuffer;
+    uvec4 numLights; // x = numLights, y,z,w = padding
+    vec4 ambientColor;
+
     // debug vals
     uint r_geometryViz;
     uint r_materialViz;

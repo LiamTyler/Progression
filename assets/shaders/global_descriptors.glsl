@@ -3,6 +3,7 @@
 
 #include "common.glsl"
 #include "c_shared/bindless.h"
+#include "c_shared/lights.h"
 #include "c_shared/material.h"
 #include "c_shared/scene_globals.h"
 
@@ -19,7 +20,7 @@ layout( scalar, set = 0, binding = PG_BINDLESS_BUFFER_DSET_BINDING ) restrict re
 };
 layout( scalar, set = 0, binding = PG_BINDLESS_MATERIALS_DSET_BINDING ) restrict readonly buffer Materials
 {
-    Material materials[];
+    PackedMaterial packedMaterials[];
 };
 
 layout( set = 0, binding = PG_BINDLESS_SAMPLERS_DSET_BINDING ) uniform sampler samplers[];
@@ -65,9 +66,9 @@ mat4 GetNormalMatrix( uint modelIdx )
     return tBuffer.transforms[modelIdx];
 }
 
-Material GetMaterial( uint matIdx )
+PackedMaterial GetPackedMaterial( uint matIdx )
 {
-    return materials[matIdx];
+    return packedMaterials[matIdx];
 }
 
 #endif // #ifndef __GLOBAL_DESCRIPTORS_GLSL__

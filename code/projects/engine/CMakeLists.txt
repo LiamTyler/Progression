@@ -126,6 +126,8 @@ set(
     ${CODE_DIR}/renderer/r_gpu_upload_manager.hpp
     ${CODE_DIR}/renderer/r_init.cpp
     ${CODE_DIR}/renderer/r_init.hpp
+    ${CODE_DIR}/renderer/r_lighting.cpp
+    ${CODE_DIR}/renderer/r_lighting.hpp
     ${CODE_DIR}/renderer/r_pipeline_manager.cpp
     ${CODE_DIR}/renderer/r_pipeline_manager.hpp
     ${CODE_DIR}/renderer/r_sky.cpp

@@ -27,18 +27,18 @@ public:
 
     std::string name;
     Camera camera;
-    vec3 skyTint      = vec3( 1, 1, 1 );
-    f32 skyEVAdjust   = 0; // scales sky by pow( 2, skyEVAdjust )
-    vec3 ambientColor = vec3( .1f );
 
-    std::vector<DirectionalLight> directionalLights;
-    std::vector<PointLight> pointLights;
-    std::vector<SpotLight> spotLights;
-    entt::registry registry;
+    vec3 ambientColor                  = vec3( .1f );
+    DirectionalLight* directionalLight = nullptr;
+    std::vector<Light*> lights;
+
+    vec3 skyTint                    = vec3( 1, 1, 1 );
+    f32 skyEVAdjust                 = 0; // scales sky by pow( 2, skyEVAdjust )
     GfxImage* skybox                = nullptr;
     GfxImage* skyboxIrradiance      = nullptr;
     GfxImage* skyboxReflectionProbe = nullptr;
 
+    entt::registry registry;
     // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions
     std::vector<Lua::ScriptInstance> nonEntityScripts;
 };

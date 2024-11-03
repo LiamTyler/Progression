@@ -32,6 +32,7 @@ public:
     Buffer NewBuffer( const BufferCreateInfo& info, std::string_view name = "" ) const;
     Buffer NewStagingBuffer( u64 size ) const;
     Texture NewTexture( const TextureCreateInfo& info, std::string_view name = "" ) const;
+    void NewTextureInPlace( Texture& outTex, const TextureCreateInfo& info, std::string_view name = "" ) const;
 
     void AddUploadRequest( const Buffer& buffer, const void* data, u64 size, u64 offset = 0 );
     void AddUploadRequest( const Texture& texture, const void* data );

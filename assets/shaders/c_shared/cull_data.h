@@ -26,7 +26,6 @@ struct MeshletDrawCommand
     uint modelIndex;
     uint meshIndex;
     uint numMeshlets;
-    uint64_t meshletCullDataPtr;
 };
 
 END_GPU_DATA_NAMESPACE()

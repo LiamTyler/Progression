@@ -29,7 +29,7 @@
 using namespace PG;
 using namespace Gfx;
 
-#define MAX_MODELS_PER_FRAME 4096u
+#define MAX_MODELS_PER_FRAME 65536u
 #define MAX_MESHES_PER_FRAME 65536u
 
 namespace PG::RenderSystem
@@ -86,6 +86,8 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
             meshNum += meshesToAdd;
             ++modelNum;
         } );
+
+    data->frameData->numMeshes = meshNum;
 
     cmdBuf.BindPipeline( PipelineManager::GetPipeline( "frustum_cull_meshes" ) );
     cmdBuf.BindGlobalDescriptors();
@@ -447,7 +449,7 @@ static void UpdateGPUSceneData( Scene* scene )
     globalData.normalMatriciesBufferIndex = frameData.normalMatricesBuffer.GetBindlessIndex();
     globalData.r_tonemap                  = r_tonemap.GetUint();
 
-    Lighting::UpdateLightBuffer( scene );
+    Lighting::UpdateLights( scene );
     globalData.numLights.x  = Lighting::GetLightCount();
     globalData.lightBuffer  = Lighting::GetLightBufferAddress();
     globalData.ambientColor = vec4( r_ambientScale.GetFloat() * scene->ambientColor, 0 );

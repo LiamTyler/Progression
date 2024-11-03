@@ -1,0 +1,31 @@
+[
+    { "OfflineRenderSettings": {
+        "imageResolution": [ 1280, 720 ],
+        "maxDepth": 15,
+        "outputImageFilename": "build/furnace_test_grid.png",
+        "numSamplesPerPixel": [ 64 ],
+        "antialiasMethod": "JITTER",
+        "tonemapMethod": "ACES"
+    }},
+    { "Camera": {
+        "position": [ 0, -80, 40 ],
+        "rotation": [ -30, 0, 0 ],
+        "farPlane": 1000
+    }},
+	{ "Skybox": "white_sky" },
+    { "SkyTint": [ 0.5, 0.5, 0.5 ] },
+    { "AmbientColor": [ 0.3, 0.3, 0.3 ] },
+	{ "Script": "cameraController" },
+	{ "Script": "shadow_test" },
+    { "Entity": {
+        "NameComponent": "floor",
+        "Transform": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 500, 40, 1 ] },
+        "ModelRenderer": { "model": "quad", "material": "green" }
+    }},
+    { "_SpotLight": {
+        "position": [ 0, 0, 10 ],
+        "direction": [ 0, 0, -1 ],
+        "radius": 20,
+        "intensity": 25
+    }}
+]

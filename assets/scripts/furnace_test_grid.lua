@@ -11,7 +11,7 @@ function Start()
             transform.position = vec3.new( 2.2 * i - 11, 0, 1.1 - 2.2 * metalness )
             
             material = Material.new()
-            material.name = "lua_" .. tostring( metalness ) .. "_" .. tostring( i )
+            material:SetName( "lua_" .. tostring( metalness ) .. "_" .. tostring( i ) )
             material.albedoTint = vec3.new( 1, 1, 1 )
             material.metalnessTint = metalness
             material.roughnessTint = i / 10.0

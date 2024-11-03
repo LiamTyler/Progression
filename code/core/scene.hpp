@@ -41,6 +41,9 @@ public:
     entt::registry registry;
     // scripts that are not a part of the ECS, and not attached to any entity, but can still have per-frame update functions
     std::vector<Lua::ScriptInstance> nonEntityScripts;
+
+    PointLight* AddPointLight();
+    SpotLight* AddSpotLight();
 };
 
 void RegisterLuaFunctions_Scene( lua_State* L );

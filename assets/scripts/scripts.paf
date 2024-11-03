@@ -1,5 +1,6 @@
 [
     { "Script": { "name": "cameraController", "filename": "scripts/cameraController.lua" } },
     { "Script": { "name": "furnaceTestSingle", "filename": "scripts/furnace_test_single.lua" } },
-    { "Script": { "name": "furnaceTestGrid", "filename": "scripts/furnace_test_grid.lua" } }
+    { "Script": { "name": "furnaceTestGrid", "filename": "scripts/furnace_test_grid.lua" } },
+    { "Script": { "name": "shadow_test", "filename": "scripts/shadow_test.lua" } }
 ]

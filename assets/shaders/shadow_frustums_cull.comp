@@ -10,10 +10,11 @@ DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawComman
 layout( scalar, push_constant ) uniform PushConstants
 {
     CullDataBuffer cullDataBuffer;
-    UintBuffer outputCountBuffer;
+    Vec4Buffer frustumPlanesBuffer;
+    UintBuffer outputCountsBuffer;
     MeshletDrawCommandBuffer indirectCmdOutputBuffer;
     uint numMeshes;
-    uint _pad;
+    uint numFrustums;
 } pConstants;
 
 layout (local_size_x = 64, local_size_y = 1) in;
@@ -26,6 +27,8 @@ void main()
     CullData cullData = pConstants.cullDataBuffer.data[meshIdx];
     AABB localAABB = cullData.aabb;
     AABB worldAABB = TransformAABB( GetModelMatrix( cullData.modelIndex ), localAABB );
+    
+    /*
     bool visible = IsInFrustum( worldAABB );
     uint numVisibleInWave = WaveActiveCountBits( visible );
     uint localIndexInWave = WavePrefixCountBits( visible );
@@ -47,8 +50,10 @@ void main()
         cmd.modelIndex  = cullData.modelIndex;
         cmd.meshIndex   = meshIdx;
         cmd.numMeshlets = cullData.numMeshlets;
+        //cmd.meshletCullDataPtr = bindlessBuffers[objData.bindlessRangeStart + MESH_BUFFER_MESHLET_CULL_DATA];
 
         uint globalIndex = globalBaseIndex + localIndexInWave;
         pConstants.indirectCmdOutputBuffer.data[globalIndex] = cmd;        
     }
+    */
 }

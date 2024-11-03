@@ -34,6 +34,7 @@ struct FrameData
     Buffer modelMatricesBuffer;
     Buffer normalMatricesBuffer;
     Buffer sceneGlobalsBuffer;
+    u32 numMeshes;
 };
 
 struct R_Globals
@@ -89,7 +90,6 @@ Viewport DisplaySizedViewport( bool vulkanFlipViewport = true );
 Scissor DisplaySizedScissor();
 Viewport SceneSizedViewport( bool vulkanFlipViewport = true );
 Scissor SceneSizedScissor();
-VkDescriptorSetLayout GetEmptyDescriptorSetLayout();
 
 extern R_Globals rg;
 

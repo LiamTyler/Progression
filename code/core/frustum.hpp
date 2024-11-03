@@ -6,6 +6,8 @@
 namespace PG
 {
 
+void ExtractPlanesFromVP( const mat4& VP, vec4* planes );
+
 class Frustum
 {
 public:

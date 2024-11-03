@@ -21,7 +21,9 @@ void BaseAsset::SetName( std::string_view inName )
         free( m_name );
     m_name = (char*)malloc( inName.length() + 1 );
     strcpy( m_name, inName.data() );
-#endif // #if USING( ASSET_NAMES )
+#else  // #if USING( ASSET_NAMES )
+    PG_UNUSED( inName );
+#endif // #else // #if USING( ASSET_NAMES )
 }
 
 const char* BaseAsset::GetName() const

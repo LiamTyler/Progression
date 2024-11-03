@@ -1,5 +1,6 @@
 #include "asset/asset_manager.hpp"
 #include "core/camera.hpp"
+#include "core/lights.hpp"
 #include "core/scene.hpp"
 #include "core/time.hpp"
 #include "ecs/ecs.hpp"
@@ -126,6 +127,7 @@ void SetupStateFunctions( lua_State* state )
     PT::RegisterLuaFunctions_PTScene( state );
 #endif // USING( OFFLINE_RENDERER )
     RegisterLuaFunctions_Camera( state );
+    RegisterLuaFunctions_Lights( state );
     ECS::RegisterLuaFunctions( state );
     AssetManager::RegisterLuaFunctions( state );
     RegisterLuaFunctions_Time( state );

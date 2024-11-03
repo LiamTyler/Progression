@@ -8,10 +8,7 @@
 #include "shared/filesystem.hpp"
 #include "shared/json_parsing.hpp"
 #include "shared/logger.hpp"
-#include <algorithm>
-#include <fstream>
 #include <mutex>
-#include <sstream>
 
 using namespace PG;
 
@@ -61,9 +58,10 @@ static bool ParseDirectionalLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< DirectionalLight& > mapping(
     {
-        { "color",      [](const rapidjson::Value& v, DirectionalLight& l ) { l.color     = ParseVec3( v ); } },
-        { "intensity",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.intensity = ParseNumber< f32 >( v ); } },
-        { "direction",  [](const rapidjson::Value& v, DirectionalLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } }
+        { "name",       []( const rapidjson::Value& v, DirectionalLight& l ) { l.SetName( v.GetString() ); } },
+        { "color",      []( const rapidjson::Value& v, DirectionalLight& l ) { l.color     = ParseVec3( v ); } },
+        { "intensity",  []( const rapidjson::Value& v, DirectionalLight& l ) { l.intensity = ParseNumber< f32 >( v ); } },
+        { "direction",  []( const rapidjson::Value& v, DirectionalLight& l ) { l.direction = Normalize( ParseVec3( v ) ); } }
     });
 
     if ( scene->directionalLight )
@@ -93,14 +91,14 @@ static bool ParsePointLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< PointLight& > mapping(
     {
+        { "name",       []( const rapidjson::Value& v, PointLight& l ) { l.SetName( v.GetString() ); } },
         { "color",      []( const rapidjson::Value& v, PointLight& l ) { l.color     = ParseVec3( v ); } },
         { "intensity",  []( const rapidjson::Value& v, PointLight& l ) { l.intensity = ParseNumber< f32 >( v ); } },
         { "position",   []( const rapidjson::Value& v, PointLight& l ) { l.position  = ParseVec3( v ); } },
         { "radius",     []( const rapidjson::Value& v, PointLight& l ) { l.radius    = ParseNumber< f32 >( v ); } },
     });
 
-    PointLight* light = new PointLight;
-    scene->lights.emplace_back( light );
+    PointLight* light = scene->AddPointLight();
     mapping.ForEachMember( value, *light );
     return true;
 }
@@ -110,6 +108,7 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
 {
     static JSONFunctionMapper< SpotLight& > mapping(
     {
+        { "name",       []( const rapidjson::Value& v, SpotLight& l ) { l.SetName( v.GetString() ); } },
         { "color",      []( const rapidjson::Value& v, SpotLight& l ) { l.color     = ParseVec3( v ); } },
         { "intensity",  []( const rapidjson::Value& v, SpotLight& l ) { l.intensity = ParseNumber< f32 >( v ); } },
         { "position",   []( const rapidjson::Value& v, SpotLight& l ) { l.position  = ParseVec3( v ); } },
@@ -119,8 +118,7 @@ static bool ParseSpotLight( const rapidjson::Value& value, Scene* scene )
         { "outerAngle", []( const rapidjson::Value& v, SpotLight& l ) { l.outerAngle = DegToRad( ParseNumber< f32 >( v ) ); } },
     });
 
-    SpotLight* light = new SpotLight;
-    scene->lights.emplace_back( light );
+    SpotLight* light = scene->AddSpotLight();
     mapping.ForEachMember( value, *light );
     return true;
 }
@@ -204,8 +202,9 @@ Scene::~Scene()
 Scene* Scene::Load( const std::string& filename )
 {
     PGP_ZONE_SCOPEDN( "Scene::Load" );
-    Scene* scene = new Scene;
-    scene->name  = GetFilenameStem( filename );
+    auto startTime = Time::GetTimePoint();
+    Scene* scene   = new Scene;
+    scene->name    = GetFilenameStem( filename );
     rapidjson::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
@@ -220,7 +219,6 @@ Scene* Scene::Load( const std::string& filename )
     Lua::State()["scene"] = scene;
 
 #if USING( GAME )
-    auto startTime = Time::GetTimePoint();
     if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
     {
         delete scene;
@@ -258,6 +256,11 @@ Scene* Scene::Load( const std::string& filename )
     s_scenesLock.unlock();
 
     scene->Start();
+    for ( Light* light : scene->lights )
+    {
+        light->SetupShadowMap();
+    }
+
     return scene;
 }
 
@@ -292,11 +295,27 @@ void Scene::Update()
     }
 }
 
+PointLight* Scene::AddPointLight()
+{
+    PointLight* light = new PointLight;
+    lights.push_back( light );
+    return light;
+}
+
+SpotLight* Scene::AddSpotLight()
+{
+    SpotLight* light = new SpotLight;
+    lights.push_back( light );
+    return light;
+}
+
 void RegisterLuaFunctions_Scene( lua_State* L )
 {
     sol::state_view lua( L );
     sol::usertype<Scene> scene_type = lua.new_usertype<Scene>( "Scene" );
     scene_type["camera"]            = &Scene::camera;
+    scene_type["AddPointLight"]     = &Scene::AddPointLight;
+    scene_type["AddSpotLight"]      = &Scene::AddSpotLight;
 }
 
 Scene* GetPrimaryScene() { return s_primaryScene; }
@@ -320,8 +339,8 @@ void FreeScene( Scene* toDeleteScene )
     if ( toDeleteScene == s_primaryScene )
         s_primaryScene = nullptr;
     size_t numElementsErased = std::erase( s_scenes, toDeleteScene );
-    delete toDeleteScene;
     s_scenesLock.unlock();
+    delete toDeleteScene;
     PG_ASSERT( numElementsErased == 1, "Trying to free a scene that doesn't exist in the managed list" );
 }
 

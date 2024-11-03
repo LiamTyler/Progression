@@ -6,8 +6,6 @@
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
 
-#include "glm/gtc/matrix_transform.hpp"
-
 namespace PG::UI::Text
 {
 

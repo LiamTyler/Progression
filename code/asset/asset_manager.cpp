@@ -233,7 +233,7 @@ void RegisterLuaFunctions( lua_State* L )
     assetManagerNamespace["GetModel"]    = []( const std::string& name ) { return AssetManager::Get<Model>( name ); };
 
     sol::usertype<Material> mat_type = lua.new_usertype<Material>( "Material" ); //, sol::constructors<Material()>() );
-    // mat_type["name"]                 = &Material::name;
+    mat_type["SetName"]              = &Material::SetName;
     mat_type["albedoTint"]           = &Material::albedoTint;
     mat_type["metalnessTint"]        = &Material::metalnessTint;
     mat_type["roughnessTint"]        = &Material::roughnessTint;

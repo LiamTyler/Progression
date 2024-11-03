@@ -16,6 +16,15 @@
 namespace PG
 {
 
+Material::Material()
+{
+#if USING( GAME )
+    m_bindlessIndex = Gfx::BindlessManager::AddMaterial( this );
+#endif // #if USING( GAME )
+}
+
+Material::~Material() { Free(); }
+
 bool Material::FastfileLoad( Serializer* serializer )
 {
     serializer->Read( type );
@@ -39,10 +48,6 @@ bool Material::FastfileLoad( Serializer* serializer )
         emissiveImage = AssetManager::Get<GfxImage>( imgName );
         PG_ASSERT( emissiveImage, "Emissive image '%s' not found for material '%s'", imgName.c_str(), m_name );
     }
-
-#if USING( GAME )
-    m_bindlessIndex = Gfx::BindlessManager::AddMaterial( this );
-#endif // #if USING( GAME )
 
     return true;
 }
@@ -69,7 +74,7 @@ void Material::Free()
 {
 #if USING( GAME )
     Gfx::BindlessManager::RemoveMaterial( m_bindlessIndex );
-    DEBUG_BUILD_ONLY( m_bindlessIndex = PG_INVALID_MATERIAL_INDEX );
+    m_bindlessIndex = PG_INVALID_MATERIAL_INDEX;
 #endif // #if USING( GAME )
 }
 

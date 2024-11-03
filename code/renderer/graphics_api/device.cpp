@@ -236,6 +236,13 @@ Buffer Device::NewStagingBuffer( u64 size ) const
 
 Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name ) const
 {
+    Texture tex;
+    NewTextureInPlace( tex, desc, name );
+    return tex;
+}
+
+void Device::NewTextureInPlace( Texture& tex, const TextureCreateInfo& desc, std::string_view name ) const
+{
     bool isDepth                = PixelFormatHasDepthFormat( desc.format );
     VkImageCreateInfo imageInfo = { VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO };
     imageInfo.imageType         = PGToVulkanImageType( desc.type );
@@ -253,7 +260,6 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
         imageInfo.flags |= VK_IMAGE_CREATE_CUBE_COMPATIBLE_BIT;
     }
 
-    Texture tex;
     tex.m_info    = desc;
     tex.m_sampler = GetSampler( desc.sampler );
 
@@ -288,8 +294,6 @@ Texture Device::NewTexture( const TextureCreateInfo& desc, std::string_view name
     PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( tex.m_imageView, name );
 
     tex.m_bindlessIndex = BindlessManager::AddTexture( &tex );
-
-    return tex;
 }
 
 void Device::AddUploadRequest( const Buffer& buffer, const void* data, u64 size, u64 offset )

@@ -8,7 +8,9 @@ namespace PG::Gfx::Lighting
 void Init();
 void Shutdown();
 
-void UpdateLightBuffer( Scene* scene );
+void UpdateLights( Scene* scene );
+void AddShadowTasks( Scene* scene, TaskGraphBuilder& builder );
+
 u32 GetLightCount();
 u64 GetLightBufferAddress();
 

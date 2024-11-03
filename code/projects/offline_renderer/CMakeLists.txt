@@ -24,6 +24,7 @@ set(
     ${CODE_DIR}/core/image_processing.hpp
     ${CODE_DIR}/core/init.cpp
     ${CODE_DIR}/core/init.hpp
+    ${CODE_DIR}/core/lights.cpp
     ${CODE_DIR}/core/lights.hpp
     ${CODE_DIR}/core/low_discrepancy_sampling.cpp
     ${CODE_DIR}/core/low_discrepancy_sampling.hpp

@@ -37,7 +37,8 @@ struct GfxImage;
 
 struct Material : public BaseAsset
 {
-    Material() = default;
+    Material();
+    ~Material();
 
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;

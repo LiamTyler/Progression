@@ -48,7 +48,9 @@ void Frustum::Update(
 #endif // #if USING( DEVELOPMENT_BUILD )
 }
 
-void Frustum::ExtractFromVPMatrix( const mat4& VP )
+// https://stackoverflow.com/questions/12836967/extracting-view-frustum-planes-gribb-hartmann-method
+// https://fgiesen.wordpress.com/2012/08/31/frustum-planes-from-the-projection-matrix/
+void ExtractPlanesFromVP( const mat4& VP, vec4* planes )
 {
     // left plane
     // 4th col + 1st col
@@ -79,6 +81,8 @@ void Frustum::ExtractFromVPMatrix( const mat4& VP )
     planes[3].w = VP[3][3] + VP[3][1];
 
     // near plane
+    // Only for clip spaces where z goes from 0 - 1. In opengl it's from -1 to 1, so it would be Col4 + Col2
+    // instead of just + Col2
     planes[4].x = VP[0][2];
     planes[4].y = VP[1][2];
     planes[4].z = VP[2][2];
@@ -96,6 +100,11 @@ void Frustum::ExtractFromVPMatrix( const mat4& VP )
     {
         planes[i] /= Length( vec3( planes[i] ) );
     }
+}
+
+void Frustum::ExtractFromVPMatrix( const mat4& VP )
+{
+    ExtractPlanesFromVP( VP, planes );
 
 #if USING( DEVELOPMENT_BUILD )
     corners[0] = vec3( -1, -1, 0 );

@@ -1,4 +1,5 @@
 Pipeline,frustum_cull_meshes
+Pipeline,shadow_frustums_cull
 Pipeline,culling_compute_debug
 Pipeline,sky
 Pipeline,post_process

@@ -1,6 +1,6 @@
 
-NUM_LIGHTS = 4
-MODELS_PER_LIGHT = 1
+NUM_LIGHTS = 16
+MODELS_PER_LIGHT = 50
 SPACING = 30
 
 sphereModel = AssetManager.GetModel( "uv_sphere_4k" )
@@ -21,7 +21,8 @@ function Start()
         light.intensity = 1000
         light.castsShadow = true
         
-        for modelIdx=1,MODELS_PER_LIGHT do
+        numModels = (MODELS_PER_LIGHT * (lightIdx + 1))
+        for modelIdx=1,numModels do
             e = ECS:CreateEntity()
             transform = ECS:Create_Transform( e )
             transform.position = light.position

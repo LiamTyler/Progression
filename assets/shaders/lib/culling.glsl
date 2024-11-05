@@ -45,6 +45,18 @@ bool IsInFrustum( const AABB aabb )
     return shouldCull == 0;
 }
 
+bool IsInFrustum( const AABB aabb, const vec4 planes[6] )
+{
+    int shouldCull = 0;
+    for ( int i = 0; i < 6; ++i )
+    {
+        vec3 p = GetP( aabb, planes[i].xyz );
+        shouldCull += int( dot( vec4( p, 1 ), planes[i] ) < 0 );
+    }
+    
+    return shouldCull == 0;
+}
+
 bool IsSphereInFrustum( vec3 center, float radius )
 {
     int shouldCull = 0;

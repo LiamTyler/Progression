@@ -15,15 +15,10 @@ void Fence::Free()
 void Fence::WaitFor()
 {
     PGP_ZONE_SCOPEDN( "Fence::WaitFor" );
-    PG_ASSERT( m_handle != VK_NULL_HANDLE );
     VK_CHECK( vkWaitForFences( rg.device, 1, &m_handle, VK_TRUE, UINT64_MAX ) );
 }
 
-void Fence::Reset()
-{
-    PG_ASSERT( m_handle != VK_NULL_HANDLE );
-    VK_CHECK( vkResetFences( rg.device, 1, &m_handle ) );
-}
+void Fence::Reset() { VK_CHECK( vkResetFences( rg.device, 1, &m_handle ) ); }
 
 VkResult Fence::GetStatus() const { return vkGetFenceStatus( rg.device, m_handle ); }
 

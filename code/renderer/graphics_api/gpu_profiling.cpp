@@ -12,6 +12,7 @@ void DrawResultsOnScreen() {}
 
 #else // #if !USING( PG_GPU_PROFILING )
 
+#include "core/dvars.hpp"
 #include "core/time.hpp"
 #include "data_structures/circular_array.hpp"
 #include "renderer/debug_marker.hpp"
@@ -28,6 +29,10 @@ void DrawResultsOnScreen() {}
 #define MAX_RECORDS_PER_FRAME 32
 #define MAX_TIMESTAMPS_PER_FRAME ( 2 * MAX_RECORDS_PER_FRAME )
 #define NUM_HISTORY_FRAMES 63
+
+#if USING( PG_DEBUG_UI )
+PG::Dvar gpu_profiling_window( "gpu_profiling_window", false, "Enable/disable the gpu profile timings window" );
+#endif // #if USING( PG_DEBUG_UI )
 
 struct ProfileRecord
 {
@@ -105,6 +110,9 @@ void Shutdown()
 void DrawResultsOnScreen()
 {
 #if USING( PG_DEBUG_UI )
+    if ( !gpu_profiling_window.GetBool() )
+        return;
+
     ImGui::SetNextWindowPos( { 5, 5 }, ImGuiCond_FirstUseEver );
     ImGui::Begin( "Profiling Stats", NULL, ImGuiWindowFlags_NoFocusOnAppearing );
 

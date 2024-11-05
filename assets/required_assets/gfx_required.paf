@@ -4,12 +4,16 @@
         "computeShader": "frustum_cull_meshes.comp"
     } },
     { "Pipeline": {
+        "name": "frustum_cull_meshes_debug",
+        "computeShader": "debug/frustum_cull_meshes_debug.comp"
+    } },
+    { "Pipeline": {
         "name": "shadow_frustums_cull",
         "computeShader": "shadow_frustums_cull.comp"
     } },
     { "Pipeline": {
-        "name": "culling_compute_debug",
-        "computeShader": "debug/culling_compute_debug.comp"
+        "name": "shadow_frustums_cull_debug",
+        "computeShader": "debug/shadow_frustums_cull_debug.comp"
     } },
     { "Pipeline": {
         "name": "sky",

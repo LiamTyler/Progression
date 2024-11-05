@@ -109,11 +109,11 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
     cmdBuf.Dispatch_AutoSized( meshNum, 1, 1 );
 }
 
-void DebugComputeCullFunc( ComputeTask* task, TGExecuteData* data )
+void ComputeFrustumCullMeshes_Debug( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "culling_compute_debug" ) );
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "frustum_cull_meshes_debug" ) );
     cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
@@ -222,6 +222,12 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
+    // UI::Text::TextDrawInfo tInfo;
+    // tInfo.pos = vec2( 0.9, 0 );
+    // UI::Text::Draw2D( tInfo, "Frustum: 11" );
+    // tInfo.pos = vec2( 0.9, 0.1 );
+    // UI::Text::Draw2D( tInfo, "Frustum: 12" );
+
     UI::Text::Render( cmdBuf );
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
@@ -246,11 +252,14 @@ bool Init_TaskGraph()
 {
     PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
     TaskGraphBuilder builder;
+
     ComputeTaskBuilder* cTask      = builder.AddComputeTask( "FrustumCullMeshes" );
     TGBBufferRef indirectCountBuff = cTask->AddBufferOutput( "indirectCountBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ), 0 );
     TGBBufferRef indirectMeshletDrawBuff = cTask->AddBufferOutput(
         "indirectMeshletDrawBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( GpuData::MeshletDrawCommand ) * MAX_MESHES_PER_FRAME );
     cTask->SetFunction( ComputeFrustumCullMeshes );
+
+    Lighting::AddShadowTasks( builder );
 
     GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "DrawMeshes" );
     mTask->AddBufferInput( indirectCountBuff, BufferUsage::INDIRECT );
@@ -265,7 +274,7 @@ bool Init_TaskGraph()
     // cTask->AddBufferInput( indirectMeshletDrawBuff );
     // cTask->AddTextureInput( litOutput );
     // cTask->AddTextureOutput( litOutput );
-    // cTask->SetFunction( DebugComputeCullFunc );
+    // cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
 #endif // #if USING( DEVELOPMENT_BUILD )
 
     Sky::AddTask( builder, litOutput, sceneDepth );
@@ -303,7 +312,7 @@ bool Init_TaskGraph()
     compileInfo.sceneHeight    = rg.sceneHeight;
     compileInfo.displayWidth   = rg.displayWidth;
     compileInfo.displayHeight  = rg.displayHeight;
-    compileInfo.mergeResources = true;
+    compileInfo.mergeResources = false;
     // TG_DEBUG_ONLY( compileInfo.showStats = true );
     if ( !s_taskGraph.Compile( builder, compileInfo ) )
     {
@@ -532,8 +541,9 @@ void Render()
     UIOverlay::EndFrame();
     cmdBuf.EndRecording();
 
-    VkPipelineStageFlags2 waitStages =
-        VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_TRANSFER_BIT;
+    VkPipelineStageFlags2 waitStages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    // VkPipelineStageFlags2 waitStages =
+    //     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_TRANSFER_BIT;
     VkSemaphoreSubmitInfo waitInfo   = SemaphoreSubmitInfo( waitStages, frameData.swapchainSemaphore );
     VkSemaphoreSubmitInfo signalInfo = SemaphoreSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, frameData.renderingCompleteSemaphore );
     rg.device.Submit( QueueType::GRAPHICS, cmdBuf, &waitInfo, &signalInfo, &frameData.renderingCompleteFence );

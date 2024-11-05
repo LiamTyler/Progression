@@ -23,6 +23,8 @@ struct LocalFrameData
     Gfx::Buffer lightFrustumsBuffer;
     u32 numLights;
     std::vector<ShadowedFrustum> shadowedLights;
+
+    u32 numFrustumUpdates;
 };
 
 #define MAX_LIGHTS 65536
@@ -141,8 +143,8 @@ void UpdateLights( Scene* scene )
         }
     }
 
-    std::sort( shadowedLights.begin(), shadowedLights.end(),
-        []( const ShadowedFrustum& a, const ShadowedFrustum& b ) { return a.dist < b.dist; } );
+    // std::sort( shadowedLights.begin(), shadowedLights.end(),
+    //     []( const ShadowedFrustum& a, const ShadowedFrustum& b ) { return a.dist < b.dist; } );
 
     u32 numFrustumUpdates = 0;
     u32 numShadowedLights = 0;
@@ -169,6 +171,8 @@ void UpdateLights( Scene* scene )
 
         shadowedLights.resize( numShadowedLights );
     }
+
+    LocalData().numFrustumUpdates = numFrustumUpdates;
 }
 
 static const vec3 s_pointLightForwardDirs[6] = {
@@ -189,17 +193,27 @@ static const vec3 s_pointLightUpDirs[6] = {
     vec3( 0, 1, 0 ),  // bottom
 };
 
-void ComputeShadowFrustumsCull( ComputeTask* task, TGExecuteData* data );
-
-void AddShadowTasks( Scene* scene, TaskGraphBuilder& builder )
+#if USING( DEVELOPMENT_BUILD )
+void ComputeShadowFrustumsCull_Debug( ComputeTask* task, TGExecuteData* data )
 {
-    // ComputeTaskBuilder* cTask      = builder.AddComputeTask( "shadow_frustum_culling" );
-    // TGBBufferRef indirectCountBuff = cTask->AddBufferOutput(
-    //     "indirectCountsBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, MAX_SHADOW_UPDATES_PER_FRAME * sizeof( u32 ), 0 );
-    // TGBBufferRef indirectMeshletDrawBuff = cTask->AddBufferOutput( "indirectMeshletDrawBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
-    //     MAX_SHADOW_UPDATES_PER_FRAME * sizeof( GpuData::MeshletDrawCommand ) );
-    // cTask->SetFunction( ComputeShadowFrustumsCull );
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "shadow_frustums_cull_debug" ) );
+    cmdBuf.BindGlobalDescriptors();
+
+    struct ComputePushConstants
+    {
+        VkDeviceAddress countBuffer;
+        u32 numFrustums;
+        u32 _pad;
+    };
+    ComputePushConstants push;
+    push.countBuffer = task->GetInputBuffer( 0 ).GetDeviceAddress();
+    push.numFrustums = LocalData().numFrustumUpdates;
+    cmdBuf.PushConstants( push );
+    cmdBuf.Dispatch( 1, 1, 1 );
 }
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 void ComputeShadowFrustumsCull( ComputeTask* task, TGExecuteData* data )
 {
@@ -266,6 +280,22 @@ void ComputeShadowFrustumsCull( ComputeTask* task, TGExecuteData* data )
     push.numFrustums             = numFrustums;
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch_AutoSized( push.numMeshes, 1, 1 );
+}
+
+void AddShadowTasks( TaskGraphBuilder& builder )
+{
+    ComputeTaskBuilder* cTask      = builder.AddComputeTask( "shadow_frustum_culling" );
+    TGBBufferRef indirectCountBuff = cTask->AddBufferOutput(
+        "indirectCountsBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, MAX_SHADOW_UPDATES_PER_FRAME * sizeof( u32 ), 0 );
+    TGBBufferRef indirectMeshletDrawBuff = cTask->AddBufferOutput( "indirectMeshletDrawBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+        MAX_SHADOW_UPDATES_PER_FRAME * MAX_CULLED_OBJECTS_PER_FRUSTUM * sizeof( GpuData::MeshletDrawCommand ) );
+    cTask->SetFunction( ComputeShadowFrustumsCull );
+
+#if USING( DEVELOPMENT_BUILD )
+    cTask = builder.AddComputeTask( "shadow_frustum_culling_debug" );
+    cTask->AddBufferInput( indirectCountBuff );
+    cTask->SetFunction( ComputeShadowFrustumsCull_Debug );
+#endif // #if USING( DEVELOPMENT_BUILD )
 }
 
 u32 GetLightCount() { return LocalData().numLights; }

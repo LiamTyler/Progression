@@ -12,6 +12,9 @@
 #ifdef PG_USE_SDL
 #include "SDL3/SDL_vulkan.h"
 #endif // #ifdef PG_USE_SDL
+#if USING( DEVELOPMENT_BUILD )
+#include "ui/ui_text.hpp"
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
 
@@ -20,7 +23,7 @@ VkDebugUtilsMessengerEXT s_debugMessenger;
 namespace PG::Gfx
 {
 
-Dvar r_shaderDebugPrint( "r_shaderDebugPrint", false, "Enable/disable logging of shader debug printf messages" );
+Dvar r_shaderDebugPrint( "r_shaderDebugPrint", true, "Enable/disable logging of shader debug printf messages" );
 
 #if USING( DEVELOPMENT_BUILD )
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
@@ -50,8 +53,34 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
                 else
                     idx = 0;
             }
-            Logger_Log(
-                LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s", msg.substr( idx ).data() );
+            if ( msg.substr( idx, 3 ) == "#2D" )
+            {
+                msg = msg.substr( idx + 3 );
+                if ( msg.empty() )
+                    return VK_FALSE;
+
+                UI::Text::TextDrawInfo tInfo;
+                tInfo.pos   = vec2( 0.9, 0 );
+                tInfo.color = vec4( 0, 0, 0, 1 );
+                if ( msg[0] == '(' )
+                {
+                    size_t commaIdx    = msg.find( ',' );
+                    size_t endParenIdx = msg.find( ')' );
+                    if ( commaIdx != std::string_view::npos && endParenIdx != std::string_view::npos && commaIdx < endParenIdx )
+                    {
+                        tInfo.pos.x = (float)atof( msg.data() + 1 );
+                        tInfo.pos.y = (float)atof( msg.data() + commaIdx + 1 );
+                        msg         = msg.substr( endParenIdx + 1 );
+                    }
+                }
+
+                UI::Text::Draw2D( tInfo, msg.data() );
+            }
+            else
+            {
+                Logger_Log( LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s",
+                    msg.substr( idx ).data() );
+            }
             return VK_FALSE;
         }
     }
@@ -126,8 +155,8 @@ static vkb::Result<vkb::Instance> GetInstance()
     builder.request_validation_layers( true );
     builder.set_debug_callback( DebugCallback );
     VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 #if USING( SHADER_DEBUG_PRINTF )
     builder.add_validation_feature_enable( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
     debugMessageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;

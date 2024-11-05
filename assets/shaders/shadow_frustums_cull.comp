@@ -20,6 +20,13 @@ layout( scalar, push_constant ) uniform PushConstants
 layout (local_size_x = 64, local_size_y = 1) in;
 void main() 
 {
+    //uint frustumIdx = gl_GlobalInvocationID.x;
+    //if ( frustumIdx >= pConstants.numFrustums )
+    //    return;
+    //
+    //pConstants.outputCountsBuffer.data[frustumIdx] = 7 * frustumIdx;
+    
+    
     uint meshIdx = gl_GlobalInvocationID.x;
     if ( meshIdx >= pConstants.numMeshes )
         return;
@@ -27,6 +34,21 @@ void main()
     CullData cullData = pConstants.cullDataBuffer.data[meshIdx];
     AABB localAABB = cullData.aabb;
     AABB worldAABB = TransformAABB( GetModelMatrix( cullData.modelIndex ), localAABB );
+    
+    for ( uint fIdx = 0; fIdx < pConstants.numFrustums; ++fIdx )
+    {
+        vec4 frustum[6];
+        frustum[0] = pConstants.frustumPlanesBuffer.data[6 * fIdx + 0];
+        frustum[1] = pConstants.frustumPlanesBuffer.data[6 * fIdx + 1];
+        frustum[2] = pConstants.frustumPlanesBuffer.data[6 * fIdx + 2];
+        frustum[3] = pConstants.frustumPlanesBuffer.data[6 * fIdx + 3];
+        frustum[4] = pConstants.frustumPlanesBuffer.data[6 * fIdx + 4];
+        frustum[5] = pConstants.frustumPlanesBuffer.data[6 * fIdx + 5];
+        
+        bool visible = IsInFrustum( worldAABB, frustum );
+        if ( visible )
+            atomicAdd( pConstants.outputCountsBuffer.data[fIdx], 1 );
+    }
     
     /*
     bool visible = IsInFrustum( worldAABB );

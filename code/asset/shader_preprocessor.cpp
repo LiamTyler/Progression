@@ -174,9 +174,13 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     ShaderPreprocessOutput output;
     output.success = false;
 
-    std::shared_ptr<std::string> fileContents = GetFileContents( GetAbsPath_ShaderFilename( createInfo.filename ) );
+    std::string absFilename                   = GetAbsPath_ShaderFilename( createInfo.filename );
+    std::shared_ptr<std::string> fileContents = GetFileContents( absFilename );
     if ( !fileContents )
+    {
+        LOG_ERR( "Failed to load shader file for preprocessing '%s'", absFilename.c_str() );
         return output;
+    }
 
     shaderc::Compiler compiler;
     shaderc::CompileOptions options;

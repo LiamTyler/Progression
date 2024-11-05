@@ -9,7 +9,7 @@ void Init();
 void Shutdown();
 
 void UpdateLights( Scene* scene );
-void AddShadowTasks( Scene* scene, TaskGraphBuilder& builder );
+void AddShadowTasks( TaskGraphBuilder& builder );
 
 u32 GetLightCount();
 u64 GetLightBufferAddress();

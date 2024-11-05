@@ -89,11 +89,13 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
 
     vec2 startPos = displaySize * textDrawInfo.pos;
     vec2 pos      = startPos;
+    pos.y += scale;
 
+    LocalFrameData& localData = LocalData();
     PackedTextDrawData drawData;
-    drawData.vertOffset = LocalData().numTextCharacters;
+    drawData.vertOffset = localData.numTextCharacters;
 
-    vec2* gpuData = LocalData().textVB.GetMappedPtr<vec2>();
+    vec2* gpuData = localData.textVB.GetMappedPtr<vec2>();
     for ( u32 i = 0; i < sLen; ++i )
     {
         char c = str[i];
@@ -122,12 +124,12 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
         vec2 quadMin = scale * glyph.planeMin;
         vec2 quadMax = scale * glyph.planeMax;
 
-        gpuData[4 * LocalData().numTextCharacters + 0] = pos + quadMin;
-        gpuData[4 * LocalData().numTextCharacters + 1] = quadMax - quadMin;
-        gpuData[4 * LocalData().numTextCharacters + 2] = glyph.uvMin;
-        gpuData[4 * LocalData().numTextCharacters + 3] = glyph.uvMax - glyph.uvMin;
+        gpuData[4 * localData.numTextCharacters + 0] = pos + quadMin;
+        gpuData[4 * localData.numTextCharacters + 1] = quadMax - quadMin;
+        gpuData[4 * localData.numTextCharacters + 2] = glyph.uvMin;
+        gpuData[4 * localData.numTextCharacters + 3] = glyph.uvMax - glyph.uvMin;
 
-        LocalData().numTextCharacters += 1;
+        localData.numTextCharacters += 1;
 
         pos.x += scale * glyph.advance;
         if ( useKerning && i < ( sLen - 1 ) )
@@ -137,7 +139,7 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
         }
     }
 
-    drawData.numChars = LocalData().numTextCharacters - drawData.vertOffset;
+    drawData.numChars = localData.numTextCharacters - drawData.vertOffset;
     if ( drawData.numChars == 0 )
         return;
 
@@ -145,7 +147,7 @@ void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
     drawData.unitRange   = textDrawInfo.fontSize / s_font->metrics.fontSize * s_font->metrics.maxSignedDistanceRange;
     drawData.unitRange3D = vec2( s_font->metrics.maxSignedDistanceRange ) / atlasSize;
     drawData.unorm8Color = UNormFloat4ToU32( textDrawInfo.color );
-    LocalData().text2DDrawCalls.push_back( drawData );
+    localData.text2DDrawCalls.push_back( drawData );
 }
 
 void Render( Gfx::CommandBuffer& cmdBuf )
@@ -177,7 +179,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
         cmdBuf.PushConstants( constants );
         cmdBuf.Draw( 0, 6 * drawCall.numChars );
 
-        vbOffset += sizeof( vec2 ) * drawCall.numChars;
+        vbOffset += 4 * sizeof( vec2 ) * drawCall.numChars;
     }
 
     localData.numTextCharacters = 0;

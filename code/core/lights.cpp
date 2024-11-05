@@ -69,7 +69,7 @@ void Light::SetupShadowMap()
 
 #if USING( DEVELOPMENT_BUILD )
     Gfx::rg.device.NewTextureInPlace( *shadowMapTex, tInfo, GetName() ? GetName() : "" );
-#else // #if USING( DEVELOPMENT_BUILD )
+#else  // #if USING( DEVELOPMENT_BUILD )
     Gfx::rg.device.NewTextureInPlace( *shadowMapTex, tInfo );
 #endif // #else // #if USING( DEVELOPMENT_BUILD )
 #endif // #if USING( GAME )

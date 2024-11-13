@@ -47,6 +47,14 @@ struct PerObjectData
     uint materialIdx;
 };
 
+struct NonIndirectPerObjectData
+{
+    uint bindlessRangeStart;
+    uint modelIdx;
+    uint materialIdx;
+    uint numMeshlets;
+};
+
 END_GPU_DATA_NAMESPACE()
 
 #endif // #ifndef __SCENE_GLOBALS_H__

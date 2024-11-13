@@ -35,6 +35,7 @@ public:
     void BindVertexBuffer( const Buffer& buffer, size_t offset = 0, u32 firstBinding = 0 ) const;
     void BindVertexBuffers( u32 numBuffers, const Buffer* buffers, size_t* offsets, u32 firstBinding = 0 ) const;
     void BindIndexBuffer( const Buffer& buffer, IndexType indexType = IndexType::UNSIGNED_INT, size_t offset = 0 ) const;
+    void PipelineBarrier2( const VkMemoryBarrier2& barrier ) const;
     void PipelineBufferBarrier2( const VkBufferMemoryBarrier2& barrier ) const;
     void PipelineImageBarrier2( const VkImageMemoryBarrier2& barrier ) const;
     void SetViewport( const Viewport& viewport ) const;

@@ -18,7 +18,8 @@
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
 
-#define SHADER_DEBUG_PRINTF USE_IF( USING( DEVELOPMENT_BUILD ) )
+// #define SHADER_DEBUG_PRINTF USE_IF( USING( DEVELOPMENT_BUILD ) )
+#define SHADER_DEBUG_PRINTF NOT_IN_USE
 
 namespace PG::Gfx
 {
@@ -34,28 +35,23 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 #if USING( SHADER_DEBUG_PRINTF )
     if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT && pCallbackData->pMessageIdName )
     {
-        if ( !strcmp( pCallbackData->pMessageIdName, "WARNING-DEBUG-PRINTF" ) )
+        if ( strstr( pCallbackData->pMessageIdName, "DEBUG-PRINTF" ) )
         {
             if ( !r_shaderDebugPrint.GetBool() )
                 return VK_FALSE;
 
             std::string_view msg = pCallbackData->pMessage;
-            size_t idx           = msg.find( "vkQueueSubmit(): " );
+            size_t idx           = msg.find( "MessageID" );
+            idx                  = msg.find( '|', idx );
             if ( idx != std::string_view::npos )
             {
-                idx += 17; // length of "vkQueueSubmit(): "
+                idx += 2;
+                msg = msg.substr( idx );
             }
-            else
+
+            if ( msg.substr( 0, 3 ) == "#2D" )
             {
-                idx = msg.find( "vkQueueSubmit2(): pSubmits[0] " );
-                if ( idx != std::string_view::npos )
-                    idx += 30; // length of "vkQueueSubmit2(): pSubmits[0] "
-                else
-                    idx = 0;
-            }
-            if ( msg.substr( idx, 3 ) == "#2D" )
-            {
-                msg = msg.substr( idx + 3 );
+                msg = msg.substr( 3 );
                 if ( msg.empty() )
                     return VK_FALSE;
 
@@ -78,8 +74,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
             }
             else
             {
-                Logger_Log( LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s",
-                    msg.substr( idx ).data() );
+                Logger_Log( LogSeverity::DEBUG, TerminalColorCode::YELLOW, TerminalEmphasisCode::NONE, "SHADER PRINTF: %s", msg.data() );
             }
             return VK_FALSE;
         }
@@ -164,7 +159,16 @@ static vkb::Result<vkb::Instance> GetInstance()
     builder.set_debug_messenger_severity( debugMessageSeverity );
 #endif // #if USING( DEVELOPMENT_BUILD )
 
-    builder.require_api_version( 1, 3, 0 );
+    builder.enable_extension( VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
+    Uint32 count_instance_extensions;
+    const char* const* instance_extensions = SDL_Vulkan_GetInstanceExtensions( &count_instance_extensions );
+    for ( u32 i = 0; i < count_instance_extensions; ++i )
+    {
+        const char* ext = instance_extensions[i];
+        builder.enable_extension( ext );
+    }
+
+    builder.require_api_version( 1, 3 );
     auto inst_ret = builder.build();
     PGP_MANUAL_ZONE_END( __tracyInstBuild );
 
@@ -197,6 +201,8 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
         VK_CHECK( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetHandle(), nullptr, &rg.surface ) );
 #endif // #else // #ifdef PG_USE_SDL
     }
+
+    vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
 
     VkPhysicalDeviceVulkan13Features features13{};
     features13.dynamicRendering = true;
@@ -232,12 +238,14 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     VkPhysicalDeviceFeatures features{};
     features.shaderInt64       = true;
     features.samplerAnisotropy = true;
+#if USING( SHADER_DEBUG_PRINTF )
+    pDevSelector.add_required_extension( VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME );
+    // according to https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/main/docs/debug_printf.md
+    // both debug printf requires both fragmentStoresAndAtomics, vertexPipelineStoresAndAtomics, and timelineSemaphore
+    features.fragmentStoresAndAtomics       = true;
+    features.vertexPipelineStoresAndAtomics = true;
+#endif // #if USING( SHADER_DEBUG_PRINTF )
 
-#define ADD_PNEXT_FEATURES12( extStruct ) \
-    extStruct.pNext  = features12.pNext;  \
-    features12.pNext = &extStruct;
-
-    vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
 #if USING( PG_RTX )
     pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );
@@ -248,15 +256,15 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
     VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
     mutableExt.mutableDescriptorType = true;
-    ADD_PNEXT_FEATURES12( mutableExt );
+    pDevSelector.add_required_extension_features( mutableExt );
 #endif // #if USING( PG_MUTABLE_DESCRIPTORS )
 
 #if USING( PG_DESCRIPTOR_BUFFER )
     pDevSelector.add_required_extension( VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME );
     VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
-    descriptorBufferExt.descriptorBuffer = USING( PG_DESCRIPTOR_BUFFER );
+    descriptorBufferExt.descriptorBuffer = true;
     // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
-    ADD_PNEXT_FEATURES12( descriptorBufferExt );
+    pDevSelector.add_required_extension_features( descriptorBufferExt );
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
 #if USING( DEVELOPMENT_BUILD )
@@ -265,7 +273,6 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR baryFeaturesKHR = {
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR };
     baryFeaturesKHR.fragmentShaderBarycentric = true;
-    // ADD_PNEXT_FEATURES12( baryFeaturesKHR );
     pDevSelector.add_required_extension_features( baryFeaturesKHR );
 #endif // #if USING( DEVELOPMENT_BUILD )
 
@@ -278,9 +285,7 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     pDevSelector.add_required_extension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME );
-#if USING( SHADER_DEBUG_PRINTF )
-    pDevSelector.add_required_extension( VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME );
-#endif // #if USING( SHADER_DEBUG_PRINTF )
+
     pDevSelector.set_minimum_version( 1, 3 );
     pDevSelector.require_present( !rg.headless );
     pDevSelector.set_required_features_13( features13 );
@@ -361,11 +366,8 @@ void R_Shutdown()
     rg.immediateCmdPool.Free();
     rg.immediateFence.Free();
 
-    LOG( "Freeing swapchain..." );
     rg.swapchain.Free();
-    LOG( "Freeing surface..." );
     vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
-    LOG( "Freeing pipelines..." );
     PipelineManager::Shutdown();
     BindlessManager::Shutdown();
     FreeGlobalDescriptorData();

@@ -81,6 +81,14 @@ void CommandBuffer::BindIndexBuffer( const Buffer& buffer, IndexType indexType, 
     vkCmdBindIndexBuffer( m_handle, buffer, offset, PGToVulkanIndexType( indexType ) );
 }
 
+void CommandBuffer::PipelineBarrier2( const VkMemoryBarrier2& barrier ) const
+{
+    VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };
+    depInfo.memoryBarrierCount = 1;
+    depInfo.pMemoryBarriers    = &barrier;
+    vkCmdPipelineBarrier2( m_handle, &depInfo );
+}
+
 void CommandBuffer::PipelineBufferBarrier2( const VkBufferMemoryBarrier2& barrier ) const
 {
     VkDependencyInfo depInfo{ VK_STRUCTURE_TYPE_DEPENDENCY_INFO };

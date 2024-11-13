@@ -10,10 +10,13 @@
 #include "c_shared/dvar_defines.h"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, PackedMeshletCullData );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
+
+#if INDIRECT
 
 #extension GL_ARB_shader_draw_parameters : enable
+
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 layout(scalar, push_constant) uniform Registers
 {
@@ -21,10 +24,18 @@ layout(scalar, push_constant) uniform Registers
     MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
 };
 
+#else // #if INDIRECT
 
-MeshletCullData GetMeshletCullData( uint meshletID, const PerObjectData objData )
+layout(scalar, push_constant) uniform Registers
 {
-    uint64_t ptr = bindlessBuffers[objData.bindlessRangeStart + MESH_BUFFER_MESHLET_CULL_DATA];
+    NonIndirectPerObjectData objectData;
+};
+
+#endif // #else // #if INDIRECT
+
+MeshletCullData GetMeshletCullData( uint meshletID, uint bindlessRangeStart )
+{
+    uint64_t ptr = bindlessBuffers[bindlessRangeStart + MESH_BUFFER_MESHLET_CULL_DATA];
     CullDataBuffer cBuffer = CullDataBuffer( ptr );
     PackedMeshletCullData packedData = cBuffer.data[meshletID];
     
@@ -86,7 +97,9 @@ bool IsMeshletVisible( const uint modelIndex, const MeshletCullData meshletCullD
 
 struct Task
 {
+#if INDIRECT
     uint meshIndex;   
+#endif // #if INDIRECT
     uint baseID;
     uint8_t deltaIDs[TASK_SHADER_WORKGROUP_SIZE];
 };
@@ -101,15 +114,21 @@ void main()
     const uint localMeshletID  = gl_LocalInvocationID.x;
     const uint globalMeshletID = baseMeshletID + localMeshletID;
     
-    const uint numMeshlets = indirectMeshletDrawBuffer.data[gl_DrawIDARB].numMeshlets;
-    const uint modelIndex  = indirectMeshletDrawBuffer.data[gl_DrawIDARB].modelIndex;
-    const uint meshIndex   = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
+#if INDIRECT
+    const uint numMeshlets        = indirectMeshletDrawBuffer.data[gl_DrawIDARB].numMeshlets;
+    const uint modelIndex         = indirectMeshletDrawBuffer.data[gl_DrawIDARB].modelIndex;
+    const uint meshIndex          = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
+    const uint bindlessRangeStart = meshDataBuffer.data[meshIndex].bindlessRangeStart;
+#else // #if INDIRECT
+    const uint numMeshlets        = objectData.numMeshlets;
+    const uint modelIndex         = objectData.modelIdx;
+    const uint bindlessRangeStart = objectData.bindlessRangeStart;
+#endif // #else // #if INDIRECT
     
     if ( globalMeshletID >= numMeshlets )
         return;
     
-    MeshletCullData cullData = GetMeshletCullData( globalMeshletID, meshDataBuffer.data[meshIndex] );
-    
+    MeshletCullData cullData = GetMeshletCullData( globalMeshletID, bindlessRangeStart );
     bool visible = IsMeshletVisible( modelIndex, cullData );
     uint numVisibleInWave = WaveActiveCountBits( visible );
     uint localIndexInWave = WavePrefixCountBits( visible );
@@ -120,7 +139,9 @@ void main()
     
     if ( gl_LocalInvocationID.x == 0 )
     {
+    #if INDIRECT
         OUT.meshIndex = meshIndex;
+    #endif // #if INDIRECT
         OUT.baseID = baseMeshletID;
     }
     EmitMeshTasksEXT( numVisibleInWave, 1, 1 );

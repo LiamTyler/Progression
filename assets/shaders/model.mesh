@@ -7,10 +7,11 @@
 #include "c_shared/cull_data.h"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 32, MeshletBuffer, Meshlet );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 #if INDIRECT
+
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 #extension GL_ARB_shader_draw_parameters : enable
 layout(scalar, push_constant) uniform Registers
@@ -19,14 +20,14 @@ layout(scalar, push_constant) uniform Registers
     MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
 };
 
-#else // INDIRECT
+#else // #if INDIRECT
 
 layout(scalar, push_constant) uniform Registers
 {
-    PerObjectData objectData;
+    NonIndirectPerObjectData objectData;
 };
 
-#endif // #else // INDIRECT
+#endif // #else // #if INDIRECT
 
 Meshlet GetMeshlet( uint meshletID, uint baseBuffer )
 {
@@ -81,18 +82,20 @@ vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, uint index )
     return buff.data[meshlet.vertexOffset + index];
 }
 
-#if USE_TASK_SHADER
+#if HAS_TASK_SHADER
 
 struct Task
 {
-    uint meshIndex;   
+#if INDIRECT
+    uint meshIndex;
+#endif // #if INDIRECT
     uint baseID;
     uint8_t deltaIDs[TASK_SHADER_WORKGROUP_SIZE];
 };
 
 taskPayloadSharedEXT Task IN;
 
-#endif // #if USE_TASK_SHADER
+#endif // #if HAS_TASK_SHADER
 
 layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
 layout(triangles, max_vertices = 64, max_primitives = 124) out;
@@ -111,23 +114,22 @@ layout (location = 0) out PerVertexData
 
 void main()
 {
-#if USE_TASK_SHADER
+#if HAS_TASK_SHADER
     const uint meshletID = IN.baseID + IN.deltaIDs[gl_WorkGroupID.x];
-    #if INDIRECT
-        const uint meshIndex = IN.meshIndex;
-    #endif // #if INDIRECT
-#else // #if USE_TASK_SHADER
+#else // #if HAS_TASK_SHADER
     const uint meshletID = gl_WorkGroupID.x;
-    #if INDIRECT
+#endif // #else // #if HAS_TASK_SHADER
+
+#if INDIRECT
+    #if HAS_TASK_SHADER
+        const uint meshIndex = IN.meshIndex;
+    #else // #if HAS_TASK_SHADER
         const uint meshIndex = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
-    #endif // #if INDIRECT
-#endif // #else // #if USE_TASK_SHADER
+    #endif // #else // #if HAS_TASK_SHADER
+    const PerObjectData objectData = meshDataBuffer.data[meshIndex];
+#endif // #else // #if INDIRECT
     
     const uint threadID = gl_LocalInvocationIndex;
-    
-    #if INDIRECT
-        PerObjectData objectData = meshDataBuffer.data[meshIndex];
-    #endif // #if INDIRECT
     
     const uint baseBuffer = objectData.bindlessRangeStart;
 

@@ -1,13 +1,13 @@
 
-NUM_LIGHTS = 16
-MODELS_PER_LIGHT = 50
-SPACING = 30
+NUM_LIGHTS = 10
+MODELS_PER_LIGHT = 2000
+SPACING = 300
 
 sphereModel = AssetManager.GetModel( "uv_sphere_4k" )
 material = AssetManager.GetMaterial( "blue" )
 
 function Start()
-    start = -NUM_LIGHTS // 2
+    start = -(NUM_LIGHTS // 2)
     if NUM_LIGHTS % 2 == 0 then
         start = start + 0.5
     end
@@ -21,7 +21,8 @@ function Start()
         light.intensity = 1000
         light.castsShadow = true
         
-        numModels = (MODELS_PER_LIGHT * (lightIdx + 1))
+        --numModels = (MODELS_PER_LIGHT * (lightIdx + 1))
+        numModels = MODELS_PER_LIGHT
         for modelIdx=1,numModels do
             e = ECS:CreateEntity()
             transform = ECS:Create_Transform( e )

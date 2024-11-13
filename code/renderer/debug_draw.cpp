@@ -305,7 +305,6 @@ void AddText2D( vec2 normalizedPos, Color color, const char* str )
 void Init() {}
 void Shutdown() {}
 void StartFrame() {}
-void Draw( CommandBuffer& cmdBuf ) { PG_UNUSED( cmdBuf ); }
 void AddLine( vec3 begin, vec3 end, Color color )
 {
     PG_UNUSED( begin );
@@ -325,6 +324,9 @@ void AddText( vec2 normalizedPos, Color color, const char* str )
     PG_UNUSED( color );
     PG_UNUSED( str );
 }
+
+void Draw2D( CommandBuffer& cmdBuf ) { PG_UNUSED( cmdBuf ); }
+void Draw3D( CommandBuffer& cmdBuf ) { PG_UNUSED( cmdBuf ); }
 #endif // #else // #if USING( DEBUG_DRAW )
 
 } // namespace PG::Gfx::DebugDraw

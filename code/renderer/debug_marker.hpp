@@ -95,7 +95,7 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name )
 #define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )
-#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, name )
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, fmt, ... )
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color )
 #define PG_DEBUG_MARKER_END_REGION_QUEUE( queue )

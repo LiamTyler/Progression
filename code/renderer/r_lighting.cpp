@@ -104,6 +104,7 @@ static GpuData::PackedLight PackLight( Light* light )
 
 void UpdateLights( Scene* scene )
 {
+    PGP_ZONE_SCOPEDN( "UpdateLights" );
     GpuData::PackedLight* gpuLights = reinterpret_cast<GpuData::PackedLight*>( LocalData().packedLightBuffer.GetMappedPtr() );
     u32& numLights                  = LocalData().numLights;
     numLights                       = 0;
@@ -280,6 +281,13 @@ void ComputeShadowFrustumsCull( ComputeTask* task, TGExecuteData* data )
     push.numFrustums             = numFrustums;
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch_AutoSized( push.numMeshes, 1, 1 );
+
+    VkMemoryBarrier2 barrier{ VK_STRUCTURE_TYPE_MEMORY_BARRIER_2 };
+    barrier.srcStageMask  = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    barrier.srcAccessMask = VK_ACCESS_2_SHADER_WRITE_BIT;
+    barrier.dstStageMask  = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
+    barrier.dstAccessMask = VK_ACCESS_2_MEMORY_READ_BIT | VK_ACCESS_2_MEMORY_WRITE_BIT;
+    cmdBuf.PipelineBarrier2( barrier );
 }
 
 void AddShadowTasks( TaskGraphBuilder& builder )
@@ -291,7 +299,7 @@ void AddShadowTasks( TaskGraphBuilder& builder )
         MAX_SHADOW_UPDATES_PER_FRAME * MAX_CULLED_OBJECTS_PER_FRUSTUM * sizeof( GpuData::MeshletDrawCommand ) );
     cTask->SetFunction( ComputeShadowFrustumsCull );
 
-#if USING( DEVELOPMENT_BUILD )
+#if USING( DEVELOPMENT_BUILD ) && 0
     cTask = builder.AddComputeTask( "shadow_frustum_culling_debug" );
     cTask->AddBufferInput( indirectCountBuff );
     cTask->SetFunction( ComputeShadowFrustumsCull_Debug );

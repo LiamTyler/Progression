@@ -20,7 +20,11 @@ layout (location = 0) in PerVertexData
 
 layout(push_constant) uniform Registers
 {
+#if INDIRECT
     PerObjectData constants;
+#else // #if INDIRECT
+    NonIndirectPerObjectData constants;
+#endif // #else // #if INDIRECT
 };
 
 layout (location = 0) out vec4 fragOutColor;

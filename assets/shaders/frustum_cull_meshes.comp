@@ -41,7 +41,7 @@ void main()
     {
         MeshletDrawCommand cmd;
         cmd.groupCountX = ( cullData.numMeshlets + 31 ) / 32;
-        //cmd.groupCountX = data.numMeshlets;
+        //cmd.groupCountX = cullData.numMeshlets;
         cmd.groupCountY = 1;
         cmd.groupCountZ = 1;
         cmd.modelIndex  = cullData.modelIndex;

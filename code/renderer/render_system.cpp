@@ -32,11 +32,15 @@ using namespace Gfx;
 #define MAX_MODELS_PER_FRAME 65536u
 #define MAX_MESHES_PER_FRAME 65536u
 
+#define INDIRECT_MAIN_DRAW IN_USE    // must keep in sync with litModel's #define in gfx_require.paf
+#define TASK_SHADER_MAIN_DRAW IN_USE // must keep in sync with taskShader in gfx_require.paf
+
 namespace PG::RenderSystem
 {
 
 static TaskGraph s_taskGraph;
 
+#if USING( INDIRECT_MAIN_DRAW )
 void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
@@ -54,7 +58,7 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
 
             const Model* model = modelRenderer.model;
 
-            u32 meshesToAdd = Min( MAX_MESHES_PER_FRAME, (u32)model->meshes.size() );
+            u32 meshesToAdd = Min( MAX_MESHES_PER_FRAME - meshNum, (u32)model->meshes.size() );
             for ( u32 i = 0; i < meshesToAdd; ++i )
             {
                 if ( modelRenderer.materials[i]->type == MaterialType::DECAL )
@@ -120,17 +124,14 @@ void ComputeFrustumCullMeshes_Debug( ComputeTask* task, TGExecuteData* data )
     {
         VkDeviceAddress countBuffer;
         VkDeviceAddress meshDrawDataBuffer;
-        u32 imageIndex;
-        u32 _pad;
     };
-    const Texture& tex = task->GetOutputTexture( 0 );
     ComputePushConstants push;
     push.countBuffer        = task->GetInputBuffer( 0 ).GetDeviceAddress();
     push.meshDrawDataBuffer = task->GetInputBuffer( 1 ).GetDeviceAddress();
-    push.imageIndex         = tex.GetBindlessIndex();
     cmdBuf.PushConstants( push );
-    cmdBuf.Dispatch( 2, 2, 1 );
+    cmdBuf.Dispatch( 1, 1, 1 );
 }
+#endif // #if USING( INDIRECT_MAIN_DRAW )
 
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
@@ -146,13 +147,11 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     useDebugShader = useDebugShader || r_wireframe.GetBool();
 #endif // #if USING( DEVELOPMENT_BUILD )
     cmdBuf.BindPipeline( PipelineManager::GetPipeline( "litModel", useDebugShader ) );
-
     cmdBuf.BindGlobalDescriptors();
-
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
 
-#if 1
+#if USING( INDIRECT_MAIN_DRAW )
     const Buffer& indirectCountBuff       = task->GetInputBuffer( 0 );
     const Buffer& indirectMeshletDrawBuff = task->GetInputBuffer( 1 );
     struct ComputePushConstants
@@ -167,21 +166,27 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
     cmdBuf.DrawMeshTasksIndirectCount(
         indirectMeshletDrawBuff, 0, indirectCountBuff, 0, MAX_MESHES_PER_FRAME, sizeof( GpuData::MeshletDrawCommand ) );
-#else
+#else // #if USING( INDIRECT_MAIN_DRAW )
     u32 modelNum = 0;
+    u32 meshNum  = 0;
     data->scene->registry.view<ModelRenderer, Transform>().each(
         [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
         {
-            if ( modelNum == MAX_MODELS_PER_FRAME )
+            if ( modelNum == MAX_MODELS_PER_FRAME || meshNum == MAX_MESHES_PER_FRAME )
                 return;
 
             const Model* model = modelRenderer.model;
 
-            for ( size_t i = 0; i < model->meshes.size(); ++i )
+            u32 meshesToAdd = Min( MAX_MESHES_PER_FRAME - meshNum, (u32)model->meshes.size() );
+            for ( size_t i = 0; i < meshesToAdd; ++i )
             {
+                if ( modelRenderer.materials[i]->type == MaterialType::DECAL )
+                    continue;
+
                 const Mesh& mesh = model->meshes[i];
 
-                GpuData::PerObjectData constants;
+                GpuData::NonIndirectPerObjectData constants;
+                constants.numMeshlets        = mesh.numMeshlets;
                 constants.bindlessRangeStart = mesh.bindlessBuffersSlot;
                 constants.modelIdx           = modelNum;
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
@@ -189,12 +194,18 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
                 cmdBuf.PushConstants( constants );
 
                 PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw '%s' : '%s'", model->GetName(), mesh.name.c_str() );
+#if USING( TASK_SHADER_MAIN_DRAW )
+                cmdBuf.DrawMeshTasks( ( mesh.numMeshlets + 31 ) / 32, 1, 1 );
+#else  // #if USING( TASK_SHADER_MAIN_DRAW )
                 cmdBuf.DrawMeshTasks( mesh.numMeshlets, 1, 1 );
+#endif // #else // #if USING( TASK_SHADER_MAIN_DRAW )
             }
+            meshNum += meshesToAdd;
 
             ++modelNum;
         } );
-#endif
+    data->frameData->numMeshes = meshNum;
+#endif // #else // #if USING( INDIRECT_MAIN_DRAW )
 }
 
 void PostProcessFunc( ComputeTask* task, TGExecuteData* data )
@@ -253,29 +264,33 @@ bool Init_TaskGraph()
     PGP_ZONE_SCOPEDN( "Init_TaskGraph" );
     TaskGraphBuilder builder;
 
-    ComputeTaskBuilder* cTask      = builder.AddComputeTask( "FrustumCullMeshes" );
+    ComputeTaskBuilder* cTask  = nullptr;
+    GraphicsTaskBuilder* gTask = nullptr;
+#if USING( INDIRECT_MAIN_DRAW )
+    cTask                          = builder.AddComputeTask( "FrustumCullMeshes" );
     TGBBufferRef indirectCountBuff = cTask->AddBufferOutput( "indirectCountBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ), 0 );
     TGBBufferRef indirectMeshletDrawBuff = cTask->AddBufferOutput(
         "indirectMeshletDrawBuff", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( GpuData::MeshletDrawCommand ) * MAX_MESHES_PER_FRAME );
     cTask->SetFunction( ComputeFrustumCullMeshes );
+#endif // #if USING( INDIRECT_MAIN_DRAW )
+
+    gTask = builder.AddGraphicsTask( "DrawMeshes" );
+#if USING( INDIRECT_MAIN_DRAW )
+    gTask->AddBufferInput( indirectCountBuff, BufferUsage::INDIRECT );
+    gTask->AddBufferInput( indirectMeshletDrawBuff, BufferUsage::INDIRECT );
+#endif // #if USING( INDIRECT_MAIN_DRAW )
+    TGBTextureRef litOutput  = gTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE() );
+    TGBTextureRef sceneDepth = gTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
+    gTask->SetFunction( MeshDrawFunc );
+
+#if USING( DEVELOPMENT_BUILD ) && USING( INDIRECT_MAIN_DRAW )
+    cTask = builder.AddComputeTask( "ComputeDraw" );
+    cTask->AddBufferInput( indirectCountBuff );
+    cTask->AddBufferInput( indirectMeshletDrawBuff );
+    cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
+#endif // #if USING( DEVELOPMENT_BUILD ) && USING( INDIRECT_MAIN_DRAW )
 
     Lighting::AddShadowTasks( builder );
-
-    GraphicsTaskBuilder* mTask = builder.AddGraphicsTask( "DrawMeshes" );
-    mTask->AddBufferInput( indirectCountBuff, BufferUsage::INDIRECT );
-    mTask->AddBufferInput( indirectMeshletDrawBuff, BufferUsage::INDIRECT );
-    TGBTextureRef litOutput  = mTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE() );
-    TGBTextureRef sceneDepth = mTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
-    mTask->SetFunction( MeshDrawFunc );
-
-#if USING( DEVELOPMENT_BUILD )
-    // cTask = builder.AddComputeTask( "ComputeDraw" );
-    // cTask->AddBufferInput( indirectCountBuff );
-    // cTask->AddBufferInput( indirectMeshletDrawBuff );
-    // cTask->AddTextureInput( litOutput );
-    // cTask->AddTextureOutput( litOutput );
-    // cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
-#endif // #if USING( DEVELOPMENT_BUILD )
 
     Sky::AddTask( builder, litOutput, sceneDepth );
 
@@ -295,7 +310,7 @@ bool Init_TaskGraph()
     cTask->AddTextureOutput( swapImg );
     cTask->SetFunction( PostProcessFunc );
 
-    GraphicsTaskBuilder* gTask = builder.AddGraphicsTask( "UI_3D" );
+    gTask = builder.AddGraphicsTask( "UI_3D" );
     gTask->AddColorAttachment( swapImg );
     gTask->AddDepthAttachment( sceneDepth );
     gTask->SetFunction( UI_3D_DrawFunc );
@@ -422,12 +437,13 @@ void Shutdown()
 static void UpdateGPUSceneData( Scene* scene )
 {
     PGP_ZONE_SCOPEDN( "UpdateGPUSceneData" );
-    FrameData& frameData     = rg.GetFrameData();
+    FrameData& frameData = rg.GetFrameData();
+
+    PGP_MANUAL_ZONEN( __matrixUpdate, "MatrixUpdate" );
+    auto view                = scene->registry.view<ModelRenderer, PG::Transform>();
+    u32 modelNum             = 0;
     mat4* gpuModelMatricies  = reinterpret_cast<mat4*>( frameData.modelMatricesBuffer.GetMappedPtr() );
     mat4* gpuNormalMatricies = reinterpret_cast<mat4*>( frameData.normalMatricesBuffer.GetMappedPtr() );
-
-    auto view    = scene->registry.view<ModelRenderer, PG::Transform>();
-    u32 modelNum = 0;
     for ( auto entity : view )
     {
         if ( modelNum == MAX_MODELS_PER_FRAME )
@@ -444,6 +460,7 @@ static void UpdateGPUSceneData( Scene* scene )
         gpuNormalMatricies[modelNum] = N;
         ++modelNum;
     }
+    PGP_MANUAL_ZONE_END( __matrixUpdate );
 
     GpuData::SceneGlobals globalData;
     memset( &globalData, 0, sizeof( globalData ) );
@@ -517,11 +534,11 @@ void Render()
     frameData.renderingCompleteFence.Reset();
     UpdateGPUSceneData( GetPrimaryScene() );
 
-    PGP_MANUAL_ZONEN( __high, "CommandBufReset" );
+    PGP_MANUAL_ZONEN( __cmdBufReset, "CommandBufReset" );
     CommandBuffer& cmdBuf = frameData.primaryCmdBuffer;
     cmdBuf.Reset();
     cmdBuf.BeginRecording( COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT );
-    PGP_MANUAL_ZONE_END( __high );
+    PGP_MANUAL_ZONE_END( __cmdBufReset );
     PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdBuf, "Frame" );
     PG_PROFILE_GPU_START_FRAME( cmdBuf );
     PG_PROFILE_GPU_START( cmdBuf, Frame, "Frame" );

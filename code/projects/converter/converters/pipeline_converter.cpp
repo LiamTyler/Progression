@@ -6,6 +6,12 @@ namespace PG
 
 void PipelineConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& pipelineInfo )
 {
+    bool hasTaskShader = false;
+    for ( const PipelineShaderInfo& shaderInfo : pipelineInfo->shaders )
+    {
+        hasTaskShader = hasTaskShader || shaderInfo.stage == ShaderStage::TASK;
+    }
+
     for ( const PipelineShaderInfo& shaderInfo : pipelineInfo->shaders )
     {
         auto shaderCI         = std::make_shared<ShaderCreateInfo>();
@@ -13,6 +19,8 @@ void PipelineConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& pipeli
         shaderCI->filename    = shaderInfo.name;
         shaderCI->shaderStage = shaderInfo.stage;
         shaderCI->defines     = pipelineInfo->defines;
+        if ( hasTaskShader && shaderInfo.stage == ShaderStage::MESH )
+            shaderCI->defines.emplace_back( "HAS_TASK_SHADER 1" );
 
         AddUsedAsset( ASSET_TYPE_SHADER, shaderCI );
     }

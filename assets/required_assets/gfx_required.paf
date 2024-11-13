@@ -36,9 +36,16 @@
         "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
         "depthAttachment": { "format": "DEPTH_32_FLOAT" },
         "define": "INDIRECT 1",
-        "define": "USE_TASK_SHADER 1",
         "define": "TASK_SHADER_WORKGROUP_SIZE 32",
         "generateDebugPermutation": true
+    } },
+    { "Pipeline": {
+        "name": "debug_simpleModel",
+        "taskShader": "debug/simple.task",
+        "meshShader": "debug/simple.mesh",
+        "fragmentShader": "debug/simple.frag",
+        "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
+        "depthAttachment": { "format": "DEPTH_32_FLOAT" }
     } },
     { "Pipeline": {
         "name": "debug_lines",

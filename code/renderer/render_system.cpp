@@ -488,7 +488,7 @@ static void UpdateGPUSceneData( Scene* scene )
     PackMeshletVizBit( globalData.debug_PackedDvarBools, r_meshletViz.GetBool() );
     PackWireframeBit( globalData.debug_PackedDvarBools, r_wireframe.GetBool() );
     globalData.debug_wireframeData   = r_wireframeColor.GetVec4();
-    globalData.debug_wireframeData.a = r_wireframeThickness.GetFloat();
+    globalData.debug_wireframeData.w = r_wireframeThickness.GetFloat();
     globalData.debugInt              = r_debugInt.GetInt();
     globalData.debugUint             = r_debugUint.GetUint();
     globalData.debugFloat            = r_debugFloat.GetFloat();

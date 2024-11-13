@@ -63,7 +63,7 @@ std::string GetUniqueAssetName( AssetType assetType, const std::string& name )
 
 std::string Vec3ToJSON( const vec3& v )
 {
-    return "[ " + std::to_string( v.r ) + ", " + std::to_string( v.g ) + ", " + std::to_string( v.b ) + " ]";
+    return "[ " + std::to_string( v.x ) + ", " + std::to_string( v.y ) + ", " + std::to_string( v.z ) + " ]";
 }
 
 void AddJSON( std::vector<std::string>& settings, const std::string& key, bool val )

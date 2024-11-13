@@ -68,7 +68,7 @@ void Material::GetAlbedoMetalness( const vec2& uv, vec3& outAlbedo, f32& outMeta
     {
         vec4 sample = GetTex( albedoMetalnessTex )->Sample( uv );
         outAlbedo *= vec3( sample );
-        outMetalness *= sample.a;
+        outMetalness *= sample.w;
     }
 }
 
@@ -87,7 +87,7 @@ void Material::GetNormalRoughness( const vec2 uv, IntersectionData* surfaceInfo,
         vec3 B      = surfaceInfo->bitangent;
         outShadingN = Normalize( T * nmv.x + B * nmv.y + surfaceInfo->normal * nmv.z );
 
-        outRoughness *= sample.a;
+        outRoughness *= sample.w;
     }
 }
 

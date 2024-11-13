@@ -1,6 +1,7 @@
 #pragma once
 
 #define GLM_FORCE_RADIANS
+#define GLM_FORCE_XYZW_ONLY
 #include "glm/geometric.hpp"
 #include "glm/vec2.hpp"
 #include "glm/vec3.hpp"

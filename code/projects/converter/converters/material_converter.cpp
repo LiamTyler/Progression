@@ -1,3 +1,4 @@
+#include "material_converter.hpp"
 #include "asset/asset_file_database.hpp"
 #include "asset/asset_manager.hpp"
 #include "asset/types/gfx_image.hpp"
@@ -5,9 +6,6 @@
 #include "asset/types/textureset.hpp"
 #include "base_asset_converter.hpp"
 #include "core/image_processing.hpp"
-#define GLM_ENABLE_EXPERIMENTAL
-#include "glm/gtx/hash.hpp"
-#include "material_converter.hpp"
 #include "shared/hash.hpp"
 
 namespace PG

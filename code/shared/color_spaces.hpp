@@ -20,7 +20,7 @@ inline f32 LinearToGammaSRGB( f32 x )
 
 inline vec3 LinearToGammaSRGB( vec3 v ) { return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ) }; }
 
-inline vec4 LinearToGammaSRGB( vec4 v ) { return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ), v.a }; }
+inline vec4 LinearToGammaSRGB( vec4 v ) { return { LinearToGammaSRGB( v.x ), LinearToGammaSRGB( v.y ), LinearToGammaSRGB( v.z ), v.w }; }
 
 inline f32 GammaSRGBToLinear( f32 x )
 {

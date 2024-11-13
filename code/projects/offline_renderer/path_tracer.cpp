@@ -1,7 +1,6 @@
 #include "path_tracer.hpp"
 #include "anti_aliasing.hpp"
 #include "core/time.hpp"
-#include "glm/ext.hpp"
 #include "sampling.hpp"
 #include "shared/color_spaces.hpp"
 #include "shared/core_defines.hpp"

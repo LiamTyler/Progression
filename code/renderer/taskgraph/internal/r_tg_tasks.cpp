@@ -254,8 +254,8 @@ void PipelineTask::Print( TaskGraph* taskGraph ) const
     {
         const TextureClearSubTask& c = textureClears[i];
         const Texture& tex           = taskGraph->GetTexture( c.textureHandle );
-        LOG( "      [%zu]: Texture %u ('%s'), Clear Color: %g %g %g %g", i, c.textureHandle, tex.GetDebugName(), c.clearVal.r, c.clearVal.g,
-            c.clearVal.b, c.clearVal.a );
+        LOG( "      [%zu]: Texture %u ('%s'), Clear Color: %g %g %g %g", i, c.textureHandle, tex.GetDebugName(), c.clearVal.x, c.clearVal.y,
+            c.clearVal.z, c.clearVal.w );
     }
 
     LOG( "    Input Buffers: %zu", inputBuffers.size() );

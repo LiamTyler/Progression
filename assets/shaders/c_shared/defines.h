@@ -8,6 +8,9 @@
 #define BEGIN_GPU_DATA_NAMESPACE()
 #define END_GPU_DATA_NAMESPACE()
 
+#define PG_USE 1
+#define PG_DONT_USE 0
+
 #else // #if PG_SHADER_CODE
 
 #include "shared/math.hpp"
@@ -21,6 +24,9 @@
 #define Vec4Buffer  u64
 #define UintBuffer  u64
 
-#endif // #if PG_SHADER_CODE
+#define PG_USE IN_USE
+#define PG_DONT_USE NOT_IN_USE
+
+#endif // #else // #if PG_SHADER_CODE
 
 #endif // #ifndef __DEFINES_H__

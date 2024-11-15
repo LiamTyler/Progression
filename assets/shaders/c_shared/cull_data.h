@@ -11,7 +11,7 @@ struct AABB
     vec3 max;
 };
 
-struct CullData
+struct MeshCullData
 {
     AABB aabb;
     uint modelIndex;

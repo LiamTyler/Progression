@@ -29,6 +29,7 @@ set_property(DIRECTORY PROPERTY COMPILE_DEFINITIONS
 set(COMMON_INCLUDE_DIRS
 	${PROGRESSION_DIR}/code/
     ${PROGRESSION_DIR}/code/external/
+    ${PROGRESSION_DIR}/assets/shaders/
 )
 
 add_subdirectory(code/external)

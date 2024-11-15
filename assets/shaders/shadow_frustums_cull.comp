@@ -4,12 +4,12 @@
 #include "lib/culling.glsl"
 #include "lib/intrinsics.glsl"
 
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, CullData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshCullDataBuffer, MeshCullData );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 layout( scalar, push_constant ) uniform PushConstants
 {
-    CullDataBuffer cullDataBuffer;
+    MeshCullDataBuffer meshCullDataBuffer;
     Vec4Buffer frustumPlanesBuffer;
     UintBuffer outputCountsBuffer;
     MeshletDrawCommandBuffer indirectCmdOutputBuffer;
@@ -20,18 +20,11 @@ layout( scalar, push_constant ) uniform PushConstants
 layout (local_size_x = 64, local_size_y = 1) in;
 void main() 
 {
-    //uint frustumIdx = gl_GlobalInvocationID.x;
-    //if ( frustumIdx >= pConstants.numFrustums )
-    //    return;
-    //
-    //pConstants.outputCountsBuffer.data[frustumIdx] = 7 * frustumIdx;
-    
-    
     uint meshIdx = gl_GlobalInvocationID.x;
     if ( meshIdx >= pConstants.numMeshes )
         return;
     
-    CullData cullData = pConstants.cullDataBuffer.data[meshIdx];
+    MeshCullData cullData = pConstants.meshCullDataBuffer.data[meshIdx];
     AABB localAABB = cullData.aabb;
     AABB worldAABB = TransformAABB( GetModelMatrix( cullData.modelIndex ), localAABB );
     

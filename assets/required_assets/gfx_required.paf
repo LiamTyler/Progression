@@ -35,8 +35,6 @@
         "fragmentShader": "lit.frag",
         "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
         "depthAttachment": { "format": "DEPTH_32_FLOAT" },
-        "define": "INDIRECT 1",
-        "define": "TASK_SHADER_WORKGROUP_SIZE 32",
         "generateDebugPermutation": true
     } },
     { "Pipeline": {

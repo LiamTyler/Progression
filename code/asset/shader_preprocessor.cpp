@@ -215,6 +215,7 @@ ShaderPreprocessOutput PreprocessShader( const ShaderCreateInfo& createInfo, boo
     {
         // output.outputShader         = CleanUpPreproc( output.outputShader );
         std::string preprocFilename = PG_ASSET_DIR "cache/shader_preproc/" + createInfo.name + ".glsl";
+        CreateDirectory( GetParentPath( preprocFilename ) );
         std::ofstream out( preprocFilename );
         if ( !out )
         {

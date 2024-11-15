@@ -1,15 +1,16 @@
 #version 460
 
+#include "c_shared/mesh_shading_defines.h"
 #include "global_descriptors.glsl"
 #include "lib/culling.glsl"
 #include "lib/intrinsics.glsl"
 
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, CullData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshCullDataBuffer, MeshCullData );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 layout( scalar, push_constant ) uniform PushConstants
 {
-    CullDataBuffer cullDataBuffer;
+    MeshCullDataBuffer meshCullDataBuffer;
     UintBuffer outputCountBuffer;
     MeshletDrawCommandBuffer indirectCmdOutputBuffer;
     uint numMeshes;
@@ -23,7 +24,7 @@ void main()
     if ( meshIdx >= pConstants.numMeshes )
         return;
     
-    CullData cullData = pConstants.cullDataBuffer.data[meshIdx];
+    MeshCullData cullData = pConstants.meshCullDataBuffer.data[meshIdx];
     AABB localAABB = cullData.aabb;
     AABB worldAABB = TransformAABB( GetModelMatrix( cullData.modelIndex ), localAABB );
     bool visible = IsInFrustum( worldAABB );
@@ -40,8 +41,11 @@ void main()
     if ( visible )
     {
         MeshletDrawCommand cmd;
-        cmd.groupCountX = ( cullData.numMeshlets + 31 ) / 32;
-        //cmd.groupCountX = cullData.numMeshlets;
+#if TASK_SHADER_MAIN_DRAW
+        cmd.groupCountX = ( cullData.numMeshlets + TASK_SHADER_WORKGROUP_SIZE - 1 ) / TASK_SHADER_WORKGROUP_SIZE;
+#else // #if TASK_SHADER_MAIN_DRAW
+        cmd.groupCountX = cullData.numMeshlets;
+#endif // #else // #if TASK_SHADER_MAIN_DRAW
         cmd.groupCountY = 1;
         cmd.groupCountZ = 1;
         cmd.modelIndex  = cullData.modelIndex;

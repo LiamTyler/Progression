@@ -49,9 +49,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             return false;
         }
 
-        constexpr size_t MAX_VERTS_PER_MESHLET = 64;
-        constexpr size_t MAX_TRIS_PER_MESHLET  = 124;
-        constexpr float CONE_WEIGHT            = 0.5f;
+        constexpr float CONE_WEIGHT = 0.5f;
 
         size_t maxMeshlets = meshopt_buildMeshletsBound( pMesh.indices.size(), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET );
         std::vector<meshopt_Meshlet> meshlets( maxMeshlets );
@@ -62,6 +60,13 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             pMesh.indices.size(), &pMesh.vertices[0].pos.x, pMesh.vertices.size(), sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET,
             MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
 
+        if ( meshletCount > 65535 )
+        {
+            LOG_ERR( "About 50%% of gpus have a maxMeshWorkGroupCount.x of 65535. To support this mesh, either add code for splitting the "
+                     "mesh based on this count, or adding runtime support for dispatching with the Y/Z dimension as well" );
+            return false;
+        }
+
         m.meshlets.resize( meshletCount );
         m.meshletCullDatas.resize( meshletCount );
         u32 numVerts = 0;
@@ -69,7 +74,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
-            Meshlet& pgMeshlet             = m.meshlets[meshletIdx];
+            GpuData::Meshlet& pgMeshlet    = m.meshlets[meshletIdx];
             meshopt_optimizeMeshlet( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
                 meshlet.triangle_count, meshlet.vertex_count );
 
@@ -86,7 +91,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
                     meshlet.triangle_count, &pMesh.vertices[0].pos.x, meshlet.vertex_count, sizeof( PModel::Vertex ) );
 
-            PackedMeshletCullData& cullData = m.meshletCullDatas[meshletIdx];
+            GpuData::PackedMeshletCullData& cullData = m.meshletCullDatas[meshletIdx];
             // cullData.positionXY             = Float32ToFloat16( bounds.center[0], bounds.center[1] );
             // cullData.positionZAndRadius     = Float32ToFloat16( bounds.center[2], bounds.radius );
             // cullData.coneAxisAndCutoff      = 0;
@@ -116,8 +121,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         AABB& meshAABB      = meshAABBs[meshIdx];
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
-            const meshopt_Meshlet& moMeshlet = meshlets[meshletIdx];
-            const Meshlet& pgMeshlet         = m.meshlets[meshletIdx];
+            const meshopt_Meshlet& moMeshlet  = meshlets[meshletIdx];
+            const GpuData::Meshlet& pgMeshlet = m.meshlets[meshletIdx];
             for ( u8 localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
             {
                 size_t globalMOIdx       = moMeshlet.vertex_offset + localVIdx;
@@ -232,10 +237,10 @@ bool Model::FastfileLoad( Serializer* serializer )
 
         serializer->Read( numMeshlets );
         meshletData = serializer->GetData();
-        serializer->Skip( numMeshlets * sizeof( Meshlet ) );
+        serializer->Skip( numMeshlets * sizeof( GpuData::Meshlet ) );
 
         meshletCullData = serializer->GetData();
-        serializer->Skip( numMeshlets * sizeof( PackedMeshletCullData ) );
+        serializer->Skip( numMeshlets * sizeof( GpuData::PackedMeshletCullData ) );
 
         mesh.numVertices  = static_cast<u32>( numPos );
         mesh.numMeshlets  = static_cast<u32>( numMeshlets );
@@ -258,10 +263,10 @@ bool Model::FastfileLoad( Serializer* serializer )
         tbCreateInfo.size             = numIndices * sizeof( u8 );
 
         BufferCreateInfo mbCreateInfo = vbCreateInfo;
-        mbCreateInfo.size             = numMeshlets * sizeof( Meshlet );
+        mbCreateInfo.size             = numMeshlets * sizeof( GpuData::Meshlet );
 
         BufferCreateInfo cbCreateInfo = vbCreateInfo;
-        cbCreateInfo.size             = numMeshlets * sizeof( PackedMeshletCullData );
+        cbCreateInfo.size             = numMeshlets * sizeof( GpuData::PackedMeshletCullData );
 
         mesh.buffers = new Gfx::Buffer[Mesh::BUFFER_COUNT];
 #if USING( ASSET_NAMES )
@@ -311,7 +316,7 @@ bool Model::FastfileSave( Serializer* serializer ) const
         serializer->Write( mesh.tangents );
         serializer->Write( mesh.indices );
         serializer->Write( mesh.meshlets );
-        serializer->Write( mesh.meshletCullDatas.data(), mesh.meshletCullDatas.size() * sizeof( PackedMeshletCullData ) );
+        serializer->Write( mesh.meshletCullDatas.data(), mesh.meshletCullDatas.size() * sizeof( GpuData::PackedMeshletCullData ) );
     }
 #endif // #if !USING( GPU_DATA )
 
@@ -329,8 +334,8 @@ void Model::FreeCPU()
 #if !USING( GPU_DATA )
     for ( Mesh& mesh : meshes )
     {
-        mesh.meshletCullDatas = std::vector<PackedMeshletCullData>();
-        mesh.meshlets         = std::vector<Meshlet>();
+        mesh.meshletCullDatas = std::vector<GpuData::PackedMeshletCullData>();
+        mesh.meshlets         = std::vector<GpuData::Meshlet>();
         mesh.positions        = std::vector<vec3>();
         mesh.normals          = std::vector<vec3>();
         mesh.texCoords        = std::vector<vec2>();

@@ -3,6 +3,7 @@
 #include "c_shared/bindless.h"
 #include "c_shared/cull_data.h"
 #include "c_shared/dvar_defines.h"
+#include "c_shared/mesh_shading_defines.h"
 #include "c_shared/scene_globals.h"
 #include "core/bounding_box.hpp"
 #include "core/cpu_profiling.hpp"
@@ -32,9 +33,6 @@ using namespace Gfx;
 #define MAX_MODELS_PER_FRAME 65536u
 #define MAX_MESHES_PER_FRAME 65536u
 
-#define INDIRECT_MAIN_DRAW IN_USE    // must keep in sync with litModel's #define in gfx_require.paf
-#define TASK_SHADER_MAIN_DRAW IN_USE // must keep in sync with taskShader in gfx_require.paf
-
 namespace PG::RenderSystem
 {
 
@@ -46,7 +44,7 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
     GpuData::PerObjectData* meshDrawData = data->frameData->meshDrawDataBuffer.GetMappedPtr<GpuData::PerObjectData>();
-    GpuData::CullData* cullData          = data->frameData->meshCullData.GetMappedPtr<GpuData::CullData>();
+    GpuData::MeshCullData* cullData      = data->frameData->meshCullData.GetMappedPtr<GpuData::MeshCullData>();
     u32 modelNum                         = 0;
     u32 meshNum                          = 0;
 
@@ -70,7 +68,7 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
                 meshDrawData[meshNum + i]    = constants;
 
-                GpuData::CullData cData;
+                GpuData::MeshCullData cData;
                 cData.aabb.min        = model->meshAABBs[i].min;
                 cData.aabb.max        = model->meshAABBs[i].max;
                 cData.modelIndex      = modelNum;
@@ -185,17 +183,16 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
                 const Mesh& mesh = model->meshes[i];
 
-                GpuData::NonIndirectPerObjectData constants;
-                constants.numMeshlets        = mesh.numMeshlets;
+                GpuData::PerObjectData constants;
                 constants.bindlessRangeStart = mesh.bindlessBuffersSlot;
                 constants.modelIdx           = modelNum;
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
-
+                constants.numMeshlets        = mesh.numMeshlets;
                 cmdBuf.PushConstants( constants );
 
                 PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw '%s' : '%s'", model->GetName(), mesh.name.c_str() );
 #if USING( TASK_SHADER_MAIN_DRAW )
-                cmdBuf.DrawMeshTasks( ( mesh.numMeshlets + 31 ) / 32, 1, 1 );
+                cmdBuf.DrawMeshTasks_AutoSized( mesh.numMeshlets, 1, 1 );
 #else  // #if USING( TASK_SHADER_MAIN_DRAW )
                 cmdBuf.DrawMeshTasks( mesh.numMeshlets, 1, 1 );
 #endif // #else // #if USING( TASK_SHADER_MAIN_DRAW )
@@ -373,7 +370,7 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
         fData.modelMatricesBuffer     = rg.device.NewBuffer( modelBufInfo, "modelMatricesBuffer" );
         fData.normalMatricesBuffer    = rg.device.NewBuffer( modelBufInfo, "normalMatricesBuffer" );
 
-        modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::CullData );
+        modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::MeshCullData );
         fData.meshCullData       = rg.device.NewBuffer( modelBufInfo, "meshCullData" );
         modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::PerObjectData );
         fData.meshDrawDataBuffer = rg.device.NewBuffer( modelBufInfo, "meshDrawDataBuffer" );

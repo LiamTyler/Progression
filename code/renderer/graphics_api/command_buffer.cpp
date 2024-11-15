@@ -347,6 +347,16 @@ void CommandBuffer::DrawMeshTasks( u32 groupsX, u32 groupsY, u32 groupsZ ) const
     vkCmdDrawMeshTasksEXT( m_handle, groupsX, groupsY, groupsZ );
 }
 
+void CommandBuffer::DrawMeshTasks_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const
+{
+    PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );
+    uvec3 gSize = m_boundPipeline->GetWorkgroupSize();
+    u32 groupsX = ( itemsX + gSize.x - 1 ) / gSize.x;
+    u32 groupsY = ( itemsY + gSize.y - 1 ) / gSize.y;
+    u32 groupsZ = ( itemsZ + gSize.z - 1 ) / gSize.z;
+    vkCmdDrawMeshTasksEXT( m_handle, groupsX, groupsY, groupsZ );
+}
+
 void CommandBuffer::DrawMeshTasksIndirect( const Buffer& buffer, u32 drawCount, u64 offset, u32 stride ) const
 {
     PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );

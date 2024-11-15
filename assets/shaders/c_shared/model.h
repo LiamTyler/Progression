@@ -5,6 +5,7 @@
 
 BEGIN_GPU_DATA_NAMESPACE()
 
+// if this is edited, the model version number needs to be bumped in the converter
 struct Meshlet
 {
     uint vertexOffset;
@@ -13,14 +14,9 @@ struct Meshlet
     uint triangleCount;
 };
 
+// if this is edited, the model version number needs to be bumped in the converter
 struct PackedMeshletCullData
 {
-    //uint positionXY;
-    //uint positionZAndRadius;
-    //uint coneAxisAndCutoff;
-    //uint pad1;
-    //vec3 coneApex;
-    //uint pad2;
     vec3 position;
     float radius;
     vec3 coneAxis;
@@ -37,6 +33,9 @@ struct MeshletCullData
     float coneCutoff;
     vec3 coneApex;
 };
+
+#define MAX_VERTS_PER_MESHLET 64
+#define MAX_TRIS_PER_MESHLET 124
 
 #define MESH_BUFFER_MESHLETS 0
 #define MESH_BUFFER_MESHLET_CULL_DATA 1

@@ -45,13 +45,6 @@ struct PerObjectData
     uint bindlessRangeStart;
     uint modelIdx;
     uint materialIdx;
-};
-
-struct NonIndirectPerObjectData
-{
-    uint bindlessRangeStart;
-    uint modelIdx;
-    uint materialIdx;
     uint numMeshlets;
 };
 

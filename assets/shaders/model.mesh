@@ -5,10 +5,11 @@
 #include "global_descriptors.glsl"
 #include "c_shared/model.h"
 #include "c_shared/cull_data.h"
+#include "c_shared/mesh_shading_defines.h"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 32, MeshletBuffer, Meshlet );
 
-#if INDIRECT
+#if INDIRECT_MAIN_DRAW
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
@@ -20,14 +21,14 @@ layout(scalar, push_constant) uniform Registers
     MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
 };
 
-#else // #if INDIRECT
+#else // #if INDIRECT_MAIN_DRAW
 
 layout(scalar, push_constant) uniform Registers
 {
-    NonIndirectPerObjectData objectData;
+    PerObjectData objectData;
 };
 
-#endif // #else // #if INDIRECT
+#endif // #else // #if INDIRECT_MAIN_DRAW
 
 Meshlet GetMeshlet( uint meshletID, uint baseBuffer )
 {
@@ -84,21 +85,15 @@ vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, uint index )
 
 #if HAS_TASK_SHADER
 
-struct Task
-{
-#if INDIRECT
-    uint meshIndex;
-#endif // #if INDIRECT
-    uint baseID;
-    uint8_t deltaIDs[TASK_SHADER_WORKGROUP_SIZE];
-};
-
-taskPayloadSharedEXT Task IN;
+taskPayloadSharedEXT TaskOutput IN;
 
 #endif // #if HAS_TASK_SHADER
 
-layout(local_size_x = 64, local_size_y = 1, local_size_z = 1) in;
-layout(triangles, max_vertices = 64, max_primitives = 124) out;
+layout(local_size_x = MESH_SHADER_WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1) in;
+layout(triangles, max_vertices = MAX_VERTS_PER_MESHLET, max_primitives = MAX_TRIS_PER_MESHLET) out;
+
+#define VERTS_PER_THREAD ((MAX_VERTS_PER_MESHLET + MESH_SHADER_WORKGROUP_SIZE - 1) / MESH_SHADER_WORKGROUP_SIZE)
+#define TRIS_PER_THREAD ((MAX_TRIS_PER_MESHLET + MESH_SHADER_WORKGROUP_SIZE - 1) / MESH_SHADER_WORKGROUP_SIZE)
 
 layout (location = 0) out PerVertexData
 {
@@ -120,14 +115,14 @@ void main()
     const uint meshletID = gl_WorkGroupID.x;
 #endif // #else // #if HAS_TASK_SHADER
 
-#if INDIRECT
+#if INDIRECT_MAIN_DRAW
     #if HAS_TASK_SHADER
         const uint meshIndex = IN.meshIndex;
     #else // #if HAS_TASK_SHADER
         const uint meshIndex = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
     #endif // #else // #if HAS_TASK_SHADER
     const PerObjectData objectData = meshDataBuffer.data[meshIndex];
-#endif // #else // #if INDIRECT
+#endif // #else // #if INDIRECT_MAIN_DRAW
     
     const uint threadID = gl_LocalInvocationIndex;
     
@@ -139,39 +134,40 @@ void main()
         SetMeshOutputsEXT( meshlet.vertexCount, meshlet.triangleCount );
     }
 
-    if ( threadID < meshlet.vertexCount )
+    for ( uint i = 0; i < VERTS_PER_THREAD; ++i )
     {
-        mat4 modelMatrix = GetModelMatrix( objectData.modelIdx );
+        uint vIdx = threadID + i * MESH_SHADER_WORKGROUP_SIZE;
+        if ( vIdx < meshlet.vertexCount )
+        {
+            mat4 modelMatrix = GetModelMatrix( objectData.modelIdx );
         
-        vec4 localPos = vec4( GetPos( meshlet, baseBuffer, threadID ), 1 );
-        vec4 worldPos = modelMatrix * localPos;
-        v_out[threadID].worldPos = worldPos.xyz;
-        gl_MeshVerticesEXT[threadID].gl_Position = globals.VP * worldPos;
+            vec4 localPos = vec4( GetPos( meshlet, baseBuffer, vIdx ), 1 );
+            vec4 worldPos = modelMatrix * localPos;
+            v_out[vIdx].worldPos = worldPos.xyz;
+            gl_MeshVerticesEXT[vIdx].gl_Position = globals.VP * worldPos;
         
-        vec4 localNormal = GetNormal( meshlet, baseBuffer, threadID );
-        v_out[threadID].normal = (GetNormalMatrix( objectData.modelIdx ) * localNormal).xyz;
+            vec4 localNormal = GetNormal( meshlet, baseBuffer, vIdx );
+            v_out[vIdx].normal = (GetNormalMatrix( objectData.modelIdx ) * localNormal).xyz;
         
-        v_out[threadID].uv = GetUV( meshlet, baseBuffer, threadID );
+            v_out[vIdx].uv = GetUV( meshlet, baseBuffer, vIdx );
         
-        vec4 tangentAndSign = GetTangentAndSign( meshlet, baseBuffer, threadID );
-        vec3 worldTangent = (modelMatrix * vec4( tangentAndSign.xyz, 0 )).xyz;
-        v_out[threadID].tangentAndSign = vec4( worldTangent, tangentAndSign.w );
+            vec4 tangentAndSign = GetTangentAndSign( meshlet, baseBuffer, vIdx );
+            vec3 worldTangent = (modelMatrix * vec4( tangentAndSign.xyz, 0 )).xyz;
+            v_out[vIdx].tangentAndSign = vec4( worldTangent, tangentAndSign.w );
         
-        v_out[threadID].materialIdx = objectData.materialIdx;
-    #if IS_DEBUG_SHADER
-        v_out[threadID].meshletIdx = meshletID;
-    #endif // #if IS_DEBUG_SHADER
+            v_out[vIdx].materialIdx = objectData.materialIdx;
+        #if IS_DEBUG_SHADER
+            v_out[vIdx].meshletIdx = meshletID;
+        #endif // #if IS_DEBUG_SHADER
+        }
     }
-    
-    uint tri1_ID = 2 * threadID + 0;
-    if ( tri1_ID < meshlet.triangleCount )
+
+    for ( uint i = 0; i < TRIS_PER_THREAD; ++i )
     {
-        gl_PrimitiveTriangleIndicesEXT[tri1_ID] = GetTri( meshlet, baseBuffer, tri1_ID );
-    }
-    
-    uint tri2_ID = 2 * threadID + 1;
-    if ( tri2_ID < meshlet.triangleCount )
-    {
-        gl_PrimitiveTriangleIndicesEXT[tri2_ID] = GetTri( meshlet, baseBuffer, tri2_ID );
+        uint tIdx = threadID + i * MESH_SHADER_WORKGROUP_SIZE;
+        if ( tIdx < meshlet.triangleCount )
+        {
+            gl_PrimitiveTriangleIndicesEXT[tIdx] = GetTri( meshlet, baseBuffer, tIdx );
+        }
     }
 }

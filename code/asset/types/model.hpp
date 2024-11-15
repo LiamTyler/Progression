@@ -1,42 +1,18 @@
 #pragma once
 
 #include "asset/types/base_asset.hpp"
+#include "c_shared/model.h"
 #include "core/bounding_box.hpp"
 #include "core/feature_defines.hpp"
 #include "shared/math_vec.hpp"
 #include <vector>
 
 #if USING( GPU_DATA )
-#include "c_shared/model.h"
 #include "renderer/graphics_api/buffer.hpp"
 #endif // #if USING( GPU_DATA )
 
 namespace PG
 {
-
-struct Meshlet
-{
-    u32 vertexOffset;
-    u32 triOffset;
-    u32 vertexCount;
-    u32 triangleCount;
-};
-
-struct PackedMeshletCullData
-{
-    // u32 positionXY;
-    // u32 positionZAndRadius;
-    // u32 coneAxisAndCutoff;
-    // u32 pad1;
-    // vec3 coneApex;
-    // u32 pad2;
-    vec3 position;
-    float radius;
-    vec3 coneAxis;
-    float coneCutoff;
-    vec3 coneApex;
-    float pad;
-};
 
 struct Material;
 
@@ -65,8 +41,8 @@ struct Mesh
     bool hasTangents;
     u32 bindlessBuffersSlot;
 #else
-    std::vector<Meshlet> meshlets;
-    std::vector<PackedMeshletCullData> meshletCullDatas;
+    std::vector<GpuData::Meshlet> meshlets;
+    std::vector<GpuData::PackedMeshletCullData> meshletCullDatas;
     std::vector<vec3> positions;
     std::vector<vec3> normals;
     std::vector<vec2> texCoords;

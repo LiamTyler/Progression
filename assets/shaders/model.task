@@ -5,13 +5,14 @@
 #include "global_descriptors.glsl"
 #include "c_shared/model.h"
 #include "c_shared/cull_data.h"
+#include "c_shared/mesh_shading_defines.h"
 #include "lib/intrinsics.glsl"
 #include "lib/culling.glsl"
 #include "c_shared/dvar_defines.h"
 
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, CullDataBuffer, PackedMeshletCullData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletCullDataBuffer, PackedMeshletCullData );
 
-#if INDIRECT
+#if INDIRECT_MAIN_DRAW
 
 #extension GL_ARB_shader_draw_parameters : enable
 
@@ -24,33 +25,22 @@ layout(scalar, push_constant) uniform Registers
     MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
 };
 
-#else // #if INDIRECT
+#else // #if INDIRECT_MAIN_DRAW
 
 layout(scalar, push_constant) uniform Registers
 {
-    NonIndirectPerObjectData objectData;
+    PerObjectData objectData;
 };
 
-#endif // #else // #if INDIRECT
+#endif // #else // #if INDIRECT_MAIN_DRAW
 
 MeshletCullData GetMeshletCullData( uint meshletID, uint bindlessRangeStart )
 {
     uint64_t ptr = bindlessBuffers[bindlessRangeStart + MESH_BUFFER_MESHLET_CULL_DATA];
-    CullDataBuffer cBuffer = CullDataBuffer( ptr );
+    MeshletCullDataBuffer cBuffer = MeshletCullDataBuffer( ptr );
     PackedMeshletCullData packedData = cBuffer.data[meshletID];
     
     MeshletCullData cullData;
-    //cullData.position.xy = unpackHalf2x16( packedData.positionXY );
-    //vec2 tmp = unpackHalf2x16( packedData.positionZAndRadius );
-    //cullData.position.z = tmp.x;
-    //cullData.radius = tmp.y;
-    //
-    //vec4 tmp2 = unpackSnorm4x8( packedData.coneAxisAndCutoff );
-    //cullData.coneAxis = tmp2.xyz;
-    //cullData.coneCutoff = tmp2.w;
-    //
-    //cullData.coneApex = packedData.coneApex;
-
     cullData.position = packedData.position;
     cullData.radius = packedData.radius;
     cullData.coneAxis = packedData.coneAxis;
@@ -78,13 +68,6 @@ bool IsMeshletVisible( const uint modelIndex, const MeshletCullData meshletCullD
 
     if ( IsMeshletBackfaceCullingEnabled() )
     {
-        ////dot(center - camera_position, cone_axis) >= cone_cutoff * length(center - camera_position) + radius
-        //const mat4 N       = GetNormalMatrix( modelIndex );
-        //vec3 worldConeAxis = normalize( mat3( N ) * meshletCullData.coneAxis );
-        //vec3 camToMeshlet  = worldPos - globals.cullingCameraPos.xyz;
-        //if ( dot( camToMeshlet, worldConeAxis ) >= meshletCullData.coneCutoff * length( camToMeshlet ) + worldRadius )
-        //    return false;
-
         vec3 worldApex = vec3( M * vec4( meshletCullData.coneApex, 1 ) );
         const mat4 N       = GetNormalMatrix( modelIndex );
         vec3 worldConeAxis = normalize( mat3( N ) * meshletCullData.coneAxis );
@@ -95,16 +78,7 @@ bool IsMeshletVisible( const uint modelIndex, const MeshletCullData meshletCullD
     return true;
 }
 
-struct Task
-{
-#if INDIRECT
-    uint meshIndex;   
-#endif // #if INDIRECT
-    uint baseID;
-    uint8_t deltaIDs[TASK_SHADER_WORKGROUP_SIZE];
-};
-
-taskPayloadSharedEXT Task OUT;
+taskPayloadSharedEXT TaskOutput OUT;
 
 layout(local_size_x = TASK_SHADER_WORKGROUP_SIZE) in;
 
@@ -114,16 +88,16 @@ void main()
     const uint localMeshletID  = gl_LocalInvocationID.x;
     const uint globalMeshletID = baseMeshletID + localMeshletID;
     
-#if INDIRECT
+#if INDIRECT_MAIN_DRAW
     const uint numMeshlets        = indirectMeshletDrawBuffer.data[gl_DrawIDARB].numMeshlets;
     const uint modelIndex         = indirectMeshletDrawBuffer.data[gl_DrawIDARB].modelIndex;
     const uint meshIndex          = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
     const uint bindlessRangeStart = meshDataBuffer.data[meshIndex].bindlessRangeStart;
-#else // #if INDIRECT
+#else // #if INDIRECT_MAIN_DRAW
     const uint numMeshlets        = objectData.numMeshlets;
     const uint modelIndex         = objectData.modelIdx;
     const uint bindlessRangeStart = objectData.bindlessRangeStart;
-#endif // #else // #if INDIRECT
+#endif // #else // #if INDIRECT_MAIN_DRAW
     
     if ( globalMeshletID >= numMeshlets )
         return;
@@ -139,9 +113,9 @@ void main()
     
     if ( gl_LocalInvocationID.x == 0 )
     {
-    #if INDIRECT
+    #if INDIRECT_MAIN_DRAW
         OUT.meshIndex = meshIndex;
-    #endif // #if INDIRECT
+    #endif // #if INDIRECT_MAIN_DRAW
         OUT.baseID = baseMeshletID;
     }
     EmitMeshTasksEXT( numVisibleInWave, 1, 1 );

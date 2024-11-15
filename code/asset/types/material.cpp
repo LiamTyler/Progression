@@ -1,12 +1,8 @@
 #include "asset/types/material.hpp"
 #include "asset/asset_manager.hpp"
 #include "asset/types/gfx_image.hpp"
-#include "asset/types/textureset.hpp"
 #include "shared/assert.hpp"
-#include "shared/filesystem.hpp"
-#include "shared/hash.hpp"
 #include "shared/logger.hpp"
-#include "shared/random.hpp"
 #include "shared/serializer.hpp"
 
 #if USING( GAME )

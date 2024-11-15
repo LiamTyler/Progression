@@ -259,7 +259,7 @@ void ComputeShadowFrustumsCull( ComputeTask* task, TGExecuteData* data )
     memcpy( gpuPlanes, frustums, numFrustums * 6 * sizeof( vec4 ) );
 
     GpuData::PerObjectData* meshDrawData = data->frameData->meshDrawDataBuffer.GetMappedPtr<GpuData::PerObjectData>();
-    GpuData::CullData* cullData          = data->frameData->meshCullData.GetMappedPtr<GpuData::CullData>();
+    GpuData::MeshCullData* cullData      = data->frameData->meshCullData.GetMappedPtr<GpuData::MeshCullData>();
     cmdBuf.BindPipeline( PipelineManager::GetPipeline( "shadow_frustums_cull" ) );
     cmdBuf.BindGlobalDescriptors();
 

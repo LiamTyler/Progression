@@ -232,7 +232,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${LUA_INCLUDES}
     ${Vulkan_INCLUDE_DIR}
     ${PROGRESSION_DIR}/assets/
-    ${PROGRESSION_DIR}/assets/shaders/
     ${CODE_DIR}/external/imgui/
     ${CODE_DIR}/external/tracy/
 )

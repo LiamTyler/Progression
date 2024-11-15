@@ -25,7 +25,7 @@ constexpr i32 g_assetVersions[] = {
     9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
     10, // ASSET_TYPE_MATERIAL,  "New name serialization"
     1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
-    8,  // ASSET_TYPE_MODEL,     "unpack meshlet data for debugging"
+    9,  // ASSET_TYPE_MODEL,     "Meshlet sizes now included in hash"
     4,  // ASSET_TYPE_SHADER,    "New name serialization"
     8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
     5,  // ASSET_TYPE_PIPELINE,  "Forgot to add new blend mode to the cache name"

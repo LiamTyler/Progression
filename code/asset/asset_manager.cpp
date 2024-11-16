@@ -11,6 +11,9 @@
 #if USING( GAME )
 #include "renderer/r_globals.hpp"
 #endif // #if USING( GAME )
+#if USING( DEVELOPMENT_BUILD )
+#include "shared/filesystem.hpp"
+#endif // #if USING( DEVELOPMENT_BUILD )
 
 namespace PG::AssetManager
 {
@@ -143,16 +146,24 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
         }                                                                        \
         break
 
-bool LoadFastFile( const std::string& fname )
+bool LoadFastFile( const std::string& ffName, bool debugVersion )
 {
-    PGP_ZONE_SCOPED_FMT( "LoadFastFile %s", fname.c_str() );
-
-    LOG( "Loading fastfile '%s'...", fname.c_str() );
-    std::string fullName = PG_ASSET_DIR "cache/fastfiles/" + fname + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
-    Serializer serializer;
-    if ( !serializer.OpenForRead( fullName ) )
+    std::string absFilename = PG_ASSET_DIR "cache/fastfiles/" + ffName + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
+#if USING( DEVELOPMENT_BUILD )
+    if ( debugVersion )
     {
-        LOG_ERR( "Failed to open fastfile '%s'", fullName.c_str() );
+        if ( !PathExists( absFilename ) )
+            return true;
+    }
+#endif // #if USING( DEVELOPMENT_BUILD )
+
+    PGP_ZONE_SCOPED_FMT( "LoadFastFile %s", ffName.c_str() );
+
+    LOG( "Loading fastfile '%s'...", ffName.c_str() );
+    Serializer serializer;
+    if ( !serializer.OpenForRead( absFilename ) )
+    {
+        LOG_ERR( "Failed to open fastfile '%s'", absFilename.c_str() );
         return false;
     }
 
@@ -175,8 +186,8 @@ bool LoadFastFile( const std::string& fname )
         }
     }
 
-    // TODO: Takes a surprisingly long time to close the file (50-100ms for sponza_intel)
-    // Edit: looks like ::UnmapViewOfFile is the culprit. Cost for removing pages from the
+    // Note: this takes a surprisingly long time to close the file (50-100ms for sponza_intel)
+    // Note2: looks like ::UnmapViewOfFile is the culprit. Cost for removing pages from the
     // address space just seems to be about ~75us per MB, which matches what some others online say
     // https://randomascii.wordpress.com/2014/12/10/hidden-costs-of-memory-allocation/
     PGP_MANUAL_ZONEN( SerializerClose, "SerializerClose" );
@@ -186,6 +197,13 @@ bool LoadFastFile( const std::string& fname )
 #if USING( GAME )
     PG::Gfx::rg.device.FlushUploadRequests();
 #endif // #if USING( GAME )
+
+#if USING( DEVELOPMENT_BUILD )
+    if ( !debugVersion )
+    {
+        return LoadFastFile( ffName + "_debug", true );
+    }
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     return true;
 }

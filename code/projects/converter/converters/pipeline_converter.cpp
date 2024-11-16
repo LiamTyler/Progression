@@ -14,11 +14,12 @@ void PipelineConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& pipeli
 
     for ( const PipelineShaderInfo& shaderInfo : pipelineInfo->shaders )
     {
-        auto shaderCI         = std::make_shared<ShaderCreateInfo>();
-        shaderCI->name        = GetShaderCacheName( shaderInfo.name, shaderInfo.stage, pipelineInfo->defines );
-        shaderCI->filename    = shaderInfo.name;
-        shaderCI->shaderStage = shaderInfo.stage;
-        shaderCI->defines     = pipelineInfo->defines;
+        auto shaderCI              = std::make_shared<ShaderCreateInfo>();
+        shaderCI->isDebugOnlyAsset = pipelineInfo->isDebugOnlyAsset;
+        shaderCI->name             = GetShaderCacheName( shaderInfo.name, shaderInfo.stage, pipelineInfo->defines );
+        shaderCI->filename         = shaderInfo.name;
+        shaderCI->shaderStage      = shaderInfo.stage;
+        shaderCI->defines          = pipelineInfo->defines;
         if ( hasTaskShader && shaderInfo.stage == ShaderStage::MESH )
             shaderCI->defines.emplace_back( "HAS_TASK_SHADER 1" );
 
@@ -27,11 +28,12 @@ void PipelineConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& pipeli
 
     if ( pipelineInfo->generateDebugPermutation )
     {
-        auto debugPipelineCI          = std::make_shared<PipelineCreateInfo>();
-        debugPipelineCI->name         = pipelineInfo->name + "_debug";
-        debugPipelineCI->shaders      = pipelineInfo->shaders;
-        debugPipelineCI->graphicsInfo = pipelineInfo->graphicsInfo;
-        debugPipelineCI->defines      = pipelineInfo->defines;
+        auto debugPipelineCI              = std::make_shared<PipelineCreateInfo>();
+        debugPipelineCI->isDebugOnlyAsset = true;
+        debugPipelineCI->name             = pipelineInfo->name + "_debug";
+        debugPipelineCI->shaders          = pipelineInfo->shaders;
+        debugPipelineCI->graphicsInfo     = pipelineInfo->graphicsInfo;
+        debugPipelineCI->defines          = pipelineInfo->defines;
         debugPipelineCI->defines.emplace_back( "IS_DEBUG_SHADER 1" );
         debugPipelineCI->generateDebugPermutation = false;
 

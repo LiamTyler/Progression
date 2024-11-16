@@ -57,6 +57,7 @@ static PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueDebugMarkerInsert = VK_NULL_HA
 
 void Init( VkInstance instance )
 {
+#if USING( USE_DEBUG_MARKER )
     vkSetDebugUtilsObjectTag  = (PFN_vkSetDebugUtilsObjectTagEXT)vkGetInstanceProcAddr( instance, "vkSetDebugUtilsObjectTagEXT" );
     vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr( instance, "vkSetDebugUtilsObjectNameEXT" );
     vkCmdDebugMarkerBegin     = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr( instance, "vkCmdBeginDebugUtilsLabelEXT" );
@@ -74,6 +75,11 @@ void Init( VkInstance instance )
     {
         LOG_ERR( "Could not initialize debug marking functions!" );
     }
+    else
+    {
+        LOG( "Yay" );
+    }
+#endif // #if USING( USE_DEBUG_MARKER )
 }
 
 bool IsActive() { return s_active; }

@@ -26,7 +26,7 @@ namespace PG::Gfx
 
 Dvar r_shaderDebugPrint( "r_shaderDebugPrint", true, "Enable/disable logging of shader debug printf messages" );
 
-#if USING( DEVELOPMENT_BUILD )
+#if !USING( DEVELOPMENT_BUILD )
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData )
 {
@@ -146,18 +146,23 @@ static vkb::Result<vkb::Instance> GetInstance()
     PGP_MANUAL_ZONEN( __tracyInstBuild, "Instance Builder" );
     vkb::InstanceBuilder builder;
 
-#if USING( DEVELOPMENT_BUILD )
+#if !USING( DEVELOPMENT_BUILD )
     builder.request_validation_layers( true );
     builder.set_debug_callback( DebugCallback );
     VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT |
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+    // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 #if USING( SHADER_DEBUG_PRINTF )
     builder.add_validation_feature_enable( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
     debugMessageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
 #endif // #if USING( SHADER_DEBUG_PRINTF )
     builder.set_debug_messenger_severity( debugMessageSeverity );
 #endif // #if USING( DEVELOPMENT_BUILD )
+
+#if !USING( SHIP_BUILD )
+    // needed for debug markers as well
+    builder.enable_extension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
+#endif // #if !USING( SHIP_BUILD )
 
     builder.enable_extension( VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
     Uint32 count_instance_extensions;
@@ -311,9 +316,7 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", rg.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor,
         pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
 
-#if USING( DEVELOPMENT_BUILD )
     DebugMarker::Init( rg.instance );
-#endif // #if USING( DEVELOPMENT_BUILD )
 
     vkb::DeviceBuilder device_builder{ vkbPhysicalDevice };
 

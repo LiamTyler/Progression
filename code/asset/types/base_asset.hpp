@@ -23,6 +23,7 @@ struct BaseAssetCreateInfo
 
 #if USING( CONVERTER )
     std::string cacheName;
+    bool isDebugOnlyAsset;
 #endif // #if USING( CONVERTER )
 };
 

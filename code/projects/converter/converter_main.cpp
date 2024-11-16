@@ -97,16 +97,16 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
     return true;
 }
 
-bool FindAssetsUsedInFile( const std::string& sceneFile )
+bool FindAssetsUsedInFile( const std::string& filename )
 {
-    std::string ext = GetFileExtension( sceneFile );
+    std::string ext = GetFileExtension( filename );
     if ( ext == ".csv" )
     {
         std::string line;
-        std::ifstream in( sceneFile );
+        std::ifstream in( filename );
         if ( !in )
         {
-            LOG_ERR( "Could not open %s", sceneFile.c_str() );
+            LOG_ERR( "Could not open %s", filename.c_str() );
             return false;
         }
         i32 lineIdx = -1;
@@ -120,7 +120,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             const auto vec = SplitString( line );
             if ( vec.size() != 2 )
             {
-                LOG_ERR( "Asset CSV %s: Invalid line %d '%s'", sceneFile.c_str(), lineIdx, line.c_str() );
+                LOG_ERR( "Asset CSV %s: Invalid line %d '%s'", filename.c_str(), lineIdx, line.c_str() );
                 continue;
             }
             bool found                     = false;
@@ -132,10 +132,7 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
                 if ( assetTypeName == g_assetNames[assetTypeIdx] )
                 {
                     auto createInfo = AssetDatabase::FindAssetInfo( (AssetType)assetTypeIdx, std::string( assetName ) );
-                    if ( !createInfo )
-                    {
-                        LOG_ERR( "Could not find AssetInfo for AssetType: %s, name '%s'", assetTypeName.data(), assetName.data() );
-                    }
+                    PG_ASSERT( createInfo, "asset with name %s not found", assetName.data() );
                     AddUsedAsset( (AssetType)assetTypeIdx, createInfo );
                     found = true;
                     break;
@@ -143,14 +140,14 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
             }
             if ( !found )
             {
-                LOG_ERR( "Asset CSV %s: No asset type '%s' line %d", sceneFile.c_str(), assetTypeName.data(), lineIdx );
+                LOG_ERR( "Asset CSV %s: No asset type '%s' line %d", filename.c_str(), assetTypeName.data(), lineIdx );
                 return false;
             }
         }
     }
     else if ( ext == ".json" )
     {
-        Scene* scene = Scene::Load( sceneFile );
+        Scene* scene = Scene::Load( filename );
         if ( !scene )
         {
             return false;
@@ -169,9 +166,39 @@ bool FindAssetsUsedInFile( const std::string& sceneFile )
 
         delete scene;
     }
+    else if ( ext == ".paf" )
+    {
+        namespace json = rapidjson;
+        json::Document document;
+        if ( !ParseJSONFile( filename, document ) )
+        {
+            return false;
+        }
+
+        for ( json::Value::ConstValueIterator assetIter = document.Begin(); assetIter != document.End(); ++assetIter )
+        {
+            // the checks for HasMember( "name" ) and IsNameValid have already been done during Init() -> ParseAssetFile()
+            const json::Value& value = assetIter->MemberBegin()->value;
+            const auto& jsonName     = value["name"];
+            std::string assetName( jsonName.GetString(), jsonName.GetStringLength() );
+
+            const auto& jsonAssetType = assetIter->MemberBegin()->name;
+            std::string assetTypeStr( jsonAssetType.GetString(), jsonAssetType.GetStringLength() );
+            for ( AssetType assetType = (AssetType)0; assetType < ASSET_TYPE_COUNT; assetType = (AssetType)( assetType + 1 ) )
+            {
+                if ( assetTypeStr == g_assetNames[assetType] )
+                {
+                    auto createInfo = AssetDatabase::FindAssetInfo( assetType, assetName );
+                    PG_ASSERT( createInfo, "asset with name %s not found", assetName.c_str() );
+                    AddUsedAsset( assetType, createInfo );
+                    break;
+                }
+            }
+        }
+    }
     else
     {
-        LOG_ERR( "Unknown scene file extension for scene '%s'", sceneFile.c_str() );
+        LOG_ERR( "FindAssetsUsedInFile failed: unknown scene file extension for scene '%s'", filename.c_str() );
         return false;
     }
 
@@ -235,11 +262,13 @@ bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
     return convertErrors == 0;
 }
 
-bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets, const AssetList& prevAssetList )
+bool OutputFastfile( const std::string& sceneName, const u32 outOfDateAssets, const AssetList& prevAssetList )
 {
-    std::string fastfileName = GetFilenameStem( sceneFile ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
-    std::string fastfilePath = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
-    time_t ffTimestamp       = GetFileTimestamp( fastfilePath );
+    std::string fastfileName      = GetFilenameStem( sceneName ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
+    std::string fastfileNameDebug = GetFilenameStem( sceneName ) + "_debug_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
+    std::string fastfilePath      = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
+    std::string fastfilePathDebug = PG_ASSET_DIR "cache/fastfiles/" + fastfileNameDebug;
+    time_t ffTimestamp            = GetFileTimestamp( fastfilePath );
 
     const AssetList& usedAssetList = GetUsedAssetList();
     bool createFastFile            = false;
@@ -269,14 +298,20 @@ bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets, co
             return false;
         }
 
-        for ( u8 assetTypeIdx = 0; assetTypeIdx < ASSET_TYPE_COUNT; ++assetTypeIdx )
+        u32 numDebugAssets = 0;
+        for ( u8 assetTypeIdx = 0; assetTypeIdx < ASSET_TYPE_NON_METADATA_COUNT; ++assetTypeIdx )
         {
             const auto& listOfUsedAssets = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
-            for ( const auto& baseInfo : listOfUsedAssets )
+            for ( const auto& baseInfoPtr : listOfUsedAssets )
             {
+                if ( baseInfoPtr->isDebugOnlyAsset )
+                {
+                    ++numDebugAssets;
+                    continue;
+                }
                 AssetType assetType = (AssetType)assetTypeIdx;
                 ff.Write( assetType );
-                const std::string cacheName = baseInfo->cacheName;
+                const std::string cacheName = baseInfoPtr->cacheName;
                 size_t numBytes;
                 auto assetRawBytes = AssetCache::GetCachedAssetRaw( assetType, cacheName, numBytes );
                 if ( !assetRawBytes )
@@ -290,7 +325,46 @@ bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets, co
             }
         }
         ff.Close();
-        usedAssetList.Export( sceneFile );
+
+        if ( numDebugAssets )
+        {
+            if ( !ff.OpenForWrite( fastfilePathDebug ) )
+            {
+                LOG_ERR( "Could not open debug fastfile for writing" );
+                return false;
+            }
+
+            for ( u8 assetTypeIdx = 0; assetTypeIdx < ASSET_TYPE_NON_METADATA_COUNT; ++assetTypeIdx )
+            {
+                const auto& listOfUsedAssets = GetUsedAssetsOfType( (AssetType)assetTypeIdx );
+                for ( const auto& baseInfoPtr : listOfUsedAssets )
+                {
+                    if ( !baseInfoPtr->isDebugOnlyAsset )
+                        continue;
+
+                    AssetType assetType = (AssetType)assetTypeIdx;
+                    ff.Write( assetType );
+                    const std::string cacheName = baseInfoPtr->cacheName;
+                    size_t numBytes;
+                    auto assetRawBytes = AssetCache::GetCachedAssetRaw( assetType, cacheName, numBytes );
+                    if ( !assetRawBytes )
+                    {
+                        ff.Close();
+                        DeleteFile( fastfilePath );
+                        LOG_ERR( "Could not get cached asset %s of type %s", cacheName.c_str(), g_assetNames[assetTypeIdx] );
+                        return false;
+                    }
+                    ff.Write( assetRawBytes.get(), numBytes );
+                }
+            }
+            ff.Close();
+        }
+        else
+        {
+            DeleteFile( fastfilePathDebug );
+        }
+
+        usedAssetList.Export( sceneName );
         LOG( "Build fastfile succeeded" );
     }
     else
@@ -301,13 +375,28 @@ bool OutputFastfile( const std::string& sceneFile, const u32 outOfDateAssets, co
     return true;
 }
 
-bool ProcessSingleScene( const std::string& sceneFile )
+struct SceneInfo
+{
+    std::string name;
+    std::string filename;
+    bool requiredScene = false;
+};
+
+bool ProcessSingleScene( const SceneInfo& sceneInfo )
 {
     ClearAllFastfileDependencies();
     ClearAllUsedAssets();
 
+    size_t debugPostfix = sceneInfo.name.rfind( "_debug" );
+    if ( debugPostfix != std::string::npos && debugPostfix + 6 == sceneInfo.name.length() )
+    {
+        LOG_ERR( "Scene file '%s' has an invalid name, because the _debug postfix is reserved for debug asset fastfiles",
+            sceneInfo.name.c_str() );
+        return false;
+    }
+
     bool foundScene      = false;
-    std::string filename = SCENE_DIR + sceneFile + ".csv";
+    std::string filename = sceneInfo.filename + ".csv";
     if ( PathExists( filename ) )
     {
         if ( !FindAssetsUsedInFile( filename ) )
@@ -316,7 +405,16 @@ bool ProcessSingleScene( const std::string& sceneFile )
         }
         foundScene = true;
     }
-    filename = SCENE_DIR + sceneFile + ".json";
+    filename = sceneInfo.filename + ".json";
+    if ( PathExists( filename ) )
+    {
+        if ( !FindAssetsUsedInFile( filename ) )
+        {
+            return false;
+        }
+        foundScene = true;
+    }
+    filename = sceneInfo.filename + ".paf";
     if ( PathExists( filename ) )
     {
         if ( !FindAssetsUsedInFile( filename ) )
@@ -327,43 +425,51 @@ bool ProcessSingleScene( const std::string& sceneFile )
     }
     if ( !foundScene )
     {
-        LOG_ERR( "No scene file (csv or json) found for path '%s'", sceneFile.c_str() );
+        LOG_ERR( "No scene file (csv or json) found for path '%s'", sceneInfo.filename.c_str() );
         return false;
     }
 
     AssetList prevAssetList;
-    prevAssetList.Import( sceneFile );
+    prevAssetList.Import( sceneInfo.name );
 
     u32 outOfDateAssets;
-    bool success = ConvertAssets( GetRelativeFilename( sceneFile ), outOfDateAssets );
-    success      = success && OutputFastfile( sceneFile, outOfDateAssets, prevAssetList );
+    bool success = ConvertAssets( sceneInfo.name, outOfDateAssets );
+    success      = success && OutputFastfile( sceneInfo.name, outOfDateAssets, prevAssetList );
     return success;
 }
 
 bool ConvertScenes( const std::string& scene )
 {
-    std::vector<std::string> scenesToProcess;
-    if ( !scene.empty() )
-    {
-        scenesToProcess.push_back( GetFilenameMinusExtension( scene ) );
-    }
+    std::vector<SceneInfo> scenesToProcess;
 
     namespace fs = std::filesystem;
-    for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "scenes/required/" ) )
+    for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "required_assets/" ) )
     {
         std::string path = entry.path().string();
-        if ( entry.is_regular_file() && GetFileExtension( path ) == ".csv" )
+        if ( entry.is_regular_file() && ( GetFileExtension( path ) == ".paf" ) )
         {
-            scenesToProcess.push_back( "required/" + GetRelativeFilename( GetFilenameMinusExtension( path ) ) );
+            SceneInfo sInfo;
+            sInfo.filename      = GetFilenameMinusExtension( path );
+            sInfo.name          = GetRelativeFilename( sInfo.filename );
+            sInfo.requiredScene = true;
+            scenesToProcess.push_back( sInfo );
         }
     }
-    std::swap( scenesToProcess[0], scenesToProcess[scenesToProcess.size() - 1] );
+
+    if ( !scene.empty() )
+    {
+        SceneInfo sInfo;
+        sInfo.name          = GetFilenameMinusExtension( scene );
+        sInfo.filename      = SCENE_DIR + sInfo.name;
+        sInfo.requiredScene = false;
+        scenesToProcess.push_back( sInfo );
+    }
 
     for ( size_t i = 0; i < scenesToProcess.size(); ++i )
     {
-        const auto& scene = scenesToProcess[i];
-        LOG( "Converting %s...", GetRelativeFilename( scene ).c_str() );
-        if ( !ProcessSingleScene( scene ) )
+        const SceneInfo& sceneInfo = scenesToProcess[i];
+        LOG( "Converting %s...", sceneInfo.name.c_str() );
+        if ( !ProcessSingleScene( sceneInfo ) )
         {
             return false;
         }

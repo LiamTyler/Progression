@@ -40,7 +40,7 @@ void Init();
 
 void ProcessPendingLiveUpdates();
 
-bool LoadFastFile( const std::string& fname );
+bool LoadFastFile( const std::string& ffName, bool debugVersion = false );
 
 void FreeRemainingGpuResources();
 void Shutdown();

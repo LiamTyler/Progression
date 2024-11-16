@@ -136,14 +136,10 @@ bool CopyFile( const std::string& from, const std::string& to, bool overwriteExi
 
 void DeleteFile( const std::string& filename )
 {
-    try
+    std::error_code ec;
+    if ( !fs::remove( filename, ec ) && ec.value() != 0 )
     {
-        fs::remove( filename );
-    }
-    catch ( std::filesystem::filesystem_error& e )
-    {
-        PG_NO_WARN_UNUSED( e );
-        LOG_ERR( "Failed to delete file. Error: '%s' and code '%d'", e.what(), e.code().value() );
+        LOG_ERR( "Failed to delete file '%s'. Error %d: %s", filename.c_str(), ec.value(), ec.message().c_str() );
     }
 }
 

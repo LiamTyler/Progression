@@ -62,7 +62,7 @@ public:
     BaseAssetConverter( AssetType inAssetType ) : assetType( inAssetType ) {}
     virtual ~BaseAssetConverter() = default;
 
-    virtual std::string GetCacheName( ConstBaseCreateInfoPtr& baseInfo ) { return ""; }
+    virtual std::string GetCacheName( ConstBaseCreateInfoPtr& baseInfo ) { return baseInfo->name; }
     virtual AssetStatus IsAssetOutOfDate( ConstBaseCreateInfoPtr& baseInfo ) { return AssetStatus::UP_TO_DATE; }
     virtual bool Convert( ConstBaseCreateInfoPtr& baseInfo ) { return true; }
     virtual void AddReferencedAssets( ConstBaseCreateInfoPtr& baseInfo ) {}

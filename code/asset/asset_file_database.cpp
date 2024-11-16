@@ -32,24 +32,24 @@ static bool ParseAssetFile( const std::string& filename )
     {
         return false;
     }
-    time_t fileTimestamp = GetFileTimestamp( filename );
 
     for ( json::Value::ConstValueIterator assetIter = document.Begin(); assetIter != document.End(); ++assetIter )
     {
         const json::Value& value = assetIter->MemberBegin()->value;
-        std::string assetName;
         if ( !value.HasMember( "name" ) )
         {
             LOG_ERR( "Asset '%s' in file '%s' needs to have a 'name' entry!", value.GetString(), filename.c_str() );
             return false;
         }
-        assetName = value["name"].GetString();
+        const auto& jsonName = value["name"];
+        std::string assetName( jsonName.GetString(), jsonName.GetStringLength() );
         if ( !IsNameValid( assetName ) )
         {
             LOG_ERR( "Asset '%s' in file '%s' has an invalid name. Only letters, numbers, and '_' are allowed!", assetName.c_str(),
                 filename.c_str() );
             return false;
         }
+        bool isDebugOnlyAsset = value.HasMember( "isDebugOnlyAsset" ) ? value["isDebugOnlyAsset"].GetBool() : false;
 
         bool foundType           = false;
         std::string assetTypeStr = assetIter->MemberBegin()->name.GetString();
@@ -73,7 +73,9 @@ static bool ParseAssetFile( const std::string& filename )
                     {
                         return false;
                     }
-                    info->name                         = assetName;
+#if USING( CONVERTER )
+                    info->isDebugOnlyAsset = isDebugOnlyAsset;
+#endif // #if USING( CONVERTER )
                     s_assetInfos[assetType][assetName] = info;
                 }
 
@@ -84,7 +86,9 @@ static bool ParseAssetFile( const std::string& filename )
 
         if ( !foundType )
         {
-            LOG_WARN( "Asset type '%s' not recognized. Skipping asset '%s'", assetTypeStr.c_str(), assetName.c_str() );
+            bool skip = assetTypeStr.length() >= 2 && assetTypeStr[0] == '_' && assetTypeStr[1] == '_';
+            if ( !skip )
+                LOG_WARN( "Asset type '%s' not recognized. Skipping asset '%s'", assetTypeStr.c_str(), assetName.c_str() );
         }
     }
 

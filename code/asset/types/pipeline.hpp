@@ -163,8 +163,8 @@ struct PipelineCreateInfo : public BaseAssetCreateInfo
 {
     std::vector<PipelineShaderInfo> shaders;
     std::vector<std::string> defines;
-    bool generateDebugPermutation;
     Gfx::GraphicsPipelineCreateInfo graphicsInfo;
+    bool generateDebugPermutation;
 };
 
 namespace Gfx::PipelineManager
@@ -185,8 +185,9 @@ public:
 
 #if USING( CONVERTER )
     std::vector<PipelineShaderInfo> shaderConvertInfos;
-    PipelineCreateInfo createInfo; // just for serializing in the converter
-#endif                             // #if USING( CONVERTER )
+    // just for serializing in the converter
+    PipelineCreateInfo createInfo;
+#endif // #if USING( CONVERTER )
 
 #if USING( GPU_DATA )
     void Free() override;

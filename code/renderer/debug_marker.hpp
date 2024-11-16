@@ -6,6 +6,9 @@
 #include "vma/vk_mem_alloc.h"
 #include <string>
 
+#define USE_DEBUG_MARKER USE_IF( USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA ) )
+// #define USE_DEBUG_MARKER USE_IF( !USING( SHIP_BUILD ) && USING( GPU_DATA ) )
+
 namespace PG::Gfx::DebugMarker
 {
 // From https://www.saschawillems.de/blog/2016/05/28/tutorial-on-using-vulkans-vk_ext_debug_marker-with-renderdoc/
@@ -54,7 +57,7 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 
 } // namespace PG::Gfx::DebugMarker
 
-#if USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA )
+#if USING( USE_DEBUG_MARKER )
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name ) \
     PG::Gfx::DebugMarker::BeginRegion_CmdBuf( cmdbuf, name, PG::Gfx::DebugMarker::GetNextRegionColor() )
@@ -91,7 +94,7 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) PG::Gfx::DebugMarker::SetDescriptorPoolName( pool, name )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name ) PG::Gfx::DebugMarker::SetQueryPoolName( pool, name )
 
-#else // #if USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA )
+#else // #if USING( USE_DEBUG_MARKER )
 
 #define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name )
 #define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )
@@ -124,4 +127,4 @@ void SetQueryPoolName( VkQueryPool pool, std::string_view name );
 #define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )
 #define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )
 
-#endif // #else // #if USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA )
+#endif // #else // #if USING( USE_DEBUG_MARKER )

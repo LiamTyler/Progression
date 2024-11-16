@@ -5,28 +5,8 @@
     } },
     { "Pipeline": {
         "name": "frustum_cull_meshes_debug",
+        "isDebugOnlyAsset": true,
         "computeShader": "debug/frustum_cull_meshes_debug.comp"
-    } },
-    { "Pipeline": {
-        "name": "shadow_frustums_cull",
-        "computeShader": "shadow_frustums_cull.comp"
-    } },
-    { "Pipeline": {
-        "name": "shadow_frustums_cull_debug",
-        "computeShader": "debug/shadow_frustums_cull_debug.comp"
-    } },
-    { "Pipeline": {
-        "name": "sky",
-        "vertexShader": "sky.vert",
-        "fragmentShader": "sky.frag",
-        "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
-        "depthAttachment": { "format": "DEPTH_32_FLOAT", "compareFunc": "LEQUAL" },
-        "rasterizerInfo": { "winding": "CLOCKWISE" },
-        "generateDebugPermutation": true
-    } },
-    { "Pipeline": {
-        "name": "post_process",
-        "computeShader": "post_process.comp"
     } },
     { "Pipeline": {
         "name": "litModel",
@@ -39,6 +19,7 @@
     } },
     { "Pipeline": {
         "name": "debug_simpleModel",
+        "isDebugOnlyAsset": true,
         "taskShader": "debug/simple.task",
         "meshShader": "debug/simple.mesh",
         "fragmentShader": "debug/simple.frag",
@@ -46,23 +27,54 @@
         "depthAttachment": { "format": "DEPTH_32_FLOAT" }
     } },
     { "Pipeline": {
-        "name": "debug_lines",
-        "vertexShader": "debug/debug_lines.vert",
-        "fragmentShader": "debug/debug_lines.frag",
-        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM" },
-        "depthAttachment": { "format": "DEPTH_32_FLOAT" },
-        "primitiveType": "LINES"
+        "name": "post_process",
+        "computeShader": "post_process.comp"
     } },
     { "Pipeline": {
-        "name": "debug_text",
-        "vertexShader": "debug/debug_text.vert",
-        "fragmentShader": "debug/debug_text.frag",
-        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
+        "name": "shadow_frustums_cull",
+        "computeShader": "shadow_frustums_cull.comp"
+    } },
+    { "Pipeline": {
+        "name": "shadow_frustums_cull_debug",
+        "isDebugOnlyAsset": true,
+        "computeShader": "debug/shadow_frustums_cull_debug.comp"
+    } },
+    { "Pipeline": {
+        "name": "sky",
+        "vertexShader": "sky.vert",
+        "fragmentShader": "sky.frag",
+        "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },
+        "depthAttachment": { "format": "DEPTH_32_FLOAT", "compareFunc": "LEQUAL" },
+        "rasterizerInfo": { "winding": "CLOCKWISE" },
+        "generateDebugPermutation": true
     } },
     { "Pipeline": {
         "name": "text2D",
         "vertexShader": "ui/text.vert",
         "fragmentShader": "ui/text.frag",
         "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
-    } }
+    } },
+    { "Pipeline": {
+        "name": "debug_text",
+        "isDebugOnlyAsset": true,
+        "vertexShader": "debug/debug_text.vert",
+        "fragmentShader": "debug/debug_text.frag",
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
+    } },
+    { "Pipeline": {
+        "name": "debug_lines",
+        "isDebugOnlyAsset": true,
+        "vertexShader": "debug/debug_lines.vert",
+        "fragmentShader": "debug/debug_lines.frag",
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM" },
+        "depthAttachment": { "format": "DEPTH_32_FLOAT" },
+        "primitiveType": "LINES"
+    } },
+    { "Image": {
+		"name": "debug_font",
+        "isDebugOnlyAsset": true,
+		"filename": "fonts/debug_font_full.bmp",
+		"semantic": "GRAY",
+        "flipVertically": false
+	} }
 ]

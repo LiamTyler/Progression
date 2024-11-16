@@ -8,18 +8,19 @@ namespace PG
 
 void GfxImageConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& imageInfo )
 {
-    if ( imageInfo->semantic == GfxImageSemantic::ENVIRONMENT_MAP )
-    {
-        auto irradianceInfo      = std::make_shared<GfxImageCreateInfo>( *imageInfo );
-        irradianceInfo->name     = imageInfo->name + "_irradiance";
-        irradianceInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
-        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, irradianceInfo );
-
-        auto reflectionProbeInfo      = std::make_shared<GfxImageCreateInfo>( *imageInfo );
-        reflectionProbeInfo->name     = imageInfo->name + "_reflectionProbe";
-        reflectionProbeInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_REFLECTION_PROBE;
-        AddUsedAsset( ASSET_TYPE_GFX_IMAGE, reflectionProbeInfo );
-    }
+    // we aren't using these for now
+    // if ( imageInfo->semantic == GfxImageSemantic::ENVIRONMENT_MAP )
+    //{
+    //    auto irradianceInfo      = std::make_shared<GfxImageCreateInfo>( *imageInfo );
+    //    irradianceInfo->name     = imageInfo->name + "_irradiance";
+    //    irradianceInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_IRRADIANCE;
+    //    AddUsedAsset( ASSET_TYPE_GFX_IMAGE, irradianceInfo );
+    //
+    //    auto reflectionProbeInfo      = std::make_shared<GfxImageCreateInfo>( *imageInfo );
+    //    reflectionProbeInfo->name     = imageInfo->name + "_reflectionProbe";
+    //    reflectionProbeInfo->semantic = GfxImageSemantic::ENVIRONMENT_MAP_REFLECTION_PROBE;
+    //    AddUsedAsset( ASSET_TYPE_GFX_IMAGE, reflectionProbeInfo );
+    //}
 }
 
 std::string GfxImageConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )

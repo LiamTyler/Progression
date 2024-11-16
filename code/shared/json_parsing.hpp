@@ -50,15 +50,19 @@ public:
     {
         for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
         {
-            std::string name = it->name.GetString();
+            std::string name( it->name.GetString(), it->name.GetStringLength() );
             if ( mapping.find( name ) != mapping.end() )
             {
                 mapping[name]( it->value, std::forward<Args>( args )... );
             }
 #if USING( DEBUG_BUILD )
-            else if ( name != "name" )
+            else
             {
-                LOG_WARN( "JSON mapper does not contain key '%s'", name.c_str() );
+                // TODO: json member inheritence or something
+                bool skip = name.length() >= 2 && name[0] == '_' && name[1] == '_';
+                skip      = skip || name == "name" || name == "isDebugOnlyAsset";
+                if ( !skip )
+                    LOG_WARN( "JSON mapper does not contain key '%s'", name.c_str() );
             }
 #endif // #if USING( DEBUG_BUILD )
         }
@@ -96,7 +100,7 @@ public:
     {
         for ( auto it = v.MemberBegin(); it != v.MemberEnd(); ++it )
         {
-            std::string name = it->name.GetString();
+            std::string name( it->name.GetString(), it->name.GetStringLength() );
             if ( mapping.find( name ) != mapping.end() )
             {
                 if ( !mapping[name]( it->value, std::forward<Args>( args )... ) )
@@ -105,9 +109,13 @@ public:
                 }
             }
 #if USING( DEBUG_BUILD )
-            else if ( name != "name" )
+            else
             {
-                LOG_WARN( "JSON mapper does not contain key '%s'", name.c_str() );
+                // TODO: json member inheritence or something
+                bool skip = name.length() >= 2 && name[0] == '_' && name[1] == '_';
+                skip      = skip || name == "name" || name == "isDebugOnlyAsset";
+                if ( !skip )
+                    LOG_WARN( "JSON mapper does not contain key '%s'", name.c_str() );
             }
 #endif // #if USING( DEBUG_BUILD )
         }

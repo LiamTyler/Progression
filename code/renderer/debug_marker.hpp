@@ -6,8 +6,7 @@
 #include "vma/vk_mem_alloc.h"
 #include <string>
 
-#define USE_DEBUG_MARKER USE_IF( USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA ) )
-// #define USE_DEBUG_MARKER USE_IF( !USING( SHIP_BUILD ) && USING( GPU_DATA ) )
+#define USE_DEBUG_MARKER USE_IF( !USING( SHIP_BUILD ) && USING( GPU_DATA ) )
 
 namespace PG::Gfx::DebugMarker
 {
@@ -33,27 +32,49 @@ void EndRegion_Queue( VkQueue queue );
 
 // Object specific naming functions
 void SetCommandPoolName( VkCommandPool pool, std::string_view name );
+void SetCommandPoolName( VkCommandPool pool, const char* name );
 void SetCommandBufferName( VkCommandBuffer cmdBuffer, std::string_view name );
+void SetCommandBufferName( VkCommandBuffer cmdBuffer, const char* name );
 void SetQueueName( VkQueue queue, std::string_view name );
+void SetQueueName( VkQueue queue, const char* name );
 void SetImageName( VkImage image, std::string_view name );
+void SetImageName( VkImage image, const char* name );
 void SetImageViewName( VkImageView image, std::string_view name );
+void SetImageViewName( VkImageView image, const char* name );
 void SetSamplerName( VkSampler sampler, std::string_view name );
+void SetSamplerName( VkSampler sampler, const char* name );
 void SetBufferName( VkBuffer buffer, std::string_view name );
+void SetBufferName( VkBuffer buffer, const char* name );
 void SetDeviceMemoryName( VkDeviceMemory memory, std::string_view name );
+void SetDeviceMemoryName( VkDeviceMemory memory, const char* name );
 void SetShaderModuleName( VkShaderModule shaderModule, std::string_view name );
+void SetShaderModuleName( VkShaderModule shaderModule, const char* name );
 void SetPipelineName( VkPipeline pipeline, std::string_view name );
+void SetPipelineName( VkPipeline pipeline, const char* name );
 void SetPipelineLayoutName( VkPipelineLayout pipelineLayout, std::string_view name );
+void SetPipelineLayoutName( VkPipelineLayout pipelineLayout, const char* name );
 void SetDescriptorSetLayoutName( VkDescriptorSetLayout descriptorSetLayout, std::string_view name );
+void SetDescriptorSetLayoutName( VkDescriptorSetLayout descriptorSetLayout, const char* name );
 void SetDescriptorSetName( VkDescriptorSet descriptorSet, std::string_view name );
+void SetDescriptorSetName( VkDescriptorSet descriptorSet, const char* name );
 void SetSemaphoreName( VkSemaphore semaphore, std::string_view name );
+void SetSemaphoreName( VkSemaphore semaphore, const char* name );
 void SetFenceName( VkFence fence, std::string_view name );
+void SetFenceName( VkFence fence, const char* name );
 void SetEventName( VkEvent event, std::string_view name );
+void SetEventName( VkEvent event, const char* name );
 void SetSwapChainName( VkSwapchainKHR swapchain, std::string_view name );
+void SetSwapChainName( VkSwapchainKHR swapchain, const char* name );
 void SetPhysicalDeviceName( VkPhysicalDevice pDev, std::string_view name ); // stops application in renderdoc?
+void SetPhysicalDeviceName( VkPhysicalDevice pDev, const char* name );      // stops application in renderdoc?
 void SetLogicalDeviceName( VkDevice device, std::string_view name );
+void SetLogicalDeviceName( VkDevice device, const char* name );
 void SetInstanceName( VkInstance instance, std::string_view name );
+void SetInstanceName( VkInstance instance, const char* name );
 void SetDescriptorPoolName( VkDescriptorPool pool, std::string_view name );
+void SetDescriptorPoolName( VkDescriptorPool pool, const char* name );
 void SetQueryPoolName( VkQueryPool pool, std::string_view name );
+void SetQueryPoolName( VkQueryPool pool, const char* name );
 
 } // namespace PG::Gfx::DebugMarker
 

@@ -26,7 +26,7 @@ namespace PG::Gfx
 
 Dvar r_shaderDebugPrint( "r_shaderDebugPrint", true, "Enable/disable logging of shader debug printf messages" );
 
-#if !USING( DEVELOPMENT_BUILD )
+#if !USING( SHIP_BUILD )
 static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
     VkDebugUtilsMessageTypeFlagsEXT messageType, const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData, void* pUserData )
 {
@@ -109,7 +109,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 
     return VK_FALSE;
 }
-#endif // #if USING( DEVELOPMENT_BUILD )
+#endif // #if !USING( SHIP_BUILD )
 
 static void InitCommandObjects()
 {
@@ -146,7 +146,7 @@ static vkb::Result<vkb::Instance> GetInstance()
     PGP_MANUAL_ZONEN( __tracyInstBuild, "Instance Builder" );
     vkb::InstanceBuilder builder;
 
-#if !USING( DEVELOPMENT_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     builder.request_validation_layers( true );
     builder.set_debug_callback( DebugCallback );
     VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =

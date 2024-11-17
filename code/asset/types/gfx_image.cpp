@@ -767,7 +767,7 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
     desc.mipLevels   = static_cast<u8>( mipLevels );
     desc.usage       = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
 
-    gpuTexture = rg.device.NewTexture( desc, GetName() );
+    gpuTexture = rg.device.NewTexture( desc, GetName() ? GetName() : "" );
     rg.device.AddUploadRequest( gpuTexture, pixels );
     // free( pixels );
     pixels = nullptr;

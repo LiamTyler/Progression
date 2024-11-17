@@ -272,7 +272,7 @@ bool UILayout::FastfileLoad( Serializer* serializer )
     std::string scriptName;
     serializer->Read( scriptName );
     script = AssetManager::Get<Script>( scriptName );
-    PG_ASSERT( script, "Cannot find Script '%s' for UILayout '%s'", scriptName.c_str(), m_name );
+    PG_ASSERT( script, "Cannot find Script '%s' for UILayout '%s'", scriptName.c_str(), GetName() );
 
     return true;
 }

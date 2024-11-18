@@ -1,7 +1,6 @@
 project(Converter LANGUAGES CXX C)
 
 include(helpful_functions)
-set(CMAKE_CONFIGURATION_TYPES "Debug;Release")
 set(CODE_DIR ${PROGRESSION_DIR}/code)
 
 include(source_files)

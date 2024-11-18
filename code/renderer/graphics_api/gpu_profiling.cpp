@@ -113,7 +113,7 @@ void DrawResultsOnScreen()
     if ( !gpu_profiling_window.GetBool() )
         return;
 
-    ImGui::SetNextWindowPos( { 5, 250 }, ImGuiCond_Once );
+    ImGui::SetNextWindowPos( { 5, 170 }, ImGuiCond_Once );
     ImGui::Begin( "Profiling Stats", NULL, ImGuiWindowFlags_NoFocusOnAppearing );
 
     if ( ImGui::BeginTable( "RenderPass Times", 4, ImGuiTableFlags_Borders ) )

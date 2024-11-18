@@ -1,6 +1,6 @@
 
-NUM_LIGHTS = 10
-MODELS_PER_LIGHT = 2000
+NUM_LIGHTS = 30
+MODELS_PER_LIGHT = 300
 SPACING = 300
 
 sphereModel = AssetManager.GetModel( "uv_sphere_4k" )

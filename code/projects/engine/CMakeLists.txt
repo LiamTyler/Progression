@@ -130,6 +130,8 @@ set(
     ${CODE_DIR}/renderer/r_lighting.hpp
     ${CODE_DIR}/renderer/r_pipeline_manager.cpp
     ${CODE_DIR}/renderer/r_pipeline_manager.hpp
+    ${CODE_DIR}/renderer/r_scene.cpp
+    ${CODE_DIR}/renderer/r_scene.hpp
     ${CODE_DIR}/renderer/r_sky.cpp
     ${CODE_DIR}/renderer/r_sky.hpp
 	${CODE_DIR}/renderer/taskgraph/r_taskGraph.cpp

@@ -56,14 +56,28 @@ DEFINE_BUFFER_REFERENCE( 64 ) TransformBuffer
 
 mat4 GetModelMatrix( uint modelIdx )
 {
-    TransformBuffer tBuffer = TransformBuffer( bindlessBuffers[globals.modelMatriciesBufferIndex] );
-    return tBuffer.transforms[modelIdx];
+    TransformBuffer tBuffer = TransformBuffer( globals.modelMatriciesBufferAddress );
+    mat4 M = tBuffer.transforms[modelIdx];
+    M[0].w = 0;
+    M[1].w = 0;
+    M[2].w = 0;
+    return M;
 }
 
-mat4 GetNormalMatrix( uint modelIdx )
+// instead of using the inverse transpose of the model matrix for normals,
+// you can actually just scale the normal by 1.0/(scale*scale) before multiplying by the model matrix
+// https://lxjk.github.io/2017/10/01/Stop-Using-Normal-Matrix.html
+mat4 GetModelMatrixAndNormalScale( uint modelIdx, out vec3 normalScale )
 {
-    TransformBuffer tBuffer = TransformBuffer( bindlessBuffers[globals.normalMatriciesBufferIndex] );
-    return tBuffer.transforms[modelIdx];
+    TransformBuffer tBuffer = TransformBuffer( globals.modelMatriciesBufferAddress );
+    mat4 M = tBuffer.transforms[modelIdx];
+    normalScale.x = M[0].w;
+    normalScale.y = M[1].w;
+    normalScale.z = M[2].w;
+    M[0].w = 0;
+    M[1].w = 0;
+    M[2].w = 0;
+    return M;
 }
 
 PackedMaterial GetPackedMaterial( uint matIdx )

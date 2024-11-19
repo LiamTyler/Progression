@@ -1,7 +1,7 @@
 
-NUM_LIGHTS = 30
-MODELS_PER_LIGHT = 300
-SPACING = 300
+NUM_LIGHTS = 1
+MODELS_PER_LIGHT = 30000
+SPACING = 100
 
 sphereModel = AssetManager.GetModel( "uv_sphere_4k" )
 material = AssetManager.GetMaterial( "blue" )

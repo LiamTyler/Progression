@@ -139,15 +139,17 @@ void main()
         uint vIdx = threadID + i * MESH_SHADER_WORKGROUP_SIZE;
         if ( vIdx < meshlet.vertexCount )
         {
-            mat4 modelMatrix = GetModelMatrix( objectData.modelIdx );
-        
+            vec3 normalScale;
+            mat4 modelMatrix = GetModelMatrixAndNormalScale( objectData.modelIdx, normalScale );
+            
             vec4 localPos = vec4( GetPos( meshlet, baseBuffer, vIdx ), 1 );
             vec4 worldPos = modelMatrix * localPos;
             v_out[vIdx].worldPos = worldPos.xyz;
             gl_MeshVerticesEXT[vIdx].gl_Position = globals.VP * worldPos;
-        
+            
             vec4 localNormal = GetNormal( meshlet, baseBuffer, vIdx );
-            v_out[vIdx].normal = (GetNormalMatrix( objectData.modelIdx ) * localNormal).xyz;
+            localNormal.xyz *= normalScale;
+            v_out[vIdx].normal = (modelMatrix * localNormal).xyz;
         
             v_out[vIdx].uv = GetUV( meshlet, baseBuffer, vIdx );
         

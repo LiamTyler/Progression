@@ -55,7 +55,8 @@ bool IsMeshletVisible( const uint modelIndex, const MeshletCullData meshletCullD
     if ( !IsMeshletFrustumCullingEnabled() && !IsMeshletFrustumCullingEnabled() )
         return true;
 
-    const mat4 M         = GetModelMatrix( modelIndex );
+    vec3 normalScale;
+    const mat4 M         = GetModelMatrixAndNormalScale( modelIndex, normalScale );
     vec3 worldPos        = vec3( M * vec4( meshletCullData.position, 1 ) );
     vec3 componentRadius = mat3( M ) * vec3( meshletCullData.radius );
     float worldRadius    = max( componentRadius.x, max( componentRadius.y, componentRadius.z ) );
@@ -68,9 +69,8 @@ bool IsMeshletVisible( const uint modelIndex, const MeshletCullData meshletCullD
 
     if ( IsMeshletBackfaceCullingEnabled() )
     {
-        vec3 worldApex = vec3( M * vec4( meshletCullData.coneApex, 1 ) );
-        const mat4 N       = GetNormalMatrix( modelIndex );
-        vec3 worldConeAxis = normalize( mat3( N ) * meshletCullData.coneAxis );
+        vec3 worldApex     = vec3( M * vec4( meshletCullData.coneApex, 1 ) );
+        vec3 worldConeAxis = normalize( mat3( M ) * (normalScale * meshletCullData.coneAxis) );
         if ( dot( normalize( worldApex - globals.cullingCameraPos.xyz ), worldConeAxis ) >= meshletCullData.coneCutoff )
             return false;
     }

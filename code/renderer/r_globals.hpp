@@ -32,7 +32,6 @@ struct FrameData
     Buffer meshDrawDataBuffer;
     Buffer meshCullData;
     Buffer modelMatricesBuffer;
-    Buffer normalMatricesBuffer;
     Buffer sceneGlobalsBuffer;
     u32 numMeshes;
 };

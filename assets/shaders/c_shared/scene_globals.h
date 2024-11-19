@@ -17,9 +17,8 @@ struct SceneGlobals
     vec4 frustumPlanes[6];
     vec4 cullingCameraPos;
     
+    uint64_t modelMatriciesBufferAddress;
     uint packedCullingDvarBools;
-    uint modelMatriciesBufferIndex;
-    uint normalMatriciesBufferIndex;
     uint r_tonemap;
 
     uint64_t lightBuffer;

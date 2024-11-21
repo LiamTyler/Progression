@@ -13,6 +13,7 @@ struct Options
 {
     std::string rootDir;
     bool ignoreNameCollisions;
+    bool printModelInfo;
     u32 floatPrecision;
 };
 

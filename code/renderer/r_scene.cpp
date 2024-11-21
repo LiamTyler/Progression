@@ -1,5 +1,6 @@
 #include "r_scene.hpp"
 #include "debug_draw.hpp"
+#include "debug_marker.hpp"
 #include "r_dvars.hpp"
 #include "r_lighting.hpp"
 #include "r_pipeline_manager.hpp"
@@ -290,10 +291,13 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
                 PG_DEBUG_MARKER_INSERT_CMDBUF( cmdBuf, "Draw '%s' : '%s'", model->GetName(), mesh.name.c_str() );
 #if USING( TASK_SHADER_MAIN_DRAW )
-                cmdBuf.DrawMeshTasks_AutoSized( mesh.numMeshlets, 1, 1 );
+                u32 numWorkgroups = ( mesh.numMeshlets + TASK_SHADER_WORKGROUP_SIZE - 1 ) / TASK_SHADER_WORKGROUP_SIZE;
 #else  // #if USING( TASK_SHADER_MAIN_DRAW )
-                cmdBuf.DrawMeshTasks( mesh.numMeshlets, 1, 1 );
+                u32 numWorkgroups = mesh.numMeshlets;
 #endif // #else // #if USING( TASK_SHADER_MAIN_DRAW )
+                u32 groupsY = ( numWorkgroups + 65535 ) / 65536;
+                u32 groupsX = ( numWorkgroups + groupsY - 1 ) / groupsY;
+                cmdBuf.DrawMeshTasks( groupsX, groupsY, 1 );
             }
             meshNum += meshesToAdd;
 

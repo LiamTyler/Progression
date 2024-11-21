@@ -48,7 +48,23 @@ void UploadManager::Free()
 
 void UploadManager::AddRequest( const UploadRequest& req, const char* data )
 {
-    PG_ASSERT( req.size < BUFF_SIZE, "either piecemeal it, or use larger buffer(s)" );
+    PG_ASSERT( req.size <= BUFF_SIZE || req.type == UploadCommandType::BUFFER_UPLOAD,
+        "Currently only buffer uploads can be broken into sub-pieces" );
+    if ( req.size > BUFF_SIZE )
+    {
+        u32 numPieces          = ( req.size + BUFF_SIZE - 1 ) / BUFF_SIZE;
+        UploadRequest pieceReq = req;
+        u64 subOffset          = 0;
+        for ( u32 i = 0; i < numPieces; ++i )
+        {
+            pieceReq.offset = req.offset + subOffset;
+            pieceReq.size   = Min( BUFF_SIZE, req.size - i * BUFF_SIZE );
+            AddRequest( pieceReq, data + subOffset );
+            subOffset += BUFF_SIZE;
+        }
+        return;
+    }
+
     if ( currentSizes[currentBufferIdx] + req.size > BUFF_SIZE )
     {
         SwapBuffers();

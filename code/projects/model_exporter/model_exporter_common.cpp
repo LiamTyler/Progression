@@ -8,6 +8,7 @@ using namespace PG;
 Options g_options = {
     .rootDir              = "",
     .ignoreNameCollisions = false,
+    .printModelInfo       = false,
     .floatPrecision       = 6,
 };
 

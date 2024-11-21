@@ -133,6 +133,7 @@ bool ModelParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "filename",                []( cjval v, ModelCreateInfo& i ) { i.filename = ParseString( v ); } },
         { "flipTexCoordsVertically", []( cjval v, ModelCreateInfo& i ) { i.flipTexCoordsVertically = ParseBool( v ); } },
         { "recalculateNormals",      []( cjval v, ModelCreateInfo& i ) { i.recalculateNormals = ParseBool( v ); } },
+        { "centerModel",             []( cjval v, ModelCreateInfo& i ) { i.centerModel = ParseBool( v ); } },
     });
     mapping.ForEachMember( value, *info );
 

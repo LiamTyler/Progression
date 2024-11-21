@@ -84,7 +84,7 @@ layout(local_size_x = TASK_SHADER_WORKGROUP_SIZE) in;
 
 void main()
 {
-    const uint baseMeshletID   = gl_WorkGroupID.x * TASK_SHADER_WORKGROUP_SIZE;
+    const uint baseMeshletID   = (gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x) * TASK_SHADER_WORKGROUP_SIZE;
     const uint localMeshletID  = gl_LocalInvocationID.x;
     const uint globalMeshletID = baseMeshletID + localMeshletID;
     

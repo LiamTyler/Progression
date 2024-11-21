@@ -13,4 +13,4 @@ struct MaterialContext
     std::string file;
 };
 
-bool OutputMaterial( const MaterialContext& context, std::string& outputJSON );
+bool OutputMaterial( const MaterialContext& context, std::string& outputJSON, std::string& outMaterialName );

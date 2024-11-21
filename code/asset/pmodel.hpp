@@ -12,6 +12,7 @@ enum class PModelVersionNum : u16
 {
     BITANGENT_SIGNS      = 1,
     VERTEX_DATA_TOGETHER = 2,
+    MODEL_AABB           = 3,
 
     TOTAL,
     CURRENT_VERSION        = TOTAL - 1,
@@ -52,12 +53,20 @@ public:
         bool hasBoneWeights;
     };
 
+    vec3 aabbMin;
+    vec3 aabbMax;
     std::vector<Mesh> meshes;
 
     bool Load( std::string_view filename );
-    bool Save( std::string_view filename, u32 floatPrecision = 6, bool logProgress = true ) const;
+    bool Save( std::string_view filename, u32 floatPrecision = 6, bool logProgress = true );
+
+    void CalculateAABB();
+    void PrintInfo( std::string tabLevel = "" ) const;
+    PModelVersionNum GetLoadedVersionNum() const { return m_loadedVersionNum; }
 
 private:
+    PModelVersionNum m_loadedVersionNum;
+
     bool LoadBinary( std::string_view filename );
     bool LoadText( std::string_view filename );
 

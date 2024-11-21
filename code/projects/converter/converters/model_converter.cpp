@@ -23,6 +23,7 @@ std::string ModelConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     size_t hash           = Hash( info->filename );
     HashCombine( hash, info->flipTexCoordsVertically );
     HashCombine( hash, info->recalculateNormals );
+    HashCombine( hash, info->centerModel );
     HashCombine( hash, MAX_VERTS_PER_MESHLET );
     HashCombine( hash, MAX_TRIS_PER_MESHLET );
     cacheName += "_" + std::to_string( hash );

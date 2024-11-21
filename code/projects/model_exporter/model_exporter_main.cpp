@@ -216,7 +216,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     for ( u32 i = 0; i < scene->mNumMaterials; ++i )
     {
         std::string matName = scene->mMaterials[i]->GetName().C_Str();
-        if ( matName == "DefaultMaterial" || matName == "default" || ( isOBJ && matName == "None" ) )
+        if ( matName == "DefaultMaterial" || ( isOBJ && matName == "None" ) )
             matName = "default";
         else if ( matName == "" )
             matName = "material_" + std::to_string( i );
@@ -230,13 +230,16 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     matContext.scene     = scene;
     matContext.file      = filename;
     matContext.modelName = modelName;
+    std::unordered_map<std::string, std::string> matNameRemap;
     for ( u32 i = 0; i < scene->mNumMaterials; ++i )
     {
         if ( materialNames[i] != "default" )
         {
             matContext.assimpMat    = scene->mMaterials[i];
             matContext.localMatName = materialNames[i];
-            OutputMaterial( matContext, outputJSON );
+            std::string uniqueMaterialName;
+            OutputMaterial( matContext, outputJSON, uniqueMaterialName );
+            matNameRemap[matContext.localMatName] = uniqueMaterialName;
         }
     }
 
@@ -245,72 +248,25 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     aiNode* root = scene->mRootNode;
     ParseNode( filename, materialNames, scene, scene->mRootNode, mat4( 1.0f ), pmodel );
 
-    /*
-    pmodel.meshes.resize( scene->mNumMeshes );
-    std::string stem = GetFilenameStem( filename );
-    for ( u32 meshIdx = 0; meshIdx < scene->mNumMeshes; ++meshIdx )
-    {
-        const aiMesh* paiMesh = scene->mMeshes[meshIdx];
-        PModel::Mesh& pgMesh = pmodel.meshes[meshIdx];
-        pgMesh.name = paiMesh->mName.C_Str();
-        if ( pgMesh.name.empty() )
-        {
-            pgMesh.name = stem + "_mesh" + std::to_string( meshIdx );
-            LOG_WARN( "Mesh %u in file %s does not have a name. Assigning name %s", meshIdx, filename.c_str(), pgMesh.name.c_str() );
-        }
-        pgMesh.materialName = materialNames[paiMesh->mMaterialIndex];
-        pgMesh.numColorChannels = paiMesh->GetNumColorChannels();
-        pgMesh.numUVChannels = paiMesh->GetNumUVChannels();
-        pgMesh.hasTangents = paiMesh->mTangents && paiMesh->mBitangents;
-        pgMesh.hasBoneWeights = paiMesh->HasBones();
-
-        if ( paiMesh->mNumAnimMeshes )
-        {
-            LOG_WARN( "Mesh %u '%s' in file %s contains attachment/anim meshes. Currently not supported",
-                meshIdx, filename.c_str(), pgMesh.name.c_str() );
-        }
-
-        for ( u32 uvSetIdx = 0; uvSetIdx < AI_MAX_NUMBER_OF_TEXTURECOORDS; ++uvSetIdx )
-        {
-            if ( !paiMesh->HasTextureCoords( uvSetIdx ) || paiMesh->mNumUVComponents[uvSetIdx] == 2 )
-                continue;
-
-            if ( paiMesh->HasTextureCoordsName( uvSetIdx ) )
-            {
-                LOG_WARN( "Mesh %u '%s' in file %s: uv set %u '%s' has %u channels. Expecting 2, will ignore this uv set", meshIdx,
-                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->GetTextureCoordsName( uvSetIdx )->C_Str(),
-    paiMesh->mNumUVComponents[uvSetIdx] );
-            }
-            else
-            {
-                LOG_WARN( "Mesh %u '%s' in file %s: uv set %u (unnamed) has %u channels. Expecting 2, will ignore this uv set", meshIdx,
-                    filename.c_str(), pgMesh.name.c_str(), uvSetIdx, paiMesh->mNumUVComponents[uvSetIdx] );
-            }
-        }
-
-        ProcessVertices( paiMesh, pgMesh );
-
-        pgMesh.indices.resize( paiMesh->mNumFaces * 3 );
-        for ( u32 faceIdx = 0; faceIdx < paiMesh->mNumFaces; ++faceIdx )
-        {
-            const aiFace& face = paiMesh->mFaces[faceIdx];
-            pgMesh.indices[faceIdx * 3 + 0] = face.mIndices[0];
-            pgMesh.indices[faceIdx * 3 + 1] = face.mIndices[1];
-            pgMesh.indices[faceIdx * 3 + 2] = face.mIndices[2];
-        }
-    }
-    */
-
     size_t totalVerts = 0;
     size_t totalTris  = 0;
-    for ( const PModel::Mesh& mesh : pmodel.meshes )
+    for ( PModel::Mesh& mesh : pmodel.meshes )
     {
+        mesh.materialName = matNameRemap[mesh.materialName];
         totalVerts += mesh.vertices.size();
         totalTris += mesh.indices.size() / 3;
     }
 
-    LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u", filename.c_str(), pmodel.meshes.size(),
-        materialNames.size(), totalTris, totalVerts );
+    if ( g_options.printModelInfo )
+    {
+        LOG( "Model %s:", filename.c_str() );
+        pmodel.PrintInfo();
+    }
+    else
+    {
+        LOG( "Model %s\n\tMeshes: %u, Materials: %u, Triangles: %u\n\tVertices: %u", filename.c_str(), pmodel.meshes.size(),
+            materialNames.size(), totalTris, totalVerts );
+    }
 
     std::string outputModelFilename = GetFilenameMinusExtension( filename ) + ".pmodelb";
     if ( !pmodel.Save( outputModelFilename, g_options.floatPrecision, true ) )
@@ -333,32 +289,49 @@ static void DisplayHelp()
                "\tIf PATH is .pmodelb file, then it will save out the corresponding .pmodelt file.\n"
                "\tIf PATH is .pmodelt file, then it will save out the corresponding .pmodelb file.\n"
                "Options\n"
-               "  --floatPrecision [1-9] Specify how many float sig figs to write out. Default is 6 (max is 9)\n"
+               "  --convert              Saves out the opposite pmodel format. Ex: if the PATH is a .pmodelb file, save out the .pmodelt\n"
+               "  --floatPrecision [1-9] Specify how many float sig figs to write out text files only. Default is 6 (max is 9)\n"
                "  --help                 Print this message and exit\n"
                "  --ignoreCollisions     Skip renaming any assets that have the same name as an existing asset in the database\n"
+               "  --printInfo            Print out detailed info for the model\n"
+               "  --renameMat            Looks for a file named 'renameMat.txt' in the same directory, which contains all of the material\n"
+               "                             renames to perform. Each rename takes up 3 lines: the old name, the new name, and a blank "
+               "line for readability\n"
                "  --texDir [path]        Specify a different directory to use to search for the textures\n";
     std::cout << msg << std::endl;
 }
 
-static bool ParseCommandLineArgs( int argc, char** argv, std::string& path )
+struct LocalOptions
+{
+    bool convert        = false;
+    bool renameMaterial = false;
+};
+
+static bool ParseCommandLineArgs( int argc, char** argv, LocalOptions& localOptions, std::string& path )
 {
     static struct option long_options[] = {
+        {"convert",          no_argument,       0, 'c'},
         {"floatPrecision",   required_argument, 0, 'f'},
         {"ignoreCollisions", no_argument,       0, 'i'},
         {"help",             no_argument,       0, 'h'},
+        {"printInfo",        no_argument,       0, 'p'},
+        {"renameMat",        no_argument,       0, 'r'},
         {"texDir",           required_argument, 0, 't'},
         {0,                  0,                 0, 0  }
     };
 
     i32 option_index = 0;
     i32 c            = -1;
-    while ( ( c = getopt_long( argc, argv, "f:iht:", long_options, &option_index ) ) != -1 )
+    while ( ( c = getopt_long( argc, argv, "cf:ihprt:", long_options, &option_index ) ) != -1 )
     {
         switch ( c )
         {
+        case 'c': localOptions.convert = true; break;
         case 'f': g_options.floatPrecision = std::stoul( optarg ); break;
         case 'h': DisplayHelp(); return false;
         case 'i': g_options.ignoreNameCollisions = true; break;
+        case 'p': g_options.printModelInfo = true; break;
+        case 'r': localOptions.renameMaterial = true; break;
         case 't': g_textureSearchDir = optarg; break;
         default: LOG_ERR( "Invalid option, try 'ModelExporter --help' for more information" ); return false;
         }
@@ -390,6 +363,58 @@ static void ConvertPModelFiletype( const std::string& filename )
     pmodel.Save( newFilename, g_options.floatPrecision );
 }
 
+static void PModelMaterialRename( const std::string& pmodelFilename )
+{
+    bool isText = GetFileExtension( pmodelFilename ) == ".pmodelt";
+    PModel pmodel;
+    if ( !pmodel.Load( pmodelFilename ) )
+    {
+        LOG_ERR( "Failed to load pmodel file '%s'", pmodelFilename.c_str() );
+        return;
+    }
+
+    std::string renameFilename = GetParentPath( pmodelFilename ) + "renameMat.txt";
+    std::ifstream in( renameFilename );
+    if ( !in )
+    {
+        LOG_ERR( "Failed to open renameMat.txt file. Must be in same directory as pmodel file" );
+        return;
+    }
+    std::vector<std::string> renames;
+    renames.reserve( 100 );
+
+    std::string line;
+    while ( std::getline( in, line ) )
+    {
+        std::string noWhitespace = StripWhitespace( line );
+        if ( noWhitespace.empty() )
+            continue;
+
+        renames.push_back( line );
+    }
+    if ( renames.empty() || renames.size() % 2 )
+    {
+        LOG_ERR( "renameMat.txt must contain a non-zero number of renames, and each rename must be a completed pair!" );
+        return;
+    }
+
+    std::unordered_map<std::string, std::string> renameMap;
+    for ( size_t i = 0; i < renames.size(); i += 2 )
+    {
+        renameMap[renames[i]] = renames[i + 1];
+    }
+
+    for ( PModel::Mesh& mesh : pmodel.meshes )
+    {
+        if ( !renameMap.contains( mesh.materialName ) )
+            continue;
+
+        mesh.materialName = renameMap[mesh.materialName];
+    }
+
+    pmodel.Save( pmodelFilename, g_options.floatPrecision );
+}
+
 int main( int argc, char* argv[] )
 {
     if ( argc < 2 )
@@ -401,16 +426,38 @@ int main( int argc, char* argv[] )
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
 
+    LocalOptions localOptions = {};
     std::string path;
-    if ( !ParseCommandLineArgs( argc, argv, path ) )
+    if ( !ParseCommandLineArgs( argc, argv, localOptions, path ) )
     {
         DisplayHelp();
         return 0;
     }
 
-    if ( GetFileExtension( path ) == ".pmodelt" || GetFileExtension( path ) == ".pmodelb" )
+    bool isPModelInput = GetFileExtension( path ) == ".pmodelt" || GetFileExtension( path ) == ".pmodelb";
+    if ( localOptions.convert )
     {
-        ConvertPModelFiletype( path );
+        if ( !isPModelInput )
+            LOG_ERR( "When converting pmodel files, the input must be a single .pmodelb or .pmodelt file!" );
+        else
+            ConvertPModelFiletype( path );
+        return 0;
+    }
+    if ( localOptions.renameMaterial )
+    {
+        if ( !isPModelInput )
+            LOG_ERR( "When renaming materials, the input must be a single .pmodelb or .pmodelt file!" );
+        else
+            PModelMaterialRename( path );
+        return 0;
+    }
+    if ( isPModelInput && g_options.printModelInfo )
+    {
+        PModel pmodel;
+        if ( !pmodel.Load( path ) )
+            LOG_ERR( "Failed to load pmodel file '%s'", path.c_str() );
+        else
+            pmodel.PrintInfo();
         return 0;
     }
 

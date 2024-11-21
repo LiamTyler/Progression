@@ -42,11 +42,12 @@ void main()
     {
         MeshletDrawCommand cmd;
 #if TASK_SHADER_MAIN_DRAW
-        cmd.groupCountX = ( cullData.numMeshlets + TASK_SHADER_WORKGROUP_SIZE - 1 ) / TASK_SHADER_WORKGROUP_SIZE;
+        uint numWorkgroups = ( cullData.numMeshlets + TASK_SHADER_WORKGROUP_SIZE - 1 ) / TASK_SHADER_WORKGROUP_SIZE;
 #else // #if TASK_SHADER_MAIN_DRAW
-        cmd.groupCountX = cullData.numMeshlets;
+        uint numWorkgroups = cullData.numMeshlets;
 #endif // #else // #if TASK_SHADER_MAIN_DRAW
-        cmd.groupCountY = 1;
+        cmd.groupCountY = ( numWorkgroups + 65535 ) / 65536;
+        cmd.groupCountX = ( numWorkgroups + cmd.groupCountY - 1 ) / cmd.groupCountY;
         cmd.groupCountZ = 1;
         cmd.modelIndex  = cullData.modelIndex;
         cmd.meshIndex   = meshIdx;

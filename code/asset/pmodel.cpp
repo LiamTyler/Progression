@@ -54,12 +54,11 @@ bool PModel::LoadBinary( std::string_view filename )
         return false;
     }
 
-    PModelVersionNum version;
-    serializer.Read( version );
-    if ( version < PModelVersionNum::LAST_SUPPORTED_VERSION )
+    serializer.Read( m_loadedVersionNum );
+    if ( m_loadedVersionNum < PModelVersionNum::LAST_SUPPORTED_VERSION )
     {
         LOG_ERR( "PModelb file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.data(),
-            version );
+            m_loadedVersionNum );
         return false;
     }
 
@@ -70,6 +69,12 @@ bool PModel::LoadBinary( std::string_view filename )
         u16 strLen;
         serializer.Read( strLen );
         serializer.Skip( strLen );
+    }
+
+    if ( m_loadedVersionNum >= PModelVersionNum::MODEL_AABB )
+    {
+        serializer.Read( aabbMin );
+        serializer.Read( aabbMax );
     }
 
     meshes.resize( serializer.Read<u32>() );
@@ -135,10 +140,11 @@ bool PModel::LoadText( std::string_view filename )
     in >> tmp; // pmodelFormat
     u16 version;
     in >> version;
-    if ( version < Underlying( PModelVersionNum::LAST_SUPPORTED_VERSION ) )
+    m_loadedVersionNum = PModelVersionNum( version );
+    if ( m_loadedVersionNum < PModelVersionNum::LAST_SUPPORTED_VERSION )
     {
         LOG_ERR( "PModelt file %s contains a version (%u) that is no longer supported. Please re-export the source file", filename.data(),
-            version );
+            m_loadedVersionNum );
         return false;
     }
 
@@ -159,6 +165,16 @@ bool PModel::LoadText( std::string_view filename )
     {
         std::getline( in, line );
     } while ( !line.empty() );
+
+    if ( m_loadedVersionNum >= PModelVersionNum::MODEL_AABB )
+    {
+        // Model AABB Min: float float float
+        std::getline( in, line );
+        sscanf( line.c_str(), "%s %s %s %f %f %f", tmpBuffer, tmpBuffer, tmpBuffer, &aabbMin.x, &aabbMin.y, &aabbMin.z );
+        // Model AABB Max: float float float
+        std::getline( in, line );
+        sscanf( line.c_str(), "%s %s %s %f %f %f", tmpBuffer, tmpBuffer, tmpBuffer, &aabbMax.x, &aabbMax.y, &aabbMax.z );
+    }
 
     while ( std::getline( in, line ) && line.substr( 0, 4 ) == "Mesh" )
     {
@@ -276,6 +292,8 @@ bool PModel::LoadText( std::string_view filename )
 
 bool PModel::Load( std::string_view filename )
 {
+    aabbMin         = vec3( FLT_MAX );
+    aabbMax         = vec3( -FLT_MAX );
     std::string ext = GetFileExtension( filename.data() );
     if ( ext == ".pmodelt" )
         return LoadText( filename );
@@ -338,10 +356,16 @@ bool PModel::SaveText( std::string_view filename, u32 f32Precision, bool logProg
     }
     outFile << "\n";
 
+    char buffer[1024];
+
+    sprintf( buffer, "Model AABB Min: %g %g %g\n", aabbMin.x, aabbMin.y, aabbMin.z );
+    sprintf( buffer, "Model AABB Max: %g %g %g\n", aabbMax.x, aabbMax.y, aabbMax.z );
+    outFile << buffer;
+
     size_t vertsWritten          = 0;
     const size_t tenPercentVerts = totalVerts / 10;
     i32 lastPercent              = 0;
-    char buffer[1024];
+
     for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
     {
         const PModel::Mesh& m = meshes[meshIdx];
@@ -427,6 +451,9 @@ bool PModel::SaveBinary( std::string_view filename ) const
         serializer.Write( matName.data(), matName.length() );
     }
 
+    serializer.Write( aabbMin );
+    serializer.Write( aabbMax );
+
     serializer.Write( (u32)meshes.size() );
     for ( const Mesh& mesh : meshes )
     {
@@ -482,8 +509,9 @@ bool PModel::SaveBinary( std::string_view filename ) const
     return true;
 }
 
-bool PModel::Save( std::string_view filename, u32 f32Precision, bool logProgress ) const
+bool PModel::Save( std::string_view filename, u32 f32Precision, bool logProgress )
 {
+    CalculateAABB();
     std::string ext = GetFileExtension( filename.data() );
     if ( ext == ".pmodelt" )
         return SaveText( filename, f32Precision, logProgress );
@@ -493,6 +521,79 @@ bool PModel::Save( std::string_view filename, u32 f32Precision, bool logProgress
     LOG_ERR( "PModel::Save: Invalid file extension '%s'", ext.c_str() );
 
     return false;
+}
+
+void PModel::CalculateAABB()
+{
+    aabbMin = vec3( FLT_MAX );
+    aabbMax = vec3( -FLT_MAX );
+    for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
+    {
+        const Mesh& m = meshes[meshIdx];
+        for ( size_t vIdx = 0; vIdx < m.vertices.size(); ++vIdx )
+        {
+            aabbMin = Min( aabbMin, m.vertices[vIdx].pos );
+            aabbMax = Max( aabbMax, m.vertices[vIdx].pos );
+        }
+    }
+}
+
+void PModel::PrintInfo( std::string tabLevel ) const
+{
+    std::set<std::string> materialSet;
+    size_t numTris    = 0;
+    size_t numVerts   = 0;
+    size_t totalBytes = 0;
+    for ( const Mesh& mesh : meshes )
+    {
+        materialSet.insert( mesh.materialName );
+        numTris += mesh.indices.size() / 3;
+        numVerts += mesh.vertices.size();
+    }
+
+    const char* tab = tabLevel.c_str();
+    LOG( "%sNum meshes: %zu", tab, meshes.size() );
+    LOG( "%sNum unique materials: %zu", tab, materialSet.size() );
+    LOG( "%sNum tris: %zu", tab, numTris );
+    LOG( "%sNum verts: %zu", tab, numVerts );
+
+    for ( size_t meshIdx = 0; meshIdx < meshes.size(); ++meshIdx )
+    {
+        const Mesh& m = meshes[meshIdx];
+        LOG( "%sMesh[%zu]: '%s'", tab, meshIdx, m.name.c_str() );
+        LOG( "%s    Material: '%s'", tab, m.materialName.c_str() );
+        LOG( "%s    Num tris: %zu", tab, m.indices.size() / 3 );
+        LOG( "%s    Num verts: %zu", tab, m.vertices.size() );
+        LOG( "%s    Num uv channels: %u", tab, m.numUVChannels );
+        LOG( "%s    Num color channels: %u", tab, m.numUVChannels );
+        LOG( "%s    Has tangents: %u", tab, m.hasTangents );
+        LOG( "%s    Has bone weights: %u", tab, m.hasBoneWeights );
+
+        size_t first32Index = 0;
+        while ( first32Index < m.indices.size() && m.indices[first32Index] <= UINT16_MAX )
+            ++first32Index;
+
+        size_t meshBytes = 0;
+        meshBytes += first32Index * sizeof( u16 ) + ( m.indices.size() - first32Index ) * sizeof( u32 );
+        meshBytes += m.vertices.size() * 2 * sizeof( vec3 ) + sizeof( vec3 );
+        if ( m.hasTangents )
+            meshBytes += m.vertices.size() * 2 * sizeof( vec3 );
+        meshBytes += m.vertices.size() * m.numUVChannels * sizeof( vec2 );
+        meshBytes += m.vertices.size() * m.numColorChannels * sizeof( vec4 );
+
+        vec3 meshAabbMin( FLT_MAX );
+        vec3 meshAabbMax( -FLT_MAX );
+        for ( size_t vIdx = 0; vIdx < m.vertices.size(); ++vIdx )
+        {
+            meshAabbMin = Min( meshAabbMin, m.vertices[vIdx].pos );
+            meshAabbMax = Max( meshAabbMax, m.vertices[vIdx].pos );
+            meshBytes += m.vertices[vIdx].numBones * ( sizeof( u32 ) + sizeof( f32 ) );
+        }
+
+        LOG( "%s    AABB: [%f, %f, %f] - [%f %f %f]", tab, meshAabbMin.x, meshAabbMin.y, meshAabbMin.z, meshAabbMax.x, meshAabbMax.y,
+            meshAabbMax.z );
+        LOG( "%s    Memory: %f MB", tab, meshBytes / 1024.0 / 1024.0 );
+    }
 }
 
 std::vector<std::string> GetUsedMaterialsPModel( const std::string& filename )

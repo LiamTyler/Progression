@@ -112,7 +112,8 @@ void main()
 #if HAS_TASK_SHADER
     const uint meshletID = IN.baseID + IN.deltaIDs[gl_WorkGroupID.x];
 #else // #if HAS_TASK_SHADER
-    const uint meshletID = gl_WorkGroupID.x;
+    //const uint meshletID = gl_WorkGroupID.x;
+    const uint meshletID = (gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x) * TASK_SHADER_WORKGROUP_SIZE;
 #endif // #else // #if HAS_TASK_SHADER
 
 #if INDIRECT_MAIN_DRAW

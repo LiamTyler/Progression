@@ -56,6 +56,7 @@ struct ModelCreateInfo : public BaseAssetCreateInfo
     std::string filename;
     bool flipTexCoordsVertically = false;
     bool recalculateNormals      = false;
+    bool centerModel             = false;
 };
 
 std::string GetAbsPath_ModelFilename( const std::string& filename );

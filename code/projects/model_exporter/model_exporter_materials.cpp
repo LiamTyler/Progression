@@ -127,7 +127,7 @@ const f32 DEFAULT_METALLIC_TINT  = 1.0f;
 const f32 DEFAULT_ROUGHNESS_TINT = 1.0f;
 const vec3 DEFAULT_EMISSIVE_TINT = vec3( 0 );
 
-bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
+bool OutputMaterial( const MaterialContext& context, std::string& outputJSON, std::string& outMaterialName )
 {
     // gltf assumes packed metallic roughness textures with metallic in G and roughness in B
     bool sourceIsGLTF = GetFileExtension( context.file ) == ".gltf";
@@ -136,6 +136,7 @@ bool OutputMaterial( const MaterialContext& context, std::string& outputJSON )
     std::vector<std::string> matSettings;
     std::string matName = GetUniqueAssetName( ASSET_TYPE_MATERIAL, context.localMatName );
     AddJSON( matSettings, "name", matName );
+    outMaterialName = matName;
 
     auto albedoTint = GetVec3( context.assimpMat, AI_MATKEY_BASE_COLOR );
     if ( !albedoTint )

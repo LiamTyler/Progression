@@ -12,11 +12,13 @@
 /tests/
 /*.spv
 /.vscode/
-/Sponza-master/
-/assets/models/sponza_intel/*
 /code/external/bc7enc_rdo/bc7e_ispc*
 /imgui.ini
+
+/Sponza-master/
+/assets/models/sponza_intel/*
 /assets/models/planter_box_01/
+/assets/models/classics/lucy.pmodelb
 
 __pycache__
 

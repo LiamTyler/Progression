@@ -34,6 +34,22 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     if ( !pmodel.Load( GetAbsPath_ModelFilename( createInfo->filename ) ) )
         return false;
 
+    if ( createInfo->centerModel )
+    {
+        vec3 aabbMin( FLT_MAX ), aabbMax( -FLT_MAX );
+        if ( pmodel.GetLoadedVersionNum() < PModelVersionNum::MODEL_AABB )
+            pmodel.CalculateAABB();
+
+        aabbMin     = pmodel.aabbMin;
+        aabbMax     = pmodel.aabbMax;
+        vec3 center = ( aabbMin + aabbMax ) / 2.0f;
+        for ( PModel::Mesh& pMesh : pmodel.meshes )
+        {
+            for ( PModel::Vertex& v : pMesh.vertices )
+                v.pos -= center;
+        }
+    }
+
     meshes.resize( pmodel.meshes.size() );
     meshAABBs.resize( pmodel.meshes.size() );
     for ( u32 meshIdx = 0; meshIdx < (u32)meshes.size(); ++meshIdx )
@@ -60,12 +76,13 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             pMesh.indices.size(), &pMesh.vertices[0].pos.x, pMesh.vertices.size(), sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET,
             MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
 
-        if ( meshletCount > 65535 )
-        {
-            LOG_ERR( "About 50%% of gpus have a maxMeshWorkGroupCount.x of 65535. To support this mesh, either add code for splitting the "
-                     "mesh based on this count, or adding runtime support for dispatching with the Y/Z dimension as well" );
-            return false;
-        }
+        // if ( meshletCount > 65535 )
+        //{
+        //     LOG_ERR( "About 50%% of gpus have a maxMeshWorkGroupCount.x of 65535. To support this mesh, either add code for splitting the
+        //     "
+        //              "mesh based on this count, or adding runtime support for dispatching with the Y/Z dimension as well" );
+        //     return false;
+        // }
 
         m.meshlets.resize( meshletCount );
         m.meshletCullDatas.resize( meshletCount );
@@ -246,7 +263,6 @@ bool Model::FastfileLoad( Serializer* serializer )
         mesh.numMeshlets  = static_cast<u32>( numMeshlets );
         mesh.hasTexCoords = numTexCoords != 0;
         mesh.hasTangents  = numTan != 0;
-        PG_ASSERT( numMeshlets <= 65535, "Vulkan limits. Split mesh during converter if this isn't true" );
 
         size_t totalVertexSizeInBytes = 0;
         totalVertexSizeInBytes += numPos * sizeof( vec3 );

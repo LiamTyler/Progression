@@ -18,8 +18,8 @@
 
 VkDebugUtilsMessengerEXT s_debugMessenger;
 
-// #define SHADER_DEBUG_PRINTF USE_IF( USING( DEVELOPMENT_BUILD ) )
-#define SHADER_DEBUG_PRINTF NOT_IN_USE
+#define SHADER_DEBUG_PRINTF USE_IF( USING( DEVELOPMENT_BUILD ) )
+// #define SHADER_DEBUG_PRINTF NOT_IN_USE
 
 namespace PG::Gfx
 {

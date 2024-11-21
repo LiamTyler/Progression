@@ -161,17 +161,20 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
                 if ( modelRenderer.materials[i]->type == MaterialType::DECAL )
                     continue;
 
+                const Mesh& mesh = model->meshes[i];
+
                 GpuData::PerObjectData constants;
-                constants.bindlessRangeStart = model->meshes[i].bindlessBuffersSlot;
+                constants.bindlessRangeStart = mesh.bindlessBuffersSlot;
                 constants.modelIdx           = modelNum;
                 constants.materialIdx        = modelRenderer.materials[i]->GetBindlessIndex();
+                constants.numMeshlets        = mesh.numMeshlets;
                 meshDrawData[meshNum + i]    = constants;
 
                 GpuData::MeshCullData cData;
                 cData.aabb.min        = model->meshAABBs[i].min;
                 cData.aabb.max        = model->meshAABBs[i].max;
                 cData.modelIndex      = modelNum;
-                cData.numMeshlets     = model->meshes[i].numMeshlets;
+                cData.numMeshlets     = mesh.numMeshlets;
                 cullData[meshNum + i] = cData;
 
 #if USING( DEVELOPMENT_BUILD )
@@ -324,7 +327,6 @@ void AddSceneRenderTasks( TaskGraphBuilder& builder, TGBTextureRef& litOutput, T
     gTask->AddBufferInput( indirectCountBuff, BufferUsage::INDIRECT );
     gTask->AddBufferInput( indirectMeshletDrawBuff, BufferUsage::INDIRECT );
 #endif // #if USING( INDIRECT_MAIN_DRAW )
-
     litOutput  = gTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE() );
     sceneDepth = gTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     gTask->SetFunction( MeshDrawFunc );

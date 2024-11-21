@@ -17,21 +17,12 @@ layout( push_constant ) uniform PushConstants
 
 void main() 
 {
-    uint numDraws = pConstants.countBuffer.data[0];
-    
-    debugPrintfEXT("#2D(0.92,0)Num Draw Calls: %u", numDraws );
-    //for ( uint i = 0; i < numDraws; ++i )
-    //{
-    //    debugPrintfEXT("  Draw[%u]", i );
-    //    //debugPrintfEXT("    groupsX: %u",   pConstants.meshDrawCmdBuffer.data[4 * i + 0] );
-    //    //debugPrintfEXT("    groupsY: %u",   pConstants.meshDrawCmdBuffer.data[4 * i + 1] );
-    //    //debugPrintfEXT("    groupsZ: %u",   pConstants.meshDrawCmdBuffer.data[4 * i + 2] );
-    //    //debugPrintfEXT("    meshIndex: %u", pConstants.meshDrawCmdBuffer.data[4 * i + 3] );
-    //    MeshletDrawCommand cmd = pConstants.meshDrawCmdBuffer.data[i];
-    //    debugPrintfEXT("    groupsX: %u",   cmd.groupCountX );
-    //    debugPrintfEXT("    groupsY: %u",   cmd.groupCountY );
-    //    debugPrintfEXT("    groupsZ: %u",   cmd.groupCountZ );
-    //    debugPrintfEXT("    meshIndex: %u", cmd.meshIndex );
-    //}
-    //debugPrintfEXT("", numDraws );
+    uint numDraws = pConstants.countBuffer.data[0];    
+    debugPrintfEXT( "#2D(0.90,0)Num Draw Calls: %u", numDraws );
+
+    //MeshletDrawCommand cmd = pConstants.meshDrawCmdBuffer.data[0];
+    //uint groupsX = cmd.groupCountX;
+    //uint groupsY = cmd.groupCountY;
+    //uint groupsZ = cmd.groupCountZ;
+    //debugPrintfEXT( "#2D(0.90,0.03)Dispatch: %u %u %u", numDraws, groupsX, groupsY, groupsZ );
 }

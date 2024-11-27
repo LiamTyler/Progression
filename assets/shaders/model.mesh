@@ -41,11 +41,47 @@ uvec3 GetTri( const Meshlet meshlet, uint baseBuffer, uint index )
 {
     uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_TRIS];
     UintBuffer tBuffer = UintBuffer( ptr );
-    uint packedTri = tBuffer.data[meshlet.triOffset + index];
     uvec3 tri;
+#if 1
+    uint packedTri = tBuffer.data[meshlet.triOffset + index];
     tri.x = (packedTri >> 0)  & 0xFF;
     tri.y = (packedTri >> 8)  & 0xFF;
     tri.z = (packedTri >> 16) & 0xFF;
+#else
+    uint baseDword   = 3 * (index >> 2);
+    uint localTri    = (index & 0x3);
+    uint localOffset = (index & 0x2) >> 1;
+    uint chunks[2];
+    chunks[0] = tBuffer.data[meshlet.triOffset + baseDword + localOffset];
+    chunks[1] = tBuffer.data[meshlet.triOffset + baseDword + localOffset + 1];
+    //tri.x = (chunks[uint(localTri == 3)] >> & 0xFF;
+    //tri.y = (packedTri >> 8)  & 0xFF;
+    //tri.z = (packedTri >> 16) & 0xFF;
+    if ( localTri == 0 )
+    {
+        tri.x = (chunks[0] >> 0)  & 0xFF;
+        tri.y = (chunks[0] >> 8)  & 0xFF;
+        tri.z = (chunks[0] >> 16) & 0xFF;
+    }
+    else if ( localTri == 1 )
+    {
+        tri.x = (chunks[0] >> 24)  & 0xFF;
+        tri.y = (chunks[1] >> 0)  & 0xFF;
+        tri.z = (chunks[1] >> 8) & 0xFF;
+    }
+    else if ( localTri == 2 )
+    {
+        tri.x = (chunks[0] >> 16)  & 0xFF;
+        tri.y = (chunks[0] >> 24)  & 0xFF;
+        tri.z = (chunks[1] >> 0) & 0xFF;
+    }
+    else
+    {
+        tri.x = (chunks[1] >> 8)  & 0xFF;
+        tri.y = (chunks[1] >> 16)  & 0xFF;
+        tri.z = (chunks[1] >> 24) & 0xFF;
+    }
+#endif
     return tri;
 }
 

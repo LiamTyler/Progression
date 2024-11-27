@@ -10,7 +10,7 @@
     } },
     { "Pipeline": {
         "name": "litModel",
-        "taskShader": "model.task",
+        "__taskShader": "model.task",
         "meshShader": "model.mesh",
         "fragmentShader": "lit.frag",
         "colorAttachment": { "format": "R16_G16_B16_A16_FLOAT" },

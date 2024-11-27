@@ -5,7 +5,7 @@
 
 #define INDIRECT_MAIN_DRAW PG_USE
 // If you change this, you still need to comment out/in the task shader in gfx_required.paf sadly
-#define TASK_SHADER_MAIN_DRAW PG_USE
+#define TASK_SHADER_MAIN_DRAW PG_DONT_USE
 
 #define MESH_SHADER_WORKGROUP_SIZE 64
 #define TASK_SHADER_WORKGROUP_SIZE 32

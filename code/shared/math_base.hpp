@@ -23,3 +23,5 @@ constexpr T Max( const T& a, const T& b )
 {
     return std::max( a, b );
 }
+
+#define ROUND_UP_TO_MULT( x, m ) ( ( ( x + ( m - 1 ) ) / m ) * m )

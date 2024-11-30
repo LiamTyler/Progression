@@ -7,6 +7,8 @@
 #include "shared/logger.hpp"
 #include "shared/serializer.hpp"
 #include <cstring>
+#include <queue>
+#include <stack>
 
 #if USING( CONVERTER )
 #include "meshoptimizer/src/meshoptimizer.h"
@@ -23,51 +25,182 @@ namespace PG
 
 std::string GetAbsPath_ModelFilename( const std::string& filename ) { return PG_ASSET_DIR + filename; }
 
-#define NO_INDEX_PAD NOT_IN_USE
-
-bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32 triCount )
+bool CompactMeshletIndices( u32* vertIndices, u8 vertCount, u8* triIndices, u8 triCount )
 {
     // Check to see if the meshlet is already compactible
     bool anyViolations = false;
     for ( u32 localTriIdx = 0; localTriIdx < triCount; ++localTriIdx )
     {
-        uvec3 tri = { triIndices[3 * localTriIdx + 0], triIndices[3 * localTriIdx + 1], triIndices[3 * localTriIdx + 2] };
+        u8vec3 tri = { triIndices[3 * localTriIdx + 0], triIndices[3 * localTriIdx + 1], triIndices[3 * localTriIdx + 2] };
         PG_ASSERT( tri.x != tri.y && tri.x != tri.z && tri.y != tri.z );
         if ( tri.x > tri.y || tri.x > tri.z )
             tri = { tri.y, tri.z, tri.x };
         if ( tri.x > tri.y || tri.x > tri.z )
             tri = { tri.y, tri.z, tri.x };
 
-        triIndices[3 * localTriIdx + 0] = (u8)tri.x;
-        triIndices[3 * localTriIdx + 1] = (u8)tri.y;
-        triIndices[3 * localTriIdx + 2] = (u8)tri.z;
-        anyViolations                   = anyViolations || ( tri.z - tri.x >= 32 );
+        triIndices[3 * localTriIdx + 0] = tri.x;
+        triIndices[3 * localTriIdx + 1] = tri.y;
+        triIndices[3 * localTriIdx + 2] = tri.z;
+
+        u8 diff       = Max( tri.z - tri.x, tri.y - tri.x );
+        anyViolations = anyViolations || ( diff >= 32 );
     }
     if ( !anyViolations )
         return true;
 
-    // std::vector<u32> meshletVertIndices = { vertIndices, vertIndices + vertCount };
-
     struct VertexUse
     {
-        u16 count;
-        u16 index;
+        u32 index;
+        u32 count; // just a shortcut for adjTris.size()
+        std::vector<u8> adjTris;
     };
-    VertexUse vertexUsage[MAX_VERTS_PER_MESHLET];
+    VertexUse vAdjacentInfos[MAX_VERTS_PER_MESHLET];
     for ( u8 i = 0; i < vertCount; ++i )
     {
-        vertexUsage[i].count = 0;
-        vertexUsage[i].index = i;
+        vAdjacentInfos[i].count = 0;
+        vAdjacentInfos[i].index = i;
     }
 
     for ( u32 localTriIdx = 0; localTriIdx < triCount; ++localTriIdx )
     {
-        uvec3 tri = { triIndices[3 * localTriIdx + 0], triIndices[3 * localTriIdx + 1], triIndices[3 * localTriIdx + 2] };
+        u8vec3 tri = { triIndices[3 * localTriIdx + 0], triIndices[3 * localTriIdx + 1], triIndices[3 * localTriIdx + 2] };
 
-        vertexUsage[tri.x].count++;
-        vertexUsage[tri.y].count++;
-        vertexUsage[tri.z].count++;
+        vAdjacentInfos[tri.x].count++;
+        vAdjacentInfos[tri.y].count++;
+        vAdjacentInfos[tri.z].count++;
+        vAdjacentInfos[tri.x].adjTris.push_back( (u8)localTriIdx );
+        vAdjacentInfos[tri.y].adjTris.push_back( (u8)localTriIdx );
+        vAdjacentInfos[tri.z].adjTris.push_back( (u8)localTriIdx );
     }
+
+    std::sort(
+        vAdjacentInfos, vAdjacentInfos + vertCount, []( const VertexUse& lhs, const VertexUse& rhs ) { return lhs.count > rhs.count; } );
+
+    u8 sortedVertRemap[MAX_VERTS_PER_MESHLET];
+    for ( u8 i = 0; i < vertCount; ++i )
+        sortedVertRemap[vAdjacentInfos[i].index] = i;
+
+    bool triProcessed[MAX_TRIS_PER_MESHLET] = { false };
+    u8 finalVertRemap[MAX_VERTS_PER_MESHLET];
+    memset( finalVertRemap, 0xFF, sizeof( finalVertRemap ) );
+    u8 numNewVerts = 0;
+    std::vector<u8> newTriOrder;
+
+    auto addVertFn = [&]( u8 vertIdx, std::queue<u8>& tStack )
+    {
+        if ( finalVertRemap[vertIdx] != 0xFF )
+            return;
+        finalVertRemap[vertIdx] = numNewVerts++;
+
+        const VertexUse& adjInfo = vAdjacentInfos[sortedVertRemap[vertIdx]];
+        std::vector<u8> adjTris;
+        for ( u32 i = 0; i < adjInfo.count; ++i )
+        {
+            u8 tIdx = adjInfo.adjTris[i];
+            if ( !triProcessed[tIdx] )
+            {
+                adjTris.push_back( tIdx );
+                triProcessed[tIdx] = true;
+            }
+        }
+
+        std::sort( adjTris.begin(), adjTris.end(),
+            [&]( u8 lTriIdx, u8 rTriIdx )
+            {
+                u8vec3 lTri = { triIndices[3 * lTriIdx + 0], triIndices[3 * lTriIdx + 1], triIndices[3 * lTriIdx + 2] };
+                u32 lCount  = 0;
+                lCount += ( vertIdx != lTri.x ) * ( vAdjacentInfos[sortedVertRemap[lTri.x]].count );
+                lCount += ( vertIdx != lTri.y ) * ( vAdjacentInfos[sortedVertRemap[lTri.y]].count );
+                lCount += ( vertIdx != lTri.z ) * ( vAdjacentInfos[sortedVertRemap[lTri.z]].count );
+
+                u8vec3 rTri = { triIndices[3 * rTriIdx + 0], triIndices[3 * rTriIdx + 1], triIndices[3 * rTriIdx + 2] };
+                u32 rCount  = 0;
+                rCount += ( vertIdx != rTri.x ) * ( vAdjacentInfos[sortedVertRemap[rTri.x]].count );
+                rCount += ( vertIdx != rTri.y ) * ( vAdjacentInfos[sortedVertRemap[rTri.y]].count );
+                rCount += ( vertIdx != rTri.z ) * ( vAdjacentInfos[sortedVertRemap[rTri.z]].count );
+
+                return lCount < rCount;
+            } );
+
+        for ( u32 i = 0; i < adjTris.size(); ++i )
+        {
+            tStack.push( adjTris[adjTris.size() - i - 1] );
+        }
+    };
+
+    for ( u8 sortedVIdx = 0; sortedVIdx < vertCount; ++sortedVIdx )
+    {
+        const VertexUse& sortedV = vAdjacentInfos[sortedVIdx];
+        if ( finalVertRemap[sortedV.index] != 0xFF )
+            continue;
+
+        std::queue<u8> tStack;
+        addVertFn( sortedV.index, tStack );
+        while ( !tStack.empty() )
+        {
+            // u8 tIdx = tStack.top();
+            u8 tIdx = tStack.front();
+            tStack.pop();
+            newTriOrder.push_back( tIdx );
+            u8vec3 tri = { triIndices[3 * tIdx + 0], triIndices[3 * tIdx + 1], triIndices[3 * tIdx + 2] };
+            if ( vAdjacentInfos[sortedVertRemap[tri.x]].count > vAdjacentInfos[sortedVertRemap[tri.z]].count )
+                std::swap( tri.x, tri.z );
+            if ( vAdjacentInfos[sortedVertRemap[tri.x]].count > vAdjacentInfos[sortedVertRemap[tri.y]].count )
+                std::swap( tri.x, tri.y );
+            if ( vAdjacentInfos[sortedVertRemap[tri.y]].count > vAdjacentInfos[sortedVertRemap[tri.z]].count )
+                std::swap( tri.y, tri.z );
+
+            addVertFn( tri.x, tStack );
+            addVertFn( tri.y, tStack );
+            addVertFn( tri.z, tStack );
+        }
+    }
+    PG_ASSERT( numNewVerts == vertCount );
+    PG_ASSERT( newTriOrder.size() == triCount );
+
+    u32 newVerts[MAX_VERTS_PER_MESHLET];
+    for ( u8 i = 0; i < vertCount; ++i )
+    {
+        newVerts[finalVertRemap[i]] = vertIndices[i];
+    }
+    memcpy( vertIndices, newVerts, vertCount * sizeof( u32 ) );
+
+    u8vec3 newTris[MAX_TRIS_PER_MESHLET];
+    for ( u8 i = 0; i < triCount; ++i )
+    {
+        u8 tIdx      = newTriOrder[i];
+        u8vec3 tri   = { triIndices[3 * tIdx + 0], triIndices[3 * tIdx + 1], triIndices[3 * tIdx + 2] };
+        newTris[i].x = finalVertRemap[tri.x];
+        newTris[i].y = finalVertRemap[tri.y];
+        newTris[i].z = finalVertRemap[tri.z];
+    }
+    for ( u8 i = 0; i < triCount; ++i )
+    {
+        u8vec3 tri = newTris[i];
+        if ( tri.x > tri.y || tri.x > tri.z )
+            tri = { tri.y, tri.z, tri.x };
+        if ( tri.x > tri.y || tri.x > tri.z )
+            tri = { tri.y, tri.z, tri.x };
+
+        PG_ASSERT( tri.x != tri.y && tri.x != tri.z && tri.y != tri.z );
+        triIndices[3 * i + 0] = tri.x;
+        triIndices[3 * i + 1] = tri.y;
+        triIndices[3 * i + 2] = tri.z;
+    }
+
+    anyViolations = false;
+    for ( u32 localTriIdx = 0; localTriIdx < triCount; ++localTriIdx )
+    {
+        u8vec3 tri = { triIndices[3 * localTriIdx + 0], triIndices[3 * localTriIdx + 1], triIndices[3 * localTriIdx + 2] };
+        triIndices[3 * localTriIdx + 0] = tri.x;
+        triIndices[3 * localTriIdx + 1] = tri.y;
+        triIndices[3 * localTriIdx + 2] = tri.z;
+
+        u8 diff       = Max( tri.z - tri.x, tri.y - tri.x );
+        anyViolations = anyViolations || ( diff >= 32 );
+    }
+
+    return !anyViolations;
 }
 
 bool Model::Load( const BaseAssetCreateInfo* baseInfo )
@@ -117,37 +250,56 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         size_t maxMeshlets = meshopt_buildMeshletsBound( pMesh.indices.size(), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET );
         std::vector<meshopt_Meshlet> meshlets( maxMeshlets );
         std::vector<u32> meshletVertices( maxMeshlets * MAX_VERTS_PER_MESHLET );
-        std::vector<u8> meshletTriangles( maxMeshlets * MAX_TRIS_PER_MESHLET * 3 );
+        std::vector<u8> meshletTris( maxMeshlets * MAX_TRIS_PER_MESHLET * 3 );
 
-        size_t meshletCount = meshopt_buildMeshlets( meshlets.data(), meshletVertices.data(), meshletTriangles.data(), pMesh.indices.data(),
+        size_t meshletCount = meshopt_buildMeshlets( meshlets.data(), meshletVertices.data(), meshletTris.data(), pMesh.indices.data(),
             pMesh.indices.size(), &pMesh.vertices[0].pos.x, pMesh.vertices.size(), sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET,
             MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
+
+        u32 numTris = 0;
+        for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
+        {
+            const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
+            numTris += meshlet.triangle_count;
+        }
+        m.indices.reserve( 4 * numTris );
 
         m.meshlets.resize( meshletCount );
         m.meshletCullDatas.resize( meshletCount );
         u32 numVerts        = 0;
-        u32 numTris         = 0;
         u32 paddedTriOffset = 0;
+        u32 compactible     = 0;
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
             GpuData::Meshlet& pgMeshlet    = m.meshlets[meshletIdx];
-            meshopt_optimizeMeshlet( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
-                meshlet.triangle_count, meshlet.vertex_count );
+            meshopt_optimizeMeshlet( &meshletVertices[meshlet.vertex_offset], &meshletTris[meshlet.triangle_offset], meshlet.triangle_count,
+                meshlet.vertex_count );
+
+            bool isCompact = CompactMeshletIndices( meshletVertices.data() + meshlet.vertex_offset, meshlet.vertex_count,
+                meshletTris.data() + meshlet.triangle_offset, meshlet.triangle_count );
+
+            pgMeshlet.flags = 0;
+            if ( isCompact )
+            {
+                compactible += isCompact;
+                pgMeshlet.flags |= ( 1u << MESHLET_COMPACT_INDICES_BIT );
+            }
 
             PG_ASSERT( numVerts == meshlet.vertex_offset );
             pgMeshlet.vertexOffset  = meshlet.vertex_offset;
-            pgMeshlet.triOffset     = USING( NO_INDEX_PAD ) ? paddedTriOffset : numTris; // triOffset into a u32 buffer
+            pgMeshlet.triOffset     = paddedTriOffset;
             pgMeshlet.vertexCount   = meshlet.vertex_count;
             pgMeshlet.triangleCount = meshlet.triangle_count;
+            // pgMeshlet.vertAndTriCounts = meshlet.vertex_count | ( meshlet.triangle_count << 8 );
 
-            numVerts += pgMeshlet.vertexCount;
-            numTris += pgMeshlet.triangleCount;
-            u64 paddedIndices = ( ( 3 * pgMeshlet.triangleCount + 3 ) / 4 ) * 4;
-            paddedTriOffset += static_cast<u32>( paddedIndices / 4 );
+            numVerts += meshlet.vertex_count;
+            u32 bytesForIndices = ROUND_UP_TO_MULT( meshlet.triangle_count * ( isCompact ? 2 : 4 ), 4 );
+            m.indices.resize( m.indices.size() + bytesForIndices );
+            paddedTriOffset += bytesForIndices / 4;
 
             meshopt_Bounds bounds =
-                meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTriangles[meshlet.triangle_offset],
+                meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTris[meshlet.triangle_offset],
                     meshlet.triangle_count, &pMesh.vertices[0].pos.x, meshlet.vertex_count, sizeof( PModel::Vertex ) );
 
             GpuData::PackedMeshletCullData& cullData = m.meshletCullDatas[meshletIdx];
@@ -165,6 +317,45 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             cullData.coneAxis   = vec3( bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] );
             cullData.coneCutoff = bounds.cone_cutoff;
             cullData.coneApex   = vec3( bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] );
+
+            if ( isCompact )
+            {
+                for ( u32 localTriIdx = 0; localTriIdx < meshlet.triangle_count; ++localTriIdx )
+                {
+                    size_t globalMOIdx = meshlet.triangle_offset + 3 * localTriIdx;
+                    size_t globalPGIdx = 4 * pgMeshlet.triOffset + 2 * localTriIdx;
+                    u8vec3 tri         = { meshletTris[globalMOIdx + 0], meshletTris[globalMOIdx + 1], meshletTris[globalMOIdx + 2] };
+                    u16 packed         = 0;
+                    u8 yDiff           = tri.y - tri.x;
+                    u8 zDiff           = tri.z - tri.x;
+                    PG_ASSERT( tri.y > tri.x && tri.z > tri.x );
+                    PG_ASSERT( tri.x < 64 && yDiff < 32 && zDiff < 32 );
+                    packed |= tri.x;
+                    packed |= yDiff << 6;
+                    packed |= zDiff << 11;
+                    m.indices[globalPGIdx + 0] = packed & 0xFF;
+                    m.indices[globalPGIdx + 1] = ( packed >> 8 ) & 0xFF;
+                }
+
+                if ( meshlet.triangle_count % 2 )
+                {
+                    m.indices[4 * pgMeshlet.triOffset + 2 * meshlet.triangle_count + 0] = 0;
+                    m.indices[4 * pgMeshlet.triOffset + 2 * meshlet.triangle_count + 1] = 0;
+                }
+            }
+            else
+            {
+                for ( u32 localTriIdx = 0; localTriIdx < meshlet.triangle_count; ++localTriIdx )
+                {
+                    size_t globalMOIdx = meshlet.triangle_offset + 3 * localTriIdx;
+                    size_t globalPGIdx = 4 * pgMeshlet.triOffset + 4 * localTriIdx;
+                    u8vec3 tri         = { meshletTris[globalMOIdx + 0], meshletTris[globalMOIdx + 1], meshletTris[globalMOIdx + 2] };
+                    m.indices[globalPGIdx + 0] = tri.x;
+                    m.indices[globalPGIdx + 1] = tri.y;
+                    m.indices[globalPGIdx + 2] = tri.z;
+                    m.indices[globalPGIdx + 3] = 0;
+                }
+            }
         }
 
         m.positions.resize( numVerts );
@@ -173,11 +364,6 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             m.texCoords.resize( numVerts );
         if ( pMesh.hasTangents )
             m.tangents.resize( numVerts );
-#if USING( NO_INDEX_PAD )
-        m.indices.resize( paddedTriOffset * 4 );
-#else  // #if USING( NO_INDEX_PAD )
-        m.indices.resize( numTris * 4 );
-#endif // #else // #if USING( NO_INDEX_PAD )
 
         vec2 minUV( FLT_MAX );
         vec2 maxUV( -FLT_MAX );
@@ -185,22 +371,12 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         u32 numZeroNormals  = 0;
         u32 numZeroTangents = 0;
         AABB& meshAABB      = meshAABBs[meshIdx];
-
-        u32 numViolations        = 0;
-        u32 numMeshletViolations = 0;
-        u32 numTriLimited        = 0;
-        u64 vertsPerMeshlet      = 0;
-        u64 trisPerMeshlet       = 0;
-        u64 maxVertMeshlets      = 0;
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& moMeshlet  = meshlets[meshletIdx];
             const GpuData::Meshlet& pgMeshlet = m.meshlets[meshletIdx];
 
-            CompactMeshletIndices( meshletVertices.data() + moMeshlet.vertex_offset, moMeshlet.vertex_count,
-                meshletTriangles.data() + moMeshlet.triangle_offset, moMeshlet.triangle_count );
-
-            for ( u32 localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
+            for ( u32 localVIdx = 0; localVIdx < moMeshlet.vertex_count; ++localVIdx )
             {
                 size_t globalMOIdx       = moMeshlet.vertex_offset + localVIdx;
                 size_t globalPGIdx       = pgMeshlet.vertexOffset + localVIdx;
@@ -232,50 +408,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                         ++numZeroTangents;
                 }
             }
-
-            bool meshletViolation = false;
-            for ( u32 localTriIdx = 0; localTriIdx < pgMeshlet.triangleCount; ++localTriIdx )
-            {
-                size_t globalMOIdx = moMeshlet.triangle_offset + 3 * localTriIdx;
-#if 1
-                // size_t globalPGIdx = 4 * pgMeshlet.triOffset + 3 * localTriIdx;
-                size_t globalPGIdx = 4 * pgMeshlet.triOffset + 4 * localTriIdx;
-                uvec3 tri = { meshletTriangles[globalMOIdx + 0], meshletTriangles[globalMOIdx + 1], meshletTriangles[globalMOIdx + 2] };
-                if ( tri.x > tri.y || tri.x > tri.z )
-                    tri = { tri.y, tri.z, tri.x };
-                if ( tri.x > tri.y || tri.x > tri.z )
-                    tri = { tri.y, tri.z, tri.x };
-
-                u32 diff = Max( tri.y - tri.x, tri.z - tri.x );
-                if ( diff >= 32 )
-                {
-                    numViolations++;
-                    meshletViolation = true;
-                }
-
-                m.indices[globalPGIdx + 0] = tri.x;
-                m.indices[globalPGIdx + 1] = tri.y;
-                m.indices[globalPGIdx + 2] = tri.z;
-                m.indices[globalPGIdx + 3] = 0;
-#else
-                size_t globalPGIdx = 4 * pgMeshlet.triOffset + 4 * localTriIdx;
-                uvec3 tri = { meshletTriangles[globalMOIdx + 0], meshletTriangles[globalMOIdx + 1], meshletTriangles[globalMOIdx + 2] };
-                m.indices[globalPGIdx + 0] = tri.x;
-                m.indices[globalPGIdx + 1] = tri.y;
-                m.indices[globalPGIdx + 2] = tri.z;
-                m.indices[globalPGIdx + 3] = 0;
-#endif
-            }
-
-            numMeshletViolations += meshletViolation;
-            numTriLimited += ( pgMeshlet.triangleCount == MAX_TRIS_PER_MESHLET );
-            vertsPerMeshlet += pgMeshlet.vertexCount;
-            trisPerMeshlet += pgMeshlet.triangleCount;
-            maxVertMeshlets += ( pgMeshlet.vertexCount == MAX_VERTS_PER_MESHLET );
         }
-        LOG( "Violations: Meshlet: %u/%u, tris: %u/%u", numMeshletViolations, meshletCount, numViolations, numTris );
-        LOG( "Tri limited meshlets: %u/%u. Max Vert Meshlets: %u/%u", numTriLimited, meshletCount, maxVertMeshlets, meshletCount );
-        LOG( "Avg verts: %f, avg tris: %f", vertsPerMeshlet / (double)meshletCount, trisPerMeshlet / (double)meshletCount );
+        LOG( "Compactible: %u/%u = %.2f%%", compactible, meshletCount, 100.0f * compactible / (float)meshletCount );
 
         //  LOG( "Mesh[%u]: UVs (%f, %f) - (%f, %f)", meshIdx, minUV.x, minUV.y, maxUV.x, maxUV.y );
         if ( numZeroNormals )
@@ -348,7 +482,6 @@ bool Model::FastfileLoad( Serializer* serializer )
         serializer->Read( numIndices );
         indexData = serializer->GetData();
         serializer->Skip( numIndices * sizeof( u8 ) );
-        // PG_ASSERT( numIndices % 4 == 0 );
 
         serializer->Read( numMeshlets );
         meshletData = serializer->GetData();

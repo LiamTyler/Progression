@@ -234,8 +234,9 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     features12.shaderUniformTexelBufferArrayNonUniformIndexing    = true;
     features12.scalarBlockLayout                                  = true;
     features12.hostQueryReset                                     = true;
-    features12.shaderInt8                                         = true;
     features12.timelineSemaphore                                  = true;
+    features12.shaderInt8                                         = true;
+    features12.storageBuffer8BitAccess                            = true;
 
     VkPhysicalDeviceVulkan11Features features11{};
     features11.shaderDrawParameters = true; // for drawid in shader (gl_DrawIDARB)

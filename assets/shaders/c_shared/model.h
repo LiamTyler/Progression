@@ -5,13 +5,18 @@
 
 BEGIN_GPU_DATA_NAMESPACE()
 
+#define MESHLET_COMPACT_INDICES_BIT 0
+
 // if this is edited, the model version number needs to be bumped in the converter
 struct Meshlet
 {
     uint vertexOffset;
     uint triOffset;
-    uint vertexCount;
-    uint triangleCount;
+    uint8_t vertexCount;
+    uint8_t triangleCount;
+    uint8_t flags;
+    uint8_t _pad0;
+    uint _pad1;
 };
 
 // if this is edited, the model version number needs to be bumped in the converter

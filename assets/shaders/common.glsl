@@ -8,6 +8,7 @@
 #extension GL_EXT_shader_image_load_formatted : require
 #extension GL_ARB_shader_image_size : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int8 : require
+#extension GL_EXT_shader_explicit_arithmetic_types_int16 : require
 #extension GL_EXT_shader_explicit_arithmetic_types_int64 : require
 
 #define DEFINE_BUFFER_REFERENCE( alignment ) layout( scalar, buffer_reference, buffer_reference_align = alignment ) buffer
@@ -17,10 +18,11 @@
     type data[]; \
 }
 
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, FloatBuffer, float );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec2Buffer, vec2 );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec3Buffer, vec3 );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, Vec4Buffer, vec4 );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, UintBuffer, uint );
+DEFINE_STANDARD_BUFFER_REFERENCE( 8, FloatBuffer, float );
+DEFINE_STANDARD_BUFFER_REFERENCE( 8, Vec2Buffer, vec2 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 8, Vec3Buffer, vec3 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 8, Vec4Buffer, vec4 );
+DEFINE_STANDARD_BUFFER_REFERENCE( 8, UintBuffer, uint );
+DEFINE_STANDARD_BUFFER_REFERENCE( 8, UshortBuffer, uint16_t );
     
 #endif // #ifndef __COMMON_GLSL__

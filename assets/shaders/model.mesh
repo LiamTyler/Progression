@@ -36,27 +36,27 @@ Meshlet GetMeshlet( uint meshletID, uint baseBuffer )
 
 uvec3 GetTri( const Meshlet meshlet, uint baseBuffer, uint index )
 {
-    uint64_t ptr       = bindlessBuffers[baseBuffer + MESH_BUFFER_TRIS];
-    UintBuffer tBuffer = UintBuffer( ptr );
     uvec3 tri;
+    uint64_t ptr         = bindlessBuffers[baseBuffer + MESH_BUFFER_TRIS];
+    UshortBuffer tBuffer = UshortBuffer( ptr );
 
     bool isCompact = ( ( meshlet.flags >> MESHLET_COMPACT_INDICES_BIT ) & 0x1 ) != 0;
     if ( isCompact )
     {
-        uint packedTri = tBuffer.data[meshlet.triOffset + index / 2];
-        packedTri      = packedTri >> ( 16 * ( index & 1 ) );
-        tri.x          = ( packedTri >> 0 ) & 0x3F;
-        tri.y          = ( packedTri >> 6 ) & 0x1F;
-        tri.z          = ( packedTri >> 11 ) & 0x1F;
+        uint16_t packedTri = tBuffer.data[meshlet.triOffset + index];
+        tri.x              = ( packedTri ) & 0x3F;
+        tri.y              = ( packedTri >> 6 ) & 0x1F;
+        tri.z              = ( packedTri >> 11 );
         tri.y += tri.x;
         tri.z += tri.x;
     }
     else
     {
-        uint packedTri = tBuffer.data[meshlet.triOffset + index];
-        tri.x          = ( packedTri >> 0 ) & 0xFF;
-        tri.y          = ( packedTri >> 8 ) & 0xFF;
-        tri.z          = ( packedTri >> 16 ) & 0xFF;
+        uint16_t packedTri1 = tBuffer.data[meshlet.triOffset + 2 * index + 0];
+        uint16_t packedTri2 = tBuffer.data[meshlet.triOffset + 2 * index + 1];
+        tri.x               = ( packedTri1 ) & 0xFF;
+        tri.y               = ( packedTri1 >> 8 );
+        tri.z               = ( packedTri2 ) & 0xFF;
     }
     return tri;
 }
@@ -146,13 +146,13 @@ void main()
 
     const uint baseBuffer = objectData.bindlessRangeStart;
 
-    Meshlet meshlet  = GetMeshlet( meshletID, baseBuffer );
-    //uint vertexCount = meshlet.vertAndTriCounts & 0xFF;
-    //uint triCount    = ( meshlet.vertAndTriCounts >> 8 ) & 0xFF;
+    Meshlet meshlet = GetMeshlet( meshletID, baseBuffer );
+    // uint vertexCount = meshlet.vertAndTriCounts & 0xFF;
+    // uint triCount    = ( meshlet.vertAndTriCounts >> 8 ) & 0xFF;
 
     if ( threadID == 0 )
     {
-        //SetMeshOutputsEXT( vertexCount, triCount );
+        // SetMeshOutputsEXT( vertexCount, triCount );
         SetMeshOutputsEXT( meshlet.vertexCount, meshlet.triangleCount );
     }
 

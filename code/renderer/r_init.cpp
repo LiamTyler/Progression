@@ -252,6 +252,9 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     features.vertexPipelineStoresAndAtomics = true;
 #endif // #if USING( SHADER_DEBUG_PRINTF )
 
+    features11.storageBuffer16BitAccess = true; // for uint16_t buffers
+    features.shaderInt16                = true; // for uint16_t types in shader
+
 #if USING( PG_RTX )
     pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
     pDevSelector.add_required_extension( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );

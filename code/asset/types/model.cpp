@@ -2,6 +2,7 @@
 #include "asset/asset_manager.hpp"
 #include "asset/pmodel.hpp"
 #include "asset/types/material.hpp"
+#include "core/time.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
@@ -138,7 +139,6 @@ bool CompactMeshletIndices( u32* vertIndices, u8 vertCount, u8* triIndices, u8 t
         addVertFn( sortedV.index, tStack );
         while ( !tStack.empty() )
         {
-            // u8 tIdx = tStack.top();
             u8 tIdx = tStack.front();
             tStack.pop();
             newTriOrder.push_back( tIdx );
@@ -266,9 +266,9 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
         m.meshlets.resize( meshletCount );
         m.meshletCullDatas.resize( meshletCount );
-        u32 numVerts        = 0;
-        u32 paddedTriOffset = 0;
-        u32 compactible     = 0;
+        u32 numVerts              = 0;
+        u32 paddedTriOffset       = 0;
+        u32 numCompactTriMeshlets = 0;
         for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
         {
             const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
@@ -282,7 +282,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             pgMeshlet.flags = 0;
             if ( isCompact )
             {
-                compactible += isCompact;
+                numCompactTriMeshlets += isCompact;
                 pgMeshlet.flags |= ( 1u << MESHLET_COMPACT_INDICES_BIT );
             }
 
@@ -291,39 +291,29 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             pgMeshlet.triOffset     = paddedTriOffset;
             pgMeshlet.vertexCount   = meshlet.vertex_count;
             pgMeshlet.triangleCount = meshlet.triangle_count;
-            // pgMeshlet.vertAndTriCounts = meshlet.vertex_count | ( meshlet.triangle_count << 8 );
 
             numVerts += meshlet.vertex_count;
-            u32 bytesForIndices = ROUND_UP_TO_MULT( meshlet.triangle_count * ( isCompact ? 2 : 4 ), 4 );
+            u32 bytesForIndices = meshlet.triangle_count * ( isCompact ? 2 : 4 );
             m.indices.resize( m.indices.size() + bytesForIndices );
-            paddedTriOffset += bytesForIndices / 4;
+            paddedTriOffset += bytesForIndices / 2; // tris are accessed from a uint16_t array in shader
 
             meshopt_Bounds bounds =
                 meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTris[meshlet.triangle_offset],
                     meshlet.triangle_count, &pMesh.vertices[0].pos.x, meshlet.vertex_count, sizeof( PModel::Vertex ) );
 
             GpuData::PackedMeshletCullData& cullData = m.meshletCullDatas[meshletIdx];
-            // cullData.positionXY             = Float32ToFloat16( bounds.center[0], bounds.center[1] );
-            // cullData.positionZAndRadius     = Float32ToFloat16( bounds.center[2], bounds.radius );
-            // cullData.coneAxisAndCutoff      = 0;
-            // cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[0] << 0 );
-            // cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[1] << 8 );
-            // cullData.coneAxisAndCutoff |= ( bounds.cone_axis_s8[2] << 16 );
-            // cullData.coneAxisAndCutoff |= ( bounds.cone_cutoff_s8 << 24 );
-            // cullData._padTo16Bytes = 0;
-
-            cullData.position   = vec3( bounds.center[0], bounds.center[1], bounds.center[2] );
-            cullData.radius     = bounds.radius;
-            cullData.coneAxis   = vec3( bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] );
-            cullData.coneCutoff = bounds.cone_cutoff;
-            cullData.coneApex   = vec3( bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] );
+            cullData.position                        = vec3( bounds.center[0], bounds.center[1], bounds.center[2] );
+            cullData.radius                          = bounds.radius;
+            cullData.coneAxis                        = vec3( bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] );
+            cullData.coneCutoff                      = bounds.cone_cutoff;
+            cullData.coneApex                        = vec3( bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] );
 
             if ( isCompact )
             {
                 for ( u32 localTriIdx = 0; localTriIdx < meshlet.triangle_count; ++localTriIdx )
                 {
                     size_t globalMOIdx = meshlet.triangle_offset + 3 * localTriIdx;
-                    size_t globalPGIdx = 4 * pgMeshlet.triOffset + 2 * localTriIdx;
+                    size_t globalPGIdx = 2 * pgMeshlet.triOffset + 2 * localTriIdx;
                     u8vec3 tri         = { meshletTris[globalMOIdx + 0], meshletTris[globalMOIdx + 1], meshletTris[globalMOIdx + 2] };
                     u16 packed         = 0;
                     u8 yDiff           = tri.y - tri.x;
@@ -336,19 +326,13 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     m.indices[globalPGIdx + 0] = packed & 0xFF;
                     m.indices[globalPGIdx + 1] = ( packed >> 8 ) & 0xFF;
                 }
-
-                if ( meshlet.triangle_count % 2 )
-                {
-                    m.indices[4 * pgMeshlet.triOffset + 2 * meshlet.triangle_count + 0] = 0;
-                    m.indices[4 * pgMeshlet.triOffset + 2 * meshlet.triangle_count + 1] = 0;
-                }
             }
             else
             {
                 for ( u32 localTriIdx = 0; localTriIdx < meshlet.triangle_count; ++localTriIdx )
                 {
                     size_t globalMOIdx = meshlet.triangle_offset + 3 * localTriIdx;
-                    size_t globalPGIdx = 4 * pgMeshlet.triOffset + 4 * localTriIdx;
+                    size_t globalPGIdx = 2 * pgMeshlet.triOffset + 4 * localTriIdx;
                     u8vec3 tri         = { meshletTris[globalMOIdx + 0], meshletTris[globalMOIdx + 1], meshletTris[globalMOIdx + 2] };
                     m.indices[globalPGIdx + 0] = tri.x;
                     m.indices[globalPGIdx + 1] = tri.y;
@@ -409,9 +393,9 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 }
             }
         }
-        LOG( "Compactible: %u/%u = %.2f%%", compactible, meshletCount, 100.0f * compactible / (float)meshletCount );
 
-        //  LOG( "Mesh[%u]: UVs (%f, %f) - (%f, %f)", meshIdx, minUV.x, minUV.y, maxUV.x, maxUV.y );
+        if ( numCompactTriMeshlets != meshletCount )
+            LOG_WARN( ": %u/%u = %.2f%%", numCompactTriMeshlets, meshletCount, 100.0f * numCompactTriMeshlets / (float)meshletCount );
         if ( numZeroNormals )
             LOG_WARN( "Mesh[%u] '%s' inside of model '%s' has %u normals of length 0", meshIdx, pMesh.name.c_str(),
                 createInfo->name.c_str(), numZeroNormals );

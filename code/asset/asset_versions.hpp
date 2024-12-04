@@ -26,7 +26,7 @@ constexpr i32 g_assetVersions[] = {
     9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
     10, // ASSET_TYPE_MATERIAL,  "New name serialization"
     1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
-    13, // ASSET_TYPE_MODEL,     "Removing 4 byte alignment padding for meshlet tri indices"
+    14, // ASSET_TYPE_MODEL,     "Added a define to control per-meshlet vertex indices lists or not"
     4,  // ASSET_TYPE_SHADER,    "New name serialization"
     8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
     5,  // ASSET_TYPE_PIPELINE,  "Forgot to add new blend mode to the cache name"

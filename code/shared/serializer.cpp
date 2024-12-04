@@ -8,7 +8,7 @@ Serializer::~Serializer() { Close(); }
 
 bool Serializer::OpenForRead( const std::string& fname )
 {
-    PG_ASSERT( !IsOpen(), "Dont forget to close last file used" );
+    PG_DBG_ASSERT( !IsOpen(), "Dont forget to close last file used" );
     filename = fname;
     if ( !memMappedFile.open( fname, MemoryMapped::WholeFile, MemoryMapped::SequentialScan ) )
     {
@@ -21,7 +21,7 @@ bool Serializer::OpenForRead( const std::string& fname )
 
 bool Serializer::OpenForWrite( const std::string& fname )
 {
-    PG_ASSERT( !IsOpen(), "Dont forget to close last file used" );
+    PG_DBG_ASSERT( !IsOpen(), "Dont forget to close last file used" );
     filename               = fname;
     std::string parentPath = GetParentPath( fname );
     if ( !parentPath.empty() && !PathExists( parentPath ) )
@@ -66,26 +66,28 @@ size_t Serializer::BytesLeft() const
 
 const u8* Serializer::GetData() const
 {
-    PG_ASSERT( memMappedFile.isValid() );
+    PG_DBG_ASSERT( memMappedFile.isValid() );
     return currentReadPos;
 }
 
 void Serializer::Write( const void* buffer, size_t bytes )
 {
-    PG_ASSERT( writeFile.good() && ( buffer || ( !buffer && !bytes ) ) );
+    PG_DBG_ASSERT( writeFile.good() && ( buffer || ( !buffer && !bytes ) ) );
     writeFile.write( reinterpret_cast<const char*>( buffer ), bytes );
 }
 
 void Serializer::Read( void* buffer, size_t bytes )
 {
-    PG_ASSERT( !bytes || ( buffer && currentReadPos ) );
-    PG_ASSERT( !bytes || ( currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size() ), "Reading off the end of the file" );
+    PG_DBG_ASSERT( !bytes || ( buffer && currentReadPos ) );
+    PG_DBG_ASSERT(
+        !bytes || ( currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size() ), "Reading off the end of the file" );
     memcpy( buffer, currentReadPos, bytes );
     currentReadPos += bytes;
 }
 
 void Serializer::Skip( size_t bytes )
 {
-    PG_ASSERT( !bytes || ( currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size() ), "Skipping off the end of the file" );
+    PG_DBG_ASSERT(
+        !bytes || ( currentReadPos - memMappedFile.getData() + bytes <= memMappedFile.size() ), "Skipping off the end of the file" );
     currentReadPos += bytes;
 }

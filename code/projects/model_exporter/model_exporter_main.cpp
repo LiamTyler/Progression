@@ -207,7 +207,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
                                                  aiProcess_CalcTangentSpace | aiProcess_RemoveRedundantMaterials );
     if ( !scene )
     {
-        LOG_ERR( "Error parsing model file '%s': '%s'", filename.c_str(), importer.GetErrorString() );
+        LOG_ERR( "Assimp error while parsing model file '%s': '%s'", filename.c_str(), importer.GetErrorString() );
         return false;
     }
 
@@ -231,6 +231,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
     matContext.file      = filename;
     matContext.modelName = modelName;
     std::unordered_map<std::string, std::string> matNameRemap;
+    matNameRemap["default"] = "default";
     for ( u32 i = 0; i < scene->mNumMaterials; ++i )
     {
         if ( materialNames[i] != "default" )

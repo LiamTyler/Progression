@@ -315,19 +315,22 @@ BufferIndex AddMeshBuffers( Mesh* mesh )
     BufferIndex firstSlot = s_freeBufferSlots.GetConsecutiveFreeSlots( MESH_NUM_BUFFERS );
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::MESHLET_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLETS );
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::CULL_DATA_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLET_CULL_DATA );
-
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::TRI_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_TRIS );
+#if VERT_INDICES
+    s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::VERTEX_INDICES_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_VERT_INDICES );
+#endif // #if VERT_INDICES
 
     VkDeviceAddress vData = mesh->buffers[Mesh::VERTEX_BUFFER].GetDeviceAddress();
     s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_POSITIONS );
-
     vData += mesh->numVertices * sizeof( vec3 );
+
     s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_NORMALS );
+    vData += mesh->numVertices * sizeof( vec3 );
 
     if ( mesh->hasTexCoords )
     {
-        vData += mesh->numVertices * sizeof( vec3 );
         s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_UVS );
+        vData += mesh->numVertices * sizeof( vec2 );
     }
     else
     {
@@ -336,8 +339,8 @@ BufferIndex AddMeshBuffers( Mesh* mesh )
 
     if ( mesh->hasTangents )
     {
-        vData += mesh->numVertices * sizeof( vec2 );
         s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_TANGENTS );
+        vData += mesh->numVertices * sizeof( vec4 );
     }
     else
     {

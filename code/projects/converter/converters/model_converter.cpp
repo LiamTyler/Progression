@@ -26,6 +26,7 @@ std::string ModelConverter::GetCacheNameInternal( ConstDerivedInfoPtr info )
     HashCombine( hash, info->centerModel );
     HashCombine( hash, MAX_VERTS_PER_MESHLET );
     HashCombine( hash, MAX_TRIS_PER_MESHLET );
+    HashCombine( hash, VERT_INDICES ); // temporary, for experimenting
     cacheName += "_" + std::to_string( hash );
 
     return cacheName;

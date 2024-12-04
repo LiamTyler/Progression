@@ -65,14 +65,22 @@ vec3 GetPos( const Meshlet meshlet, uint baseBuffer, uint index )
 {
     uint64_t ptr    = bindlessBuffers[baseBuffer + MESH_BUFFER_POSITIONS];
     Vec3Buffer buff = Vec3Buffer( ptr );
+#if VERT_INDICES
+    return buff.data[index];
+#else // #if VERT_INDICES
     return buff.data[meshlet.vertexOffset + index];
+#endif // #else // #if VERT_INDICES
 }
 
 vec4 GetNormal( const Meshlet meshlet, uint baseBuffer, uint index )
 {
     uint64_t ptr    = bindlessBuffers[baseBuffer + MESH_BUFFER_NORMALS];
     Vec3Buffer buff = Vec3Buffer( ptr );
+#if VERT_INDICES
+    return vec4( buff.data[index], 0 );
+#else // #if VERT_INDICES
     return vec4( buff.data[meshlet.vertexOffset + index], 0 );
+#endif // #else // #if VERT_INDICES
 }
 
 vec2 GetUV( const Meshlet meshlet, uint baseBuffer, uint index )
@@ -82,7 +90,11 @@ vec2 GetUV( const Meshlet meshlet, uint baseBuffer, uint index )
         return vec2( 0 );
 
     Vec2Buffer buff = Vec2Buffer( ptr );
+#if VERT_INDICES
+    return buff.data[index];
+#else // #if VERT_INDICES
     return buff.data[meshlet.vertexOffset + index];
+#endif // #else // #if VERT_INDICES
 }
 
 vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, uint index )
@@ -92,7 +104,11 @@ vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, uint index )
         return vec4( 0 );
 
     Vec4Buffer buff = Vec4Buffer( ptr );
+#if VERT_INDICES
+    return buff.data[index];
+#else // #if VERT_INDICES
     return buff.data[meshlet.vertexOffset + index];
+#endif // #else // #if VERT_INDICES
 }
 
 #if HAS_TASK_SHADER
@@ -143,45 +159,50 @@ void main()
 #endif // #if !HAS_TASK_SHADER
 
     const uint threadID = gl_LocalInvocationIndex;
-
     const uint baseBuffer = objectData.bindlessRangeStart;
-
     Meshlet meshlet = GetMeshlet( meshletID, baseBuffer );
-    // uint vertexCount = meshlet.vertAndTriCounts & 0xFF;
-    // uint triCount    = ( meshlet.vertAndTriCounts >> 8 ) & 0xFF;
 
     if ( threadID == 0 )
     {
-        // SetMeshOutputsEXT( vertexCount, triCount );
         SetMeshOutputsEXT( meshlet.vertexCount, meshlet.triangleCount );
     }
 
+#if VERT_INDICES
+    UintBuffer vertIndicesBuffer = UintBuffer( bindlessBuffers[baseBuffer + MESH_BUFFER_VERT_INDICES] );
+#endif // #if VERT_INDICES
+
     for ( uint i = 0; i < VERTS_PER_THREAD; ++i )
     {
-        uint vIdx = threadID + i * MESH_SHADER_WORKGROUP_SIZE;
-        if ( vIdx < meshlet.vertexCount )
+        const uint localVIdx = threadID + i * MESH_SHADER_WORKGROUP_SIZE;
+        if ( localVIdx < meshlet.vertexCount )
         {
+#if VERT_INDICES
+            const uint globalVIdx = vertIndicesBuffer.data[meshlet.vertexOffset + localVIdx];
+#else // #if VERT_INDICES
+            const uint globalVIdx = localVIdx;
+#endif // #else // #if VERT_INDICES
+
             vec3 normalScale;
             mat4 modelMatrix = GetModelMatrixAndNormalScale( objectData.modelIdx, normalScale );
 
-            vec4 localPos                        = vec4( GetPos( meshlet, baseBuffer, vIdx ), 1 );
-            vec4 worldPos                        = modelMatrix * localPos;
-            v_out[vIdx].worldPos                 = worldPos.xyz;
-            gl_MeshVerticesEXT[vIdx].gl_Position = globals.VP * worldPos;
+            vec4 localPos                             = vec4( GetPos( meshlet, baseBuffer, globalVIdx ), 1 );
+            vec4 worldPos                             = modelMatrix * localPos;
+            v_out[localVIdx].worldPos                 = worldPos.xyz;
+            gl_MeshVerticesEXT[localVIdx].gl_Position = globals.VP * worldPos;
 
-            vec4 localNormal = GetNormal( meshlet, baseBuffer, vIdx );
+            vec4 localNormal = GetNormal( meshlet, baseBuffer, globalVIdx );
             localNormal.xyz *= normalScale;
-            v_out[vIdx].normal = ( modelMatrix * localNormal ).xyz;
+            v_out[localVIdx].normal = ( modelMatrix * localNormal ).xyz;
 
-            v_out[vIdx].uv = GetUV( meshlet, baseBuffer, vIdx );
+            v_out[localVIdx].uv = GetUV( meshlet, baseBuffer, globalVIdx );
 
-            vec4 tangentAndSign        = GetTangentAndSign( meshlet, baseBuffer, vIdx );
-            vec3 worldTangent          = ( modelMatrix * vec4( tangentAndSign.xyz, 0 ) ).xyz;
-            v_out[vIdx].tangentAndSign = vec4( worldTangent, tangentAndSign.w );
+            vec4 tangentAndSign             = GetTangentAndSign( meshlet, baseBuffer, globalVIdx );
+            vec3 worldTangent               = ( modelMatrix * vec4( tangentAndSign.xyz, 0 ) ).xyz;
+            v_out[localVIdx].tangentAndSign = vec4( worldTangent, tangentAndSign.w );
 
-            v_out[vIdx].materialIdx = objectData.materialIdx;
+            v_out[localVIdx].materialIdx = objectData.materialIdx;
 #if IS_DEBUG_SHADER
-            v_out[vIdx].meshletIdx = meshletID;
+            v_out[localVIdx].meshletIdx = meshletID;
 #endif // #if IS_DEBUG_SHADER
         }
     }

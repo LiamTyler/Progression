@@ -322,7 +322,7 @@ BufferIndex AddMeshBuffers( Mesh* mesh )
 
     VkDeviceAddress vData = mesh->buffers[Mesh::VERTEX_BUFFER].GetDeviceAddress();
     s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_POSITIONS );
-    vData += mesh->numVertices * sizeof( vec3 );
+    vData += ROUND_UP_TO_MULT( mesh->numVertices * ( PACKED_VERTS ? sizeof( u16vec3 ) : sizeof( vec3 ) ), 4 );
 
     s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_NORMALS );
     vData += mesh->numVertices * sizeof( vec3 );

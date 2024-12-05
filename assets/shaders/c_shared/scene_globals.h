@@ -17,11 +17,15 @@ struct SceneGlobals
     vec4 frustumPlanes[6];
     vec4 cullingCameraPos;
     
+    uint64_t modelDequantizeBufferAddress;
     uint64_t modelMatriciesBufferAddress;
     uint packedCullingDvarBools;
     uint r_tonemap;
+    uint _pad1;
+    uint _pad2;
 
     uint64_t lightBuffer;
+    uint64_t _pad3;
     uvec4 numLights; // x = numLights, y,z,w = padding
     vec4 ambientColor;
 

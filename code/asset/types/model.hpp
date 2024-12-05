@@ -46,7 +46,11 @@ struct Mesh
 #else
     std::vector<GpuData::Meshlet> meshlets;
     std::vector<GpuData::PackedMeshletCullData> meshletCullDatas;
-    std::vector<vec3> positions;
+#if PACKED_VERTS
+    std::vector<u16vec3> packedPositions;
+#else  // #if PACKED_VERTS
+    std::vector<vec3> packedPositions;
+#endif // #else // #if PACKED_VERTS
     std::vector<vec3> normals;
     std::vector<vec2> texCoords;
     std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
@@ -67,6 +71,12 @@ struct ModelCreateInfo : public BaseAssetCreateInfo
 
 std::string GetAbsPath_ModelFilename( const std::string& filename );
 
+struct DequantizationInfo
+{
+    vec3 factor;
+    vec3 globalMin;
+};
+
 struct Model : public BaseAsset
 {
     bool Load( const BaseAssetCreateInfo* baseInfo ) override;
@@ -78,6 +88,7 @@ struct Model : public BaseAsset
 
     std::vector<Mesh> meshes;
     std::vector<AABB> meshAABBs;
+    DequantizationInfo positionDequantizationInfo;
 };
 
 } // namespace PG

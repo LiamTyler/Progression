@@ -9,6 +9,8 @@ AABB::AABB( const vec3& _min, const vec3& _max ) : min( _min ), max( _max ) {}
 
 vec3 AABB::Center() const { return 0.5f * ( max + min ); }
 
+vec3 AABB::Extent() const { return max - min; }
+
 void AABB::Points( vec3* data ) const
 {
     data[0] = vec3( min.x, min.y, min.z );

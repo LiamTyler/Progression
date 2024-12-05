@@ -17,6 +17,10 @@ struct Meshlet
     uint8_t flags;
     uint8_t _pad0;
     uint _pad1;
+#if PACKED_VERTS
+    uvec3 quantizedMeshletOffset;
+    uint _pad2;
+#endif // #if PACKED_VERTS
 };
 
 // if this is edited, the model version number needs to be bumped in the converter
@@ -42,7 +46,8 @@ struct MeshletCullData
 #define MAX_VERTS_PER_MESHLET 64
 #define MAX_TRIS_PER_MESHLET 124
 
-#define VERT_INDICES 1
+#define VERT_INDICES 0
+#define PACKED_VERTS 0
 
 #define MESH_BUFFER_MESHLETS 0
 #define MESH_BUFFER_MESHLET_CULL_DATA 1

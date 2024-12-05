@@ -85,4 +85,11 @@ PackedMaterial GetPackedMaterial( uint matIdx )
     return packedMaterials[matIdx];
 }
 
+void GetModelPositionDequantizationInfo( uint modelIdx, out vec3 factor, out vec3 globalMin )
+{
+    Vec3Buffer dBuffer = Vec3Buffer( globals.modelDequantizeBufferAddress );
+    factor    = dBuffer.data[2 * modelIdx + 0 ];
+    globalMin = dBuffer.data[2 * modelIdx + 1 ];
+}
+
 #endif // #ifndef __GLOBAL_DESCRIPTORS_GLSL__

@@ -41,6 +41,12 @@ void Init_SceneData()
         sgBufInfo.bufferUsage      = BufferUsage::UNIFORM | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
         sgBufInfo.flags            = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
         fData.sceneGlobalsBuffer   = rg.device.NewBuffer( sgBufInfo, "sceneGlobalsBuffer" );
+
+        BufferCreateInfo modelQuantizationBufInfo = {};
+        modelQuantizationBufInfo.size             = MAX_MODELS_PER_FRAME * 2 * sizeof( vec3 );
+        modelQuantizationBufInfo.bufferUsage      = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
+        modelQuantizationBufInfo.flags  = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
+        fData.modelDequantizationBuffer = rg.device.NewBuffer( modelQuantizationBufInfo, "modelDequantizationBuffer" );
     }
 }
 
@@ -48,9 +54,10 @@ void Shutdown_SceneData()
 {
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        rg.frameData[i].meshCullData.Free();
         rg.frameData[i].meshDrawDataBuffer.Free();
+        rg.frameData[i].meshCullData.Free();
         rg.frameData[i].modelMatricesBuffer.Free();
+        rg.frameData[i].modelDequantizationBuffer.Free();
         rg.frameData[i].sceneGlobalsBuffer.Free();
     }
 }
@@ -64,33 +71,36 @@ void UpdateSceneData( Scene* scene )
     auto view               = scene->registry.view<ModelRenderer, PG::Transform>();
     u32 modelNum            = 0;
     mat4* gpuModelMatricies = reinterpret_cast<mat4*>( frameData.modelMatricesBuffer.GetMappedPtr() );
-    for ( auto entity : view )
-    {
-        if ( modelNum == MAX_MODELS_PER_FRAME )
+    vec3* gpuModelDQInfo    = reinterpret_cast<vec3*>( frameData.modelDequantizationBuffer.GetMappedPtr() );
+    scene->registry.view<ModelRenderer, Transform>().each(
+        [&]( ModelRenderer& modelRenderer, PG::Transform& transform )
         {
-            LOG_WARN( "Too many objects in the scene! Some objects may be missing when in final render" );
-            break;
-        }
+            if ( modelNum == MAX_MODELS_PER_FRAME )
+                return;
 
-        PG::Transform& transform    = view.get<PG::Transform>( entity );
-        mat4 M                      = transform.PackedMatrixAndScale();
-        gpuModelMatricies[modelNum] = M;
+            mat4 M                      = transform.PackedMatrixAndScale();
+            gpuModelMatricies[modelNum] = M;
 
-        ++modelNum;
-    }
+            const Model* model               = modelRenderer.model;
+            gpuModelDQInfo[2 * modelNum + 0] = model->positionDequantizationInfo.factor;
+            gpuModelDQInfo[2 * modelNum + 1] = model->positionDequantizationInfo.globalMin;
+
+            ++modelNum;
+        } );
     PGP_MANUAL_ZONE_END( __matrixUpdate );
 
     GpuData::SceneGlobals globalData;
     memset( &globalData, 0, sizeof( globalData ) );
-    globalData.V                           = scene->camera.GetV();
-    globalData.P                           = scene->camera.GetP();
-    globalData.VP                          = scene->camera.GetVP();
-    globalData.invVP                       = Inverse( scene->camera.GetVP() );
-    globalData.cameraPos                   = vec4( scene->camera.position, 1 );
-    vec3 skyTint                           = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
-    globalData.cameraExposureAndSkyTint    = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
-    globalData.modelMatriciesBufferAddress = frameData.modelMatricesBuffer.GetDeviceAddress();
-    globalData.r_tonemap                   = r_tonemap.GetUint();
+    globalData.V                            = scene->camera.GetV();
+    globalData.P                            = scene->camera.GetP();
+    globalData.VP                           = scene->camera.GetVP();
+    globalData.invVP                        = Inverse( scene->camera.GetVP() );
+    globalData.cameraPos                    = vec4( scene->camera.position, 1 );
+    vec3 skyTint                            = scene->skyTint * powf( 2.0f, scene->skyEVAdjust );
+    globalData.cameraExposureAndSkyTint     = vec4( powf( 2.0f, scene->camera.exposure ), skyTint );
+    globalData.modelDequantizeBufferAddress = frameData.modelDequantizationBuffer.GetDeviceAddress();
+    globalData.modelMatriciesBufferAddress  = frameData.modelMatricesBuffer.GetDeviceAddress();
+    globalData.r_tonemap                    = r_tonemap.GetUint();
 
     Lighting::UpdateLights( scene );
     globalData.numLights.x  = Lighting::GetLightCount();

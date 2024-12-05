@@ -13,6 +13,7 @@ public:
     ~AABB() = default;
 
     vec3 Center() const;
+    vec3 Extent() const;
     void Points( vec3* data ) const;
     i32 LongestDimension() const;
     f32 SurfaceArea() const;

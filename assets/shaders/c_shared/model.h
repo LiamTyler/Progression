@@ -5,18 +5,16 @@
 
 BEGIN_GPU_DATA_NAMESPACE()
 
-#define MESHLET_COMPACT_INDICES_BIT 0
-
 // if this is edited, the model version number needs to be bumped in the converter
 struct Meshlet
 {
     uint vertexOffset;
-    uint triOffset;
+    uint triangleOffset;
     uint8_t vertexCount;
     uint8_t triangleCount;
-    uint8_t flags;
     uint8_t _pad0;
-    uint _pad1;
+    uint8_t _pad1;
+    uint _pad2;
 #if PACKED_VERTS
     uvec3 quantizedMeshletOffset;
     uint _pad2;
@@ -46,7 +44,6 @@ struct MeshletCullData
 #define MAX_VERTS_PER_MESHLET 64
 #define MAX_TRIS_PER_MESHLET 124
 
-#define VERT_INDICES 0
 #define PACKED_VERTS 0
 
 #define MESH_BUFFER_MESHLETS 0
@@ -56,9 +53,8 @@ struct MeshletCullData
 #define MESH_BUFFER_NORMALS 4
 #define MESH_BUFFER_UVS 5
 #define MESH_BUFFER_TANGENTS 6
-#define MESH_BUFFER_VERT_INDICES 7
 
-#define MESH_NUM_BUFFERS (7 + VERT_INDICES)
+#define MESH_NUM_BUFFERS 7
 
 END_GPU_DATA_NAMESPACE()
 

@@ -54,7 +54,7 @@ struct Mesh
     std::vector<vec3> normals;
     std::vector<vec2> texCoords;
     std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
-    std::vector<u8> indices;
+    std::vector<u16> packedTris;
 #if VERT_INDICES
     std::vector<u32> vertIndices;
 #endif // #if VERT_INDICES

@@ -2,6 +2,7 @@
 #include "asset/asset_manager.hpp"
 #include "asset/pmodel.hpp"
 #include "asset/types/material.hpp"
+#include "core/cpu_profiling.hpp"
 #include "core/time.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
@@ -24,6 +25,7 @@ using namespace PG::Gfx;
 namespace PG
 {
 
+#if USING( CONVERTER )
 std::string GetAbsPath_ModelFilename( const std::string& filename ) { return PG_ASSET_DIR + filename; }
 
 bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32 triCount )
@@ -203,17 +205,155 @@ bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32
     return !anyViolations;
 }
 
-struct MeshHelperData
+struct MeshBuildData
 {
+    std::vector<meshopt_Meshlet> moMeshlets;
     std::vector<u32> meshletVertices;
+    std::vector<u8> meshletTris;
+    std::vector<AABB> meshletAABBs;
+    u32 numMeshletVerts = 0;
+    u32 numMeshletTris  = 0;
+    u32 numMeshlets     = 0;
 };
+
+static GpuData::Meshlet MoToPGMeshlet( u32 vertCount, u32 triCount, u32& numTotalVerts, u32& numTotalTris )
+{
+    GpuData::Meshlet pgMeshlet;
+    pgMeshlet.vertexOffset   = numTotalVerts;
+    pgMeshlet.triangleOffset = numTotalTris;
+    pgMeshlet.vertexCount    = vertCount;
+    pgMeshlet.triangleCount  = triCount;
+    numTotalVerts += vertCount;
+    numTotalTris += triCount;
+
+    return pgMeshlet;
+}
+
+static bool CompactMeshlets( Mesh& m, MeshBuildData& buildData )
+{
+    PGP_MANUAL_ZONEN( __CompactMeshlets, "CompactMeshlets" );
+    std::vector<u8> subMeshletsPostCompaction( buildData.numMeshlets );
+    int numBlocks                  = static_cast<int>( ( buildData.numMeshlets + 63 ) / 64 );
+    std::atomic<int> extraMeshlets = 0;
+#pragma omp parallel for
+    for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
+    {
+        u32 meshletOffset           = 64 * (u32)blockIdx;
+        int blockLocalExtraMeshlets = 0;
+        for ( u32 localMeshletIdx = 0; localMeshletIdx < 64; ++localMeshletIdx )
+        {
+            u32 meshletIdx = meshletOffset + localMeshletIdx;
+            if ( meshletIdx >= buildData.numMeshlets )
+                break;
+
+            const meshopt_Meshlet& meshlet = buildData.moMeshlets[meshletIdx];
+            meshopt_optimizeMeshlet( &buildData.meshletVertices[meshlet.vertex_offset], &buildData.meshletTris[meshlet.triangle_offset],
+                meshlet.triangle_count, meshlet.vertex_count );
+            bool isCompact = CompactMeshletIndices( buildData.meshletVertices.data() + meshlet.vertex_offset, meshlet.vertex_count,
+                buildData.meshletTris.data() + meshlet.triangle_offset, meshlet.triangle_count );
+
+            subMeshletsPostCompaction[meshletIdx] = 1 + !isCompact;
+            blockLocalExtraMeshlets += !isCompact;
+        }
+        extraMeshlets += blockLocalExtraMeshlets;
+    }
+    PGP_MANUAL_ZONE_END( __CompactMeshlets );
+
+    u32 numMeshletVerts = 0;
+    u32 numMeshletTris  = 0;
+    PGP_MANUAL_ZONEN( __CompactionFixup, "CompactionFixup" );
+    m.meshlets.reserve( buildData.numMeshlets + extraMeshlets.load() );
+    std::vector<u32> newMeshletVertices;
+    newMeshletVertices.reserve( m.meshlets.size() * MAX_VERTS_PER_MESHLET );
+    std::vector<u8> newMeshletTris;
+    newMeshletTris.reserve( m.meshlets.size() * MAX_TRIS_PER_MESHLET );
+    for ( u32 moIdx = 0; moIdx < buildData.numMeshlets; ++moIdx )
+    {
+        u8 numMeshlets             = subMeshletsPostCompaction[moIdx];
+        meshopt_Meshlet& moMeshlet = buildData.moMeshlets[moIdx];
+
+        if ( numMeshlets == 1 ) [[likely]]
+        {
+            m.meshlets.push_back( MoToPGMeshlet( moMeshlet.vertex_count, moMeshlet.triangle_count, numMeshletVerts, numMeshletTris ) );
+            auto vertIter = buildData.meshletVertices.begin() + moMeshlet.vertex_offset;
+            newMeshletVertices.insert( newMeshletVertices.end(), vertIter, vertIter + moMeshlet.vertex_count );
+            auto triIter = buildData.meshletTris.begin() + moMeshlet.triangle_offset;
+            newMeshletTris.insert( newMeshletTris.end(), triIter, triIter + 3 * moMeshlet.triangle_count );
+        }
+        else [[unlikely]]
+        {
+            u8 subMmeshletTris[3 * MAX_TRIS_PER_MESHLET];
+            u32 subMeshletVerts[MAX_VERTS_PER_MESHLET];
+            u8 indexRemap[MAX_TRIS_PER_MESHLET];
+
+            memset( indexRemap, 0xFF, sizeof( indexRemap ) );
+            u8 newVertCount = 0;
+            u32 newTriCount = moMeshlet.triangle_count / 2;
+            for ( u32 i = 0; i < 3 * newTriCount; ++i )
+            {
+                u8 index = buildData.meshletTris[moMeshlet.triangle_offset + i];
+                if ( indexRemap[index] == 0xFF )
+                {
+                    subMeshletVerts[newVertCount] = buildData.meshletVertices[moMeshlet.vertex_offset + index];
+                    indexRemap[index]             = newVertCount++;
+                }
+                subMmeshletTris[i] = indexRemap[index];
+            }
+
+            meshopt_optimizeMeshlet( subMeshletVerts, subMmeshletTris, newTriCount, newVertCount );
+            bool isCompact = CompactMeshletIndices( subMeshletVerts, newVertCount, subMmeshletTris, newTriCount );
+            if ( !isCompact )
+            {
+                throw std::runtime_error( "Meshlet not compactible after splitting. Implement further splitting" );
+            }
+            m.meshlets.push_back( MoToPGMeshlet( newVertCount, newTriCount, numMeshletVerts, numMeshletTris ) );
+            newMeshletVertices.insert( newMeshletVertices.end(), subMeshletVerts, subMeshletVerts + newVertCount );
+            newMeshletTris.insert( newMeshletTris.end(), subMmeshletTris, subMmeshletTris + 3 * newTriCount );
+
+            moMeshlet.triangle_offset += 3 * newTriCount;
+            memset( indexRemap, 0xFF, sizeof( indexRemap ) );
+            newVertCount = 0;
+            newTriCount  = moMeshlet.triangle_count - newTriCount;
+            for ( u32 i = 0; i < 3 * newTriCount; ++i )
+            {
+                u8 index = buildData.meshletTris[moMeshlet.triangle_offset + i];
+                if ( indexRemap[index] == 0xFF )
+                {
+                    subMeshletVerts[newVertCount] = buildData.meshletVertices[moMeshlet.vertex_offset + index];
+                    indexRemap[index]             = newVertCount++;
+                }
+                subMmeshletTris[i] = indexRemap[index];
+            }
+
+            meshopt_optimizeMeshlet( subMeshletVerts, subMmeshletTris, newTriCount, newVertCount );
+            isCompact = CompactMeshletIndices( subMeshletVerts, newVertCount, subMmeshletTris, newTriCount );
+            if ( !isCompact )
+            {
+                throw std::runtime_error( "Meshlet not compactible after splitting. Implement further splitting" );
+            }
+            m.meshlets.push_back( MoToPGMeshlet( newVertCount, newTriCount, numMeshletVerts, numMeshletTris ) );
+            newMeshletVertices.insert( newMeshletVertices.end(), subMeshletVerts, subMeshletVerts + newVertCount );
+            newMeshletTris.insert( newMeshletTris.end(), subMmeshletTris, subMmeshletTris + 3 * newTriCount );
+        }
+    }
+    std::swap( buildData.meshletVertices, newMeshletVertices );
+    std::swap( buildData.meshletTris, newMeshletTris );
+    buildData.numMeshletVerts = numMeshletVerts;
+    buildData.numMeshletTris  = numMeshletTris;
+    buildData.numMeshlets += extraMeshlets.load();
+    PGP_MANUAL_ZONE_END( __CompactionFixup );
+}
+
+#endif // #if USING( CONVERTER )
 
 bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 {
+    PGP_ZONE_SCOPEDN( "Model::Load" );
 #if USING( CONVERTER )
     PG_ASSERT( baseInfo );
     const ModelCreateInfo* createInfo = (const ModelCreateInfo*)baseInfo;
     SetName( createInfo->name );
+    PG_ASSERT( !createInfo->recalculateNormals, "Not implemented with meshlets yet" );
 
     PModel pmodel;
     if ( !pmodel.Load( GetAbsPath_ModelFilename( createInfo->filename ) ) )
@@ -227,6 +367,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
     if ( createInfo->centerModel )
     {
+        PGP_ZONE_SCOPEDN( "CenterModel" );
         vec3 center = modelAABB.Center();
         for ( PModel::Mesh& pMesh : pmodel.meshes )
         {
@@ -238,17 +379,17 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     u32 numMeshes = static_cast<u32>( pmodel.meshes.size() );
+    std::vector<MeshBuildData> meshBuildDatas( numMeshes );
     meshes.resize( numMeshes );
     meshAABBs.resize( numMeshes );
-    u64 totalVertsBefore = 0;
-    u64 totalVertsAfter  = 0;
-    std::vector<std::vector<u32>> allMeshletVertices( numMeshes );
-    std::vector<std::vector<AABB>> allMeshletAABBs( numMeshes );
     vec3 largestMeshletExtents{ 0 };
+    u32 nonCompactibleMeshlets     = 0;
+    u32 totalMeshletsPreCompaction = 0;
     for ( u32 meshIdx = 0; meshIdx < numMeshes; ++meshIdx )
     {
         Mesh& m                   = meshes[meshIdx];
         const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
+        MeshBuildData& buildData  = meshBuildDatas[meshIdx];
 
         m.name     = pMesh.name;
         m.material = AssetManager::Get<Material>( pMesh.materialName );
@@ -258,125 +399,96 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             return false;
         }
 
-        totalVertsBefore += pMesh.vertices.size();
-
-        size_t maxMeshlets = meshopt_buildMeshletsBound( pMesh.indices.size(), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET );
-        std::vector<meshopt_Meshlet> meshlets( maxMeshlets );
-        std::vector<u32>& meshletVertices = allMeshletVertices[meshIdx];
-        meshletVertices.resize( maxMeshlets * MAX_VERTS_PER_MESHLET );
-        std::vector<u8> meshletTris( maxMeshlets * MAX_TRIS_PER_MESHLET * 3 );
+        PGP_MANUAL_ZONEN( __buildMeshlets, "BuildMeshlets" );
+        u64 maxMeshlets = meshopt_buildMeshletsBound( pMesh.indices.size(), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET );
+        buildData.moMeshlets.resize( maxMeshlets );
+        buildData.meshletVertices.resize( maxMeshlets * MAX_VERTS_PER_MESHLET );
+        buildData.meshletTris.resize( maxMeshlets * MAX_TRIS_PER_MESHLET * 3 );
 
         constexpr float CONE_WEIGHT = 0.5f;
-        size_t meshletCount = meshopt_buildMeshlets( meshlets.data(), meshletVertices.data(), meshletTris.data(), pMesh.indices.data(),
-            pMesh.indices.size(), &pMesh.vertices[0].pos.x, pMesh.vertices.size(), sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET,
-            MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
+        buildData.numMeshlets       = (u32)meshopt_buildMeshlets( buildData.moMeshlets.data(), buildData.meshletVertices.data(),
+                  buildData.meshletTris.data(), pMesh.indices.data(), pMesh.indices.size(), &pMesh.vertices[0].pos.x, pMesh.vertices.size(),
+                  sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
+        PGP_MANUAL_ZONE_END( __buildMeshlets );
 
-        u32 numTris = 0;
-        for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
+        u32 numMeshletsPreCompaction = buildData.numMeshlets;
+        if ( !CompactMeshlets( m, buildData ) )
         {
-            const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
-            numTris += meshlet.triangle_count;
+            LOG_ERR( "CompactMeshlets step failed for model '%s'", createInfo->name.c_str() );
+            return false;
         }
-        m.indices.reserve( 4 * numTris );
+        totalMeshletsPreCompaction += numMeshletsPreCompaction;
+        nonCompactibleMeshlets += ( buildData.numMeshlets - numMeshletsPreCompaction );
 
-        std::vector<AABB>& meshletAABBs = allMeshletAABBs[meshIdx];
-        meshletAABBs.resize( meshletCount );
-        m.meshlets.resize( meshletCount );
-        m.meshletCullDatas.resize( meshletCount );
-        u32 numMeshletVerts       = 0;
-        u32 paddedTriOffset       = 0;
-        u32 numCompactTriMeshlets = 0;
-        for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
+        PGP_MANUAL_ZONEN( __MeshletBoundsAndTris, "MeshletBoundsAndTris" );
+        m.packedTris.resize( buildData.numMeshletTris );
+        buildData.meshletAABBs.resize( buildData.numMeshlets );
+        m.meshletCullDatas.resize( buildData.numMeshlets );
+
+        int numBlocks = static_cast<int>( ( buildData.numMeshlets + 63 ) / 64 );
+        std::mutex extentsLock;
+#pragma omp parallel for
+        for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
         {
-            const meshopt_Meshlet& meshlet = meshlets[meshletIdx];
-            GpuData::Meshlet& pgMeshlet    = m.meshlets[meshletIdx];
-            meshopt_optimizeMeshlet( &meshletVertices[meshlet.vertex_offset], &meshletTris[meshlet.triangle_offset], meshlet.triangle_count,
-                meshlet.vertex_count );
-
-            bool isCompact = CompactMeshletIndices( meshletVertices.data() + meshlet.vertex_offset, meshlet.vertex_count,
-                meshletTris.data() + meshlet.triangle_offset, meshlet.triangle_count );
-
-            pgMeshlet.flags = 0;
-            if ( isCompact )
+            u32 meshletOffset = 64 * (u32)blockIdx;
+            vec3 blockLocalLargestMeshletExtents{ 0 };
+            AABB blockLocalMeshAABB = {};
+            for ( u32 localMeshletIdx = 0; localMeshletIdx < 64; ++localMeshletIdx )
             {
-                numCompactTriMeshlets += isCompact;
-                pgMeshlet.flags |= ( 1u << MESHLET_COMPACT_INDICES_BIT );
-            }
+                u32 meshletIdx = meshletOffset + localMeshletIdx;
+                if ( meshletIdx >= buildData.numMeshlets )
+                    break;
 
-            PG_ASSERT( numMeshletVerts == meshlet.vertex_offset );
-            pgMeshlet.vertexOffset  = meshlet.vertex_offset;
-            pgMeshlet.triOffset     = paddedTriOffset;
-            pgMeshlet.vertexCount   = meshlet.vertex_count;
-            pgMeshlet.triangleCount = meshlet.triangle_count;
+                const GpuData::Meshlet& meshlet = m.meshlets[meshletIdx];
+                meshopt_Bounds bounds           = meshopt_computeMeshletBounds( &buildData.meshletVertices[meshlet.vertexOffset],
+                              &buildData.meshletTris[3 * meshlet.triangleOffset], meshlet.triangleCount, &pMesh.vertices[0].pos.x,
+                              meshlet.vertexCount, sizeof( PModel::Vertex ) );
 
-            totalVertsAfter += meshlet.vertex_count;
-            numMeshletVerts += meshlet.vertex_count;
-            u32 bytesForIndices = meshlet.triangle_count * ( isCompact ? 2 : 4 );
-            m.indices.resize( m.indices.size() + bytesForIndices );
-            paddedTriOffset += bytesForIndices / 2; // tris are accessed from a uint16_t array in shader
-
-            meshopt_Bounds bounds =
-                meshopt_computeMeshletBounds( &meshletVertices[meshlet.vertex_offset], &meshletTris[meshlet.triangle_offset],
-                    meshlet.triangle_count, &pMesh.vertices[0].pos.x, meshlet.vertex_count, sizeof( PModel::Vertex ) );
-
-            AABB& meshletAABB = meshletAABBs[meshletIdx];
-            meshletAABB       = {};
-            for ( u32 mvIdx = 0; mvIdx < meshlet.vertex_count; ++mvIdx )
-            {
-                u32 globalVIdx = meshletVertices[meshlet.vertex_offset + mvIdx];
-                vec3 p         = pMesh.vertices[globalVIdx].pos;
-                meshletAABB.Encompass( p );
-            }
-            largestMeshletExtents = Max( largestMeshletExtents, meshletAABB.Extent() );
-
-            GpuData::PackedMeshletCullData& cullData = m.meshletCullDatas[meshletIdx];
-            cullData.position                        = vec3( bounds.center[0], bounds.center[1], bounds.center[2] );
-            cullData.radius                          = bounds.radius;
-            cullData.coneAxis                        = vec3( bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] );
-            cullData.coneCutoff                      = bounds.cone_cutoff;
-            cullData.coneApex                        = vec3( bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] );
-
-            if ( isCompact )
-            {
-                for ( u32 localTriIdx = 0; localTriIdx < meshlet.triangle_count; ++localTriIdx )
+                AABB& meshletAABB = buildData.meshletAABBs[meshletIdx];
+                meshletAABB       = {};
+                for ( u32 mvIdx = 0; mvIdx < meshlet.vertexCount; ++mvIdx )
                 {
-                    size_t globalMOIdx = meshlet.triangle_offset + 3 * localTriIdx;
-                    size_t globalPGIdx = 2 * pgMeshlet.triOffset + 2 * localTriIdx;
-                    u8vec3 tri         = { meshletTris[globalMOIdx + 0], meshletTris[globalMOIdx + 1], meshletTris[globalMOIdx + 2] };
-                    u16 packed         = 0;
-                    u8 yDiff           = tri.y - tri.x;
-                    u8 zDiff           = tri.z - tri.x;
-                    PG_ASSERT( tri.y > tri.x && tri.z > tri.x );
+                    u32 globalVIdx = buildData.meshletVertices[meshlet.vertexCount + mvIdx];
+                    vec3 p         = pMesh.vertices[globalVIdx].pos;
+                    meshletAABB.Encompass( p );
+                }
+                blockLocalLargestMeshletExtents = Max( blockLocalLargestMeshletExtents, meshletAABB.Extent() );
+                blockLocalMeshAABB.Encompass( meshletAABB );
+
+                GpuData::PackedMeshletCullData& cullData = m.meshletCullDatas[meshletIdx];
+                cullData.position                        = vec3( bounds.center[0], bounds.center[1], bounds.center[2] );
+                cullData.radius                          = bounds.radius;
+                cullData.coneAxis                        = vec3( bounds.cone_axis[0], bounds.cone_axis[1], bounds.cone_axis[2] );
+                cullData.coneCutoff                      = bounds.cone_cutoff;
+                cullData.coneApex                        = vec3( bounds.cone_apex[0], bounds.cone_apex[1], bounds.cone_apex[2] );
+
+                for ( u32 localTriIdx = 0; localTriIdx < meshlet.triangleCount; ++localTriIdx )
+                {
+                    u64 globalMOIdx = 3 * ( meshlet.triangleOffset + localTriIdx );
+                    u8vec3 tri      = { buildData.meshletTris[globalMOIdx + 0], buildData.meshletTris[globalMOIdx + 1],
+                             buildData.meshletTris[globalMOIdx + 2] };
+                    PG_ASSERT( tri.x < tri.y && tri.x < tri.z );
+
+                    u16 packedTri = 0;
+                    u8 yDiff      = tri.y - tri.x;
+                    u8 zDiff      = tri.z - tri.x;
                     PG_ASSERT( tri.x < 64 && yDiff < 32 && zDiff < 32 );
-                    packed |= tri.x;
-                    packed |= yDiff << 6;
-                    packed |= zDiff << 11;
-                    m.indices[globalPGIdx + 0] = packed & 0xFF;
-                    m.indices[globalPGIdx + 1] = ( packed >> 8 ) & 0xFF;
+                    packedTri |= tri.x;
+                    packedTri |= yDiff << 6;
+                    packedTri |= zDiff << 11;
+                    m.packedTris[meshlet.triangleOffset + localTriIdx] = packedTri;
                 }
             }
-            else
-            {
-                for ( u32 localTriIdx = 0; localTriIdx < meshlet.triangle_count; ++localTriIdx )
-                {
-                    size_t globalMOIdx = meshlet.triangle_offset + 3 * localTriIdx;
-                    size_t globalPGIdx = 2 * pgMeshlet.triOffset + 4 * localTriIdx;
-                    u8vec3 tri         = { meshletTris[globalMOIdx + 0], meshletTris[globalMOIdx + 1], meshletTris[globalMOIdx + 2] };
-                    m.indices[globalPGIdx + 0] = tri.x;
-                    m.indices[globalPGIdx + 1] = tri.y;
-                    m.indices[globalPGIdx + 2] = tri.z;
-                    m.indices[globalPGIdx + 3] = 0;
-                }
-            }
-        }
 
-        if ( numCompactTriMeshlets != meshletCount )
-        {
-            LOG_WARN( "Compactible Meshlets: %u/%u = %.2f%%", numCompactTriMeshlets, meshletCount,
-                100.0f * numCompactTriMeshlets / (float)meshletCount );
+            extentsLock.lock();
+            largestMeshletExtents = Max( largestMeshletExtents, blockLocalLargestMeshletExtents );
+            meshAABBs[meshIdx].Encompass( blockLocalMeshAABB );
+            extentsLock.unlock();
         }
+        PGP_MANUAL_ZONE_END( __MeshletBoundsAndTris );
     }
 
+    PGP_MANUAL_ZONEN( __ExportVerts, "ExportVerts" );
 #if PACKED_VERTS
     // Quantization strategy described here: https://gpuopen.com/learn/mesh_shaders/mesh_shaders-meshlet_compression/
     const u32 TARGET_BITS               = 16;
@@ -395,141 +507,87 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     uvec3 maxQuantizedValue = uvec3( 0 );
     for ( u32 meshIdx = 0; meshIdx < numMeshes; ++meshIdx )
     {
-        Mesh& m                   = meshes[meshIdx];
-        const PModel::Mesh& pMesh = pmodel.meshes[meshIdx];
-        u32 numMeshletVerts       = 0;
-        for ( size_t meshletIdx = 0; meshletIdx < m.meshlets.size(); ++meshletIdx )
-            numMeshletVerts += m.meshlets[meshletIdx].vertexCount;
+        Mesh& m                        = meshes[meshIdx];
+        const PModel::Mesh& pMesh      = pmodel.meshes[meshIdx];
+        const MeshBuildData& buildData = meshBuildDatas[meshIdx];
 
-        u32 numZeroNormals  = 0;
-        u32 numZeroTangents = 0;
-        AABB& meshAABB      = meshAABBs[meshIdx];
-
-#if VERT_INDICES
-        u32 numMeshVerts = static_cast<u32>( pMesh.vertices.size() );
-        m.positions.resize( numMeshVerts );
-        m.normals.resize( numMeshVerts );
+        std::atomic<u32> numZeroNormals  = 0;
+        std::atomic<u32> numZeroTangents = 0;
+        m.packedPositions.resize( buildData.numMeshletVerts );
+        m.normals.resize( buildData.numMeshletVerts );
         if ( pMesh.numUVChannels > 0 )
-            m.texCoords.resize( numMeshVerts );
+            m.texCoords.resize( buildData.numMeshletVerts );
         if ( pMesh.hasTangents )
-            m.tangents.resize( numMeshVerts );
-        for ( u32 mvIdx = 0; mvIdx < numMeshVerts; ++mvIdx )
-        {
-            const PModel::Vertex& v = pMesh.vertices[mvIdx];
-            m.positions[mvIdx]      = v.pos;
-            meshAABB.Encompass( v.pos );
-            m.normals[mvIdx] = v.normal;
-            if ( Length( v.normal ) <= 0.00001f )
-                ++numZeroNormals;
+            m.tangents.resize( buildData.numMeshletVerts );
 
-            if ( pMesh.numUVChannels > 0 )
-            {
-                m.texCoords[mvIdx] = v.uvs[0];
-                if ( createInfo->flipTexCoordsVertically )
-                    m.texCoords[mvIdx].y = 1.0f - v.uvs[0].y;
-            }
-            if ( pMesh.hasTangents )
-            {
-                vec3 tangent      = v.tangent;
-                vec3 bitangent    = v.bitangent;
-                vec3 tNormal      = Cross( tangent, bitangent );
-                float bSign       = Dot( v.normal, tNormal ) >= 0.0f ? 1.0f : -1.0f;
-                vec4 packed       = vec4( tangent, bSign );
-                m.tangents[mvIdx] = packed;
-                if ( Length( v.tangent ) <= 0.00001f )
-                    ++numZeroTangents;
-            }
-        }
-
-        m.vertIndices.resize( numMeshletVerts );
-        u32 num8VI  = 0;
-        u32 num16VI = 0;
-        for ( size_t meshletIdx = 0; meshletIdx < meshletCount; ++meshletIdx )
+        int numBlocks = static_cast<int>( ( buildData.numMeshlets + 63 ) / 64 );
+#pragma omp parallel for
+        for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
         {
-            const GpuData::Meshlet& pgMeshlet = m.meshlets[meshletIdx];
-            u32 minVI                         = UINT_MAX;
-            u32 maxVI                         = 0;
-            for ( u32 localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
+            u32 meshletOffset = 64 * (u32)blockIdx;
+            for ( u32 localMeshletIdx = 0; localMeshletIdx < 64; ++localMeshletIdx )
             {
-                minVI                                             = Min( minVI, meshletVertices[pgMeshlet.vertexOffset + localVIdx] );
-                maxVI                                             = Max( maxVI, meshletVertices[pgMeshlet.vertexOffset + localVIdx] );
-                m.vertIndices[pgMeshlet.vertexOffset + localVIdx] = meshletVertices[pgMeshlet.vertexOffset + localVIdx];
-            }
-            u32 d = maxVI - minVI;
-            if ( d < 256 )
-                ++num8VI;
-            else if ( d < 65536 )
-                ++num16VI;
-        }
-        LOG( "Num 8 VI: %u, 16 VI: %u. Total: %u", num8VI, num16VI, meshletCount );
-#else // #if VERT_INDICES
-        m.packedPositions.resize( numMeshletVerts );
-        m.normals.resize( numMeshletVerts );
-        if ( pMesh.numUVChannels > 0 )
-            m.texCoords.resize( numMeshletVerts );
-        if ( pMesh.hasTangents )
-            m.tangents.resize( numMeshletVerts );
-
-        const std::vector<AABB>& meshletAABBs   = allMeshletAABBs[meshIdx];
-        const std::vector<u32>& meshletVertices = allMeshletVertices[meshIdx];
-        for ( size_t meshletIdx = 0; meshletIdx < m.meshlets.size(); ++meshletIdx )
-        {
-            GpuData::Meshlet& pgMeshlet = m.meshlets[meshletIdx];
+                u32 meshletIdx = meshletOffset + localMeshletIdx;
+                if ( meshletIdx >= buildData.numMeshlets )
+                    break;
+                GpuData::Meshlet& pgMeshlet = m.meshlets[meshletIdx];
 #if PACKED_VERTS
-            const uvec3 quantizedMeshletOffset = ( meshletAABBs[meshletIdx].min - globalMin ) * quantizationFactor + 0.5f;
-            pgMeshlet.quantizedMeshletOffset   = quantizedMeshletOffset;
+                const uvec3 quantizedMeshletOffset = ( meshletAABBs[meshletIdx].min - globalMin ) * quantizationFactor + 0.5f;
+                pgMeshlet.quantizedMeshletOffset   = quantizedMeshletOffset;
 #endif // #if PACKED_VERTS
 
-            for ( u32 localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
-            {
-                size_t globalVIdx       = pgMeshlet.vertexOffset + localVIdx;
-                const PModel::Vertex& v = pMesh.vertices[meshletVertices[globalVIdx]];
-                meshAABB.Encompass( v.pos );
+                for ( u32 localVIdx = 0; localVIdx < pgMeshlet.vertexCount; ++localVIdx )
+                {
+                    size_t globalVIdx       = pgMeshlet.vertexOffset + localVIdx;
+                    const PModel::Vertex& v = pMesh.vertices[buildData.meshletVertices[globalVIdx]];
 
 #if PACKED_VERTS
-                uvec3 globalQuantizedValue    = ( v.pos - globalMin ) * quantizationFactor + 0.5f;
-                uvec3 localQuantizedValue     = globalQuantizedValue - quantizedMeshletOffset;
-                maxQuantizedValue             = glm::max( maxQuantizedValue, localQuantizedValue );
-                m.packedPositions[globalVIdx] = u16vec3( localQuantizedValue );
+                    uvec3 globalQuantizedValue    = ( v.pos - globalMin ) * quantizationFactor + 0.5f;
+                    uvec3 localQuantizedValue     = globalQuantizedValue - quantizedMeshletOffset;
+                    maxQuantizedValue             = glm::max( maxQuantizedValue, localQuantizedValue );
+                    m.packedPositions[globalVIdx] = u16vec3( localQuantizedValue );
 #else  // #if PACKED_VERTS
-                m.packedPositions[globalVIdx] = v.pos;
+                    m.packedPositions[globalVIdx] = v.pos;
 #endif // #else // #if PACKED_VERTS
 
-                m.normals[globalVIdx] = v.normal;
-                if ( Length( v.normal ) <= 0.00001f )
-                    ++numZeroNormals;
+                    m.normals[globalVIdx] = v.normal;
+                    if ( Length( v.normal ) <= 0.00001f )
+                        ++numZeroNormals;
 
-                if ( pMesh.numUVChannels > 0 )
-                {
-                    m.texCoords[globalVIdx] = v.uvs[0];
-                    if ( createInfo->flipTexCoordsVertically )
-                        m.texCoords[globalVIdx].y = 1.0f - v.uvs[0].y;
-                }
-                if ( pMesh.hasTangents )
-                {
-                    vec3 tangent           = v.tangent;
-                    vec3 bitangent         = v.bitangent;
-                    vec3 tNormal           = Cross( tangent, bitangent );
-                    float bSign            = Dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
-                    vec4 packed            = vec4( tangent, bSign );
-                    m.tangents[globalVIdx] = packed;
-                    if ( Length( v.tangent ) <= 0.00001f )
-                        ++numZeroTangents;
+                    if ( pMesh.numUVChannels > 0 )
+                    {
+                        m.texCoords[globalVIdx] = v.uvs[0];
+                        if ( createInfo->flipTexCoordsVertically )
+                            m.texCoords[globalVIdx].y = 1.0f - v.uvs[0].y;
+                    }
+                    if ( pMesh.hasTangents )
+                    {
+                        vec3 tangent           = v.tangent;
+                        vec3 bitangent         = v.bitangent;
+                        vec3 tNormal           = Cross( tangent, bitangent );
+                        float bSign            = Dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
+                        vec4 packed            = vec4( tangent, bSign );
+                        m.tangents[globalVIdx] = packed;
+                        if ( Length( v.tangent ) <= 0.00001f )
+                            ++numZeroTangents;
+                    }
                 }
             }
         }
-#endif // #else // #if VERT_INDICES
-        if ( numZeroNormals )
+        if ( numZeroNormals.load() )
             LOG_WARN( "Mesh[%u] '%s' inside of model '%s' has %u normals of length 0", meshIdx, pMesh.name.c_str(),
-                createInfo->name.c_str(), numZeroNormals );
-        if ( numZeroTangents )
+                createInfo->name.c_str(), numZeroNormals.load() );
+        if ( numZeroTangents.load() )
             LOG_WARN( "Mesh[%u] '%s' inside of model '%s' has %u tangents of length 0", meshIdx, pMesh.name.c_str(),
-                createInfo->name.c_str(), numZeroTangents );
+                createInfo->name.c_str(), numZeroTangents.load() );
     }
-    PG_ASSERT( !createInfo->recalculateNormals, "Not implemented with meshlets yet" );
+    PGP_MANUAL_ZONE_END( __ExportVerts );
 
-    LOG( "Model verts: %zu, Meshlet verts: %zu. %.2f%% increase", totalVertsBefore, totalVertsAfter,
-        ( totalVertsAfter / (double)totalVertsBefore - 1.0 ) * 100.0 );
+    if ( nonCompactibleMeshlets )
+    {
+        LOG_WARN( "%u/%u meshlets were incompactible for model '%s' and had to be split", nonCompactibleMeshlets,
+            totalMeshletsPreCompaction, createInfo->name.c_str() );
+    }
 
     return true;
 #else  // #if USING( CONVERTER )
@@ -567,10 +625,7 @@ bool Model::FastfileLoad( Serializer* serializer )
         serializer->Read( mesh.normals );
         serializer->Read( mesh.texCoords );
         serializer->Read( mesh.tangents );
-        serializer->Read( mesh.indices );
-#if VERT_INDICES
-        serializer->Read( mesh.vertIndices );
-#endif // #if VERT_INDICES
+        serializer->Read( mesh.packedTris );
         serializer->Read( mesh.meshlets );
         serializer->Read( mesh.meshletCullDatas );
 #else // #if !USING( GPU_DATA )
@@ -591,15 +646,9 @@ bool Model::FastfileLoad( Serializer* serializer )
         const void* tanData = serializer->GetData();
         serializer->Skip( numTan * sizeof( vec4 ) );
 
-        u64 numIndices        = serializer->Read<u64>();
-        const void* indexData = serializer->GetData();
-        serializer->Skip( numIndices * sizeof( u8 ) );
-
-#if VERT_INDICES
-        u64 numVertIndices        = serializer->Read<u64>();
-        const void* vertIndexData = serializer->GetData();
-        serializer->Skip( numVertIndices * sizeof( u32 ) );
-#endif // #if VERT_INDICES
+        u64 numTris         = serializer->Read<u64>();
+        const void* triData = serializer->GetData();
+        serializer->Skip( numTris * sizeof( u16 ) );
 
         u64 numMeshlets         = serializer->Read<u64>();
         const void* meshletData = serializer->GetData();
@@ -624,13 +673,8 @@ bool Model::FastfileLoad( Serializer* serializer )
         vbCreateInfo.bufferUsage        = BufferUsage::TRANSFER_DST | BufferUsage::STORAGE | BufferUsage::DEVICE_ADDRESS;
         vbCreateInfo.addToBindlessArray = false; // since BindlessManager::AddMeshBuffers will take care of it
 
-#if VERT_INDICES
-        BufferCreateInfo vibCreateInfo = vbCreateInfo;
-        vibCreateInfo.size             = numVertIndices * sizeof( u32 );
-#endif // #if VERT_INDICES
-
         BufferCreateInfo tbCreateInfo = vbCreateInfo;
-        tbCreateInfo.size             = numIndices * sizeof( u8 );
+        tbCreateInfo.size             = numTris * sizeof( u16 );
 
         BufferCreateInfo mbCreateInfo = vbCreateInfo;
         mbCreateInfo.size             = numMeshlets * sizeof( GpuData::Meshlet );
@@ -644,17 +688,11 @@ bool Model::FastfileLoad( Serializer* serializer )
         mesh.buffers[Mesh::TRI_BUFFER]       = rg.device.NewBuffer( tbCreateInfo, std::string( m_name ) + mesh.name + "_tb" );
         mesh.buffers[Mesh::MESHLET_BUFFER]   = rg.device.NewBuffer( mbCreateInfo, std::string( m_name ) + mesh.name + "_mb" );
         mesh.buffers[Mesh::CULL_DATA_BUFFER] = rg.device.NewBuffer( cbCreateInfo, std::string( m_name ) + mesh.name + "_mcb" );
-#if VERT_INDICES
-        mesh.buffers[Mesh::VERTEX_INDICES_BUFFER] = rg.device.NewBuffer( vibCreateInfo, std::string( m_name ) + mesh.name + "_vib" );
-#endif // #if VERT_INDICES
 #else  // #if USING( ASSET_NAMES )
         mesh.buffers[Mesh::VERTEX_BUFFER]    = rg.device.NewBuffer( vbCreateInfo );
         mesh.buffers[Mesh::TRI_BUFFER]       = rg.device.NewBuffer( tbCreateInfo );
         mesh.buffers[Mesh::MESHLET_BUFFER]   = rg.device.NewBuffer( mbCreateInfo );
         mesh.buffers[Mesh::CULL_DATA_BUFFER] = rg.device.NewBuffer( cbCreateInfo );
-#if VERT_INDICES
-        mesh.buffers[Mesh::VERTEX_INDICES_BUFFER] = rg.device.NewBuffer( vibCreateInfo );
-#endif // #if VERT_INDICES
 #endif // #else // #if USING( ASSET_NAMES )
         mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
 
@@ -668,12 +706,9 @@ bool Model::FastfileLoad( Serializer* serializer )
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], tanData, numTan * sizeof( vec4 ), offset );
         offset += numTan * sizeof( vec4 );
 
-        rg.device.AddUploadRequest( mesh.buffers[Mesh::TRI_BUFFER], indexData, tbCreateInfo.size );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::TRI_BUFFER], triData, tbCreateInfo.size );
         rg.device.AddUploadRequest( mesh.buffers[Mesh::MESHLET_BUFFER], meshletData, mbCreateInfo.size );
         rg.device.AddUploadRequest( mesh.buffers[Mesh::CULL_DATA_BUFFER], meshletCullData, cbCreateInfo.size );
-#if VERT_INDICES
-        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_INDICES_BUFFER], vertIndexData, vibCreateInfo.size );
-#endif // #if VERT_INDICES
 #endif // #else // #if !USING( GPU_DATA )
     }
     serializer->Read( positionDequantizationInfo );
@@ -695,10 +730,7 @@ bool Model::FastfileSave( Serializer* serializer ) const
         serializer->Write( mesh.normals );
         serializer->Write( mesh.texCoords );
         serializer->Write( mesh.tangents );
-        serializer->Write( mesh.indices );
-#if VERT_INDICES
-        serializer->Write( mesh.vertIndices );
-#endif // #if VERT_INDICES
+        serializer->Write( mesh.packedTris );
         serializer->Write( mesh.meshlets );
         serializer->Write( mesh.meshletCullDatas.data(), mesh.meshletCullDatas.size() * sizeof( GpuData::PackedMeshletCullData ) );
     }
@@ -725,10 +757,7 @@ void Model::FreeCPU()
         mesh.normals          = {};
         mesh.texCoords        = {};
         mesh.tangents         = {};
-        mesh.indices          = {};
-#if VERT_INDICES
-        mesh.vertIndices = {};
-#endif // #if VERT_INDICES
+        mesh.packedTris       = {};
     }
 #endif // #if !USING( GPU_DATA )
 }

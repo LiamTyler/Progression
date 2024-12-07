@@ -22,6 +22,7 @@ set(
     ${CODE_DIR}/core/bounding_box.hpp
     ${CODE_DIR}/core/camera.cpp
     ${CODE_DIR}/core/camera.hpp
+    ${CODE_DIR}/core/cpu_profiling.hpp
     ${CODE_DIR}/core/engine_globals.cpp
     ${CODE_DIR}/core/engine_globals.hpp
     ${CODE_DIR}/core/feature_defines.hpp
@@ -86,6 +87,10 @@ set(
     ${CODE_DIR}/external/getopt/getopt.h
     ${CODE_DIR}/external/msdfgen/ext/import-font.cpp
     ${CODE_DIR}/external/msdfgen/ext/import-font.h
+
+    ${CODE_DIR}/external/tracy/tracy/Tracy.hpp
+    ${CODE_DIR}/external/tracy/tracy/TracyVulkan.hpp
+    ${CODE_DIR}/external/tracy/TracyClient.cpp
 )
 
 set(INTELLISENSE_ONLY ${IMAGELIB_EXT_FILES} ${PUGIXML_EXT_FILES} ${MSDFGEN_EXT_FILES} ${MESHOPT_EXT_FILES})
@@ -102,11 +107,12 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${LUA_INCLUDES} ${PUGIXML_INCLUDES}
     ${FREETYPE_INCLUDES} ${MSDFGEN_INCLUDES}
     ${Vulkan_INCLUDE_DIR}
+    ${CODE_DIR}/external/tracy/
 )
 
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
-target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER ${MSDFGEN_COMPILE_DEFS})
+target_compile_definitions(${PROJECT_NAME} PUBLIC CMAKE_DEFINE_CONVERTER ${MSDFGEN_COMPILE_DEFS} TRACY_ENABLE)
 target_link_libraries(${PROJECT_NAME} PUBLIC debug
     OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS_DEBUG}
     lua lz4

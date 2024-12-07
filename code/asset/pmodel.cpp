@@ -1,4 +1,5 @@
 #include "pmodel.hpp"
+#include "core/cpu_profiling.hpp"
 #include "shared/assert.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/logger.hpp"
@@ -93,8 +94,7 @@ bool PModel::LoadBinary( std::string_view filename )
         mesh.indices.resize( numIndices );
         for ( size_t i = 0; i < num16BitIndices; ++i )
             mesh.indices[i] = serializer.Read<u16>();
-        for ( size_t i = num16BitIndices; i < numIndices; ++i )
-            serializer.Read( mesh.indices[i] );
+        serializer.Read( mesh.indices.data() + num16BitIndices, ( numIndices - num16BitIndices ) * sizeof( u32 ) );
 
         mesh.vertices.resize( serializer.Read<u32>() );
         for ( size_t vIdx = 0; vIdx < mesh.vertices.size(); ++vIdx )
@@ -292,6 +292,7 @@ bool PModel::LoadText( std::string_view filename )
 
 bool PModel::Load( std::string_view filename )
 {
+    PGP_ZONE_SCOPEDN( "PModel::Load" );
     aabbMin         = vec3( FLT_MAX );
     aabbMax         = vec3( -FLT_MAX );
     std::string ext = GetFileExtension( filename.data() );

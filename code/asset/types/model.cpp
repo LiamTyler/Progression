@@ -10,7 +10,6 @@
 #include "shared/serializer.hpp"
 #include <cstring>
 #include <queue>
-#include <stack>
 
 #if USING( CONVERTER )
 #include "meshoptimizer/src/meshoptimizer.h"
@@ -21,6 +20,7 @@ using namespace PG::Gfx;
 #include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
+#include "data_structures/queue_static.hpp"
 
 namespace PG
 {
@@ -35,7 +35,7 @@ bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32
     for ( u32 localTriIdx = 0; localTriIdx < triCount; ++localTriIdx )
     {
         u8vec3 tri = { triIndices[3 * localTriIdx + 0], triIndices[3 * localTriIdx + 1], triIndices[3 * localTriIdx + 2] };
-        PG_ASSERT( tri.x != tri.y && tri.x != tri.z && tri.y != tri.z );
+        PG_DBG_ASSERT( tri.x != tri.y && tri.x != tri.z && tri.y != tri.z );
         if ( tri.x > tri.y || tri.x > tri.z )
             tri = { tri.y, tri.z, tri.x };
         if ( tri.x > tri.y || tri.x > tri.z )
@@ -87,27 +87,27 @@ bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32
     u8 finalVertRemap[MAX_VERTS_PER_MESHLET];
     memset( finalVertRemap, 0xFF, sizeof( finalVertRemap ) );
     u8 numNewVerts = 0;
-    std::vector<u8> newTriOrder;
 
-    auto addVertFn = [&]( u8 vertIdx, std::queue<u8>& tStack )
+    auto addVertFn = [&]( u8 vertIdx, StaticQueue<u8, MAX_TRIS_PER_MESHLET>& tQueue )
     {
         if ( finalVertRemap[vertIdx] != 0xFF )
             return;
         finalVertRemap[vertIdx] = numNewVerts++;
 
         const VertexUse& adjInfo = vAdjacentInfos[sortedVertRemap[vertIdx]];
-        std::vector<u8> adjTris;
+        u8 adjTris[MAX_TRIS_PER_MESHLET];
+        u32 adjTrisCount = 0;
         for ( u32 i = 0; i < adjInfo.count; ++i )
         {
             u8 tIdx = adjInfo.adjTris[i];
             if ( !triProcessed[tIdx] )
             {
-                adjTris.push_back( tIdx );
-                triProcessed[tIdx] = true;
+                adjTris[adjTrisCount++] = tIdx;
+                triProcessed[tIdx]      = true;
             }
         }
 
-        std::sort( adjTris.begin(), adjTris.end(),
+        std::sort( adjTris, adjTris + adjTrisCount,
             [&]( u8 lTriIdx, u8 rTriIdx )
             {
                 u8vec3 lTri = { triIndices[3 * lTriIdx + 0], triIndices[3 * lTriIdx + 1], triIndices[3 * lTriIdx + 2] };
@@ -125,26 +125,28 @@ bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32
                 return lCount < rCount;
             } );
 
-        for ( u32 i = 0; i < adjTris.size(); ++i )
+        for ( u32 i = 0; i < adjTrisCount; ++i )
         {
-            tStack.push( adjTris[adjTris.size() - i - 1] );
+            tQueue.push( adjTris[adjTrisCount - i - 1] );
         }
     };
 
+    u8 newTriOrder[MAX_TRIS_PER_MESHLET];
+    u32 newTriOrderCount = 0;
     for ( u8 sortedVIdx = 0; sortedVIdx < vertCount; ++sortedVIdx )
     {
         const VertexUse& sortedV = vAdjacentInfos[sortedVIdx];
         if ( finalVertRemap[sortedV.index] != 0xFF )
             continue;
 
-        std::queue<u8> tStack;
-        addVertFn( sortedV.index, tStack );
-        while ( !tStack.empty() )
+        StaticQueue<u8, MAX_TRIS_PER_MESHLET> tQueue;
+        addVertFn( sortedV.index, tQueue );
+        while ( !tQueue.empty() )
         {
-            u8 tIdx = tStack.front();
-            tStack.pop();
-            newTriOrder.push_back( tIdx );
-            u8vec3 tri = { triIndices[3 * tIdx + 0], triIndices[3 * tIdx + 1], triIndices[3 * tIdx + 2] };
+            u8 tIdx = tQueue.front();
+            tQueue.pop();
+            newTriOrder[newTriOrderCount++] = tIdx;
+            u8vec3 tri                      = { triIndices[3 * tIdx + 0], triIndices[3 * tIdx + 1], triIndices[3 * tIdx + 2] };
             if ( vAdjacentInfos[sortedVertRemap[tri.x]].count > vAdjacentInfos[sortedVertRemap[tri.z]].count )
                 std::swap( tri.x, tri.z );
             if ( vAdjacentInfos[sortedVertRemap[tri.x]].count > vAdjacentInfos[sortedVertRemap[tri.y]].count )
@@ -152,13 +154,13 @@ bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32
             if ( vAdjacentInfos[sortedVertRemap[tri.y]].count > vAdjacentInfos[sortedVertRemap[tri.z]].count )
                 std::swap( tri.y, tri.z );
 
-            addVertFn( tri.x, tStack );
-            addVertFn( tri.y, tStack );
-            addVertFn( tri.z, tStack );
+            addVertFn( tri.x, tQueue );
+            addVertFn( tri.y, tQueue );
+            addVertFn( tri.z, tQueue );
         }
     }
-    PG_ASSERT( numNewVerts == vertCount );
-    PG_ASSERT( newTriOrder.size() == triCount );
+    PG_DBG_ASSERT( numNewVerts == vertCount );
+    PG_DBG_ASSERT( newTriOrderCount == triCount );
 
     u32 newVerts[MAX_VERTS_PER_MESHLET];
     for ( u32 i = 0; i < vertCount; ++i )
@@ -184,7 +186,7 @@ bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32
         if ( tri.x > tri.y || tri.x > tri.z )
             tri = { tri.y, tri.z, tri.x };
 
-        PG_ASSERT( tri.x != tri.y && tri.x != tri.z && tri.y != tri.z );
+        PG_DBG_ASSERT( tri.x != tri.y && tri.x != tri.z && tri.y != tri.z );
         triIndices[3 * i + 0] = tri.x;
         triIndices[3 * i + 1] = tri.y;
         triIndices[3 * i + 2] = tri.z;

@@ -5,6 +5,8 @@
 
 BEGIN_GPU_DATA_NAMESPACE()
 
+#define PACKED_VERTS 1
+
 // if this is edited, the model version number needs to be bumped in the converter
 struct Meshlet
 {
@@ -17,7 +19,7 @@ struct Meshlet
     uint _pad2;
 #if PACKED_VERTS
     uvec3 quantizedMeshletOffset;
-    uint _pad2;
+    uint _pad3;
 #endif // #if PACKED_VERTS
 };
 
@@ -43,8 +45,6 @@ struct MeshletCullData
 
 #define MAX_VERTS_PER_MESHLET 64
 #define MAX_TRIS_PER_MESHLET 124
-
-#define PACKED_VERTS 0
 
 #define MESH_BUFFER_MESHLETS 0
 #define MESH_BUFFER_MESHLET_CULL_DATA 1

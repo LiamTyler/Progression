@@ -450,7 +450,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 meshletAABB       = {};
                 for ( u32 mvIdx = 0; mvIdx < meshlet.vertexCount; ++mvIdx )
                 {
-                    u32 globalVIdx = buildData.meshletVertices[meshlet.vertexCount + mvIdx];
+                    u32 globalVIdx = buildData.meshletVertices[meshlet.vertexOffset + mvIdx];
                     vec3 p         = pMesh.vertices[globalVIdx].pos;
                     meshletAABB.Encompass( p );
                 }
@@ -498,7 +498,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     const vec3 globalDelta              = modelAABB.max - modelAABB.min;
     const vec3 meshletQuantizationStep  = largestMeshletExtents / float( ( 1 << TARGET_BITS ) - 1 );
     const vec3 globalQuantizationStates = vec3( uvec3( globalDelta / meshletQuantizationStep ) );
-    const vec3 effectiveBits            = glm::log2( globalQuantizationStates );
+    const vec3 effectiveBits            = Log2( globalQuantizationStates );
     const vec3 quantizationFactor       = ( globalQuantizationStates - vec3( 1 ) ) / globalDelta;
     LOG( "Effective Quantization Bits: %f %f %f", effectiveBits.x, effectiveBits.y, effectiveBits.z );
 
@@ -506,7 +506,6 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     positionDequantizationInfo.globalMin = globalMin;
 #endif // #if PACKED_VERTS
 
-    uvec3 maxQuantizedValue = uvec3( 0 );
     for ( u32 meshIdx = 0; meshIdx < numMeshes; ++meshIdx )
     {
         Mesh& m                        = meshes[meshIdx];
@@ -534,7 +533,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     break;
                 GpuData::Meshlet& pgMeshlet = m.meshlets[meshletIdx];
 #if PACKED_VERTS
-                const uvec3 quantizedMeshletOffset = ( meshletAABBs[meshletIdx].min - globalMin ) * quantizationFactor + 0.5f;
+                const uvec3 quantizedMeshletOffset = ( buildData.meshletAABBs[meshletIdx].min - globalMin ) * quantizationFactor + 0.5f;
                 pgMeshlet.quantizedMeshletOffset   = quantizedMeshletOffset;
 #endif // #if PACKED_VERTS
 
@@ -546,7 +545,6 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 #if PACKED_VERTS
                     uvec3 globalQuantizedValue    = ( v.pos - globalMin ) * quantizationFactor + 0.5f;
                     uvec3 localQuantizedValue     = globalQuantizedValue - quantizedMeshletOffset;
-                    maxQuantizedValue             = glm::max( maxQuantizedValue, localQuantizedValue );
                     m.packedPositions[globalVIdx] = u16vec3( localQuantizedValue );
 #else  // #if PACKED_VERTS
                     m.packedPositions[globalVIdx] = v.pos;

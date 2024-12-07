@@ -74,3 +74,7 @@ inline vec4 Max( const vec4& a, const vec4& b ) { return glm::max( a, b ); }
 inline vec2 Lerp( const vec2& a, const vec2& b, f32 t ) { return glm::mix( a, b, t ); }
 inline vec3 Lerp( const vec3& a, const vec3& b, f32 t ) { return glm::mix( a, b, t ); }
 inline vec4 Lerp( const vec4& a, const vec4& b, f32 t ) { return glm::mix( a, b, t ); }
+
+inline vec2 Log2( const vec2& v ) { return glm::log2( v ); }
+inline vec3 Log2( const vec3& v ) { return glm::log2( v ); }
+inline vec4 Log2( const vec4& v ) { return glm::log2( v ); }

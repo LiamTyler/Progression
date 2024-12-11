@@ -37,6 +37,7 @@ Meshlet GetMeshlet( uint meshletID, uint baseBuffer )
 uvec3 GetTri( const Meshlet meshlet, uint baseBuffer, uint index )
 {
     uvec3 tri;
+#if PACKED_TRIS
     UshortBuffer tBuffer = UshortBuffer( bindlessBuffers[baseBuffer + MESH_BUFFER_TRIS] );
     uint16_t packedTri   = tBuffer.data[meshlet.triangleOffset + index];
     tri.x                = ( packedTri ) & 0x3F;
@@ -44,6 +45,13 @@ uvec3 GetTri( const Meshlet meshlet, uint baseBuffer, uint index )
     tri.z                = ( packedTri >> 11 );
     tri.y += tri.x;
     tri.z += tri.x;
+#else  // #if PACKED_TRIS
+    ByteBuffer tBuffer = ByteBuffer( bindlessBuffers[baseBuffer + MESH_BUFFER_TRIS] );
+    uint offset        = 3 * ( meshlet.triangleOffset + index );
+    tri.x              = tBuffer.data[offset + 0];
+    tri.y              = tBuffer.data[offset + 1];
+    tri.z              = tBuffer.data[offset + 2];
+#endif // #else // #if PACKED_TRIS
 
     return tri;
 }
@@ -109,7 +117,7 @@ vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, mat3 modelMatrix
         return vec4( 0 );
 
     Vec4Buffer buff     = Vec4Buffer( ptr );
-    vec4 tangentAndSign = buff.data[meshlet.vertexOffset + index];
+    vec4 tangentAndSign = buff.data[index];
     vec3 worldTangent   = modelMatrix * tangentAndSign.xyz;
     return vec4( worldTangent, tangentAndSign.w );
 }

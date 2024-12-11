@@ -236,7 +236,7 @@ static bool CompactMeshlets( Mesh& m, MeshBuildData& buildData )
 {
     PGP_MANUAL_ZONEN( __CompactMeshlets, "CompactMeshlets" );
     std::vector<u8> subMeshletsPostCompaction( buildData.numMeshlets );
-    int numBlocks                  = static_cast<int>( ( buildData.numMeshlets + 63 ) / 64 );
+    int numBlocks                  = ROUND_UP_DIV( buildData.numMeshlets, 64 );
     std::atomic<int> extraMeshlets = 0;
 #pragma omp parallel for
     for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
@@ -347,6 +347,45 @@ static bool CompactMeshlets( Mesh& m, MeshBuildData& buildData )
     PGP_MANUAL_ZONE_END( __CompactionFixup );
 }
 
+static void OptimizeMeshletsWithoutCompaction( Mesh& m, MeshBuildData& buildData )
+{
+    PGP_ZONE_SCOPEDN( "OptimizeMeshletsWithoutCompaction" );
+    int numBlocks = ROUND_UP_DIV( buildData.numMeshlets, 64 );
+#pragma omp parallel for
+    for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
+    {
+        u32 meshletOffset = 64 * (u32)blockIdx;
+        for ( u32 localMeshletIdx = 0; localMeshletIdx < 64; ++localMeshletIdx )
+        {
+            u32 meshletIdx = meshletOffset + localMeshletIdx;
+            if ( meshletIdx >= buildData.numMeshlets )
+                break;
+
+            const meshopt_Meshlet& meshlet = buildData.moMeshlets[meshletIdx];
+            meshopt_optimizeMeshlet( &buildData.meshletVertices[meshlet.vertex_offset], &buildData.meshletTris[meshlet.triangle_offset],
+                meshlet.triangle_count, meshlet.vertex_count );
+        }
+    }
+
+    u32 numMeshletVerts = 0;
+    u32 numMeshletTris  = 0;
+    m.meshlets.reserve( buildData.numMeshlets );
+    std::vector<u8> newMeshletTris;
+    newMeshletTris.reserve( m.meshlets.size() * MAX_TRIS_PER_MESHLET );
+    for ( u32 moIdx = 0; moIdx < buildData.numMeshlets; ++moIdx )
+    {
+        meshopt_Meshlet& moMeshlet = buildData.moMeshlets[moIdx];
+        PG_ASSERT( moMeshlet.vertex_offset == numMeshletVerts );
+        m.meshlets.push_back( MoToPGMeshlet( moMeshlet.vertex_count, moMeshlet.triangle_count, numMeshletVerts, numMeshletTris ) );
+        auto triIter = buildData.meshletTris.begin() + moMeshlet.triangle_offset;
+        newMeshletTris.insert( newMeshletTris.end(), triIter, triIter + 3 * moMeshlet.triangle_count );
+    }
+
+    std::swap( buildData.meshletTris, newMeshletTris );
+    buildData.numMeshletVerts = numMeshletVerts;
+    buildData.numMeshletTris  = numMeshletTris;
+}
+
 #endif // #if USING( CONVERTER )
 
 bool Model::Load( const BaseAssetCreateInfo* baseInfo )
@@ -415,20 +454,24 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         PGP_MANUAL_ZONE_END( __buildMeshlets );
 
         u32 numMeshletsPreCompaction = buildData.numMeshlets;
+#if PACKED_TRIS
         if ( !CompactMeshlets( m, buildData ) )
         {
             LOG_ERR( "CompactMeshlets step failed for model '%s'", createInfo->name.c_str() );
             return false;
         }
+#else  // #if PACKED_TRIS
+        OptimizeMeshletsWithoutCompaction( m, buildData );
+#endif // #else // #if PACKED_TRIS
         totalMeshletsPreCompaction += numMeshletsPreCompaction;
         nonCompactibleMeshlets += ( buildData.numMeshlets - numMeshletsPreCompaction );
 
         PGP_MANUAL_ZONEN( __MeshletBoundsAndTris, "MeshletBoundsAndTris" );
-        m.packedTris.resize( buildData.numMeshletTris );
+        m.packedTris.resize( PACKED_TRIS ? buildData.numMeshletTris : ( buildData.numMeshletTris * 3 ) );
         buildData.meshletAABBs.resize( buildData.numMeshlets );
         m.meshletCullDatas.resize( buildData.numMeshlets );
 
-        int numBlocks = static_cast<int>( ( buildData.numMeshlets + 63 ) / 64 );
+        int numBlocks = ROUND_UP_DIV( buildData.numMeshlets, 64 );
         std::mutex extentsLock;
 #pragma omp parallel for
         for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
@@ -470,6 +513,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     u64 globalMOIdx = 3 * ( meshlet.triangleOffset + localTriIdx );
                     u8vec3 tri      = { buildData.meshletTris[globalMOIdx + 0], buildData.meshletTris[globalMOIdx + 1],
                              buildData.meshletTris[globalMOIdx + 2] };
+
+#if PACKED_TRIS
                     PG_ASSERT( tri.x < tri.y && tri.x < tri.z );
 
                     u16 packedTri = 0;
@@ -480,6 +525,11 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     packedTri |= yDiff << 6;
                     packedTri |= zDiff << 11;
                     m.packedTris[meshlet.triangleOffset + localTriIdx] = packedTri;
+#else  // #if PACKED_TRIS
+                    m.packedTris[globalMOIdx + 0] = tri.x;
+                    m.packedTris[globalMOIdx + 1] = tri.y;
+                    m.packedTris[globalMOIdx + 2] = tri.z;
+#endif // #else // #if PACKED_TRIS
                 }
             }
 
@@ -526,7 +576,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         if ( pMesh.hasTangents )
             m.tangents.resize( buildData.numMeshletVerts );
 
-        int numBlocks = static_cast<int>( ( buildData.numMeshlets + 63 ) / 64 );
+        int numBlocks = ROUND_UP_DIV( buildData.numMeshlets, 64 );
 
 #pragma omp parallel for
         for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
@@ -665,20 +715,22 @@ bool Model::FastfileLoad( Serializer* serializer )
         u64 numNormalChunks    = serializer->Read<u64>();
         const void* normalData = serializer->GetData();
         u64 normalDataSize     = PACKED_VERTS ? ( numNormalChunks * sizeof( u32 ) ) : ( numVerts * sizeof( vec3 ) );
-        // u64 normalDataSize = numVerts * ( PACKED_VERTS ? sizeof( u32 ) : sizeof( vec3 ) );
         serializer->Skip( normalDataSize );
 
         u64 numTexCoords   = serializer->Read<u64>();
         const void* uvData = serializer->GetData();
-        serializer->Skip( numTexCoords * sizeof( vec2 ) );
+        u64 uvDataSize     = numTexCoords * sizeof( vec2 );
+        serializer->Skip( uvDataSize );
 
-        u64 numTan          = serializer->Read<u64>();
-        const void* tanData = serializer->GetData();
-        serializer->Skip( numTan * sizeof( vec4 ) );
+        u64 numTan           = serializer->Read<u64>();
+        const void* tanData  = serializer->GetData();
+        u64 tangentsDataSize = numTan * sizeof( vec4 );
+        serializer->Skip( tangentsDataSize );
 
-        u64 numTris         = serializer->Read<u64>();
-        const void* triData = serializer->GetData();
-        serializer->Skip( numTris * sizeof( u16 ) );
+        u64 numTrisOrIndices = serializer->Read<u64>();
+        const void* triData  = serializer->GetData();
+        u64 triDataSize      = numTrisOrIndices * ( PACKED_TRIS ? sizeof( u16 ) : sizeof( u8 ) );
+        serializer->Skip( triDataSize );
 
         u64 numMeshlets         = serializer->Read<u64>();
         const void* meshletData = serializer->GetData();
@@ -692,11 +744,11 @@ bool Model::FastfileLoad( Serializer* serializer )
         mesh.hasTexCoords = numTexCoords != 0;
         mesh.hasTangents  = numTan != 0;
 
-        size_t totalVertexSizeInBytes = 0;
+        u64 totalVertexSizeInBytes = 0;
         totalVertexSizeInBytes += ROUND_UP_TO_MULT( posDataSize, 4 );
         totalVertexSizeInBytes += normalDataSize;
-        totalVertexSizeInBytes += numTexCoords * sizeof( vec2 );
-        totalVertexSizeInBytes += numTan * sizeof( vec4 );
+        totalVertexSizeInBytes += uvDataSize;
+        totalVertexSizeInBytes += tangentsDataSize;
 
         BufferCreateInfo vbCreateInfo{};
         vbCreateInfo.size               = totalVertexSizeInBytes;
@@ -704,7 +756,7 @@ bool Model::FastfileLoad( Serializer* serializer )
         vbCreateInfo.addToBindlessArray = false; // since BindlessManager::AddMeshBuffers will take care of it
 
         BufferCreateInfo tbCreateInfo = vbCreateInfo;
-        tbCreateInfo.size             = numTris * sizeof( u16 );
+        tbCreateInfo.size             = triDataSize;
 
         BufferCreateInfo mbCreateInfo = vbCreateInfo;
         mbCreateInfo.size             = numMeshlets * sizeof( GpuData::Meshlet );
@@ -726,15 +778,15 @@ bool Model::FastfileLoad( Serializer* serializer )
 #endif // #else // #if USING( ASSET_NAMES )
         mesh.bindlessBuffersSlot = BindlessManager::AddMeshBuffers( &mesh );
 
-        size_t offset = 0;
+        u64 offset = 0;
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], posData, posDataSize, offset );
         offset += ROUND_UP_TO_MULT( posDataSize, 4 );
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], normalData, normalDataSize, offset );
         offset += normalDataSize;
-        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], uvData, numTexCoords * sizeof( vec2 ), offset );
-        offset += numTexCoords * sizeof( vec2 );
-        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], tanData, numTan * sizeof( vec4 ), offset );
-        offset += numTan * sizeof( vec4 );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], uvData, uvDataSize, offset );
+        offset += uvDataSize;
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], tanData, tangentsDataSize, offset );
+        offset += tangentsDataSize;
 
         rg.device.AddUploadRequest( mesh.buffers[Mesh::TRI_BUFFER], triData, tbCreateInfo.size );
         rg.device.AddUploadRequest( mesh.buffers[Mesh::MESHLET_BUFFER], meshletData, mbCreateInfo.size );

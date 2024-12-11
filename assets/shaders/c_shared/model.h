@@ -5,6 +5,7 @@
 
 BEGIN_GPU_DATA_NAMESPACE()
 
+#define PACKED_TRIS 1
 #define PACKED_VERTS 1
 #define BITS_PER_NORMAL 20
 
@@ -18,6 +19,7 @@ struct Meshlet
     uint8_t _pad0;
     uint8_t _pad1;
     uint _pad2;
+
 #if PACKED_VERTS
     uvec3 quantizedMeshletOffset;
     uint _pad3;

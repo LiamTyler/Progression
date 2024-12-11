@@ -316,9 +316,6 @@ BufferIndex AddMeshBuffers( Mesh* mesh )
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::MESHLET_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLETS );
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::CULL_DATA_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_MESHLET_CULL_DATA );
     s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::TRI_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_TRIS );
-#if VERT_INDICES
-    s_pendingBufferAdds.emplace_back( mesh->buffers[Mesh::VERTEX_INDICES_BUFFER].GetDeviceAddress(), firstSlot + MESH_BUFFER_VERT_INDICES );
-#endif // #if VERT_INDICES
 
     VkDeviceAddress vData = mesh->buffers[Mesh::VERTEX_BUFFER].GetDeviceAddress();
     s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_POSITIONS );

@@ -24,9 +24,6 @@ struct Mesh
         TRI_BUFFER       = 1,
         MESHLET_BUFFER   = 2,
         CULL_DATA_BUFFER = 3,
-#if VERT_INDICES
-        VERTEX_INDICES_BUFFER,
-#endif // #if VERT_INDICES
 
         BUFFER_COUNT
     };
@@ -55,10 +52,12 @@ struct Mesh
 #endif // #else // #if PACKED_VERTS
     std::vector<vec2> texCoords;
     std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
+
+#if PACKED_TRIS
     std::vector<u16> packedTris;
-#if VERT_INDICES
-    std::vector<u32> vertIndices;
-#endif // #if VERT_INDICES
+#else  // #if PACKED_TRIS
+    std::vector<u8> packedTris;
+#endif // #else // #if PACKED_TRIS
 #endif // #if USING( GPU_DATA )
 };
 

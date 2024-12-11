@@ -341,7 +341,11 @@ BufferIndex AddMeshBuffers( Mesh* mesh )
     if ( mesh->hasTangents )
     {
         s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_TANGENTS );
+#if PACKED_VERTS
+        vData += ROUND_UP_TO_MULT( BITS_PER_TANGENT * mesh->numVertices, 32 ) / 8;
+#else  // #if PACKED_VERTS
         vData += mesh->numVertices * sizeof( vec4 );
+#endif // #else // #if PACKED_VERTS
     }
     else
     {

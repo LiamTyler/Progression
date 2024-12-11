@@ -85,8 +85,8 @@ vec3 GetNormal( const Meshlet meshlet, uint baseBuffer, uint index )
 #if PACKED_VERTS
     UintBuffer buff = UintBuffer( ptr );
 
-    uint startBit  = index * BITS_PER_NORMAL; // uint64_t?
-    uint startWord = startBit / 32u;
+    uint64_t startBit = index * BITS_PER_NORMAL;
+    uint startWord    = uint( startBit / 32u );
     startBit &= 31u;
     uint lower = buff.data[startWord];
     uint upper = buff.data[startWord + 1u];
@@ -116,10 +116,26 @@ vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, mat3 modelMatrix
     if ( ptr == 0 )
         return vec4( 0 );
 
+#if PACKED_VERTS
+    UintBuffer buff = UintBuffer( ptr );
+
+    uint64_t startBit = index * BITS_PER_TANGENT;
+    uint startWord    = uint( startBit / 32u );
+    startBit &= 31u;
+    uint lower = buff.data[startWord];
+    uint upper = buff.data[startWord + 1u];
+
+    uint64_t data      = packUint2x32( uvec2( lower, upper ) );
+    uint packedTangent = uint( data >> startBit );
+    vec3 worldTangent  = modelMatrix * OctDecodeSNorm( packedTangent, BITS_PER_TANGENT_COMPONENT );
+    bool bitangentPos  = ( packedTangent & BITANGENT_BIT_MASK ) != 0;
+    return vec4( worldTangent, bitangentPos ? 1.0f : -1.0f );
+#else  // #if PACKED_VERTS
     Vec4Buffer buff     = Vec4Buffer( ptr );
     vec4 tangentAndSign = buff.data[index];
     vec3 worldTangent   = modelMatrix * tangentAndSign.xyz;
     return vec4( worldTangent, tangentAndSign.w );
+#endif // #else // #if PACKED_VERTS
 }
 
 #if HAS_TASK_SHADER

@@ -568,16 +568,18 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         m.packedPositions.resize( buildData.numMeshletVerts );
 #if PACKED_VERTS
         std::vector<u32> octNormals( buildData.numMeshletVerts );
+        std::vector<u32> octTangents;
+        if ( pMesh.hasTangents )
+            octTangents.resize( buildData.numMeshletVerts );
 #else  // #if PACKED_VERTS
         m.packedNormals.resize( buildData.numMeshletVerts );
+        if ( pMesh.hasTangents )
+            m.packedTangents.resize( buildData.numMeshletVerts );
 #endif // #else // #if PACKED_VERTS
         if ( pMesh.numUVChannels > 0 )
             m.texCoords.resize( buildData.numMeshletVerts );
-        if ( pMesh.hasTangents )
-            m.tangents.resize( buildData.numMeshletVerts );
 
         int numBlocks = ROUND_UP_DIV( buildData.numMeshlets, 64 );
-
 #pragma omp parallel for
         for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
         {
@@ -621,12 +623,18 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     }
                     if ( pMesh.hasTangents )
                     {
-                        vec3 tangent           = v.tangent;
-                        vec3 bitangent         = v.bitangent;
-                        vec3 tNormal           = Cross( tangent, bitangent );
-                        float bSign            = Dot( v.normal, tNormal ) > 0.0f ? 1.0f : -1.0f;
-                        vec4 packed            = vec4( tangent, bSign );
-                        m.tangents[globalVIdx] = packed;
+                        vec3 tangent   = v.tangent;
+                        vec3 bitangent = v.bitangent;
+                        vec3 tNormal   = Cross( tangent, bitangent );
+                        bool bSignPos  = Dot( v.normal, tNormal ) > 0.0f;
+#if PACKED_VERTS
+                        u32 packedTangent = OctEncodeSNorm_P( tangent, BITS_PER_TANGENT_COMPONENT );
+                        packedTangent |= ( bSignPos ? 1u : 0u ) << ( BITS_PER_TANGENT - 1 );
+                        octTangents[globalVIdx] = packedTangent;
+#else  // #if PACKED_VERTS
+                        m.packedTangents[globalVIdx] = vec4( tangent, bSignPos ? 1.0f : -1.0f );
+#endif // #else // #if PACKED_VERTS
+
                         if ( Length( v.tangent ) <= 0.00001f )
                             ++numZeroTangents;
                     }
@@ -636,20 +644,37 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
 #if PACKED_VERTS
         m.packedNormals.resize( ROUND_UP_DIV( BITS_PER_NORMAL * buildData.numMeshletVerts, 32 ), 0 );
-        u64 bitOffset = 0;
+        if ( pMesh.hasTangents )
+            m.packedTangents.resize( ROUND_UP_DIV( BITS_PER_TANGENT * buildData.numMeshletVerts, 32 ), 0 );
+        u64 normalBitOffset  = 0;
+        u64 tangentBitOffset = 0;
         for ( u32 vIdx = 0; vIdx < buildData.numMeshletVerts; ++vIdx )
         {
-            u32 qn = octNormals[vIdx];
+            {
+                u32 qn        = octNormals[vIdx];
+                u64 pIdx      = normalBitOffset / 32;
+                u32 shift     = normalBitOffset % 32;
+                u32 remaining = 32 - shift;
 
-            u64 pIdx      = bitOffset / 32;
-            u32 shift     = bitOffset % 32;
-            u32 remaining = 32 - shift;
+                m.packedNormals[pIdx] |= qn << shift;
+                if ( BITS_PER_NORMAL > remaining )
+                    m.packedNormals[pIdx + 1] |= qn >> remaining;
 
-            m.packedNormals[pIdx] |= qn << shift;
-            if ( BITS_PER_NORMAL > remaining )
-                m.packedNormals[pIdx + 1] |= qn >> remaining;
+                normalBitOffset += BITS_PER_NORMAL;
+            }
+            if ( pMesh.hasTangents )
+            {
+                u32 packedTB  = octTangents[vIdx];
+                u64 pIdx      = tangentBitOffset / 32;
+                u32 shift     = tangentBitOffset % 32;
+                u32 remaining = 32 - shift;
 
-            bitOffset += BITS_PER_NORMAL;
+                m.packedTangents[pIdx] |= packedTB << shift;
+                if ( BITS_PER_TANGENT > remaining )
+                    m.packedTangents[pIdx + 1] |= packedTB >> remaining;
+
+                tangentBitOffset += BITS_PER_TANGENT;
+            }
         }
 #endif // #if PACKED_VERTS
         if ( numZeroNormals.load() )
@@ -702,7 +727,7 @@ bool Model::FastfileLoad( Serializer* serializer )
         serializer->Read( mesh.packedPositions );
         serializer->Read( mesh.packedNormals );
         serializer->Read( mesh.texCoords );
-        serializer->Read( mesh.tangents );
+        serializer->Read( mesh.packedTangents );
         serializer->Read( mesh.packedTris );
         serializer->Read( mesh.meshlets );
         serializer->Read( mesh.meshletCullDatas );
@@ -722,9 +747,9 @@ bool Model::FastfileLoad( Serializer* serializer )
         u64 uvDataSize     = numTexCoords * sizeof( vec2 );
         serializer->Skip( uvDataSize );
 
-        u64 numTan           = serializer->Read<u64>();
+        u64 numTanChunks     = serializer->Read<u64>();
         const void* tanData  = serializer->GetData();
-        u64 tangentsDataSize = numTan * sizeof( vec4 );
+        u64 tangentsDataSize = PACKED_VERTS ? ( numTanChunks * sizeof( u32 ) ) : ( numVerts * sizeof( vec4 ) );
         serializer->Skip( tangentsDataSize );
 
         u64 numTrisOrIndices = serializer->Read<u64>();
@@ -742,7 +767,7 @@ bool Model::FastfileLoad( Serializer* serializer )
         mesh.numVertices  = static_cast<u32>( numVerts );
         mesh.numMeshlets  = static_cast<u32>( numMeshlets );
         mesh.hasTexCoords = numTexCoords != 0;
-        mesh.hasTangents  = numTan != 0;
+        mesh.hasTangents  = numTanChunks != 0;
 
         u64 totalVertexSizeInBytes = 0;
         totalVertexSizeInBytes += ROUND_UP_TO_MULT( posDataSize, 4 );
@@ -811,7 +836,7 @@ bool Model::FastfileSave( Serializer* serializer ) const
         serializer->Write( mesh.packedPositions );
         serializer->Write( mesh.packedNormals );
         serializer->Write( mesh.texCoords );
-        serializer->Write( mesh.tangents );
+        serializer->Write( mesh.packedTangents );
         serializer->Write( mesh.packedTris );
         serializer->Write( mesh.meshlets );
         serializer->Write( mesh.meshletCullDatas.data(), mesh.meshletCullDatas.size() * sizeof( GpuData::PackedMeshletCullData ) );
@@ -838,7 +863,7 @@ void Model::FreeCPU()
         mesh.packedPositions  = {};
         mesh.packedNormals    = {};
         mesh.texCoords        = {};
-        mesh.tangents         = {};
+        mesh.packedTangents   = {};
         mesh.packedTris       = {};
     }
 #endif // #if !USING( GPU_DATA )

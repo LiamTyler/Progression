@@ -46,12 +46,13 @@ struct Mesh
 #if PACKED_VERTS
     std::vector<u16vec3> packedPositions;
     std::vector<u32> packedNormals;
+    std::vector<u32> packedTangents;
 #else  // #if PACKED_VERTS
     std::vector<vec3> packedPositions;
     std::vector<vec3> packedNormals;
+    std::vector<vec4> packedTangents; // xyz is the tangent, w is the bitangent sign
 #endif // #else // #if PACKED_VERTS
     std::vector<vec2> texCoords;
-    std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
 
 #if PACKED_TRIS
     std::vector<u16> packedTris;

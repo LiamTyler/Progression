@@ -7,7 +7,10 @@ BEGIN_GPU_DATA_NAMESPACE()
 
 #define PACKED_TRIS 1
 #define PACKED_VERTS 1
-#define BITS_PER_NORMAL 20
+#define BITS_PER_NORMAL 20 // 10 + 10 for the oct encoding
+#define BITS_PER_TANGENT_COMPONENT 9
+#define BITS_PER_TANGENT ( 2 * BITS_PER_TANGENT_COMPONENT + 1 )
+#define BITANGENT_BIT_MASK ( 1u << ( 2 * BITS_PER_TANGENT_COMPONENT ) )
 
 // if this is edited, the model version number needs to be bumped in the converter
 struct Meshlet

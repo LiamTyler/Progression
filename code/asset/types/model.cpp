@@ -12,7 +12,9 @@
 #include <queue>
 
 #if USING( CONVERTER )
+#include "data_structures/queue_static.hpp"
 #include "meshoptimizer/src/meshoptimizer.h"
+#include "shared/oct_encoding.hpp"
 #endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
 using namespace PG::Gfx;
@@ -20,7 +22,6 @@ using namespace PG::Gfx;
 #include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
 #endif // #if USING( GPU_DATA )
-#include "data_structures/queue_static.hpp"
 
 namespace PG
 {
@@ -515,13 +516,18 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         std::atomic<u32> numZeroNormals  = 0;
         std::atomic<u32> numZeroTangents = 0;
         m.packedPositions.resize( buildData.numMeshletVerts );
-        m.normals.resize( buildData.numMeshletVerts );
+#if PACKED_VERTS
+        std::vector<u32> octNormals( buildData.numMeshletVerts );
+#else  // #if PACKED_VERTS
+        m.packedNormals.resize( buildData.numMeshletVerts );
+#endif // #else // #if PACKED_VERTS
         if ( pMesh.numUVChannels > 0 )
             m.texCoords.resize( buildData.numMeshletVerts );
         if ( pMesh.hasTangents )
             m.tangents.resize( buildData.numMeshletVerts );
 
         int numBlocks = static_cast<int>( ( buildData.numMeshlets + 63 ) / 64 );
+
 #pragma omp parallel for
         for ( int blockIdx = 0; blockIdx < numBlocks; ++blockIdx )
         {
@@ -546,11 +552,14 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                     uvec3 globalQuantizedValue    = ( v.pos - globalMin ) * quantizationFactor + 0.5f;
                     uvec3 localQuantizedValue     = globalQuantizedValue - quantizedMeshletOffset;
                     m.packedPositions[globalVIdx] = u16vec3( localQuantizedValue );
+
+                    u32 packedNormal       = OctEncodeSNorm_P( v.normal, BITS_PER_NORMAL / 2 );
+                    octNormals[globalVIdx] = packedNormal;
 #else  // #if PACKED_VERTS
                     m.packedPositions[globalVIdx] = v.pos;
+                    m.packedNormals[globalVIdx]   = v.normal;
 #endif // #else // #if PACKED_VERTS
 
-                    m.normals[globalVIdx] = v.normal;
                     if ( Length( v.normal ) <= 0.00001f )
                         ++numZeroNormals;
 
@@ -574,6 +583,25 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 }
             }
         }
+
+#if PACKED_VERTS
+        m.packedNormals.resize( ROUND_UP_DIV( BITS_PER_NORMAL * buildData.numMeshletVerts, 32 ), 0 );
+        u64 bitOffset = 0;
+        for ( u32 vIdx = 0; vIdx < buildData.numMeshletVerts; ++vIdx )
+        {
+            u32 qn = octNormals[vIdx];
+
+            u64 pIdx      = bitOffset / 32;
+            u32 shift     = bitOffset % 32;
+            u32 remaining = 32 - shift;
+
+            m.packedNormals[pIdx] |= qn << shift;
+            if ( BITS_PER_NORMAL > remaining )
+                m.packedNormals[pIdx + 1] |= qn >> remaining;
+
+            bitOffset += BITS_PER_NORMAL;
+        }
+#endif // #if PACKED_VERTS
         if ( numZeroNormals.load() )
             LOG_WARN( "Mesh[%u] '%s' inside of model '%s' has %u normals of length 0", meshIdx, pMesh.name.c_str(),
                 createInfo->name.c_str(), numZeroNormals.load() );
@@ -622,21 +650,23 @@ bool Model::FastfileLoad( Serializer* serializer )
 
 #if !USING( GPU_DATA )
         serializer->Read( mesh.packedPositions );
-        serializer->Read( mesh.normals );
+        serializer->Read( mesh.packedNormals );
         serializer->Read( mesh.texCoords );
         serializer->Read( mesh.tangents );
         serializer->Read( mesh.packedTris );
         serializer->Read( mesh.meshlets );
         serializer->Read( mesh.meshletCullDatas );
 #else // #if !USING( GPU_DATA )
-        u64 numPos          = serializer->Read<u64>();
+        u64 numVerts        = serializer->Read<u64>();
         const void* posData = serializer->GetData();
-        u64 posDataSize     = numPos * ( PACKED_VERTS ? sizeof( u16vec3 ) : sizeof( vec3 ) );
+        u64 posDataSize     = numVerts * ( PACKED_VERTS ? sizeof( u16vec3 ) : sizeof( vec3 ) );
         serializer->Skip( posDataSize );
 
-        u64 numNormal          = serializer->Read<u64>();
+        u64 numNormalChunks    = serializer->Read<u64>();
         const void* normalData = serializer->GetData();
-        serializer->Skip( numNormal * sizeof( vec3 ) );
+        u64 normalDataSize     = PACKED_VERTS ? ( numNormalChunks * sizeof( u32 ) ) : ( numVerts * sizeof( vec3 ) );
+        // u64 normalDataSize = numVerts * ( PACKED_VERTS ? sizeof( u32 ) : sizeof( vec3 ) );
+        serializer->Skip( normalDataSize );
 
         u64 numTexCoords   = serializer->Read<u64>();
         const void* uvData = serializer->GetData();
@@ -657,14 +687,14 @@ bool Model::FastfileLoad( Serializer* serializer )
         const void* meshletCullData = serializer->GetData();
         serializer->Skip( numMeshlets * sizeof( GpuData::PackedMeshletCullData ) );
 
-        mesh.numVertices  = static_cast<u32>( numPos );
+        mesh.numVertices  = static_cast<u32>( numVerts );
         mesh.numMeshlets  = static_cast<u32>( numMeshlets );
         mesh.hasTexCoords = numTexCoords != 0;
         mesh.hasTangents  = numTan != 0;
 
         size_t totalVertexSizeInBytes = 0;
         totalVertexSizeInBytes += ROUND_UP_TO_MULT( posDataSize, 4 );
-        totalVertexSizeInBytes += numNormal * sizeof( vec3 );
+        totalVertexSizeInBytes += normalDataSize;
         totalVertexSizeInBytes += numTexCoords * sizeof( vec2 );
         totalVertexSizeInBytes += numTan * sizeof( vec4 );
 
@@ -699,8 +729,8 @@ bool Model::FastfileLoad( Serializer* serializer )
         size_t offset = 0;
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], posData, posDataSize, offset );
         offset += ROUND_UP_TO_MULT( posDataSize, 4 );
-        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], normalData, numNormal * sizeof( vec3 ), offset );
-        offset += numNormal * sizeof( vec3 );
+        rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], normalData, normalDataSize, offset );
+        offset += normalDataSize;
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], uvData, numTexCoords * sizeof( vec2 ), offset );
         offset += numTexCoords * sizeof( vec2 );
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], tanData, numTan * sizeof( vec4 ), offset );
@@ -727,7 +757,7 @@ bool Model::FastfileSave( Serializer* serializer ) const
         serializer->Write<u16>( mesh.name );
         serializer->Write<u16>( mesh.material->GetName() );
         serializer->Write( mesh.packedPositions );
-        serializer->Write( mesh.normals );
+        serializer->Write( mesh.packedNormals );
         serializer->Write( mesh.texCoords );
         serializer->Write( mesh.tangents );
         serializer->Write( mesh.packedTris );
@@ -754,7 +784,7 @@ void Model::FreeCPU()
         mesh.meshletCullDatas = {};
         mesh.meshlets         = {};
         mesh.packedPositions  = {};
-        mesh.normals          = {};
+        mesh.packedNormals    = {};
         mesh.texCoords        = {};
         mesh.tangents         = {};
         mesh.packedTris       = {};

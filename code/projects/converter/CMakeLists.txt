@@ -53,6 +53,7 @@ set(
     ${CODE_DIR}/shared/float_conversions.hpp
     ${CODE_DIR}/shared/json_parsing.cpp
     ${CODE_DIR}/shared/json_parsing.hpp
+    ${CODE_DIR}/shared/oct_encoding.hpp
     ${CODE_DIR}/shared/serializer.cpp
     ${CODE_DIR}/shared/serializer.hpp
     

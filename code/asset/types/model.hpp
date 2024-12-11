@@ -48,10 +48,11 @@ struct Mesh
     std::vector<GpuData::PackedMeshletCullData> meshletCullDatas;
 #if PACKED_VERTS
     std::vector<u16vec3> packedPositions;
+    std::vector<u32> packedNormals;
 #else  // #if PACKED_VERTS
     std::vector<vec3> packedPositions;
+    std::vector<vec3> packedNormals;
 #endif // #else // #if PACKED_VERTS
-    std::vector<vec3> normals;
     std::vector<vec2> texCoords;
     std::vector<vec4> tangents; // xyz is the tangent, w is the bitangent sign
     std::vector<u16> packedTris;

@@ -6,6 +6,7 @@
 BEGIN_GPU_DATA_NAMESPACE()
 
 #define PACKED_VERTS 1
+#define BITS_PER_NORMAL 20
 
 // if this is edited, the model version number needs to be bumped in the converter
 struct Meshlet

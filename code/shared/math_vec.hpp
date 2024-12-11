@@ -12,6 +12,10 @@ using vec2 = glm::vec2;
 using vec3 = glm::vec3;
 using vec4 = glm::vec4;
 
+using dvec2 = glm::dvec2;
+using dvec3 = glm::dvec3;
+using dvec4 = glm::dvec4;
+
 using i8vec2 = glm::vec<2, i8>;
 using i8vec3 = glm::vec<3, i8>;
 using i8vec4 = glm::vec<4, i8>;
@@ -55,6 +59,10 @@ inline vec2 Saturate( const vec2& v ) { return glm::clamp( v, 0.0f, 1.0f ); }
 inline vec3 Saturate( const vec3& v ) { return glm::clamp( v, 0.0f, 1.0f ); }
 inline vec4 Saturate( const vec4& v ) { return glm::clamp( v, 0.0f, 1.0f ); }
 
+inline vec2 Abs( const vec2& v ) { return glm::abs( v ); }
+inline vec3 Abs( const vec3& v ) { return glm::abs( v ); }
+inline vec4 Abs( const vec4& v ) { return glm::abs( v ); }
+
 inline vec2 DegToRad( const vec2& v ) { return v * ( PI / 180.0f ); }
 inline vec3 DegToRad( const vec3& v ) { return v * ( PI / 180.0f ); }
 inline vec4 DegToRad( const vec4& v ) { return v * ( PI / 180.0f ); }
@@ -75,6 +83,14 @@ inline vec2 Lerp( const vec2& a, const vec2& b, f32 t ) { return glm::mix( a, b,
 inline vec3 Lerp( const vec3& a, const vec3& b, f32 t ) { return glm::mix( a, b, t ); }
 inline vec4 Lerp( const vec4& a, const vec4& b, f32 t ) { return glm::mix( a, b, t ); }
 
+inline vec2 Clamp( const vec2& v, const vec2& lower, const vec2& upper ) { return glm::clamp( v, lower, upper ); }
+inline vec3 Clamp( const vec3& v, const vec3& lower, const vec3& upper ) { return glm::clamp( v, lower, upper ); }
+inline vec4 Clamp( const vec4& v, const vec4& lower, const vec4& upper ) { return glm::clamp( v, lower, upper ); }
+
 inline vec2 Log2( const vec2& v ) { return glm::log2( v ); }
 inline vec3 Log2( const vec3& v ) { return glm::log2( v ); }
 inline vec4 Log2( const vec4& v ) { return glm::log2( v ); }
+
+inline vec2 Floor( const vec2& v ) { return glm::floor( v ); }
+inline vec3 Floor( const vec3& v ) { return glm::floor( v ); }
+inline vec4 Floor( const vec4& v ) { return glm::floor( v ); }

@@ -6,6 +6,7 @@
 #include "c_shared/mesh_shading_defines.h"
 #include "c_shared/model.h"
 #include "global_descriptors.glsl"
+#include "lib/oct_encoding.glsl"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 32, MeshletBuffer, Meshlet );
 
@@ -70,11 +71,25 @@ vec3 GetPos32( const Meshlet meshlet, uint baseBuffer, uint index )
 
 #endif // #else // #if PACKED_VERTS
 
-vec4 GetNormal( const Meshlet meshlet, uint baseBuffer, uint index )
+vec3 GetNormal( const Meshlet meshlet, uint baseBuffer, uint index )
 {
-    uint64_t ptr    = bindlessBuffers[baseBuffer + MESH_BUFFER_NORMALS];
+    uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_NORMALS];
+#if PACKED_VERTS
+    UintBuffer buff = UintBuffer( ptr );
+
+    uint startBit  = index * BITS_PER_NORMAL; // uint64_t?
+    uint startWord = startBit / 32u;
+    startBit &= 31u;
+    uint lower = buff.data[startWord];
+    uint upper = buff.data[startWord + 1u];
+
+    uint64_t data     = packUint2x32( uvec2( lower, upper ) );
+    uint packedNormal = uint( data >> startBit );
+    return OctDecodeSNorm( packedNormal, BITS_PER_NORMAL / 2 );
+#else  // #if PACKED_VERTS
     Vec3Buffer buff = Vec3Buffer( ptr );
-    return vec4( buff.data[index], 0 );
+    return buff.data[index];
+#endif // #else // #if PACKED_VERTS
 }
 
 vec2 GetUV( const Meshlet meshlet, uint baseBuffer, uint index )
@@ -87,14 +102,16 @@ vec2 GetUV( const Meshlet meshlet, uint baseBuffer, uint index )
     return buff.data[index];
 }
 
-vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, uint index )
+vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, mat3 modelMatrix, uint index )
 {
     uint64_t ptr = bindlessBuffers[baseBuffer + MESH_BUFFER_TANGENTS];
     if ( ptr == 0 )
         return vec4( 0 );
 
-    Vec4Buffer buff = Vec4Buffer( ptr );
-    return buff.data[meshlet.vertexOffset + index];
+    Vec4Buffer buff     = Vec4Buffer( ptr );
+    vec4 tangentAndSign = buff.data[meshlet.vertexOffset + index];
+    vec3 worldTangent   = modelMatrix * tangentAndSign.xyz;
+    return vec4( worldTangent, tangentAndSign.w );
 }
 
 #if HAS_TASK_SHADER
@@ -153,6 +170,9 @@ void main()
         SetMeshOutputsEXT( meshlet.vertexCount, meshlet.triangleCount );
     }
 
+    vec3 normalScale;
+    mat4 modelMatrix = GetModelMatrixAndNormalScale( objectData.modelIdx, normalScale );
+
 #if PACKED_VERTS
     vec3 dqFactor, dqGlobalMin;
     GetModelPositionDequantizationInfo( objectData.modelIdx, dqFactor, dqGlobalMin );
@@ -165,9 +185,6 @@ void main()
         {
             const uint globalVIdx = meshlet.vertexOffset + localVIdx;
 
-            vec3 normalScale;
-            mat4 modelMatrix = GetModelMatrixAndNormalScale( objectData.modelIdx, normalScale );
-
 #if PACKED_VERTS
             vec4 localPos = vec4( GetPos16( meshlet, baseBuffer, globalVIdx, dqFactor, dqGlobalMin ), 1 );
 #else  // #if PACKED_VERTS
@@ -177,15 +194,14 @@ void main()
             v_out[localVIdx].worldPos                 = worldPos.xyz;
             gl_MeshVerticesEXT[localVIdx].gl_Position = globals.VP * worldPos;
 
-            vec4 localNormal = GetNormal( meshlet, baseBuffer, globalVIdx );
-            localNormal.xyz *= normalScale;
-            v_out[localVIdx].normal = ( modelMatrix * localNormal ).xyz;
+            vec3 localNormal = GetNormal( meshlet, baseBuffer, globalVIdx );
+            localNormal *= normalScale;
+            v_out[localVIdx].normal = mat3( modelMatrix ) * localNormal.xyz;
 
             v_out[localVIdx].uv = GetUV( meshlet, baseBuffer, globalVIdx );
 
-            vec4 tangentAndSign             = GetTangentAndSign( meshlet, baseBuffer, globalVIdx );
-            vec3 worldTangent               = ( modelMatrix * vec4( tangentAndSign.xyz, 0 ) ).xyz;
-            v_out[localVIdx].tangentAndSign = vec4( worldTangent, tangentAndSign.w );
+            vec4 tangentAndSign             = GetTangentAndSign( meshlet, baseBuffer, mat3( modelMatrix ), globalVIdx );
+            v_out[localVIdx].tangentAndSign = tangentAndSign;
 
             v_out[localVIdx].materialIdx = objectData.materialIdx;
 #if IS_DEBUG_SHADER

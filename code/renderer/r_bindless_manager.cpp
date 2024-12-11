@@ -325,7 +325,11 @@ BufferIndex AddMeshBuffers( Mesh* mesh )
     vData += ROUND_UP_TO_MULT( mesh->numVertices * ( PACKED_VERTS ? sizeof( u16vec3 ) : sizeof( vec3 ) ), 4 );
 
     s_pendingBufferAdds.emplace_back( vData, firstSlot + MESH_BUFFER_NORMALS );
+#if PACKED_VERTS
+    vData += ROUND_UP_TO_MULT( BITS_PER_NORMAL * mesh->numVertices, 32 ) / 8;
+#else  // #if PACKED_VERTS
     vData += mesh->numVertices * sizeof( vec3 );
+#endif // #else // #if PACKED_VERTS
 
     if ( mesh->hasTexCoords )
     {

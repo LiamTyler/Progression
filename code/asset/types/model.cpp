@@ -214,9 +214,10 @@ struct MeshBuildData
     std::vector<u32> meshletVertices;
     std::vector<u8> meshletTris;
     std::vector<AABB> meshletAABBs;
-    u32 numMeshletVerts = 0;
-    u32 numMeshletTris  = 0;
-    u32 numMeshlets     = 0;
+    u32 numMeshletVerts        = 0;
+    u32 numMeshletTris         = 0;
+    u32 numMeshlets            = 0;
+    u32 nonCompactibleMeshlets = 0;
 };
 
 static GpuData::Meshlet MoToPGMeshlet( u32 vertCount, u32 triCount, u32& numTotalVerts, u32& numTotalTris )
@@ -232,7 +233,53 @@ static GpuData::Meshlet MoToPGMeshlet( u32 vertCount, u32 triCount, u32& numTota
     return pgMeshlet;
 }
 
-static bool CompactMeshlets( Mesh& m, MeshBuildData& buildData )
+struct Submeshlet
+{
+    u32 vertIndices[MAX_VERTS_PER_MESHLET];
+    u8 triIndices[3 * MAX_TRIS_PER_MESHLET];
+    u32 vertCount = 0;
+    u32 triCount  = 0;
+};
+
+static void FindCompactibleSubmeshlet( const u32* vertIndices, const u8* triIndices, u32 triOffset, u32 triCount, Submeshlet& submeshlet )
+{
+    submeshlet = {};
+    u8 indexRemap[MAX_TRIS_PER_MESHLET];
+    memset( indexRemap, 0xFF, sizeof( indexRemap ) );
+    for ( u32 i = triOffset; i < triCount; ++i )
+    {
+        u8vec3 tri = { triIndices[3 * i + 0], triIndices[3 * i + 1], triIndices[3 * i + 2] };
+
+        // see if the remapped tri would be compactible
+        u32 tmpVertCount = submeshlet.vertCount;
+        for ( int j = 0; j < 3; ++j )
+        {
+            u8 index = tri[j];
+            if ( indexRemap[index] == 0xFF )
+            {
+                submeshlet.vertIndices[tmpVertCount] = vertIndices[index];
+                indexRemap[index]                    = tmpVertCount++;
+            }
+        }
+
+        u8vec3 remappedTri = { indexRemap[tri.x], indexRemap[tri.y], indexRemap[tri.z] };
+        if ( remappedTri.x > remappedTri.y || remappedTri.x > remappedTri.z )
+            remappedTri = { remappedTri.y, remappedTri.z, remappedTri.x };
+        if ( remappedTri.x > remappedTri.y || remappedTri.x > remappedTri.z )
+            remappedTri = { remappedTri.y, remappedTri.z, remappedTri.x };
+        u8 diff = Max( remappedTri.z - remappedTri.x, remappedTri.y - remappedTri.x );
+        if ( diff >= 32 )
+            return;
+
+        submeshlet.vertCount                               = tmpVertCount;
+        submeshlet.triIndices[3 * submeshlet.triCount + 0] = remappedTri.x;
+        submeshlet.triIndices[3 * submeshlet.triCount + 1] = remappedTri.y;
+        submeshlet.triIndices[3 * submeshlet.triCount + 2] = remappedTri.z;
+        submeshlet.triCount++;
+    }
+}
+
+static void CompactMeshlets( Mesh& m, MeshBuildData& buildData )
 {
     PGP_MANUAL_ZONEN( __CompactMeshlets, "CompactMeshlets" );
     std::vector<u8> subMeshletsPostCompaction( buildData.numMeshlets );
@@ -265,11 +312,12 @@ static bool CompactMeshlets( Mesh& m, MeshBuildData& buildData )
     u32 numMeshletVerts = 0;
     u32 numMeshletTris  = 0;
     PGP_MANUAL_ZONEN( __CompactionFixup, "CompactionFixup" );
-    m.meshlets.reserve( buildData.numMeshlets + extraMeshlets.load() );
+    u32 estimatedNewMeshlets = buildData.numMeshlets + 3 * extraMeshlets.load();
+    m.meshlets.reserve( estimatedNewMeshlets );
     std::vector<u32> newMeshletVertices;
-    newMeshletVertices.reserve( m.meshlets.size() * MAX_VERTS_PER_MESHLET );
+    newMeshletVertices.reserve( estimatedNewMeshlets * MAX_VERTS_PER_MESHLET );
     std::vector<u8> newMeshletTris;
-    newMeshletTris.reserve( m.meshlets.size() * MAX_TRIS_PER_MESHLET );
+    newMeshletTris.reserve( estimatedNewMeshlets * 3 * MAX_TRIS_PER_MESHLET );
     for ( u32 moIdx = 0; moIdx < buildData.numMeshlets; ++moIdx )
     {
         u8 numMeshlets             = subMeshletsPostCompaction[moIdx];
@@ -285,65 +333,28 @@ static bool CompactMeshlets( Mesh& m, MeshBuildData& buildData )
         }
         else [[unlikely]]
         {
-            u8 subMmeshletTris[3 * MAX_TRIS_PER_MESHLET];
-            u32 subMeshletVerts[MAX_VERTS_PER_MESHLET];
-            u8 indexRemap[MAX_TRIS_PER_MESHLET];
-
-            memset( indexRemap, 0xFF, sizeof( indexRemap ) );
-            u8 newVertCount = 0;
-            u32 newTriCount = moMeshlet.triangle_count / 2;
-            for ( u32 i = 0; i < 3 * newTriCount; ++i )
+            u32* vertIndices  = buildData.meshletVertices.data() + moMeshlet.vertex_offset;
+            u8* triIndices    = buildData.meshletTris.data() + moMeshlet.triangle_offset;
+            u32 processedTris = 0;
+            while ( processedTris < moMeshlet.triangle_count )
             {
-                u8 index = buildData.meshletTris[moMeshlet.triangle_offset + i];
-                if ( indexRemap[index] == 0xFF )
-                {
-                    subMeshletVerts[newVertCount] = buildData.meshletVertices[moMeshlet.vertex_offset + index];
-                    indexRemap[index]             = newVertCount++;
-                }
-                subMmeshletTris[i] = indexRemap[index];
-            }
+                Submeshlet submeshlet;
+                FindCompactibleSubmeshlet( vertIndices, triIndices, processedTris, moMeshlet.triangle_count, submeshlet );
+                processedTris += submeshlet.triCount;
 
-            meshopt_optimizeMeshlet( subMeshletVerts, subMmeshletTris, newTriCount, newVertCount );
-            bool isCompact = CompactMeshletIndices( subMeshletVerts, newVertCount, subMmeshletTris, newTriCount );
-            if ( !isCompact )
-            {
-                throw std::runtime_error( "Meshlet not compactible after splitting. Implement further splitting" );
+                newMeshletVertices.insert(
+                    newMeshletVertices.end(), submeshlet.vertIndices, submeshlet.vertIndices + submeshlet.vertCount );
+                newMeshletTris.insert( newMeshletTris.end(), submeshlet.triIndices, submeshlet.triIndices + 3 * submeshlet.triCount );
+                m.meshlets.push_back( MoToPGMeshlet( submeshlet.vertCount, submeshlet.triCount, numMeshletVerts, numMeshletTris ) );
             }
-            m.meshlets.push_back( MoToPGMeshlet( newVertCount, newTriCount, numMeshletVerts, numMeshletTris ) );
-            newMeshletVertices.insert( newMeshletVertices.end(), subMeshletVerts, subMeshletVerts + newVertCount );
-            newMeshletTris.insert( newMeshletTris.end(), subMmeshletTris, subMmeshletTris + 3 * newTriCount );
-
-            moMeshlet.triangle_offset += 3 * newTriCount;
-            memset( indexRemap, 0xFF, sizeof( indexRemap ) );
-            newVertCount = 0;
-            newTriCount  = moMeshlet.triangle_count - newTriCount;
-            for ( u32 i = 0; i < 3 * newTriCount; ++i )
-            {
-                u8 index = buildData.meshletTris[moMeshlet.triangle_offset + i];
-                if ( indexRemap[index] == 0xFF )
-                {
-                    subMeshletVerts[newVertCount] = buildData.meshletVertices[moMeshlet.vertex_offset + index];
-                    indexRemap[index]             = newVertCount++;
-                }
-                subMmeshletTris[i] = indexRemap[index];
-            }
-
-            meshopt_optimizeMeshlet( subMeshletVerts, subMmeshletTris, newTriCount, newVertCount );
-            isCompact = CompactMeshletIndices( subMeshletVerts, newVertCount, subMmeshletTris, newTriCount );
-            if ( !isCompact )
-            {
-                throw std::runtime_error( "Meshlet not compactible after splitting. Implement further splitting" );
-            }
-            m.meshlets.push_back( MoToPGMeshlet( newVertCount, newTriCount, numMeshletVerts, numMeshletTris ) );
-            newMeshletVertices.insert( newMeshletVertices.end(), subMeshletVerts, subMeshletVerts + newVertCount );
-            newMeshletTris.insert( newMeshletTris.end(), subMmeshletTris, subMmeshletTris + 3 * newTriCount );
         }
     }
     std::swap( buildData.meshletVertices, newMeshletVertices );
     std::swap( buildData.meshletTris, newMeshletTris );
-    buildData.numMeshletVerts = numMeshletVerts;
-    buildData.numMeshletTris  = numMeshletTris;
-    buildData.numMeshlets += extraMeshlets.load();
+    buildData.numMeshletVerts        = numMeshletVerts;
+    buildData.numMeshletTris         = numMeshletTris;
+    buildData.numMeshlets            = static_cast<u32>( m.meshlets.size() );
+    buildData.nonCompactibleMeshlets = extraMeshlets.load();
     PGP_MANUAL_ZONE_END( __CompactionFixup );
 }
 
@@ -425,8 +436,11 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     meshes.resize( numMeshes );
     meshAABBs.resize( numMeshes );
     vec3 largestMeshletExtents{ 0 };
-    u32 nonCompactibleMeshlets     = 0;
-    u32 totalMeshletsPreCompaction = 0;
+#if PACKED_TRIS
+    u32 nonCompactibleMeshlets      = 0;
+    u32 totalMeshletsPreCompaction  = 0;
+    u32 totalMeshletsPostCompaction = 0;
+#endif // #if PACKED_TRIS
     for ( u32 meshIdx = 0; meshIdx < numMeshes; ++meshIdx )
     {
         Mesh& m                   = meshes[meshIdx];
@@ -453,18 +467,14 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                   sizeof( PModel::Vertex ), MAX_VERTS_PER_MESHLET, MAX_TRIS_PER_MESHLET, CONE_WEIGHT );
         PGP_MANUAL_ZONE_END( __buildMeshlets );
 
-        u32 numMeshletsPreCompaction = buildData.numMeshlets;
 #if PACKED_TRIS
-        if ( !CompactMeshlets( m, buildData ) )
-        {
-            LOG_ERR( "CompactMeshlets step failed for model '%s'", createInfo->name.c_str() );
-            return false;
-        }
+        totalMeshletsPreCompaction += buildData.numMeshlets;
+        CompactMeshlets( m, buildData );
+        nonCompactibleMeshlets += buildData.nonCompactibleMeshlets;
+        totalMeshletsPostCompaction += buildData.numMeshlets;
 #else  // #if PACKED_TRIS
         OptimizeMeshletsWithoutCompaction( m, buildData );
 #endif // #else // #if PACKED_TRIS
-        totalMeshletsPreCompaction += numMeshletsPreCompaction;
-        nonCompactibleMeshlets += ( buildData.numMeshlets - numMeshletsPreCompaction );
 
         PGP_MANUAL_ZONEN( __MeshletBoundsAndTris, "MeshletBoundsAndTris" );
         m.packedTris.resize( PACKED_TRIS ? buildData.numMeshletTris : ( buildData.numMeshletTris * 3 ) );
@@ -688,8 +698,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
     if ( nonCompactibleMeshlets )
     {
-        LOG_WARN( "%u/%u meshlets were incompactible for model '%s' and had to be split", nonCompactibleMeshlets,
-            totalMeshletsPreCompaction, createInfo->name.c_str() );
+        LOG_WARN( "%u/%u meshlets were incompactible for model '%s' and had to be split. Final meshlet count: %u", nonCompactibleMeshlets,
+            totalMeshletsPreCompaction, createInfo->name.c_str(), totalMeshletsPostCompaction );
     }
 
     return true;

@@ -12,6 +12,8 @@ BEGIN_GPU_DATA_NAMESPACE()
 #define BITS_PER_TANGENT ( 2 * BITS_PER_TANGENT_COMPONENT + 1 )
 #define BITANGENT_BIT_MASK ( 1u << ( 2 * BITS_PER_TANGENT_COMPONENT ) )
 
+#define MESHLET_FLAG_UNORM_UVS 0x1
+
 // if this is edited, the model version number needs to be bumped in the converter
 struct Meshlet
 {
@@ -19,7 +21,7 @@ struct Meshlet
     uint triangleOffset;
     uint8_t vertexCount;
     uint8_t triangleCount;
-    uint8_t _pad0;
+    uint8_t flags;
     uint8_t _pad1;
     uint _pad2;
 

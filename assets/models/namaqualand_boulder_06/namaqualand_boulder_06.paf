@@ -1,0 +1,20 @@
+[
+	{ "Textureset": {
+		"name": "namaqualand_boulder_06",
+		"albedoMap": "models/namaqualand_boulder_06/namaqualand_boulder_06_diff_2k.jpg",
+		"normalMap": "models/namaqualand_boulder_06/namaqualand_boulder_06_nor_gl_2k.jpg",
+		"metalnessMap": "models/namaqualand_boulder_06/namaqualand_boulder_06_arm_2k.jpg",
+		"metalnessSourceChannel": "B",
+		"roughnessMap": "models/namaqualand_boulder_06/namaqualand_boulder_06_arm_2k.jpg",
+		"roughnessSourceChannel": "G"
+	} },
+	{ "Material": {
+		"name": "namaqualand_boulder_06",
+		"metalnessTint": 0.000000,
+		"textureset": "namaqualand_boulder_06"
+	} },
+	{ "Model": {
+        "name": "namaqualand_boulder_06",
+        "filename": "models/namaqualand_boulder_06/namaqualand_boulder_06_2k.pmodelb"
+    } }
+]

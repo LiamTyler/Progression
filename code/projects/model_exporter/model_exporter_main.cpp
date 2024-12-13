@@ -274,7 +274,7 @@ static bool ConvertModel( const std::string& filename, std::string& outputJSON )
         return false;
 
     std::string relPath = GetRelativePathToDir( outputModelFilename, g_options.rootDir );
-    outputJSON += "\t{ \"Model\": { \"name\": \"" + modelName + "\", \"filename\": \"" + relPath + "\" } },\n";
+    outputJSON += "\t{ \"Model\": {\n\t\t\"name\": \"" + modelName + "\",\n\t\t\"filename\": \"" + relPath + "\"\n\t} },\n";
 
     LOG( "Done processing file %s", filename.c_str() );
 

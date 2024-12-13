@@ -38,6 +38,7 @@ struct Mesh
     u32 numVertices;
     u32 numMeshlets;
     bool hasTexCoords;
+    bool unormTexCoords;
     bool hasTangents;
     u32 bindlessBuffersSlot;
 #else
@@ -47,12 +48,13 @@ struct Mesh
     std::vector<u16vec3> packedPositions;
     std::vector<u32> packedNormals;
     std::vector<u32> packedTangents;
+    std::vector<u8> packedTexCoords;
 #else  // #if PACKED_VERTS
     std::vector<vec3> packedPositions;
     std::vector<vec3> packedNormals;
     std::vector<vec4> packedTangents; // xyz is the tangent, w is the bitangent sign
+    std::vector<vec2> packedTexCoords;
 #endif // #else // #if PACKED_VERTS
-    std::vector<vec2> texCoords;
 
 #if PACKED_TRIS
     std::vector<u16> packedTris;

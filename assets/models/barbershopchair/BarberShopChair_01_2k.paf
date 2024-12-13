@@ -1,0 +1,20 @@
+[
+	{ "Textureset": {
+		"name": "BarberShopChair_01",
+		"albedoMap": "models/barbershopchair/BarberShopChair_01_diff_2k.jpg",
+		"normalMap": "models/barbershopchair/BarberShopChair_01_nor_gl_2k.jpg",
+		"metalnessMap": "models/barbershopchair/BarberShopChair_01_arm_2k.jpg",
+		"metalnessSourceChannel": "B",
+		"roughnessMap": "models/barbershopchair/BarberShopChair_01_arm_2k.jpg",
+		"roughnessSourceChannel": "G"
+	} },
+	{ "Material": {
+		"name": "BarberShopChair_01",
+		"textureset": "BarberShopChair_01"
+	} },
+	{ "Model": {
+        "name": "BarberShopChair_01",
+        "filename": "models/barbershopchair/BarberShopChair_01_2k.pmodelb",
+        "centerModel": true
+    } }
+]

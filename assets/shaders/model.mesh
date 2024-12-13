@@ -106,8 +106,31 @@ vec2 GetUV( const Meshlet meshlet, uint baseBuffer, uint index )
     if ( ptr == 0 )
         return vec2( 0 );
 
+    vec2 uv;
+#if PACKED_VERTS
+    bool unormUVs = ( meshlet.flags & MESHLET_FLAG_UNORM_UVS ) != 0;
+    if ( unormUVs )
+    {
+        ByteBuffer buff = ByteBuffer( ptr );
+
+        uint x = buff.data[3 * index + 0];
+        uint y = buff.data[3 * index + 1];
+        uint z = buff.data[3 * index + 2];
+        x      = x | ( ( y & 0xF ) << 8 );
+        y      = ( z << 4 ) | ( y >> 4 );
+        uv     = vec2( x, y ) / 4095.0f;
+    }
+    else
+    {
+        UintBuffer buff = UintBuffer( ptr );
+        uv = unpackHalf2x16( buff.data[index] );
+    }
+#else  // #if PACKED_VERTS
     Vec2Buffer buff = Vec2Buffer( ptr );
-    return buff.data[index];
+    uv              = buff.data[index];
+#endif // #else // #if PACKED_VERTS
+
+    return uv;
 }
 
 vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, mat3 modelMatrix, uint index )

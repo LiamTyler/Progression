@@ -218,6 +218,7 @@ struct MeshBuildData
     u32 numMeshletTris         = 0;
     u32 numMeshlets            = 0;
     u32 nonCompactibleMeshlets = 0;
+    bool uvsAreAllUnorm;
 };
 
 static GpuData::Meshlet MoToPGMeshlet( u32 vertCount, u32 triCount, u32& numTotalVerts, u32& numTotalTris )
@@ -435,7 +436,9 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     std::vector<MeshBuildData> meshBuildDatas( numMeshes );
     meshes.resize( numMeshes );
     meshAABBs.resize( numMeshes );
+#if PACKED_VERTS
     vec3 largestMeshletExtents{ 0 };
+#endif // #if PACKED_VERTS
 #if PACKED_TRIS
     u32 nonCompactibleMeshlets      = 0;
     u32 totalMeshletsPreCompaction  = 0;
@@ -480,6 +483,7 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         m.packedTris.resize( PACKED_TRIS ? buildData.numMeshletTris : ( buildData.numMeshletTris * 3 ) );
         buildData.meshletAABBs.resize( buildData.numMeshlets );
         m.meshletCullDatas.resize( buildData.numMeshlets );
+        buildData.uvsAreAllUnorm = true;
 
         int numBlocks = ROUND_UP_DIV( buildData.numMeshlets, 64 );
         std::mutex extentsLock;
@@ -489,6 +493,8 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
             u32 meshletOffset = 64 * (u32)blockIdx;
             vec3 blockLocalLargestMeshletExtents{ 0 };
             AABB blockLocalMeshAABB = {};
+            vec2 uvMin( FLT_MAX );
+            vec2 uvMax( -FLT_MAX );
             for ( u32 localMeshletIdx = 0; localMeshletIdx < 64; ++localMeshletIdx )
             {
                 u32 meshletIdx = meshletOffset + localMeshletIdx;
@@ -504,9 +510,15 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 meshletAABB       = {};
                 for ( u32 mvIdx = 0; mvIdx < meshlet.vertexCount; ++mvIdx )
                 {
-                    u32 globalVIdx = buildData.meshletVertices[meshlet.vertexOffset + mvIdx];
-                    vec3 p         = pMesh.vertices[globalVIdx].pos;
-                    meshletAABB.Encompass( p );
+                    u32 globalVIdx          = buildData.meshletVertices[meshlet.vertexOffset + mvIdx];
+                    const PModel::Vertex& v = pMesh.vertices[globalVIdx];
+                    meshletAABB.Encompass( v.pos );
+
+                    if ( pMesh.numUVChannels > 0 )
+                    {
+                        uvMin = Min( uvMin, v.uvs[0] );
+                        uvMax = Max( uvMax, v.uvs[0] );
+                    }
                 }
                 blockLocalLargestMeshletExtents = Max( blockLocalLargestMeshletExtents, meshletAABB.Extent() );
                 blockLocalMeshAABB.Encompass( meshletAABB );
@@ -543,8 +555,16 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 }
             }
 
+            if ( pMesh.numUVChannels > 0 )
+            {
+                if ( uvMin.x < 0 || uvMin.y < 0.0f || uvMax.x > 1.0f || uvMax.y > 1.0f )
+                    buildData.uvsAreAllUnorm = false;
+            }
+
             extentsLock.lock();
+#if PACKED_VERTS
             largestMeshletExtents = Max( largestMeshletExtents, blockLocalLargestMeshletExtents );
+#endif // #if PACKED_VERTS
             meshAABBs[meshIdx].Encompass( blockLocalMeshAABB );
             extentsLock.unlock();
         }
@@ -581,13 +601,16 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
         std::vector<u32> octTangents;
         if ( pMesh.hasTangents )
             octTangents.resize( buildData.numMeshletVerts );
+        u64 uvBytes = buildData.numMeshletVerts * ( buildData.uvsAreAllUnorm ? 3 : 4 );
+        if ( pMesh.numUVChannels > 0 )
+            m.packedTexCoords.resize( ROUND_UP_TO_MULT( uvBytes, 4 ) );
 #else  // #if PACKED_VERTS
         m.packedNormals.resize( buildData.numMeshletVerts );
         if ( pMesh.hasTangents )
             m.packedTangents.resize( buildData.numMeshletVerts );
-#endif // #else // #if PACKED_VERTS
         if ( pMesh.numUVChannels > 0 )
-            m.texCoords.resize( buildData.numMeshletVerts );
+            m.packedTexCoords.resize( buildData.numMeshletVerts );
+#endif // #else // #if PACKED_VERTS
 
         int numBlocks = ROUND_UP_DIV( buildData.numMeshlets, 64 );
 #pragma omp parallel for
@@ -599,7 +622,12 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
                 u32 meshletIdx = meshletOffset + localMeshletIdx;
                 if ( meshletIdx >= buildData.numMeshlets )
                     break;
+
                 GpuData::Meshlet& pgMeshlet = m.meshlets[meshletIdx];
+                pgMeshlet.flags             = 0;
+                if ( buildData.uvsAreAllUnorm )
+                    pgMeshlet.flags |= MESHLET_FLAG_UNORM_UVS;
+
 #if PACKED_VERTS
                 const uvec3 quantizedMeshletOffset = ( buildData.meshletAABBs[meshletIdx].min - globalMin ) * quantizationFactor + 0.5f;
                 pgMeshlet.quantizedMeshletOffset   = quantizedMeshletOffset;
@@ -627,9 +655,27 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
 
                     if ( pMesh.numUVChannels > 0 )
                     {
-                        m.texCoords[globalVIdx] = v.uvs[0];
+                        vec2 uv = v.uvs[0];
                         if ( createInfo->flipTexCoordsVertically )
-                            m.texCoords[globalVIdx].y = 1.0f - v.uvs[0].y;
+                            uv.y = 1.0f - uv.y;
+#if PACKED_VERTS
+                        if ( buildData.uvsAreAllUnorm )
+                        {
+                            u32 qx = QuantizeUNorm( uv.x, 12 );
+                            u32 qy = QuantizeUNorm( uv.y, 12 );
+
+                            m.packedTexCoords[3 * globalVIdx + 0] = qx & 0xFF;
+                            m.packedTexCoords[3 * globalVIdx + 1] = ( ( qy & 0xF ) << 4 ) | ( ( qx >> 8 ) & 0xF );
+                            m.packedTexCoords[3 * globalVIdx + 2] = ( qy >> 4 ) & 0xFF;
+                        }
+                        else
+                        {
+                            u32* packedUVs        = reinterpret_cast<u32*>( m.packedTexCoords.data() );
+                            packedUVs[globalVIdx] = Float32ToFloat16( uv.x, uv.y );
+                        }
+#else  // #if PACKED_VERTS
+                        m.packedTexCoords[globalVIdx] = uv;
+#endif // #else // #if PACKED_VERTS
                     }
                     if ( pMesh.hasTangents )
                     {
@@ -696,11 +742,13 @@ bool Model::Load( const BaseAssetCreateInfo* baseInfo )
     }
     PGP_MANUAL_ZONE_END( __ExportVerts );
 
+#if PACKED_TRIS
     if ( nonCompactibleMeshlets )
     {
         LOG_WARN( "%u/%u meshlets were incompactible for model '%s' and had to be split. Final meshlet count: %u", nonCompactibleMeshlets,
             totalMeshletsPreCompaction, createInfo->name.c_str(), totalMeshletsPostCompaction );
     }
+#endif // #if PACKED_TRIS
 
     return true;
 #else  // #if USING( CONVERTER )
@@ -736,7 +784,7 @@ bool Model::FastfileLoad( Serializer* serializer )
 #if !USING( GPU_DATA )
         serializer->Read( mesh.packedPositions );
         serializer->Read( mesh.packedNormals );
-        serializer->Read( mesh.texCoords );
+        serializer->Read( mesh.packedTexCoords );
         serializer->Read( mesh.packedTangents );
         serializer->Read( mesh.packedTris );
         serializer->Read( mesh.meshlets );
@@ -752,9 +800,9 @@ bool Model::FastfileLoad( Serializer* serializer )
         u64 normalDataSize     = PACKED_VERTS ? ( numNormalChunks * sizeof( u32 ) ) : ( numVerts * sizeof( vec3 ) );
         serializer->Skip( normalDataSize );
 
-        u64 numTexCoords   = serializer->Read<u64>();
-        const void* uvData = serializer->GetData();
-        u64 uvDataSize     = numTexCoords * sizeof( vec2 );
+        u64 numTexCoordChunks = serializer->Read<u64>();
+        const void* uvData    = serializer->GetData();
+        u64 uvDataSize        = numTexCoordChunks * ( PACKED_VERTS ? 1 : sizeof( vec2 ) );
         serializer->Skip( uvDataSize );
 
         u64 numTanChunks     = serializer->Read<u64>();
@@ -774,15 +822,16 @@ bool Model::FastfileLoad( Serializer* serializer )
         const void* meshletCullData = serializer->GetData();
         serializer->Skip( numMeshlets * sizeof( GpuData::PackedMeshletCullData ) );
 
-        mesh.numVertices  = static_cast<u32>( numVerts );
-        mesh.numMeshlets  = static_cast<u32>( numMeshlets );
-        mesh.hasTexCoords = numTexCoords != 0;
-        mesh.hasTangents  = numTanChunks != 0;
+        mesh.numVertices    = static_cast<u32>( numVerts );
+        mesh.numMeshlets    = static_cast<u32>( numMeshlets );
+        mesh.hasTexCoords   = numTexCoordChunks != 0;
+        mesh.unormTexCoords = numTexCoordChunks == ROUND_UP_TO_MULT( 3 * numVerts, 4 );
+        mesh.hasTangents    = numTanChunks != 0;
 
         u64 totalVertexSizeInBytes = 0;
         totalVertexSizeInBytes += ROUND_UP_TO_MULT( posDataSize, 4 );
         totalVertexSizeInBytes += normalDataSize;
-        totalVertexSizeInBytes += uvDataSize;
+        totalVertexSizeInBytes += ROUND_UP_TO_MULT( uvDataSize, 4 );
         totalVertexSizeInBytes += tangentsDataSize;
 
         BufferCreateInfo vbCreateInfo{};
@@ -819,7 +868,7 @@ bool Model::FastfileLoad( Serializer* serializer )
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], normalData, normalDataSize, offset );
         offset += normalDataSize;
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], uvData, uvDataSize, offset );
-        offset += uvDataSize;
+        offset += ROUND_UP_TO_MULT( uvDataSize, 4 );
         rg.device.AddUploadRequest( mesh.buffers[Mesh::VERTEX_BUFFER], tanData, tangentsDataSize, offset );
         offset += tangentsDataSize;
 
@@ -845,7 +894,7 @@ bool Model::FastfileSave( Serializer* serializer ) const
         serializer->Write<u16>( mesh.material->GetName() );
         serializer->Write( mesh.packedPositions );
         serializer->Write( mesh.packedNormals );
-        serializer->Write( mesh.texCoords );
+        serializer->Write( mesh.packedTexCoords );
         serializer->Write( mesh.packedTangents );
         serializer->Write( mesh.packedTris );
         serializer->Write( mesh.meshlets );
@@ -872,7 +921,7 @@ void Model::FreeCPU()
         mesh.meshlets         = {};
         mesh.packedPositions  = {};
         mesh.packedNormals    = {};
-        mesh.texCoords        = {};
+        mesh.packedTexCoords  = {};
         mesh.packedTangents   = {};
         mesh.packedTris       = {};
     }

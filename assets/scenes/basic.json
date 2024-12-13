@@ -22,7 +22,7 @@
         "Transform": { "position": [ 0, 5, 0 ], "rotation": [ 90, 0, 90 ], "scale": [ 1, 1, 1 ] },
         "ModelRenderer": { "model": "dragon", "material": "blue" }
     }},
-    { "Entity": {
+    { "__Entity": {
         "NameComponent": "lucy",
         "Transform": { "position": [ 0, 15, 0 ], "rotation": [ 0, 0, 180 ],
             "scale": [ 0.005, 0.005, 0.005 ] },
@@ -32,5 +32,15 @@
         "NameComponent": "cube",
         "Transform": { "position": [ 0, 5, 0 ], "rotation": [ 0, 0, 0 ], "scale": [ 1, 1, 1 ] },
         "ModelRenderer": { "model": "cube", "material": "test_normals_1" }
+    }},
+    { "__Entity": {
+        "NameComponent": "chair",
+        "Transform": { "position": [ 0, 5, 0 ], "rotation": [ 90, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "BarberShopChair_01" }
+    }},
+    { "Entity": {
+        "NameComponent": "namaqualand_boulder_06",
+        "Transform": { "position": [ 0, 5, 0 ], "rotation": [ 90, 0, 0 ], "scale": [ 1, 1, 1 ] },
+        "ModelRenderer": { "model": "namaqualand_boulder_06" }
     }}
 ]

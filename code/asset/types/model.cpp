@@ -128,7 +128,7 @@ bool CompactMeshletIndices( u32* vertIndices, u32 vertCount, u8* triIndices, u32
 
         for ( u32 i = 0; i < adjTrisCount; ++i )
         {
-            tQueue.push( adjTris[adjTrisCount - i - 1] );
+            tQueue.push( adjTris[i] );
         }
     };
 

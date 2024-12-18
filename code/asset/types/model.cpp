@@ -807,7 +807,7 @@ bool Model::FastfileLoad( Serializer* serializer )
 
         u64 numTanChunks     = serializer->Read<u64>();
         const void* tanData  = serializer->GetData();
-        u64 tangentsDataSize = PACKED_VERTS ? ( numTanChunks * sizeof( u32 ) ) : ( numVerts * sizeof( vec4 ) );
+        u64 tangentsDataSize = numTanChunks * ( PACKED_VERTS ? sizeof( u32 ) : sizeof( vec4 ) );
         serializer->Skip( tangentsDataSize );
 
         u64 numTrisOrIndices = serializer->Read<u64>();

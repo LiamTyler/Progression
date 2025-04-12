@@ -147,4 +147,31 @@ AABB AABB::Transform( const mat4& transform ) const
     return aabb;
 }
 
+AABB2D::AABB2D() : min( FLT_MAX ), max( -FLT_MAX ) {}
+AABB2D::AABB2D( const vec2& _min, const vec2& _max ) : min( _min ), max( _max ) {}
+
+vec2 AABB2D::Center() const { return 0.5f * ( max + min ); }
+vec2 AABB2D::Extent() const { return max - min; }
+i32 AABB2D::LongestDimension() const
+{
+    vec2 d = max - min;
+    return d.x >= d.y ? 0 : 1;
+}
+f32 AABB2D::Area() const
+{
+    vec2 d = max - min;
+    return d.x * d.y;
+}
+
+void AABB2D::Encompass( const AABB2D& aabb )
+{
+    min = Min( min, aabb.min );
+    max = Max( max, aabb.max );
+}
+void AABB2D::Encompass( vec2 point )
+{
+    min = Min( min, point );
+    max = Max( max, point );
+}
+
 } // namespace PG

@@ -31,7 +31,7 @@ void FileReadResult::Free()
 
 FileReadResult ReadFile( std::string_view filename, bool binary )
 {
-    auto mode = std::ios::in;
+    std::ios_base::openmode mode = std::ios::in;
     if ( binary )
         mode |= std::ios::binary;
     std::ifstream file( filename.data(), mode );
@@ -61,7 +61,7 @@ FileReadResult ReadFile( std::string_view filename, bool binary )
 
 bool WriteFile( std::string_view filename, char* data, size_t size, bool binary )
 {
-    auto mode = std::ios::out;
+    std::ios_base::openmode mode = std::ios::out;
     if ( binary )
         mode |= std::ios::binary;
     std::ofstream file( filename.data(), mode );

@@ -342,10 +342,10 @@ void AddSceneRenderTasks( TaskGraphBuilder& builder, TGBTextureRef& litOutput, T
     gTask->SetFunction( MeshDrawFunc );
 
 #if USING( DEVELOPMENT_BUILD ) && USING( INDIRECT_MAIN_DRAW )
-    cTask = builder.AddComputeTask( "ComputeDraw" );
-    cTask->AddBufferInput( indirectCountBuff );
-    cTask->AddBufferInput( indirectMeshletDrawBuff );
-    cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
+    //cTask = builder.AddComputeTask( "ComputeDraw" );
+    //cTask->AddBufferInput( indirectCountBuff );
+    //cTask->AddBufferInput( indirectMeshletDrawBuff );
+    //cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
 #endif // #if USING( DEVELOPMENT_BUILD ) && USING( INDIRECT_MAIN_DRAW )
 }
 

@@ -34,4 +34,23 @@ public:
     vec3 max;
 };
 
+class AABB2D
+{
+public:
+    AABB2D();
+    AABB2D( const vec2& _min, const vec2& _max );
+    ~AABB2D() = default;
+
+    vec2 Center() const;
+    vec2 Extent() const;
+    i32 LongestDimension() const;
+    f32 Area() const;
+
+    void Encompass( const AABB2D& aabb );
+    void Encompass( vec2 point );
+
+    vec2 min;
+    vec2 max;
+};
+
 } // namespace PG

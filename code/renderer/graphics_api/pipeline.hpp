@@ -27,7 +27,7 @@ struct Viewport
 struct Scissor
 {
     Scissor() = default;
-    Scissor( i32 w, i32 h ) : width( w ), height( h ) {}
+    Scissor( i32 inX, i32 inY, i32 w, i32 h ) : x( inX ), y( inY ), width( w ), height( h ) {}
 
     i32 x      = 0;
     i32 y      = 0;

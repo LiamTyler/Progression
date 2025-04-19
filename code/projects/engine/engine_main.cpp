@@ -64,7 +64,7 @@ int main( int argc, char* argv[] )
         {
             primaryScenePtr->Update();
         }
-        // UI::Update();
+        UI::Update();
 
         RenderSystem::Render();
 

@@ -237,7 +237,7 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CODE_DIR}/external/imgui/
     ${CODE_DIR}/external/tracy/
 )
-target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4
+target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} rmlui lua lz4
     $<IF:$<BOOL:${PG_USE_SDL}>,${SDL_LIBS},${GLFW_LIBS}>
 )
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

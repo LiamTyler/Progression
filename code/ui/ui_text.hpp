@@ -26,6 +26,8 @@ struct TextDrawInfo
     Justification justification = Justification::LEFT;
 };
 
+vec2 MeasureText( const char* text, u32 length, Font* font, float fontSize );
+
 void Draw2D( const TextDrawInfo& textDrawInfo, const char* str );
 
 void Render( Gfx::CommandBuffer& cmdBuf );

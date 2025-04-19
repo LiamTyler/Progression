@@ -1,0 +1,14 @@
+[
+    { "Pipeline": {
+        "name": "clay_ui_opaque",
+        "meshShader": "ui/rect.mesh",
+        "fragmentShader": "ui/rect.frag",
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM" }
+    } },
+    { "Pipeline": {
+        "name": "clay_ui_blend",
+        "meshShader": "ui/rect.mesh",
+        "fragmentShader": "ui/rect.frag",
+        "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
+    } }
+]

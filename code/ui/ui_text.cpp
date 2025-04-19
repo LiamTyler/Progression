@@ -72,6 +72,55 @@ void Shutdown()
     }
 }
 
+vec2 MeasureText( const char* text, u32 length, Font* font, float fontSize )
+{
+    if ( !text || !length )
+        return vec2( 0 );
+
+    const bool useKerning = text_kerning.GetBool();
+
+    const float spaceWidth = font->GetGlyph( ' ' ).advance;
+    float scale            = fontSize / ( font->metrics.ascenderY - font->metrics.descenderY );
+
+    float maxWidth     = 0;
+    float currentWidth = 0;
+    for ( u32 i = 0; i < length; ++i )
+    {
+        char c = text[i];
+        if ( c == '\r' )
+            continue;
+
+        if ( c == ' ' )
+        {
+            currentWidth += spaceWidth;
+            continue;
+        }
+        else if ( c == '\t' )
+        {
+            currentWidth += 4 * spaceWidth;
+            continue;
+        }
+        else if ( c == '\n' )
+        {
+            maxWidth     = Max( maxWidth, currentWidth );
+            currentWidth = 0;
+            continue;
+        }
+
+        const Font::Glyph& glyph = font->GetGlyph( c );
+        if ( useKerning && i > 0 )
+        {
+            float kerning = s_font->GetKerning( text[i - 1], c );
+            currentWidth += kerning;
+        }
+
+        currentWidth += glyph.advance;
+    }
+    maxWidth = Max( maxWidth, currentWidth );
+
+    return scale * vec2( maxWidth, 1.0f );
+}
+
 void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
 {
     if ( !str )

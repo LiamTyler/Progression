@@ -228,6 +228,24 @@ else()
     set(FREETYPE_LIBS freetype bz2 PARENT_SCOPE)
 endif()
 
+#set(CMAKE_DISABLE_FIND_PACKAGE_PNG ON CACHE INTERNAL "")
+#set(CMAKE_DISABLE_FIND_PACKAGE_BrotliDec ON CACHE INTERNAL "")
+#set(CMAKE_DISABLE_FIND_PACKAGE_ZLIB ON CACHE INTERNAL "")
+#set(CMAKE_DISABLE_FIND_PACKAGE_BZip2 ON CACHE INTERNAL "")
+#set(CMAKE_DISABLE_FIND_PACKAGE_HarfBuzz ON CACHE INTERNAL "")
+#set(SKIP_INSTALL_ALL ON CACHE INTERNAL "")
+##set(HARFBUZZ_FOUND ON CACHE INTERNAL "")
+#add_subdirectory(freetype-2.13.2 EXCLUDE_FROM_ALL)
+#
+#add_library(Freetype::Freetype ALIAS freetype)
+##target_link_libraries(freetype PRIVATE harfbuzz)
+#
+##set(RMLUI_LOTTIE_PLUGIN ON)
+##set(RMLUI_SVG_PLUGIN ON)
+##set(RMLUI_CUSTOM_RTTI ON)
+#add_subdirectory(RmlUi EXCLUDE_FROM_ALL)
+##target_link_libraries("${PROJECT_NAME}" PUBLIC rmlui lunasvg)
+
 #-------------------------------MSDFGEN----------------------------------------
 if(MSVC)
     if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/msdfgen-core.lib)

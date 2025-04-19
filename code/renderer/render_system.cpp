@@ -17,7 +17,7 @@
 #include "r_sky.hpp"
 #include "shared/logger.hpp"
 #include "taskgraph/r_taskGraph.hpp"
-#include "ui/ui_text.hpp"
+#include "ui/ui_system.hpp"
 
 using namespace PG;
 using namespace Gfx;
@@ -58,7 +58,8 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     // tInfo.pos = vec2( 0.9, 0.1 );
     // UI::Text::Draw2D( tInfo, "Frustum: 12" );
 
-    UI::Text::Render( cmdBuf );
+    // UI::Text::Render( cmdBuf );
+    UI::Render( cmdBuf );
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
     DebugDraw::Draw2D( cmdBuf );
@@ -163,7 +164,6 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
     Init_SceneData();
 
     Lighting::Init();
-    UI::Text::Init();
     DebugDraw::Init();
 
     return true;
@@ -192,7 +192,6 @@ void Shutdown()
     rg.device.WaitForIdle();
 
     DebugDraw::Shutdown();
-    UI::Text::Shutdown();
     Lighting::Shutdown();
     Shutdown_SceneData();
 

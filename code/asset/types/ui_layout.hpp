@@ -15,11 +15,6 @@ std::string GetAbsPath_UILayoutFilename( const std::string& filename );
 
 struct UIElementCreateInfo
 {
-    UI::UIElement element;
-    std::string updateFuncName;
-    std::string mouseButtonDownFuncName;
-    std::string mouseButtonUpFuncName;
-    std::string imageName;
 };
 
 struct UILayout : public BaseAsset
@@ -31,7 +26,6 @@ public:
     bool FastfileLoad( Serializer* serializer ) override;
     bool FastfileSave( Serializer* serializer ) const override;
 
-    std::vector<UIElementCreateInfo> createInfos;
     Script* script;
 };
 

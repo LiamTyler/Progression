@@ -33,8 +33,8 @@ Viewport SceneSizedViewport( bool vulkanFlipViewport )
     return v;
 }
 
-Scissor DisplaySizedScissor() { return Scissor( rg.swapchain.GetWidth(), rg.swapchain.GetHeight() ); }
+Scissor DisplaySizedScissor() { return Scissor( 0, 0, rg.swapchain.GetWidth(), rg.swapchain.GetHeight() ); }
 
-Scissor SceneSizedScissor() { return Scissor( rg.sceneWidth, rg.sceneHeight ); }
+Scissor SceneSizedScissor() { return Scissor( 0, 0, rg.sceneWidth, rg.sceneHeight ); }
 
 } // namespace PG::Gfx

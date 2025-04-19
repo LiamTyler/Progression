@@ -63,11 +63,11 @@ bool EngineInitialize( EngineInitInfo info )
         LOG_ERR( "Could not initialize render system" );
         return false;
     }
-    // if ( !UI::Init() )
-    //{
-    //     LOG_ERR( "Could not initialize UI system" );
-    //     return false;
-    // }
+    if ( !UI::Init() )
+    {
+        LOG_ERR( "Could not initialize UI system" );
+        return false;
+    }
     ExportDvars();
     RemoteConsoleServer::Init();
 #endif // #if USING( GAME )
@@ -85,7 +85,7 @@ void EngineShutdown()
 #if USING( GAME )
     FreeAllScenes();
     RemoteConsoleServer::Shutdown();
-    // UI::Shutdown();
+    UI::Shutdown();
     RenderSystem::Shutdown();
     if ( !eg.headless )
     {

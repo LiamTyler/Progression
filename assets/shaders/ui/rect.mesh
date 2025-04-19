@@ -12,18 +12,33 @@ layout( std430, push_constant ) uniform UIElementConstantBufferUniform
 layout( local_size_x = 4, local_size_y = 1, local_size_z = 1 ) in;
 layout( triangles, max_vertices = 32, max_primitives = 32 ) out;
 
+layout( location = 0 ) out PerVertexData
+{
+    vec2 uv;
+} v_out[];
+
+const vec2 offsets[] =
+{
+    vec2( 0, 0 ),
+    vec2( 0, 1 ),
+    vec2( 1, 1 ),
+    vec2( 1, 0 ),
+};
+
 void main()
 {
     const uint threadID = gl_LocalInvocationIndex;
     SetMeshOutputsEXT( 4, 2 );
     
+    vec2 offset = offsets[threadID];
+    v_out[threadID].uv = offset;
+    
     vec2 pos = drawData.pos;
-    pos.x += drawData.dimensions.x * float(threadID > 1);
-    pos.y += drawData.dimensions.y * float(threadID == 1 || threadID == 2);
+    pos += drawData.dimensions * offset;
     gl_MeshVerticesEXT[threadID].gl_Position = drawData.projMatrix * vec4( 2 * pos - vec2( 1 ), 0, 1 );
     
     if ( threadID == 0 )
         gl_PrimitiveTriangleIndicesEXT[threadID] = uvec3( 0, 1, 2 );
     else if ( threadID == 1 )
         gl_PrimitiveTriangleIndicesEXT[threadID] = uvec3( 0, 2, 3 );
-}   
+}

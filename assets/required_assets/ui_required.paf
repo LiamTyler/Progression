@@ -10,5 +10,11 @@
         "meshShader": "ui/rect.mesh",
         "fragmentShader": "ui/rect.frag",
         "colorAttachment": { "format": "R8_G8_B8_A8_UNORM", "blendMode": "ALPHA_BLEND" }
-    } }
+    } },
+    { "Image": {
+		"name": "macaw",
+		"filename": "images/macaw.png",
+		"semantic": "UI",
+        "flipVertically": false
+	} }
 ]

@@ -15,6 +15,7 @@ struct UIRectElementData
     vec2 pos;
     vec2 dimensions;
     vec4 color;
+    uint textureIndex;
 };
 
 #ifndef PG_SHADER_CODE

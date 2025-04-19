@@ -28,6 +28,7 @@ std::vector<PG::Gfx::Scissor> s_scissorStack;
 
 inline float Width() { return (float)PG::Gfx::rg.displayWidth; }
 inline float Height() { return (float)PG::Gfx::rg.displayHeight; }
+inline vec4 ClayToPGColor( const Clay_Color& c ) { return vec4( c.r, c.g, c.b, c.a ) / 255.0f; }
 
 namespace PG::UI
 {
@@ -129,9 +130,21 @@ void Update()
                 .layout          = { .sizing = { .width = CLAY_SIZING_GROW( 0 ), .height = CLAY_SIZING_GROW( 0 ) } },
                 .backgroundColor = COLOR_LIGHT } )
             {
+                GfxImage* img = AssetManager::Get<GfxImage>( "macaw" );
+                CLAY( {
+                    .layout = { .sizing = { .width = CLAY_SIZING_FIXED( 60 ), .height = CLAY_SIZING_FIXED( 60 ) } },
+                    .image  = { .imageData = img, .sourceDimensions = { (float)img->width, (float)img->height } }
+                } )
+                {
+                }
             }
         }
     }
+    // CLAY({ .id = CLAY_ID("ProfilePictureOuter"), .layout = { .sizing = { .width = CLAY_SIZING_GROW(0) }, .padding = CLAY_PADDING_ALL(16),
+    // .childGap = 16, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER } }, .backgroundColor = COLOR_RED }) { CLAY({ .id =
+    // CLAY_ID("ProfilePicture"), .layout = { .sizing = { .width = CLAY_SIZING_FIXED(60), .height = CLAY_SIZING_FIXED(60) }}, .image = {
+    // .imageData = &profilePicture, .sourceDimensions = {60, 60} } }) {} CLAY_TEXT(CLAY_STRING("Clay - UI Library"), CLAY_TEXT_CONFIG({
+    // .fontSize = 24, .textColor = {255, 255, 255, 255} }));
 
     s_clayRenderCommands = Clay_EndLayout();
 }
@@ -162,8 +175,26 @@ void Render( Gfx::CommandBuffer& cmdBuf )
             pushConstants.pos.y                   = aabb.y;
             pushConstants.dimensions.x            = aabb.width;
             pushConstants.dimensions.y            = aabb.height;
-            pushConstants.color =
-                vec4( cRect.backgroundColor.r, cRect.backgroundColor.g, cRect.backgroundColor.b, cRect.backgroundColor.a ) / 255.0f;
+            pushConstants.color                   = ClayToPGColor( cRect.backgroundColor );
+            pushConstants.textureIndex            = PG_INVALID_TEXTURE_INDEX;
+            cmdBuf.PushConstants( pushConstants );
+            cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            break;
+        }
+        case CLAY_RENDER_COMMAND_TYPE_IMAGE:
+        {
+            const Clay_ImageRenderData& cImage = renderCommand->renderData.image;
+            pushConstants.pos.x                = aabb.x;
+            pushConstants.pos.y                = aabb.y;
+            pushConstants.dimensions.x         = aabb.width;
+            pushConstants.dimensions.y         = aabb.height;
+            pushConstants.color                = ClayToPGColor( cImage.backgroundColor );
+            if ( pushConstants.color == vec4( 0 ) )
+                pushConstants.color = vec4( 1 );
+
+            GfxImage* img              = (GfxImage*)cImage.imageData;
+            pushConstants.textureIndex = img ? img->gpuTexture.GetBindlessIndex() : PG_INVALID_TEXTURE_INDEX;
+
             cmdBuf.PushConstants( pushConstants );
             cmdBuf.DrawMeshTasks( 1, 1, 1 );
             break;

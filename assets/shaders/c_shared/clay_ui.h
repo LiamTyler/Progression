@@ -12,8 +12,7 @@ namespace GpuData
 struct UIRectElementData
 {
     mat4 projMatrix;
-    vec2 pos;
-    vec2 dimensions;
+    vec4 aabb; // x = posX, y = posY, z = width, w = height
     vec4 color;
     uint textureIndex;
 };

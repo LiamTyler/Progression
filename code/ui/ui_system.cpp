@@ -96,7 +96,7 @@ void Update()
     CLAY( {
         .id     = CLAY_ID( "OuterContainer" ),
         .layout = { .sizing = { CLAY_SIZING_GROW( 0 ), CLAY_SIZING_GROW( 0 ) }, .padding = CLAY_PADDING_ALL( 16 ), .childGap = 16 },
-        .backgroundColor = { 250, 250, 255, 255 }
+        .backgroundColor = { 0, 250, 0, 255 }
     } )
     {
         CLAY( {
@@ -171,10 +171,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
         case CLAY_RENDER_COMMAND_TYPE_RECTANGLE:
         {
             const Clay_RectangleRenderData& cRect = renderCommand->renderData.rectangle;
-            pushConstants.pos.x                   = aabb.x;
-            pushConstants.pos.y                   = aabb.y;
-            pushConstants.dimensions.x            = aabb.width;
-            pushConstants.dimensions.y            = aabb.height;
+            pushConstants.aabb                    = { aabb.x, aabb.y, aabb.width, aabb.height };
             pushConstants.color                   = ClayToPGColor( cRect.backgroundColor );
             pushConstants.textureIndex            = PG_INVALID_TEXTURE_INDEX;
             cmdBuf.PushConstants( pushConstants );
@@ -184,10 +181,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
         case CLAY_RENDER_COMMAND_TYPE_IMAGE:
         {
             const Clay_ImageRenderData& cImage = renderCommand->renderData.image;
-            pushConstants.pos.x                = aabb.x;
-            pushConstants.pos.y                = aabb.y;
-            pushConstants.dimensions.x         = aabb.width;
-            pushConstants.dimensions.y         = aabb.height;
+            pushConstants.aabb                 = { aabb.x, aabb.y, aabb.width, aabb.height };
             pushConstants.color                = ClayToPGColor( cImage.backgroundColor );
             if ( pushConstants.color == vec4( 0 ) )
                 pushConstants.color = vec4( 1 );

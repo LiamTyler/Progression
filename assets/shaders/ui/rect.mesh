@@ -1,5 +1,6 @@
 #version 450
 
+#include "common.glsl"
 #extension GL_EXT_mesh_shader : require
 
 #include "c_shared/clay_ui.h"
@@ -33,9 +34,8 @@ void main()
     vec2 offset = offsets[threadID];
     v_out[threadID].uv = offset;
     
-    vec2 pos = drawData.pos;
-    pos += drawData.dimensions * offset;
-    gl_MeshVerticesEXT[threadID].gl_Position = drawData.projMatrix * vec4( 2 * pos - vec2( 1 ), 0, 1 );
+    vec2 pos = drawData.aabb.xy + drawData.aabb.zw * offset;
+    gl_MeshVerticesEXT[threadID].gl_Position = drawData.projMatrix * vec4( pos, 0, 1 );
     
     if ( threadID == 0 )
         gl_PrimitiveTriangleIndicesEXT[threadID] = uvec3( 0, 1, 2 );

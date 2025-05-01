@@ -160,7 +160,7 @@ bool UILayoutParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<UILayoutCreateInfo&> mapping(
     {
-        { "filename", []( cjval v, UILayoutCreateInfo& s ) { s.xmlFilename = ParseString( v ); } },
+        { "filename", []( cjval v, UILayoutCreateInfo& s ) { s.filename = ParseString( v ); } },
     });
     mapping.ForEachMember( value, *info );
 

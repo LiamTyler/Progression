@@ -11,6 +11,7 @@ namespace PG::UI
 bool Init();
 void Shutdown();
 
+void BootMainMenu();
 void Update();
 void Render( Gfx::CommandBuffer& cmdBuf );
 

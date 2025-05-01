@@ -40,6 +40,12 @@ void Init();
 
 void ProcessPendingLiveUpdates();
 
+#if USING( ASSET_LIVE_UPDATE )
+using AssetLiveUpdateList = std::vector<std::pair<BaseAsset*, BaseAsset*>>;
+using AssetLiveUpdateCallbackPtr = void ( * )( const AssetLiveUpdateList& assetPairs );
+void AddLiveUpdateCallback( u32 assetTypeID, AssetLiveUpdateCallbackPtr callback );
+#endif // #if USING( ASSET_LIVE_UPDATE )
+
 bool LoadFastFile( const std::string& ffName, bool debugVersion = false );
 
 void FreeRemainingGpuResources();

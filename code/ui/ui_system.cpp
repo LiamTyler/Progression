@@ -1,6 +1,7 @@
 #include "ui_system.hpp"
 #include "asset/asset_manager.hpp"
 #include "c_shared/clay_ui.h"
+#include "core/lua.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
 #include "ui_text.hpp"
@@ -51,6 +52,48 @@ static inline Clay_Dimensions MeasureText( Clay_StringSlice text, Clay_TextEleme
     return { dims.x, dims.y };
 }
 
+Clay_Sizing CreateSizing( int widthType, float widthVal, int heightType, float heightVal )
+{
+    Clay_Sizing sizing;
+    sizing.width.type = (Clay__SizingType)widthType;
+    if ( sizing.width.type == CLAY__SIZING_TYPE_PERCENT )
+        sizing.width.size.percent = widthVal;
+    else
+        sizing.width.size.minMax = { widthVal };
+
+    sizing.height.type = (Clay__SizingType)heightType;
+    if ( sizing.height.type == CLAY__SIZING_TYPE_PERCENT )
+        sizing.height.size.percent = heightVal;
+    else
+        sizing.height.size.minMax = { heightVal };
+
+    return sizing;
+}
+
+Clay_LayoutConfig CreateLayout() { return {}; }
+
+static PG::Lua::ScriptInstance* s_scriptInstance;
+
+#if USING( ASSET_LIVE_UPDATE )
+void AssetLiveUpdateCallback( const AssetManager::AssetLiveUpdateList& updateList )
+{
+    for ( const auto& assetOldNewPair : updateList )
+    {
+        if ( s_scriptInstance->scriptAsset == assetOldNewPair.first )
+        {
+            Script* newScript             = static_cast<Script*>( assetOldNewPair.second );
+            s_scriptInstance->scriptAsset = newScript;
+            if ( !newScript->scriptText.empty() )
+            {
+                PG::Lua::State().script( newScript->scriptText, s_scriptInstance->env );
+                s_scriptInstance->updateFunction = s_scriptInstance->env["Update"];
+            }
+            s_scriptInstance->hasUpdateFunction = s_scriptInstance->updateFunction.valid();
+        }
+    }
+}
+#endif // #if USING( ASSET_LIVE_UPDATE )
+
 bool Init()
 {
     if ( !AssetManager::LoadFastFile( "ui_required" ) )
@@ -71,15 +114,80 @@ bool Init()
     Clay_Initialize( s_clayMemory, Clay_Dimensions{ Width(), Height() }, Clay_ErrorHandler{ HandleClayErrors } );
     Clay_SetMeasureTextFunction( MeasureText, nullptr );
 
+    sol::state_view state( Lua::State() );
+    sol::table uiNamespace = state.create_named_table( "UI" );
+
+    uiNamespace["SIZING_TYPE_FIT"]         = CLAY__SIZING_TYPE_FIT;
+    uiNamespace["SIZING_TYPE_GROW"]        = CLAY__SIZING_TYPE_GROW;
+    uiNamespace["SIZING_TYPE_PERCENT"]     = CLAY__SIZING_TYPE_PERCENT;
+    uiNamespace["SIZING_TYPE_FIXED"]       = CLAY__SIZING_TYPE_FIXED;
+    sol::usertype<Clay_Sizing> sizing_type = uiNamespace.new_usertype<Clay_Sizing>( "Sizing" );
+    uiNamespace["CreateSizing"]            = CreateSizing;
+
+    sol::usertype<Clay_Padding> padding_type = uiNamespace.new_usertype<Clay_Padding>( "Padding" );
+    padding_type["left"]                     = &Clay_Padding::left;
+    padding_type["right"]                    = &Clay_Padding::right;
+    padding_type["top"]                      = &Clay_Padding::top;
+    padding_type["bottom"]                   = &Clay_Padding::bottom;
+    uiNamespace["CreatePadding"]             = []( u16 l, u16 r, u16 t, u16 b ) { return Clay_Padding{ l, r, t, b }; };
+    uiNamespace["CreatePadding"]             = []( u16 all ) { return Clay_Padding{ all, all, all, all }; };
+
+    uiNamespace["ALIGN_X_LEFT"]                       = CLAY_ALIGN_X_LEFT;
+    uiNamespace["ALIGN_X_RIGHT"]                      = CLAY_ALIGN_X_RIGHT;
+    uiNamespace["ALIGN_X_CENTER"]                     = CLAY_ALIGN_X_CENTER;
+    uiNamespace["ALIGN_Y_TOP"]                        = CLAY_ALIGN_Y_TOP;
+    uiNamespace["ALIGN_Y_BOTTOM"]                     = CLAY_ALIGN_Y_BOTTOM;
+    uiNamespace["ALIGN_Y_CENTER"]                     = CLAY_ALIGN_Y_CENTER;
+    sol::usertype<Clay_ChildAlignment> alignment_type = uiNamespace.new_usertype<Clay_ChildAlignment>( "ChildAlignment" );
+    uiNamespace["CreateAlignment"] = []( u8 x, u8 y ) { return Clay_ChildAlignment{ (Clay_LayoutAlignmentX)x, (Clay_LayoutAlignmentY)y }; };
+
+    uiNamespace["LEFT_TO_RIGHT"]                             = CLAY_LEFT_TO_RIGHT;
+    uiNamespace["TOP_TO_BOTTOM"]                             = CLAY_TOP_TO_BOTTOM;
+    sol::usertype<Clay_LayoutDirection> layoutDirection_type = uiNamespace.new_usertype<Clay_LayoutDirection>( "LayoutDirection" );
+
+    sol::usertype<Clay_LayoutConfig> layout_type = uiNamespace.new_usertype<Clay_LayoutConfig>( "LayoutConfig" );
+    layout_type["sizing"]                        = &Clay_LayoutConfig::sizing;
+    layout_type["padding"]                       = &Clay_LayoutConfig::padding;
+    layout_type["childGap"]                      = &Clay_LayoutConfig::childGap;
+    layout_type["childAlignment"]                = &Clay_LayoutConfig::childAlignment;
+    layout_type["layoutDirection"]               = &Clay_LayoutConfig::layoutDirection;
+    uiNamespace["CreateLayout"]                  = CreateLayout;
+
+    uiNamespace["Color"] = []( float r, float g, float b, float a ) { return Clay_Color{ r, g, b, a }; };
+    sol::usertype<Clay_ElementDeclaration> eDeclatation_type = uiNamespace.new_usertype<Clay_ElementDeclaration>( "ElementDeclaration" );
+    eDeclatation_type["id"]                                  = &Clay_ElementDeclaration::id;
+    eDeclatation_type["layout"]                              = &Clay_ElementDeclaration::layout;
+    eDeclatation_type["backgroundColor"]                     = &Clay_ElementDeclaration::backgroundColor;
+
+    uiNamespace["OpenElement"]      = Clay__OpenElement;
+    uiNamespace["ConfigureElement"] = Clay__ConfigureOpenElement;
+    uiNamespace["CloseElement"]     = Clay__CloseElement;
+
     return true;
 }
 
 void Shutdown()
 {
+    delete s_scriptInstance;
     s_scissorStack.clear();
     s_fontIdToFontMap.clear();
     free( s_clayMemory.memory );
     UI::Text::Shutdown();
+}
+
+void BootMainMenu()
+{
+    Script* script = AssetManager::Get<Script>( "main_menu" );
+
+    s_scriptInstance = new Lua::ScriptInstance( script );
+
+    // sol::environment( Lua::State(), sol::create, Lua::State().globals() );
+    // if ( !scriptAsset->scriptText.empty() )
+    //{
+    //     g_LuaState->script( scriptAsset->scriptText, env );
+    //     updateFunction = env["Update"];
+    // }
+    // hasUpdateFunction = updateFunction.valid();
 }
 
 void Update()
@@ -92,54 +200,57 @@ void Update()
 
     Clay_BeginLayout();
 
-    // An example of laying out a UI with a fixed width sidebar and flexible width main content
-    CLAY( {
-        .id     = CLAY_ID( "OuterContainer" ),
-        .layout = { .sizing = { CLAY_SIZING_GROW( 0 ), CLAY_SIZING_GROW( 0 ) }, .padding = CLAY_PADDING_ALL( 16 ), .childGap = 16 },
-        .backgroundColor = { 0, 250, 0, 255 }
-    } )
-    {
-        CLAY( {
-            .id = CLAY_ID( "SideBar" ),
-            .layout =
-                {
-                         .sizing          = { .width = CLAY_SIZING_FIXED( 300 ), .height = CLAY_SIZING_GROW( 0 ) },
-                         .padding         = CLAY_PADDING_ALL( 16 ),
-                         .childGap        = 16,
-                         .layoutDirection = CLAY_TOP_TO_BOTTOM,
-                         },
-            .backgroundColor = COLOR_LIGHT
-        } )
-        {
-            CLAY( {
-                .id              = CLAY_ID( "ProfilePictureOuter" ),
-                .layout          = { .sizing = { .width = CLAY_SIZING_GROW( 0 ) },
-                                    .padding        = CLAY_PADDING_ALL( 16 ),
-                                    .childGap       = 16,
-                                    .childAlignment = { .y = CLAY_ALIGN_Y_CENTER } },
-                .backgroundColor = COLOR_RED
-            } )
-            {
-                CLAY_TEXT( CLAY_STRING( "Clay - UI Library" ), CLAY_TEXT_CONFIG( {
-                                                                   .textColor = { 255, 255, 255, 255 },
-                                                                     .fontSize = 24
-                } ) );
-            }
+    if ( s_scriptInstance && s_scriptInstance->hasUpdateFunction )
+        s_scriptInstance->updateFunction();
 
-            CLAY( { .id          = CLAY_ID( "MainContent" ),
-                .layout          = { .sizing = { .width = CLAY_SIZING_GROW( 0 ), .height = CLAY_SIZING_GROW( 0 ) } },
-                .backgroundColor = COLOR_LIGHT } )
-            {
-                GfxImage* img = AssetManager::Get<GfxImage>( "macaw" );
-                CLAY( {
-                    .layout = { .sizing = { .width = CLAY_SIZING_FIXED( 60 ), .height = CLAY_SIZING_FIXED( 60 ) } },
-                    .image  = { .imageData = img, .sourceDimensions = { (float)img->width, (float)img->height } }
-                } )
-                {
-                }
-            }
-        }
-    }
+    // An example of laying out a UI with a fixed width sidebar and flexible width main content
+    // CLAY( {
+    //    //.id     = CLAY_ID( "OuterContainer" ),
+    //    .layout = { .sizing = { CLAY_SIZING_GROW( 0 ), CLAY_SIZING_GROW( 0 ) }, .padding = CLAY_PADDING_ALL( 16 ), .childGap = 16 },
+    //    //.backgroundColor = { 0, 250, 0, 255 }
+    //} )
+    //{
+    //    CLAY( {
+    //        .id = CLAY_ID( "SideBar" ),
+    //        .layout =
+    //            {
+    //                     .sizing          = { .width = CLAY_SIZING_FIXED( 300 ), .height = CLAY_SIZING_GROW( 0 ) },
+    //                     .padding         = CLAY_PADDING_ALL( 16 ),
+    //                     .childGap        = 16,
+    //                     .layoutDirection = CLAY_TOP_TO_BOTTOM,
+    //                     },
+    //        .backgroundColor = COLOR_LIGHT
+    //    } )
+    //  {
+    //      CLAY( {
+    //          .id              = CLAY_ID( "ProfilePictureOuter" ),
+    //          .layout          = { .sizing = { .width = CLAY_SIZING_GROW( 0 ) },
+    //                              .padding        = CLAY_PADDING_ALL( 16 ),
+    //                              .childGap       = 16,
+    //                              .childAlignment = { .y = CLAY_ALIGN_Y_CENTER } },
+    //          .backgroundColor = COLOR_RED
+    //      } )
+    //{
+    //    CLAY_TEXT( CLAY_STRING( "Clay - UI Library" ), CLAY_TEXT_CONFIG( {
+    //                                                       .textColor = { 255, 255, 255, 255 },
+    //                                                         .fontSize = 24
+    //    } ) );
+    //}
+    //
+    //      CLAY( { .id          = CLAY_ID( "MainContent" ),
+    //          .layout          = { .sizing = { .width = CLAY_SIZING_GROW( 0 ), .height = CLAY_SIZING_GROW( 0 ) } },
+    //          .backgroundColor = COLOR_LIGHT } )
+    //{
+    //    GfxImage* img = AssetManager::Get<GfxImage>( "macaw" );
+    //    CLAY( {
+    //        .layout = { .sizing = { .width = CLAY_SIZING_FIXED( 60 ), .height = CLAY_SIZING_FIXED( 60 ) } },
+    //        .image  = { .imageData = img, .sourceDimensions = { (float)img->width, (float)img->height } }
+    //    } )
+    //    {
+    //    }
+    //}
+    //  }
+    //}
     // CLAY({ .id = CLAY_ID("ProfilePictureOuter"), .layout = { .sizing = { .width = CLAY_SIZING_GROW(0) }, .padding = CLAY_PADDING_ALL(16),
     // .childGap = 16, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER } }, .backgroundColor = COLOR_RED }) { CLAY({ .id =
     // CLAY_ID("ProfilePicture"), .layout = { .sizing = { .width = CLAY_SIZING_FIXED(60), .height = CLAY_SIZING_FIXED(60) }}, .image = {

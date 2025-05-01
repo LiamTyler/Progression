@@ -17,7 +17,6 @@ bool g_paused = false;
 
 int main( int argc, char* argv[] )
 {
-    // 1024×576
     EngineInitInfo engineInitConfig;
     engineInitConfig.sceneWidth   = 1920;
     engineInitConfig.sceneHeight  = 1080;
@@ -29,6 +28,8 @@ int main( int argc, char* argv[] )
         return 0;
     }
 
+    UI::BootMainMenu();
+
 #if USING( LOAD_SCENE_DIRECTLY )
     std::string sceneName = argc > 1 ? argv[1] : "";
     // Scene* scene          = Scene::Load( "assets/basic.json" );
@@ -39,7 +40,7 @@ int main( int argc, char* argv[] )
         return 0;
     }
 #else  // #if USING( LOAD_SCENE_DIRECTLY )
-    UI::BootMainMenu();
+    
 #endif // #else // #if USING( LOAD_SCENE_DIRECTLY )
 
     Window* window = GetMainWindow();

@@ -8,14 +8,10 @@ namespace PG
 
 struct UILayoutCreateInfo : public BaseAssetCreateInfo
 {
-    std::string xmlFilename;
+    std::string filename;
 };
 
 std::string GetAbsPath_UILayoutFilename( const std::string& filename );
-
-struct UIElementCreateInfo
-{
-};
 
 struct UILayout : public BaseAsset
 {

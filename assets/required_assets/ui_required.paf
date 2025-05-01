@@ -16,5 +16,9 @@
 		"filename": "images/macaw.png",
 		"semantic": "UI",
         "flipVertically": false
-	} }
+	} },
+    { "Script": {
+        "name": "main_menu",
+        "filename": "ui/main_menu.lua"
+    }}
 ]

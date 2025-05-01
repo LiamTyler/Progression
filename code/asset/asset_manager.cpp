@@ -22,7 +22,8 @@ u32 GetAssetTypeIDHelper::IDCounter = 0;
 std::unordered_map<std::string, BaseAsset*> g_resourceMaps[ASSET_TYPE_COUNT];
 
 #if USING( ASSET_LIVE_UPDATE )
-std::vector<BaseAsset*> s_pendingAssetUpdates[ASSET_TYPE_COUNT];
+std::vector<std::pair<BaseAsset*, BaseAsset*>> s_pendingAssetUpdates[ASSET_TYPE_COUNT];
+std::vector<AssetLiveUpdateCallbackPtr> s_pendingAssetCallbacks[ASSET_TYPE_COUNT];
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
 void Init()
@@ -47,21 +48,18 @@ void Init()
 }
 
 #if USING( ASSET_LIVE_UPDATE )
-bool LiveUpdatesSupported( AssetType type ) { return false; }
+bool LiveUpdatesSupported( AssetType type ) { return type == ASSET_TYPE_SCRIPT; }
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
 static void ClearPendingLiveUpdates()
 {
 #if USING( ASSET_LIVE_UPDATE )
-    u32 numIgnoredAssets = 0;
     for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
     {
-        for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
+        for ( auto [oldAsset, newAsset] : s_pendingAssetUpdates[assetIdx] )
         {
-
-            ++numIgnoredAssets;
-            newAssetBase->Free();
-            delete newAssetBase;
+            oldAsset->Free();
+            delete oldAsset;
         }
         s_pendingAssetUpdates[assetIdx].clear();
     }
@@ -71,42 +69,25 @@ static void ClearPendingLiveUpdates()
 void ProcessPendingLiveUpdates()
 {
 #if USING( ASSET_LIVE_UPDATE )
-    u32 numIgnoredAssets = 0;
     for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
     {
-        for ( BaseAsset* newAssetBase : s_pendingAssetUpdates[assetIdx] )
-        {
-            if ( !LiveUpdatesSupported( (AssetType)assetIdx ) )
-            {
-                ++numIgnoredAssets;
-                newAssetBase->Free();
-                delete newAssetBase;
-                continue;
-            }
+        if ( s_pendingAssetUpdates[assetIdx].empty() )
+            continue;
 
-            // LOG( "Performing live update for asset '%s'", newAssetBase->GetName() );
-            // if ( assetIdx == ASSET_TYPE_SCRIPT )
-            //{
-            //     Script* oldAsset = Get<Script>( newAssetBase->GetName() );
-            //     Script* newAsset = (Script*)newAssetBase;
-            //     UI::ReloadScriptIfInUse( oldAsset, newAsset );
-            //     oldAsset->Free();
-            //     *oldAsset = std::move( *newAsset );
-            // }
-            // else if ( assetIdx == ASSET_TYPE_UI_LAYOUT )
-            //{
-            //     UILayout* oldAsset = Get<UILayout>( newAssetBase->GetName() );
-            //     UILayout* newAsset = (UILayout*)newAssetBase;
-            //     UI::ReloadLayoutIfInUse( oldAsset, newAsset );
-            //     oldAsset->Free();
-            //     *oldAsset = std::move( *newAsset );
-            // }
+        for ( const AssetLiveUpdateCallbackPtr& callback : s_pendingAssetCallbacks[assetIdx] )
+        {
+            callback( s_pendingAssetUpdates[assetIdx] );
+        }
+
+        for ( auto [oldAsset, newAsset] : s_pendingAssetUpdates[assetIdx] )
+        {
+            LOG( "AssetManager: LiveUpdate for '%s' with type %s", newAsset->GetName(), g_assetNames[assetIdx] );
+            oldAsset->Free();
+            delete oldAsset;
+            g_resourceMaps[assetIdx][newAsset->GetName()] = newAsset;
         }
         s_pendingAssetUpdates[assetIdx].clear();
     }
-
-    if ( numIgnoredAssets > 0 )
-        LOG_WARN( "Live update failed for %u assets (TODO: implement live update for those types)", numIgnoredAssets );
 #endif // #if USING( ASSET_LIVE_UPDATE )
 }
 
@@ -126,14 +107,25 @@ bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
     {
         g_resourceMaps[assetType][assetName] = asset;
     }
-#if USING( ASSET_LIVE_UPDATE )
     else
     {
-        s_pendingAssetUpdates[assetType].push_back( asset );
-        // LOG_WARN( "Asset '%s' of type %s has already been loaded. Skipping. (Need to implement asset overwriting/updates still)",
-        // assetName.c_str(), g_assetNames[assetType] ); asset->Free(); delete asset;
+#if USING( ASSET_LIVE_UPDATE )
+        if ( LiveUpdatesSupported( assetType ) )
+        {
+            s_pendingAssetUpdates[assetType].emplace_back( it->second, asset );
+        }
+        else
+        {
+            LOG_WARN( "AssetManager: cannot do live update for asset '%s' with type %s. Not supported for this type", assetName.c_str(),
+                g_assetNames[assetType] );
+            asset->Free();
+            delete asset;
+        }
+#else  // #if USING( ASSET_LIVE_UPDATE )
+        asset->Free();
+        delete asset;
+#endif // #else // #if USING( ASSET_LIVE_UPDATE )
     }
-#endif // #if USING( ASSET_LIVE_UPDATE )
 
     return true;
 }
@@ -231,6 +223,11 @@ void Shutdown()
 {
     for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
+#if USING( ASSET_LIVE_UPDATE )
+        s_pendingAssetCallbacks[i].clear();
+        s_pendingAssetUpdates[i].clear();
+#endif // #if USING( ASSET_LIVE_UPDATE )
+
         for ( const auto& it : g_resourceMaps[i] )
         {
             it.second->Free();

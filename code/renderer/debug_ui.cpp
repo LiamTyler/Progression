@@ -97,7 +97,7 @@ bool Updated() { return false; }
 #include "renderer/vulkan.hpp"
 #include "shared/logger.hpp"
 
-static PG::Dvar dvarDebugUI( "r_debugUI", false, "Controls whether to allow any 2D debug UI elements (those that use ImGUI) to be drawn" );
+static PG::Dvar dvarDebugUI( "r_debugUI", true, "Controls whether to allow any 2D debug UI elements (those that use ImGUI) to be drawn" );
 
 namespace PG::Gfx::UIOverlay
 {

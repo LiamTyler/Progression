@@ -163,6 +163,10 @@ bool Init()
     uiNamespace["ConfigureElement"] = Clay__ConfigureOpenElement;
     uiNamespace["CloseElement"]     = Clay__CloseElement;
 
+#if USING( ASSET_LIVE_UPDATE )
+    AssetManager::AddLiveUpdateCallback( ASSET_TYPE_SCRIPT, AssetLiveUpdateCallback );
+#endif // #if USING( ASSET_LIVE_UPDATE )
+
     return true;
 }
 

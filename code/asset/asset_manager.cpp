@@ -49,6 +49,11 @@ void Init()
 
 #if USING( ASSET_LIVE_UPDATE )
 bool LiveUpdatesSupported( AssetType type ) { return type == ASSET_TYPE_SCRIPT; }
+
+void AddLiveUpdateCallback( u32 assetTypeID, AssetLiveUpdateCallbackPtr callback )
+{
+    s_pendingAssetCallbacks[assetTypeID].push_back( callback );
+}
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
 static void ClearPendingLiveUpdates()

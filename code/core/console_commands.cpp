@@ -59,7 +59,7 @@ static void ProcessCommand( const std::string& cmdStr )
     std::string_view cmd                  = subStrs.empty() ? "" : subStrs[0];
     for ( i32 i = 0; i < ARRAY_COUNT( s_commands ); ++i )
     {
-        if ( !strcmp( cmd.data(), s_commands[i].name.data() ) )
+        if ( cmd == s_commands[i].name )
         {
             s_commandFunctions[i]( subStrs.data() + 1, numArgs );
             return;

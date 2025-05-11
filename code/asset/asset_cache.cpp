@@ -3,6 +3,7 @@
 #include "shared/file_dependency.hpp"
 #include "shared/filesystem.hpp"
 #include "shared/serializer.hpp"
+#include "xxHash/xxhash.h"
 
 #define ROOT_DIR std::string( PG_ASSET_DIR "cache/" )
 
@@ -55,29 +56,86 @@ time_t GetAssetTimestamp( AssetType assetType, const std::string& assetCacheName
     return GetFileTimestamp( GetCachedPath( assetType, assetCacheName ) );
 }
 
+struct HashData
+{
+    XXH64_state_t* state;
+    XXH64_hash_t seed;
+
+    HashData()
+    {
+        state = XXH64_createState();
+        seed  = 0;
+        XXH64_reset( state, seed );
+    }
+
+    size_t Finalize()
+    {
+        static_assert( sizeof( XXH64_hash_t ) == sizeof( size_t ) );
+        XXH64_hash_t const hash = XXH64_digest( state );
+        XXH64_freeState( state );
+        return hash;
+    }
+};
+
+void SerializeCallback( const void* buffer, size_t size, void* userdata )
+{
+    HashData* hashData = (HashData*)userdata;
+    XXH64_update( hashData->state, buffer, size );
+}
+
 bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAsset* asset )
 {
-    std::string path = GetCachedPath( assetType, assetCacheName );
+    AssetMetadata metadata = {};
+    metadata.name          = asset->GetName();
+
+    // TODO! Don't create a tmp file, if the entire asset ends up fitting into the serializer's scratch buffer
+    std::string tmpPath = GetCachedPath( assetType, assetCacheName + "_tmp" );
     try
     {
+        HashData hashData{};
         Serializer serializer;
-        if ( !serializer.OpenForWrite( path ) )
+        serializer.SetOnFlushCallback( SerializeCallback, &hashData );
+        if ( !serializer.OpenForWrite( tmpPath ) )
         {
             return false;
         }
         if ( !asset->FastfileSave( &serializer ) )
         {
             serializer.Close();
-            DeleteFile( path );
+            DeleteFile( tmpPath );
             return false;
         }
-        serializer.Close();
+        metadata.size = serializer.Close();
+        metadata.hash = hashData.Finalize();
     }
     catch ( std::exception& e )
     {
-        DeleteFile( path );
+        DeleteFile( tmpPath );
         throw e;
     }
+
+    std::string finalPath = GetCachedPath( assetType, assetCacheName );
+    try
+    {
+        Serializer inputSerializer;
+        if ( !inputSerializer.OpenForRead( tmpPath ) )
+            return false;
+
+        Serializer outSerializer;
+        if ( !outSerializer.OpenForWrite( finalPath ) )
+            return false;
+
+        SerializeAssetMetadata( &outSerializer, metadata );
+        outSerializer.Write( inputSerializer.GetData(), inputSerializer.BytesLeft() );
+    }
+    catch ( std::exception& e )
+    {
+        DeleteFile( tmpPath );
+        DeleteFile( finalPath );
+        throw e;
+    }
+
+    DeleteFile( tmpPath );
 
     return true;
 }

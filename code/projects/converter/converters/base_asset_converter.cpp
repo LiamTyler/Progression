@@ -110,6 +110,9 @@ void AddUsedAsset( AssetType assetType, BaseCreateInfoPtr createInfo )
         LOG_ERR( "Adding null asset for conversion! AssetType: %s", g_assetNames[assetType] );
         throw std::runtime_error( "Adding null asset for conversion! AssetType: " + std::string( g_assetNames[assetType] ) );
     }
+    if ( assetType == ASSET_TYPE_PIPELINE )
+        printf( "" );
+
     createInfo->cacheName = g_converters[assetType]->GetCacheName( createInfo );
 
     s_pendingAssets[assetType].insert( createInfo );

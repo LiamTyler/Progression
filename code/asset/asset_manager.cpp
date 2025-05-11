@@ -19,12 +19,59 @@ namespace PG::AssetManager
 {
 
 u32 GetAssetTypeIDHelper::IDCounter = 0;
-std::unordered_map<std::string, BaseAsset*> g_resourceMaps[ASSET_TYPE_COUNT];
+std::unordered_map<std::string, AssetEntry> g_resourceMaps[ASSET_TYPE_COUNT];
 
 #if USING( ASSET_LIVE_UPDATE )
-std::vector<std::pair<BaseAsset*, BaseAsset*>> s_pendingAssetUpdates[ASSET_TYPE_COUNT];
-std::vector<AssetLiveUpdateCallbackPtr> s_pendingAssetCallbacks[ASSET_TYPE_COUNT];
+static AssetLiveUpdateList s_pendingAssetUpdates[ASSET_TYPE_COUNT];
+static std::vector<AssetLiveUpdateCallbackPtr> s_pendingAssetCallbacks[ASSET_TYPE_COUNT];
+
+bool LiveUpdatesSupported( AssetType type ) { return type == ASSET_TYPE_SCRIPT; }
+
+void AddLiveUpdateCallback( u32 assetTypeID, AssetLiveUpdateCallbackPtr callback )
+{
+    s_pendingAssetCallbacks[assetTypeID].push_back( callback );
+}
 #endif // #if USING( ASSET_LIVE_UPDATE )
+
+static void ClearPendingLiveUpdates()
+{
+#if USING( ASSET_LIVE_UPDATE )
+    for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
+    {
+        for ( auto [oldAssetPtr, newAssetEntry] : s_pendingAssetUpdates[assetIdx] )
+        {
+            oldAssetPtr->Free();
+            delete oldAssetPtr;
+        }
+        s_pendingAssetUpdates[assetIdx].clear();
+    }
+#endif // #if USING( ASSET_LIVE_UPDATE )
+}
+
+void ProcessPendingLiveUpdates()
+{
+#if USING( ASSET_LIVE_UPDATE )
+    for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
+    {
+        if ( s_pendingAssetUpdates[assetIdx].empty() )
+            continue;
+
+        for ( const AssetLiveUpdateCallbackPtr& callback : s_pendingAssetCallbacks[assetIdx] )
+        {
+            callback( s_pendingAssetUpdates[assetIdx] );
+        }
+
+        for ( auto [oldAssetPtr, newAssetEntry] : s_pendingAssetUpdates[assetIdx] )
+        {
+            g_resourceMaps[assetIdx][oldAssetPtr->GetName()] = newAssetEntry;
+            LOG( "AssetManager: LiveUpdate for '%s' with type %s", oldAssetPtr->GetName(), g_assetNames[assetIdx] );
+            oldAssetPtr->Free();
+            delete oldAssetPtr;
+        }
+        s_pendingAssetUpdates[assetIdx].clear();
+    }
+#endif // #if USING( ASSET_LIVE_UPDATE )
+}
 
 void Init()
 {
@@ -47,90 +94,95 @@ void Init()
     PG_ASSERT( ASSET_TYPE_COUNT == 9, "Dont forget to add GetAssetTypeID for new assets" );
 }
 
-#if USING( ASSET_LIVE_UPDATE )
-bool LiveUpdatesSupported( AssetType type ) { return type == ASSET_TYPE_SCRIPT; }
-
-void AddLiveUpdateCallback( u32 assetTypeID, AssetLiveUpdateCallbackPtr callback )
+void Shutdown()
 {
-    s_pendingAssetCallbacks[assetTypeID].push_back( callback );
-}
-#endif // #if USING( ASSET_LIVE_UPDATE )
-
-static void ClearPendingLiveUpdates()
-{
-#if USING( ASSET_LIVE_UPDATE )
-    for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
+    for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
-        for ( auto [oldAsset, newAsset] : s_pendingAssetUpdates[assetIdx] )
-        {
-            oldAsset->Free();
-            delete oldAsset;
-        }
-        s_pendingAssetUpdates[assetIdx].clear();
-    }
+#if USING( ASSET_LIVE_UPDATE )
+        s_pendingAssetCallbacks[i].clear();
+        s_pendingAssetUpdates[i].clear();
 #endif // #if USING( ASSET_LIVE_UPDATE )
+
+        for ( const auto& it : g_resourceMaps[i] )
+        {
+            BaseAsset* asset = it.second.asset;
+            asset->Free();
+            delete asset;
+        }
+        g_resourceMaps[i].clear();
+    }
 }
 
-void ProcessPendingLiveUpdates()
+// Since the render system shutsdown before the asset manager, need to free up any remaining gpu resources
+// before/during the render system's shutdown.
+void FreeRemainingGpuResources()
 {
-#if USING( ASSET_LIVE_UPDATE )
-    for ( u32 assetIdx = 0; assetIdx < ASSET_TYPE_COUNT; ++assetIdx )
+    ClearPendingLiveUpdates();
+    const AssetType typesWithGpuData[] = {
+        ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MATERIAL, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE, ASSET_TYPE_FONT };
+    for ( u32 i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
     {
-        if ( s_pendingAssetUpdates[assetIdx].empty() )
-            continue;
-
-        for ( const AssetLiveUpdateCallbackPtr& callback : s_pendingAssetCallbacks[assetIdx] )
+        AssetType type = typesWithGpuData[i];
+        for ( const auto& it : g_resourceMaps[type] )
         {
-            callback( s_pendingAssetUpdates[assetIdx] );
+            BaseAsset* asset = it.second.asset;
+            asset->Free();
+            delete asset;
         }
-
-        for ( auto [oldAsset, newAsset] : s_pendingAssetUpdates[assetIdx] )
-        {
-            LOG( "AssetManager: LiveUpdate for '%s' with type %s", newAsset->GetName(), g_assetNames[assetIdx] );
-            oldAsset->Free();
-            delete oldAsset;
-            g_resourceMaps[assetIdx][newAsset->GetName()] = newAsset;
-        }
-        s_pendingAssetUpdates[assetIdx].clear();
+        g_resourceMaps[type].clear();
     }
-#endif // #if USING( ASSET_LIVE_UPDATE )
 }
 
 template <typename ActualAssetType>
 bool LoadAssetFromFastFile( Serializer* serializer, AssetType assetType )
 {
-    ActualAssetType* asset = new ActualAssetType;
-    std::string assetName  = DeserializeAssetName( serializer, asset );
+    AssetMetadata assetMetadata = DeserializeAssetMetadata( serializer );
+    AssetEntry newAssetEntry;
+    newAssetEntry.hash = assetMetadata.hash;
+    newAssetEntry.size = assetMetadata.size;
 
-    if ( !asset->FastfileLoad( serializer ) )
+    auto it         = g_resourceMaps[assetType].find( assetMetadata.name );
+    bool foundEntry = it != g_resourceMaps[assetType].end();
+
+    bool needToDeserialize = !foundEntry;
+#if USING( ASSET_LIVE_UPDATE )
+    bool wantLiveUpdate = foundEntry && ( it->second.size != newAssetEntry.size || it->second.hash != newAssetEntry.hash );
+    if ( wantLiveUpdate && !LiveUpdatesSupported( assetType ) )
     {
-        LOG_ERR( "Could not load %s", g_assetNames[assetType] );
-        return false;
+        LOG_WARN( "AssetManager: cannot do live update for asset '%s' because live updates are not implemented for %s assets. Skipping "
+                  "asset, despite the fact that it differs from the current entry",
+            assetMetadata.name.c_str(), g_assetNames[assetType] );
+        wantLiveUpdate = false;
     }
-    auto it = g_resourceMaps[assetType].find( assetName );
-    if ( it == g_resourceMaps[assetType].end() )
+    needToDeserialize = needToDeserialize || wantLiveUpdate;
+#endif // #if USING( ASSET_LIVE_UPDATE )
+
+    if ( needToDeserialize )
     {
-        g_resourceMaps[assetType][assetName] = asset;
+        ActualAssetType* asset = new ActualAssetType;
+        asset->SetName( assetMetadata.name );
+        if ( !asset->FastfileLoad( serializer ) )
+        {
+            LOG_ERR( "Could not load %s", g_assetNames[assetType] );
+            return false;
+        }
+        newAssetEntry.asset = asset;
     }
     else
     {
-#if USING( ASSET_LIVE_UPDATE )
-        if ( LiveUpdatesSupported( assetType ) )
-        {
-            s_pendingAssetUpdates[assetType].emplace_back( it->second, asset );
-        }
-        else
-        {
-            LOG_WARN( "AssetManager: cannot do live update for asset '%s' with type %s. Not supported for this type", assetName.c_str(),
-                g_assetNames[assetType] );
-            asset->Free();
-            delete asset;
-        }
-#else  // #if USING( ASSET_LIVE_UPDATE )
-        asset->Free();
-        delete asset;
-#endif // #else // #if USING( ASSET_LIVE_UPDATE )
+        serializer->Skip( newAssetEntry.size );
+        return true;
     }
+
+    if ( !foundEntry )
+    {
+        g_resourceMaps[assetType][assetMetadata.name] = newAssetEntry;
+        return true;
+    }
+
+#if USING( ASSET_LIVE_UPDATE )
+    s_pendingAssetUpdates[assetType].emplace_back( it->second.asset, newAssetEntry );
+#endif // #if USING( ASSET_LIVE_UPDATE )
 
     return true;
 }
@@ -205,43 +257,6 @@ bool LoadFastFile( const std::string& ffName, bool debugVersion )
     return true;
 }
 
-// Since the render system shutsdown before the asset manager, need to free up any remaining gpu resources
-// before/during the render system's shutdown.
-void FreeRemainingGpuResources()
-{
-    ClearPendingLiveUpdates();
-    const AssetType typesWithGpuData[] = {
-        ASSET_TYPE_GFX_IMAGE, ASSET_TYPE_MATERIAL, ASSET_TYPE_MODEL, ASSET_TYPE_SHADER, ASSET_TYPE_PIPELINE, ASSET_TYPE_FONT };
-    for ( u32 i = 0; i < ARRAY_COUNT( typesWithGpuData ); ++i )
-    {
-        AssetType type = typesWithGpuData[i];
-        for ( const auto& it : g_resourceMaps[type] )
-        {
-            it.second->Free();
-            delete it.second;
-        }
-        g_resourceMaps[type].clear();
-    }
-}
-
-void Shutdown()
-{
-    for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
-    {
-#if USING( ASSET_LIVE_UPDATE )
-        s_pendingAssetCallbacks[i].clear();
-        s_pendingAssetUpdates[i].clear();
-#endif // #if USING( ASSET_LIVE_UPDATE )
-
-        for ( const auto& it : g_resourceMaps[i] )
-        {
-            it.second->Free();
-            delete it.second;
-        }
-        g_resourceMaps[i].clear();
-    }
-}
-
 void RegisterLuaFunctions( lua_State* L )
 {
     sol::state_view lua( L );
@@ -284,7 +299,7 @@ BaseAsset* Get( u32 assetTypeID, const std::string& name )
 {
     PG_ASSERT( assetTypeID < ASSET_TYPE_COUNT, "Did you forget to update TOTAL_ASSET_TYPES?" );
     auto it = g_resourceMaps[assetTypeID].find( name );
-    return it == g_resourceMaps[assetTypeID].end() ? nullptr : it->second;
+    return it == g_resourceMaps[assetTypeID].end() ? nullptr : it->second.asset;
 }
 
 } // namespace PG::AssetManager

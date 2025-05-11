@@ -13,7 +13,7 @@
         "nearPlane": 0.02,
         "exposure": 0.0
     }},
-    { "Skybox": "water_skybox" },
+    { "__Skybox": "water_skybox" },
     { "SkyEVAdjust": 0.0 },
     { "Script": "cameraController" },
     { "DirectionalLight": { "color": [ 1, 1, 1 ], "direction": [ -1, 1, -1 ] } },

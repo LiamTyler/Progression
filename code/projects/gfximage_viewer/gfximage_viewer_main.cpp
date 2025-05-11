@@ -1,4 +1,3 @@
-#include "asset/asset_cache.hpp"
 #include "asset/types/gfx_image.hpp"
 #include "bc_compression.hpp"
 #include "core/image_processing.hpp"
@@ -54,7 +53,8 @@ int main( int argc, char* argv[] )
         return 0;
     }
     GfxImage image;
-    DeserializeAssetName( &in, &image );
+    AssetMetadata metadata = DeserializeAssetMetadata( &in );
+    image.SetName( metadata.name );
     if ( !image.FastfileLoad( &in ) )
     {
         LOG_ERR( "Failed to deserialize image file '%s'", argv[1] );

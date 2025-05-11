@@ -35,23 +35,21 @@ const char* BaseAsset::GetName() const
 #endif // #else // #if USING( ASSET_NAMES )
 }
 
-void BaseAsset::SerializeName( Serializer* serializer ) const
+void SerializeAssetMetadata( Serializer* serializer, const AssetMetadata& metadata )
 {
-#if USING( ASSET_NAMES )
-    serializer->Write<u16>( m_name );
-#endif // #if USING( ASSET_NAMES )
+    serializer->Write<u16>( metadata.name );
+    serializer->Write( metadata.hash );
+    serializer->Write( metadata.size );
 }
 
-std::string DeserializeAssetName( Serializer* serializer, BaseAsset* asset )
+AssetMetadata DeserializeAssetMetadata( Serializer* serializer )
 {
-    std::string assetName;
-    u16 assetNameLen;
-    serializer->Read( assetNameLen );
-    assetName.resize( assetNameLen );
-    serializer->Read( &assetName[0], assetNameLen );
-    asset->SetName( assetName );
+    AssetMetadata metadata;
+    serializer->Read<u16>( metadata.name );
+    serializer->Read( metadata.hash );
+    serializer->Read( metadata.size );
 
-    return assetName;
+    return metadata;
 }
 
 } // namespace PG

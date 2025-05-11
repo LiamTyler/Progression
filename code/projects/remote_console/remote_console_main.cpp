@@ -42,37 +42,42 @@ int main( int argc, char* argv[] )
     Logger_Init();
     Logger_AddLogLocation( "stdout", stdout );
 
-    if ( !LoadCommands() )
+    bool singleCommand = argc > 1;
+
+    if ( !singleCommand && !LoadCommands() )
     {
         LOG_ERR( "Invalid dvar file. Please regenerate (rerun engine)" );
         return 0;
     }
 
-    setlocale( LC_ALL, "C.UTF-8" );
+    if ( !singleCommand )
+    {
+        setlocale( LC_ALL, "C.UTF-8" );
 
-    // use `ic_print` functions to use bbcode's for markup
-    ic_style_def( "kbd", "gray underline" );    // you can define your own styles
-    ic_style_def( "ic-prompt", "ansi-maroon" ); // or re-define system styles
+        // use `ic_print` functions to use bbcode's for markup
+        ic_style_def( "kbd", "gray underline" );    // you can define your own styles
+        ic_style_def( "ic-prompt", "ansi-maroon" ); // or re-define system styles
 
-    ic_printf( "[b]Remote Console[/b]:\n"
-               "- Type 'exit' to quit. (or use [kbd]ctrl-d[/]).\n"
-               "- Press [kbd]F1[/] for help on editing commands.\n"
-               "- Use [kbd]ctrl-r[/] to search the history.\n\n" );
+        ic_printf( "[b]Remote Console[/b]:\n"
+                   "- Type 'exit' to quit. (or use [kbd]ctrl-d[/]).\n"
+                   "- Press [kbd]F1[/] for help on editing commands.\n"
+                   "- Use [kbd]ctrl-r[/] to search the history.\n\n" );
 
-    // enable history; use a NULL filename to not persist history to disk
-    ic_set_history( PG_BIN_DIR "remote_console_history.txt", -1 /* default entries (= 200) */ );
+        // enable history; use a NULL filename to not persist history to disk
+        ic_set_history( PG_BIN_DIR "remote_console_history.txt", -1 /* default entries (= 200) */ );
 
-    // enable completion with a default completion function
-    ic_set_default_completer( &Completer, NULL );
+        // enable completion with a default completion function
+        ic_set_default_completer( &Completer, NULL );
 
-    // enable syntax highlighting with a highlight function
-    // ic_set_default_highlighter(highlighter, NULL);
+        // enable syntax highlighting with a highlight function
+        // ic_set_default_highlighter(highlighter, NULL);
 
-    // try to auto complete after a completion as long as the completion is unique
-    ic_enable_auto_tab( true );
+        // try to auto complete after a completion as long as the completion is unique
+        ic_enable_auto_tab( true );
 
-    // inline hinting is enabled by default
-    // ic_enable_hint(false);
+        // inline hinting is enabled by default
+        // ic_enable_hint(false);
+    }
 
     {
         WSADATA wsaData;
@@ -116,9 +121,7 @@ int main( int argc, char* argv[] )
         }
 
         LOG( "Connected to game" );
-
-        // pre-created single commands
-        if ( argc > 1 )
+        if ( singleCommand )
         {
             std::string cmd = argv[1];
             for ( int i = 2; i < argc; ++i )

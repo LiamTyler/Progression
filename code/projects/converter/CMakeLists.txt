@@ -88,6 +88,9 @@ set(
     ${CODE_DIR}/external/getopt/getopt.h
     ${CODE_DIR}/external/msdfgen/ext/import-font.cpp
     ${CODE_DIR}/external/msdfgen/ext/import-font.h
+    
+    ${CODE_DIR}/external/xxHash/xxhash.c
+    ${CODE_DIR}/external/xxHash/xxhash.h
 
     ${CODE_DIR}/external/tracy/tracy/Tracy.hpp
     ${CODE_DIR}/external/tracy/tracy/TracyVulkan.hpp

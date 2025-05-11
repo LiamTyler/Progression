@@ -213,7 +213,6 @@ bool Shader::FastfileSave( Serializer* serializer ) const
 #if !USING( CONVERTER )
     PG_ASSERT( false, "Spirv code is only kept around in Converter builds for saving" );
 #else  // #if !USING( CONVERTER )
-    SerializeName( serializer );
     serializer->Write( &m_reflectionData, sizeof( m_reflectionData ) );
     serializer->Write( m_shaderStage );
     serializer->Write( savedSpirv );

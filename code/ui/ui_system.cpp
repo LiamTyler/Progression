@@ -81,7 +81,7 @@ void AssetLiveUpdateCallback( const AssetManager::AssetLiveUpdateList& updateLis
     {
         if ( s_scriptInstance->scriptAsset == assetOldNewPair.first )
         {
-            Script* newScript             = static_cast<Script*>( assetOldNewPair.second );
+            Script* newScript             = static_cast<Script*>( assetOldNewPair.second.asset );
             s_scriptInstance->scriptAsset = newScript;
             if ( !newScript->scriptText.empty() )
             {

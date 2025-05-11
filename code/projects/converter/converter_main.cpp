@@ -443,16 +443,19 @@ bool ConvertScenes( const std::string& scene )
     std::vector<SceneInfo> scenesToProcess;
 
     namespace fs = std::filesystem;
-    for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "required_assets/" ) )
+    if ( scene != "mychanges" )
     {
-        std::string path = entry.path().string();
-        if ( entry.is_regular_file() && ( GetFileExtension( path ) == ".paf" ) )
+        for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "required_assets/" ) )
         {
-            SceneInfo sInfo;
-            sInfo.filename      = GetFilenameMinusExtension( path );
-            sInfo.name          = GetRelativeFilename( sInfo.filename );
-            sInfo.requiredScene = true;
-            scenesToProcess.push_back( sInfo );
+            std::string path = entry.path().string();
+            if ( entry.is_regular_file() && ( GetFileExtension( path ) == ".paf" ) )
+            {
+                SceneInfo sInfo;
+                sInfo.filename      = GetFilenameMinusExtension( path );
+                sInfo.name          = GetRelativeFilename( sInfo.filename );
+                sInfo.requiredScene = true;
+                scenesToProcess.push_back( sInfo );
+            }
         }
     }
 

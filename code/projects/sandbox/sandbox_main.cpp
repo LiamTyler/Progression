@@ -1,4 +1,3 @@
-#include "asset/types/font.hpp"
 #include "image.hpp"
 #include "shared/bitops.hpp"
 #include "shared/filesystem.hpp"

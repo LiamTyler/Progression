@@ -9,8 +9,6 @@ set(SRC
     ${CODE_DIR}/asset/types/base_asset.hpp
     ${CODE_DIR}/asset/types/gfx_image.cpp
     ${CODE_DIR}/asset/types/gfx_image.hpp
-    ${CODE_DIR}/asset/asset_cache.cpp
-    ${CODE_DIR}/asset/asset_cache.hpp
     
 	${CODE_DIR}/core/image_processing.cpp
     ${CODE_DIR}/core/image_processing.hpp

@@ -885,7 +885,6 @@ bool Model::FastfileLoad( Serializer* serializer )
 bool Model::FastfileSave( Serializer* serializer ) const
 {
 #if !USING( GPU_DATA )
-    SerializeName( serializer );
     serializer->Write( (u32)meshes.size() );
     serializer->Write( meshAABBs.data(), meshAABBs.size() * sizeof( AABB ) );
     for ( const Mesh& mesh : meshes )

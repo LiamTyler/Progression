@@ -50,7 +50,6 @@ bool Material::FastfileLoad( Serializer* serializer )
 
 bool Material::FastfileSave( Serializer* serializer ) const
 {
-    SerializeName( serializer );
     serializer->Write( type );
     serializer->Write( albedoTint );
     serializer->Write( metalnessTint );

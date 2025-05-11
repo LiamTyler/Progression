@@ -22,15 +22,17 @@ enum AssetType : u8
     ASSET_TYPE_COUNT
 };
 
+constexpr i32 g_globalAssetVersion = 1; // "New asset metadata"
+
 constexpr i32 g_assetVersions[] = {
-    9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
-    10, // ASSET_TYPE_MATERIAL,  "New name serialization"
-    1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
-    19, // ASSET_TYPE_MODEL,     "Packed UVs"
-    4,  // ASSET_TYPE_SHADER,    "New name serialization"
-    8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
-    5,  // ASSET_TYPE_PIPELINE,  "Forgot to add new blend mode to the cache name"
-    5,  // ASSET_TYPE_FONT,      "Kerning + switched the edge coloring mode"
+    g_globalAssetVersion + 9,  // ASSET_TYPE_GFX_IMAGE, "New name serialization"
+    g_globalAssetVersion + 10, // ASSET_TYPE_MATERIAL,  "New name serialization"
+    g_globalAssetVersion + 1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
+    g_globalAssetVersion + 19, // ASSET_TYPE_MODEL,     "Packed UVs"
+    g_globalAssetVersion + 4,  // ASSET_TYPE_SHADER,    "New name serialization"
+    g_globalAssetVersion + 8,  // ASSET_TYPE_UI_LAYOUT, "New name serialization"
+    g_globalAssetVersion + 5,  // ASSET_TYPE_PIPELINE,  "Forgot to add new blend mode to the cache name"
+    g_globalAssetVersion + 5,  // ASSET_TYPE_FONT,      "Kerning + switched the edge coloring mode"
 
     // put all assets that don't actually have a struct below.
     // Note: this means that bumping the textureset versions doesn't do anything :(

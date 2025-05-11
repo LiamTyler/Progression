@@ -33,7 +33,6 @@ bool Script::FastfileLoad( Serializer* serializer )
 
 bool Script::FastfileSave( Serializer* serializer ) const
 {
-    SerializeName( serializer );
     serializer->Write( scriptText );
 
     return true;

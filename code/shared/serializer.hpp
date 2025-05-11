@@ -7,6 +7,8 @@
 #include <string>
 #include <vector>
 
+using SerializerOnFlushFunction = void ( * )( const void* buffer, size_t size, void* userdata );
+
 class Serializer
 {
 public:
@@ -15,7 +17,7 @@ public:
 
     bool OpenForRead( const std::string& filename );
     bool OpenForWrite( const std::string& filename );
-    void Close();
+    size_t Close();
     bool IsOpen() const;
 
     // if opened for reading, return how many bytes are left to read. Else 0
@@ -100,9 +102,25 @@ public:
         return val;
     }
 
+    void SetOnFlushCallback( SerializerOnFlushFunction func, void* userdata )
+    {
+        m_flushCallback = func;
+        m_userdata      = userdata;
+    }
+
 private:
-    std::string filename;
-    std::ofstream writeFile;
-    MemoryMapped memMappedFile;
-    unsigned char* currentReadPos = nullptr;
+    void Flush();
+
+    std::string m_filename;
+
+    MemoryMapped m_memMappedFile;
+    unsigned char* m_currentReadPos = nullptr;
+
+    std::ofstream m_writeFile;
+    size_t m_bytesWritten = 0;
+
+    SerializerOnFlushFunction m_flushCallback = nullptr;
+    void* m_userdata                          = nullptr;
+    char* m_scratchBuffer                     = nullptr;
+    size_t m_scratchPos                       = 0;
 };

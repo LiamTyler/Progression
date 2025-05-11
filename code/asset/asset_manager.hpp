@@ -17,8 +17,17 @@ struct lua_State;
 namespace PG::AssetManager
 {
 
+struct AssetEntry
+{
+    BaseAsset* asset;
+
+    // from AssetMetadata
+    u64 hash;
+    u64 size;
+};
+
 #if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
-extern std::unordered_map<std::string, BaseAsset*> g_resourceMaps[ASSET_TYPE_COUNT];
+extern std::unordered_map<std::string, AssetEntry> g_resourceMaps[ASSET_TYPE_COUNT];
 #endif // #if USING( CONVERTER ) || USING( OFFLINE_RENDERER )
 
 struct GetAssetTypeIDHelper
@@ -36,20 +45,18 @@ struct GetAssetTypeID : public GetAssetTypeIDHelper
     }
 };
 
-void Init();
-
-void ProcessPendingLiveUpdates();
-
 #if USING( ASSET_LIVE_UPDATE )
-using AssetLiveUpdateList        = std::vector<std::pair<BaseAsset*, BaseAsset*>>;
+using AssetLiveUpdateList        = std::vector<std::pair<BaseAsset*, AssetEntry>>;
 using AssetLiveUpdateCallbackPtr = void ( * )( const AssetLiveUpdateList& assetPairs );
 void AddLiveUpdateCallback( u32 assetTypeID, AssetLiveUpdateCallbackPtr callback );
 #endif // #if USING( ASSET_LIVE_UPDATE )
+void ProcessPendingLiveUpdates();
+
+void Init();
+void Shutdown();
+void FreeRemainingGpuResources();
 
 bool LoadFastFile( const std::string& ffName, bool debugVersion = false );
-
-void FreeRemainingGpuResources();
-void Shutdown();
 
 void RegisterLuaFunctions( lua_State* L );
 
@@ -69,12 +76,14 @@ T* Get( const std::string& name )
     {
         // in the converter just want to get a list of asset names that are used while parsing the scene
         asset = new T;
-        asset->SetName( name );
-        g_resourceMaps[assetTypeID][name] = asset;
+        AssetEntry entry;
+        entry.asset = asset;
+        entry.asset->SetName( name );
+        g_resourceMaps[assetTypeID][name] = entry;
     }
     else
     {
-        asset = it->second;
+        asset = it->second.asset;
     }
 #else  // #if USING( CONVERTER )
     asset = Get( GetAssetTypeID<T>::ID(), name );

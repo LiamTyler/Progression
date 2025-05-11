@@ -56,6 +56,7 @@ bool Pipeline::Load( const BaseAssetCreateInfo* baseInfo )
     PG_ASSERT( baseInfo );
     const PipelineCreateInfo* inputCreateInfo = (const PipelineCreateInfo*)baseInfo;
 #if USING( CONVERTER )
+    SetName( baseInfo->name );
     createInfo = *inputCreateInfo;
     return true;
 #endif // #if USING( CONVERTER )
@@ -71,13 +72,9 @@ bool Pipeline::FastfileLoad( Serializer* serializer )
 #if USING( GPU_DATA )
     using namespace Gfx;
     PipelineCreateInfo createInfo;
-#if USING( ASSET_NAMES )
-    createInfo.name = m_name;
-#endif // #if USING( ASSET_NAMES )
 
-    // serializer->Read( createInfo.name );
-    u8 numShaders;
-    serializer->Read( numShaders );
+    serializer->Read<u16>( createInfo.name );
+    u8 numShaders = serializer->Read<u8>();
     createInfo.shaders.resize( numShaders );
     for ( u8 i = 0; i < numShaders; ++i )
     {

@@ -13,7 +13,6 @@ void Font::Free() { fontAtlasTexture.Free(); }
 
 bool Font::FastfileLoad( Serializer* serializer )
 {
-    DeserializeAssetName( serializer, &fontAtlasTexture );
     fontAtlasTexture.FastfileLoad( serializer );
     serializer->Read( metrics );
     u32 numGlyphs = serializer->Read<u32>();
@@ -35,7 +34,6 @@ bool Font::FastfileLoad( Serializer* serializer )
 
 bool Font::FastfileSave( Serializer* serializer ) const
 {
-    SerializeName( serializer );
     fontAtlasTexture.FastfileSave( serializer );
     serializer->Write( metrics );
     u32 numGlyphs = (u32)glyphs.size();

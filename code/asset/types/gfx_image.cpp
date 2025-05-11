@@ -782,7 +782,6 @@ bool GfxImage::FastfileLoad( Serializer* serializer )
 bool GfxImage::FastfileSave( Serializer* serializer ) const
 {
     PG_ASSERT( pixels );
-    SerializeName( serializer );
     serializer->Write( width );
     serializer->Write( height );
     serializer->Write( depth );

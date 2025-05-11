@@ -19,8 +19,6 @@ set(
 	EXTERNALS
     ${CODE_DIR}/external/memory_map/MemoryMapped.h
     ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
-    ${CODE_DIR}/external/msdfgen/ext/import-font.cpp
-    ${CODE_DIR}/external/msdfgen/ext/import-font.h
 )
 
 set(ALL_FILES ${SRC} ${EXTERNALS} ${IMAGELIB_EXT_FILES} ${MSDFGEN_EXT_FILES})
@@ -31,16 +29,15 @@ add_executable(${PROJECT_NAME} ${ALL_FILES})
 target_include_directories(${PROJECT_NAME} PUBLIC
 	${CMAKE_CURRENT_SOURCE_DIR}/
     ${COMMON_INCLUDE_DIRS} ${IMAGELIB_INCLUDES}
-    ${FREETYPE_INCLUDES} ${MSDFGEN_INCLUDES}
 )
 
 SET_TARGET_POSTFIX(${PROJECT_NAME})
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
 target_compile_definitions(${PROJECT_NAME} PUBLIC ${MSDFGEN_COMPILE_DEFS})
 target_link_libraries(${PROJECT_NAME} PUBLIC debug OpenMP::OpenMP_CXX
-	${IMAGELIB_LIBS_DEBUG} lz4 ${MSDFGEN_LIBS}
+	${IMAGELIB_LIBS_DEBUG} lz4
 )
 target_link_libraries(${PROJECT_NAME} PUBLIC optimized OpenMP::OpenMP_CXX
-    ${IMAGELIB_LIBS} lz4 ${MSDFGEN_LIBS}
+    ${IMAGELIB_LIBS} lz4
 )
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

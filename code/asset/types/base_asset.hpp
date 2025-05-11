@@ -53,10 +53,16 @@ protected:
     // the AssetManager always takes care of deserializing this
     char* m_name = nullptr;
 #endif // #if USING( ASSET_NAMES )
-
-    void SerializeName( Serializer* serializer ) const;
 };
 
-std::string DeserializeAssetName( Serializer* serializer, BaseAsset* asset );
+struct AssetMetadata
+{
+    std::string name;
+    u64 hash;
+    u64 size;
+};
+
+void SerializeAssetMetadata( Serializer* serializer, const AssetMetadata& metadata );
+AssetMetadata DeserializeAssetMetadata( Serializer* serializer );
 
 } // namespace PG

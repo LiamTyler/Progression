@@ -11,6 +11,8 @@
 
 class ClientSocket
 {
+    friend class ServerSocket;
+
 private:
     struct addrinfo* m_addr = nullptr;
     SOCKET m_connectSocket  = INVALID_SOCKET;
@@ -19,12 +21,28 @@ public:
     ClientSocket() = default;
     ~ClientSocket();
 
-    bool OpenSocket( const char* port );
+    bool OpenSocket( const char* host, const int port );
     bool OpenConnection();
     bool Close();
 
     bool SendData( const void* data, int sizeInBytes );
-    bool ReceiveData( void* buffer, int bufferSizeInBytes );
+    int ReceiveData( void* buffer, int bufferSizeInBytes );
+    bool SetNonblockingRecv( int timeoutMilliseconds );
+};
+
+class ServerSocket
+{
+private:
+    struct addrinfo* m_addr = nullptr;
+    SOCKET m_listenSocket   = INVALID_SOCKET;
+
+public:
+    ServerSocket() = default;
+    ~ServerSocket();
+
+    bool Open( const char* host, const int port, int clientQueueSize = 16 );
+    bool AcceptConnection( ClientSocket& clientSocket );
+    bool Close();
 };
 
 bool InitSocketsLib();

@@ -154,6 +154,8 @@ set(
     ${CODE_DIR}/shared/json_parsing.hpp
     ${CODE_DIR}/shared/serializer.cpp
     ${CODE_DIR}/shared/serializer.hpp
+    ${CODE_DIR}/shared/sockets.cpp
+    ${CODE_DIR}/shared/sockets.hpp
 
     ${CMAKE_CURRENT_SOURCE_DIR}/remote_console_server.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/remote_console_server.hpp

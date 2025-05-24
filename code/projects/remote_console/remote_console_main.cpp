@@ -23,7 +23,7 @@ static void Completer( ic_completion_env_t* cenv, const char* prefix );
 void SendToServer( int argc, char* argv[] )
 {
     ClientSocket clientSocket;
-    if ( !clientSocket.OpenSocket( "27015" ) )
+    if ( !clientSocket.OpenSocket( "localhost", 27015 ) )
         return;
     if ( !clientSocket.OpenConnection() )
         return;

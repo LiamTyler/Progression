@@ -2,6 +2,7 @@
 
 #include "shared/math_vec.hpp"
 #include <algorithm>
+#include <cstring>
 
 using float16 = u16;
 
@@ -101,7 +102,9 @@ inline f32 Float32ToFloat16AsFloat( f32 x, f32 y )
     u32 px      = Float32ToFloat16( x );
     u32 py      = Float32ToFloat16( y );
     uint packed = px | ( py << 16 );
-    return *reinterpret_cast<float*>( &packed );
+    f32 ret;
+    memcpy( &ret, &packed, sizeof( f32 ) );
+    return ret;
 }
 
 inline f32 Float16ToFloat32( u16 f16 )

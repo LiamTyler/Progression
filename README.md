@@ -32,9 +32,11 @@ It needs to be extracted and the ispc executable added to the PATH. If you are u
 
     Windows: unzip the folder wherever you would like it installed. Then in the windows search bar type in "environment variables". Open that, then do to "edit environment variables". Click on the PATH variable (there are 2 PATHs, one for the local user and one for the any user on the computer. Use whichever one you want, it doesn't matter). You should see a list of folders that make up the PATH. Click "Add" and paste in the full path to the ispc bin folder (inside the unzipped result).
 
-    Linux: extract the .tar.gz file with `tar -xvf [filename]`. Move that directory to wherever you would like. Now you can either add the bin directory to the PATH variable, or you can just make a symlink for the ispc executable into a directory that is already in the PATH. Ex: `sudo ln -s [path/to/bin/ispc] /usr/local/bin/ispc`
+    Linux: you can either use `sudo snap install ispc` or manually download and then extract the .tar.gz file with `tar -xvf [filename]`. Move that directory to wherever you would like. Now you can either add the bin directory to the PATH variable, or you can just make a symlink for the ispc executable into a directory that is already in the PATH. Ex: `sudo ln -s [path/to/bin/ispc] /usr/local/bin/ispc`
 
 2. Vulkan 1.3: The download for this can be found [here](https://vulkan.lunarg.com/)
+
+3. bzip2 (linux only): `sudo apt-get install libbz2-dev`
 
 ## Compiling
 
@@ -50,6 +52,8 @@ cmake -G "Visual Studio 17 2022" -A x64 ..
 Then either open the Visual Studio .sln file and build there (ctrl-shift-B) or you can build same git bash command line with `cmake --build . --config [Debug/Release/Profile/Ship]`
 
 ### Linux
+Don't forget to install the dependencies mentioned above.
+
 From the command line:
 ```
 git clone --recursive https://github.com/LiamTyler/Progression.git

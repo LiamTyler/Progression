@@ -8,7 +8,7 @@ option(MSDFGEN_USE_VCPKG "Use vcpkg package manager to link project dependencies
 option(MSDFGEN_USE_OPENMP "Build with OpenMP support for multithreaded code" ON)
 option(MSDFGEN_USE_CPP11 "Build with C++11 enabled" ON)
 option(MSDFGEN_USE_SKIA "Build with the Skia library" OFF)
-option(MSDFGEN_INSTALL "Generate installation target" OFF)
+option(MSDFGEN_INSTALL "Generate installation target" ON)
 option(MSDFGEN_DYNAMIC_RUNTIME "Link dynamic runtime library instead of static" ON)
 option(BUILD_SHARED_LIBS "Generate dynamic library files instead of static" ON)
 

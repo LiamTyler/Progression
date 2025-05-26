@@ -1,12 +1,21 @@
 #include "sockets.hpp"
 #include "logger.hpp"
 
+#if USING( LINUX_PROGRAM )
+// #define addrinfo sockaddr_in
+#include <string.h>
+#include <unistd.h>
+#define closesocket( x ) close( x )
+#define sprintf_s( ... ) sprintf( __VA_ARGS__ )
+#define SD_SEND SHUT_WR
+#endif
+
 ClientSocket::~ClientSocket() { Close(); }
 
 bool ClientSocket::OpenSocket( const char* host, const int port )
 {
     struct addrinfo hints;
-    ZeroMemory( &hints, sizeof( hints ) );
+    memset( &hints, 0, sizeof( hints ) );
     hints.ai_family   = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;
@@ -24,11 +33,7 @@ bool ClientSocket::OpenSocket( const char* host, const int port )
     m_connectSocket = socket( m_addr->ai_family, m_addr->ai_socktype, m_addr->ai_protocol );
     if ( m_connectSocket == INVALID_SOCKET )
     {
-#if USING( WINDOWS_PROGRAM )
-        LOG_ERR( "Failed to create socket with error: %ld", WSAGetLastError() );
-#else  // #if USING( WINDOWS_PROGRAM )
-        LOG_ERR( "Failed to create socket" );
-#endif // #else // #if USING( WINDOWS_PROGRAM )
+        // LOG_ERR( "Failed to create socket with error: %ld", WSAGetLastError() );
         return false;
     }
 
@@ -127,7 +132,7 @@ ServerSocket::~ServerSocket() { Close(); }
 bool ServerSocket::Open( const char* host, const int port, int clientQueueSize )
 {
     struct addrinfo hints;
-    ZeroMemory( &hints, sizeof( hints ) );
+    memset( &hints, 0, sizeof( hints ) );
     hints.ai_family   = AF_INET;
     hints.ai_socktype = SOCK_STREAM;
     hints.ai_protocol = IPPROTO_TCP;

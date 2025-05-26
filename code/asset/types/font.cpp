@@ -53,7 +53,7 @@ bool Font::FastfileSave( Serializer* serializer ) const
     return true;
 }
 
-bool IsCharValid( char c ) { return FONT_FIRST_CHARACTER_CODE <= c && c <= FONT_LAST_CHARACTER_CODE; }
+bool IsCharValid( char c ) { return FONT_FIRST_CHARACTER_CODE <= (u32)c && (u32)c <= FONT_LAST_CHARACTER_CODE; }
 
 const Font::Glyph& Font::GetGlyph( char c ) const
 {

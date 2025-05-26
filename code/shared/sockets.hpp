@@ -7,7 +7,15 @@
 #include <winsock2.h>
 #include <ws2tcpip.h>
 #pragma comment( lib, "Ws2_32.lib" )
-#endif // #if USING( WINDOWS_PROGRAM )
+#define ADDRINFO struct addrinfo
+#else // #if USING( WINDOWS_PROGRAM )
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+using SOCKET = int;
+static constexpr int INVALID_SOCKET = -1;
+static constexpr int SOCKET_ERROR = -1;
+#endif // #else // #if USING( WINDOWS_PROGRAM )
 
 class ClientSocket
 {

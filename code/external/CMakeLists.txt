@@ -53,32 +53,32 @@ else()
 endif()
 
 #------------------------------GLFW--------------------------------------------
-set(GLFW_CONFIG_ARGS
-    -DBUILD_SHARED_LIBS=ON
-    -DGLFW_BUILD_EXAMPLES=OFF
-    -DGLFW_BUILD_TESTS=OFF 
-    -DGLFW_BUILD_DOCS=OFF
-    -DGLFW_INSTALL=OFF
-)
-if(MSVC)
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/glfw3dll.lib)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release ${GLFW_CONFIG_ARGS})
-        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
-    endif()
-    set(GLFW_LIBS glfw3dll PARENT_SCOPE)
-else()
-    if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libglfw.so)
-        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release ${GLFW_CONFIG_ARGS})
-        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
-    endif()
-    set(GLFW_LIBS glfw PARENT_SCOPE)
-endif()
-
-set(GLFW_INCLUDES ${EXT_DIR}/glfw/include PARENT_SCOPE)
-SET_LOCAL_AND_PARENT(GLFW_EXT_FILES ${EXT_DIR}/glfw/include/GLFW/glfw3.h)
-if(WIN32)
-    SET_LOCAL_AND_PARENT(GLFW_COMPILE_DEFS "GLFW_DLL")
-endif()
+#set(GLFW_CONFIG_ARGS
+#    -DBUILD_SHARED_LIBS=ON
+#    -DGLFW_BUILD_EXAMPLES=OFF
+#    -DGLFW_BUILD_TESTS=OFF 
+#    -DGLFW_BUILD_DOCS=OFF
+#    -DGLFW_INSTALL=OFF
+#)
+#if(MSVC)
+#    if(NOT EXISTS ${CMAKE_BINARY_DIR}/lib/glfw3dll.lib)
+#        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release ${GLFW_CONFIG_ARGS})
+#        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src/Release ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
+#    endif()
+#    set(GLFW_LIBS glfw3dll PARENT_SCOPE)
+#else()
+#    if(NOT EXISTS ${CMAKE_BINARY_DIR}/bin/libglfw.so)
+#        CONFIG_TIME_COMPILE(${EXT_DIR}/glfw ${CMAKE_BINARY_DIR}/ext/glfw Release ${GLFW_CONFIG_ARGS})
+#        COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/glfw/src ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib glfw)
+#    endif()
+#    set(GLFW_LIBS glfw PARENT_SCOPE)
+#endif()
+#
+#set(GLFW_INCLUDES ${EXT_DIR}/glfw/include PARENT_SCOPE)
+#SET_LOCAL_AND_PARENT(GLFW_EXT_FILES ${EXT_DIR}/glfw/include/GLFW/glfw3.h)
+#if(WIN32)
+#    SET_LOCAL_AND_PARENT(GLFW_COMPILE_DEFS "GLFW_DLL")
+#endif()
 
 #------------------------------SDL3--------------------------------------------
 set(SDL_CONFIG_ARGS -DSDL_TEST_LIBRARY=OFF)
@@ -258,7 +258,7 @@ else()
         COPY_BUILD_FILES(${CMAKE_BINARY_DIR}/ext/msdfgen ${CMAKE_BINARY_DIR}/bin ${CMAKE_BINARY_DIR}/lib msdfgen)
     endif()
 endif()
-set(MSDFGEN_INCLUDES ${EXT_DIR}/msdfgen/ PARENT_SCOPE)
+set(MSDFGEN_INCLUDES ${EXT_DIR}/msdfgen/ ${CMAKE_BINARY_DIR}/ext/ PARENT_SCOPE)
 set(MSDFGEN_LIBS msdfgen-core PARENT_SCOPE)
 file(GLOB tmpFiles ${EXT_DIR}/msdfgen/core/*)
 SET_LOCAL_AND_PARENT(MSDFGEN_EXT_FILES ${tmpFiles})

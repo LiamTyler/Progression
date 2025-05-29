@@ -138,7 +138,7 @@ bool ServerSocket::Open( const char* host, const int port, int clientQueueSize )
     hints.ai_protocol = IPPROTO_TCP;
     hints.ai_flags    = AI_PASSIVE;
     char portStr[32];
-    sprintf_s( portStr, "%d", port );
+    sprintf_s( portStr, "%d", htonl( port ) );
 
     m_addr      = NULL;
     int iResult = getaddrinfo( NULL, portStr, &hints, &m_addr );
@@ -189,11 +189,6 @@ bool ServerSocket::AcceptConnection( ClientSocket& clientSocket )
     clientSocket.m_connectSocket = accept( m_listenSocket, NULL, NULL );
     if ( clientSocket.m_connectSocket == INVALID_SOCKET )
     {
-#if USING( WINDOWS_PROGRAM )
-        LOG_ERR( "AcceptConnection failed with error: %d", WSAGetLastError() );
-#else  // #if USING( WINDOWS_PROGRAM )
-        LOG_ERR( "AcceptConnection failed" );
-#endif // #else // #if USING( WINDOWS_PROGRAM )
         return false;
     }
 

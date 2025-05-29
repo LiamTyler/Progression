@@ -84,11 +84,7 @@ bool Updated() { return false; }
 #include "core/input.hpp"
 #include "core/time.hpp"
 #include "core/window.hpp"
-#ifdef PG_USE_SDL
 #include "imgui/backends/imgui_impl_sdl3.h"
-#else // #ifdef PG_USE_SDL
-#include "imgui/backends/imgui_impl_glfw.h"
-#endif // #else // #ifdef PG_USE_SDL
 #include "imgui/backends/imgui_impl_vulkan.h"
 #include "renderer/debug_ui_console.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
@@ -160,11 +156,7 @@ bool Init( PixelFormat colorAttachmentFormat )
 
     ImGui::StyleColorsDark();
 
-#ifdef PG_USE_SDL
     ImGui_ImplSDL3_InitForVulkan( GetMainWindow()->GetHandle() );
-#else  // #ifdef PG_USE_SDL
-    ImGui_ImplGlfw_InitForVulkan( GetMainWindow()->GetHandle(), true );
-#endif // #else // #ifdef PG_USE_SDL
 
     VkFormat vkColorAttachmentFormat = PGToVulkanPixelFormat( colorAttachmentFormat );
     VkPipelineRenderingCreateInfo dynRenderingCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_RENDERING_CREATE_INFO_KHR };
@@ -196,13 +188,17 @@ bool Init( PixelFormat colorAttachmentFormat )
 
     ImGui_ImplVulkan_CreateFontsTexture();
 
-    PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( ImGui_ImplVulkan_GetFontCommandPool(), "ImGui Font" );
-    PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( ImGui_ImplVulkan_GetFontCommandBuffer(), "ImGui Font" );
-    PG_DEBUG_MARKER_SET_SAMPLER_NAME( ImGui_ImplVulkan_GetFontSampler(), "ImGui Font" );
-    PG_DEBUG_MARKER_SET_IMAGE_NAME( ImGui_ImplVulkan_GetFontImage(), "ImGui Font" );
-    PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( ImGui_ImplVulkan_GetFontImageView(), "ImGui Font" );
-    PG_DEBUG_MARKER_SET_MEMORY_NAME( ImGui_ImplVulkan_GetFontMemory(), "ImGui Font" );
-    PG_DEBUG_MARKER_SET_DESC_SET_NAME( ImGui_ImplVulkan_GetFontDescSet(), "ImGui Font" );
+#if USING( USE_DEBUG_MARKER )
+    if ( ImGui_ImplVulkan_GetDescriptorPool() != VK_NULL_HANDLE )
+        PG_DEBUG_MARKER_SET_DESC_POOL_NAME( ImGui_ImplVulkan_GetDescriptorPool(), "ImGui" );
+#endif // #if USING( USE_DEBUG_MARKER )
+    PG_DEBUG_MARKER_SET_MEMORY_NAME( ImGui_ImplVulkan_GetFont_Memory(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_IMAGE_NAME( ImGui_ImplVulkan_GetFont_Image(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( ImGui_ImplVulkan_GetFont_ImageView(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_DESC_SET_NAME( ImGui_ImplVulkan_GetFont_DescriptorSet(), "ImGui Font" );
+    PG_DEBUG_MARKER_SET_SAMPLER_NAME( ImGui_ImplVulkan_GetTexSampler(), "ImGui" );
+    PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( ImGui_ImplVulkan_GetTexCommandPool(), "ImGui" );
+    PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( ImGui_ImplVulkan_GetTexCommandBuffer(), "ImGui" );
 
     // there are also 2 buffers and 2 buffer memories that ImGui uses (the vertex and index buffers), but they are re-created as needed
     // during ImGui_ImplVulkan_RenderDrawData, so we aren't bothering to update their names each time
@@ -221,11 +217,7 @@ void Shutdown()
 {
     delete s_console;
     ImGui_ImplVulkan_Shutdown();
-#ifdef PG_USE_SDL
     ImGui_ImplSDL3_Shutdown();
-#else  // #ifdef PG_USE_SDL
-    ImGui_ImplGlfw_Shutdown();
-#endif // #else // #ifdef PG_USE_SDL
     ImGui::DestroyContext();
     vkDestroyDescriptorPool( rg.device, s_descriptorPool, nullptr );
     s_drawFunctions.clear();
@@ -237,11 +229,7 @@ void BeginFrame()
 {
     PGP_ZONE_SCOPEDN( "UIOverlay::BeginFrame" );
     ImGui_ImplVulkan_NewFrame();
-#ifdef PG_USE_SDL
     ImGui_ImplSDL3_NewFrame();
-#else  // #ifdef PG_USE_SDL
-    ImGui_ImplGlfw_NewFrame();
-#endif // #else // #ifdef PG_USE_SDL
     ImGui::NewFrame();
 }
 

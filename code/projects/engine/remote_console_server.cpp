@@ -39,8 +39,8 @@ void Shutdown()
     {
         LOG( "Shutting down remote console" );
         s_serverShouldStop = true;
-        s_serverThread.join();
         s_serverSocket.Close();
+        s_serverThread.join();
     }
     s_initialized = false;
 }
@@ -52,12 +52,9 @@ static void ListenForCommands()
     while ( !s_serverShouldStop )
     {
         LOG( "RemoteConsoleServer: Waiting for client..." );
+        // this blocks, except for s_serverSocket.Close() in Shutdown()
         if ( !s_serverSocket.AcceptConnection( s_clientSocket ) )
         {
-            // if ( !s_serverShouldStop )
-            //{
-            //     LOG_ERR( "RemoteConsoleServer: Accept failed with error: %d" );
-            // }
             continue;
         }
         LOG( "RemoteConsoleServer: client connected" );

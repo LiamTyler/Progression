@@ -12,8 +12,6 @@ SET_PLATFORM_DEFINES()
 find_package(Vulkan REQUIRED)
 find_package(OpenMP REQUIRED)
 
-option(PG_USE_SDL "Use SDL3 instead of GLFW (option for dev testing)" ON)
-
 set(PROGRESSION_DIR ${CMAKE_CURRENT_SOURCE_DIR})
 configure_file(${PROGRESSION_DIR}/cmake/platform_defines.hpp.in ${PROGRESSION_DIR}/code/shared/platform_defines.hpp)
 

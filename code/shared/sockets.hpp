@@ -9,12 +9,12 @@
 #pragma comment( lib, "Ws2_32.lib" )
 #define ADDRINFO struct addrinfo
 #else // #if USING( WINDOWS_PROGRAM )
-#include <sys/types.h>
-#include <sys/socket.h>
 #include <netdb.h>
-using SOCKET = int;
+#include <sys/socket.h>
+#include <sys/types.h>
+using SOCKET                        = int;
 static constexpr int INVALID_SOCKET = -1;
-static constexpr int SOCKET_ERROR = -1;
+static constexpr int SOCKET_ERROR   = -1;
 #endif // #else // #if USING( WINDOWS_PROGRAM )
 
 class ClientSocket

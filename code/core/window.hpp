@@ -1,11 +1,6 @@
 #pragma once
 
-#ifdef PG_USE_SDL
 #include "SDL3/SDL.h"
-#else // #ifdef PG_USE_SDL
-#define GLFW_INCLUDE_VULKAN
-#include "GLFW/glfw3.h"
-#endif // #else // #ifdef PG_USE_SDL
 #include "shared/core_defines.hpp"
 #include <string>
 
@@ -34,7 +29,7 @@ public:
     void StartFrame();
     void EndFrame();
 
-    auto GetHandle() const { return m_window; }
+    SDL_Window* GetHandle() const { return m_window; }
     i32 Width() const { return m_width; }
     i32 Height() const { return m_height; }
     i32 FramebufferWidth() const { return m_framebufferWidth; }
@@ -44,11 +39,7 @@ public:
     void SetTitle( const std::string& title );
 
 protected:
-#ifdef PG_USE_SDL
-    SDL_Window* m_window = nullptr;
-#else  // #ifdef PG_USE_SDL
-    GLFWwindow* m_window = nullptr;
-#endif // #else // #ifdef PG_USE_SDL
+    SDL_Window* m_window    = nullptr;
     std::string m_title     = "";
     i32 m_width             = 0;
     i32 m_height            = 0;

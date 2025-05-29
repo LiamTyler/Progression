@@ -9,9 +9,8 @@
 #include "vk-bootstrap/VkBootstrap.h"
 #include <cstring>
 #include <iostream>
-#ifdef PG_USE_SDL
+
 #include "SDL3/SDL_vulkan.h"
-#endif // #ifdef PG_USE_SDL
 #if USING( DEVELOPMENT_BUILD )
 #include "ui/ui_text.hpp"
 #endif // #if USING( DEVELOPMENT_BUILD )
@@ -167,6 +166,7 @@ static vkb::Result<vkb::Instance> GetInstance()
     builder.enable_extension( VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
     Uint32 count_instance_extensions;
     const char* const* instance_extensions = SDL_Vulkan_GetInstanceExtensions( &count_instance_extensions );
+    PG_ASSERT( instance_extensions != nullptr, "SDL_Vulkan_GetInstanceExtensions failed '%s'", SDL_GetError() );
     for ( u32 i = 0; i < count_instance_extensions; ++i )
     {
         const char* ext = instance_extensions[i];
@@ -200,11 +200,10 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     if ( !headless )
     {
         PGP_ZONE_SCOPEDN( "CreateSurfaceFromWindow" );
-#ifdef PG_USE_SDL
-        SDL_Vulkan_CreateSurface( GetMainWindow()->GetHandle(), rg.instance, nullptr, &rg.surface );
-#else  // #ifdef PG_USE_SDL
-        VK_CHECK( glfwCreateWindowSurface( rg.instance, GetMainWindow()->GetHandle(), nullptr, &rg.surface ) );
-#endif // #else // #ifdef PG_USE_SDL
+        if ( !SDL_Vulkan_CreateSurface( GetMainWindow()->GetHandle(), rg.instance, nullptr, &rg.surface ) )
+        {
+            LOG_ERR( "SDL_Vulkan_CreateSurface failed. Error: '%s'", SDL_GetError() );
+        }
     }
 
     vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };

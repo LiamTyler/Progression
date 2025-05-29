@@ -1,9 +1,7 @@
 #pragma once
 
-#include "shared/core_defines.hpp"
-#ifdef PG_USE_SDL
 #include "SDL3/SDL.h"
-#endif // #ifdef PG_USE_SDL
+#include "shared/core_defines.hpp"
 
 namespace PG::Input
 {
@@ -146,13 +144,7 @@ enum class RawAxis : u8
 
 using RawAxisValue = f32;
 
-#ifdef PG_USE_SDL
 RawButton SDL3KeyToRawButton( const SDL_KeyboardEvent& kEvent );
 RawButton SDL3MouseButtonToRawButton( const SDL_MouseButtonEvent& mEvent );
-
-#else  // #ifdef PG_USE_SDL
-RawButton GlfwKeyToRawButton( i32 key );
-RawButton GlfwMouseButtonToRawButton( i32 button );
-#endif // #else // #ifdef PG_USE_SDL
 
 } // namespace PG::Input

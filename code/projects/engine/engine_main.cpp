@@ -56,6 +56,9 @@ int main( int argc, char* argv[] )
         AssetManager::ProcessPendingLiveUpdates();
         Input::PollEvents();
 
+        if ( eg.shutdown )
+            break;
+
         if ( eg.resizeRequested )
         {
             RenderSystem::Resize( window->FramebufferWidth(), window->FramebufferHeight() );

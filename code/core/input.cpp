@@ -7,10 +7,8 @@
 #include <unordered_set>
 
 #if USING( DEVELOPMENT_BUILD )
-#include "imgui/imgui.h"
-#ifdef PG_USE_SDL
 #include "imgui/backends/imgui_impl_sdl3.h"
-#endif // #ifdef PG_USE_SDL
+#include "imgui/imgui.h"
 #endif // #if USING( DEVELOPMENT_BUILD )
 
 namespace PG::Input
@@ -136,8 +134,6 @@ static std::vector<InputContext*> s_allInputContexts;
 static InputContextManager s_contextManager;
 static RawInputTracker s_inputTracker;
 
-#ifdef PG_USE_SDL
-
 static void HandleEvents_SDL()
 {
     SDL_Event e;
@@ -158,7 +154,7 @@ static void HandleEvents_SDL()
                 return;
             }
 
-            RawButtonState state = e.key.state == SDL_PRESSED ? RawButtonState::PRESSED : RawButtonState::RELEASED;
+            RawButtonState state = e.key.down ? RawButtonState::PRESSED : RawButtonState::RELEASED;
             s_inputTracker.AddOrUpdateButton( button, state );
         }
         else if ( e.type == SDL_EVENT_MOUSE_MOTION )
@@ -180,61 +176,11 @@ static void HandleEvents_SDL()
                 return;
             }
 
-            RawButtonState state = e.button.state == SDL_PRESSED ? RawButtonState::PRESSED : RawButtonState::RELEASED;
+            RawButtonState state = e.button.down ? RawButtonState::PRESSED : RawButtonState::RELEASED;
             s_inputTracker.AddOrUpdateButton( rawButton, state );
         }
     }
 }
-
-#else // #ifdef PG_USE_SDL
-
-static void KeyCallback( GLFWwindow* window, i32 key, i32 scancode, i32 action, i32 mods )
-{
-    if ( action != GLFW_PRESS && action != GLFW_RELEASE )
-        return;
-
-    RawButton button = GlfwKeyToRawButton( key );
-    if ( button == RawButton::UNKNOWN )
-    {
-        LOG_WARN( "Unknown key pressed!" );
-        return;
-    }
-
-    RawButtonState state = action == GLFW_PRESS ? RawButtonState::PRESSED : RawButtonState::RELEASED;
-    s_inputTracker.AddOrUpdateButton( button, state );
-}
-
-static void CharCallback( GLFWwindow* window, u32 c ) { s_inputTracker.AddCharacter( c ); }
-
-static void MousePosCallback( GLFWwindow* window, f64 x, f64 y )
-{
-    vec2 pos = vec2( (f32)x, (f32)y );
-    // LOG( "%f %f", pos.x, pos.y );
-    if ( !s_cursorStateChanged )
-    {
-        s_inputTracker.AddAxisValue( RawAxis::MOUSE_X, pos.x - s_prevMousePos.x );
-        s_inputTracker.AddAxisValue( RawAxis::MOUSE_Y, pos.y - s_prevMousePos.y );
-    }
-    s_prevMousePos = pos;
-}
-
-static void MouseButtonCallback( GLFWwindow* window, i32 button, i32 action, i32 mods )
-{
-    if ( action != GLFW_PRESS && action != GLFW_RELEASE )
-        return;
-
-    RawButton rawButton = GlfwMouseButtonToRawButton( button );
-    if ( rawButton == RawButton::UNKNOWN )
-    {
-        LOG_WARN( "Unknown mouse button pressed!" );
-        return;
-    }
-
-    RawButtonState state = action == GLFW_PRESS ? RawButtonState::PRESSED : RawButtonState::RELEASED;
-    s_inputTracker.AddOrUpdateButton( rawButton, state );
-}
-
-#endif // #else // #ifdef PG_USE_SDL
 
 bool Init()
 {
@@ -249,16 +195,9 @@ bool Init()
     s_contextManager.PushLayer( InputContextID::CAMERA_CONTROLS );
 
     ResetMousePosition();
-#ifdef PG_USE_SDL
+
     if ( !SDL_SetHint( SDL_HINT_KEYCODE_OPTIONS, "unmodified" ) )
         LOG_WARN( "SDL failed to set the unmodified key hint. Some controls might not work!" );
-#else  // #ifdef PG_USE_SDL
-    GLFWwindow* window = GetMainWindow()->GetHandle();
-    glfwSetKeyCallback( window, KeyCallback );
-    glfwSetCharCallback( window, CharCallback );
-    glfwSetMouseButtonCallback( window, MouseButtonCallback );
-    glfwSetCursorPosCallback( window, MousePosCallback );
-#endif // #else // #ifdef PG_USE_SDL
 
     return true;
 }
@@ -267,35 +206,18 @@ void Shutdown()
 {
     for ( InputContext* context : s_allInputContexts )
         delete context;
-
-#ifndef PG_USE_SDL
-    glfwPollEvents();
-#endif // #ifndef PG_USE_SDL
 }
 
 void PollEvents()
 {
     PGP_ZONE_SCOPEDN( "Input::PollEvents" );
     s_inputTracker.StartFrame();
-#ifdef PG_USE_SDL
     HandleEvents_SDL();
-#else  // #ifdef PG_USE_SDL
-    glfwPollEvents();
-#endif // #else // #ifdef PG_USE_SDL
     s_contextManager.Update();
     s_cursorStateChanged = false;
 }
 
-void ResetMousePosition()
-{
-#ifdef PG_USE_SDL
-    SDL_GetMouseState( &s_prevMousePos.x, &s_prevMousePos.y );
-#else  // #ifdef PG_USE_SDL
-    f64 mouse_x, mouse_y;
-    glfwGetCursorPos( GetMainWindow()->GetHandle(), &mouse_x, &mouse_y );
-    s_prevMousePos = vec2( (f32)mouse_x, (f32)mouse_y );
-#endif // #else  // #ifdef PG_USE_SDL
-}
+void ResetMousePosition() { SDL_GetMouseState( &s_prevMousePos.x, &s_prevMousePos.y ); }
 
 void MouseCursorChange() { s_cursorStateChanged = true; }
 

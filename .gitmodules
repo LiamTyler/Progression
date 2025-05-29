@@ -1,6 +1,3 @@
-[submodule "code/external/glfw"]
-	path = code/external/glfw
-	url = https://github.com/glfw/glfw.git
 [submodule "code/external/sdl3"]
 	path = code/external/sdl3
 	url = https://github.com/libsdl-org/SDL.git

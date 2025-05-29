@@ -186,13 +186,8 @@ set(
         ${CODE_DIR}/external/imgui/imgui_draw.cpp
         ${CODE_DIR}/external/imgui/imgui_tables.cpp
         ${CODE_DIR}/external/imgui/imgui_widgets.cpp
-        $<IF:$<BOOL:${PG_USE_SDL}>,
-            ${CODE_DIR}/external/imgui/backends/imgui_impl_sdl3.cpp
-            ${CODE_DIR}/external/imgui/backends/imgui_impl_sdl3.h,
-            ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.cpp
-            ${CODE_DIR}/external/imgui/backends/imgui_impl_glfw.h
-        >
-        
+        ${CODE_DIR}/external/imgui/backends/imgui_impl_sdl3.cpp
+        ${CODE_DIR}/external/imgui/backends/imgui_impl_sdl3.h
         ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.cpp
         ${CODE_DIR}/external/imgui/backends/imgui_impl_vulkan.h
     >
@@ -212,7 +207,6 @@ set_source_files_properties(
 add_executable(${PROJECT_NAME} ${ALL_FILES} ${VULKAN_EXT_FILES})
 target_compile_definitions(${PROJECT_NAME} PUBLIC
     CMAKE_DEFINE_GAME
-    $<IF:$<BOOL:${PG_USE_SDL}>,"PG_USE_SDL",${GLFW_COMPILE_DEFS}>
     $<$<NOT:$<CONFIG:SHIP>>: TRACY_ENABLE>
 )
 SET_TARGET_COMPILE_OPTIONS_DEFAULT(${PROJECT_NAME})
@@ -231,7 +225,7 @@ set_target_properties(${PROJECT_NAME} PROPERTIES
 )
 target_include_directories(${PROJECT_NAME} PUBLIC
     ${COMMON_INCLUDE_DIRS}
-    $<IF:$<BOOL:${PG_USE_SDL}>,${SDL_INCLUDES},${GLFW_INCLUDES}>
+    ${SDL_INCLUDES}
     ${IMAGELIB_INCLUDES}
     ${LUA_INCLUDES}
     ${Vulkan_INCLUDE_DIR}
@@ -239,7 +233,5 @@ target_include_directories(${PROJECT_NAME} PUBLIC
     ${CODE_DIR}/external/imgui/
     ${CODE_DIR}/external/tracy/
 )
-target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4
-    $<IF:$<BOOL:${PG_USE_SDL}>,${SDL_LIBS},${GLFW_LIBS}>
-)
+target_link_libraries(${PROJECT_NAME} PUBLIC OpenMP::OpenMP_CXX ${VULKAN_LIBS} ${IMAGELIB_LIBS} lua lz4 ${SDL_LIBS})
 target_link_directories(${PROJECT_NAME} PUBLIC ${CMAKE_BINARY_DIR}/lib ${CMAKE_BINARY_DIR}/bin)

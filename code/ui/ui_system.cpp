@@ -72,6 +72,26 @@ Clay_Sizing CreateSizing( int widthType, float widthVal, int heightType, float h
 
 Clay_LayoutConfig CreateLayout() { return {}; }
 
+Clay_ImageElementConfig GetImage( const std::string& imgName )
+{
+    Clay_ImageElementConfig ret;
+    GfxImage* img = AssetManager::Get<GfxImage>( imgName );
+    PG_ASSERT( img, "No image with name '%s' found", imgName.c_str() );
+    ret.imageData               = img;
+    ret.sourceDimensions.width  = (float)img->width;
+    ret.sourceDimensions.height = (float)img->height;
+
+    return ret;
+}
+
+Clay_ElementId CreateID( const char* idStr )
+{
+    Clay_String s;
+    s.chars  = idStr;
+    s.length = (int)strlen( idStr );
+    return CLAY_SID( s );
+}
+
 static PG::Lua::ScriptInstance* s_scriptInstance;
 
 #if USING( ASSET_LIVE_UPDATE )
@@ -158,10 +178,13 @@ bool Init()
     eDeclatation_type["id"]                                  = &Clay_ElementDeclaration::id;
     eDeclatation_type["layout"]                              = &Clay_ElementDeclaration::layout;
     eDeclatation_type["backgroundColor"]                     = &Clay_ElementDeclaration::backgroundColor;
+    eDeclatation_type["image"]                               = &Clay_ElementDeclaration::image;
 
     uiNamespace["OpenElement"]      = Clay__OpenElement;
     uiNamespace["ConfigureElement"] = Clay__ConfigureOpenElement;
     uiNamespace["CloseElement"]     = Clay__CloseElement;
+    uiNamespace["GetImage"]         = GetImage;
+    uiNamespace["CreateID"]         = CreateID;
 
 #if USING( ASSET_LIVE_UPDATE )
     AssetManager::AddLiveUpdateCallback( ASSET_TYPE_SCRIPT, AssetLiveUpdateCallback );
@@ -204,62 +227,33 @@ void Update()
 
     Clay_BeginLayout();
 
+#if 1
     if ( s_scriptInstance && s_scriptInstance->hasUpdateFunction )
-        s_scriptInstance->updateFunction();
+        CHECK_SOL_FUNCTION_CALL( s_scriptInstance->updateFunction() );
+#else
+    CLAY( {
+        .layout          = { .sizing  = { CLAY_SIZING_GROW( 0 ), CLAY_SIZING_GROW( 0 ) },
+                            .padding         = CLAY_PADDING_ALL( 16 ),
+                            .layoutDirection = CLAY_TOP_TO_BOTTOM },
+        .backgroundColor = { 0, 200, 20, 255 }
+    } )
+    {
 
-    // An example of laying out a UI with a fixed width sidebar and flexible width main content
-    // CLAY( {
-    //    //.id     = CLAY_ID( "OuterContainer" ),
-    //    .layout = { .sizing = { CLAY_SIZING_GROW( 0 ), CLAY_SIZING_GROW( 0 ) }, .padding = CLAY_PADDING_ALL( 16 ), .childGap = 16 },
-    //    //.backgroundColor = { 0, 250, 0, 255 }
-    //} )
-    //{
-    //    CLAY( {
-    //        .id = CLAY_ID( "SideBar" ),
-    //        .layout =
-    //            {
-    //                     .sizing          = { .width = CLAY_SIZING_FIXED( 300 ), .height = CLAY_SIZING_GROW( 0 ) },
-    //                     .padding         = CLAY_PADDING_ALL( 16 ),
-    //                     .childGap        = 16,
-    //                     .layoutDirection = CLAY_TOP_TO_BOTTOM,
-    //                     },
-    //        .backgroundColor = COLOR_LIGHT
-    //    } )
-    //  {
-    //      CLAY( {
-    //          .id              = CLAY_ID( "ProfilePictureOuter" ),
-    //          .layout          = { .sizing = { .width = CLAY_SIZING_GROW( 0 ) },
-    //                              .padding        = CLAY_PADDING_ALL( 16 ),
-    //                              .childGap       = 16,
-    //                              .childAlignment = { .y = CLAY_ALIGN_Y_CENTER } },
-    //          .backgroundColor = COLOR_RED
-    //      } )
-    //{
-    //    CLAY_TEXT( CLAY_STRING( "Clay - UI Library" ), CLAY_TEXT_CONFIG( {
-    //                                                       .textColor = { 255, 255, 255, 255 },
-    //                                                         .fontSize = 24
-    //    } ) );
-    //}
-    //
-    //      CLAY( { .id          = CLAY_ID( "MainContent" ),
-    //          .layout          = { .sizing = { .width = CLAY_SIZING_GROW( 0 ), .height = CLAY_SIZING_GROW( 0 ) } },
-    //          .backgroundColor = COLOR_LIGHT } )
-    //{
-    //    GfxImage* img = AssetManager::Get<GfxImage>( "macaw" );
-    //    CLAY( {
-    //        .layout = { .sizing = { .width = CLAY_SIZING_FIXED( 60 ), .height = CLAY_SIZING_FIXED( 60 ) } },
-    //        .image  = { .imageData = img, .sourceDimensions = { (float)img->width, (float)img->height } }
-    //    } )
-    //    {
-    //    }
-    //}
-    //  }
-    //}
-    // CLAY({ .id = CLAY_ID("ProfilePictureOuter"), .layout = { .sizing = { .width = CLAY_SIZING_GROW(0) }, .padding = CLAY_PADDING_ALL(16),
-    // .childGap = 16, .childAlignment = { .y = CLAY_ALIGN_Y_CENTER } }, .backgroundColor = COLOR_RED }) { CLAY({ .id =
-    // CLAY_ID("ProfilePicture"), .layout = { .sizing = { .width = CLAY_SIZING_FIXED(60), .height = CLAY_SIZING_FIXED(60) }}, .image = {
-    // .imageData = &profilePicture, .sourceDimensions = {60, 60} } }) {} CLAY_TEXT(CLAY_STRING("Clay - UI Library"), CLAY_TEXT_CONFIG({
-    // .fontSize = 24, .textColor = {255, 255, 255, 255} }));
+        CLAY( {
+            .layout = { .sizing = { CLAY_SIZING_FIXED( 400 ), CLAY_SIZING_GROW( 0 ) } },
+              .backgroundColor = { 224, 215, 210, 255 }
+        } )
+        {
+        }
+
+        CLAY( {
+            .layout = { .sizing = { CLAY_SIZING_FIXED( 400 ), CLAY_SIZING_GROW( 0 ) } },
+              .backgroundColor = { 128, 128, 210, 255 }
+        } )
+        {
+        }
+    }
+#endif
 
     s_clayRenderCommands = Clay_EndLayout();
 }

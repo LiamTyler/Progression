@@ -173,12 +173,25 @@ bool Init()
     layout_type["layoutDirection"]               = &Clay_LayoutConfig::layoutDirection;
     uiNamespace["CreateLayout"]                  = CreateLayout;
 
+    sol::usertype<Clay_BorderWidth> borderWidth_type = uiNamespace.new_usertype<Clay_BorderWidth>( "BorderWidth" );
+    borderWidth_type["left"]                         = &Clay_BorderWidth::left;
+    borderWidth_type["right"]                        = &Clay_BorderWidth::right;
+    borderWidth_type["top"]                          = &Clay_BorderWidth::top;
+    borderWidth_type["bottom"]                       = &Clay_BorderWidth::bottom;
+    borderWidth_type["betweenChildren"]              = &Clay_BorderWidth::betweenChildren;
+
+    sol::usertype<Clay_BorderElementConfig> border_type = uiNamespace.new_usertype<Clay_BorderElementConfig>( "BorderConfig" );
+    border_type["color"]                                = &Clay_BorderElementConfig::color;
+    border_type["width"]                                = &Clay_BorderElementConfig::width;
+    uiNamespace["BorderWidth"]                          = []( u16 l, u16 r, u16 t, u16 b ) { return Clay_BorderWidth{ l, r, t, b }; };
+
     uiNamespace["Color"] = []( float r, float g, float b, float a ) { return Clay_Color{ r, g, b, a }; };
     sol::usertype<Clay_ElementDeclaration> eDeclatation_type = uiNamespace.new_usertype<Clay_ElementDeclaration>( "ElementDeclaration" );
     eDeclatation_type["id"]                                  = &Clay_ElementDeclaration::id;
     eDeclatation_type["layout"]                              = &Clay_ElementDeclaration::layout;
     eDeclatation_type["backgroundColor"]                     = &Clay_ElementDeclaration::backgroundColor;
     eDeclatation_type["image"]                               = &Clay_ElementDeclaration::image;
+    eDeclatation_type["border"]                              = &Clay_ElementDeclaration::border;
 
     uiNamespace["OpenElement"]      = Clay__OpenElement;
     uiNamespace["ConfigureElement"] = Clay__ConfigureOpenElement;
@@ -227,32 +240,39 @@ void Update()
 
     Clay_BeginLayout();
 
-#if 1
+#if 0
     if ( s_scriptInstance && s_scriptInstance->hasUpdateFunction )
         CHECK_SOL_FUNCTION_CALL( s_scriptInstance->updateFunction() );
 #else
+    // clang-format off
     CLAY( {
+        .id = CLAY_ID( "Parent" ),
         .layout          = { .sizing  = { CLAY_SIZING_GROW( 0 ), CLAY_SIZING_GROW( 0 ) },
-                            .padding         = CLAY_PADDING_ALL( 16 ),
+                            .padding  = CLAY_PADDING_ALL( 16 ),
+                            .childGap = 16,
                             .layoutDirection = CLAY_TOP_TO_BOTTOM },
         .backgroundColor = { 0, 200, 20, 255 }
     } )
     {
-
         CLAY( {
+            .id = CLAY_ID( "Side1" ),
             .layout = { .sizing = { CLAY_SIZING_FIXED( 400 ), CLAY_SIZING_GROW( 0 ) } },
-              .backgroundColor = { 224, 215, 210, 255 }
+            .backgroundColor = { 200, 200, 200, 255 },
+            .border = { .color = { 50, 50, 255, 255 }, .width = { .left = 10, .right = 40, .top = 20, .bottom = 2 } }
         } )
         {
         }
-
+        GfxImage* img = AssetManager::Get<GfxImage>( "macaw" );
         CLAY( {
+            .id = CLAY_ID( "Side2" ),
             .layout = { .sizing = { CLAY_SIZING_FIXED( 400 ), CLAY_SIZING_GROW( 0 ) } },
-              .backgroundColor = { 128, 128, 210, 255 }
+            //.backgroundColor = { 128, 128, 210, 255 },
+            .image = { .imageData = img, .sourceDimensions = { (float)img->width, (float)img->height } }
         } )
         {
         }
     }
+    // clang-format on
 #endif
 
     s_clayRenderCommands = Clay_EndLayout();
@@ -285,6 +305,43 @@ void Render( Gfx::CommandBuffer& cmdBuf )
             pushConstants.textureIndex            = PG_INVALID_TEXTURE_INDEX;
             cmdBuf.PushConstants( pushConstants );
             cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            break;
+        }
+        case CLAY_RENDER_COMMAND_TYPE_BORDER:
+        {
+            const Clay_BorderRenderData& cBorder = renderCommand->renderData.border;
+            pushConstants.color                  = ClayToPGColor( cBorder.color );
+            pushConstants.textureIndex           = PG_INVALID_TEXTURE_INDEX;
+
+            if ( cBorder.width.left > 0 )
+            {
+                pushConstants.aabb = { aabb.x, aabb.y + cBorder.cornerRadius.topLeft, cBorder.width.left,
+                    aabb.height - cBorder.cornerRadius.topLeft - cBorder.cornerRadius.bottomLeft };
+                cmdBuf.PushConstants( pushConstants );
+                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            }
+            if ( cBorder.width.right > 0 )
+            {
+                pushConstants.aabb = { aabb.x + aabb.width - cBorder.width.right, aabb.y + cBorder.cornerRadius.topRight,
+                    cBorder.width.right, aabb.height - cBorder.cornerRadius.topRight - cBorder.cornerRadius.bottomRight };
+                cmdBuf.PushConstants( pushConstants );
+                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            }
+            if ( cBorder.width.top > 0 )
+            {
+                pushConstants.aabb = { aabb.x + cBorder.cornerRadius.topLeft, aabb.y,
+                    aabb.width - cBorder.cornerRadius.topLeft - cBorder.cornerRadius.topRight, cBorder.width.top };
+                cmdBuf.PushConstants( pushConstants );
+                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            }
+            if ( cBorder.width.bottom > 0 )
+            {
+                pushConstants.aabb = { aabb.x + cBorder.cornerRadius.bottomLeft, aabb.y + aabb.height - cBorder.width.bottom,
+                    aabb.width - cBorder.cornerRadius.bottomLeft - cBorder.cornerRadius.bottomRight, cBorder.width.bottom };
+                cmdBuf.PushConstants( pushConstants );
+                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            }
+
             break;
         }
         case CLAY_RENDER_COMMAND_TYPE_IMAGE:

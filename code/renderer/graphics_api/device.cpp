@@ -23,6 +23,7 @@ bool Device::Create( const vkb::Device& vkbDevice )
     PGP_ZONE_SCOPEDN( "Device::Create" );
     m_handle = vkbDevice.device;
     PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( m_handle, "Primary" );
+    m_hasDedicatedTransferQueue = false;
 
     // TODO: actually ensure this queue supports all the operations we need
     auto queueRet = vkbDevice.get_queue( vkb::QueueType::graphics );
@@ -38,16 +39,20 @@ bool Device::Create( const vkb::Device& vkbDevice )
     PG_DEBUG_MARKER_SET_QUEUE_NAME( mainQ.queue, "Primary GCT" );
 
     queueRet = vkbDevice.get_dedicated_queue( vkb::QueueType::transfer );
-    if ( !queueRet )
+    if ( queueRet )
     {
-        LOG_ERR( "Could not get dedicated transfer queue. Error: %s", queueRet.error().message().c_str() );
-        return false;
+        m_queues[Underlying( QueueType::TRANSFER )] = m_queues[Underlying( QueueType::GRAPHICS )];
+        // LOG_WARN( "Could not get dedicated transfer queue. Error: %s", queueRet.error().message().c_str() );
     }
-    Queue& transferQ      = m_queues[Underlying( QueueType::TRANSFER )];
-    transferQ.queue       = queueRet.value();
-    transferQ.familyIndex = vkbDevice.get_dedicated_queue_index( vkb::QueueType::transfer ).value();
-    transferQ.queueIndex  = 0;
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( transferQ.queue, "Dedicated Transfer" );
+    else
+    {
+        m_hasDedicatedTransferQueue = true;
+        Queue& transferQ            = m_queues[Underlying( QueueType::TRANSFER )];
+        transferQ.queue             = queueRet.value();
+        transferQ.familyIndex       = vkbDevice.get_dedicated_queue_index( vkb::QueueType::transfer ).value();
+        transferQ.queueIndex        = 0;
+        PG_DEBUG_MARKER_SET_QUEUE_NAME( transferQ.queue, "Dedicated Transfer" );
+    }
 
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
     allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;

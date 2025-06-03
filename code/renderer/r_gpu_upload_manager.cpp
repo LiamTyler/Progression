@@ -105,12 +105,9 @@ void UploadManager::StartUploads()
     size_t stagingOffset  = 0;
     Buffer& stagingBuffer = stagingBuffers[currentBufferIdx];
 
+    u32 mainQueueFamilyIndex = rg.device.GetQueue( QueueType::GRAPHICS ).familyIndex;
 #if USING( TRANSFER_QUEUE_UPLOADS )
     u32 transferQueueFamilyIndex = rg.device.GetQueue( QueueType::TRANSFER ).familyIndex;
-#else  // #if USING( TRANSFER_QUEUE_UPLOADS )
-    u32 transferQueueFamilyIndex = rg.device.GetQueue( QueueType::GRAPHICS ).familyIndex;
-#endif // #else // #if USING( TRANSFER_QUEUE_UPLOADS )
-    u32 mainQueueFamilyIndex = rg.device.GetQueue( QueueType::GRAPHICS ).familyIndex;
 
     VkBufferMemoryBarrier2 releaseBufferBarrier{ VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER_2 };
     releaseBufferBarrier.srcStageMask        = VK_PIPELINE_STAGE_2_TRANSFER_BIT;
@@ -132,6 +129,9 @@ void UploadManager::StartUploads()
     acquireTextureBarrier.oldLayout           = PGToVulkanImageLayout( ImageLayout::TRANSFER_DST );
     acquireTextureBarrier.newLayout           = PGToVulkanImageLayout( ImageLayout::SHADER_READ_ONLY );
     acquireTextureBarrier.subresourceRange    = ImageSubresourceRange( VK_IMAGE_ASPECT_COLOR_BIT );
+#else  // #if USING( TRANSFER_QUEUE_UPLOADS )
+    u32 transferQueueFamilyIndex = rg.device.GetQueue( QueueType::GRAPHICS ).familyIndex;
+#endif // #else // #if USING( TRANSFER_QUEUE_UPLOADS )
 
     VkBufferImageCopy region = {};
     for ( UploadRequest& req : requestList )
@@ -145,15 +145,18 @@ void UploadManager::StartUploads()
             vkCmdCopyBuffer( cmdBuf, stagingBuffer, req.buffer, 1, &copyRegion );
 
 #if USING( TRANSFER_QUEUE_UPLOADS )
-            releaseBufferBarrier.buffer = req.buffer;
-            releaseBufferBarrier.size   = req.size;
-            releaseBufferBarrier.offset = req.offset;
-            cmdBuf.PipelineBufferBarrier2( releaseBufferBarrier );
+            if ( rg.device.HasDedicatedTransferQueue() )
+            {
+                releaseBufferBarrier.buffer = req.buffer;
+                releaseBufferBarrier.size   = req.size;
+                releaseBufferBarrier.offset = req.offset;
+                cmdBuf.PipelineBufferBarrier2( releaseBufferBarrier );
 
-            acquireBufferBarrier.buffer = req.buffer;
-            acquireBufferBarrier.size   = req.size;
-            acquireBufferBarrier.offset = req.offset;
-            pendingBufferBarriers.push_back( acquireBufferBarrier );
+                acquireBufferBarrier.buffer = req.buffer;
+                acquireBufferBarrier.size   = req.size;
+                acquireBufferBarrier.offset = req.offset;
+                pendingBufferBarriers.push_back( acquireBufferBarrier );
+            }
 #endif // #if USING( TRANSFER_QUEUE_UPLOADS )
         }
         else if ( req.type == UploadCommandType::LAYOUT_TRANSITION_PRE )
@@ -166,8 +169,11 @@ void UploadManager::StartUploads()
             cmdBuf.TransitionImageLayout( req.image, ImageLayout::TRANSFER_DST, ImageLayout::SHADER_READ_ONLY,
                 VK_PIPELINE_STAGE_2_TRANSFER_BIT, VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, transferQueueFamilyIndex, mainQueueFamilyIndex );
 #if USING( TRANSFER_QUEUE_UPLOADS )
-            acquireTextureBarrier.image = req.image;
-            pendingImageBarriers.push_back( acquireTextureBarrier );
+            if ( rg.device.HasDedicatedTransferQueue() )
+            {
+                acquireTextureBarrier.image = req.image;
+                pendingImageBarriers.push_back( acquireTextureBarrier );
+            }
 #endif // #if USING( TRANSFER_QUEUE_UPLOADS )
         }
         else if ( req.type == UploadCommandType::TEXTURE_UPLOAD )

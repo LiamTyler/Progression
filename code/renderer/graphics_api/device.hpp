@@ -53,12 +53,14 @@ public:
     VkDevice GetHandle() const;
     Queue GetQueue( QueueType type ) const;
     VmaAllocator GetAllocator() const;
+    bool HasDedicatedTransferQueue() const { return m_hasDedicatedTransferQueue; }
 
 private:
     VkDevice m_handle = VK_NULL_HANDLE;
     Queue m_queues[Underlying( QueueType::COUNT )];
     VmaAllocator m_vmaAllocator;
     UploadManager m_uploadBufferManager;
+    bool m_hasDedicatedTransferQueue = false;
 };
 
 } // namespace PG::Gfx

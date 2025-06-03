@@ -109,6 +109,7 @@ double GetFontCoordinateScale( const FT_Face& face, msdfgen::FontCoordinateScali
 
 bool PackAtlas( std::vector<GlyphData>& glyphs, int& width, int& height )
 {
+    PGP_ZONE_SCOPEDN( "PackAtlas" );
     i64 minAtlasPixelsNeeded = 0;
     std::vector<stbrp_rect> rects;
     for ( size_t i = 0; i < glyphs.size(); ++i )
@@ -178,6 +179,7 @@ bool PackAtlas( std::vector<GlyphData>& glyphs, int& width, int& height )
 bool GetFontMetrics(
     const std::string& fontFilename, const std::vector<GlyphData>& glyphDatas, const RawImage2D& atlasImg, Font& fontAsset )
 {
+    PGP_ZONE_SCOPEDN( "GetFontMetrics" );
     FT_Library library;
     FT_Error error = FT_Init_FreeType( &library );
     if ( error )
@@ -256,6 +258,7 @@ bool GetFontMetrics(
 
 bool CreateFontAtlas( const FontCreateInfo& info, Font& fontAsset, RawImage2D& atlasImg, const Config& config )
 {
+    PGP_ZONE_SCOPEDN( "CreateFontAtlas" );
     msdfgen::FreetypeHandle* ft = msdfgen::initializeFreetype();
     if ( !ft )
     {

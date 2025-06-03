@@ -97,7 +97,7 @@ static bool ParseAssetFile( const std::string& filename )
 
 bool Init()
 {
-    // Time::Point startTime = Time::GetTimePoint();
+    PGP_ZONE_SCOPEDN( "AssetDatabase::Init" );
 
     namespace fs = std::filesystem;
     for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR ) )
@@ -112,7 +112,6 @@ bool Init()
         }
     }
 
-    // LOG( "Asset Database Initialized in %.2f seconds.", Time::GetTimeSince( startTime ) / 1000.0f );
     return true;
 }
 

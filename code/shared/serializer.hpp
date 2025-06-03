@@ -16,7 +16,7 @@ public:
     ~Serializer();
 
     bool OpenForRead( const std::string& filename );
-    bool OpenForWrite( const std::string& filename );
+    bool OpenForWrite( const std::string& filename, bool delayedOpen = false );
     size_t Close();
     bool IsOpen() const;
 
@@ -108,7 +108,17 @@ public:
         m_userdata      = userdata;
     }
 
+    // The following functions are mainly intended for special use. The main use case
+    // is in the converter. The assets have to be serialized, but if they happen to fit into the
+    // serializer scratch buffer, we could avoid writing to 2 files if we delay the file writes
+    bool HasFlushed() const { return m_bytesProcessedByFlushCallback > 0; }
+    void ChangeFilename( const std::string& newFilename ) { m_filename = newFilename; }
+    void RunFlushCallback();
+    size_t BytesWritten() const { return m_bytesWritten; }
+    std::ofstream& GetWriteFile() { return m_writeFile; }
+
 private:
+    bool FinalizeOpenWriteFile();
     void Flush();
 
     std::string m_filename;
@@ -117,10 +127,13 @@ private:
     unsigned char* m_currentReadPos = nullptr;
 
     std::ofstream m_writeFile;
-    size_t m_bytesWritten = 0;
+    size_t m_bytesWritten       = 0;
+    size_t m_bytesWrittenToFile = 0;
 
     SerializerOnFlushFunction m_flushCallback = nullptr;
+    size_t m_bytesProcessedByFlushCallback    = 0;
     void* m_userdata                          = nullptr;
     char* m_scratchBuffer                     = nullptr;
     size_t m_scratchPos                       = 0;
+    bool m_openWasDelayed                     = false;
 };

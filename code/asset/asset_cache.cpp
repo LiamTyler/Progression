@@ -42,6 +42,7 @@ namespace PG::AssetCache
 
 void Init()
 {
+    PGP_ZONE_SCOPEDN( "AssetCache::Init" );
     CreateDirectory( ROOT_DIR );
     for ( u32 i = 0; i < ASSET_TYPE_COUNT; ++i )
     {
@@ -85,17 +86,18 @@ void SerializeCallback( const void* buffer, size_t size, void* userdata )
 
 bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAsset* asset )
 {
+    PGP_ZONE_SCOPEDN( "CacheAsset" );
     AssetMetadata metadata = {};
     metadata.name          = asset->GetName();
 
-    // TODO! Don't create a tmp file, if the entire asset ends up fitting into the serializer's scratch buffer
-    std::string tmpPath = GetCachedPath( assetType, assetCacheName + "_tmp" );
+    std::string tmpPath   = GetCachedPath( assetType, assetCacheName + "_tmp" );
+    std::string finalPath = GetCachedPath( assetType, assetCacheName );
     try
     {
         HashData hashData{};
         Serializer serializer;
         serializer.SetOnFlushCallback( SerializeCallback, &hashData );
-        if ( !serializer.OpenForWrite( tmpPath ) )
+        if ( !serializer.OpenForWrite( tmpPath, true ) )
         {
             return false;
         }
@@ -105,6 +107,26 @@ bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAss
             DeleteFile( tmpPath );
             return false;
         }
+
+        // Fast path, for when the entire asset fits into the scratch buffer (very often)
+        // this way we avoid writing it to disk, and then reading it immediately again
+        // Close to 7x fater, on my windows machine at leat
+        if ( !serializer.HasFlushed() )
+        {
+            serializer.RunFlushCallback();
+            serializer.ChangeFilename( finalPath );
+            metadata.size = serializer.BytesWritten();
+            metadata.hash = hashData.Finalize();
+
+            u16 nameLen = static_cast<u16>( metadata.name.length() );
+            serializer.GetWriteFile().write( (char*)&nameLen, sizeof( u16 ) );
+            serializer.GetWriteFile().write( metadata.name.c_str(), nameLen );
+            serializer.GetWriteFile().write( (char*)&metadata.hash, sizeof( u64 ) );
+            serializer.GetWriteFile().write( (char*)&metadata.size, sizeof( u64 ) );
+            serializer.Close();
+            return true;
+        }
+
         metadata.size = serializer.Close();
         metadata.hash = hashData.Finalize();
     }
@@ -114,7 +136,6 @@ bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAss
         throw e;
     }
 
-    std::string finalPath = GetCachedPath( assetType, assetCacheName );
     try
     {
         Serializer inputSerializer;
@@ -142,6 +163,7 @@ bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAss
 
 std::unique_ptr<char[]> GetCachedAssetRaw( AssetType assetType, const std::string& assetCacheName, size_t& numBytes )
 {
+    PGP_ZONE_SCOPEDN( "GetCachedAssetRaw" );
     numBytes         = 0;
     std::string path = GetCachedPath( assetType, assetCacheName );
     Serializer in;

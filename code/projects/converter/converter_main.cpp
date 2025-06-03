@@ -44,6 +44,7 @@ static const std::string SCENE_DIR = PG_ASSET_DIR "scenes/";
 
 static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile )
 {
+    PGP_ZONE_SCOPEDN( "ParseCommandLineArgs" );
     static struct option long_options[] = {
         {"force",   no_argument,       0, 'f'},
         {"help",    no_argument,       0, 'h'},
@@ -99,6 +100,7 @@ static bool ParseCommandLineArgs( int argc, char** argv, std::string& sceneFile 
 
 bool FindAssetsUsedInFile( const std::string& filename )
 {
+    PGP_ZONE_SCOPEDN( "FindAssetsUsedInFile" );
     std::string ext = GetFileExtension( filename );
     if ( ext == ".csv" )
     {
@@ -207,6 +209,7 @@ bool FindAssetsUsedInFile( const std::string& filename )
 
 bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
 {
+    PGP_ZONE_SCOPEDN( "ConvertAssets" );
     auto convertStartTime = Time::GetTimePoint();
     u32 convertErrors     = 0;
     outOfDateAssets       = 0;
@@ -264,6 +267,7 @@ bool ConvertAssets( const std::string& sceneName, u32& outOfDateAssets )
 
 bool OutputFastfile( const std::string& sceneName, const u32 outOfDateAssets, const AssetList& prevAssetList )
 {
+    PGP_ZONE_SCOPEDN( "OutputFastfile" );
     std::string fastfileName      = GetFilenameStem( sceneName ) + "_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfileNameDebug = GetFilenameStem( sceneName ) + "_debug_v" + std::to_string( PG_FASTFILE_VERSION ) + ".ff";
     std::string fastfilePath      = PG_ASSET_DIR "cache/fastfiles/" + fastfileName;
@@ -384,6 +388,7 @@ struct SceneInfo
 
 bool ProcessSingleScene( const SceneInfo& sceneInfo )
 {
+    PGP_ZONE_SCOPED_FMT( "ProcessSingleScene %s", sceneInfo.name.c_str() );
     ClearAllFastfileDependencies();
     ClearAllUsedAssets();
 
@@ -440,6 +445,7 @@ bool ProcessSingleScene( const SceneInfo& sceneInfo )
 
 bool ConvertScenes( const std::string& scene )
 {
+    PGP_ZONE_SCOPEDN( "ConvertScenes" );
     std::vector<SceneInfo> scenesToProcess;
 
     namespace fs = std::filesystem;

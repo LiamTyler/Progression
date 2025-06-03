@@ -2073,7 +2073,7 @@ void Clay__ConfigureOpenElementPtr(const Clay_ElementDeclaration *declaration) {
         openLayoutElementId = Clay__GenerateIdForAnonymousElement(openLayoutElement);
     }
 
-    if (declaration->scroll.horizontal | declaration->scroll.vertical) {
+    if (declaration->scroll.horizontal || declaration->scroll.vertical) {
         Clay__AttachElementConfig(CLAY__INIT(Clay_ElementConfigUnion) { .scrollElementConfig = Clay__StoreScrollElementConfig(declaration->scroll) }, CLAY__ELEMENT_CONFIG_TYPE_SCROLL);
         Clay__int32_tArray_Add(&context->openClipElementStack, (int)openLayoutElement->id);
         // Retrieve or create cached data to track scroll position across frames

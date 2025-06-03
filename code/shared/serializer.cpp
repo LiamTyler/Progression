@@ -21,25 +21,19 @@ bool Serializer::OpenForRead( const std::string& fname )
     return true;
 }
 
-bool Serializer::OpenForWrite( const std::string& fname )
+bool Serializer::OpenForWrite( const std::string& fname, bool delayedOpen )
 {
     PG_DBG_ASSERT( !IsOpen(), "Dont forget to close last file used" );
-    m_filename             = fname;
-    std::string parentPath = GetParentPath( fname );
-    if ( !parentPath.empty() && !PathExists( parentPath ) )
-    {
-        CreateDirectory( parentPath );
-    }
-    m_writeFile.open( fname, std::ios::binary );
-    if ( !m_writeFile || !m_writeFile.is_open() )
-    {
-        LOG_ERR( "Could not open file '%s'", fname.c_str() );
+    m_filename       = fname;
+    m_openWasDelayed = delayedOpen;
+    if ( !m_openWasDelayed && !FinalizeOpenWriteFile() )
         return false;
-    }
 
-    m_bytesWritten  = 0;
-    m_scratchBuffer = (char*)malloc( SCRATCH_BUFFER_SIZE );
-    m_scratchPos    = 0;
+    m_bytesWritten                  = 0;
+    m_bytesWrittenToFile            = 0;
+    m_scratchBuffer                 = (char*)malloc( SCRATCH_BUFFER_SIZE );
+    m_scratchPos                    = 0;
+    m_bytesProcessedByFlushCallback = 0;
 
     return true;
 }
@@ -51,28 +45,59 @@ size_t Serializer::Close()
         m_memMappedFile.close();
         m_currentReadPos = nullptr;
     }
-    else if ( m_writeFile.is_open() )
+    else if ( m_openWasDelayed || m_writeFile.is_open() )
     {
         Flush();
         free( m_scratchBuffer );
         m_writeFile.close();
-        return m_bytesWritten;
+        return m_bytesWrittenToFile;
     }
 
     return 0;
+}
+
+void Serializer::RunFlushCallback()
+{
+    if ( !m_flushCallback || !m_scratchPos )
+        return;
+    if ( m_bytesProcessedByFlushCallback > m_bytesWrittenToFile )
+        return;
+
+    m_flushCallback( m_scratchBuffer, m_scratchPos, m_userdata );
+    m_bytesProcessedByFlushCallback += m_scratchPos;
 }
 
 void Serializer::Flush()
 {
     if ( m_scratchPos )
     {
-        if ( m_flushCallback )
-            m_flushCallback( m_scratchBuffer, m_scratchPos, m_userdata );
-
+        RunFlushCallback();
+        FinalizeOpenWriteFile();
         m_writeFile.write( m_scratchBuffer, m_scratchPos );
-        m_bytesWritten += m_scratchPos;
+        m_bytesWrittenToFile += m_scratchPos;
         m_scratchPos = 0;
     }
+}
+
+bool Serializer::FinalizeOpenWriteFile()
+{
+    if ( !m_openWasDelayed )
+        return true;
+
+    m_openWasDelayed       = false;
+    std::string parentPath = GetParentPath( m_filename );
+    if ( !parentPath.empty() && !PathExists( parentPath ) )
+    {
+        CreateDirectory( parentPath );
+    }
+    m_writeFile.open( m_filename, std::ios::binary );
+    if ( !m_writeFile || !m_writeFile.is_open() )
+    {
+        LOG_ERR( "Could not open file '%s'", m_filename.c_str() );
+        return false;
+    }
+
+    return true;
 }
 
 bool Serializer::IsOpen() const { return m_writeFile.is_open() || m_memMappedFile.isValid(); }
@@ -108,6 +133,7 @@ void Serializer::Write( const void* buffer, size_t bytes )
         size_t toWrite = std::min( bytes, SCRATCH_BUFFER_SIZE - m_scratchPos );
         memcpy( m_scratchBuffer + m_scratchPos, inputBuff, toWrite );
         m_scratchPos += toWrite;
+        m_bytesWritten += toWrite;
         inputBuff += toWrite;
         bytes -= toWrite;
         if ( m_scratchPos == SCRATCH_BUFFER_SIZE )

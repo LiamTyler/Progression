@@ -914,20 +914,6 @@ void DecompressGfxImage( const GfxImage& compressedImage, GfxImage& decompressed
     PixelFormat decompressedPixelFormat =
         ImageFormatToPixelFormat( decompressedImgFormat, PixelFormatIsSrgb( compressedImage.pixelFormat ) );
 
-    /*
-    size_t totalSizeInBytes = 0;
-    u8* pixels   = nullptr; // stored mip0face0, mip0face1, mip0face2... mip1face0, mip1face1, etc
-    u32 width          = 0;
-    u32 height         = 0;
-    u32 depth          = 0;
-    u32 mipLevels      = 0;
-    u32 numFaces       = 0;
-    PixelFormat pixelFormat;
-    ImageType imageType;
-    bool clampHorizontal;
-    bool clampVertical;
-    GfxImageFilterMode filterMode;
-    */
     decompressedImage.width            = compressedImage.width;
     decompressedImage.height           = compressedImage.height;
     decompressedImage.depth            = compressedImage.depth;

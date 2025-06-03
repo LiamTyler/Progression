@@ -15,6 +15,7 @@ BaseAssetConverter* g_converters[ASSET_TYPE_COUNT];
 
 void InitConverters()
 {
+    PGP_ZONE_SCOPEDN( "InitConverters" );
     g_converters[ASSET_TYPE_GFX_IMAGE] = new GfxImageConverter;
     g_converters[ASSET_TYPE_MATERIAL]  = new MaterialConverter;
     g_converters[ASSET_TYPE_SCRIPT]    = new ScriptConverter;

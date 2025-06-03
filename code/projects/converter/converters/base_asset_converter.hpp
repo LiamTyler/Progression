@@ -105,6 +105,7 @@ public:
 
     virtual bool Convert( ConstBaseCreateInfoPtr& baseInfo ) override
     {
+        PGP_ZONE_SCOPED_FMT( "Convert %s %s", g_assetNames[assetType], baseInfo->name.c_str() );
         LOG( "Converting out of date asset %s %s...", g_assetNames[assetType], baseInfo->name.c_str() );
         return ConvertInternal( std::static_pointer_cast<const DerivedInfo>( baseInfo ) );
     }

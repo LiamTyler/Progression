@@ -116,9 +116,9 @@ public:
     void RunFlushCallback();
     size_t BytesWritten() const { return m_bytesWritten; }
     std::ofstream& GetWriteFile() { return m_writeFile; }
+    bool FinalizeOpenWriteFile();
 
 private:
-    bool FinalizeOpenWriteFile();
     void Flush();
 
     std::string m_filename;

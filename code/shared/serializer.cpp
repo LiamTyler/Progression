@@ -81,7 +81,7 @@ void Serializer::Flush()
 
 bool Serializer::FinalizeOpenWriteFile()
 {
-    if ( !m_openWasDelayed )
+    if ( m_writeFile.is_open() )
         return true;
 
     m_openWasDelayed       = false;

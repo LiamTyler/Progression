@@ -115,9 +115,13 @@ bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAss
         {
             serializer.RunFlushCallback();
             serializer.ChangeFilename( finalPath );
+            if ( !serializer.FinalizeOpenWriteFile() )
+                return false;
+
             metadata.size = serializer.BytesWritten();
             metadata.hash = hashData.Finalize();
 
+            // keep in sync with SerializeAssetMetadata
             u16 nameLen = static_cast<u16>( metadata.name.length() );
             serializer.GetWriteFile().write( (char*)&nameLen, sizeof( u16 ) );
             serializer.GetWriteFile().write( metadata.name.c_str(), nameLen );

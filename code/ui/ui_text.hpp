@@ -6,24 +6,15 @@
 namespace PG::UI::Text
 {
 
-enum class Justification : u8
-{
-    LEFT   = 0,
-    CENTER = 1,
-    RIGHT  = 2,
-
-    NUM_JUSTIFICATION
-};
-
 void Init();
 void Shutdown();
 
 struct TextDrawInfo
 {
+    Font* font = nullptr; // if null, will use default font
     vec2 pos;
-    vec4 color                  = vec4( 1, 1, 1, 1 );
-    float fontSize              = 16;
-    Justification justification = Justification::LEFT;
+    vec4 color     = vec4( 1, 1, 1, 1 );
+    float fontSize = 16;
 };
 
 vec2 MeasureText( const char* text, u32 length, Font* font, float fontSize );
@@ -31,5 +22,9 @@ vec2 MeasureText( const char* text, u32 length, Font* font, float fontSize );
 void Draw2D( const TextDrawInfo& textDrawInfo, const char* str );
 
 void Render( Gfx::CommandBuffer& cmdBuf );
+
+// used by ui_system.cpp internally
+void Clay_Draw2D( Gfx::CommandBuffer& cmdBuf, const std::string_view& str, const TextDrawInfo& textDrawInfo );
+void Clay_FinalizeTextDraws();
 
 } // namespace PG::UI::Text

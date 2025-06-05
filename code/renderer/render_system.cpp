@@ -18,6 +18,7 @@
 #include "shared/logger.hpp"
 #include "taskgraph/r_taskGraph.hpp"
 #include "ui/ui_system.hpp"
+#include "ui/ui_text.hpp"
 
 using namespace PG;
 using namespace Gfx;
@@ -55,11 +56,11 @@ void UI_2D_DrawFunc( GraphicsTask* task, TGExecuteData* data )
     // UI::Text::TextDrawInfo tInfo;
     // tInfo.pos = vec2( 0.9, 0 );
     // UI::Text::Draw2D( tInfo, "Frustum: 11" );
-    // tInfo.pos = vec2( 0.9, 0.1 );
-    // UI::Text::Draw2D( tInfo, "Frustum: 12" );
+    //  tInfo.pos = vec2( 0.9, 0.1 );
+    //  UI::Text::Draw2D( tInfo, "Frustum: 12" );
 
-    // UI::Text::Render( cmdBuf );
     UI::Render( cmdBuf );
+    UI::Text::Render( cmdBuf );
     UIOverlay::AddDrawFunction( Profile::DrawResultsOnScreen );
     UIOverlay::Render( cmdBuf );
     DebugDraw::Draw2D( cmdBuf );

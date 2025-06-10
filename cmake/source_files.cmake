@@ -21,8 +21,6 @@ set(
     ${CODE_DIR}/asset/types/shader.hpp
     ${CODE_DIR}/asset/types/textureset.cpp
     ${CODE_DIR}/asset/types/textureset.hpp
-	${CODE_DIR}/asset/types/ui_layout.cpp
-    ${CODE_DIR}/asset/types/ui_layout.hpp
     ${CODE_DIR}/asset/shader_preprocessor.cpp
     ${CODE_DIR}/asset/shader_preprocessor.hpp
     
@@ -56,10 +54,8 @@ set(
 set(
     UI_SRC
     
-    ${CODE_DIR}/ui/ui_data_structures.cpp
-    ${CODE_DIR}/ui/ui_data_structures.hpp
-	${CODE_DIR}/ui/ui_element.cpp
-    ${CODE_DIR}/ui/ui_element.hpp
+    ${CODE_DIR}/ui/ui_clay_lua.cpp
+    ${CODE_DIR}/ui/ui_clay_lua.hpp
     ${CODE_DIR}/ui/ui_system.cpp
     ${CODE_DIR}/ui/ui_system.hpp
     ${CODE_DIR}/ui/ui_text.cpp

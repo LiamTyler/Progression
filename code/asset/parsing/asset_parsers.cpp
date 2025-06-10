@@ -5,7 +5,7 @@ using cjval = const rapidjson::Value&;
 namespace PG
 {
 
-static_assert( ASSET_TYPE_COUNT == 9 );
+static_assert( ASSET_TYPE_COUNT == 8 );
 
 const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     std::make_unique<GfxImageParser>(),   // ASSET_TYPE_GFX_IMAGE
@@ -13,7 +13,6 @@ const std::unique_ptr<BaseAssetParser> g_assetParsers[ASSET_TYPE_COUNT] = {
     std::make_unique<ScriptParser>(),     // ASSET_TYPE_SCRIPT
     std::make_unique<ModelParser>(),      // ASSET_TYPE_MODEL
     std::make_unique<NullParser>(),       // ASSET_TYPE_SHADER
-    std::make_unique<UILayoutParser>(),   // ASSET_TYPE_UI_LAYOUT
     std::make_unique<PipelineParser>(),   // ASSET_TYPE_PIPELINE
     std::make_unique<FontParser>(),       // ASSET_TYPE_FONT
     std::make_unique<TexturesetParser>(), // ASSET_TYPE_TEXTURESET
@@ -153,17 +152,6 @@ bool ScriptParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "filename", []( cjval v, ScriptCreateInfo& s ) { s.filename = ParseString( v ); } },
     });
     mapping.ForEachMember( value, *info );
-    return true;
-}
-
-bool UILayoutParser::ParseInternal( cjval value, DerivedInfoPtr info )
-{
-    static JSONFunctionMapper<UILayoutCreateInfo&> mapping(
-    {
-        { "filename", []( cjval v, UILayoutCreateInfo& s ) { s.filename = ParseString( v ); } },
-    });
-    mapping.ForEachMember( value, *info );
-
     return true;
 }
 

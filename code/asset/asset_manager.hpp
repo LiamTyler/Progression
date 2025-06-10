@@ -8,7 +8,6 @@
 #include "asset/types/pipeline.hpp"
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
-#include "asset/types/ui_layout.hpp"
 #include "shared/assert.hpp"
 #include <unordered_map>
 

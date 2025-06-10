@@ -434,6 +434,8 @@ bool ProcessSingleScene( const SceneInfo& sceneInfo )
         return false;
     }
 
+    // NOTE: this isn't valid to do if an asset type is removed. There is no versioning or checking,
+    // So if the ASSET_TYPE enum is edited, this folder should just be deleted
     AssetList prevAssetList;
     prevAssetList.Import( sceneInfo.name );
 

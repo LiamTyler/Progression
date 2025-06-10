@@ -9,7 +9,6 @@
 #include "asset/types/script.hpp"
 #include "asset/types/shader.hpp"
 #include "asset/types/textureset.hpp"
-#include "asset/types/ui_layout.hpp"
 #include "shared/json_parsing.hpp"
 #include "shared/logger.hpp"
 
@@ -87,7 +86,6 @@ PG_DECLARE_ASSET_PARSER( GfxImage, ASSET_TYPE_GFX_IMAGE, GfxImageCreateInfo );
 PG_DECLARE_ASSET_PARSER( Material, ASSET_TYPE_MATERIAL, MaterialCreateInfo );
 PG_DECLARE_ASSET_PARSER( Model, ASSET_TYPE_MODEL, ModelCreateInfo );
 PG_DECLARE_ASSET_PARSER( Script, ASSET_TYPE_SCRIPT, ScriptCreateInfo );
-PG_DECLARE_ASSET_PARSER( UILayout, ASSET_TYPE_UI_LAYOUT, UILayoutCreateInfo );
 PG_DECLARE_ASSET_PARSER( Pipeline, ASSET_TYPE_PIPELINE, PipelineCreateInfo );
 PG_DECLARE_ASSET_PARSER( Font, ASSET_TYPE_FONT, FontCreateInfo );
 PG_DECLARE_ASSET_PARSER( Textureset, ASSET_TYPE_TEXTURESET, TexturesetCreateInfo );

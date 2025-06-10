@@ -6,7 +6,6 @@
 #include "converters/pipeline_converter.hpp"
 #include "converters/script_converter.hpp"
 #include "converters/shader_converter.hpp"
-#include "converters/ui_layout_converter.hpp"
 
 namespace PG
 {
@@ -21,12 +20,11 @@ void InitConverters()
     g_converters[ASSET_TYPE_SCRIPT]    = new ScriptConverter;
     g_converters[ASSET_TYPE_MODEL]     = new ModelConverter;
     g_converters[ASSET_TYPE_SHADER]    = new ShaderConverter;
-    g_converters[ASSET_TYPE_UI_LAYOUT] = new UILayoutConverter;
     g_converters[ASSET_TYPE_PIPELINE]  = new PipelineConverter;
     g_converters[ASSET_TYPE_FONT]      = new FontConverter;
     // pass through, as texturesets aren't actually converted
     g_converters[ASSET_TYPE_TEXTURESET] = new BaseAssetConverter( ASSET_TYPE_TEXTURESET );
-    static_assert( ASSET_TYPE_COUNT == 9 );
+    static_assert( ASSET_TYPE_COUNT == 8 );
 
     InitShaderIncludeCache();
 }

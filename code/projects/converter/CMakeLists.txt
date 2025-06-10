@@ -10,7 +10,6 @@ set(
     ${ASSET_SRC}
     
     ${ASSET_PARSE_SRC}
-    ${CODE_DIR}/ui/ui_element.hpp
     ${ECS_SRC}
 	
     ${CODE_DIR}/asset/asset_cache.cpp
@@ -73,8 +72,6 @@ set(
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/script_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters/shader_converter.hpp
-	${CMAKE_CURRENT_SOURCE_DIR}/converters/ui_layout_converter.cpp
-    ${CMAKE_CURRENT_SOURCE_DIR}/converters/ui_layout_converter.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converters.hpp
     ${CMAKE_CURRENT_SOURCE_DIR}/converter_main.cpp

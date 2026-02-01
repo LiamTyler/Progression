@@ -48,6 +48,7 @@ bool Swapchain::Create( u32 width, u32 height )
     std::vector<VkImage> images         = vkbSwapchain.get_images().value();
     std::vector<VkImageView> imageViews = vkbSwapchain.get_image_views().value();
     m_textures.resize( images.size() );
+    m_submitSemaphores.resize( images.size() );
     for ( size_t i = 0; i < images.size(); ++i )
     {
         Texture& tex = m_textures[i];
@@ -64,6 +65,9 @@ bool Swapchain::Create( u32 width, u32 height )
         tex.m_bindlessIndex = BindlessManager::AddTexture( &tex );
         PG_DEBUG_MARKER_SET_IMAGE_NAME( images[i], "swapchain " + std::to_string( i ) );
         PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( imageViews[i], "swapchain " + std::to_string( i ) );
+
+        std::string iStr      = std::to_string( i );
+        m_submitSemaphores[i] = rg.device.NewSemaphore( "swapchain_submit" + iStr );
     }
 
     return true;
@@ -71,15 +75,14 @@ bool Swapchain::Create( u32 width, u32 height )
 
 bool Swapchain::Recreate( u32 preferredWidth, u32 preferredHeight )
 {
-    rg.device.WaitForIdle();
     Free();
     return Create( preferredWidth, preferredHeight );
 }
 
-bool Swapchain::AcquireNextImage( const Semaphore& presentCompleteSemaphore )
+bool Swapchain::AcquireNextImage( const Semaphore& acquireSemaphore )
 {
     PGP_ZONE_SCOPEDN( "Swapchain::AcquireNextImage" );
-    VkResult res = vkAcquireNextImageKHR( rg.device, m_handle, UINT64_MAX, presentCompleteSemaphore, VK_NULL_HANDLE, &m_currentImageIdx );
+    VkResult res      = vkAcquireNextImageKHR( rg.device, m_handle, UINT64_MAX, acquireSemaphore, VK_NULL_HANDLE, &m_currentImageIdx );
     bool resizeNeeded = res == VK_SUBOPTIMAL_KHR || res == VK_ERROR_OUT_OF_DATE_KHR;
     PG_ASSERT( res == VK_SUCCESS || resizeNeeded, "vkAcquireNextImageKHR failed with error %d", res );
     return !resizeNeeded;
@@ -93,8 +96,10 @@ void Swapchain::Free()
     {
         vkDestroyImageView( rg.device, m_textures[i].GetView(), nullptr );
         BindlessManager::RemoveTexture( m_textures[i].m_bindlessIndex );
+        m_submitSemaphores[i].Free();
     }
     m_textures.clear();
+    m_submitSemaphores.clear();
 
     vkDestroySwapchainKHR( rg.device, m_handle, nullptr );
     m_handle = VK_NULL_HANDLE;
@@ -108,6 +113,7 @@ u32 Swapchain::GetWidth() const { return m_width; }
 u32 Swapchain::GetHeight() const { return m_height; }
 VkSwapchainKHR Swapchain::GetHandle() const { return m_handle; }
 u32 Swapchain::GetNumImages() const { return (u32)m_textures.size(); }
+Semaphore Swapchain::GetSubmitSemaphore() const { return m_submitSemaphores[m_currentImageIdx]; }
 Texture& Swapchain::GetTexture() { return m_textures[m_currentImageIdx]; }
 Texture& Swapchain::GetTextureAt( u32 index ) { return m_textures[index]; }
 

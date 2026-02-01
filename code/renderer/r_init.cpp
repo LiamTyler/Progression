@@ -131,10 +131,9 @@ static void InitSyncObjects()
 {
     for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
-        std::string iStr                           = std::to_string( i );
-        rg.frameData[i].swapchainSemaphore         = rg.device.NewSemaphore( "swapchainSemaphore" + iStr );
-        rg.frameData[i].renderingCompleteSemaphore = rg.device.NewSemaphore( "renderingCompleteSemaphore" + iStr );
-        rg.frameData[i].renderingCompleteFence     = rg.device.NewFence( true, "renderingCompleteFence" + iStr );
+        std::string iStr                       = std::to_string( i );
+        rg.frameData[i].acquireImageSemaphore  = rg.device.NewSemaphore( "acquireImageSemaphore_" + iStr );
+        rg.frameData[i].renderingCompleteFence = rg.device.NewFence( true, "renderingCompleteFence_" + iStr );
     }
 
     rg.immediateFence = rg.device.NewFence( false, "immediate" );
@@ -365,8 +364,7 @@ void R_Shutdown()
     {
         FrameData& frameData = rg.frameData[i];
         frameData.cmdPool.Free();
-        frameData.swapchainSemaphore.Free();
-        frameData.renderingCompleteSemaphore.Free();
+        frameData.acquireImageSemaphore.Free();
         frameData.renderingCompleteFence.Free();
     }
     rg.immediateCmdPool.Free();

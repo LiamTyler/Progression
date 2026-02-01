@@ -23,7 +23,7 @@ enum : u8
 
 struct FrameData
 {
-    Semaphore swapchainSemaphore, renderingCompleteSemaphore;
+    Semaphore acquireImageSemaphore;
     Fence renderingCompleteFence;
 
     CommandPool cmdPool;

@@ -149,7 +149,7 @@ bool FindAssetsUsedInFile( const std::string& filename )
     }
     else if ( ext == ".json" )
     {
-        Scene* scene = Scene::Load( filename );
+        Scene* scene = LoadScene( GetFilenameStem( filename ) );
         if ( !scene )
         {
             return false;
@@ -410,7 +410,7 @@ bool ProcessSingleScene( const SceneInfo& sceneInfo )
         }
         foundScene = true;
     }
-    filename = sceneInfo.filename + ".json";
+    filename = PG_ASSET_DIR "scenes/" + sceneInfo.name + ".json";
     if ( PathExists( filename ) )
     {
         if ( !FindAssetsUsedInFile( filename ) )
@@ -456,13 +456,24 @@ bool ConvertScenes( const std::string& scene )
         for ( const auto& entry : fs::recursive_directory_iterator( PG_ASSET_DIR "required_assets/" ) )
         {
             std::string path = entry.path().string();
-            if ( entry.is_regular_file() && ( GetFileExtension( path ) == ".paf" ) )
+            if ( entry.is_regular_file() )
             {
                 SceneInfo sInfo;
                 sInfo.filename      = GetFilenameMinusExtension( path );
                 sInfo.name          = GetRelativeFilename( sInfo.filename );
                 sInfo.requiredScene = true;
-                scenesToProcess.push_back( sInfo );
+
+                bool existsAlready = false;
+                for ( const SceneInfo& existingInfo : scenesToProcess )
+                {
+                    if ( sInfo.name == existingInfo.name )
+                    {
+                        existsAlready = true;
+                        break;
+                    }
+                }
+                if ( !existsAlready )
+                    scenesToProcess.push_back( sInfo );
             }
         }
     }

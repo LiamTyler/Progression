@@ -83,7 +83,7 @@ bool EngineInitialize( EngineInitInfo info )
 void EngineShutdown()
 {
 #if USING( GAME )
-    FreeAllScenes();
+    RemoveAllScenes();
     RemoteConsoleServer::Shutdown();
     UI::Shutdown();
     RenderSystem::Shutdown();

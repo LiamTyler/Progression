@@ -24,6 +24,7 @@ enum class InputContextID : u8
 {
     GLOBAL_CONTROLS,
     CAMERA_CONTROLS,
+    MAIN_MENU,
 
     COUNT
 };
@@ -89,16 +90,9 @@ public:
     void PopContext_Front();
     void PushContext_Back( InputContextID contextID );
     void PopContext_Back();
-    void PushLayer( InputContextID contextID );
-    void PopLayer();
 
 private:
-    struct ContextLayer
-    {
-        std::vector<InputContext*> contexts;
-    };
-    ContextLayer& CurrentLayer() { return m_layers.back(); }
-    std::vector<ContextLayer> m_layers;
+    std::vector<InputContext*> m_contexts;
 };
 
 bool Init();

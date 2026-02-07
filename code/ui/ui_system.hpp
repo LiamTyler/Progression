@@ -12,7 +12,8 @@ bool Init();
 void Shutdown();
 
 void BootMainMenu();
-void Update();
+void BeginFrame();
+void EndFrame();
 void Render( Gfx::CommandBuffer& cmdBuf );
 
 } // namespace PG::UI

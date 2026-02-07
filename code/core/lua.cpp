@@ -101,14 +101,6 @@ void RegisterLuaFunctions_Math( lua_State* L )
     mat4_type.set_function( sol::meta_function::unary_minus, []( const mat4& a ) { return -a; } );
 }
 
-void RegisterLuaFunctions_Filesystem( lua_State* L )
-{
-    sol::state_view lua( L );
-    lua["GetFilesProjectSubdir"] = []( const std::string& relPath, bool recursive )
-    { return GetFilesInDir( PG_ROOT_DIR + relPath, recursive ); };
-    lua["GetRelativeFilename"] = GetRelativeFilename;
-}
-
 void Init()
 {
     PG_ASSERT( !g_LuaState );
@@ -131,7 +123,6 @@ void SetupStateFunctions( lua_State* state )
     ECS::RegisterLuaFunctions( state );
     AssetManager::RegisterLuaFunctions( state );
     RegisterLuaFunctions_Time( state );
-    RegisterLuaFunctions_Filesystem( state );
 #if USING( GAME )
     RegisterLuaFunctions_Window( state );
     Input::RegisterLuaFunctions( state );
@@ -177,8 +168,21 @@ void ScriptInstance::Update()
 {
     if ( hasUpdateFunction )
     {
-        updateFunction();
+        CHECK_SOL_FUNCTION_CALL( updateFunction() );
     }
+}
+
+bool ScriptInstance::HasFunction( std::string_view funcName ) const
+{
+    sol::function fn = env[funcName];
+    return fn.valid();
+}
+
+void ScriptInstance::RunFunction( std::string_view funcName )
+{
+    sol::function fn = env[funcName];
+    PG_ASSERT( fn.valid(), "No function with name %s found", funcName.data() );
+    CHECK_SOL_FUNCTION_CALL( fn() );
 }
 
 } // namespace PG::Lua

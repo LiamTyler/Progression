@@ -3,6 +3,7 @@
 #include "c_shared/clay_ui.h"
 #include "clay/clay.h"
 #include "core/lua.hpp"
+#include "core/input.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
@@ -70,6 +71,12 @@ bool Init()
     AssetManager::AddLiveUpdateCallback( ASSET_TYPE_SCRIPT, AssetLiveUpdateCallback );
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
+    //using namespace Input;
+    //InputContext* context = GetContext( InputContextID::MAIN_MENU );
+    //context->SetBlockLevel( InputContextBlockLevel::BLOCK_MAPPED_CONTROLS );
+    //context->AddRawButtonToAction(  Action::QUIT_GAME );
+    //context->AddRawAxisToAxis();
+
     return true;
 }
 
@@ -87,7 +94,7 @@ void BootMainMenu()
     s_scriptInstance = new Lua::ScriptInstance( script );
 }
 
-void Update()
+void BeginFrame()
 {
     Clay_SetLayoutDimensions( Clay_Dimensions{ Width(), Height() } );
     // Optional: Update internal pointer position for handling mouseover / click / touch events - needed for scrolling & debug tools
@@ -137,7 +144,10 @@ void Update()
     }
     // clang-format on
 #endif
+}
 
+void EndFrame()
+{
     s_clayRenderCommands = Clay_EndLayout();
 }
 

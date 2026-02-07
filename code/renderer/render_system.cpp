@@ -208,10 +208,10 @@ void Render()
 {
     FrameData& frameData = rg.GetFrameData();
     frameData.renderingCompleteFence.WaitFor();
-    if ( !rg.swapchain.AcquireNextImage( frameData.swapchainImageAcquireSemaphore ) )
+    if ( !rg.swapchain.AcquireNextImage( frameData.acquireImageSemaphore ) )
     {
         eg.resizeRequested = true;
-        frameData.swapchainImageAcquireSemaphore.Unsignal();
+        frameData.acquireImageSemaphore.Unsignal();
         return;
     }
     PGP_ZONE_SCOPEDN( "Render" );
@@ -245,7 +245,7 @@ void Render()
     VkPipelineStageFlags2 waitStages = VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT;
     // VkPipelineStageFlags2 waitStages =
     //     VK_PIPELINE_STAGE_2_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_2_TRANSFER_BIT;
-    VkSemaphoreSubmitInfo waitInfo   = SemaphoreSubmitInfo( waitStages, frameData.swapchainImageAcquireSemaphore );
+    VkSemaphoreSubmitInfo waitInfo   = SemaphoreSubmitInfo( waitStages, frameData.acquireImageSemaphore );
     VkSemaphoreSubmitInfo signalInfo = SemaphoreSubmitInfo( VK_PIPELINE_STAGE_2_ALL_COMMANDS_BIT, rg.swapchain.GetSubmitSemaphore() );
     rg.device.Submit( QueueType::GRAPHICS, cmdBuf, &waitInfo, &signalInfo, &frameData.renderingCompleteFence );
 

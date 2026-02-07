@@ -41,6 +41,8 @@ struct ScriptInstance
     ScriptInstance( Script* scriptAsset );
 
     void Update();
+    bool HasFunction( std::string_view funcName ) const;
+    void RunFunction( std::string_view funcName );
 
     Script* scriptAsset = nullptr;
     sol::environment env;

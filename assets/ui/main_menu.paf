@@ -1,0 +1,8 @@
+[
+    { "Image": {
+		"name": "bubba_sleeping",
+		"filename": "ui/bubba_sleeping.jpg",
+		"semantic": "UI",
+        "flipVertically": false
+	} }
+]

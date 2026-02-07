@@ -1,0 +1,6 @@
+[
+    { "Script": {
+        "name": "startup",
+        "filename": "scripts/startup_script.lua"
+    }}
+]

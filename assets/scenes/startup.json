@@ -1,0 +1,6 @@
+[
+    { "Camera": { "position": [ 0, 0, 0 ], "rotation": [ 0, 0, 0 ] } },
+    { "Script": "startup" },
+    { "SkyTint": [ 0, 0, 0 ] },
+    { "Skybox": "white_sky" }
+]

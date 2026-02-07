@@ -1,6 +1,7 @@
 #include "ui_clay_lua.hpp"
 #include "asset/asset_manager.hpp"
 #include "core/lua.hpp"
+#include "renderer/r_globals.hpp"
 #include "ui/ui_text.hpp"
 #define CLAY_IMPLEMENTATION
 #include "clay/clay.h"
@@ -153,6 +154,7 @@ bool Init_ClayLua()
     eDeclatation_type["backgroundColor"]                     = &Clay_ElementDeclaration::backgroundColor;
     eDeclatation_type["image"]                               = &Clay_ElementDeclaration::image;
     eDeclatation_type["border"]                              = &Clay_ElementDeclaration::border;
+    uiNamespace["NullImage"]                                 = []() { return Clay_ImageElementConfig{}; };
 
     sol::usertype<Clay_TextElementConfig> text_config_type = uiNamespace.new_usertype<Clay_TextElementConfig>( "TextConfig" );
     text_config_type["textColor"]                          = &Clay_TextElementConfig::textColor;
@@ -176,6 +178,10 @@ bool Init_ClayLua()
     uiNamespace["CreateID"]         = CreateID;
     uiNamespace["GetFont"]          = GetFontByName;
     uiNamespace["AddText"]          = AddText;
+
+    uiNamespace["Hovered"]       = Clay_Hovered;
+    uiNamespace["DisplayWidth"]  = []() { return (float)PG::Gfx::rg.displayWidth; };
+    uiNamespace["DisplayHeight"] = []() { return (float)PG::Gfx::rg.displayHeight; };
 
     return true;
 }

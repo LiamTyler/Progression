@@ -192,8 +192,6 @@ bool Init()
         return false;
     }
 
-    s_contextManager.PushLayer( InputContextID::CAMERA_CONTROLS );
-
     ResetMousePosition();
 
     if ( !SDL_SetHint( SDL_HINT_KEYCODE_OPTIONS, "unmodified" ) )
@@ -323,9 +321,7 @@ void InputContext::ProcessCallbacks( const CallbackInput& cInput )
 InputContextManager::InputContextManager()
 {
     ClearAll();
-    m_layers.reserve( 8 );
-    for ( auto& layer : m_layers )
-        layer.contexts.reserve( 8 );
+    m_contexts.reserve( 32 );
 }
 
 static void GlobalControlsInputCallback( const CallbackInput& cInput )
@@ -393,7 +389,7 @@ void InputContextManager::Update()
 
     // make copy, in case the callbacks edit the context list/order
     static std::vector<InputContext*> scratchContexts;
-    scratchContexts = CurrentLayer().contexts;
+    scratchContexts = m_contexts;
     for ( size_t cIdx = scratchContexts.size(); cIdx-- > 0; )
     {
         InputContext* context = scratchContexts[cIdx];
@@ -407,20 +403,14 @@ void InputContextManager::Update()
     }
 }
 
-void InputContextManager::ClearAll() { m_layers.clear(); }
+void InputContextManager::ClearAll() { m_contexts.clear(); }
 void InputContextManager::PushContext_Front( InputContextID contextID )
 {
-    CurrentLayer().contexts.insert( CurrentLayer().contexts.begin(), GetContext( contextID ) );
+    m_contexts.insert( m_contexts.begin(), GetContext( contextID ) );
 }
-void InputContextManager::PopContext_Front() { CurrentLayer().contexts.erase( CurrentLayer().contexts.begin() ); }
-void InputContextManager::PushContext_Back( InputContextID contextID ) { CurrentLayer().contexts.push_back( GetContext( contextID ) ); }
-void InputContextManager::PopContext_Back() { CurrentLayer().contexts.pop_back(); }
-void InputContextManager::PushLayer( InputContextID contextID )
-{
-    m_layers.emplace_back();
-    PushContext_Back( contextID );
-}
-void InputContextManager::PopLayer() { m_layers.pop_back(); }
+void InputContextManager::PopContext_Front() { m_contexts.erase( m_contexts.begin() ); }
+void InputContextManager::PushContext_Back( InputContextID contextID ) { m_contexts.push_back( GetContext( contextID ) ); }
+void InputContextManager::PopContext_Back() { m_contexts.pop_back(); }
 
 InputContext* GetContext( InputContextID id ) { return s_allInputContexts[Underlying( id )]; }
 
@@ -480,6 +470,7 @@ const char* InputContextIDToString( InputContextID id )
     static const char* names[] = {
         "GLOBAL_CONTROLS",
         "CAMERA_CONTROLS",
+        "MAIN_MENU",
     };
     static_assert( Underlying( InputContextID::COUNT ) == ARRAY_COUNT( names ), "don't forget to update" );
 

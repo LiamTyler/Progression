@@ -20,8 +20,6 @@ public:
     Scene() = default;
     ~Scene();
 
-    static Scene* Load( const std::string& filename );
-
     void Start();
     void Update();
 
@@ -48,10 +46,11 @@ public:
 
 void RegisterLuaFunctions_Scene( lua_State* L );
 
+Scene* LoadScene( std::string_view name );
 Scene* GetPrimaryScene();
 Scene* GetScene( std::string_view name );
 void SetPrimaryScene( Scene* scene );
-void FreeScene( Scene* scene );
-void FreeAllScenes();
+void RemoveScene( Scene* scene );
+void RemoveAllScenes();
 
 } // namespace PG

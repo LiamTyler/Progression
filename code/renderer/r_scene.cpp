@@ -64,6 +64,7 @@ void Shutdown_SceneData()
 
 void UpdateSceneData( Scene* scene )
 {
+    PG_ASSERT( scene );
     PGP_ZONE_SCOPEDN( "UpdateGPUSceneData" );
     FrameData& frameData = rg.GetFrameData();
 

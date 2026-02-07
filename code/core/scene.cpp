@@ -195,16 +195,18 @@ Scene::~Scene()
         delete light;
 
 #if USING( GPU_DATA )
-        // tlas.Free();
+    // tlas.Free();
 #endif // #if USING( GPU_DATA )
 }
 
-Scene* Scene::Load( const std::string& filename )
+Scene* LoadScene( std::string_view name )
 {
     PGP_ZONE_SCOPEDN( "Scene::Load" );
-    auto startTime = Time::GetTimePoint();
-    Scene* scene   = new Scene;
-    scene->name    = GetFilenameStem( filename );
+    auto startTime       = Time::GetTimePoint();
+    Scene* scene         = new Scene;
+    scene->name          = name;
+    std::string filename = PG_ASSET_DIR "scenes/" + scene->name + ".json";
+    //std::string filename = PG_ASSET_DIR "scenes/" + scene->name;
     rapidjson::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
@@ -213,13 +215,11 @@ Scene* Scene::Load( const std::string& filename )
         return nullptr;
     }
 
-    Scene* previousPrimaryScene = GetPrimaryScene();
-    SetPrimaryScene( scene );
     Lua::State()["ECS"]   = &scene->registry;
     Lua::State()["scene"] = scene;
 
 #if USING( GAME )
-    if ( !AssetManager::LoadFastFile( GetFilenameStem( filename ) ) )
+    if ( !AssetManager::LoadFastFile( scene->name ) )
     {
         delete scene;
         return nullptr;
@@ -247,7 +247,6 @@ Scene* Scene::Load( const std::string& filename )
         if ( !mapping.ForEachMember( *itr, scene ) )
         {
             delete scene;
-            SetPrimaryScene( previousPrimaryScene );
             return nullptr;
         }
     }
@@ -316,6 +315,10 @@ void RegisterLuaFunctions_Scene( lua_State* L )
     scene_type["camera"]            = &Scene::camera;
     scene_type["AddPointLight"]     = &Scene::AddPointLight;
     scene_type["AddSpotLight"]      = &Scene::AddSpotLight;
+
+    lua["LoadScene"] = LoadScene;
+    lua["SetPrimaryScene"] = SetPrimaryScene;
+    lua["GetScene"] = GetScene;
 }
 
 Scene* GetPrimaryScene() { return s_primaryScene; }
@@ -333,7 +336,7 @@ Scene* GetScene( std::string_view name )
 
 void SetPrimaryScene( Scene* scene ) { s_primaryScene = scene; }
 
-void FreeScene( Scene* toDeleteScene )
+void RemoveScene( Scene* toDeleteScene )
 {
     s_scenesLock.lock();
     if ( toDeleteScene == s_primaryScene )
@@ -344,7 +347,7 @@ void FreeScene( Scene* toDeleteScene )
     PG_ASSERT( numElementsErased == 1, "Trying to free a scene that doesn't exist in the managed list" );
 }
 
-void FreeAllScenes()
+void RemoveAllScenes()
 {
     s_scenesLock.lock();
     for ( Scene* scene : s_scenes )

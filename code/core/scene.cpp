@@ -195,7 +195,7 @@ Scene::~Scene()
         delete light;
 
 #if USING( GPU_DATA )
-    // tlas.Free();
+        // tlas.Free();
 #endif // #if USING( GPU_DATA )
 }
 
@@ -206,7 +206,7 @@ Scene* LoadScene( std::string_view name )
     Scene* scene         = new Scene;
     scene->name          = name;
     std::string filename = PG_ASSET_DIR "scenes/" + scene->name + ".json";
-    //std::string filename = PG_ASSET_DIR "scenes/" + scene->name;
+    // std::string filename = PG_ASSET_DIR "scenes/" + scene->name;
     rapidjson::Document document;
     if ( !ParseJSONFile( filename, document ) )
     {
@@ -316,9 +316,9 @@ void RegisterLuaFunctions_Scene( lua_State* L )
     scene_type["AddPointLight"]     = &Scene::AddPointLight;
     scene_type["AddSpotLight"]      = &Scene::AddSpotLight;
 
-    lua["LoadScene"] = LoadScene;
+    lua["LoadScene"]       = LoadScene;
     lua["SetPrimaryScene"] = SetPrimaryScene;
-    lua["GetScene"] = GetScene;
+    lua["GetScene"]        = GetScene;
 }
 
 Scene* GetPrimaryScene() { return s_primaryScene; }

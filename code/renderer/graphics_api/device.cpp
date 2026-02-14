@@ -18,48 +18,58 @@
 namespace PG::Gfx
 {
 
-bool Device::Create( const vkb::Device& vkbDevice )
+bool Device::Create( const PhysicalDevice& physicalDevice, VkInstance instance )
 {
     PGP_ZONE_SCOPEDN( "Device::Create" );
-    m_handle = vkbDevice.device;
-    PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( m_handle, "Primary" );
-    m_hasDedicatedTransferQueue = false;
+    const PhysicalDeviceMetadata* pMetadata = physicalDevice.GetMetadata();
+    VkDeviceQueueCreateInfo queueCI[Underlying( QueueType::COUNT )];
+    float qPriorities = 1.0f;
 
-    // TODO: actually ensure this queue supports all the operations we need
-    auto queueRet = vkbDevice.get_queue( vkb::QueueType::graphics );
-    if ( !queueRet )
+    VkDeviceQueueCreateInfo& mainQCI = queueCI[Underlying( QueueType::GRAPHICS )];
+    mainQCI                          = { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+    mainQCI.queueFamilyIndex         = pMetadata->mainQueueFamilyIndex;
+    mainQCI.queueCount               = 1;
+    mainQCI.pQueuePriorities         = &qPriorities;
+
+    u32 numQueues               = 1;
+    m_hasDedicatedTransferQueue = pMetadata->transferQueueFamilyIndex != INVALID_QUEUE_FAMILY;
+    if ( m_hasDedicatedTransferQueue )
     {
-        LOG_ERR( "Could not get graphics queue. Error: %s", queueRet.error().message().c_str() );
-        return false;
+        VkDeviceQueueCreateInfo& transferQCI = queueCI[Underlying( QueueType::TRANSFER )];
+        transferQCI                          = { .sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
+        transferQCI.queueFamilyIndex         = pMetadata->transferQueueFamilyIndex;
+        transferQCI.queueCount               = 1;
+        transferQCI.pQueuePriorities         = &qPriorities;
+        numQueues += 1;
     }
-    Queue& mainQ      = m_queues[Underlying( QueueType::GRAPHICS )];
-    mainQ.queue       = queueRet.value();
-    mainQ.familyIndex = vkbDevice.get_queue_index( vkb::QueueType::graphics ).value();
+
+    const PhysicalDeviceExtensions& extensions = pMetadata->extensions;
+    VkDeviceCreateInfo deviceCI{ .sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO,
+        .pNext                          = pMetadata->features.GetPointerForDeviceCreationPNext(),
+        .queueCreateInfoCount           = numQueues,
+        .pQueueCreateInfos              = queueCI,
+        .enabledExtensionCount          = extensions.extensionNameListSize,
+        .ppEnabledExtensionNames        = extensions.extensionNameList };
+    VK_CHECK( vkCreateDevice( physicalDevice, &deviceCI, nullptr, &m_handle ) );
+
+    Queue& mainQ = m_queues[Underlying( QueueType::GRAPHICS )];
+    vkGetDeviceQueue( m_handle, pMetadata->mainQueueFamilyIndex, 0, &mainQ.queue );
+    mainQ.familyIndex = pMetadata->mainQueueFamilyIndex;
     mainQ.queueIndex  = 0;
-    PG_DEBUG_MARKER_SET_QUEUE_NAME( mainQ.queue, "Primary GCT" );
-
-    queueRet = vkbDevice.get_dedicated_queue( vkb::QueueType::transfer );
-    if ( queueRet )
+    if ( m_hasDedicatedTransferQueue )
     {
-        m_queues[Underlying( QueueType::TRANSFER )] = m_queues[Underlying( QueueType::GRAPHICS )];
-        // LOG_WARN( "Could not get dedicated transfer queue. Error: %s", queueRet.error().message().c_str() );
-    }
-    else
-    {
-        m_hasDedicatedTransferQueue = true;
-        Queue& transferQ            = m_queues[Underlying( QueueType::TRANSFER )];
-        transferQ.queue             = queueRet.value();
-        transferQ.familyIndex       = vkbDevice.get_dedicated_queue_index( vkb::QueueType::transfer ).value();
-        transferQ.queueIndex        = 0;
-        PG_DEBUG_MARKER_SET_QUEUE_NAME( transferQ.queue, "Dedicated Transfer" );
+        Queue& transferQ = m_queues[Underlying( QueueType::TRANSFER )];
+        vkGetDeviceQueue( m_handle, pMetadata->transferQueueFamilyIndex, 0, &transferQ.queue );
+        transferQ.familyIndex = pMetadata->transferQueueFamilyIndex;
+        transferQ.queueIndex  = 0;
     }
 
     VmaAllocatorCreateInfo allocatorCreateInfo = {};
     allocatorCreateInfo.flags                  = VMA_ALLOCATOR_CREATE_BUFFER_DEVICE_ADDRESS_BIT;
     allocatorCreateInfo.vulkanApiVersion       = VK_API_VERSION_1_3;
-    allocatorCreateInfo.physicalDevice         = rg.physicalDevice;
+    allocatorCreateInfo.physicalDevice         = physicalDevice;
     allocatorCreateInfo.device                 = m_handle;
-    allocatorCreateInfo.instance               = rg.instance;
+    allocatorCreateInfo.instance               = instance;
     VK_CHECK( vmaCreateAllocator( &allocatorCreateInfo, &m_vmaAllocator ) );
 
     m_uploadBufferManager.Init();

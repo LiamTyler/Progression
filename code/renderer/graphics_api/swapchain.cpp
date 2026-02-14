@@ -5,52 +5,78 @@
 #include "renderer/r_bindless_manager.hpp"
 #include "shared/assert.hpp"
 #include "shared/logger.hpp"
-#include "vk-bootstrap/VkBootstrap.h"
 #include <vector>
 
 namespace PG::Gfx
 {
 
+static VkExtent2D ChooseExtents( const VkSurfaceCapabilitiesKHR& capabilities, u32 desiredWidth, u32 desiredHeight )
+{
+    if ( capabilities.currentExtent.width != std::numeric_limits<uint32_t>::max() )
+    {
+        return capabilities.currentExtent;
+    }
+    VkExtent2D ret;
+    ret.width  = Clamp( desiredWidth, capabilities.minImageExtent.width, capabilities.maxImageExtent.width );
+    ret.height = Clamp( desiredHeight, capabilities.minImageExtent.height, capabilities.maxImageExtent.height );
+
+    return ret;
+}
+
 bool Swapchain::Create( u32 width, u32 height )
 {
     PGP_ZONE_SCOPEDN( "Swapchain::Create" );
-    vkb::SwapchainBuilder swapchainBuilder{ rg.physicalDevice, rg.device, rg.surface };
+    VkSurfaceCapabilitiesKHR surfaceCaps{};
+    VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( rg.physicalDevice, rg.surface, &surfaceCaps ) );
 
-    swapchainBuilder
-        //.use_default_format_selection()
-        .set_desired_format( VkSurfaceFormatKHR{ VK_FORMAT_R8G8B8A8_UNORM, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR } )
-        // use vsync present mode
-        .set_desired_present_mode( VK_PRESENT_MODE_FIFO_KHR )
-        .set_desired_extent( width, height )
-        .add_image_usage_flags(
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT );
+    VkExtent2D extents = ChooseExtents( surfaceCaps, width, height );
+    // BGRA8 SRGB + FIFO_KHR (vsync) is guaranteed to be available everywhere
+    const VkFormat imageFormat{ VK_FORMAT_R8G8B8A8_UNORM };
+    VkSwapchainCreateInfoKHR swapchainCI{
+        .sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
+        .surface          = rg.surface,
+        .minImageCount    = surfaceCaps.minImageCount,
+        .imageFormat      = imageFormat,
+        .imageColorSpace  = VK_COLORSPACE_SRGB_NONLINEAR_KHR,
+        .imageExtent      = extents,
+        .imageArrayLayers = 1,
+        .imageUsage =
+            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT,
+        .preTransform   = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
+        .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
+        .presentMode    = VK_PRESENT_MODE_FIFO_KHR // vsync
+    };
+    VK_CHECK( vkCreateSwapchainKHR( rg.device, &swapchainCI, nullptr, &m_handle ) );
 
-    auto swap_ret = swapchainBuilder.build();
-    if ( !swap_ret )
-    {
-        LOG_ERR( "Failed to create swapchain. Error: %s", swap_ret.error().message().c_str() );
-        return false;
-    }
-
-    vkb::Swapchain vkbSwapchain = swap_ret.value();
-
-    m_imageFormat = VulkanToPGPixelFormat( vkbSwapchain.image_format );
-    m_width       = vkbSwapchain.extent.width;
-    m_height      = vkbSwapchain.extent.height;
+    m_imageFormat = VulkanToPGPixelFormat( imageFormat );
+    m_width       = extents.width;
+    m_height      = extents.height;
     if ( m_width != width && m_height != height )
         LOG_WARN( "Swapchain requested size (%u x %u) actual size: (%u x %u )", width, height, m_width, m_height );
 
     TextureCreateInfo texInfo( m_imageFormat, m_width, m_height );
     texInfo.sampler = SAMPLER_BILINEAR;
 
-    // PG_ASSERT( m_width == width && m_height == height, "Later textures (r_globals) are allocated assuming this" );
-    m_handle                            = vkbSwapchain.swapchain;
-    std::vector<VkImage> images         = vkbSwapchain.get_images().value();
-    std::vector<VkImageView> imageViews = vkbSwapchain.get_image_views().value();
+    std::vector<VkImage> images;
+    u32 imageCount = 0;
+    VK_CHECK( vkGetSwapchainImagesKHR( rg.device, m_handle, &imageCount, nullptr ) );
+    images.resize( imageCount );
+    VK_CHECK( vkGetSwapchainImagesKHR( rg.device, m_handle, &imageCount, images.data() ) );
+
     m_textures.resize( images.size() );
     m_submitSemaphores.resize( images.size() );
     for ( size_t i = 0; i < images.size(); ++i )
     {
+        VkImageViewCreateInfo viewCI{
+            .sType    = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image    = images[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format   = imageFormat,
+            .subresourceRange{ .aspectMask = VK_IMAGE_ASPECT_COLOR_BIT, .levelCount = 1, .layerCount = 1 }
+        };
+        VkImageView imgView;
+        VK_CHECK( vkCreateImageView( rg.device, &viewCI, nullptr, &imgView ) );
+
         Texture& tex = m_textures[i];
 #if USING( DEBUG_BUILD )
         std::string name = "swapchainTex_" + std::to_string( i );
@@ -59,12 +85,12 @@ bool Swapchain::Create( u32 width, u32 height )
 #endif // #if USING( DEBUG_BUILD )
         tex.m_info          = texInfo;
         tex.m_image         = images[i];
-        tex.m_imageView     = imageViews[i];
+        tex.m_imageView     = imgView;
         tex.m_allocation    = nullptr;
         tex.m_sampler       = GetSampler( SAMPLER_BILINEAR );
         tex.m_bindlessIndex = BindlessManager::AddTexture( &tex );
         PG_DEBUG_MARKER_SET_IMAGE_NAME( images[i], "swapchain " + std::to_string( i ) );
-        PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( imageViews[i], "swapchain " + std::to_string( i ) );
+        PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( imgView, "swapchain " + std::to_string( i ) );
 
         std::string iStr      = std::to_string( i );
         m_submitSemaphores[i] = rg.device.NewSemaphore( "swapchain_submit" + iStr );

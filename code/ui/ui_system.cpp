@@ -2,8 +2,8 @@
 #include "asset/asset_manager.hpp"
 #include "c_shared/clay_ui.h"
 #include "clay/clay.h"
-#include "core/lua.hpp"
 #include "core/input.hpp"
+#include "core/lua.hpp"
 #include "renderer/debug_marker.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
@@ -71,11 +71,11 @@ bool Init()
     AssetManager::AddLiveUpdateCallback( ASSET_TYPE_SCRIPT, AssetLiveUpdateCallback );
 #endif // #if USING( ASSET_LIVE_UPDATE )
 
-    //using namespace Input;
-    //InputContext* context = GetContext( InputContextID::MAIN_MENU );
-    //context->SetBlockLevel( InputContextBlockLevel::BLOCK_MAPPED_CONTROLS );
-    //context->AddRawButtonToAction(  Action::QUIT_GAME );
-    //context->AddRawAxisToAxis();
+    // using namespace Input;
+    // InputContext* context = GetContext( InputContextID::MAIN_MENU );
+    // context->SetBlockLevel( InputContextBlockLevel::BLOCK_MAPPED_CONTROLS );
+    // context->AddRawButtonToAction(  Action::QUIT_GAME );
+    // context->AddRawAxisToAxis();
 
     return true;
 }
@@ -146,10 +146,7 @@ void BeginFrame()
 #endif
 }
 
-void EndFrame()
-{
-    s_clayRenderCommands = Clay_EndLayout();
-}
+void EndFrame() { s_clayRenderCommands = Clay_EndLayout(); }
 
 void Render( Gfx::CommandBuffer& cmdBuf )
 {

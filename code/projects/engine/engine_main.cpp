@@ -39,7 +39,7 @@ int main( int argc, char* argv[] )
         EngineShutdown();
         return 0;
     }
-#else // #if USING( LOAD_SCENE_DIRECTLY )
+#else  // #if USING( LOAD_SCENE_DIRECTLY )
     Scene* scene = LoadScene( "startup" );
     if ( !scene )
     {

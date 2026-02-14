@@ -272,7 +272,7 @@ consteval FormatCheckError CheckFormat( std::string_view fmt )
     {
     case 'i':
     case 'd':
-        if ( !std::is_integral_v<UT> || !std::is_signed_v<UT> )
+        if ( (!std::is_integral_v<UT> || !std::is_signed_v<UT>) && !std::is_same_v<UT, bool> )
             return FormatCheckError::EXPECTED_SIGNED_INTEGRAL;
         error = CheckIntegralLength( length, sizeof( UT ) );
         break;
@@ -402,7 +402,7 @@ consteval FormatCheckError CheckFormat( std::string_view fmt )
 // clang-format on
 
 #define CHECK_FORMAT( fmt, ... ) \
-    constexpr FormatCheckError _pgFmtError = CheckFormat<PG_DWRAP_VARGS( __VA_ARGS__ )>( std::string_view( fmt ) );
+    constexpr FormatCheckError _pgFmtError = CheckFormat<PG_DWRAP_VARGS( __VA_ARGS__ )>( std::string_view( fmt ) )
 
 #define LOG( fmt, ... )                                                                                                         \
     do                                                                                                                          \

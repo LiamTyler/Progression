@@ -2,6 +2,7 @@
 #include "core/dvars.hpp"
 #include "core/window.hpp"
 #include "renderer/debug_marker.hpp"
+#include "renderer/graphics_api/features.hpp"
 #include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
@@ -15,10 +16,7 @@
 #include "ui/ui_text.hpp"
 #endif // #if USING( DEVELOPMENT_BUILD )
 
-VkDebugUtilsMessengerEXT s_debugMessenger;
-
-#define SHADER_DEBUG_PRINTF USE_IF( USING( DEVELOPMENT_BUILD ) )
-// #define SHADER_DEBUG_PRINTF NOT_IN_USE
+VkDebugUtilsMessengerEXT s_debugMessenger = VK_NULL_HANDLE;
 
 namespace PG::Gfx
 {
@@ -94,16 +92,20 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 
     if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT )
     {
-        LOG_ERR( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
+        LOG_ERR(
+            "%s: %d - %s: %s", messageTypeString, pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage );
     }
     else if ( messageSeverity == VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT )
     {
-        LOG_WARN( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
+        // skip annoying messages WARNING-Setting-Limit-Adjusted and about debug printf
+        if ( pCallbackData->messageIdNumber == -2030147807 || pCallbackData->messageIdNumber == 2132353751 )
+            return VK_FALSE;
+        LOG_WARN(
+            "%s: %d - %s: %s", messageTypeString, pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage );
     }
     else
     {
-        if ( pCallbackData->messageIdNumber != 601872502 ) // just a message of which instance layers are enabled
-            LOG( "Vulkan message type '%s': '%s'", messageTypeString, pCallbackData->pMessage );
+        LOG( "%s: %d - %s: %s", messageTypeString, pCallbackData->messageIdNumber, pCallbackData->pMessageIdName, pCallbackData->pMessage );
     }
 
     return VK_FALSE;
@@ -139,44 +141,223 @@ static void InitSyncObjects()
     rg.immediateFence = rg.device.NewFence( false, "immediate" );
 }
 
-static vkb::Result<vkb::Instance> GetInstance()
+static bool CreateInstance()
 {
-    PGP_MANUAL_ZONEN( __tracyInstBuild, "Instance Builder" );
-    vkb::InstanceBuilder builder;
+    PGP_ZONE_SCOPEDN( "CreateInstance" );
 
-#if USING( DEVELOPMENT_BUILD )
-    builder.request_validation_layers( true );
-    builder.set_debug_callback( DebugCallback );
-    VkDebugUtilsMessageSeverityFlagsEXT debugMessageSeverity =
-        VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-    // | VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-#if USING( SHADER_DEBUG_PRINTF )
-    builder.add_validation_feature_enable( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
-    debugMessageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
-#endif // #if USING( SHADER_DEBUG_PRINTF )
-    builder.set_debug_messenger_severity( debugMessageSeverity );
-#endif // #if USING( DEVELOPMENT_BUILD )
+    VkApplicationInfo appInfo{ .sType = VK_STRUCTURE_TYPE_APPLICATION_INFO,
+        .pApplicationName             = "Progression",
+        .applicationVersion           = 1,
+        .apiVersion                   = VK_API_VERSION_1_3 };
+
+    std::vector<const char*> instanceExtensionsToEnable;
+
+    u32 sdlInstanceExtensionsCount{ 0 };
+    const char* const* sdlInstanceExtensions{ SDL_Vulkan_GetInstanceExtensions( &sdlInstanceExtensionsCount ) };
+    PG_ASSERT( sdlInstanceExtensions != nullptr, "SDL_Vulkan_GetInstanceExtensions failed '%s'", SDL_GetError() );
+    for ( u32 i = 0; i < sdlInstanceExtensionsCount; ++i )
+        instanceExtensionsToEnable.push_back( sdlInstanceExtensions[i] );
+
+    VkInstanceCreateInfo instanceCI{
+        .sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
+        .pApplicationInfo = &appInfo,
+    };
+    void* chain = nullptr;
 
 #if !USING( SHIP_BUILD )
-    // needed for debug markers as well
-    builder.enable_extension( VK_EXT_DEBUG_UTILS_EXTENSION_NAME );
-#endif // #if !USING( SHIP_BUILD )
+    u32 availableInstanceExtensionCount;
+    VK_CHECK( vkEnumerateInstanceExtensionProperties( nullptr, &availableInstanceExtensionCount, nullptr ) );
 
-    builder.enable_extension( VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME );
-    Uint32 count_instance_extensions;
-    const char* const* instance_extensions = SDL_Vulkan_GetInstanceExtensions( &count_instance_extensions );
-    PG_ASSERT( instance_extensions != nullptr, "SDL_Vulkan_GetInstanceExtensions failed '%s'", SDL_GetError() );
-    for ( u32 i = 0; i < count_instance_extensions; ++i )
+    std::vector<VkExtensionProperties> availableInstanceExtensions( availableInstanceExtensionCount );
+    VK_CHECK( vkEnumerateInstanceExtensionProperties( nullptr, &availableInstanceExtensionCount, availableInstanceExtensions.data() ) );
+
+    enum InstanceExtensions
     {
-        const char* ext = instance_extensions[i];
-        builder.enable_extension( ext );
+        DEBUG_UTILS,
+        INSTANCE_EXTENSIONS_COUNT
+    };
+
+    struct Item
+    {
+        const char* name;
+        bool toEnable; // to give a single source of enabling/disabling items, without commenting out several things
+
+        constexpr Item( const char* n, bool b ) : name( n ), toEnable( b ) {}
+    };
+
+    static constexpr std::array extensionsToQuery = std::array{
+        Item{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME, true },
+        // Item{ VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true }, //  functionality also used, but core since vulkan 1.1
+    };
+    bool extensionAvailability[INSTANCE_EXTENSIONS_COUNT] = {};
+
+    for ( const VkExtensionProperties& availableExtension : availableInstanceExtensions )
+    {
+        for ( u32 i = 0; i < INSTANCE_EXTENSIONS_COUNT; ++i )
+        {
+            if ( !strcmp( availableExtension.extensionName, extensionsToQuery[i].name ) )
+            {
+                extensionAvailability[i] = true;
+                break;
+            }
+        }
     }
 
-    builder.require_api_version( 1, 3 );
-    auto inst_ret = builder.build();
-    PGP_MANUAL_ZONE_END( __tracyInstBuild );
+    VkDebugUtilsMessengerCreateInfoEXT debugUtilsCI;
+    if ( extensionsToQuery[DEBUG_UTILS].toEnable )
+    {
+        if ( extensionAvailability[DEBUG_UTILS] )
+        {
+            instanceExtensionsToEnable.push_back( extensionsToQuery[DEBUG_UTILS].name );
 
-    return inst_ret;
+            debugUtilsCI                 = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+            debugUtilsCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+            // debugUtilsCI.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
+            // VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+            debugUtilsCI.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
+            debugUtilsCI.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
+            debugUtilsCI.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+            debugUtilsCI.pfnUserCallback = DebugCallback;
+            // pNext             = &debugUtilsCI;
+            debugUtilsCI.pNext = chain;
+            chain              = &debugUtilsCI;
+        }
+        else
+        {
+            LOG_WARN( "This computer does not support %s. This means the debug messenger callback and debug markers will be disabled",
+                extensionsToQuery[DEBUG_UTILS].name );
+        }
+    }
+
+    u32 supportedLayerCount;
+    vkEnumerateInstanceLayerProperties( &supportedLayerCount, nullptr );
+
+    std::vector<VkLayerProperties> supportedLayers( supportedLayerCount );
+    vkEnumerateInstanceLayerProperties( &supportedLayerCount, supportedLayers.data() );
+
+    enum InstanceLayers
+    {
+        VALIDATION,
+        INSTANCE_LAYERS_COUNT
+    };
+
+    static constexpr std::array layersToQuery = std::array{
+        Item{ "VK_LAYER_KHRONOS_validation", USING( DEVELOPMENT_BUILD ) },
+    };
+    bool layerAvailability[INSTANCE_LAYERS_COUNT] = {};
+
+    for ( const VkLayerProperties& supportedLayer : supportedLayers )
+    {
+        for ( u32 i = 0; i < INSTANCE_LAYERS_COUNT; ++i )
+        {
+            if ( !strcmp( supportedLayer.layerName, layersToQuery[i].name ) )
+            {
+                layerAvailability[i] = true;
+                break;
+            }
+        }
+    }
+
+    std::vector<const char*> layersToEnable;
+    std::vector<VkValidationFeatureEnableEXT> validationFeatureEnables;
+    if ( layersToQuery[VALIDATION].toEnable )
+    {
+        if ( layerAvailability[VALIDATION] )
+        {
+            layersToEnable.push_back( layersToQuery[VALIDATION].name );
+
+#if USING( SHADER_DEBUG_PRINTF )
+            validationFeatureEnables.push_back( VK_VALIDATION_FEATURE_ENABLE_DEBUG_PRINTF_EXT );
+#endif // #if USING( SHADER_DEBUG_PRINTF )
+        }
+        else
+            LOG_WARN( "Validation layer not available? Continuing without it enabled" );
+    }
+
+    VkValidationFeaturesEXT validationFeatures{ VK_STRUCTURE_TYPE_VALIDATION_FEATURES_EXT };
+    validationFeatures.enabledValidationFeatureCount = (u32)validationFeatureEnables.size();
+    validationFeatures.pEnabledValidationFeatures    = validationFeatureEnables.data();
+    validationFeatures.pNext                         = chain;
+    chain                                            = &validationFeatures;
+
+    instanceCI.enabledLayerCount   = (u32)layersToEnable.size();
+    instanceCI.ppEnabledLayerNames = layersToEnable.data();
+#endif // #if !USING( SHIP_BUILD )
+
+    instanceCI.enabledExtensionCount   = (u32)instanceExtensionsToEnable.size();
+    instanceCI.ppEnabledExtensionNames = instanceExtensionsToEnable.data();
+    instanceCI.pNext                   = chain;
+    VK_CHECK( vkCreateInstance( &instanceCI, nullptr, &rg.instance ) );
+
+#if !USING( SHIP_BUILD )
+    s_debugMessenger = VK_NULL_HANDLE;
+
+    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr( rg.instance, "vkCreateDebugUtilsMessengerEXT" );
+    if ( !func )
+    {
+        LOG_ERR( "Failed to get vkCreateDebugUtilsMessengerEXT somehow" );
+        return false;
+    }
+    VK_CHECK( func( rg.instance, &debugUtilsCI, nullptr, &s_debugMessenger ) );
+#endif // #if !USING( SHIP_BUILD )
+
+    return true;
+}
+
+bool SelectPhysicalDevice()
+{
+    PGP_ZONE_SCOPEDN( "SelectPhysicalDevice" );
+
+    u32 deviceCount = 0;
+    VK_CHECK( vkEnumeratePhysicalDevices( rg.instance, &deviceCount, nullptr ) );
+
+    if ( deviceCount == 0 )
+    {
+        LOG_ERR( "Failed to enumerate any physical devices!" );
+        return false;
+    }
+
+    std::vector<VkPhysicalDevice> pVKDevices( deviceCount );
+    VK_CHECK( vkEnumeratePhysicalDevices( rg.instance, &deviceCount, pVKDevices.data() ) );
+
+    std::vector<PhysicalDevice> pDevices( deviceCount );
+    std::vector<std::pair<u32, int>> suitableDevicesAndScores;
+    suitableDevicesAndScores.reserve( deviceCount );
+
+    for ( u32 deviceIdx = 0; deviceIdx < deviceCount; ++deviceIdx )
+    {
+        if ( !pDevices[deviceIdx].Init( pVKDevices[deviceIdx] ) )
+            continue;
+
+        suitableDevicesAndScores.emplace_back( deviceIdx, pDevices[deviceIdx].GetMetadata()->suitabilityScore );
+    }
+
+    if ( suitableDevicesAndScores.empty() )
+    {
+        LOG_ERR( "No suitable devices found! Logging reason for insuitability for each device." );
+        for ( u32 deviceIdx = 0; deviceIdx < deviceCount; ++deviceIdx )
+        {
+            pDevices[deviceIdx].LogReasonsForInsuitability();
+        }
+        return false;
+    }
+
+    int bestScore = suitableDevicesAndScores[0].second;
+    u32 bestIndex = suitableDevicesAndScores[0].first;
+    for ( u32 i = 1; i < suitableDevicesAndScores.size(); ++i )
+    {
+        u32 devIdx = suitableDevicesAndScores[i].first;
+        int score  = suitableDevicesAndScores[i].second;
+        if ( score > bestScore )
+        {
+            bestIndex = devIdx;
+            bestScore = score;
+        }
+    }
+
+    rg.physicalDevice = pDevices[bestIndex];
+
+    return true;
 }
 
 bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
@@ -185,15 +366,11 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
     rg.currentFrameIdx = rg.totalFrameCount = 0;
     rg.headless                             = headless;
 
-    auto instRet = GetInstance();
-    if ( !instRet )
+    if ( !CreateInstance() )
     {
-        LOG_ERR( "Failed to create vulkan instance. Error: %s", instRet.error().message().c_str() );
+        LOG_ERR( "Failed to create vulkan instance" );
         return false;
     }
-    vkb::Instance vkb_inst = instRet.value();
-    rg.instance            = vkb_inst.instance;
-    s_debugMessenger       = vkb_inst.debug_messenger;
 
     rg.surface = VK_NULL_HANDLE;
     if ( !headless )
@@ -205,135 +382,30 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
         }
     }
 
-    vkb::PhysicalDeviceSelector pDevSelector{ vkb_inst };
-
-    VkPhysicalDeviceVulkan13Features features13{};
-    features13.dynamicRendering = true;
-    features13.synchronization2 = true;
-    features13.maintenance4     = true;
-
-    VkPhysicalDeviceVulkan12Features features12{};
-    features12.bufferDeviceAddress                                = true;
-    features12.descriptorIndexing                                 = true;
-    features12.descriptorBindingPartiallyBound                    = true;
-    features12.descriptorBindingVariableDescriptorCount           = true;
-    features12.runtimeDescriptorArray                             = true;
-    features12.descriptorBindingSampledImageUpdateAfterBind       = true;
-    features12.descriptorBindingStorageBufferUpdateAfterBind      = true;
-    features12.descriptorBindingStorageImageUpdateAfterBind       = true;
-    features12.descriptorBindingStorageTexelBufferUpdateAfterBind = true;
-    features12.descriptorBindingUniformBufferUpdateAfterBind      = true;
-    features12.descriptorBindingUniformTexelBufferUpdateAfterBind = true;
-    features12.shaderSampledImageArrayNonUniformIndexing          = true;
-    features12.shaderStorageBufferArrayNonUniformIndexing         = true;
-    features12.shaderStorageImageArrayNonUniformIndexing          = true;
-    features12.shaderStorageTexelBufferArrayNonUniformIndexing    = true;
-    features12.shaderUniformBufferArrayNonUniformIndexing         = true;
-    features12.shaderUniformTexelBufferArrayNonUniformIndexing    = true;
-    features12.scalarBlockLayout                                  = true;
-    features12.hostQueryReset                                     = true;
-    features12.timelineSemaphore                                  = true;
-    features12.shaderInt8                                         = true;
-    features12.storageBuffer8BitAccess                            = true;
-
-    VkPhysicalDeviceVulkan11Features features11{};
-    features11.shaderDrawParameters = true; // for drawid in shader (gl_DrawIDARB)
-
-    VkPhysicalDeviceFeatures features{};
-    features.shaderInt64       = true;
-    features.samplerAnisotropy = true;
-#if USING( SHADER_DEBUG_PRINTF )
-    pDevSelector.add_required_extension( VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME );
-    // according to https://github.com/KhronosGroup/Vulkan-ValidationLayers/blob/main/docs/debug_printf.md
-    // both debug printf requires both fragmentStoresAndAtomics, vertexPipelineStoresAndAtomics, and timelineSemaphore
-    features.fragmentStoresAndAtomics       = true;
-    features.vertexPipelineStoresAndAtomics = true;
-#endif // #if USING( SHADER_DEBUG_PRINTF )
-
-    features11.storageBuffer16BitAccess = true; // for uint16_t buffers
-    features.shaderInt16                = true; // for uint16_t types in shader
-
-#if USING( PG_RTX )
-    pDevSelector.add_required_extension( VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME );
-    pDevSelector.add_required_extension( VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME );
-    pDevSelector.add_required_extension( VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME );
-#endif // #if USING( PG_RTX )
-
-#if USING( PG_MUTABLE_DESCRIPTORS )
-    pDevSelector.add_required_extension( VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME );
-    VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MUTABLE_DESCRIPTOR_TYPE_FEATURES_EXT };
-    mutableExt.mutableDescriptorType = true;
-    pDevSelector.add_required_extension_features( mutableExt );
-#endif // #if USING( PG_MUTABLE_DESCRIPTORS )
-
-#if USING( PG_DESCRIPTOR_BUFFER )
-    pDevSelector.add_required_extension( VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME );
-    VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferExt{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_FEATURES_EXT };
-    descriptorBufferExt.descriptorBuffer = true;
-    // descriptorBufferExt.descriptorBufferImageLayoutIgnored = true;
-    pDevSelector.add_required_extension_features( descriptorBufferExt );
-#endif // #if USING( PG_DESCRIPTOR_BUFFER )
-
-#if USING( DEVELOPMENT_BUILD )
-    // for solid wireframe debug mode
-    pDevSelector.add_required_extension( VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME );
-    VkPhysicalDeviceFragmentShaderBarycentricFeaturesKHR baryFeaturesKHR = {
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FRAGMENT_SHADER_BARYCENTRIC_FEATURES_KHR };
-    baryFeaturesKHR.fragmentShaderBarycentric = true;
-    pDevSelector.add_required_extension_features( baryFeaturesKHR );
-#endif // #if USING( DEVELOPMENT_BUILD )
-
-    VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_MESH_SHADER_FEATURES_EXT };
-    meshShaderFeatures.meshShader = true;
-    meshShaderFeatures.taskShader = true;
-    pDevSelector.add_required_extension_features( meshShaderFeatures );
-    pDevSelector.add_required_extension( VK_EXT_MESH_SHADER_EXTENSION_NAME );
-
-    pDevSelector.add_required_extension( VK_KHR_SPIRV_1_4_EXTENSION_NAME );
-    pDevSelector.add_required_extension( VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME );
-    pDevSelector.add_required_extension( VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME );
-
-    pDevSelector.set_minimum_version( 1, 3 );
-    pDevSelector.require_present( !rg.headless );
-    pDevSelector.set_required_features_13( features13 );
-    pDevSelector.set_required_features_12( features12 );
-    pDevSelector.set_required_features_11( features11 );
-    pDevSelector.set_required_features( features );
-
-    if ( !rg.headless )
-        pDevSelector.set_surface( rg.surface );
-
-    PGP_MANUAL_ZONEN( __prof__pDevSelect, "Physical Device Selection" );
-    auto pDevSelectorRet = pDevSelector.select();
-    PGP_MANUAL_ZONE_END( __prof__pDevSelect );
-    if ( !pDevSelectorRet )
+    if ( !SelectPhysicalDevice() )
     {
         LOG_ERR( "No compatible physical device found! " );
         return false;
     }
 
-    vkb::PhysicalDevice vkbPhysicalDevice = pDevSelectorRet.value();
-    rg.physicalDevice.Create( vkbPhysicalDevice.physical_device );
+    // vkb::PhysicalDevice vkbPhysicalDevice = pDevSelectorRet.value();
+    // rg.physicalDevice.Init( vkbPhysicalDevice.physical_device );
     auto pDevProperties = rg.physicalDevice.GetProperties();
     LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", rg.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor,
         pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
 
     DebugMarker::Init( rg.instance );
 
-    vkb::DeviceBuilder device_builder{ vkbPhysicalDevice };
-
-    auto dev_ret = device_builder.build();
-    if ( !dev_ret )
-    {
-        LOG_ERR( "Failed to create logical device!" );
-        return false;
-    }
-    vkb::Device vkb_device = dev_ret.value();
-    if ( !rg.device.Create( vkb_device ) )
+    if ( !rg.device.Create( rg.physicalDevice, rg.instance ) )
     {
         LOG_ERR( "Failed to create logical device" );
         return false;
     }
+    PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( rg.device, "Primary" );
+    PG_DEBUG_MARKER_SET_QUEUE_NAME( rg.device.GetQueue( QueueType::GRAPHICS ).queue, "Primary GCT" );
+    if ( rg.device.HasDedicatedTransferQueue() )
+        PG_DEBUG_MARKER_SET_QUEUE_NAME( rg.device.GetQueue( QueueType::TRANSFER ).queue, "Dedicated Transfer" );
+
     LoadVulkanExtensions( rg.device );
 
     InitGlobalDescriptorData();
@@ -376,7 +448,13 @@ void R_Shutdown()
     BindlessManager::Shutdown();
     FreeGlobalDescriptorData();
     rg.device.Free();
-    vkb::destroy_debug_utils_messenger( rg.instance, s_debugMessenger );
+#if !USING( SHIP_BUILD )
+    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr( rg.instance, "vkDestroyDebugUtilsMessengerEXT" );
+    if ( !func )
+        LOG_ERR( "Failed to get vkDestroyDebugUtilsMessengerEXT somehow" );
+    else
+        func( rg.instance, s_debugMessenger, nullptr );
+#endif // #if !USING( SHIP_BUILD )
     vkDestroyInstance( rg.instance, nullptr );
 }
 

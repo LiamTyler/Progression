@@ -10,7 +10,6 @@
 #include "renderer/graphics_api/synchronization.hpp"
 #include "renderer/graphics_api/texture.hpp"
 #include "renderer/r_gpu_upload_manager.hpp"
-#include "vk-bootstrap/VkBootstrap.h"
 
 namespace PG::Gfx
 {
@@ -20,7 +19,7 @@ class Device
 public:
     Device() = default;
 
-    bool Create( const vkb::Device& vkbDevice );
+    bool Create( const PhysicalDevice& physicalDevice, VkInstance instance );
     void Free();
 
     void Submit( QueueType queue, const CommandBuffer& cmdBuf, const VkSemaphoreSubmitInfo* waitSemaphoreInfo = nullptr,

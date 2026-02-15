@@ -6,33 +6,25 @@
 namespace PG::Gfx
 {
 
-static PhysicalDeviceProperties GetDeviceProperties( VkPhysicalDevice physicalDevice )
+static void GetDeviceProperties( VkPhysicalDevice pDev, PhysicalDeviceMetadata& metadata )
 {
-    PhysicalDeviceProperties p = {};
-    p.dbProps                  = { .sType = VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT };
+    void* chain = nullptr;
+#if 1 || USING( PG_DESCRIPTOR_BUFFER )
+    metadata.dbProps       = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT };
+    metadata.dbProps.pNext = chain;
+    chain                  = &metadata.dbProps;
+#endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
-    VkPhysicalDeviceProperties2 vkProperties2{ VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-    vkProperties2.pNext = &p.dbProps;
-    vkGetPhysicalDeviceProperties2( physicalDevice, &vkProperties2 );
+    VkPhysicalDeviceProperties2 vkProps2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+    vkProps2.pNext                       = chain;
+    vkGetPhysicalDeviceProperties2( pDev, &vkProps2 );
+    memcpy( &metadata.properties, &vkProps2.properties, sizeof( VkPhysicalDeviceProperties ) );
 
-    p.name               = vkProperties2.properties.deviceName;
-    p.apiVersionMajor    = VK_VERSION_MAJOR( vkProperties2.properties.apiVersion );
-    p.apiVersionMinor    = VK_VERSION_MINOR( vkProperties2.properties.apiVersion );
-    p.apiVersionPatch    = VK_VERSION_PATCH( vkProperties2.properties.apiVersion );
-    p.isDiscrete         = vkProperties2.properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU;
-    p.nanosecondsPerTick = vkProperties2.properties.limits.timestampPeriod;
-    p.maxAnisotropy      = vkProperties2.properties.limits.maxSamplerAnisotropy;
-
-    return p;
+    vkGetPhysicalDeviceMemoryProperties( pDev, &metadata.memProperties );
 }
 
-bool PhysicalDevice::Init( VkPhysicalDevice pDev )
+static void QueueSelection( VkPhysicalDevice pDev, PhysicalDeviceMetadata& metadata )
 {
-    m_metadata   = std::make_shared<PhysicalDeviceMetadata>();
-    m_handle     = pDev;
-    m_properties = GetDeviceProperties( m_handle );
-    vkGetPhysicalDeviceMemoryProperties( m_handle, &m_memProperties );
-
     u32 queueFamilyCount = 0;
     vkGetPhysicalDeviceQueueFamilyProperties( pDev, &queueFamilyCount, nullptr );
     std::vector<VkQueueFamilyProperties> queueFamilies( queueFamilyCount );
@@ -46,23 +38,32 @@ bool PhysicalDevice::Init( VkPhysicalDevice pDev )
         bool timestamps = queueFamilies[i].timestampValidBits > 0;
         VkBool32 present;
         vkGetPhysicalDeviceSurfaceSupportKHR( pDev, i, rg.surface, &present );
-        //LOG( "Queue family[%u]: graphics: %d, compute: %d, transfer: %d, present: %d, timestamps: %d", i, graphics, compute, transfer,
-        //    (bool)present, timestamps );
-        //LOG( "    Flags: %u, QueueCount: %u", queueFamilies[i].queueFlags, queueFamilies[i].queueCount );
+        // LOG( "Queue family[%u]: graphics: %d, compute: %d, transfer: %d, present: %d, timestamps: %d", i, graphics, compute, transfer,
+        //     (bool)present, timestamps );
+        // LOG( "    Flags: %u, QueueCount: %u", queueFamilies[i].queueFlags, queueFamilies[i].queueCount );
         if ( queueFamilies[i].queueCount == 0 )
             continue;
 
-        if ( m_metadata->mainQueueFamilyIndex == INVALID_QUEUE_FAMILY )
+        if ( metadata.mainQueueFamilyIndex == INVALID_QUEUE_FAMILY )
         {
             if ( graphics && compute && transfer && present && timestamps )
-                m_metadata->mainQueueFamilyIndex = i;
+                metadata.mainQueueFamilyIndex = i;
         }
-        if ( m_metadata->transferQueueFamilyIndex == INVALID_QUEUE_FAMILY )
+        if ( metadata.transferQueueFamilyIndex == INVALID_QUEUE_FAMILY )
         {
             if ( transfer && !graphics && !compute && !present )
-                m_metadata->transferQueueFamilyIndex = i;
+                metadata.transferQueueFamilyIndex = i;
         }
     }
+}
+
+bool PhysicalDevice::Init( VkPhysicalDevice pDev )
+{
+    m_metadata = std::make_shared<PhysicalDeviceMetadata>();
+    m_handle   = pDev;
+    GetDeviceProperties( m_handle, *m_metadata );
+
+    QueueSelection( m_handle, *m_metadata );
 
     if ( !m_metadata->extensions.QuerySupport( pDev ) )
         return false;
@@ -83,7 +84,7 @@ bool PhysicalDevice::Init( VkPhysicalDevice pDev )
 
 void PhysicalDevice::LogReasonsForInsuitability() const
 {
-    LOG( "Physical Device '%s' is insuitable. Reasons:", m_properties.name.c_str() );
+    LOG( "Physical Device '%s' is insuitable. Reasons:", m_metadata->properties.deviceName );
     if ( m_metadata->mainQueueFamilyIndex == INVALID_QUEUE_FAMILY )
     {
         LOG( "No queue family found that supports graphics, compute, transfer, present, and timestamps" );
@@ -104,18 +105,16 @@ void PhysicalDevice::CalculateSuitabilityScore()
 {
     // only called internally if device has all required extensions + features
     m_metadata->suitabilityScore = 10;
-    if ( m_properties.isDiscrete )
+    if ( m_metadata->properties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU )
         m_metadata->suitabilityScore += 1000;
     if ( m_metadata->transferQueueFamilyIndex != INVALID_QUEUE_FAMILY )
         m_metadata->suitabilityScore += 100;
 }
 
-std::string PhysicalDevice::GetName() const { return m_properties.name; }
+std::string PhysicalDevice::GetName() const { return m_metadata->properties.deviceName; }
 VkPhysicalDevice PhysicalDevice::GetHandle() const { return m_handle; }
 PhysicalDevice::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 PhysicalDevice::operator VkPhysicalDevice() const { return m_handle; }
-const PhysicalDeviceProperties& PhysicalDevice::GetProperties() const { return m_properties; }
-VkPhysicalDeviceMemoryProperties PhysicalDevice::GetMemoryProperties() const { return m_memProperties; }
 const PhysicalDeviceMetadata* PhysicalDevice::GetMetadata() const { return m_metadata.get(); }
 
 } // namespace PG::Gfx

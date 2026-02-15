@@ -8,8 +8,9 @@ namespace PG::Gfx
 
 enum class ExtClassification : u8
 {
-    REQUIRED = 0,
-    IMPLICIT = 1,
+    DISABLED = 0,
+    REQUIRED = 1,
+    IMPLICIT = 2,
 };
 
 // Based off of Daxa's feature system
@@ -75,7 +76,6 @@ struct PhysicalDeviceFeatures
     const void* GetPointerForDeviceCreationPNext() const;
 };
 
-void FillFeaturesStruct( PhysicalDeviceFeatures& physicalDeviceFeatures );
 void FillFeaturesToEnableStruct( const PhysicalDeviceFeatures& deviceSupportedFeatures, PhysicalDeviceFeatures& featuresToEnable );
 
 } // namespace PG::Gfx

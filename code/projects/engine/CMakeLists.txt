@@ -168,10 +168,6 @@ set(
 	EXTERNALS
     ${CODE_DIR}/external/memory_map/MemoryMapped.h
     ${CODE_DIR}/external/memory_map/MemoryMapped.cpp
-	
-	${CODE_DIR}/external/vk-bootstrap/VkBootstrapDispatch.h
-    ${CODE_DIR}/external/vk-bootstrap/VkBootstrap.cpp
-    ${CODE_DIR}/external/vk-bootstrap/VkBootstrap.h
 	${CODE_DIR}/external/vma/vk_mem_alloc.h
     ${CODE_DIR}/external/vma/vma_usage.cpp
     

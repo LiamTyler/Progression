@@ -73,7 +73,7 @@ static PerFrameData& GetCurrentFrameData() { return s_frameData[rg.currentFrameI
 
 void Init()
 {
-    s_timestampDifferenceToMillis = rg.physicalDevice.GetProperties().nanosecondsPerTick / 1e6;
+    s_timestampDifferenceToMillis = rg.physicalDevice.GetMetadata()->properties.limits.timestampPeriod / 1e6;
     s_profileRecords.reserve( 2 * MAX_RECORDS_PER_FRAME );
     s_profileRecordHistories.reserve( 2 * MAX_RECORDS_PER_FRAME );
     s_profileNameToIndexMap.reserve( 2 * MAX_RECORDS_PER_FRAME );

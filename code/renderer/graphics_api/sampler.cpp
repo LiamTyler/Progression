@@ -69,7 +69,7 @@ static void AddWrapSamplers( SamplerType type, const SamplerCreateInfo& samplerT
 void InitSamplers()
 {
     SamplerCreateInfo samplerDesc;
-    samplerDesc.maxAnisotropy = rg.physicalDevice.GetProperties().maxAnisotropy;
+    samplerDesc.maxAnisotropy = Min( 16.0f, rg.physicalDevice.GetMetadata()->properties.limits.maxSamplerAnisotropy );
 
     samplerDesc.name      = "nearest_";
     samplerDesc.minFilter = FilterMode::NEAREST;

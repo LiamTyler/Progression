@@ -288,7 +288,7 @@ void LoadVulkanExtensions( VkDevice device )
 
 u32 FindMemoryType( u32 typeFilter, VkMemoryPropertyFlags properties )
 {
-    auto memProperties = rg.physicalDevice.GetMemoryProperties();
+    const VkPhysicalDeviceMemoryProperties& memProperties = rg.physicalDevice.GetMetadata()->memProperties;
     for ( u32 i = 0; i < memProperties.memoryTypeCount; ++i )
     {
         if ( ( typeFilter & ( 1 << i ) ) && ( memProperties.memoryTypes[i].propertyFlags & properties ) == properties )

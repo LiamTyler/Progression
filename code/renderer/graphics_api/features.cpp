@@ -18,6 +18,9 @@ bool PhysicalDeviceExtensions::QuerySupport( VkPhysicalDevice vkPhysicalDevice )
     {
         for ( u32 j = 0; j < COUNT; ++j )
         {
+            if ( extensionData[j].second == ExtClassification::DISABLED )
+                continue;
+
             if ( std::strcmp( extensionData[j].first, deviceExtensions[i].extensionName ) == 0 )
             {
                 extensionsPresent[j]                       = true;
@@ -49,8 +52,9 @@ void PhysicalDeviceExtensions::LogMissingExtensions() const
 
 enum
 {
-    REQUIRED,
-    IMPLICIT,
+    DISABLED = 0,
+    REQUIRED = 1,
+    IMPLICIT = 2,
 };
 
 struct FeatureItem
@@ -121,16 +125,6 @@ static constexpr std::array DEVICE_FEATURES = std::array{
 // clang-format on
 
 #undef FEAT
-
-void FillFeaturesStruct( PhysicalDeviceFeatures& physicalDeviceFeatures )
-{
-    u8* baseAddress = reinterpret_cast<u8*>( &physicalDeviceFeatures );
-    for ( const auto& item : DEVICE_FEATURES )
-    {
-        VkBool32& value = *reinterpret_cast<VkBool32*>( baseAddress + item.offset );
-        value           = VK_TRUE;
-    }
-}
 
 void FillFeaturesToEnableStruct( const PhysicalDeviceFeatures& deviceSupportedFeatures, PhysicalDeviceFeatures& featuresToEnable )
 {

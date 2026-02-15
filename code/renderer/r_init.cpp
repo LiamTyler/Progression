@@ -7,7 +7,6 @@
 #include "renderer/r_globals.hpp"
 #include "renderer/r_pipeline_manager.hpp"
 #include "shared/logger.hpp"
-#include "vk-bootstrap/VkBootstrap.h"
 #include <cstring>
 #include <iostream>
 
@@ -388,11 +387,9 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
         return false;
     }
 
-    // vkb::PhysicalDevice vkbPhysicalDevice = pDevSelectorRet.value();
-    // rg.physicalDevice.Init( vkbPhysicalDevice.physical_device );
-    auto pDevProperties = rg.physicalDevice.GetProperties();
-    LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", rg.physicalDevice.GetName().c_str(), pDevProperties.apiVersionMajor,
-        pDevProperties.apiVersionMinor, pDevProperties.apiVersionPatch );
+    const VkPhysicalDeviceProperties& pProps = rg.physicalDevice.GetMetadata()->properties;
+    LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", pProps.deviceName, VK_VERSION_MAJOR( pProps.apiVersion ),
+        VK_VERSION_MINOR( pProps.apiVersion ), VK_VERSION_PATCH( pProps.apiVersion ) );
 
     DebugMarker::Init( rg.instance );
 

@@ -135,9 +135,12 @@ bool Pipeline::FastfileSave( Serializer* serializer ) const
 void Pipeline::Free()
 {
     using namespace Gfx;
-    PG_ASSERT( m_pipeline != VK_NULL_HANDLE && m_pipelineLayout != VK_NULL_HANDLE );
-    vkDestroyPipeline( rg.device, m_pipeline, nullptr );
-    vkDestroyPipelineLayout( rg.device, m_pipelineLayout, nullptr );
+    if ( m_extensionsAndFeaturesSupported )
+    {
+        PG_ASSERT( m_pipeline != VK_NULL_HANDLE && m_pipelineLayout != VK_NULL_HANDLE );
+        vkDestroyPipeline( rg.device, m_pipeline, nullptr );
+        vkDestroyPipelineLayout( rg.device, m_pipelineLayout, nullptr );
+    }
     m_pipeline       = VK_NULL_HANDLE;
     m_pipelineLayout = VK_NULL_HANDLE;
 }
@@ -148,6 +151,7 @@ VkPipelineBindPoint Pipeline::GetPipelineBindPoint() const { return m_bindPoint;
 VkShaderStageFlags Pipeline::GetPushConstantShaderStages() const { return m_stageFlags; }
 Gfx::PipelineType Pipeline::GetPipelineType() const { return m_pipelineType; }
 uvec3 Pipeline::GetWorkgroupSize() const { return m_workgroupSize; }
+bool Pipeline::ExtensionsAndFeaturesSupported() const { return m_extensionsAndFeaturesSupported; }
 
 Pipeline::operator bool() const { return m_pipeline != VK_NULL_HANDLE; }
 Pipeline::operator VkPipeline() const { return m_pipeline; }

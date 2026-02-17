@@ -13,7 +13,7 @@ using namespace Gfx;
 
 bool g_paused = false;
 
-#define LOAD_SCENE_DIRECTLY NOT_IN_USE
+#define LOAD_SCENE_DIRECTLY IN_USE
 
 int main( int argc, char* argv[] )
 {
@@ -39,6 +39,7 @@ int main( int argc, char* argv[] )
         EngineShutdown();
         return 0;
     }
+    SetPrimaryScene( scene );
 #else  // #if USING( LOAD_SCENE_DIRECTLY )
     Scene* scene = LoadScene( "startup" );
     if ( !scene )

@@ -257,7 +257,14 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     useDebugShader = useDebugShader || r_meshletViz.GetBool();
     useDebugShader = useDebugShader || r_wireframe.GetBool();
 #endif // #if USING( DEVELOPMENT_BUILD )
-    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "litModel", useDebugShader ) );
+    Pipeline* pipeline = PipelineManager::GetPipeline( "litModel", useDebugShader );
+    if ( !pipeline->ExtensionsAndFeaturesSupported() )
+    {
+        LOG_WARN( "Pipeline %s is not supported on this device!", pipeline->GetName() );
+        return;
+    }
+
+    cmdBuf.BindPipeline( pipeline );
     cmdBuf.BindGlobalDescriptors();
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );

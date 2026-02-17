@@ -28,7 +28,7 @@ constexpr i32 g_assetVersions[] = {
     g_globalAssetVersion + 10, // ASSET_TYPE_MATERIAL,  "New name serialization"
     g_globalAssetVersion + 1,  // ASSET_TYPE_SCRIPT,    "New name serialization"
     g_globalAssetVersion + 19, // ASSET_TYPE_MODEL,     "Packed UVs"
-    g_globalAssetVersion + 4,  // ASSET_TYPE_SHADER,    "New name serialization"
+    g_globalAssetVersion + 5,  // ASSET_TYPE_SHADER,    "Reflect extension + capabilities info"
     g_globalAssetVersion + 5,  // ASSET_TYPE_PIPELINE,  "Forgot to add new blend mode to the cache name"
     g_globalAssetVersion + 5,  // ASSET_TYPE_FONT,      "Kerning + switched the edge coloring mode"
 

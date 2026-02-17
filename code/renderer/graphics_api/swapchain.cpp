@@ -41,7 +41,7 @@ static VkSurfaceFormatKHR ChooseFormat()
         }
     }
 
-    LOG_ERR( "TODO: ideal surface format not found");
+    LOG_ERR( "TODO: ideal surface format not found" );
     return {};
 }
 
@@ -49,9 +49,9 @@ bool Swapchain::Create( u32 width, u32 height )
 {
     PGP_ZONE_SCOPEDN( "Swapchain::Create" );
     VkSurfaceCapabilitiesKHR surfaceCaps{};
-    VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( rg.physicalDevice, rg.surface, &surfaceCaps ) );    
+    VK_CHECK( vkGetPhysicalDeviceSurfaceCapabilitiesKHR( rg.physicalDevice, rg.surface, &surfaceCaps ) );
 
-    VkExtent2D extents = ChooseExtents( surfaceCaps, width, height );
+    VkExtent2D extents               = ChooseExtents( surfaceCaps, width, height );
     VkSurfaceFormatKHR surfaceFormat = ChooseFormat();
     VkSwapchainCreateInfoKHR swapchainCI{
         .sType            = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR,
@@ -61,8 +61,8 @@ bool Swapchain::Create( u32 width, u32 height )
         .imageColorSpace  = surfaceFormat.colorSpace,
         .imageExtent      = extents,
         .imageArrayLayers = 1,
-        .imageUsage =
-            VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
+        .imageUsage       = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT |
+                      VK_IMAGE_USAGE_STORAGE_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT,
         .preTransform   = VK_SURFACE_TRANSFORM_IDENTITY_BIT_KHR,
         .compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR,
         .presentMode    = VK_PRESENT_MODE_FIFO_KHR // vsync

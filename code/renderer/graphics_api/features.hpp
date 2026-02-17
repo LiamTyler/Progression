@@ -6,7 +6,7 @@
 namespace PG::Gfx
 {
 
-enum class ExtClassification : u8
+enum class ExtOrFeatClassification : u8
 {
     DISABLED = 0,
     REQUIRED = 1,
@@ -18,37 +18,22 @@ struct PhysicalDeviceExtensions
 {
     enum Extension
     {
+        NONE, // just used as a placeholder tag for extensions that were promoted to core
         SWAPCHAIN,
         MESH_SHADER,
+        SHADER_DRAW_PARAMETERS,
         SPIRV_1_4,                   // ?
         HOST_QUERY_RESET,            // ?
         SCALAR_BLOCK_LAYOUT,         // qualifier for ssbos/ubos/push constants to allow packed members, like c-style structs
         SHADER_NON_SEMANTIC_INFO,    // for shader printf
         FRAGMENT_SHADER_BARYCENTRIC, // used in debug wireframe shader
-        // ACCELERATION_STRUCTURE,      // rt
-        // RAY_TRACING_PIPELINE,        // rt
-        // DEFERRED_HOST_OPERATIONS,    // rt?
 
         // MUTABLE_DESCRIPTOR_TYPE,
         // DESCRIPTOR_BUFFER,
 
         COUNT,
     };
-    static constexpr std::pair<char const*, ExtClassification> extensionData[COUNT] = {
-        {VK_KHR_SWAPCHAIN_EXTENSION_NAME,                   ExtClassification::IMPLICIT},
-        {VK_EXT_MESH_SHADER_EXTENSION_NAME,                 ExtClassification::REQUIRED},
-        {VK_KHR_SPIRV_1_4_EXTENSION_NAME,                   ExtClassification::REQUIRED},
-        {VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,            ExtClassification::REQUIRED},
-        {VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME,         ExtClassification::REQUIRED},
-        {VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,    ExtClassification::IMPLICIT},
-        {VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME, ExtClassification::IMPLICIT},
 
-        // VK_KHR_ACCELERATION_STRUCTURE_EXTENSION_NAME,
-        // VK_KHR_RAY_TRACING_PIPELINE_EXTENSION_NAME,
-        // VK_KHR_DEFERRED_HOST_OPERATIONS_EXTENSION_NAME,
-        // VK_EXT_MUTABLE_DESCRIPTOR_TYPE_EXTENSION_NAME,
-        // VK_EXT_DESCRIPTOR_BUFFER_EXTENSION_NAME,
-    };
     char const* extensionNameList[COUNT] = {};
     u32 extensionNameListSize            = {};
     bool extensionsPresent[COUNT]        = {};
@@ -68,6 +53,7 @@ struct PhysicalDeviceFeatures
     VkPhysicalDeviceMutableDescriptorTypeFeaturesEXT mutableDescriptorFeaturesEXT             = {};
     VkPhysicalDeviceDescriptorBufferFeaturesEXT descriptorBufferFeaturesEXT                   = {};
     VkPhysicalDeviceMeshShaderFeaturesEXT meshShaderFeatures                                  = {};
+    VkPhysicalDeviceBufferDeviceAddressFeatures bufferDeviceAddressFeatures                   = {};
     VkPhysicalDeviceFeatures2 features2                                                       = {};
 
     void Initialize( const PhysicalDeviceExtensions& extensions );
@@ -77,5 +63,8 @@ struct PhysicalDeviceFeatures
 };
 
 void FillFeaturesToEnableStruct( const PhysicalDeviceFeatures& deviceSupportedFeatures, PhysicalDeviceFeatures& featuresToEnable );
+
+bool IsSpirvExtensionSupported( const PhysicalDeviceExtensions& deviceExtensions, u32 apiVersion, const std::string& spirvExtension );
+bool IsSpirvCapabilitySupported( const PhysicalDeviceFeatures& deviceExtensions, u32 apiVersion, i32 queryCapability );
 
 } // namespace PG::Gfx

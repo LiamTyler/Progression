@@ -92,10 +92,16 @@ public:
         PG_ASSERT( createInfo.shaders.size() <= 3, "increase shaderStages size below" );
         VkPipelineShaderStageCreateInfo shaderStages[3];
         Shader* shaders[3];
+        p.m_extensionsAndFeaturesSupported = true;
         for ( i32 i = 0; i < (i32)createInfo.shaders.size(); ++i )
         {
             Shader* shader = AssetManager::Get<Shader>( createInfo.shaders[i].name );
             PG_ASSERT( shader && shader->GetShaderStage() == createInfo.shaders[i].stage );
+            if ( !shader->ExtensionsAndFeaturesSupported() )
+            {
+                p.m_extensionsAndFeaturesSupported = false;
+                return;
+            }
             shaders[i]             = shader;
             ShaderStage stage      = shader->GetShaderStage();
             shaderStages[i]        = { VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO };
@@ -223,6 +229,16 @@ public:
         Shader* shader   = AssetManager::Get<Shader>( createInfo.shaders[0].name );
         PG_ASSERT( shader && shader->GetShaderStage() == createInfo.shaders[0].stage );
         p.m_workgroupSize = shader->GetReflectionData().workgroupSize;
+
+        p.m_extensionsAndFeaturesSupported = true;
+        if ( !shader->ExtensionsAndFeaturesSupported() )
+        {
+            LOG_WARN( "Not loading pipeline %s due to the underlying shaders not having their extensions and/or capabilities supported on "
+                      "this device",
+                createInfo.name.c_str() );
+            p.m_extensionsAndFeaturesSupported = false;
+            return;
+        }
 
         VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo{ VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
         pipelineLayoutCreateInfo.setLayoutCount = 1;

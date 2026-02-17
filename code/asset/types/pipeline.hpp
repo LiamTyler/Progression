@@ -197,6 +197,7 @@ public:
     VkShaderStageFlags GetPushConstantShaderStages() const;
     Gfx::PipelineType GetPipelineType() const;
     uvec3 GetWorkgroupSize() const;
+    bool ExtensionsAndFeaturesSupported() const;
 
     operator bool() const;
     operator VkPipeline() const;
@@ -208,6 +209,7 @@ private:
     VkShaderStageFlags m_stageFlags = VK_SHADER_STAGE_ALL;
     Gfx::PipelineType m_pipelineType;
     uvec3 m_workgroupSize;
+    bool m_extensionsAndFeaturesSupported = false;
 #endif // #if USING( GPU_DATA )
 };
 

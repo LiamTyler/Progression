@@ -39,6 +39,8 @@ struct ShaderReflectData
     uvec3 workgroupSize    = uvec3( 0 );
     u16 pushConstantSize   = 0;
     u16 pushConstantOffset = 0;
+    std::vector<std::string> extensions;
+    std::vector<i32> capabilities;
 };
 
 struct Shader : public BaseAsset
@@ -50,6 +52,7 @@ struct Shader : public BaseAsset
 
     const ShaderReflectData& GetReflectionData() const { return m_reflectionData; }
     ShaderStage GetShaderStage() const { return m_shaderStage; }
+    bool ExtensionsAndFeaturesSupported() const { return m_extensionsAndFeaturesSupported; }
 
 #if USING( GPU_DATA )
     VkShaderModule GetHandle() const { return m_handle; }
@@ -63,7 +66,9 @@ struct Shader : public BaseAsset
 private:
 #if USING( GPU_DATA )
     VkShaderModule m_handle = VK_NULL_HANDLE;
+    void CreateShaderModule( const u32* spirv, size_t sizeInBytes );
 #endif // #if USING( GPU_DATA )
+    bool m_extensionsAndFeaturesSupported = false;
     ShaderStage m_shaderStage;
     ShaderReflectData m_reflectionData;
 };

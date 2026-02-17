@@ -56,21 +56,19 @@ static ShaderStage SpirvCrossShaderStageToPG( spv::ExecutionModel stage )
     static_assert( Underlying( ShaderStage::NUM_SHADER_STAGES ) == 6, "update above" );
 }
 
-static bool ReflectShader_ReflectSpirv( u32* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
+static bool ReflectShader_ReflectSpirv( const std::string& name, u32* spirv, size_t sizeInBytes, ShaderReflectData& reflectData )
 {
-    using namespace spirv_cross;
-
     spirv_cross::Compiler compiler( spirv, sizeInBytes / sizeof( u32 ) );
 
     reflectData.workgroupSize.x = compiler.get_execution_mode_argument( spv::ExecutionModeLocalSize, 0 );
     reflectData.workgroupSize.y = compiler.get_execution_mode_argument( spv::ExecutionModeLocalSize, 1 );
     reflectData.workgroupSize.z = compiler.get_execution_mode_argument( spv::ExecutionModeLocalSize, 2 );
 
-    auto resources = compiler.get_shader_resources();
+    const spirv_cross::ShaderResources& resources = compiler.get_shader_resources();
     if ( !resources.push_constant_buffers.empty() )
     {
-        const SPIRType& type = compiler.get_type( resources.push_constant_buffers.front().base_type_id );
-        u32 lowestOffset     = UINT32_MAX;
+        const spirv_cross::SPIRType& type = compiler.get_type( resources.push_constant_buffers.front().base_type_id );
+        u32 lowestOffset                  = UINT32_MAX;
         for ( u32 i = 0; i < (u32)type.member_types.size(); ++i )
         {
             lowestOffset = Min( lowestOffset, compiler.type_struct_member_offset( type, i ) );
@@ -84,8 +82,19 @@ static bool ReflectShader_ReflectSpirv( u32* spirv, size_t sizeInBytes, ShaderRe
     const auto& specializationConstants = compiler.get_specialization_constants();
     for ( const auto& specConst : specializationConstants )
     {
-        LOG_WARN( "Specialization constants not supported currently. Ignoring spec constant %u", specConst.constant_id );
+        LOG_WARN( "Specialization constants not supported currently. Ignoring spec constant %u for shader %s", specConst.constant_id,
+            name.c_str() );
     }
+
+    const auto& extensionsNameList = compiler.get_declared_extensions();
+    reflectData.extensions.reserve( extensionsNameList.size() );
+    for ( const auto& e : extensionsNameList )
+        reflectData.extensions.push_back( e );
+
+    const auto& capabilities = compiler.get_declared_capabilities();
+    reflectData.capabilities.reserve( capabilities.size() );
+    for ( auto c : capabilities )
+        reflectData.capabilities.push_back( c );
 
     return true;
 }
@@ -122,21 +131,41 @@ static bool CompilePreprocessedShaderToSPIRV(
 }
 
 #if USING( GPU_DATA )
-static VkShaderModule CreateShaderModule( const u32* spirv, size_t sizeInBytes )
+void Shader::CreateShaderModule( const u32* spirv, size_t sizeInBytes )
 {
-    VkShaderModule module;
+    using namespace PG::Gfx;
+    m_extensionsAndFeaturesSupported = true;
+    for ( const std::string& ext : m_reflectionData.extensions )
+    {
+        if ( !rg.physicalDevice.IsSpirvShaderExtensionSupported( ext ) )
+        {
+            LOG_WARN( "Not loading shader %s because spirv extension %s is not supported", GetName(), ext.c_str() );
+            m_extensionsAndFeaturesSupported = false;
+            return;
+        }
+    }
+
+    for ( i32 cap : m_reflectionData.capabilities )
+    {
+        if ( !rg.physicalDevice.IsSpirvShaderCapabilitySupported( m_shaderStage, cap ) )
+        {
+            LOG_WARN( "Not loading shader %s because spirv capability %d (%s) is not supported", GetName(), cap,
+                spv::CapabilityToString( (spv::Capability)cap ) );
+            m_extensionsAndFeaturesSupported = false;
+            return;
+        }
+    }
+
     VkShaderModuleCreateInfo vkShaderInfo = {};
     vkShaderInfo.sType                    = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     vkShaderInfo.codeSize                 = sizeInBytes;
     vkShaderInfo.pCode                    = spirv;
-    VkResult ret                          = vkCreateShaderModule( PG::Gfx::rg.device, &vkShaderInfo, nullptr, &module );
+    VkResult ret                          = vkCreateShaderModule( rg.device, &vkShaderInfo, nullptr, &m_handle );
     if ( ret != VK_SUCCESS )
     {
         LOG_ERR( "Could not create shader module from spirv" );
-        return VK_NULL_HANDLE;
     }
-
-    return module;
+    PG_DEBUG_MARKER_SET_SHADER_NAME( m_handle, GetName() );
 }
 #endif // #if USING( GPU_DATA )
 
@@ -166,7 +195,8 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     size_t spirvSizeInBytes = 4 * spirv.size();
-    if ( !ReflectShader_ReflectSpirv( spirv.data(), spirvSizeInBytes, m_reflectionData ) )
+    LOG( "Extensions and caps for %s", createInfo->name.c_str() );
+    if ( !ReflectShader_ReflectSpirv( createInfo->name, spirv.data(), spirvSizeInBytes, m_reflectionData ) )
     {
         LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed", createInfo->name.c_str(), createInfo->filename.c_str() );
         return false;
@@ -177,12 +207,11 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     AddIncludeCacheEntry( createInfo, preproc );
 #endif // #if USING( CONVERTER )
 #if USING( GPU_DATA )
-    m_handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
-    if ( m_handle == VK_NULL_HANDLE )
+    CreateShaderModule( spirv.data(), 4 * spirv.size() );
+    if ( ExtensionsAndFeaturesSupported() && m_handle == VK_NULL_HANDLE )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, GetName() );
 #endif // if USING( GPU_DATA )
 
     return true;
@@ -190,18 +219,21 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
 
 bool Shader::FastfileLoad( Serializer* serializer )
 {
-    serializer->Read( &m_reflectionData, sizeof( m_reflectionData ) );
+    serializer->Read( m_reflectionData.workgroupSize );
+    serializer->Read( m_reflectionData.pushConstantSize );
+    serializer->Read( m_reflectionData.pushConstantOffset );
+    serializer->Read( m_reflectionData.extensions );
+    serializer->Read( m_reflectionData.capabilities );
     serializer->Read( m_shaderStage );
     std::vector<u32> spirv;
     serializer->Read( spirv );
 
 #if USING( GPU_DATA )
-    m_handle = CreateShaderModule( spirv.data(), 4 * spirv.size() );
-    if ( m_handle == VK_NULL_HANDLE )
+    CreateShaderModule( spirv.data(), 4 * spirv.size() );
+    if ( ExtensionsAndFeaturesSupported() && m_handle == VK_NULL_HANDLE )
     {
         return false;
     }
-    PG_DEBUG_MARKER_SET_SHADER_NAME( this->m_handle, GetName() );
 #endif // #if USING( GPU_DATA )
 
     return true;
@@ -213,7 +245,11 @@ bool Shader::FastfileSave( Serializer* serializer ) const
 #if !USING( CONVERTER )
     PG_ASSERT( false, "Spirv code is only kept around in Converter builds for saving" );
 #else  // #if !USING( CONVERTER )
-    serializer->Write( &m_reflectionData, sizeof( m_reflectionData ) );
+    serializer->Write( m_reflectionData.workgroupSize );
+    serializer->Write( m_reflectionData.pushConstantSize );
+    serializer->Write( m_reflectionData.pushConstantOffset );
+    serializer->Write( m_reflectionData.extensions );
+    serializer->Write( m_reflectionData.capabilities );
     serializer->Write( m_shaderStage );
     serializer->Write( savedSpirv );
 #endif // #else // #if !USING( CONVERTER )
@@ -224,7 +260,8 @@ bool Shader::FastfileSave( Serializer* serializer ) const
 void Shader::Free()
 {
 #if USING( GPU_DATA )
-    vkDestroyShaderModule( PG::Gfx::rg.device, m_handle, nullptr );
+    if ( ExtensionsAndFeaturesSupported() )
+        vkDestroyShaderModule( PG::Gfx::rg.device, m_handle, nullptr );
 #endif // #if USING( GPU_DATA )
 }
 

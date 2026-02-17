@@ -1,7 +1,9 @@
 #include "physical_device.hpp"
 #include "renderer/debug_marker.hpp"
+#include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_globals.hpp"
 #include "shared/logger.hpp"
+#include "spirv_cross/spirv.hpp"
 
 namespace PG::Gfx
 {
@@ -9,16 +11,20 @@ namespace PG::Gfx
 static void GetDeviceProperties( VkPhysicalDevice pDev, PhysicalDeviceMetadata& metadata )
 {
     void* chain = nullptr;
-#if 1 || USING( PG_DESCRIPTOR_BUFFER )
+#if USING( PG_DESCRIPTOR_BUFFER )
     metadata.dbProps       = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_DESCRIPTOR_BUFFER_PROPERTIES_EXT };
     metadata.dbProps.pNext = chain;
     chain                  = &metadata.dbProps;
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
-    VkPhysicalDeviceProperties2 vkProps2 = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
-    vkProps2.pNext                       = chain;
-    vkGetPhysicalDeviceProperties2( pDev, &vkProps2 );
-    memcpy( &metadata.properties, &vkProps2.properties, sizeof( VkPhysicalDeviceProperties ) );
+    metadata.properties11       = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_PROPERTIES };
+    metadata.properties11.pNext = chain;
+    chain                       = &metadata.properties11;
+
+    VkPhysicalDeviceProperties2 vkProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
+    vkProps.pNext                       = chain;
+    vkGetPhysicalDeviceProperties2( pDev, &vkProps );
+    memcpy( &metadata.properties, &vkProps, sizeof( VkPhysicalDeviceProperties ) );
 
     vkGetPhysicalDeviceMemoryProperties( pDev, &metadata.memProperties );
 }
@@ -99,6 +105,37 @@ void PhysicalDevice::LogReasonsForInsuitability() const
 
     LOG( "  Device is missing the following required features:" );
     m_metadata->features.LogMissingFeatures();
+}
+
+// https://docs.vulkan.org/spec/latest/appendices/spirvenv.html
+bool PhysicalDevice::IsSpirvShaderExtensionSupported( const std::string& extension ) const
+{
+    return IsSpirvExtensionSupported( m_metadata->extensions, m_metadata->properties.apiVersion, extension );
+}
+
+bool PhysicalDevice::IsSpirvShaderCapabilitySupported( ShaderStage stage, i32 capability ) const
+{
+    bool groupOpsAllowed = ( m_metadata->properties11.subgroupSupportedStages & PGToVulkanShaderStage( stage ) ) != 0;
+    switch ( capability )
+    {
+    case spv::CapabilityGroupNonUniform:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_BASIC_BIT ) != 0;
+    case spv::CapabilityGroupNonUniformVote:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_VOTE_BIT ) != 0;
+    case spv::CapabilityGroupNonUniformArithmetic:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_ARITHMETIC_BIT ) != 0;
+    case spv::CapabilityGroupNonUniformBallot:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_BALLOT_BIT ) != 0;
+    case spv::CapabilityGroupNonUniformShuffle:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_BIT ) != 0;
+    case spv::CapabilityGroupNonUniformShuffleRelative:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_SHUFFLE_RELATIVE_BIT ) != 0;
+    case spv::CapabilityGroupNonUniformClustered:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_CLUSTERED_BIT ) != 0;
+    case spv::CapabilityGroupNonUniformQuad:
+        return groupOpsAllowed && ( m_metadata->properties11.subgroupSupportedOperations & VK_SUBGROUP_FEATURE_QUAD_BIT ) != 0;
+    default: return IsSpirvCapabilitySupported( m_metadata->features, m_metadata->properties.apiVersion, capability );
+    }
 }
 
 void PhysicalDevice::CalculateSuitabilityScore()

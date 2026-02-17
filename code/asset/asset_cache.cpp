@@ -108,7 +108,7 @@ bool CacheAsset( AssetType assetType, const std::string& assetCacheName, BaseAss
 
         // Fast path, for when the entire asset fits into the scratch buffer (very often)
         // this way we avoid writing it to disk, and then reading it immediately again
-        // Close to 7x fater, on my windows machine at leat
+        // Close to 7x faster, on my windows machine at leat
         if ( !serializer.HasFlushed() )
         {
             serializer.RunFlushCallback();

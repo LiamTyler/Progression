@@ -58,6 +58,14 @@ public:
         Write( &x, sizeof( T ) );
     }
 
+    void Write( const std::vector<std::string>& x )
+    {
+        size_t size = x.size();
+        Write( size );
+        for ( const std::string& s : x )
+            Write( s );
+    }
+
     template <typename T>
     void Write( const std::vector<T>& x )
     {
@@ -81,6 +89,15 @@ public:
         static_assert( !std::is_const<T>::value, "T must be non-const" );
         static_assert( std::is_trivial<T>::value, "T must be a trivial plain old data type" );
         Read( (void*)&x, sizeof( T ) );
+    }
+
+    void Read( std::vector<std::string>& x )
+    {
+        size_t size;
+        Read( size );
+        x.resize( size );
+        for ( size_t i = 0; i < size; ++i )
+            Read( x[i] );
     }
 
     template <typename T>

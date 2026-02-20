@@ -251,18 +251,30 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 
     bool useDebugShader = false;
 #if USING( DEVELOPMENT_BUILD )
-    useDebugShader = useDebugShader || r_geometryViz.GetUint();
-    useDebugShader = useDebugShader || r_materialViz.GetUint();
-    useDebugShader = useDebugShader || r_lightingViz.GetUint();
-    useDebugShader = useDebugShader || r_meshletViz.GetBool();
-    useDebugShader = useDebugShader || r_wireframe.GetBool();
-#endif // #if USING( DEVELOPMENT_BUILD )
-    Pipeline* pipeline = PipelineManager::GetPipeline( "litModel", useDebugShader );
-    if ( !pipeline->ExtensionsAndFeaturesSupported() )
+    Pipeline* pipeline       = nullptr;
+    std::string pipelineName = "litModel";
+    useDebugShader           = useDebugShader || r_geometryViz.GetUint();
+    useDebugShader           = useDebugShader || r_materialViz.GetUint();
+    useDebugShader           = useDebugShader || r_lightingViz.GetUint();
+    useDebugShader           = useDebugShader || r_meshletViz.GetBool();
+    if ( useDebugShader )
+        pipelineName += "_debug";
+
+    if ( r_wireframe.GetBool() )
     {
-        LOG_WARN( "Pipeline %s is not supported on this device!", pipeline->GetName() );
-        return;
+        pipeline = PipelineManager::GetPipeline( "litModel_debug_wireframe" );
+        if ( !pipeline->ExtensionsAndFeaturesSupported() )
+        {
+            LOG_WARN( "The wireframe shader is not supported on this device. Ignoring wireframe request" );
+            pipeline = nullptr;
+        }
     }
+
+    if ( !pipeline )
+        pipeline = PipelineManager::GetPipeline( pipelineName );
+#else  // #if USING( DEVELOPMENT_BUILD )
+    Pipeline* pipeline = PipelineManager::GetPipeline( "litModel" );
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     cmdBuf.BindPipeline( pipeline );
     cmdBuf.BindGlobalDescriptors();

@@ -18,6 +18,13 @@
         "generateDebugPermutation": true
     } },
     { "Pipeline": {
+        "name": "litModel_debug_wireframe",
+        "parent": "litModel",
+        "generateDebugPermutation": false,
+        "define": "WIREFRAME_ENABLED 1",
+        "isDebugOnlyAsset": true
+    } },
+    { "Pipeline": {
         "name": "debug_simpleModel",
         "isDebugOnlyAsset": true,
         "taskShader": "debug/simple.task",

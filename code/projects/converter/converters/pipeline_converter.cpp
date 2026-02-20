@@ -23,6 +23,9 @@ void PipelineConverter::AddReferencedAssetsInternal( ConstDerivedInfoPtr& pipeli
         if ( hasTaskShader && shaderInfo.stage == ShaderStage::MESH )
             shaderCI->defines.emplace_back( "HAS_TASK_SHADER 1" );
 
+        if ( pipelineInfo->isDebugOnlyAsset )
+            shaderCI->defines.emplace_back( "IS_DEBUG_SHADER 1" );
+
         AddUsedAsset( ASSET_TYPE_SHADER, shaderCI );
     }
 

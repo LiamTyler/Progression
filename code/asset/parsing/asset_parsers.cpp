@@ -2,6 +2,8 @@
 
 using cjval = const rapidjson::Value&;
 
+static const std::vector<std::string> IGNORE_LIST = { "name", "parent", "isDebugOnlyAsset" };
+
 namespace PG
 {
 
@@ -93,7 +95,7 @@ bool GfxImageParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "clampVertical",   []( cjval v, GfxImageCreateInfo& s ) { s.clampVertical = ParseBool( v ); } },
         { "filterMode",      []( cjval v, GfxImageCreateInfo& s ) { s.filterMode = GfxImageFilterMode_ParseEnum( v ); } },
     });
-    mapping.ForEachMember( value, *info );
+    mapping.ForEachMember( value, IGNORE_LIST, *info );
 
     return true;
 }
@@ -120,7 +122,7 @@ bool MaterialParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "applyRoughness", []( const Value& v, MaterialCreateInfo& i ) { i.applyRoughness = ParseBool( v ); } },
         { "applyEmissive",  []( const Value& v, MaterialCreateInfo& i ) { i.applyEmissive = ParseBool( v ); } },
     });
-    mapping.ForEachMember( value, *info );
+    mapping.ForEachMember( value, IGNORE_LIST, *info );
 
    return true;
 }
@@ -134,7 +136,7 @@ bool ModelParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "recalculateNormals",      []( cjval v, ModelCreateInfo& i ) { i.recalculateNormals = ParseBool( v ); } },
         { "centerModel",             []( cjval v, ModelCreateInfo& i ) { i.centerModel = ParseBool( v ); } },
     });
-    mapping.ForEachMember( value, *info );
+    mapping.ForEachMember( value, IGNORE_LIST, *info );
 
     if ( info->filename.empty() )
     {
@@ -151,7 +153,7 @@ bool ScriptParser::ParseInternal( cjval value, DerivedInfoPtr info )
     {
         { "filename", []( cjval v, ScriptCreateInfo& s ) { s.filename = ParseString( v ); } },
     });
-    mapping.ForEachMember( value, *info );
+    mapping.ForEachMember( value, IGNORE_LIST, *info );
     return true;
 }
 
@@ -233,7 +235,6 @@ bool PipelineParser::ParseInternal( cjval value, DerivedInfoPtr info )
 
     static JSONFunctionMapper<PipelineCreateInfo&> mapping(
     {
-        { "name",           []( cjval v, PipelineCreateInfo& s ) { s.name = ParseString( v ); } },
         { "computeShader",  []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::COMPUTE ); } },
         { "vertexShader",   []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::VERTEX ); } },
         { "geometryShader", []( cjval v, PipelineCreateInfo& s ) { s.shaders.emplace_back( ParseString( v ), ShaderStage::GEOMETRY ); } },
@@ -250,7 +251,15 @@ bool PipelineParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "depthAttachment", [&]( cjval v, PipelineCreateInfo& s ) { dMapping.ForEachMember( v, s.graphicsInfo.depthInfo ); } },
         { "rasterizerInfo",  [&]( cjval v, PipelineCreateInfo& s ) { rMapping.ForEachMember( v, s.graphicsInfo.rasterizerInfo ); } },
     });
-    mapping.ForEachMember( value, *info );
+    mapping.ForEachMember( value, IGNORE_LIST, *info );
+
+#if USING( CONVERTER )
+    if ( info->isDebugOnlyAsset && info->generateDebugPermutation )
+    {
+        LOG( "Pipeline %s has both 'isDebugOnlyAsset' and 'generateDebugPermutation' enabled, but they are mutually exclusive. Setting generateDebugPermutation to false", info->name.c_str() );
+        info->generateDebugPermutation = false;
+    }
+#endif // #if USING( CONVERTER )
 
     return true;
 }
@@ -263,7 +272,7 @@ bool FontParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "glyphSize",         []( cjval v, FontCreateInfo& s ) { s.glyphSize = ParseNumber<i32>( v ); } },
         { "maxSignedDistance", []( cjval v, FontCreateInfo& s ) { s.maxSignedDistance = ParseNumber<f32>( v ); } },
     });
-    mapping.ForEachMember( value, *info );
+    mapping.ForEachMember( value, IGNORE_LIST, *info );
 
     if ( info->glyphSize < 8 || info->glyphSize > 128 )
     {
@@ -290,7 +299,6 @@ bool TexturesetParser::ParseInternal( cjval value, DerivedInfoPtr info )
 {
     static JSONFunctionMapper<TexturesetCreateInfo&> mapping(
     {
-        { "name",                   []( cjval v, TexturesetCreateInfo& s ) { s.name = ParseString( v ); } },
         { "clampHorizontal",        []( cjval v, TexturesetCreateInfo& s ) { s.clampHorizontal = ParseBool( v ); } },
         { "clampVertical",          []( cjval v, TexturesetCreateInfo& s ) { s.clampVertical = ParseBool( v ); } },
         { "flipVertically",         []( cjval v, TexturesetCreateInfo& s ) { s.flipVertically = ParseBool( v ); } },
@@ -307,7 +315,7 @@ bool TexturesetParser::ParseInternal( cjval value, DerivedInfoPtr info )
         { "roughnessScale",         []( cjval v, TexturesetCreateInfo& s ) { s.roughnessScale = ParseBool( v ); } },
         { "emissiveMap",            []( cjval v, TexturesetCreateInfo& s ) { s.emissiveMap = ParseString( v ); } },
     });
-    mapping.ForEachMember( value, *info );
+    mapping.ForEachMember( value, IGNORE_LIST, *info );
 
     return true;
 }

@@ -164,7 +164,10 @@ void EmissiveLighting( const ShaderMaterial m, out vec3 Lo )
 #if IS_DEBUG_SHADER
 #include "c_shared/dvar_defines.h"
 #include "lib/debug_coloring.glsl"
-#include "lib/debug_wireframe.glsl"
+
+#if WIREFRAME_ENABLED
+    #include "lib/debug_wireframe.glsl"
+#endif // #if WIREFRAME_ENABLED
 
 void Debug_Geometry( inout vec4 color )
 {
@@ -260,9 +263,11 @@ void main()
     {
         fragOutColor = Debug_IndexToColorVec4( fragInput.meshletIdx );
     }
+#if WIREFRAME_ENABLED
     if ( IsWireframeEnabled() )
     {
         fragOutColor = ProcessStandardWireframe( fragOutColor );
     }
+#endif // #if WIREFRAME_ENABLED
 #endif // #if IS_DEBUG_SHADER
 }

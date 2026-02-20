@@ -25,7 +25,7 @@ static constexpr ExtensionData DEVICE_EXTENSIONS[PhysicalDeviceExtensions::COUNT
     {VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,            ExtOrFeatClassification::REQUIRED},
     {VK_EXT_SCALAR_BLOCK_LAYOUT_EXTENSION_NAME,         ExtOrFeatClassification::REQUIRED},
     {VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,    ExtOrFeatClassification::IMPLICIT},
-    {VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME, ExtOrFeatClassification::DISABLED},
+    {VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME, ExtOrFeatClassification::IMPLICIT},
 };
 
 bool PhysicalDeviceExtensions::QuerySupport( VkPhysicalDevice vkPhysicalDevice )

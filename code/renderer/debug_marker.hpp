@@ -6,7 +6,8 @@
 #include "vma/vk_mem_alloc.h"
 #include <string>
 
-#define USE_DEBUG_MARKER USE_IF( !USING( SHIP_BUILD ) && USING( GPU_DATA ) )
+// #define USE_DEBUG_MARKER USE_IF( !USING( SHIP_BUILD ) && USING( GPU_DATA ) )
+#define USE_DEBUG_MARKER USE_IF( USING( DEVELOPMENT_BUILD ) && USING( GPU_DATA ) )
 
 namespace PG::Gfx::DebugMarker
 {
@@ -117,35 +118,119 @@ void SetQueryPoolName( VkQueryPool pool, const char* name );
 
 #else // #if USING( USE_DEBUG_MARKER )
 
-#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name )
-#define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf )
-#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, fmt, ... )
+#define PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( cmdbuf, name ) \
+    do                                                      \
+    {                                                       \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_END_REGION_CMDBUF( cmdbuf ) \
+    do                                              \
+    {                                               \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_INSERT_CMDBUF( cmdbuf, fmt, ... ) \
+    do                                                    \
+    {                                                     \
+    } while ( 0 )
 
-#define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color )
-#define PG_DEBUG_MARKER_END_REGION_QUEUE( queue )
-#define PG_DEBUG_MARKER_INSERT_QUEUE( queue, name, color )
+#define PG_DEBUG_MARKER_BEGIN_REGION_QUEUE( queue, name, color ) \
+    do                                                           \
+    {                                                            \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_END_REGION_QUEUE( queue ) \
+    do                                            \
+    {                                             \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_INSERT_QUEUE( queue, name, color ) \
+    do                                                     \
+    {                                                      \
+    } while ( 0 )
 
-#define PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( pool, name )
-#define PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( cmdbuf, name )
-#define PG_DEBUG_MARKER_SET_QUEUE_NAME( queue, name )
-#define PG_DEBUG_MARKER_SET_IMAGE_NAME( image, name )
-#define PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( view, name )
-#define PG_DEBUG_MARKER_SET_IMAGE_ONLY_NAME( img, name )
-#define PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, name )
-#define PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name )
-#define PG_DEBUG_MARKER_SET_MEMORY_NAME( memory, name )
-#define PG_DEBUG_MARKER_SET_SHADER_NAME( shader, name )
-#define PG_DEBUG_MARKER_SET_PIPELINE_NAME( pipeline, name )
-#define PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( pipeline, name )
-#define PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( layout, name )
-#define PG_DEBUG_MARKER_SET_DESC_SET_NAME( set, name )
-#define PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( semaphore, name )
-#define PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name )
-#define PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( swapchain, name )
-#define PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( pDev, name )
-#define PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( dev, name )
-#define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name )
-#define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name )
-#define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name )
+#define PG_DEBUG_MARKER_SET_COMMAND_POOL_NAME( pool, name ) \
+    do                                                      \
+    {                                                       \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_COMMAND_BUFFER_NAME( cmdbuf, name ) \
+    do                                                          \
+    {                                                           \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_QUEUE_NAME( queue, name ) \
+    do                                                \
+    {                                                 \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_IMAGE_NAME( image, name ) \
+    do                                                \
+    {                                                 \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_IMAGE_VIEW_NAME( view, name ) \
+    do                                                    \
+    {                                                     \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_IMAGE_ONLY_NAME( img, name ) \
+    do                                                   \
+    {                                                    \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_SAMPLER_NAME( sampler, name ) \
+    do                                                    \
+    {                                                     \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_BUFFER_NAME( buffer, name ) \
+    do                                                  \
+    {                                                   \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_MEMORY_NAME( memory, name ) \
+    do                                                  \
+    {                                                   \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_SHADER_NAME( shader, name ) \
+    do                                                  \
+    {                                                   \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_PIPELINE_NAME( pipeline, name ) \
+    do                                                      \
+    {                                                       \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_PIPELINE_LAYOUT_NAME( pipeline, name ) \
+    do                                                             \
+    {                                                              \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_DESC_SET_LAYOUT_NAME( layout, name ) \
+    do                                                           \
+    {                                                            \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_DESC_SET_NAME( set, name ) \
+    do                                                 \
+    {                                                  \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_SEMAPHORE_NAME( semaphore, name ) \
+    do                                                        \
+    {                                                         \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_FENCE_NAME( fence, name ) \
+    do                                                \
+    {                                                 \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_SWAPCHAIN_NAME( swapchain, name ) \
+    do                                                        \
+    {                                                         \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_PHYSICAL_DEVICE_NAME( pDev, name ) \
+    do                                                         \
+    {                                                          \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_LOGICAL_DEVICE_NAME( dev, name ) \
+    do                                                       \
+    {                                                        \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_INSTANCE_NAME( instance, name ) \
+    do                                                      \
+    {                                                       \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_DESC_POOL_NAME( pool, name ) \
+    do                                                   \
+    {                                                    \
+    } while ( 0 )
+#define PG_DEBUG_MARKER_SET_QUERY_POOL_NAME( pool, name ) \
+    do                                                    \
+    {                                                     \
+    } while ( 0 )
 
 #endif // #else // #if USING( USE_DEBUG_MARKER )

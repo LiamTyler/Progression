@@ -184,7 +184,7 @@ static bool CreateInstance()
     };
 
     static constexpr std::array extensionsToQuery = std::array{
-        Item{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME, true },
+        Item{ VK_EXT_DEBUG_UTILS_EXTENSION_NAME, USING( DEVELOPMENT_BUILD ) },
         // Item{ VK_KHR_GET_PHYSICAL_DEVICE_PROPERTIES_2_EXTENSION_NAME, true }, //  functionality also used, but core since vulkan 1.1
     };
     bool extensionAvailability[INSTANCE_EXTENSIONS_COUNT] = {};
@@ -201,6 +201,7 @@ static bool CreateInstance()
         }
     }
 
+#if USING( DEVELOPMENT_BUILD )
     rg.debugUtilsEnabled = false;
     VkDebugUtilsMessengerCreateInfoEXT debugUtilsCI;
     if ( extensionsToQuery[DEBUG_UTILS].toEnable )
@@ -230,6 +231,7 @@ static bool CreateInstance()
                 extensionsToQuery[DEBUG_UTILS].name );
         }
     }
+#endif // USING( DEVELOPMENT_BUILD )
 
     u32 supportedLayerCount;
     vkEnumerateInstanceLayerProperties( &supportedLayerCount, nullptr );
@@ -291,7 +293,7 @@ static bool CreateInstance()
     instanceCI.pNext                   = chain;
     VK_CHECK( vkCreateInstance( &instanceCI, nullptr, &rg.instance ) );
 
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     s_debugMessenger = VK_NULL_HANDLE;
 
     if ( rg.debugUtilsEnabled )
@@ -304,7 +306,7 @@ static bool CreateInstance()
         }
         VK_CHECK( func( rg.instance, &debugUtilsCI, nullptr, &s_debugMessenger ) );
     }
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
 
     return true;
 }
@@ -451,7 +453,7 @@ void R_Shutdown()
     BindlessManager::Shutdown();
     FreeGlobalDescriptorData();
     rg.device.Free();
-#if !USING( SHIP_BUILD )
+#if USING( DEVELOPMENT_BUILD )
     if ( rg.debugUtilsEnabled )
     {
         auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr( rg.instance, "vkDestroyDebugUtilsMessengerEXT" );
@@ -460,7 +462,7 @@ void R_Shutdown()
         else
             func( rg.instance, s_debugMessenger, nullptr );
     }
-#endif // #if !USING( SHIP_BUILD )
+#endif // #if USING( DEVELOPMENT_BUILD )
     vkDestroyInstance( rg.instance, nullptr );
 }
 

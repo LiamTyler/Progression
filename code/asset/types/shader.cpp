@@ -195,7 +195,6 @@ bool Shader::Load( const BaseAssetCreateInfo* baseInfo )
     }
 
     size_t spirvSizeInBytes = 4 * spirv.size();
-    LOG( "Extensions and caps for %s", createInfo->name.c_str() );
     if ( !ReflectShader_ReflectSpirv( createInfo->name, spirv.data(), spirvSizeInBytes, m_reflectionData ) )
     {
         LOG_ERR( "Spirv reflection for shader: name '%s', filename '%s' failed", createInfo->name.c_str(), createInfo->filename.c_str() );

@@ -41,8 +41,7 @@ vec4 GetNextRegionColor()
     return s_regionColors[index++ % ARRAY_COUNT( s_regionColors )];
 }
 
-static bool s_active           = false;
-static bool s_extensionPresent = false;
+static bool s_active = false;
 
 static PFN_vkSetDebugUtilsObjectTagEXT vkSetDebugUtilsObjectTag   = VK_NULL_HANDLE;
 static PFN_vkSetDebugUtilsObjectNameEXT vkSetDebugUtilsObjectName = VK_NULL_HANDLE;
@@ -58,6 +57,12 @@ static PFN_vkQueueInsertDebugUtilsLabelEXT vkQueueDebugMarkerInsert = VK_NULL_HA
 void Init( VkInstance instance )
 {
 #if USING( USE_DEBUG_MARKER )
+    if ( !rg.debugUtilsEnabled )
+    {
+        s_active = false;
+        return;
+    }
+
     vkSetDebugUtilsObjectTag  = (PFN_vkSetDebugUtilsObjectTagEXT)vkGetInstanceProcAddr( instance, "vkSetDebugUtilsObjectTagEXT" );
     vkSetDebugUtilsObjectName = (PFN_vkSetDebugUtilsObjectNameEXT)vkGetInstanceProcAddr( instance, "vkSetDebugUtilsObjectNameEXT" );
     vkCmdDebugMarkerBegin     = (PFN_vkCmdBeginDebugUtilsLabelEXT)vkGetInstanceProcAddr( instance, "vkCmdBeginDebugUtilsLabelEXT" );

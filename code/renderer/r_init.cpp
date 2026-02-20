@@ -15,7 +15,7 @@
 #include "ui/ui_text.hpp"
 #endif // #if USING( DEVELOPMENT_BUILD )
 
-VkDebugUtilsMessengerEXT s_debugMessenger = VK_NULL_HANDLE;
+static VkDebugUtilsMessengerEXT s_debugMessenger = VK_NULL_HANDLE;
 
 namespace PG::Gfx
 {
@@ -37,11 +37,10 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
                 return VK_FALSE;
 
             std::string_view msg = pCallbackData->pMessage;
-            size_t idx           = msg.find( "MessageID" );
-            idx                  = msg.find( '|', idx );
+            size_t idx           = msg.find( '\n' ); // seems to change with different vk versions?
             if ( idx != std::string_view::npos )
             {
-                idx += 2;
+                idx += 1;
                 msg = msg.substr( idx );
             }
 
@@ -53,7 +52,7 @@ static VKAPI_ATTR VkBool32 VKAPI_CALL DebugCallback( VkDebugUtilsMessageSeverity
 
                 UI::Text::TextDrawInfo tInfo;
                 tInfo.pos   = vec2( 0.9, 0 );
-                tInfo.color = vec4( 0, 0, 0, 1 );
+                tInfo.color = vec4( 0, 1, 0, 1 );
                 if ( msg[0] == '(' )
                 {
                     size_t commaIdx    = msg.find( ',' );
@@ -202,24 +201,28 @@ static bool CreateInstance()
         }
     }
 
+    rg.debugUtilsEnabled = false;
     VkDebugUtilsMessengerCreateInfoEXT debugUtilsCI;
     if ( extensionsToQuery[DEBUG_UTILS].toEnable )
     {
         if ( extensionAvailability[DEBUG_UTILS] )
         {
+            rg.debugUtilsEnabled = true;
             instanceExtensionsToEnable.push_back( extensionsToQuery[DEBUG_UTILS].name );
 
-            debugUtilsCI                 = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
-            debugUtilsCI.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT | VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-            // debugUtilsCI.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-            // VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+            debugUtilsCI = { VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT };
+
+            debugUtilsCI.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+            debugUtilsCI.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT;
+            debugUtilsCI.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT;
+            // debugUtilsCI.messageSeverity |= VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT;
+
             debugUtilsCI.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT;
             debugUtilsCI.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT;
             debugUtilsCI.messageType |= VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
             debugUtilsCI.pfnUserCallback = DebugCallback;
-            // pNext             = &debugUtilsCI;
-            debugUtilsCI.pNext = chain;
-            chain              = &debugUtilsCI;
+            debugUtilsCI.pNext           = chain;
+            chain                        = &debugUtilsCI;
         }
         else
         {
@@ -291,13 +294,16 @@ static bool CreateInstance()
 #if !USING( SHIP_BUILD )
     s_debugMessenger = VK_NULL_HANDLE;
 
-    auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr( rg.instance, "vkCreateDebugUtilsMessengerEXT" );
-    if ( !func )
+    if ( rg.debugUtilsEnabled )
     {
-        LOG_ERR( "Failed to get vkCreateDebugUtilsMessengerEXT somehow" );
-        return false;
+        auto func = (PFN_vkCreateDebugUtilsMessengerEXT)vkGetInstanceProcAddr( rg.instance, "vkCreateDebugUtilsMessengerEXT" );
+        if ( !func )
+        {
+            LOG_ERR( "Failed to get vkCreateDebugUtilsMessengerEXT somehow" );
+            return false;
+        }
+        VK_CHECK( func( rg.instance, &debugUtilsCI, nullptr, &s_debugMessenger ) );
     }
-    VK_CHECK( func( rg.instance, &debugUtilsCI, nullptr, &s_debugMessenger ) );
 #endif // #if !USING( SHIP_BUILD )
 
     return true;
@@ -383,7 +389,7 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
 
     if ( !SelectPhysicalDevice() )
     {
-        LOG_ERR( "No compatible physical device found! " );
+        LOG_ERR( "No compatible physical device found!" );
         return false;
     }
 
@@ -446,11 +452,14 @@ void R_Shutdown()
     FreeGlobalDescriptorData();
     rg.device.Free();
 #if !USING( SHIP_BUILD )
-    auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr( rg.instance, "vkDestroyDebugUtilsMessengerEXT" );
-    if ( !func )
-        LOG_ERR( "Failed to get vkDestroyDebugUtilsMessengerEXT somehow" );
-    else
-        func( rg.instance, s_debugMessenger, nullptr );
+    if ( rg.debugUtilsEnabled )
+    {
+        auto func = (PFN_vkDestroyDebugUtilsMessengerEXT)vkGetInstanceProcAddr( rg.instance, "vkDestroyDebugUtilsMessengerEXT" );
+        if ( !func )
+            LOG_ERR( "Failed to get vkDestroyDebugUtilsMessengerEXT somehow" );
+        else
+            func( rg.instance, s_debugMessenger, nullptr );
+    }
 #endif // #if !USING( SHIP_BUILD )
     vkDestroyInstance( rg.instance, nullptr );
 }

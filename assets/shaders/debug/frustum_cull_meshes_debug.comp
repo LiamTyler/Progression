@@ -15,9 +15,9 @@ layout( push_constant ) uniform PushConstants
     MeshletDrawCommandBuffer meshDrawCmdBuffer;
 } pConstants;
 
-void main() 
+void main()
 {
-    uint numDraws = pConstants.countBuffer.data[0];    
+    uint numDraws = pConstants.countBuffer.data[0];
     debugPrintfEXT( "#2D(0.90,0)Num Draw Calls: %u", numDraws );
 
     //MeshletDrawCommand cmd = pConstants.meshDrawCmdBuffer.data[0];

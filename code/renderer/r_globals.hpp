@@ -61,6 +61,7 @@ struct R_Globals
 #if USING( DEVELOPMENT_BUILD )
     Frustum debugCullingFrustum;
     vec3 debugCullingCameraPos;
+    bool debugUtilsEnabled;
 #endif // #if USING( DEVELOPMENT_BUILD )
 
     FrameData& GetFrameData() { return frameData[currentFrameIdx]; }

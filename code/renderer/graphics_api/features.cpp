@@ -274,7 +274,10 @@ bool IsSpirvExtensionSupported( const PhysicalDeviceExtensions& deviceExtensions
         if ( !strcmp( e.name, spirvExtension.c_str() ) )
         {
             if ( e.dependentVersion != NO_IMPLICIT_VERSION )
-                return apiVersion >= e.dependentVersion;
+            {
+                if ( apiVersion >= e.dependentVersion )
+                    return true;
+            }
             return deviceExtensions.extensionsPresent[e.dependentDeviceExtension];
         }
     }
@@ -364,7 +367,10 @@ bool IsSpirvCapabilitySupported( const PhysicalDeviceFeatures& deviceExtensions,
         if ( cap.spvCapability == queryCapability )
         {
             if ( cap.dependentVersion != NO_IMPLICIT_VERSION )
-                return apiVersion >= cap.dependentVersion;
+            {
+                if ( apiVersion >= cap.dependentVersion )
+                    return true;
+            }
             const u8* baseAddress = reinterpret_cast<const u8*>( &deviceExtensions );
             for ( u32 offset : cap.dependentFeatures )
             {
@@ -373,7 +379,7 @@ bool IsSpirvCapabilitySupported( const PhysicalDeviceFeatures& deviceExtensions,
                     return false;
             }
 
-            return true;
+            return cap.dependentFeatures.size() > 0;
         }
     }
 

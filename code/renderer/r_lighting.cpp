@@ -199,7 +199,10 @@ void ComputeShadowFrustumsCull_Debug( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "shadow_frustums_cull_debug" ) );
+    Pipeline* pipeline = PipelineManager::GetPipeline( "shadow_frustums_cull_debug" );
+    if ( !pipeline->ExtensionsAndFeaturesSupported() )
+        return;
+    cmdBuf.BindPipeline( pipeline );
     cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants

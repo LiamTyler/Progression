@@ -24,7 +24,7 @@ static void GetDeviceProperties( VkPhysicalDevice pDev, PhysicalDeviceMetadata& 
     VkPhysicalDeviceProperties2 vkProps = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2 };
     vkProps.pNext                       = chain;
     vkGetPhysicalDeviceProperties2( pDev, &vkProps );
-    memcpy( &metadata.properties, &vkProps, sizeof( VkPhysicalDeviceProperties ) );
+    memcpy( &metadata.properties, &vkProps.properties, sizeof( VkPhysicalDeviceProperties ) );
 
     vkGetPhysicalDeviceMemoryProperties( pDev, &metadata.memProperties );
 }

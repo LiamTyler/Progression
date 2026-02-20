@@ -40,6 +40,7 @@ struct LocalFrameData
 
 #define MAX_TEXT_CHARS_PER_FRAME 65536
 
+static bool s_active = false;
 static LocalFrameData s_localFrameDatas[NUM_FRAME_OVERLAP];
 static Pipeline* s_debugTextPipeline;
 static GfxImage* s_debugTextFontAtlas;
@@ -66,10 +67,12 @@ void Init()
         s_localFrameDatas[i].clayTextVB            = rg.device.NewBuffer( textCI, "ui_clay_text_VB_" + std::to_string( i ) );
         s_localFrameDatas[i].clayNumTextCharacters = 0;
     }
+    s_active = true;
 }
 
 void Shutdown()
 {
+    s_active         = false;
     s_text2DPipeline = nullptr;
     s_defaultFont    = nullptr;
 
@@ -131,7 +134,7 @@ vec2 MeasureText( const char* text, u32 length, Font* font, float fontSize )
 
 void Draw2D( const TextDrawInfo& textDrawInfo, const char* str )
 {
-    if ( !str )
+    if ( !s_active || !str )
         return;
 
     u32 sLen = (u32)strlen( str );

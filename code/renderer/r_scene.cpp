@@ -224,11 +224,16 @@ void ComputeFrustumCullMeshes( ComputeTask* task, TGExecuteData* data )
     cmdBuf.Dispatch_AutoSized( meshNum, 1, 1 );
 }
 
+#if USING( DEVELOPMENT_BUILD )
 void ComputeFrustumCullMeshes_Debug( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    cmdBuf.BindPipeline( PipelineManager::GetPipeline( "frustum_cull_meshes_debug" ) );
+    Pipeline* pipeline = PipelineManager::GetPipeline( "frustum_cull_meshes_debug" );
+    if ( !pipeline->ExtensionsAndFeaturesSupported() )
+        return;
+
+    cmdBuf.BindPipeline( pipeline );
     cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
@@ -242,6 +247,7 @@ void ComputeFrustumCullMeshes_Debug( ComputeTask* task, TGExecuteData* data )
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch( 1, 1, 1 );
 }
+#endif // #if USING( DEVELOPMENT_BUILD )
 #endif // #if USING( INDIRECT_MAIN_DRAW )
 
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
@@ -257,10 +263,10 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     useDebugShader           = useDebugShader || r_materialViz.GetUint();
     useDebugShader           = useDebugShader || r_lightingViz.GetUint();
     useDebugShader           = useDebugShader || r_meshletViz.GetBool();
-    if ( useDebugShader )
+    if ( useDebugShader ) [[unlikely]]
         pipelineName += "_debug";
 
-    if ( r_wireframe.GetBool() )
+    if ( r_wireframe.GetBool() ) [[unlikely]]
     {
         pipeline = PipelineManager::GetPipeline( "litModel_debug_wireframe" );
         if ( !pipeline->ExtensionsAndFeaturesSupported() )
@@ -362,10 +368,10 @@ void AddSceneRenderTasks( TaskGraphBuilder& builder, TGBTextureRef& litOutput, T
     gTask->SetFunction( MeshDrawFunc );
 
 #if USING( DEVELOPMENT_BUILD ) && USING( INDIRECT_MAIN_DRAW )
-    // cTask = builder.AddComputeTask( "ComputeDraw" );
-    // cTask->AddBufferInput( indirectCountBuff );
-    // cTask->AddBufferInput( indirectMeshletDrawBuff );
-    // cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
+    cTask = builder.AddComputeTask( "ComputeDraw" );
+    cTask->AddBufferInput( indirectCountBuff );
+    cTask->AddBufferInput( indirectMeshletDrawBuff );
+    cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
 #endif // #if USING( DEVELOPMENT_BUILD ) && USING( INDIRECT_MAIN_DRAW )
 }
 

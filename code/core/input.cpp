@@ -15,7 +15,8 @@ namespace PG::Input
 {
 
 static vec2 s_prevMousePos;
-static bool s_cursorStateChanged = false;
+static bool s_cursorStateChanged;
+static bool s_isMouseRelative;
 
 class RawInputTracker
 {
@@ -139,9 +140,8 @@ static void HandleEvents_SDL()
     SDL_Event e;
     while ( SDL_PollEvent( &e ) )
     {
-#if USING( DEVELOPMENT_BUILD )
-        ImGui_ImplSDL3_ProcessEvent( &e );
-#endif // #if USING( DEVELOPMENT_BUILD )
+        bool sendToImGui = true;
+
         if ( e.type == SDL_EVENT_QUIT )
             eg.shutdown = true;
 
@@ -159,6 +159,8 @@ static void HandleEvents_SDL()
         }
         else if ( e.type == SDL_EVENT_MOUSE_MOTION )
         {
+            if ( s_isMouseRelative )
+                sendToImGui = false;
             vec2 diff = { e.motion.xrel, e.motion.yrel };
             if ( !s_cursorStateChanged )
             {
@@ -169,6 +171,9 @@ static void HandleEvents_SDL()
         }
         else if ( e.type == SDL_EVENT_MOUSE_BUTTON_DOWN || e.type == SDL_EVENT_MOUSE_BUTTON_UP )
         {
+            if ( s_isMouseRelative )
+                sendToImGui = false;
+
             RawButton rawButton = SDL3MouseButtonToRawButton( e.button );
             if ( rawButton == RawButton::UNKNOWN )
             {
@@ -179,6 +184,12 @@ static void HandleEvents_SDL()
             RawButtonState state = e.button.down ? RawButtonState::PRESSED : RawButtonState::RELEASED;
             s_inputTracker.AddOrUpdateButton( rawButton, state );
         }
+#if USING( DEVELOPMENT_BUILD )
+        if ( sendToImGui )
+        {
+            ImGui_ImplSDL3_ProcessEvent( &e );
+        }
+#endif // #if USING( DEVELOPMENT_BUILD )
     }
 }
 
@@ -193,6 +204,8 @@ bool Init()
     }
 
     ResetMousePosition();
+    s_cursorStateChanged = false;
+    SetMouseRelative( false );
 
     if ( !SDL_SetHint( SDL_HINT_KEYCODE_OPTIONS, "unmodified" ) )
         LOG_WARN( "SDL failed to set the unmodified key hint. Some controls might not work!" );
@@ -217,7 +230,13 @@ void PollEvents()
 
 void ResetMousePosition() { SDL_GetMouseState( &s_prevMousePos.x, &s_prevMousePos.y ); }
 
-void MouseCursorChange() { s_cursorStateChanged = true; }
+void SetMouseRelative( bool b )
+{
+    SDL_SetWindowRelativeMouseMode( GetMainWindow()->GetHandle(), b );
+    s_isMouseRelative = b;
+}
+
+bool IsMouseRelative() { return s_isMouseRelative; }
 
 bool CallbackInput::HasInput() const { return !axes.empty() || !actions.empty(); }
 
@@ -421,15 +440,21 @@ static u32 AddCallback( InputContextID contextID, sol::function callback )
 
 static void RemoveCallback( InputContextID contextID, u32 callbackHandle )
 {
-    return s_allInputContexts[Underlying( contextID )]->RemoveCallback( callbackHandle );
+    s_allInputContexts[Underlying( contextID )]->RemoveCallback( callbackHandle );
 }
 
 void RegisterLuaFunctions( lua_State* L )
 {
     sol::state_view lua( L );
     auto input = lua["Input"].get_or_create<sol::table>();
-    input.set_function( "AddCallback", &AddCallback );
-    input.set_function( "RemoveCallback", &RemoveCallback );
+    input.set_function( "AddCallback", AddCallback );
+    input.set_function( "RemoveCallback", RemoveCallback );
+    input.set_function( "PushContext_Front", []( InputContextID contextID ) { s_contextManager.PushContext_Front( contextID ); } );
+    input.set_function( "PopContext_Front", []() { s_contextManager.PopContext_Front(); } );
+    input.set_function( "PushContext_Back", []( InputContextID contextID ) { s_contextManager.PushContext_Back( contextID ); } );
+    input.set_function( "PopContext_Back", []() { s_contextManager.PopContext_Back(); } );
+    input.set_function( "SetMouseRelative", SetMouseRelative );
+    input.set_function( "IsMouseRelative", IsMouseRelative );
 
     sol::table actionEnum = input.create( (i32)Underlying( Action::COUNT ) );
     for ( u16 i = 0; i < Underlying( Action::COUNT ); ++i )

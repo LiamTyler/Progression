@@ -27,8 +27,8 @@ void RegisterLuaFunctions_Window( lua_State* state )
     sol::usertype<Window> window_type = lua.new_usertype<Window>( "Window" );
     window_type.set_function( "Width", &Window::Width );
     window_type.set_function( "Height", &Window::Height );
-    window_type.set_function( "SetRelativeMouse", &Window::SetRelativeMouse );
-    window_type.set_function( "IsRelativeMouse", &Window::IsRelativeMouse );
+    // window_type.set_function( "SetRelativeMouse", &Window::SetRelativeMouse );
+    // window_type.set_function( "IsRelativeMouse", &Window::IsRelativeMouse );
     window_type.set_function( "SetTitle", &Window::SetTitle );
 }
 
@@ -120,13 +120,6 @@ void Window::EndFrame()
         s_lastFPSUpdateTime             = Time::GetTimePoint();
     }
     PGP_FRAME_MARK;
-}
-
-void Window::SetRelativeMouse( bool b )
-{
-    SDL_SetWindowRelativeMouseMode( m_window, b );
-    m_relativeMouse = b;
-    Input::MouseCursorChange();
 }
 
 void Window::SetTitle( const std::string& title )

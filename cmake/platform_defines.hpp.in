@@ -19,62 +19,67 @@
 
 
 #ifdef CMAKE_DEFINE_DEBUG_BUILD
-#define DEBUG_BUILD IN_USE
-#define DEBUG_BUILD_ONLY( x ) x
-#else
-#define DEBUG_BUILD NOT_IN_USE
-#define DEBUG_BUILD_ONLY( x )
-#endif
+    #define DEBUG_BUILD IN_USE
+    #define DEBUG_BUILD_ONLY( x ) x
+#else // #ifdef CMAKE_DEFINE_DEBUG_BUILD
+    #define DEBUG_BUILD NOT_IN_USE
+    #define DEBUG_BUILD_ONLY( x )
+#endif // #else // #ifdef CMAKE_DEFINE_DEBUG_BUILD
 
 #ifdef CMAKE_DEFINE_RELEASE_BUILD
-#define RELEASE_BUILD IN_USE
-#else
-#define RELEASE_BUILD NOT_IN_USE
-#endif
+    #define RELEASE_BUILD IN_USE
+#else // #ifdef CMAKE_DEFINE_RELEASE_BUILD
+    #define RELEASE_BUILD NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_RELEASE_BUILD
 
 #define DEVELOPMENT_BUILD USE_IF( USING( DEBUG_BUILD ) || USING( RELEASE_BUILD ) )
+#if USING( DEVELOPMENT_BUILD )
+    #define DEVELOPMENT_BUILD_ONLY( x ) x
+#else // #if USING( DEVELOPMENT_BUILD )
+    #define DEVELOPMENT_BUILD_ONLY( x )
+#endif // #else // #if USING( DEVELOPMENT_BUILD )
 
 #ifdef CMAKE_DEFINE_PROFILE_BUILD
-#define PROFILE_BUILD IN_USE
-#else
-#define PROFILE_BUILD NOT_IN_USE
-#endif
+    #define PROFILE_BUILD IN_USE
+#else // #ifdef CMAKE_DEFINE_PROFILE_BUILD
+    #define PROFILE_BUILD NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_PROFILE_BUILD
 
 #ifdef CMAKE_DEFINE_SHIP_BUILD
-#define SHIP_BUILD IN_USE
-#else
-#define SHIP_BUILD NOT_IN_USE
-#endif
+    #define SHIP_BUILD IN_USE
+#else // #ifdef CMAKE_DEFINE_SHIP_BUILD
+    #define SHIP_BUILD NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_SHIP_BUILD
 
 #ifdef CMAKE_DEFINE_CONVERTER
-#define CONVERTER IN_USE
-#else
-#define CONVERTER NOT_IN_USE
-#endif
+    #define CONVERTER IN_USE
+#else // #ifdef CMAKE_DEFINE_CONVERTER
+    #define CONVERTER NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_CONVERTER
 
 #ifdef CMAKE_DEFINE_OFFLINE_RENDERER
-#define OFFLINE_RENDERER IN_USE
-#else
-#define OFFLINE_RENDERER NOT_IN_USE
-#endif
+    #define OFFLINE_RENDERER IN_USE
+#else // #ifdef CMAKE_DEFINE_OFFLINE_RENDERER
+    #define OFFLINE_RENDERER NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_OFFLINE_RENDERER
 
 #ifdef CMAKE_DEFINE_REMOTE_CONSOLE
-#define REMOTE_CONSOLE_CLIENT IN_USE
-#else
-#define REMOTE_CONSOLE_CLIENT NOT_IN_USE
-#endif
+    #define REMOTE_CONSOLE_CLIENT IN_USE
+#else // #ifdef CMAKE_DEFINE_REMOTE_CONSOLE
+    #define REMOTE_CONSOLE_CLIENT NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_REMOTE_CONSOLE
 
 #ifdef CMAKE_DEFINE_GAME
-#define GAME IN_USE
-#else
-#define GAME NOT_IN_USE
-#endif
+    #define GAME IN_USE
+#else // #ifdef CMAKE_DEFINE_GAME
+    #define GAME NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_GAME
 
 #ifdef CMAKE_DEFINE_GFXIMAGE_VIEWER
-#define GFXIMAGE_VIEWER IN_USE
-#else
-#define GFXIMAGE_VIEWER NOT_IN_USE
-#endif
+    #define GFXIMAGE_VIEWER IN_USE
+#else // #ifdef CMAKE_DEFINE_GFXIMAGE_VIEWER
+    #define GFXIMAGE_VIEWER NOT_IN_USE
+#endif // #else // #ifdef CMAKE_DEFINE_GFXIMAGE_VIEWER
 
 #define GPU_DATA USE_IF( USING( GAME ) )
 #define GPU_STRUCTS USE_IF( USING( GAME ) || USING( CONVERTER ) )

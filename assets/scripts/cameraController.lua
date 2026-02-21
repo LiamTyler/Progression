@@ -22,7 +22,7 @@ function InputCallback( cInput )
     
     if cInput:ActionJustPressed( Input.Action.TOGGLE_CAMERA_CONTROLS ) then
         active = not active
-        GetMainWindow():SetRelativeMouse( active )        
+        Input.SetMouseRelative( active )        
     end
     
     if cInput:ActionBeingPressed( Input.Action.CAMERA_SPRINT ) then
@@ -36,6 +36,8 @@ function Start()
     rotation = vec3.new( 0 )
     
     callbackHandle = Input.AddCallback( Input.Context.CAMERA_CONTROLS, InputCallback )
+    Input.PushContext_Back( Input.Context.CAMERA_CONTROLS )
+    Input.SetMouseRelative( active )
 end
 
 function End()

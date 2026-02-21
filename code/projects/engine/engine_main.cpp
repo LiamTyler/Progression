@@ -51,8 +51,6 @@ int main( int argc, char* argv[] )
 #endif // #else // #if USING( LOAD_SCENE_DIRECTLY )
 
     Window* window = GetMainWindow();
-    // window->SetRelativeMouse( USING( LOAD_SCENE_DIRECTLY ) );
-
     Time::Reset();
 
     while ( !eg.shutdown )

@@ -34,8 +34,6 @@ public:
     i32 Height() const { return m_height; }
     i32 FramebufferWidth() const { return m_framebufferWidth; }
     i32 FramebufferHeight() const { return m_framebufferHeight; }
-    void SetRelativeMouse( bool b );
-    bool IsRelativeMouse() const { return m_relativeMouse; }
     void SetTitle( const std::string& title );
 
 protected:
@@ -46,7 +44,6 @@ protected:
     i32 m_framebufferWidth  = 0;
     i32 m_framebufferHeight = 0;
     bool m_visible          = false;
-    bool m_relativeMouse    = false;
 };
 
 void RegisterLuaFunctions_Window( lua_State* state );

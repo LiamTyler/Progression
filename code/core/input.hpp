@@ -103,7 +103,8 @@ InputContext* GetContext( InputContextID contextID );
 // should be called once per frame to update inputs
 void PollEvents();
 void ResetMousePosition();
-void MouseCursorChange();
+void SetMouseRelative( bool b );
+bool IsMouseRelative();
 
 void RegisterLuaFunctions( lua_State* L );
 

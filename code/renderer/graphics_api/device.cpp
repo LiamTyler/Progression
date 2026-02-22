@@ -56,9 +56,11 @@ bool Device::Create( const PhysicalDevice& physicalDevice, VkInstance instance )
     vkGetDeviceQueue( m_handle, pMetadata->mainQueueFamilyIndex, 0, &mainQ.queue );
     mainQ.familyIndex = pMetadata->mainQueueFamilyIndex;
     mainQ.queueIndex  = 0;
+
+    Queue& transferQ = m_queues[Underlying( QueueType::TRANSFER )];
+    transferQ        = mainQ;
     if ( m_hasDedicatedTransferQueue )
     {
-        Queue& transferQ = m_queues[Underlying( QueueType::TRANSFER )];
         vkGetDeviceQueue( m_handle, pMetadata->transferQueueFamilyIndex, 0, &transferQ.queue );
         transferQ.familyIndex = pMetadata->transferQueueFamilyIndex;
         transferQ.queueIndex  = 0;

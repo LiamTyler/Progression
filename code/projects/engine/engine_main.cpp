@@ -18,10 +18,11 @@ bool g_paused = false;
 int main( int argc, char* argv[] )
 {
     EngineInitInfo engineInitConfig;
-    engineInitConfig.sceneWidth   = 1920;
-    engineInitConfig.sceneHeight  = 1080;
-    engineInitConfig.windowWidth  = 1920;
-    engineInitConfig.windowHeight = 1080;
+    float scale = 1.0f;
+    engineInitConfig.sceneWidth   = static_cast<int>(scale * 1280 );
+    engineInitConfig.sceneHeight  = static_cast<int>(scale * 720 );
+    engineInitConfig.windowWidth  = static_cast<int>(scale * 1280 );
+    engineInitConfig.windowHeight = static_cast<int>(scale * 720 );
     if ( !EngineInitialize( engineInitConfig ) )
     {
         LOG_ERR( "Failed to initialize the engine" );

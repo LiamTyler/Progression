@@ -74,6 +74,10 @@ bool PhysicalDevice::Init( VkPhysicalDevice pDev )
     if ( !m_metadata->extensions.QuerySupport( pDev ) )
         return false;
 
+    const VkPhysicalDeviceProperties& pProps = GetMetadata()->properties;
+    LOG( "Using device: '%s', Vulkan Version: %u.%u.%u", pProps.deviceName, VK_VERSION_MAJOR( pProps.apiVersion ),
+        VK_VERSION_MINOR( pProps.apiVersion ), VK_VERSION_PATCH( pProps.apiVersion ) );
+
     PhysicalDeviceFeatures supportedFeatures = {};
     supportedFeatures.Initialize( m_metadata->extensions );
     vkGetPhysicalDeviceFeatures2( pDev, &supportedFeatures.features2 );

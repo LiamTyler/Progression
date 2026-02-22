@@ -8,7 +8,7 @@
 #include "c_shared/scene_globals.h"
 
 layout( set = 0, binding = PG_BINDLESS_SAMPLED_TEXTURE_DSET_BINDING ) uniform texture2D Textures2D[];
-layout( set = 0, binding = PG_BINDLESS_STORAGE_IMAGE_DSET_BINDING ) uniform restrict readonly image2D RImages2D[];
+layout( set = 0, binding = PG_BINDLESS_STORAGE_IMAGE_DSET_BINDING, rgba16f ) uniform restrict readonly image2D RImages2D[];
 layout( set = 0, binding = PG_BINDLESS_STORAGE_IMAGE_DSET_BINDING ) uniform restrict image2D RWImages2D[];
 layout( scalar, set = 0, binding = PG_SCENE_GLOBALS_DSET_BINDING ) uniform restrict SceneGlobalsUBO
 {

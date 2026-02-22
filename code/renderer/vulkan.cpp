@@ -281,9 +281,12 @@ void LoadVulkanExtensions( VkDevice device )
 #endif // #if defined( VK_EXT_descriptor_buffer )
 #endif // #if USING( PG_DESCRIPTOR_BUFFER )
 
-    LOAD_VK_FUNC( vkCmdDrawMeshTasksIndirectCountEXT );
-    LOAD_VK_FUNC( vkCmdDrawMeshTasksIndirectEXT );
-    LOAD_VK_FUNC( vkCmdDrawMeshTasksEXT );
+    if ( rg.physicalDevice.GetMetadata()->extensions.extensionsPresent[PhysicalDeviceExtensions::MESH_SHADER] )
+    {
+        LOAD_VK_FUNC( vkCmdDrawMeshTasksIndirectCountEXT );
+        LOAD_VK_FUNC( vkCmdDrawMeshTasksIndirectEXT );
+        LOAD_VK_FUNC( vkCmdDrawMeshTasksEXT );
+    }
 }
 
 u32 FindMemoryType( u32 typeFilter, VkMemoryPropertyFlags properties )

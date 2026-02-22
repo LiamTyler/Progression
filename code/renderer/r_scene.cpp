@@ -252,6 +252,8 @@ void ComputeFrustumCullMeshes_Debug( ComputeTask* task, TGExecuteData* data )
 
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
+    return;
+
     PGP_ZONE_SCOPEDN( "Mesh Pass" );
     CommandBuffer& cmdBuf = *data->cmdBuf;
 

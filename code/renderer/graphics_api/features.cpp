@@ -19,7 +19,7 @@ struct ExtensionData
 static constexpr ExtensionData DEVICE_EXTENSIONS[PhysicalDeviceExtensions::COUNT] = {
     {"",                                                ExtOrFeatClassification::DISABLED}, // placeholder
     {VK_KHR_SWAPCHAIN_EXTENSION_NAME,                   ExtOrFeatClassification::IMPLICIT},
-    {VK_EXT_MESH_SHADER_EXTENSION_NAME,                 ExtOrFeatClassification::REQUIRED},
+    {VK_EXT_MESH_SHADER_EXTENSION_NAME,                 ExtOrFeatClassification::IMPLICIT},
     {VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,      ExtOrFeatClassification::REQUIRED},
     {VK_KHR_SPIRV_1_4_EXTENSION_NAME,                   ExtOrFeatClassification::REQUIRED},
     {VK_EXT_HOST_QUERY_RESET_EXTENSION_NAME,            ExtOrFeatClassification::REQUIRED},
@@ -102,28 +102,31 @@ static constexpr std::array DEVICE_FEATURES = std::array{
 
     // bindless
     FEAT( vulkan12Features, descriptorIndexing, REQUIRED ),
-    FEAT( vulkan12Features, shaderInputAttachmentArrayDynamicIndexing, REQUIRED ),
-    FEAT( vulkan12Features, shaderUniformTexelBufferArrayDynamicIndexing, REQUIRED ),
-    FEAT( vulkan12Features, shaderStorageTexelBufferArrayDynamicIndexing, REQUIRED ),
+    //FEAT( vulkan12Features, shaderInputAttachmentArrayDynamicIndexing, REQUIRED ), // not used, not guaranteed by VK 1.2 + descriptorIndexing
+    //FEAT( vulkan12Features, shaderUniformTexelBufferArrayDynamicIndexing, REQUIRED ), // not used, but IS guaranteed by VK 1.2 + descriptorIndexing
+    //FEAT( vulkan12Features, shaderStorageTexelBufferArrayDynamicIndexing, REQUIRED ), // not used, but IS guaranteed by VK 1.2 + descriptorIndexing
     FEAT( vulkan12Features, shaderUniformBufferArrayNonUniformIndexing, REQUIRED ),
     FEAT( vulkan12Features, shaderSampledImageArrayNonUniformIndexing, REQUIRED ),
     FEAT( vulkan12Features, shaderStorageBufferArrayNonUniformIndexing, REQUIRED ),
     FEAT( vulkan12Features, shaderStorageImageArrayNonUniformIndexing, REQUIRED ),
-    FEAT( vulkan12Features, shaderInputAttachmentArrayNonUniformIndexing, REQUIRED ),
-    FEAT( vulkan12Features, shaderUniformTexelBufferArrayNonUniformIndexing, REQUIRED ),
-    FEAT( vulkan12Features, shaderStorageTexelBufferArrayNonUniformIndexing, REQUIRED ),
+    //FEAT( vulkan12Features, shaderInputAttachmentArrayNonUniformIndexing, REQUIRED ), // not used, not guaranteed by VK 1.2 + descriptorIndexing
+    //FEAT( vulkan12Features, shaderUniformTexelBufferArrayNonUniformIndexing, REQUIRED ), // not used, but IS guaranteed by VK 1.2 + descriptorIndexing
+    //FEAT( vulkan12Features, shaderStorageTexelBufferArrayNonUniformIndexing, REQUIRED ), // not used, but IS guaranteed by VK 1.2 + descriptorIndexing
+
+    // For the "*UpdateAFterBind" features-- I update before it's bound, but this often increases the limit allowed
+    // i.e: maxDescriptorSetUpdateAfterBindStorageImages vs maxDescriptorSetStorageImages
     FEAT( vulkan12Features, descriptorBindingUniformBufferUpdateAfterBind, REQUIRED ),
     FEAT( vulkan12Features, descriptorBindingSampledImageUpdateAfterBind, REQUIRED ),
     FEAT( vulkan12Features, descriptorBindingStorageImageUpdateAfterBind, REQUIRED ),
     FEAT( vulkan12Features, descriptorBindingStorageBufferUpdateAfterBind, REQUIRED ),
-    FEAT( vulkan12Features, descriptorBindingUniformTexelBufferUpdateAfterBind, REQUIRED ),
-    FEAT( vulkan12Features, descriptorBindingStorageTexelBufferUpdateAfterBind, REQUIRED ),
-    FEAT( vulkan12Features, descriptorBindingUpdateUnusedWhilePending, REQUIRED ),
-    FEAT( vulkan12Features, descriptorBindingPartiallyBound, REQUIRED ),
-    FEAT( vulkan12Features, descriptorBindingVariableDescriptorCount, REQUIRED ),
-    FEAT( vulkan12Features, runtimeDescriptorArray, REQUIRED ),
+    //FEAT( vulkan12Features, descriptorBindingUniformTexelBufferUpdateAfterBind, REQUIRED ), // not used, but IS guaranteed by VK 1.2 + descriptorIndexing
+    //FEAT( vulkan12Features, descriptorBindingStorageTexelBufferUpdateAfterBind, REQUIRED ), // not used, but IS guaranteed by VK 1.2 + descriptorIndexing
+    FEAT( vulkan12Features, descriptorBindingUpdateUnusedWhilePending, REQUIRED ), // ?
+    FEAT( vulkan12Features, descriptorBindingPartiallyBound, REQUIRED ), // without this, we're forced to fill every image slot, even if unused
+    //FEAT( vulkan12Features, descriptorBindingVariableDescriptorCount, REQUIRED ), // ?
+    FEAT( vulkan12Features, runtimeDescriptorArray, REQUIRED ), // ?
 
-    FEAT( features2.features, shaderStorageImageReadWithoutFormat, REQUIRED ), // post process compute shader
+    //FEAT( features2.features, shaderStorageImageReadWithoutFormat, REQUIRED ), // post process compute shader
     FEAT( features2.features, shaderStorageImageWriteWithoutFormat, REQUIRED ), // post process compute shader
 
     FEAT( vulkan12Features, scalarBlockLayout, REQUIRED ),
@@ -140,8 +143,9 @@ static constexpr std::array DEVICE_FEATURES = std::array{
 
     FEAT( fragmentShaderBarycentricFeaturesKHR, fragmentShaderBarycentric, IMPLICIT ),
 
-    FEAT( meshShaderFeatures, meshShader, REQUIRED ),
+    FEAT( meshShaderFeatures, meshShader, IMPLICIT ),
     FEAT( meshShaderFeatures, taskShader, IMPLICIT ),
+    FEAT( features2.features, multiDrawIndirect, IMPLICIT ),
 
 #if USING( SHADER_DEBUG_PRINTF )
     // While these are all useful, I think the only usage for them currently is in shader debug printf
@@ -221,6 +225,9 @@ void PhysicalDeviceFeatures::Initialize( const PhysicalDeviceExtensions& extensi
 
 bool PhysicalDeviceFeatures::CheckSuitability() const
 {
+    if ( meshShaderFeatures.meshShader == VK_FALSE && features2.features.multiDrawIndirect == VK_FALSE )
+        return false;
+
     const u8* baseAddress = reinterpret_cast<const u8*>( this );
     for ( const FeatureItem& item : DEVICE_FEATURES )
     {
@@ -234,6 +241,8 @@ bool PhysicalDeviceFeatures::CheckSuitability() const
 
 void PhysicalDeviceFeatures::LogMissingFeatures() const
 {
+    if ( meshShaderFeatures.meshShader == VK_FALSE && features2.features.multiDrawIndirect == VK_FALSE )
+        LOG( "  Missing support for both mesh shaders and multiDrawIndirect (both are implicit, but the engine requires one be available" );
     const u8* baseAddress = reinterpret_cast<const u8*>( this );
     for ( const FeatureItem& item : DEVICE_FEATURES )
     {
@@ -314,16 +323,16 @@ static constexpr std::array SPV_CAPS_MeshShading = std::array{ SFEAT( meshShader
 // I don't actually know which of these the spirv necessarily refers to...
 static constexpr std::array SPV_CAPS_ShaderNonUniform = std::array{
     SFEAT( vulkan12Features, descriptorIndexing ),
-    SFEAT( vulkan12Features, shaderInputAttachmentArrayDynamicIndexing ),
-    SFEAT( vulkan12Features, shaderUniformTexelBufferArrayDynamicIndexing ),
-    SFEAT( vulkan12Features, shaderStorageTexelBufferArrayDynamicIndexing ),
+    //SFEAT( vulkan12Features, shaderInputAttachmentArrayDynamicIndexing ),
+    //SFEAT( vulkan12Features, shaderUniformTexelBufferArrayDynamicIndexing ),
+    //SFEAT( vulkan12Features, shaderStorageTexelBufferArrayDynamicIndexing ),
     SFEAT( vulkan12Features, shaderUniformBufferArrayNonUniformIndexing ),
     SFEAT( vulkan12Features, shaderSampledImageArrayNonUniformIndexing ),
     SFEAT( vulkan12Features, shaderStorageBufferArrayNonUniformIndexing ),
     SFEAT( vulkan12Features, shaderStorageImageArrayNonUniformIndexing ),
-    SFEAT( vulkan12Features, shaderInputAttachmentArrayNonUniformIndexing ),
-    SFEAT( vulkan12Features, shaderUniformTexelBufferArrayNonUniformIndexing ),
-    SFEAT( vulkan12Features, shaderStorageTexelBufferArrayNonUniformIndexing ),
+    //SFEAT( vulkan12Features, shaderInputAttachmentArrayNonUniformIndexing ),
+    //SFEAT( vulkan12Features, shaderUniformTexelBufferArrayNonUniformIndexing ),
+    //SFEAT( vulkan12Features, shaderStorageTexelBufferArrayNonUniformIndexing ),
     SFEAT( vulkan12Features, runtimeDescriptorArray ),
 };
 #undef SFEAT

@@ -178,7 +178,11 @@ AccelerationStructure Device::NewAccelerationStructure( AccelerationStructureTyp
 Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view name ) const
 {
     VkBufferCreateInfo vkBufInfo{ VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
-    vkBufInfo.usage       = PGToVulkanBufferType( createInfo.bufferUsage | BufferUsage::DEVICE_ADDRESS );
+    BufferUsage usage = createInfo.bufferUsage | BufferUsage::DEVICE_ADDRESS;
+    if ( createInfo.initalData && !( createInfo.flags & VMA_ALLOCATION_CREATE_MAPPED_BIT ) )
+        usage |= BufferUsage::TRANSFER_DST;
+
+    vkBufInfo.usage       = PGToVulkanBufferType( usage );
     vkBufInfo.size        = createInfo.size;
     vkBufInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
@@ -188,7 +192,7 @@ Buffer Device::NewBuffer( const BufferCreateInfo& createInfo, std::string_view n
 
     Buffer buffer        = {};
     buffer.m_size        = createInfo.size;
-    buffer.m_bufferUsage = createInfo.bufferUsage | BufferUsage::DEVICE_ADDRESS;
+    buffer.m_bufferUsage = usage;
     buffer.m_memoryUsage = createInfo.memoryUsage;
     VmaAllocationInfo allocReturnInfo;
     vmaCreateBuffer( m_vmaAllocator, &vkBufInfo, &vmaAllocInfo, &buffer.m_handle, &buffer.m_allocation, &allocReturnInfo );

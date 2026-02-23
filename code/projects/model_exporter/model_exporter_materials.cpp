@@ -28,7 +28,7 @@ static bool GetAssimpTexturePath( const aiMaterial* assimpMat, aiTextureType tex
         std::string fullPath;
         std::string basename = GetRelativeFilename( name );
         for ( auto itEntry = fs::recursive_directory_iterator( g_textureSearchDir ); itEntry != fs::recursive_directory_iterator();
-              ++itEntry )
+            ++itEntry )
         {
             std::string itFile = itEntry->path().filename().string();
             if ( basename == itEntry->path().filename().string() )

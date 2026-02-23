@@ -19,6 +19,7 @@ enum : u32
 };
 
 static PG::Pipeline* s_pipelines[PIPELINE_COUNT];
+static PG::Gfx::Buffer s_indexBuffer;
 static Clay_RenderCommandArray s_clayRenderCommands;
 static std::vector<PG::Gfx::Scissor> s_scissorStack;
 
@@ -61,6 +62,14 @@ bool Init()
     s_pipelines[PIPELINE_OPAQUE] = Gfx::PipelineManager::GetPipeline( "clay_ui_opaque" );
     s_pipelines[PIPELINE_BLEND]  = Gfx::PipelineManager::GetPipeline( "clay_ui_blend" );
 
+    u16 indices[] = { 0, 1, 2, 0, 2, 3 };
+    Gfx::BufferCreateInfo bufferCI{};
+    bufferCI.addToBindlessArray = false;
+    bufferCI.initalData         = indices;
+    bufferCI.size               = sizeof( indices );
+    bufferCI.bufferUsage        = Gfx::BufferUsage::INDEX;
+    s_indexBuffer               = Gfx::rg.device.NewBuffer( bufferCI, "ui_indexBuffer" );
+
     if ( !Init_ClayLua() )
         return false;
 
@@ -82,10 +91,12 @@ bool Init()
 
 void Shutdown()
 {
+    Gfx::rg.device.WaitForIdle();
     delete s_scriptInstance;
     s_scissorStack.clear();
     UI::Text::Shutdown();
     Shutdown_ClayLua();
+    s_indexBuffer.Free();
 }
 
 void BootMainMenu()
@@ -155,6 +166,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
     using namespace Gfx;
     cmdBuf.BindPipeline( s_pipelines[PIPELINE_BLEND] );
     cmdBuf.BindGlobalDescriptors();
+    cmdBuf.BindIndexBuffer( s_indexBuffer, PG::Gfx::IndexType::UNSIGNED_SHORT );
     cmdBuf.SetViewport( SceneSizedViewport( false ) );
     s_scissorStack.push_back( SceneSizedScissor() );
     cmdBuf.SetScissor( SceneSizedScissor() );
@@ -176,7 +188,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
             pushConstants.color                   = ClayToPGColor( cRect.backgroundColor );
             pushConstants.textureIndex            = PG_INVALID_TEXTURE_INDEX;
             cmdBuf.PushConstants( pushConstants );
-            cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            cmdBuf.DrawIndexed( 0, 6 );
             break;
         }
         case CLAY_RENDER_COMMAND_TYPE_BORDER:
@@ -190,28 +202,28 @@ void Render( Gfx::CommandBuffer& cmdBuf )
                 pushConstants.aabb = { aabb.x, aabb.y + cBorder.cornerRadius.topLeft, cBorder.width.left,
                     aabb.height - cBorder.cornerRadius.topLeft - cBorder.cornerRadius.bottomLeft };
                 cmdBuf.PushConstants( pushConstants );
-                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+                cmdBuf.DrawIndexed( 0, 6 );
             }
             if ( cBorder.width.right > 0 )
             {
                 pushConstants.aabb = { aabb.x + aabb.width - cBorder.width.right, aabb.y + cBorder.cornerRadius.topRight,
                     cBorder.width.right, aabb.height - cBorder.cornerRadius.topRight - cBorder.cornerRadius.bottomRight };
                 cmdBuf.PushConstants( pushConstants );
-                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+                cmdBuf.DrawIndexed( 0, 6 );
             }
             if ( cBorder.width.top > 0 )
             {
                 pushConstants.aabb = { aabb.x + cBorder.cornerRadius.topLeft, aabb.y,
                     aabb.width - cBorder.cornerRadius.topLeft - cBorder.cornerRadius.topRight, cBorder.width.top };
                 cmdBuf.PushConstants( pushConstants );
-                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+                cmdBuf.DrawIndexed( 0, 6 );
             }
             if ( cBorder.width.bottom > 0 )
             {
                 pushConstants.aabb = { aabb.x + cBorder.cornerRadius.bottomLeft, aabb.y + aabb.height - cBorder.width.bottom,
                     aabb.width - cBorder.cornerRadius.bottomLeft - cBorder.cornerRadius.bottomRight, cBorder.width.bottom };
                 cmdBuf.PushConstants( pushConstants );
-                cmdBuf.DrawMeshTasks( 1, 1, 1 );
+                cmdBuf.DrawIndexed( 0, 6 );
             }
 
             break;
@@ -228,7 +240,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
             pushConstants.textureIndex = img ? img->gpuTexture.GetBindlessIndex() : PG_INVALID_TEXTURE_INDEX;
 
             cmdBuf.PushConstants( pushConstants );
-            cmdBuf.DrawMeshTasks( 1, 1, 1 );
+            cmdBuf.DrawIndexed( 0, 6 );
             break;
         }
         case CLAY_RENDER_COMMAND_TYPE_TEXT:
@@ -246,6 +258,7 @@ void Render( Gfx::CommandBuffer& cmdBuf )
 
             cmdBuf.BindPipeline( s_pipelines[PIPELINE_BLEND] );
             cmdBuf.BindGlobalDescriptors();
+            // cmdBuf.BindIndexBuffer( s_indexBuffer, PG::Gfx::IndexType::UNSIGNED_SHORT );
             break;
         }
         case CLAY_RENDER_COMMAND_TYPE_SCISSOR_START:

@@ -99,6 +99,9 @@ public:
             PG_ASSERT( shader && shader->GetShaderStage() == createInfo.shaders[i].stage );
             if ( !shader->ExtensionsAndFeaturesSupported() )
             {
+                // LOG_WARN( "Not loading pipeline %s due to the underlying shaders not"
+                //           "having their extensions and/or capabilities supported on this device",
+                //     createInfo.name.c_str() );
                 p.m_extensionsAndFeaturesSupported = false;
                 return;
             }
@@ -233,9 +236,9 @@ public:
         p.m_extensionsAndFeaturesSupported = true;
         if ( !shader->ExtensionsAndFeaturesSupported() )
         {
-            LOG_WARN( "Not loading pipeline %s due to the underlying shaders not having their extensions and/or capabilities supported on "
-                      "this device",
-                createInfo.name.c_str() );
+            // LOG_WARN( "Not loading pipeline %s due to the underlying shaders not having their"
+            //           "extensions and/or capabilities supported on this device",
+            //     createInfo.name.c_str() );
             p.m_extensionsAndFeaturesSupported = false;
             return;
         }

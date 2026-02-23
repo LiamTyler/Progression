@@ -4,8 +4,7 @@
 #include <string>
 #include <vector>
 
-#define NO_TIMESTAMP \
-    time_t { 0 }
+#define NO_TIMESTAMP time_t{ 0 }
 
 #define LATEST_TIMESTAMP std::numeric_limits<time_t>::max()
 

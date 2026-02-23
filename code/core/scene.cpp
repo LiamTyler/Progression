@@ -195,7 +195,7 @@ Scene::~Scene()
         delete light;
 
 #if USING( GPU_DATA )
-        // tlas.Free();
+    // tlas.Free();
 #endif // #if USING( GPU_DATA )
 }
 

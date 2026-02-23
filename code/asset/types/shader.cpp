@@ -139,7 +139,7 @@ void Shader::CreateShaderModule( const u32* spirv, size_t sizeInBytes )
     {
         if ( !rg.physicalDevice.IsSpirvShaderExtensionSupported( ext ) )
         {
-            LOG_WARN( "Not loading shader %s because spirv extension %s is not supported", GetName(), ext.c_str() );
+            // LOG_WARN( "Not loading shader %s because spirv extension %s is not supported", GetName(), ext.c_str() );
             m_extensionsAndFeaturesSupported = false;
             return;
         }
@@ -149,8 +149,8 @@ void Shader::CreateShaderModule( const u32* spirv, size_t sizeInBytes )
     {
         if ( !rg.physicalDevice.IsSpirvShaderCapabilitySupported( m_shaderStage, cap ) )
         {
-            LOG_WARN( "Not loading shader %s because spirv capability %d (%s) is not supported", GetName(), cap,
-                spv::CapabilityToString( (spv::Capability)cap ) );
+            // LOG_WARN( "Not loading shader %s because spirv capability %d (%s) is not supported", GetName(), cap, spv::CapabilityToString(
+            // (spv::Capability)cap ) );
             m_extensionsAndFeaturesSupported = false;
             return;
         }

@@ -1,7 +1,13 @@
 #pragma once
 
 #include "asset/types/shader.hpp"
-#include "renderer/graphics_api.hpp"
+#include "renderer/graphics_api/acceleration_structure.hpp"
+#include "renderer/graphics_api/buffer.hpp"
+#include "renderer/graphics_api/command_buffer.hpp"
+#include "renderer/graphics_api/pipeline.hpp"
+#include "renderer/graphics_api/sampler.hpp"
+#include "renderer/graphics_api/texture.hpp"
+
 #include "shared/assert.hpp"
 #include <unordered_map>
 

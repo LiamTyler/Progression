@@ -39,6 +39,8 @@ struct PhysicalDeviceExtensions
     bool extensionsPresent[COUNT]        = {};
     bool allRequiredExtensionsPresent    = false;
 
+    static void UpdateClassifications( bool headless );
+
     // returns whether all requred extensions are available for this device or not
     bool QuerySupport( VkPhysicalDevice vkPhysicalDevice );
     void LogMissingExtensions() const;

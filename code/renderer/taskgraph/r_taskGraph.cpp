@@ -1,4 +1,6 @@
 #include "r_taskGraph.hpp"
+#include "renderer/debug_marker.hpp"
+#include "renderer/graphics_api/gpu_profiling.hpp"
 #include "renderer/graphics_api/pg_to_vulkan_types.hpp"
 #include "renderer/r_bindless_manager.hpp"
 #include "renderer/r_globals.hpp"

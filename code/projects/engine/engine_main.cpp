@@ -18,6 +18,7 @@ bool g_paused = false;
 int main( int argc, char* argv[] )
 {
     EngineInitInfo engineInitConfig;
+    engineInitConfig.headless     = true;
     float scale                   = 1.0f;
     engineInitConfig.sceneWidth   = static_cast<int>( scale * 1280 );
     engineInitConfig.sceneHeight  = static_cast<int>( scale * 720 );

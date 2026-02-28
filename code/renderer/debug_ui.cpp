@@ -1,4 +1,5 @@
 #include "renderer/debug_ui.hpp"
+#include "renderer/debug_marker.hpp"
 
 #if !USING( PG_DEBUG_UI )
 

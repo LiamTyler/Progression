@@ -150,6 +150,9 @@ bool Init( u32 sceneWidth, u32 sceneHeight, u32 displayWidth, u32 displayHeight,
     if ( !R_Init( headless, displayWidth, displayHeight ) )
         return false;
 
+    if ( headless )
+        return true;
+
     if ( !AssetManager::LoadFastFile( "gfx_required" ) )
         return false;
 
@@ -192,15 +195,17 @@ void Shutdown()
 {
     rg.device.WaitForIdle();
 
-    DebugDraw::Shutdown();
-    Lighting::Shutdown();
-    Shutdown_SceneData();
-
-    s_taskGraph.Free();
-    UIOverlay::Shutdown();
+    if ( !eg.headless )
+    {
+        DebugDraw::Shutdown();
+        Lighting::Shutdown();
+        Shutdown_SceneData();
+        s_taskGraph.Free();
+        UIOverlay::Shutdown();
+        Sky::Shutdown();
+        Profile::Shutdown();
+    }
     AssetManager::FreeRemainingGpuResources();
-    Sky::Shutdown();
-    Profile::Shutdown();
     R_Shutdown();
 }
 

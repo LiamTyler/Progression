@@ -16,9 +16,9 @@ struct ExtensionData
     constexpr ExtensionData( const char* inName, ExtOrFeatClassification c ) : name( inName ), classification( c ) {}
 };
 
-static constexpr ExtensionData DEVICE_EXTENSIONS[PhysicalDeviceExtensions::COUNT] = {
+static ExtensionData DEVICE_EXTENSIONS[PhysicalDeviceExtensions::COUNT] = {
     {"",                                                ExtOrFeatClassification::DISABLED}, // placeholder
-    {VK_KHR_SWAPCHAIN_EXTENSION_NAME,                   ExtOrFeatClassification::IMPLICIT},
+    {VK_KHR_SWAPCHAIN_EXTENSION_NAME,                   ExtOrFeatClassification::REQUIRED},
     {VK_EXT_MESH_SHADER_EXTENSION_NAME,                 ExtOrFeatClassification::IMPLICIT},
     {VK_KHR_SHADER_DRAW_PARAMETERS_EXTENSION_NAME,      ExtOrFeatClassification::REQUIRED},
     {VK_KHR_SPIRV_1_4_EXTENSION_NAME,                   ExtOrFeatClassification::REQUIRED},
@@ -27,6 +27,11 @@ static constexpr ExtensionData DEVICE_EXTENSIONS[PhysicalDeviceExtensions::COUNT
     {VK_KHR_SHADER_NON_SEMANTIC_INFO_EXTENSION_NAME,    ExtOrFeatClassification::IMPLICIT},
     {VK_KHR_FRAGMENT_SHADER_BARYCENTRIC_EXTENSION_NAME, ExtOrFeatClassification::IMPLICIT},
 };
+
+void PhysicalDeviceExtensions::UpdateClassifications( bool headless )
+{
+    DEVICE_EXTENSIONS[SWAPCHAIN].classification = headless ? ExtOrFeatClassification::DISABLED : ExtOrFeatClassification::REQUIRED;
+}
 
 bool PhysicalDeviceExtensions::QuerySupport( VkPhysicalDevice vkPhysicalDevice )
 {

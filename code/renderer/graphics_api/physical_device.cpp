@@ -42,8 +42,14 @@ static void QueueSelection( VkPhysicalDevice pDev, PhysicalDeviceMetadata& metad
         bool compute    = queueFamilies[i].queueFlags & VK_QUEUE_COMPUTE_BIT;
         bool transfer   = queueFamilies[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
         bool timestamps = queueFamilies[i].timestampValidBits > 0;
-        VkBool32 present;
-        vkGetPhysicalDeviceSurfaceSupportKHR( pDev, i, rg.surface, &present );
+        bool present    = true;
+
+        if ( !rg.headless )
+        {
+            VkBool32 vkPresent;
+            vkGetPhysicalDeviceSurfaceSupportKHR( pDev, i, rg.surface, &vkPresent );
+            present = vkPresent == VK_TRUE;
+        }
         // LOG( "Queue family[%u]: graphics: %d, compute: %d, transfer: %d, present: %d, timestamps: %d", i, graphics, compute, transfer,
         //     (bool)present, timestamps );
         // LOG( "    Flags: %u, QueueCount: %u", queueFamilies[i].queueFlags, queueFamilies[i].queueCount );

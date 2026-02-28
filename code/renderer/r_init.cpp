@@ -116,10 +116,13 @@ static void InitCommandObjects()
     cmdPoolCI.flags     = COMMAND_POOL_RESET_COMMAND_BUFFER;
     cmdPoolCI.queueType = QueueType::GRAPHICS;
 
-    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    if ( !rg.headless )
     {
-        rg.frameData[i].cmdPool          = rg.device.NewCommandPool( cmdPoolCI, "frame" + std::to_string( i ) );
-        rg.frameData[i].primaryCmdBuffer = rg.frameData[i].cmdPool.NewCommandBuffer( "primary" + std::to_string( i ) );
+        for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
+        {
+            rg.frameData[i].cmdPool          = rg.device.NewCommandPool( cmdPoolCI, "frame" + std::to_string( i ) );
+            rg.frameData[i].primaryCmdBuffer = rg.frameData[i].cmdPool.NewCommandBuffer( "primary" + std::to_string( i ) );
+        }
     }
 
     cmdPoolCI.flags |= COMMAND_POOL_TRANSIENT;
@@ -129,11 +132,14 @@ static void InitCommandObjects()
 
 static void InitSyncObjects()
 {
-    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
+    if ( !rg.headless )
     {
-        std::string iStr                       = std::to_string( i );
-        rg.frameData[i].acquireImageSemaphore  = rg.device.NewSemaphore( "acquireImageSemaphore_" + iStr );
-        rg.frameData[i].renderingCompleteFence = rg.device.NewFence( true, "renderingCompleteFence_" + iStr );
+        for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
+        {
+            std::string iStr                       = std::to_string( i );
+            rg.frameData[i].acquireImageSemaphore  = rg.device.NewSemaphore( "acquireImageSemaphore_" + iStr );
+            rg.frameData[i].renderingCompleteFence = rg.device.NewFence( true, "renderingCompleteFence_" + iStr );
+        }
     }
 
     rg.immediateFence = rg.device.NewFence( false, "immediate" );
@@ -150,11 +156,14 @@ static bool CreateInstance()
 
     std::vector<const char*> instanceExtensionsToEnable;
 
-    u32 sdlInstanceExtensionsCount{ 0 };
-    const char* const* sdlInstanceExtensions{ SDL_Vulkan_GetInstanceExtensions( &sdlInstanceExtensionsCount ) };
-    PG_ASSERT( sdlInstanceExtensions != nullptr, "SDL_Vulkan_GetInstanceExtensions failed '%s'", SDL_GetError() );
-    for ( u32 i = 0; i < sdlInstanceExtensionsCount; ++i )
-        instanceExtensionsToEnable.push_back( sdlInstanceExtensions[i] );
+    if ( !rg.headless )
+    {
+        u32 sdlInstanceExtensionsCount{ 0 };
+        const char* const* sdlInstanceExtensions{ SDL_Vulkan_GetInstanceExtensions( &sdlInstanceExtensionsCount ) };
+        PG_ASSERT( sdlInstanceExtensions != nullptr, "SDL_Vulkan_GetInstanceExtensions failed '%s'", SDL_GetError() );
+        for ( u32 i = 0; i < sdlInstanceExtensionsCount; ++i )
+            instanceExtensionsToEnable.push_back( sdlInstanceExtensions[i] );
+    }
 
     VkInstanceCreateInfo instanceCI{
         .sType            = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO,
@@ -314,6 +323,7 @@ static bool CreateInstance()
 bool SelectPhysicalDevice()
 {
     PGP_ZONE_SCOPEDN( "SelectPhysicalDevice" );
+    PhysicalDeviceExtensions::UpdateClassifications( rg.headless );
 
     u32 deviceCount = 0;
     VK_CHECK( vkEnumeratePhysicalDevices( rg.instance, &deviceCount, nullptr ) );
@@ -437,18 +447,21 @@ bool R_Init( bool headless, u32 displayWidth, u32 displayHeight )
 
 void R_Shutdown()
 {
-    for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
-    {
-        FrameData& frameData = rg.frameData[i];
-        frameData.cmdPool.Free();
-        frameData.acquireImageSemaphore.Free();
-        frameData.renderingCompleteFence.Free();
-    }
     rg.immediateCmdPool.Free();
     rg.immediateFence.Free();
+    if ( !rg.headless )
+    {
+        for ( i32 i = 0; i < NUM_FRAME_OVERLAP; ++i )
+        {
+            FrameData& frameData = rg.frameData[i];
+            frameData.cmdPool.Free();
+            frameData.acquireImageSemaphore.Free();
+            frameData.renderingCompleteFence.Free();
+        }
 
-    rg.swapchain.Free();
-    vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
+        rg.swapchain.Free();
+        vkDestroySurfaceKHR( rg.instance, rg.surface, nullptr );
+    }
     PipelineManager::Shutdown();
     BindlessManager::Shutdown();
     FreeGlobalDescriptorData();

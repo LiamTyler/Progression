@@ -13,12 +13,12 @@ using namespace Gfx;
 
 bool g_paused = false;
 
-#define LOAD_SCENE_DIRECTLY NOT_IN_USE
+#define LOAD_SCENE_DIRECTLY IN_USE
 
 int main( int argc, char* argv[] )
 {
     EngineInitInfo engineInitConfig;
-    engineInitConfig.headless     = true;
+    engineInitConfig.headless     = false;
     float scale                   = 1.0f;
     engineInitConfig.sceneWidth   = static_cast<int>( scale * 1280 );
     engineInitConfig.sceneHeight  = static_cast<int>( scale * 720 );

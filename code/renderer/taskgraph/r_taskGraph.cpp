@@ -261,7 +261,13 @@ static VkPipelineStageFlags2 GetStageFlags( TaskType taskType, BufferUsage bufUs
     switch ( taskType )
     {
     case TaskType::NONE: return VK_PIPELINE_STAGE_2_NONE;
-    case TaskType::COMPUTE: return VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+    case TaskType::COMPUTE:
+    {
+        VkPipelineStageFlags2 ret = VK_PIPELINE_STAGE_2_COMPUTE_SHADER_BIT;
+        if ( IsSet( bufUsage, BufferUsage::INDIRECT ) )
+            ret |= VK_PIPELINE_STAGE_2_DRAW_INDIRECT_BIT;
+        return ret;
+    }
     case TaskType::GRAPHICS:
     {
         VkPipelineStageFlags2 ret = 0;
@@ -287,11 +293,8 @@ static VkAccessFlags2 GetAccessFlagsBuffer( TaskType taskType, ResourceState res
     case TaskType::COMPUTE:
     case TaskType::GRAPHICS:
     {
-        if ( IsSet( bufUsage, BufferUsage::INDIRECT ) )
-        {
-            PG_ASSERT( resState == ResourceState::READ );
+        if ( IsSet( bufUsage, BufferUsage::INDIRECT ) && resState == ResourceState::READ )
             return VK_ACCESS_2_INDIRECT_COMMAND_READ_BIT;
-        }
 
         if ( resState == ResourceState::READ )
             return VK_ACCESS_2_SHADER_READ_BIT;

@@ -1,0 +1,43 @@
+#version 460
+
+#include "global_descriptors.glsl"
+#include "lib/culling.glsl"
+#include "lib/intrinsics.glsl"
+
+layout( scalar, push_constant ) uniform PushConstants
+{
+    UintBuffer maxCounts;
+    UVec2Buffer meshCullResults;
+} pConstants;
+
+layout (local_size_x = MESHLET_CULL_SHADER_WORKGROUP_SIZE) in;
+void main() 
+{
+    uint linearWorkGroupID = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
+    uint globalMeshletIdx = MESHLET_CULL_SHADER_WORKGROUP_SIZE * linearWorkGroupID + gl_LocalInvocationIndex;
+    
+    uint totalMeshCount = maxCounts.data[0];
+    uint totalMeshletCount = maxCounts.data[1];
+    
+    if ( globalMeshletIdx >= totalMeshletCount )
+        return;
+    
+    uint searchMeshIdx = 0;
+    uint lastMeshIdx = 0;
+    uint meshletCountSoFar = 0;
+    uint prevMeshletCountSoFar = 0;
+    while ( meshletCountSoFar < globalMeshletIdx )
+    {
+        prevMeshletCountSoFar = meshletCountSoFar;
+        uvec2 meshPayload = meshCullResults.data[searchMeshIdx];
+        lastMeshIdx = meshPayload.x;
+        meshletCountSoFar += meshPayload.y;
+        
+        searchMeshIdx += 1;
+    }
+    
+    uint meshIdx = 
+    uint localMeshletIdx = globalMeshletIdx - (meshletCountSoFar - prevMeshletCountSoFar);
+    
+}
+

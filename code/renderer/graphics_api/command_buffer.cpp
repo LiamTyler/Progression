@@ -341,6 +341,8 @@ void CommandBuffer::Dispatch_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) con
     vkCmdDispatch( m_handle, groupsX, groupsY, groupsZ );
 }
 
+void CommandBuffer::DispatchIndirect( const Buffer& buffer, u64 offset ) const { vkCmdDispatchIndirect( m_handle, buffer, offset ); }
+
 void CommandBuffer::DrawMeshTasks( u32 groupsX, u32 groupsY, u32 groupsZ ) const
 {
     PG_DBG_ASSERT( m_boundPipeline && m_boundPipeline->GetPipelineType() == PipelineType::GRAPHICS );

@@ -7,22 +7,19 @@
 
 layout (local_size_x = 1, local_size_y = 1) in;
 
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
-
 layout( push_constant ) uniform PushConstants
 {
-    UintBuffer countBuffer;
-    MeshletDrawCommandBuffer meshDrawCmdBuffer;
+    UintBuffer indirectArgsBuffer;
+    UVec2Buffer meshDrawCmdBuffer;
 } pConstants;
 
 void main()
 {
-    uint numDraws = pConstants.countBuffer.data[0];
-    debugPrintfEXT( "#2D(0.90,0)Num Draw Calls: %u", numDraws );
-
-    //MeshletDrawCommand cmd = pConstants.meshDrawCmdBuffer.data[0];
-    //uint groupsX = cmd.groupCountX;
-    //uint groupsY = cmd.groupCountY;
-    //uint groupsZ = cmd.groupCountZ;
-    //debugPrintfEXT( "#2D(0.90,0.03)Dispatch: %u %u %u", numDraws, groupsX, groupsY, groupsZ );
+    uint x = pConstants.indirectArgsBuffer.data[0];
+    uint y = pConstants.indirectArgsBuffer.data[1];
+    uint z = pConstants.indirectArgsBuffer.data[2];
+    uint meshIdx = pConstants.meshDrawCmdBuffer.data[0].x;
+    uint numMeshlets = pConstants.meshDrawCmdBuffer.data[0].y;
+    debugPrintfEXT( "#2D(0.90,0)X: %u, Y: %u, Z: %u:", x, y, z );
+    debugPrintfEXT( "#2D(0.90,0.08)First Mesh: %u, %u", meshIdx, numMeshlets );
 }

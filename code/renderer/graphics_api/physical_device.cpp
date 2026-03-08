@@ -71,6 +71,8 @@ static void QueueSelection( VkPhysicalDevice pDev, PhysicalDeviceMetadata& metad
 
 bool PhysicalDevice::Init( VkPhysicalDevice pDev )
 {
+    m_cachedMeshShadersSupported = false;
+
     m_metadata = std::make_shared<PhysicalDeviceMetadata>();
     m_handle   = pDev;
     GetDeviceProperties( m_handle, *m_metadata );
@@ -89,6 +91,8 @@ bool PhysicalDevice::Init( VkPhysicalDevice pDev )
     FillFeaturesToEnableStruct( supportedFeatures, m_metadata->features );
     if ( !m_metadata->features.CheckSuitability() )
         return false;
+
+    m_cachedMeshShadersSupported = m_metadata->features.meshShaderFeatures.meshShader == VK_TRUE;
 
     CalculateSuitabilityScore();
     return true;
@@ -159,5 +163,6 @@ VkPhysicalDevice PhysicalDevice::GetHandle() const { return m_handle; }
 PhysicalDevice::operator bool() const { return m_handle != VK_NULL_HANDLE; }
 PhysicalDevice::operator VkPhysicalDevice() const { return m_handle; }
 const PhysicalDeviceMetadata* PhysicalDevice::GetMetadata() const { return m_metadata.get(); }
+bool PhysicalDevice::AreMeshShadersSupported() const { return m_cachedMeshShadersSupported; }
 
 } // namespace PG::Gfx

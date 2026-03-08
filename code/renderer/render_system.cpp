@@ -90,7 +90,7 @@ bool Init_TaskGraph()
 
     TGBTextureRef litOutput, sceneDepth;
     AddSceneRenderTasks( builder, litOutput, sceneDepth );
-    Lighting::AddShadowTasks( builder );
+    // Lighting::AddShadowTasks( builder );
 
     Sky::AddTask( builder, litOutput, sceneDepth );
 

@@ -17,7 +17,6 @@ DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletCullDataBuffer, PackedMeshletCullDat
 #extension GL_ARB_shader_draw_parameters : enable
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 layout(scalar, push_constant) uniform Registers
 {

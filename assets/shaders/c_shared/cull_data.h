@@ -16,17 +16,26 @@ struct MeshCullData
     AABB aabb;
     uint modelIndex;
     uint numMeshlets;
+    uint bindlessRangeStart;
 };
+
+#define MAX_CULLING_COMPUTE_DIMENSION 65535
+#define MESHLET_CULL_SHADER_WORKGROUP_SIZE 32
+#define PREFIX_SHADER_WORKGROUP_SIZE 512
 
 struct MeshletDrawCommand
 {
+    // VkDrawMeshTasksIndirectCommandEXT
     uint groupCountX;
     uint groupCountY;
     uint groupCountZ;
-    uint modelIndex;
+
+    // custom
+    uint modelIndex; // is this needed?
     uint meshIndex;
-    uint numMeshlets;
+    uint numMeshlets; // is this needed?
 };
+
 
 END_GPU_DATA_NAMESPACE()
 

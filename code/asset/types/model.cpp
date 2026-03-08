@@ -818,6 +818,8 @@ bool Model::FastfileLoad( Serializer* serializer )
         u64 numMeshlets         = serializer->Read<u64>();
         const void* meshletData = serializer->GetData();
         serializer->Skip( numMeshlets * sizeof( GpuData::Meshlet ) );
+        PG_ASSERT( numMeshlets <= 65535,
+            "Compute culling shader assumes maxComputeWorkGroupCount[0] is 65535. Can change shader to support more, or split mesh" );
 
         const void* meshletCullData = serializer->GetData();
         serializer->Skip( numMeshlets * sizeof( GpuData::PackedMeshletCullData ) );
@@ -840,7 +842,8 @@ bool Model::FastfileLoad( Serializer* serializer )
         vbCreateInfo.addToBindlessArray = false; // since BindlessManager::AddMeshBuffers will take care of it
 
         BufferCreateInfo tbCreateInfo = vbCreateInfo;
-        tbCreateInfo.size             = triDataSize;
+        tbCreateInfo.bufferUsage |= BufferUsage::INDEX;
+        tbCreateInfo.size = triDataSize;
 
         BufferCreateInfo mbCreateInfo = vbCreateInfo;
         mbCreateInfo.size             = numMeshlets * sizeof( GpuData::Meshlet );

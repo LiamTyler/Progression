@@ -43,11 +43,16 @@ public:
     operator VkPhysicalDevice() const;
     const PhysicalDeviceMetadata* GetMetadata() const;
 
+    bool AreMeshShadersSupported() const;
+
 private:
     void CalculateSuitabilityScore();
 
     VkPhysicalDevice m_handle = VK_NULL_HANDLE;
     std::shared_ptr<PhysicalDeviceMetadata> m_metadata;
+
+    // cached values for faster access
+    bool m_cachedMeshShadersSupported;
 };
 
 } // namespace PG::Gfx

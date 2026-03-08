@@ -4,6 +4,18 @@
         "computeShader": "frustum_cull_meshes.comp"
     } },
     { "Pipeline": {
+        "name": "setup_1D_indirect_dispatch",
+        "computeShader": "setup_1D_indirect_dispatch.comp"
+    } },
+    { "Pipeline": {
+        "name": "frustum_cull_prefix_sum",
+        "computeShader": "prefix_sum.comp"
+    } },
+    { "Pipeline": {
+        "name": "cull_meshlets",
+        "computeShader": "cull_meshlets.comp"
+    } },
+    { "Pipeline": {
         "name": "frustum_cull_meshes_debug",
         "isDebugOnlyAsset": true,
         "computeShader": "debug/frustum_cull_meshes_debug.comp"
@@ -37,11 +49,11 @@
         "name": "post_process",
         "computeShader": "post_process.comp"
     } },
-    { "Pipeline": {
+    { "_Pipeline": {
         "name": "shadow_frustums_cull",
         "computeShader": "shadow_frustums_cull.comp"
     } },
-    { "Pipeline": {
+    { "_Pipeline": {
         "name": "shadow_frustums_cull_debug",
         "isDebugOnlyAsset": true,
         "computeShader": "debug/shadow_frustums_cull_debug.comp"

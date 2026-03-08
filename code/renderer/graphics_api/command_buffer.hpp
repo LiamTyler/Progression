@@ -8,6 +8,13 @@
 namespace PG::Gfx
 {
 
+struct DispatchIndirectCommand
+{
+    u32 x;
+    u32 y;
+    u32 z;
+};
+
 enum CommandBufferUsageBits
 {
     COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT = 1 << 0,
@@ -62,6 +69,7 @@ public:
     void DrawIndexed( u32 firstIndex, u32 indexCount, i32 vertexOffset = 0, u32 firstInstance = 0, u32 instanceCount = 1 ) const;
     void Dispatch( u32 groupsX, u32 groupsY, u32 groupsZ ) const;
     void Dispatch_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const;
+    void DispatchIndirect( const Buffer& buffer, u64 offset = 0 ) const;
     void DrawMeshTasks( u32 groupsX, u32 groupsY, u32 groupsZ ) const;
     void DrawMeshTasks_AutoSized( u32 itemsX, u32 itemsY, u32 itemsZ ) const;
     void DrawMeshTasksIndirect(

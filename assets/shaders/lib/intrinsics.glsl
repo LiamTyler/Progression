@@ -8,6 +8,11 @@
 #extension GL_KHR_shader_subgroup_quad : require
 #extension GL_KHR_shader_subgroup_shuffle : require
 
+uint WaveGetLaneCount()
+{
+    return gl_SubgroupSize;
+}
+
 bool WaveIsFirstLane()
 {
     return subgroupElect();
@@ -34,10 +39,17 @@ uint WaveActiveCountBits( bool v )
 }
 
 #define WaveReadLaneFirst( val ) subgroupBroadcastFirst( val )
+#define WaveReadLaneAt( val, lane ) subgroupBroadcast( val, lane )
 
-uint WaveLaneCount()
-{
-    return gl_SubgroupSize;
-}
+#define WaveActiveSum( val ) subgroupAdd( val )
+#define WaveActiveProduct( val ) subgroupMul( val )
+#define WaveActiveMin( val ) subgroupMin( val )
+#define WaveActiveMax( val ) subgroupMax( val )
+#define WaveActiveBitAnd( val ) subgroupAnd( val )
+#define WaveActiveBitOr( val ) subgroupOr( val )
+#define WaveActiveBitXor( val ) subgroupXor( val )
+
+#define WavePrefixSum( val ) subgroupExclusiveAdd( val )
+#define WavePrefixProduct( val ) subgroupExclusiveMul( val )
 
 #endif // #ifndef __INTRINSICS_GLSL__

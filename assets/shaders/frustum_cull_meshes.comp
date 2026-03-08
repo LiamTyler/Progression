@@ -1,18 +1,16 @@
 #version 460
 
-#include "c_shared/mesh_shading_defines.h"
 #include "global_descriptors.glsl"
 #include "lib/culling.glsl"
 #include "lib/intrinsics.glsl"
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshCullDataBuffer, MeshCullData );
-DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
 layout( scalar, push_constant ) uniform PushConstants
 {
     MeshCullDataBuffer meshCullDataBuffer;
-    UintBuffer outputCountBuffer;
-    MeshletDrawCommandBuffer indirectCmdOutputBuffer;
+    UintBuffer outputIndirectArgs;
+    UVec2Buffer outputCullResultsBuffer;
     uint numMeshes;
     uint _pad;
 } pConstants;
@@ -28,32 +26,20 @@ void main()
     AABB localAABB = cullData.aabb;
     AABB worldAABB = TransformAABB( GetModelMatrix( cullData.modelIndex ), localAABB );
     bool visible = IsInFrustum( worldAABB );
+    if ( !visible )
+        return;
+
     uint numVisibleInWave = WaveActiveCountBits( visible );
     uint localIndexInWave = WavePrefixCountBits( visible );
+    uint numMeshletsInWave = WaveActiveSum( cullData.numMeshlets );
     
     uint globalBaseIndex;
     if ( WaveIsFirstLane() )
     {
-        globalBaseIndex = atomicAdd( pConstants.outputCountBuffer.data[0], numVisibleInWave );
+        globalBaseIndex = atomicAdd( pConstants.outputIndirectArgs.data[0], numVisibleInWave );
+        globalBaseIndex = atomicAdd( pConstants.outputIndirectArgs.data[1], numMeshletsInWave );
     }
     globalBaseIndex = WaveReadLaneFirst( globalBaseIndex );
-    
-    if ( visible )
-    {
-        MeshletDrawCommand cmd;
-#if TASK_SHADER_MAIN_DRAW
-        uint numWorkgroups = ( cullData.numMeshlets + TASK_SHADER_WORKGROUP_SIZE - 1 ) / TASK_SHADER_WORKGROUP_SIZE;
-#else // #if TASK_SHADER_MAIN_DRAW
-        uint numWorkgroups = cullData.numMeshlets;
-#endif // #else // #if TASK_SHADER_MAIN_DRAW
-        cmd.groupCountY = ( numWorkgroups + 65535 ) / 65536;
-        cmd.groupCountX = ( numWorkgroups + cmd.groupCountY - 1 ) / cmd.groupCountY;
-        cmd.groupCountZ = 1;
-        cmd.modelIndex  = cullData.modelIndex;
-        cmd.meshIndex   = meshIdx;
-        cmd.numMeshlets = cullData.numMeshlets;
 
-        uint globalIndex = globalBaseIndex + localIndexInWave;
-        pConstants.indirectCmdOutputBuffer.data[globalIndex] = cmd;        
-    }
+    pConstants.outputCullResultsBuffer.data[globalBaseIndex + localIndexInWave] = uvec2( meshIdx, cullData.numMeshlets );
 }

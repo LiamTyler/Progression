@@ -1,0 +1,35 @@
+#version 460
+
+#include "common.glsl"
+#include "c_shared/cull_data.h"
+
+layout( scalar, push_constant ) uniform PushConstants
+{
+    UintBuffer argBuffer;
+};
+
+layout (local_size_x = 1) in;
+void main() 
+{
+    uint numMeshes = argBuffer.data[0];
+    uint numMeshlets = argBuffer.data[1];
+    
+    // prefix sum meshlet dispatch
+    {
+        uint numWorkgroups = (numMeshes + PREFIX_SHADER_WORKGROUP_SIZE - 1) / PREFIX_SHADER_WORKGROUP_SIZE;
+        uint Y = (numWorkgroups + MAX_CULLING_COMPUTE_DIMENSION - 1) / MAX_CULLING_COMPUTE_DIMENSION;
+        uint X = (numWorkgroups + Y - 1) / Y;
+        argBuffer.data[3] = X;
+        argBuffer.data[4] = Y;
+        argBuffer.data[5] = 1;
+    }
+    // meshlet culling dispatch
+    {
+        uint numWorkgroups = (numMeshlets + MESHLET_CULL_SHADER_WORKGROUP_SIZE - 1) / MESHLET_CULL_SHADER_WORKGROUP_SIZE;
+        uint Y = (numWorkgroups + MAX_CULLING_COMPUTE_DIMENSION - 1) / MAX_CULLING_COMPUTE_DIMENSION;
+        uint X = (numWorkgroups + Y - 1) / Y;
+        argBuffer.data[6] = X;
+        argBuffer.data[7] = Y;
+        argBuffer.data[8] = 1;
+    }
+}

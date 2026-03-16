@@ -4,8 +4,13 @@
         "computeShader": "frustum_cull_meshes.comp"
     } },
     { "Pipeline": {
-        "name": "setup_1D_indirect_dispatch",
-        "computeShader": "setup_1D_indirect_dispatch.comp"
+        "name": "frustum_cull_meshes_debug",
+        "isDebugOnlyAsset": true,
+        "computeShader": "debug/frustum_cull_meshes_debug.comp"
+    } },
+    { "Pipeline": {
+        "name": "setup_culling_indirect_args",
+        "computeShader": "setup_culling_indirect_args.comp"
     } },
     { "Pipeline": {
         "name": "frustum_cull_prefix_sum",
@@ -16,10 +21,10 @@
         "computeShader": "cull_meshlets.comp"
     } },
     { "Pipeline": {
-        "name": "frustum_cull_meshes_debug",
-        "isDebugOnlyAsset": true,
-        "computeShader": "debug/frustum_cull_meshes_debug.comp"
+        "name": "setup_1D_indirect_dispatch",
+        "computeShader": "setup_1D_indirect_dispatch.comp"
     } },
+    
     { "Pipeline": {
         "name": "litModel",
         "__taskShader": "model.task",

@@ -37,7 +37,7 @@ void main()
     if ( WaveIsFirstLane() )
     {
         globalBaseIndex = atomicAdd( pConstants.outputIndirectArgs.data[0], numVisibleInWave );
-        globalBaseIndex = atomicAdd( pConstants.outputIndirectArgs.data[1], numMeshletsInWave );
+        atomicAdd( pConstants.outputIndirectArgs.data[1], numMeshletsInWave );
     }
     globalBaseIndex = WaveReadLaneFirst( globalBaseIndex );
 

@@ -9,54 +9,54 @@
 
 layout( scalar, push_constant ) uniform PushConstants
 {
+    UintBuffer inputCountBuffer;
     UVec2Buffer inputBuffer;
-    uint numItems;
-    uint _pad;
-} pConstants;
+}
+pConstants;
 
 shared uint temp[2 * THREAD_GROUP_SIZE];
 
-layout (local_size_x = THREAD_GROUP_SIZE) in;
-void main() 
+layout( local_size_x = THREAD_GROUP_SIZE ) in;
+void main()
 {
-    uint tid = gl_LocalInvocationIndex;
-    uint gid = gl_GlobalInvocationID.x;
-    bool isOOB = gid >= pConstants.numItems;
-    temp[2 * tid + 0] = isOOB ? 0 : pConstants.inputBuffer.data[2 * gid + 0].y;    
-    temp[2 * tid + 1] = isOOB ? 0 : pConstants.inputBuffer.data[2 * gid + 1].y;    
-    
+    uint tid          = gl_LocalInvocationIndex;
+    uint gid          = gl_GlobalInvocationID.x;
+    uint numItems     = pConstants.inputCountBuffer.data[0];
+    bool isOOB1       = (2 * gid + 0) >= numItems;
+    bool isOOB2       = (2 * gid + 1) >= numItems;
+    temp[2 * tid + 0] = isOOB1 ? 0 : pConstants.inputBuffer.data[2 * gid + 0].y;
+    temp[2 * tid + 1] = isOOB2 ? 0 : pConstants.inputBuffer.data[2 * gid + 1].y;
+
     uint offset = 1;
     for ( int d = THREAD_GROUP_SIZE; d > 0; d >>= 1 )
     {
         groupMemoryBarrier();
-        
-        if (tid < d)
+
+        if ( tid < d )
         {
-            uint a = offset * (2 * tid + 1) - 1;
-            uint b = offset * (2 * tid + 2) - 1;
+            uint a = offset * ( 2 * tid + 1 ) - 1;
+            uint b = offset * ( 2 * tid + 2 ) - 1;
             temp[b] += temp[a];
         }
         offset <<= 1;
     }
-    
-    offset >>= 1;
-    for ( int d = 2; d < THREAD_GROUP_SIZE; d <<= 1 )
+
+    for ( int d = 1; d < 2 * THREAD_GROUP_SIZE; d <<= 1 )
     {
         offset >>= 1;
         groupMemoryBarrier();
-        if (tid < d - 1)
+        if ( tid < d - 1 )
         {
-            uint a = offset * (2 * tid + 2) - 1;
-            uint b = offset * (2 * tid + 3) - 1;
+            uint a = offset * ( 2 * tid + 2 ) - 1;
+            uint b = offset * ( 2 * tid + 3 ) - 1;
             temp[b] += temp[a];
         }
     }
-    
+
     groupMemoryBarrier();
-    
-    if (!isOOB)
-    {
+
+    if ( !isOOB1 )
         pConstants.inputBuffer.data[2 * gid + 0].y = temp[2 * tid + 0];
+    if ( !isOOB2 )
         pConstants.inputBuffer.data[2 * gid + 1].y = temp[2 * tid + 1];
-    }
 }

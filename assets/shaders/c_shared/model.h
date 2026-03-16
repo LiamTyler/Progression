@@ -51,6 +51,12 @@ struct MeshletCullData
     vec3 coneApex;
 };
 
+struct VisibleMeshletPayload
+{
+    uint meshIdx;
+    uint meshletIdx;
+};
+
 #define MAX_VERTS_PER_MESHLET 64
 #define MAX_TRIS_PER_MESHLET 124
 

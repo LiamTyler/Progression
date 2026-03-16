@@ -10,23 +10,16 @@
 
 DEFINE_STANDARD_BUFFER_REFERENCE( 32, MeshletBuffer, Meshlet );
 
-#if INDIRECT_MAIN_DRAW
-
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshDataBuffer, PerObjectData );
 DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletDrawCommandBuffer, MeshletDrawCommand );
 
-#extension GL_ARB_shader_draw_parameters : enable
 layout( scalar, push_constant ) uniform Registers
 {
+    UVec2Buffer visibleMeshletBuffer;
     MeshDataBuffer meshDataBuffer;
-    MeshletDrawCommandBuffer indirectMeshletDrawBuffer;
+    UintBuffer workItemsCount;
+    uint64_t _pad;
 };
-
-#else // #if INDIRECT_MAIN_DRAW
-
-layout( scalar, push_constant ) uniform Registers { PerObjectData objectData; };
-
-#endif // #else // #if INDIRECT_MAIN_DRAW
 
 Meshlet GetMeshlet( uint meshletID, uint baseBuffer )
 {
@@ -161,12 +154,6 @@ vec4 GetTangentAndSign( const Meshlet meshlet, uint baseBuffer, mat3 modelMatrix
 #endif // #else // #if PACKED_VERTS
 }
 
-#if HAS_TASK_SHADER
-
-taskPayloadSharedEXT TaskOutput IN;
-
-#endif // #if HAS_TASK_SHADER
-
 layout( local_size_x = MESH_SHADER_WORKGROUP_SIZE, local_size_y = 1, local_size_z = 1 ) in;
 layout( triangles, max_vertices = MAX_VERTS_PER_MESHLET, max_primitives = MAX_TRIS_PER_MESHLET ) out;
 
@@ -188,25 +175,14 @@ v_out[];
 
 void main()
 {
-#if HAS_TASK_SHADER
-    const uint meshletID = IN.baseID + IN.deltaIDs[gl_WorkGroupID.x];
-#else  // #if HAS_TASK_SHADER
-    const uint meshletID = ( gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x );
-#endif // #else // #if HAS_TASK_SHADER
-
-#if INDIRECT_MAIN_DRAW
-#if HAS_TASK_SHADER
-    const uint meshIndex = IN.meshIndex;
-#else  // #if HAS_TASK_SHADER
-    const uint meshIndex = indirectMeshletDrawBuffer.data[gl_DrawIDARB].meshIndex;
-#endif // #else // #if HAS_TASK_SHADER
-    const PerObjectData objectData = meshDataBuffer.data[meshIndex];
-#endif // #else // #if INDIRECT_MAIN_DRAW
-
-#if !HAS_TASK_SHADER
-    if ( meshletID >= objectData.numMeshlets )
+    const uint workItemID = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
+    if ( workItemID >= workItemsCount.data[0] )
         return;
-#endif // #if !HAS_TASK_SHADER
+
+    uvec2 workPayload = visibleMeshletBuffer.data[workItemID];
+    const uint meshIndex = workPayload.x;
+    const uint meshletID = workPayload.y;
+    const PerObjectData objectData = meshDataBuffer.data[meshIndex];
 
     const uint threadID   = gl_LocalInvocationIndex;
     const uint baseBuffer = objectData.bindlessRangeStart;

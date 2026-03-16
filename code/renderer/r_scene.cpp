@@ -10,7 +10,9 @@
 
 #include "c_shared/cull_data.h"
 #include "c_shared/dvar_defines.h"
+#include "c_shared/limits.h"
 #include "c_shared/mesh_shading_defines.h"
+#include "c_shared/model.h"
 #include "c_shared/scene_globals.h"
 
 #define MAX_MODELS_PER_FRAME 131072u
@@ -23,30 +25,32 @@ void Init_SceneData()
 {
     for ( int i = 0; i < NUM_FRAME_OVERLAP; ++i )
     {
+        std::string postfix = "_" + std::to_string( i );
+
         FrameData& fData = rg.frameData[i];
 
         BufferCreateInfo modelBufInfo = {};
         modelBufInfo.size             = MAX_MODELS_PER_FRAME * sizeof( mat4 );
         modelBufInfo.bufferUsage      = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
         modelBufInfo.flags            = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        fData.modelMatricesBuffer     = rg.device.NewBuffer( modelBufInfo, "modelMatricesBuffer" );
+        fData.modelMatricesBuffer     = rg.device.NewBuffer( modelBufInfo, "modelMatrices" + postfix );
 
         modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::MeshCullData );
-        fData.meshCullData       = rg.device.NewBuffer( modelBufInfo, "meshCullData" );
+        fData.meshCullData       = rg.device.NewBuffer( modelBufInfo, "meshCullingInputData" + postfix );
         modelBufInfo.size        = MAX_MESHES_PER_FRAME * sizeof( GpuData::PerObjectData );
-        fData.meshDrawDataBuffer = rg.device.NewBuffer( modelBufInfo, "meshDrawDataBuffer" );
+        fData.meshDrawDataBuffer = rg.device.NewBuffer( modelBufInfo, "meshDrawData" + postfix );
 
         BufferCreateInfo sgBufInfo = {};
         sgBufInfo.size             = sizeof( GpuData::SceneGlobals );
         sgBufInfo.bufferUsage      = BufferUsage::UNIFORM | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
         sgBufInfo.flags            = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        fData.sceneGlobalsBuffer   = rg.device.NewBuffer( sgBufInfo, "sceneGlobalsBuffer" );
+        fData.sceneGlobalsBuffer   = rg.device.NewBuffer( sgBufInfo, "sceneGlobals" + postfix );
 
         BufferCreateInfo modelQuantizationBufInfo = {};
         modelQuantizationBufInfo.size             = MAX_MODELS_PER_FRAME * 2 * sizeof( vec3 );
         modelQuantizationBufInfo.bufferUsage      = BufferUsage::STORAGE | BufferUsage::TRANSFER_DST | BufferUsage::DEVICE_ADDRESS;
         modelQuantizationBufInfo.flags  = VMA_ALLOCATION_CREATE_MAPPED_BIT | VMA_ALLOCATION_CREATE_HOST_ACCESS_SEQUENTIAL_WRITE_BIT;
-        fData.modelDequantizationBuffer = rg.device.NewBuffer( modelQuantizationBufInfo, "modelDequantizationBuffer" );
+        fData.modelDequantizationBuffer = rg.device.NewBuffer( modelQuantizationBufInfo, "modelDequantization" + postfix );
     }
 }
 
@@ -228,21 +232,16 @@ void ComputeFrustumCullMeshes_SetupIndirectArgs( ComputeTask* task, TGExecuteDat
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    Pipeline* pipeline = PipelineManager::GetPipeline( "setup_1D_indirect_dispatch" );
+    Pipeline* pipeline = PipelineManager::GetPipeline( "setup_culling_indirect_args" );
     cmdBuf.BindPipeline( pipeline );
+    cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
     {
-        VkDeviceAddress inputCount;
-        VkDeviceAddress outputArgs;
-        uint itemsPerWorkgroup;
-        uint maxPerDimension;
+        VkDeviceAddress argBuffer;
     };
     ComputePushConstants push;
-    push.inputArgs         = task->GetInputBuffer( 0 ).GetDeviceAddress();
-    push.outputArgs        = task->GetInputBuffer( 0 ).GetDeviceAddress() + sizeof( DispatchIndirectCommand );
-    push.itemsPerWorkgroup = 2 * PREFIX_SHADER_WORKGROUP_SIZE;
-    push.maxPerDimension   = MAX_CULLING_COMPUTE_DIMENSION;
+    push.argBuffer = task->GetInputBuffer( 0 ).GetDeviceAddress();
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch( 1, 1, 1 );
 }
@@ -253,16 +252,16 @@ void ComputeFrustumCullMeshes_PrefixSum( ComputeTask* task, TGExecuteData* data 
 
     Pipeline* pipeline = PipelineManager::GetPipeline( "frustum_cull_prefix_sum" );
     cmdBuf.BindPipeline( pipeline );
+    cmdBuf.BindGlobalDescriptors();
 
     struct ComputePushConstants
     {
+        VkDeviceAddress inputCountBuffer;
         VkDeviceAddress inputBuffer;
-        uint numItems;
-        uint _pad;
     };
     ComputePushConstants push;
-    push.inputBuffer = task->GetInputBuffer( 1 ).GetDeviceAddress();
-    push.numItems    = 2 * PREFIX_SHADER_WORKGROUP_SIZE;
+    push.inputCountBuffer = task->GetInputBuffer( 0 ).GetDeviceAddress();
+    push.inputBuffer      = task->GetInputBuffer( 1 ).GetDeviceAddress();
     cmdBuf.PushConstants( push );
     cmdBuf.DispatchIndirect( task->GetInputBuffer( 0 ), sizeof( DispatchIndirectCommand ) );
 }
@@ -281,21 +280,69 @@ void ComputeFrustumCullMeshes_Debug( ComputeTask* task, TGExecuteData* data )
 
     struct ComputePushConstants
     {
-        VkDeviceAddress countBuffer;
-        VkDeviceAddress meshDrawDataBuffer;
+        VkDeviceAddress indirectArgsBuffer;
+        VkDeviceAddress meshDrawCmdBuffer;
     };
     ComputePushConstants push;
-    push.countBuffer        = task->GetInputBuffer( 0 ).GetDeviceAddress();
-    push.meshDrawDataBuffer = task->GetInputBuffer( 1 ).GetDeviceAddress();
+    push.indirectArgsBuffer = task->GetInputBuffer( 0 ).GetDeviceAddress();
+    push.meshDrawCmdBuffer  = task->GetInputBuffer( 1 ).GetDeviceAddress();
     cmdBuf.PushConstants( push );
     cmdBuf.Dispatch( 1, 1, 1 );
 }
 #endif // #if USING( DEVELOPMENT_BUILD )
 
+void CullMeshlets( ComputeTask* task, TGExecuteData* data )
+{
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    Pipeline* pipeline = PipelineManager::GetPipeline( "cull_meshlets" );
+    cmdBuf.BindPipeline( pipeline );
+    cmdBuf.BindGlobalDescriptors();
+
+    struct ComputePushConstants
+    {
+        VkDeviceAddress inputMaxCounts;
+        VkDeviceAddress meshCullResults;
+        VkDeviceAddress meshCullDataBuffer;
+        VkDeviceAddress visibleMeshletBuffer;
+        VkDeviceAddress outputMeshletCountBuffer;
+    };
+    ComputePushConstants push;
+    push.inputMaxCounts           = task->GetInputBuffer( 0 ).GetDeviceAddress();
+    push.meshCullResults          = task->GetInputBuffer( 1 ).GetDeviceAddress();
+    push.meshCullDataBuffer       = data->frameData->meshCullData.GetDeviceAddress();
+    push.visibleMeshletBuffer     = task->GetOutputBuffer( 0 ).GetDeviceAddress();
+    push.outputMeshletCountBuffer = task->GetOutputBuffer( 1 ).GetDeviceAddress();
+    cmdBuf.PushConstants( push );
+    cmdBuf.DispatchIndirect( task->GetInputBuffer( 0 ), 2 * sizeof( DispatchIndirectCommand ) );
+}
+
+void DrawMeshes_SetupIndirectArgs( ComputeTask* task, TGExecuteData* data )
+{
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    Pipeline* pipeline = PipelineManager::GetPipeline( "setup_1D_indirect_dispatch" );
+    cmdBuf.BindPipeline( pipeline );
+
+    struct ComputePushConstants
+    {
+        VkDeviceAddress inputCounts;
+        VkDeviceAddress outputCounts;
+        uint maxDimensionsX;
+        uint itemsPerWorkgroup;
+    };
+    ComputePushConstants push;
+    push.inputCounts       = task->GetInputBuffer( 0 ).GetDeviceAddress();
+    push.outputCounts      = task->GetInputBuffer( 0 ).GetDeviceAddress() + sizeof( u32 );
+    push.maxDimensionsX    = 65535;
+    push.itemsPerWorkgroup = 1;
+    cmdBuf.PushConstants( push );
+    cmdBuf.Dispatch( 1, 1, 1 );
+}
+
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
-    return;
-
+    // return;
     PGP_ZONE_SCOPEDN( "Mesh Pass" );
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
@@ -331,20 +378,21 @@ void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
     cmdBuf.SetViewport( SceneSizedViewport() );
     cmdBuf.SetScissor( SceneSizedScissor() );
 
-    const Buffer& indirectCountBuff       = task->GetInputBuffer( 0 );
-    const Buffer& indirectMeshletDrawBuff = task->GetInputBuffer( 1 );
+    const Buffer& indirectArgs = task->GetInputBuffer( 0 );
     struct ComputePushConstants
     {
+        VkDeviceAddress visibleMeshletBuffer;
         VkDeviceAddress meshDataBuffer;
-        VkDeviceAddress indirectMeshletDrawBuffer;
+        VkDeviceAddress workItemsCount;
+        u64 _pad;
     };
     ComputePushConstants push;
-    push.meshDataBuffer            = data->frameData->meshDrawDataBuffer.GetDeviceAddress();
-    push.indirectMeshletDrawBuffer = indirectMeshletDrawBuff.GetDeviceAddress();
+    push.visibleMeshletBuffer = task->GetInputBuffer( 1 ).GetDeviceAddress();
+    push.meshDataBuffer       = data->frameData->meshDrawDataBuffer.GetDeviceAddress();
+    push.workItemsCount       = indirectArgs.GetDeviceAddress();
     cmdBuf.PushConstants( push );
 
-    cmdBuf.DrawMeshTasksIndirectCount(
-        indirectMeshletDrawBuff, 0, indirectCountBuff, 0, MAX_MESHES_PER_FRAME, sizeof( GpuData::MeshletDrawCommand ) );
+    cmdBuf.DrawMeshTasksIndirect( indirectArgs, 1, sizeof( u32 ) );
 }
 
 void AddSceneRenderTasks( TaskGraphBuilder& builder, TGBTextureRef& litOutput, TGBTextureRef& sceneDepth )
@@ -353,33 +401,47 @@ void AddSceneRenderTasks( TaskGraphBuilder& builder, TGBTextureRef& litOutput, T
     GraphicsTaskBuilder* gTask = nullptr;
 
     cTask = builder.AddComputeTask( "FrustumCullMeshes" );
-    TGBBufferRef meshletCullIndirectArgs =
-        cTask->AddBufferOutput( "meshletCullIndirectArgs", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 3 * sizeof( DispatchIndirectCommand ), 0 );
-    TGBBufferRef meshCullOutputBuffer = cTask->AddBufferOutput(
-        "meshCullOutputBuffer", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( uvec2 ) * MAX_MESHES_PER_FRAME ); // 1MB
+    TGBBufferRef cullingIndirectArgs =
+        cTask->AddBufferOutput( "cullingIndirectArgs", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 3 * sizeof( DispatchIndirectCommand ), 0 );
+    TGBBufferRef meshCullOutputBuffer =
+        cTask->AddBufferOutput( "meshCullOutput", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( uvec2 ) * MAX_MESHES_PER_FRAME ); // 1MB
     cTask->SetFunction( ComputeFrustumCullMeshes );
 
     cTask = builder.AddComputeTask( "FrustumCullMeshes_PrefixSum_SetupIndirectArgs" );
-    cTask->AddBufferInput( meshletCullIndirectArgs );
-    cTask->AddBufferOutput( meshletCullIndirectArgs );
+    cTask->AddBufferInput( cullingIndirectArgs );
+    cTask->AddBufferOutput( cullingIndirectArgs );
     cTask->SetFunction( ComputeFrustumCullMeshes_SetupIndirectArgs );
 
-#if USING( DEVELOPMENT_BUILD ) && 1
+#if USING( DEVELOPMENT_BUILD ) && 0
     cTask = builder.AddComputeTask( "FrustumCull_DebugOutput" );
-    cTask->AddBufferInput( meshletCullIndirectArgs );
+    cTask->AddBufferInput( cullingIndirectArgs );
     cTask->AddBufferInput( meshCullOutputBuffer );
     cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
 #endif // #if USING( DEVELOPMENT_BUILD )
 
     cTask = builder.AddComputeTask( "FrustumCullMeshes_PrefixSum" );
-    cTask->AddBufferInput( meshletCullIndirectArgs );
+    cTask->AddBufferInput( cullingIndirectArgs, BufferUsage::INDIRECT | BufferUsage::STORAGE );
     cTask->AddBufferInput( meshCullOutputBuffer );
     cTask->AddBufferOutput( meshCullOutputBuffer );
     cTask->SetFunction( ComputeFrustumCullMeshes_PrefixSum );
 
+    cTask = builder.AddComputeTask( "CullMeshlets" );
+    cTask->AddBufferInput( cullingIndirectArgs );
+    cTask->AddBufferInput( meshCullOutputBuffer );
+    TGBBufferRef visibleMeshletBuffer       = cTask->AddBufferOutput( "visibleMeshlet", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE,
+              sizeof( GpuData::VisibleMeshletPayload ) * PG_MAX_MESHLETS_POST_CULLING ); // 8MB
+    TGBBufferRef visibleMeshletIndirectArgs = cTask->AddBufferOutput(
+        "visibleMeshletIndirectArgs", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ) + sizeof( DispatchIndirectCommand ), 0 );
+    cTask->SetFunction( CullMeshlets );
+
+    cTask = builder.AddComputeTask( "DrawMeshes_SetupIndirectArgs" );
+    cTask->AddBufferInput( visibleMeshletIndirectArgs );
+    cTask->AddBufferOutput( visibleMeshletIndirectArgs );
+    cTask->SetFunction( DrawMeshes_SetupIndirectArgs );
+
     gTask = builder.AddGraphicsTask( "DrawMeshes" );
-    gTask->AddBufferInput( meshletCullIndirectArgs, BufferUsage::INDIRECT );
-    gTask->AddBufferInput( meshCullOutputBuffer, BufferUsage::STORAGE );
+    gTask->AddBufferInput( visibleMeshletIndirectArgs, BufferUsage::INDIRECT | BufferUsage::STORAGE );
+    gTask->AddBufferInput( visibleMeshletBuffer );
     litOutput  = gTask->AddColorAttachment( "litOutput", PixelFormat::R16_G16_B16_A16_FLOAT, SIZE_SCENE(), SIZE_SCENE() );
     sceneDepth = gTask->AddDepthAttachment( "sceneDepth", PixelFormat::DEPTH_32_FLOAT, SIZE_SCENE(), SIZE_SCENE(), 1.0f );
     gTask->SetFunction( MeshDrawFunc );

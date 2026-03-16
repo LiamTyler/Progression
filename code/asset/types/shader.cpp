@@ -109,7 +109,7 @@ static bool CompilePreprocessedShaderToSPIRV(
     // If optimization is used, then spirv-opt gets called, and it actually crashes on windows.
     // Only seems to crash when using the binaries that come with Vulkan while also linking + using the spirv-cross lib.
     // Maybe spirv-cross and shaderc both link spirv-tools, that might be built differently? Some posts online say it doesnt do much either
-    options.SetOptimizationLevel( shaderc_optimization_level_performance );
+    options.SetOptimizationLevel( shaderc_optimization_level_zero ); // shaderc_optimization_level_performance );
     options.SetGenerateDebugInfo();
 
     // No entry poi32 info needed, because GLSL mandates that the entry poi32 is always void main()

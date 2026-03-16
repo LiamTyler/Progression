@@ -3,12 +3,66 @@
 #include "global_descriptors.glsl"
 #include "lib/culling.glsl"
 #include "lib/intrinsics.glsl"
+#include "c_shared/dvar_defines.h"
+#include "c_shared/model.h"
+
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshCullDataBuffer, MeshCullData );
+DEFINE_STANDARD_BUFFER_REFERENCE( 4, MeshletCullDataBuffer, PackedMeshletCullData );
 
 layout( scalar, push_constant ) uniform PushConstants
 {
-    UintBuffer maxCounts;
+    UintBuffer inputMaxCounts;
     UVec2Buffer meshCullResults;
+    MeshCullDataBuffer meshCullDataBuffer;
+    UVec2Buffer visibleMeshletBuffer;
+    UintBuffer outputMeshletCountBuffer;
 } pConstants;
+
+MeshletCullData GetMeshletCullData( uint meshletID, uint bindlessRangeStart )
+{
+    uint64_t ptr = bindlessBuffers[bindlessRangeStart + MESH_BUFFER_MESHLET_CULL_DATA];
+    MeshletCullDataBuffer cBuffer = MeshletCullDataBuffer( ptr );
+    PackedMeshletCullData packedData = cBuffer.data[meshletID];
+    
+    MeshletCullData cullData;
+    cullData.position   = packedData.position;
+    cullData.radius     = packedData.radius;
+    cullData.coneAxis   = packedData.coneAxis;
+    cullData.coneCutoff = packedData.coneCutoff;
+    cullData.coneApex   = packedData.coneApex;
+    
+    return cullData;
+}
+
+bool IsMeshletVisible( uint modelIndex, const MeshletCullData meshletCullData )
+{
+    if ( !IsMeshletFrustumCullingEnabled() && !IsMeshletBackfaceCullingEnabled() )
+        return true;
+
+    vec3 normalScale;
+    const mat4 M = GetModelMatrixAndNormalScale( modelIndex, normalScale );
+
+    if ( IsMeshletFrustumCullingEnabled() )
+    {
+        vec3 worldPos        = vec3( M * vec4( meshletCullData.position, 1 ) );
+        vec3 componentRadius = mat3( M ) * vec3( meshletCullData.radius );
+        float worldRadius    = max( componentRadius.x, max( componentRadius.y, componentRadius.z ) );
+        if ( !IsSphereInFrustum( worldPos, worldRadius ) )
+            return false;
+    }
+
+    if ( IsMeshletBackfaceCullingEnabled() )
+    {
+        vec3 worldApex     = vec3( M * vec4( meshletCullData.coneApex, 1 ) );
+        vec3 worldConeAxis = normalize( mat3( M ) * (normalScale * meshletCullData.coneAxis) );
+        if ( dot( normalize( worldApex - globals.cullingCameraPos.xyz ), worldConeAxis ) >= meshletCullData.coneCutoff )
+        {
+            return false;
+        }
+    }
+    
+    return true;
+}
 
 layout (local_size_x = MESHLET_CULL_SHADER_WORKGROUP_SIZE) in;
 void main() 
@@ -16,8 +70,8 @@ void main()
     uint linearWorkGroupID = gl_WorkGroupID.y * gl_NumWorkGroups.x + gl_WorkGroupID.x;
     uint globalMeshletIdx = MESHLET_CULL_SHADER_WORKGROUP_SIZE * linearWorkGroupID + gl_LocalInvocationIndex;
     
-    uint totalMeshCount = maxCounts.data[0];
-    uint totalMeshletCount = maxCounts.data[1];
+    uint totalMeshCount = pConstants.inputMaxCounts.data[0];
+    uint totalMeshletCount = pConstants.inputMaxCounts.data[1];
     
     if ( globalMeshletIdx >= totalMeshletCount )
         return;
@@ -26,18 +80,35 @@ void main()
     uint lastMeshIdx = 0;
     uint meshletCountSoFar = 0;
     uint prevMeshletCountSoFar = 0;
-    while ( meshletCountSoFar < globalMeshletIdx )
+    while ( meshletCountSoFar <= globalMeshletIdx )
     {
         prevMeshletCountSoFar = meshletCountSoFar;
-        uvec2 meshPayload = meshCullResults.data[searchMeshIdx];
+        uvec2 meshPayload = pConstants.meshCullResults.data[searchMeshIdx];
         lastMeshIdx = meshPayload.x;
-        meshletCountSoFar += meshPayload.y;
+        meshletCountSoFar = meshPayload.y;
         
         searchMeshIdx += 1;
     }
     
-    uint meshIdx = 
-    uint localMeshletIdx = globalMeshletIdx - (meshletCountSoFar - prevMeshletCountSoFar);
+    uint meshIdx = lastMeshIdx;
+    uint localMeshletIdx = globalMeshletIdx - prevMeshletCountSoFar;
+    MeshCullData meshCullData = pConstants.meshCullDataBuffer.data[meshIdx];
     
+    MeshletCullData meshletCullData = GetMeshletCullData( localMeshletIdx, meshCullData.bindlessRangeStart );
+    bool visible = IsMeshletVisible( meshCullData.modelIndex, meshletCullData );
+    uint numVisibleInWave = WaveActiveCountBits( visible );
+    uint localIndexInWave = WavePrefixCountBits( visible );
+    
+    uint globalIndex;
+    if ( WaveIsFirstLane() )
+    {
+        globalIndex = atomicAdd( pConstants.outputMeshletCountBuffer.data[0], numVisibleInWave );
+    }
+    globalIndex = WaveReadLaneFirst( globalIndex );
+    
+    if ( visible )
+    {
+        pConstants.visibleMeshletBuffer.data[globalIndex + localIndexInWave] = uvec2( meshIdx, localMeshletIdx );
+    }
 }
 

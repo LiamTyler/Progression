@@ -13,8 +13,22 @@
         "computeShader": "setup_culling_indirect_args.comp"
     } },
     { "Pipeline": {
-        "name": "frustum_cull_prefix_sum",
-        "computeShader": "prefix_sum.comp"
+        "name": "frustum_cull_prefix_sum_part1",
+        "computeShader": "prefix_sum.comp",
+        "define": "PHASE 1",
+        "define": "INPUT_BUFFER_STRIDE 2",
+        "define": "INPUT_BUFFER_OFFSET 1"
+    } },
+    { "Pipeline": {
+        "name": "frustum_cull_prefix_sum_part2",
+        "computeShader": "prefix_sum.comp",
+        "define": "PHASE 2",
+        "define": "INPUT_BUFFER_STRIDE 1"
+    } },
+    { "Pipeline": {
+        "name": "frustum_cull_prefix_sum_part3",
+        "computeShader": "prefix_sum.comp",
+        "define": "PHASE 3"
     } },
     { "Pipeline": {
         "name": "cull_meshlets",
@@ -24,7 +38,6 @@
         "name": "setup_1D_indirect_dispatch",
         "computeShader": "setup_1D_indirect_dispatch.comp"
     } },
-    
     { "Pipeline": {
         "name": "litModel",
         "__taskShader": "model.task",

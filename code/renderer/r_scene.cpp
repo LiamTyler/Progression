@@ -246,11 +246,11 @@ void ComputeFrustumCullMeshes_SetupIndirectArgs( ComputeTask* task, TGExecuteDat
     cmdBuf.Dispatch( 1, 1, 1 );
 }
 
-void ComputeFrustumCullMeshes_PrefixSum( ComputeTask* task, TGExecuteData* data )
+void ComputeFrustumCullMeshes_PrefixSum_Part1( ComputeTask* task, TGExecuteData* data )
 {
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
-    Pipeline* pipeline = PipelineManager::GetPipeline( "frustum_cull_prefix_sum" );
+    Pipeline* pipeline = PipelineManager::GetPipeline( "frustum_cull_prefix_sum_part1" );
     cmdBuf.BindPipeline( pipeline );
     cmdBuf.BindGlobalDescriptors();
 
@@ -258,10 +258,55 @@ void ComputeFrustumCullMeshes_PrefixSum( ComputeTask* task, TGExecuteData* data 
     {
         VkDeviceAddress inputCountBuffer;
         VkDeviceAddress inputBuffer;
+        VkDeviceAddress outputBuffer;
     };
     ComputePushConstants push;
     push.inputCountBuffer = task->GetInputBuffer( 0 ).GetDeviceAddress();
     push.inputBuffer      = task->GetInputBuffer( 1 ).GetDeviceAddress();
+    push.outputBuffer     = task->GetOutputBuffer( 1 ).GetDeviceAddress();
+    cmdBuf.PushConstants( push );
+    cmdBuf.DispatchIndirect( task->GetInputBuffer( 0 ), sizeof( DispatchIndirectCommand ) );
+}
+
+void ComputeFrustumCullMeshes_PrefixSum_Part2( ComputeTask* task, TGExecuteData* data )
+{
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    Pipeline* pipeline = PipelineManager::GetPipeline( "frustum_cull_prefix_sum_part2" );
+    cmdBuf.BindPipeline( pipeline );
+    cmdBuf.BindGlobalDescriptors();
+
+    struct ComputePushConstants
+    {
+        VkDeviceAddress inputCountBuffer;
+        VkDeviceAddress inputBuffer;
+        VkDeviceAddress outputBuffer;
+    };
+    ComputePushConstants push;
+    push.inputCountBuffer = task->GetInputBuffer( 0 ).GetDeviceAddress() + sizeof( DispatchIndirectCommand );
+    push.inputBuffer      = task->GetInputBuffer( 1 ).GetDeviceAddress();
+    cmdBuf.PushConstants( push );
+    cmdBuf.DispatchIndirect( task->GetInputBuffer( 0 ), 2 * sizeof( DispatchIndirectCommand ) );
+}
+
+void ComputeFrustumCullMeshes_PrefixSum_Part3( ComputeTask* task, TGExecuteData* data )
+{
+    CommandBuffer& cmdBuf = *data->cmdBuf;
+
+    Pipeline* pipeline = PipelineManager::GetPipeline( "frustum_cull_prefix_sum_part3" );
+    cmdBuf.BindPipeline( pipeline );
+    cmdBuf.BindGlobalDescriptors();
+
+    struct ComputePushConstants
+    {
+        VkDeviceAddress inputCountBuffer;
+        VkDeviceAddress inputBuffer;
+        VkDeviceAddress workgroupSums;
+    };
+    ComputePushConstants push;
+    push.inputCountBuffer = task->GetInputBuffer( 0 ).GetDeviceAddress();
+    push.inputBuffer      = task->GetInputBuffer( 1 ).GetDeviceAddress();
+    push.workgroupSums    = task->GetInputBuffer( 2 ).GetDeviceAddress();
     cmdBuf.PushConstants( push );
     cmdBuf.DispatchIndirect( task->GetInputBuffer( 0 ), sizeof( DispatchIndirectCommand ) );
 }
@@ -314,7 +359,7 @@ void CullMeshlets( ComputeTask* task, TGExecuteData* data )
     push.visibleMeshletBuffer     = task->GetOutputBuffer( 0 ).GetDeviceAddress();
     push.outputMeshletCountBuffer = task->GetOutputBuffer( 1 ).GetDeviceAddress();
     cmdBuf.PushConstants( push );
-    cmdBuf.DispatchIndirect( task->GetInputBuffer( 0 ), 2 * sizeof( DispatchIndirectCommand ) );
+    cmdBuf.DispatchIndirect( task->GetInputBuffer( 0 ), 3 * sizeof( DispatchIndirectCommand ) );
 }
 
 void DrawMeshes_SetupIndirectArgs( ComputeTask* task, TGExecuteData* data )
@@ -343,7 +388,6 @@ void DrawMeshes_SetupIndirectArgs( ComputeTask* task, TGExecuteData* data )
 void MeshDrawFunc( GraphicsTask* task, TGExecuteData* data )
 {
     // return;
-    PGP_ZONE_SCOPEDN( "Mesh Pass" );
     CommandBuffer& cmdBuf = *data->cmdBuf;
 
     bool useDebugShader = false;
@@ -402,7 +446,7 @@ void AddSceneRenderTasks( TaskGraphBuilder& builder, TGBTextureRef& litOutput, T
 
     cTask = builder.AddComputeTask( "FrustumCullMeshes" );
     TGBBufferRef cullingIndirectArgs =
-        cTask->AddBufferOutput( "cullingIndirectArgs", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 3 * sizeof( DispatchIndirectCommand ), 0 );
+        cTask->AddBufferOutput( "cullingIndirectArgs", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, 4 * sizeof( DispatchIndirectCommand ), 0 );
     TGBBufferRef meshCullOutputBuffer =
         cTask->AddBufferOutput( "meshCullOutput", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( uvec2 ) * MAX_MESHES_PER_FRAME ); // 1MB
     cTask->SetFunction( ComputeFrustumCullMeshes );
@@ -419,11 +463,27 @@ void AddSceneRenderTasks( TaskGraphBuilder& builder, TGBTextureRef& litOutput, T
     cTask->SetFunction( ComputeFrustumCullMeshes_Debug );
 #endif // #if USING( DEVELOPMENT_BUILD )
 
-    cTask = builder.AddComputeTask( "FrustumCullMeshes_PrefixSum" );
-    cTask->AddBufferInput( cullingIndirectArgs, BufferUsage::INDIRECT | BufferUsage::STORAGE );
+    cTask = builder.AddComputeTask( "FrustumCullMeshes_PrefixSum_Part1" );
+    cTask->AddBufferInput( cullingIndirectArgs, BufferUsage::INDIRECT );
     cTask->AddBufferInput( meshCullOutputBuffer );
     cTask->AddBufferOutput( meshCullOutputBuffer );
-    cTask->SetFunction( ComputeFrustumCullMeshes_PrefixSum );
+    const u32 prefixOutSize = ( MAX_MESHES_PER_FRAME + PREFIX_SHADER_ITEMS_PER_WORKGROUP - 1 ) / PREFIX_SHADER_ITEMS_PER_WORKGROUP;
+    TGBBufferRef workgroupPrefixSumsBuffer =
+        cTask->AddBufferOutput( "workgroupPrefixSums1", VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE, sizeof( u32 ) * prefixOutSize );
+    cTask->SetFunction( ComputeFrustumCullMeshes_PrefixSum_Part1 );
+
+    cTask = builder.AddComputeTask( "FrustumCullMeshes_PrefixSum_Part2" );
+    cTask->AddBufferInput( cullingIndirectArgs, BufferUsage::INDIRECT );
+    cTask->AddBufferInput( workgroupPrefixSumsBuffer );
+    cTask->AddBufferOutput( workgroupPrefixSumsBuffer );
+    cTask->SetFunction( ComputeFrustumCullMeshes_PrefixSum_Part2 );
+
+    cTask = builder.AddComputeTask( "FrustumCullMeshes_PrefixSum_Part3" );
+    cTask->AddBufferInput( cullingIndirectArgs, BufferUsage::INDIRECT );
+    cTask->AddBufferInput( meshCullOutputBuffer );
+    cTask->AddBufferInput( workgroupPrefixSumsBuffer );
+    cTask->AddBufferOutput( meshCullOutputBuffer );
+    cTask->SetFunction( ComputeFrustumCullMeshes_PrefixSum_Part3 );
 
     cTask = builder.AddComputeTask( "CullMeshlets" );
     cTask->AddBufferInput( cullingIndirectArgs );

@@ -5,32 +5,43 @@
 #include "lib/intrinsics.glsl"
 
 #define THREAD_GROUP_SIZE PREFIX_SHADER_WORKGROUP_SIZE
-#define THREAD_GROUP_SIZE_LOG2 PREFIX_SHADER_WORKGROUP_SIZE_LOG2
+
+#if PHASE == 1 || PHASE == 2
 
 layout( scalar, push_constant ) uniform PushConstants
 {
     UintBuffer inputCountBuffer;
-    UVec2Buffer inputBuffer;
-}
-pConstants;
+    UintBuffer inputBuffer;
+    UintBuffer outputBuffer;
+} pConstants;
+
+#ifndef INPUT_BUFFER_STRIDE
+    #define INPUT_BUFFER_STRIDE 1
+#endif // #ifndef INPUT_BUFFER_STRIDE
+#ifndef INPUT_BUFFER_OFFSET
+    #define INPUT_BUFFER_OFFSET 0
+#endif // #ifndef INPUT_BUFFER_OFFSET
 
 shared uint temp[2 * THREAD_GROUP_SIZE];
 
 layout( local_size_x = THREAD_GROUP_SIZE ) in;
 void main()
 {
-    uint tid          = gl_LocalInvocationIndex;
-    uint gid          = gl_GlobalInvocationID.x;
-    uint numItems     = pConstants.inputCountBuffer.data[0];
-    bool isOOB1       = (2 * gid + 0) >= numItems;
-    bool isOOB2       = (2 * gid + 1) >= numItems;
-    temp[2 * tid + 0] = isOOB1 ? 0 : pConstants.inputBuffer.data[2 * gid + 0].y;
-    temp[2 * tid + 1] = isOOB2 ? 0 : pConstants.inputBuffer.data[2 * gid + 1].y;
+    uint tid           = gl_LocalInvocationIndex;
+    uint gid           = gl_GlobalInvocationID.x;
+    uint numItems      = pConstants.inputCountBuffer.data[0];
+    bool isOOB1        = (2 * gid + 0) >= numItems;
+    bool isOOB2        = (2 * gid + 1) >= numItems;
+
+    uint inputBuffIdx1 = INPUT_BUFFER_STRIDE * (2 * gid + 0) + INPUT_BUFFER_OFFSET;
+    uint inputBuffIdx2 = INPUT_BUFFER_STRIDE * (2 * gid + 1) + INPUT_BUFFER_OFFSET;
+    temp[2 * tid + 0]  = isOOB1 ? 0 : pConstants.inputBuffer.data[inputBuffIdx1];
+    temp[2 * tid + 1]  = isOOB2 ? 0 : pConstants.inputBuffer.data[inputBuffIdx2];
 
     uint offset = 1;
     for ( int d = THREAD_GROUP_SIZE; d > 0; d >>= 1 )
     {
-        groupMemoryBarrier();
+        barrier();
 
         if ( tid < d )
         {
@@ -44,7 +55,7 @@ void main()
     for ( int d = 1; d < 2 * THREAD_GROUP_SIZE; d <<= 1 )
     {
         offset >>= 1;
-        groupMemoryBarrier();
+        barrier();
         if ( tid < d - 1 )
         {
             uint a = offset * ( 2 * tid + 2 ) - 1;
@@ -53,10 +64,53 @@ void main()
         }
     }
 
-    groupMemoryBarrier();
+    barrier();
 
     if ( !isOOB1 )
-        pConstants.inputBuffer.data[2 * gid + 0].y = temp[2 * tid + 0];
+        pConstants.inputBuffer.data[inputBuffIdx1] = temp[2 * tid + 0];
     if ( !isOOB2 )
-        pConstants.inputBuffer.data[2 * gid + 1].y = temp[2 * tid + 1];
+        pConstants.inputBuffer.data[inputBuffIdx2] = temp[2 * tid + 1];
+
+#if PHASE == 1
+    if ( tid == 0)
+    {
+        uint outIdx = gl_WorkGroupID.x;
+        pConstants.outputBuffer.data[outIdx] = temp[2 * THREAD_GROUP_SIZE - 1];
+    }
+#endif // #if PHASE == 1
 }
+
+#endif // #if PHASE == 1 || PHASE == 2
+
+#if PHASE == 3
+
+layout( scalar, push_constant ) uniform PushConstants
+{
+    UintBuffer inputCountBuffer;
+    UintBuffer inputBuffer;
+    UintBuffer workgroupSums;
+} pConstants;
+
+#define INPUT_BUFFER_STRIDE 2
+#define INPUT_BUFFER_OFFSET 1
+
+layout( local_size_x = THREAD_GROUP_SIZE ) in;
+void main()
+{
+    uint sumToAdd     = gl_WorkGroupID.x == 0 ? 0 : pConstants.workgroupSums.data[gl_WorkGroupID.x - 1];
+    uint numItems     = pConstants.inputCountBuffer.data[0];
+
+    uint offset        = gl_WorkGroupID.x * THREAD_GROUP_SIZE * 2;
+    uint gid1          = offset + gl_LocalInvocationIndex + 0;
+    uint gid2          = offset + gl_LocalInvocationIndex + THREAD_GROUP_SIZE;
+    if (gid1 < numItems)
+    {
+        pConstants.inputBuffer.data[INPUT_BUFFER_STRIDE * gid1 + INPUT_BUFFER_OFFSET] += sumToAdd;
+    }
+    if (gid2 < numItems)
+    {
+        pConstants.inputBuffer.data[INPUT_BUFFER_STRIDE * gid2 + INPUT_BUFFER_OFFSET] += sumToAdd;
+    }
+}
+
+#endif // #if PHASE == 3

@@ -854,6 +854,7 @@ void TaskGraph::Execute( TGExecuteData& data )
 
     for ( Task* task : m_tasks )
     {
+        // PGP_ZONE_SCOPEDN( task->name );
         PG_DEBUG_MARKER_BEGIN_REGION_CMDBUF( *data.cmdBuf, task->name );
         PG_PROFILE_GPU_START( *data.cmdBuf, tgTask, task->name );
         task->Execute( &data );
